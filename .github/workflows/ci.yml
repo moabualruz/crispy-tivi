@@ -1,0 +1,358 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.41.1"
+  RUST_VERSION: "1.91.1"
+  # ── Test count thresholds ────────────────────────
+  # Minimum number of passing tests required.
+  # CI fails if counts drop below these values.
+  # UPDATE these when adding new tests:
+  #   1. Run the test suite locally to get current count
+  #   2. Set threshold ~5-10% below actual count
+  #   3. Commit the updated threshold
+  RUST_TEST_THRESHOLD: 750 # actual ~792
+  FLUTTER_TEST_THRESHOLD: 1700 # actual ~1784
+
+jobs:
+  # ── Rust Tests ──────────────────────────────────
+  rust-test:
+    name: Rust Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          prefix-key: v2
+      - name: cargo fmt check
+        run: cargo fmt --check
+        working-directory: rust
+      - name: cargo test (threshold-enforced)
+        run: |
+          set +e
+          output=$(cargo test --workspace 2>&1)
+          exit_code=$?
+          set -e
+          echo "$output"
+
+          if [ $exit_code -ne 0 ]; then
+            echo "::error::cargo test failed with exit code $exit_code"
+            exit $exit_code
+          fi
+
+          count=$(echo "$output" | grep -oE "[0-9]+ passed" | grep -oE "[0-9]+")
+          total=0
+          for c in $count; do
+            total=$((total + c))
+          done
+          count=$total
+          echo "Rust tests passed: $count"
+          threshold=${{ env.RUST_TEST_THRESHOLD }}
+          if [ -z "$count" ] || [ "$count" -lt "$threshold" ]; then
+            echo "::error::Rust test count ($count) below minimum threshold ($threshold). See env.RUST_TEST_THRESHOLD in ci.yml."
+            exit 1
+          fi
+        working-directory: rust
+      - name: cargo clippy
+        run: cargo clippy --workspace -- -D warnings
+        working-directory: rust
+
+  # ── Flutter Analyze ─────────────────────────────
+  flutter-analyze:
+    name: Flutter Analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Dart format check
+        run: dart format --set-exit-if-changed lib/ test/
+      - run: flutter analyze
+
+  # ── Flutter Tests ───────────────────────────────
+  flutter-test:
+    name: Flutter Tests
+    runs-on: ubuntu-latest
+    needs: flutter-analyze
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Run tests with coverage (threshold-enforced)
+        run: |
+          set +e
+          output=$(flutter test --coverage test/config/ test/core/ test/features/ 2>&1)
+          exit_code=$?
+          set -e
+          echo "$output"
+
+          if [ $exit_code -ne 0 ]; then
+            echo "::error::flutter test failed with exit code $exit_code"
+            exit $exit_code
+          fi
+
+          count=$(echo "$output" | grep -oE "([0-9]+ tests? passed|\+[0-9]+: All tests passed)" | head -1 | grep -oE "[0-9]+")
+          if [ -z "$count" ]; then
+            count=$(echo "$output" | grep -oP '\+(\d+)' | tail -1 | grep -oP '\d+')
+          fi
+          echo "Flutter tests passed: $count"
+          threshold=${{ env.FLUTTER_TEST_THRESHOLD }}
+          if [ -z "$count" ] || [ "$count" -lt "$threshold" ]; then
+            echo "::error::Flutter test count ($count) below minimum threshold ($threshold). See env.FLUTTER_TEST_THRESHOLD in ci.yml."
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lcov-coverage
+          path: coverage/lcov.info
+          retention-days: 14
+
+  # ── Golden Tests (visual regression) ────────────
+  golden-tests:
+    name: Golden Tests
+    runs-on: windows-latest
+    needs: flutter-analyze
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Run golden tests
+        run: flutter test test/golden/
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: golden-failures
+          path: test/golden/failures/
+          retention-days: 14
+
+  # ── Build Windows ───────────────────────────────
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    needs: [rust-test, flutter-analyze]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          prefix-key: v2
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: build/windows/x64/runner/Release/
+          retention-days: 7
+
+  # ── Build Linux ─────────────────────────────────
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    needs: [rust-test, flutter-analyze]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          prefix-key: v2
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Install Linux deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang cmake ninja-build \
+            libgtk-3-dev pkg-config \
+            libmpv-dev
+      - run: flutter pub get
+      - run: flutter build linux --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: build/linux/x64/release/bundle/
+          retention-days: 7
+
+  # ── Build Android ───────────────────────────────
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: [rust-test, flutter-analyze]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: >-
+            aarch64-linux-android,
+            armv7-linux-androideabi,
+            x86_64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          prefix-key: v2
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build Rust for Android
+        run: bash scripts/build_rust.sh android
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: build/app/outputs/flutter-apk/
+          retention-days: 7
+
+  # ── Build macOS ─────────────────────────────────
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    needs: [rust-test, flutter-analyze]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: >-
+            x86_64-apple-darwin,
+            aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          prefix-key: v2
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build Rust for macOS
+        run: bash scripts/build_rust.sh macos
+      - run: flutter pub get
+      - run: flutter build macos --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-release
+          path: build/macos/Build/Products/Release/
+          retention-days: 7
+
+  # ── Build iOS ───────────────────────────────────
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    needs: [rust-test, flutter-analyze]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: aarch64-apple-ios
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          prefix-key: v2
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build Rust for iOS
+        run: bash scripts/build_rust.sh ios
+      - run: flutter pub get
+      - run: flutter build ios --no-codesign
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-release
+          path: build/ios/iphoneos/
+          retention-days: 7
+
+  # ── Build Web ───────────────────────────────────
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    needs: flutter-analyze
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build web --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-release
+          path: build/web/
+          retention-days: 7
+
+  # ── Build Server ────────────────────────────────
+  build-server:
+    name: Build Server
+    runs-on: ubuntu-latest
+    needs: rust-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          prefix-key: v2
+      - name: Build server binary
+        run: cargo build -p crispy-server --release
+        working-directory: rust
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-linux
+          path: rust/target/release/crispy-server
+          retention-days: 7

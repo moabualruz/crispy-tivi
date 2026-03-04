@@ -1,0 +1,110 @@
+# Settings Crawl Logs
+## Errors (0)
+
+## Full Log
+[18:07:44.338] Starting Settings E2E Test
+[18:07:44.584] [console.debug] Injecting <script> tag. Using callback.
+[18:07:45.193] [console.debug] TrustedTypes available. Creating policy: gis-dart
+[18:07:45.425] [console.log] WsBackend _onMessage: {"data":"{\"player\":{\"upscaleEnabled\":false,\"upscaleQuality\":\"maximum\"}}","id":"req-1"}
+[18:07:45.425] [console.log] WsBackend _onMessage completed command: getSetting (id: req-1) with payload length: 94
+[18:07:45.425] [console.warning] [.WebGL-0x695403398000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[18:07:45.447] [console.log] WsBackend _onMessage: {"data":"[{\"id\":\"src_1771567852776\",\"name\":\"look4k\",\"url\":\"http://look4k.com\",\"type\":\"xtream\",\"epgUrl\":\"http://look4k.com/xmltv.php?username=4917676477361&password=3278818818\",\"userAgent\":null,\"refreshIntervalMinutes\":60,\"username\":\"4917676477361\",\"password\":\"3278818818\",\"accessToken\":null,\"deviceId\":null,\"userid\":null,\"macAddress\":null}]","id":"req-2"}
+[18:07:45.447] [console.log] WsBackend _onMessage completed command: getSetting (id: req-2) with payload length: 395
+[18:07:45.447] [console.warning] [.WebGL-0x695403398000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[18:07:45.468] [console.log] WsBackend _onMessage: {"data":null,"id":"req-3"}
+[18:07:45.469] [console.log] WsBackend _onMessage completed command: getSetting (id: req-3) with payload length: 26
+[18:07:45.469] [console.warning] [.WebGL-0x695403398000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[18:07:45.492] [console.log] WsBackend _onMessage: {"data":null,"id":"req-4"}
+[18:07:45.492] [console.log] WsBackend _onMessage completed command: getSetting (id: req-4) with payload length: 26
+[18:07:45.492] [console.warning] [.WebGL-0x695403398000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+[18:07:45.518] [console.log] WsBackend _onMessage: {"data":null,"id":"req-5"}
+[18:07:45.519] [console.log] WsBackend _onMessage completed command: getSetting (id: req-5) with payload length: 26
+[18:07:45.547] [console.log] WsBackend _onMessage: {"data":null,"id":"req-6"}
+[18:07:45.547] [console.log] WsBackend _onMessage completed command: getSetting (id: req-6) with payload length: 26
+[18:07:45.572] [console.log] WsBackend _onMessage: {"data":null,"id":"req-7"}
+[18:07:45.572] [console.log] WsBackend _onMessage completed command: getSetting (id: req-7) with payload length: 26
+[18:07:45.599] [console.log] WsBackend _onMessage: {"data":null,"id":"req-8"}
+[18:07:45.599] [console.log] WsBackend _onMessage completed command: getSetting (id: req-8) with payload length: 26
+[18:07:45.622] [console.log] WsBackend _onMessage: {"data":null,"id":"req-9"}
+[18:07:45.622] [console.log] WsBackend _onMessage completed command: getSetting (id: req-9) with payload length: 26
+[18:07:45.669] [console.log] WsBackend _onMessage: {"data":[{"avatar_index":0,"dvr_permission":2,"dvr_quota_mb":null,"id":"default","is_child":false,"max_allowed_rating":4,"name":"Default","pin":null,"pin_version":1,"role":0}],"id":"req-10"}
+[18:07:45.669] [console.log] WsBackend _onMessage completed command: loadProfiles (id: req-10) with payload length: 190
+[18:07:45.833] [console.log] PlaylistSync: loading from cache…
+[18:07:46.651] [console.log] WsBackend _onMessage: [Large Payload of length 6252686]
+[18:07:46.651] [console.log] WsBackend _onMessage completed command: loadChannels (id: req-11) with payload length: 6252686
+[18:07:46.668] [console.log] CacheService: loaded 12697 channels in 835ms
+[18:07:47.363] [console.log] WsBackend _onMessage: [Large Payload of length 12679905]
+[18:07:47.363] [console.log] WsBackend _onMessage completed command: loadVodItems (id: req-12) with payload length: 12679905
+[18:07:47.363] [console.log] CacheService: loaded 21782 VOD items in 1526ms
+[18:07:47.811] [console.log] WsBackend _onMessage: [Large Payload of length 14358817]
+[18:07:47.811] [console.log] WsBackend _onMessage completed command: loadEpgEntries (id: req-13) with payload length: 14358817
+[18:07:47.962] [console.log] CacheService: loaded 57591 EPG entries across 1232 channels in 2127ms
+[18:07:47.962] [console.log] PlaylistSync: cache read complete in 2131ms — 12697 channels (835ms), 21782 VODs (1526ms), 1232 EPG channels / 57591 entries (2128ms)
+[18:07:48.393] [console.log] WsBackend _onMessage: {"count":0,"id":"req-14","ok":true}
+[18:07:48.393] [console.log] WsBackend _onMessage completed command: evictStaleEpg (id: req-14) with payload length: 35
+[18:07:48.607] [console.log] WsBackend _onMessage: [Large Payload of length 6397732]
+[18:07:48.607] [console.log] WsBackend _onMessage completed command: filterChannelsBySource (id: req-15) with payload length: 6397732
+[18:07:48.635] [console.log] PlaylistSync: cache → UI complete in 2803ms
+[18:07:48.670] [console.log] WsBackend _onMessage: {"data":[],"id":"req-16"}
+[18:07:48.670] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-16) with payload length: 25
+[18:07:48.673] [console.log] WsBackend _onMessage: {"data":[],"id":"req-17"}
+[18:07:48.673] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-17) with payload length: 25
+[18:07:48.684] [console.log] WsBackend _onMessage: {"data":1771869711,"id":"req-18"}
+[18:07:48.684] [console.log] WsBackend _onMessage completed command: getLastSyncTime (id: req-18) with payload length: 33
+[18:07:48.684] [console.log] PlaylistSync: all sources synced within 24h — BUT IGNORING IT FOR DEBUGGING
+[18:07:48.793] [console.log] WsBackend _onMessage: [Large Payload of length 3845]
+[18:07:48.793] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-19) with payload length: 3845
+[18:07:48.794] [console.log] WsBackend _onMessage: [Large Payload of length 3549]
+[18:07:48.794] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-20) with payload length: 3549
+[18:07:48.796] [console.log] WsBackend _onMessage: [Large Payload of length 3068]
+[18:07:48.796] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-21) with payload length: 3068
+[18:07:48.796] [console.log] RefreshPlaylist: categories loaded — Live: 165, VOD: 133, Series: 94
+[18:07:49.636] [console.log] WsBackend _onMessage: [Large Payload of length 6605053]
+[18:07:49.636] [console.log] WsBackend _onMessage completed command: parseXtreamLiveStreams (id: req-22) with payload length: 6605053
+[18:07:50.101] Screenshot: 001-01-initial-load-1280x900.png
+[18:07:50.101] Clicking Settings Tab
+[18:07:50.342] [console.log] WsBackend _onMessage: [Large Payload of length 6689763]
+[18:07:50.342] [console.log] WsBackend _onMessage completed command: resolveChannelCategories (id: req-23) with payload length: 6689763
+[18:07:50.768] [console.log] WsBackend _onMessage: [Large Payload of length 2281]
+[18:07:50.768] [console.log] WsBackend _onMessage completed command: extractSortedGroups (id: req-24) with payload length: 2281
+[18:07:51.067] [console.log] RefreshPlaylist: fetched 12391 VOD JSON items from HTTP
+[18:07:51.130] [console.log] WsBackend _send: parseVodStreams sending ${json.length} characters to Rust
+[18:07:51.711] [console.log] WsBackend _onMessage: [Large Payload of length 5867657]
+[18:07:51.711] [console.log] WsBackend _onMessage completed command: parseVodStreams (id: req-25) with payload length: 5867657
+[18:07:51.712] [console.log] WsBackend parseVodStreams received ${resultList.length} items from Rust
+[18:07:51.712] [console.log] RefreshPlaylist: Resolving categories for 12391 items using map size 133
+[18:07:52.181] Screenshot: 002-02-settings-loaded-1280x900.png
+[18:07:52.181] Clicking Player Settings Category
+[18:07:52.426] [console.log] WsBackend _onMessage: [Large Payload of length 6693342]
+[18:07:52.426] [console.log] WsBackend _onMessage completed command: resolveVodCategories (id: req-26) with payload length: 6693342
+[18:07:52.426] [console.log] RefreshPlaylist: resolveVodCategories returned JSON string of length 5999401
+[18:07:52.426] [console.log] RefreshPlaylist: resolveVodCategories decoded to List of size 12391
+[18:07:52.443] [console.log] RefreshPlaylist: Successfully mapped 12391 items back to VodItem objects.
+[18:07:52.443] [console.log] RefreshPlaylist: 12391 VOD movies loaded
+[18:07:53.352] [console.log] WsBackend _send: parseSeries sending ${json.length} characters to Rust
+[18:07:53.983] Screenshot: 003-03-player-settings-submenu-1280x900.png
+[18:07:53.983] Toggling a switch in Player settings
+[18:07:54.408] [console.log] WsBackend _onMessage: [Large Payload of length 6515763]
+[18:07:54.409] [console.log] WsBackend _onMessage completed command: parseSeries (id: req-27) with payload length: 6515763
+[18:07:54.409] [console.log] WsBackend parseSeries received ${resultList.length} items from Rust
+[18:07:55.273] [console.log] WsBackend _onMessage: [Large Payload of length 7213791]
+[18:07:55.273] [console.log] WsBackend _onMessage completed command: resolveVodCategories (id: req-28) with payload length: 7213791
+[18:07:55.273] [console.log] RefreshPlaylist: 9358 series loaded
+[18:07:56.409] [console.log] WsBackend _onMessage: [Large Payload of length 4288]
+[18:07:56.409] [console.log] WsBackend _onMessage completed command: extractSortedVodCategories (id: req-29) with payload length: 4288
+[18:07:56.458] Screenshot: 004-04-player-setting-toggled-1280x900.png
+[18:07:56.458] Switching to Stream Settings Category
+[18:07:56.463] [console.log] WsBackend _onMessage: {"count":0,"id":"req-30","ok":true}
+[18:07:56.464] [console.log] WsBackend _onMessage completed command: deleteRemovedChannels (id: req-30) with payload length: 35
+[18:07:56.464] [console.log] CacheService: deleted 0 stale channels for source src_1771567852776 in 36ms
+[18:07:56.538] [console.log] WsBackend _onMessage: {"count":0,"id":"req-31","ok":true}
+[18:07:56.538] [console.log] WsBackend _onMessage completed command: deleteRemovedVodItems (id: req-31) with payload length: 35
+[18:07:56.538] [console.log] CacheService: deleted 0 stale VOD items for source src_1771567852776 in 69ms
+[18:07:56.539] [console.log] WsBackend _onMessage: {"id":"req-32","ok":true}
+[18:07:56.539] [console.log] WsBackend _onMessage completed command: setLastSyncTime (id: req-32) with payload length: 25
+[18:07:56.539] [console.log] PlaylistSync: look4k → 12697 channels, 21749 VOD items
+[18:07:57.304] [console.log] WsBackend _onMessage: [Large Payload of length 6905612]
+[18:07:57.304] [console.log] WsBackend _onMessage completed command: sortChannels (id: req-33) with payload length: 6905612
+[18:07:57.923] [console.log] WsBackend _onMessage: [Large Payload of length 6397732]
+[18:07:57.923] [console.log] WsBackend _onMessage completed command: filterChannelsBySource (id: req-34) with payload length: 6397732
+[18:07:58.362] Screenshot: 005-05-stream-settings-submenu-1280x900.png

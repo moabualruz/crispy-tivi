@@ -1,0 +1,67 @@
+[
+  {
+    "num": 1,
+    "name": "BBC One",
+    "stream_type": "live",
+    "stream_id": 1001,
+    "stream_icon": "https://example.com/bbc1.png",
+    "epg_channel_id": "bbc1.uk",
+    "added": "1700000000",
+    "category_id": "1",
+    "category_name": "UK Entertainment",
+    "tv_archive": 0,
+    "tv_archive_duration": 0
+  },
+  {
+    "num": 2,
+    "name": "BBC Two",
+    "stream_type": "live",
+    "stream_id": 1002,
+    "stream_icon": "https://example.com/bbc2.png",
+    "epg_channel_id": "bbc2.uk",
+    "added": "1700000000",
+    "category_id": "1",
+    "category_name": "UK Entertainment",
+    "tv_archive": 0,
+    "tv_archive_duration": 0
+  },
+  {
+    "num": 3,
+    "name": "CNN",
+    "stream_type": "live",
+    "stream_id": 1003,
+    "stream_icon": "https://example.com/cnn.png",
+    "epg_channel_id": "cnn.us",
+    "added": "1700000000",
+    "category_id": "2",
+    "category_name": "US News",
+    "tv_archive": 1,
+    "tv_archive_duration": 3
+  },
+  {
+    "num": 4,
+    "name": "ESPN",
+    "stream_type": "live",
+    "stream_id": 1004,
+    "stream_icon": "https://example.com/espn.png",
+    "epg_channel_id": "espn.us",
+    "added": "1700000000",
+    "category_id": "3",
+    "category_name": "Sports",
+    "tv_archive": 0,
+    "tv_archive_duration": 0
+  },
+  {
+    "num": 5,
+    "name": "Sky Sports",
+    "stream_type": "live",
+    "stream_id": 1005,
+    "stream_icon": "https://example.com/skysports.png",
+    "epg_channel_id": "skysports.uk",
+    "added": "1700000000",
+    "category_id": "3",
+    "category_name": "Sports",
+    "tv_archive": 0,
+    "tv_archive_duration": 0
+  }
+]

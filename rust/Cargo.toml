@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/crispy-core",
+    "crates/crispy-ffi",
+    "crates/crispy-server",
+]
+
+[workspace.package]
+version = "0.1.1"
+edition = "2024"
+license = "CC-BY-NC-SA-4.0"
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+thiserror = "2"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+flutter_rust_bridge = "=2.11.1"
+anyhow = "1"
+regex = "1"
+base64 = "0.22"
+hmac = "0.12"
+sha2 = "0.10"
+percent-encoding = "2"
+reqwest = { version = "0.12", default-features = false, features = ["stream", "rustls-tls"] }
+tokio-util = { version = "0.7", features = ["io"] }

@@ -1,0 +1,23 @@
+{
+  "name": "crispy-tivi-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright E2E tests for CrispyTivi Flutter web app",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:smoke": "npx playwright test tests/smoke.spec.ts",
+    "test:nav": "npx playwright test tests/navigation.spec.ts",
+    "test:responsive": "npx playwright test tests/responsive.spec.ts",
+    "test:mobile": "npx playwright test --project=mobile",
+    "test:desktop": "npx playwright test --project=desktop",
+    "test:tv": "npx playwright test --project=tv",
+    "test:headed": "npx playwright test --headed",
+    "test:ui": "npx playwright test --ui",
+    "test:debug": "npx playwright test --debug",
+    "report": "npx playwright show-report",
+    "install:browsers": "npx playwright install --with-deps chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0"
+  }
+}

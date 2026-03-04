@@ -1,0 +1,11 @@
+{
+  "general": {
+    "enablePromptCompletion": false
+  },
+  "ide": {
+    "enabled": true
+  },
+  "experimental": {
+    "plan": true
+  }
+}

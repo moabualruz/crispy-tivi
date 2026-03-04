@@ -1,0 +1,658 @@
+{
+  "config": {
+    "configFile": "F:\\work\\crispy-tivi\\e2e\\playwright\\playwright.config.ts",
+    "rootDir": "F:/work/crispy-tivi/e2e/playwright/tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "F:/work/crispy-tivi/e2e/playwright/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "F:/work/crispy-tivi/e2e/playwright/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "F:/work/crispy-tivi/e2e/playwright/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "tablet",
+        "name": "tablet",
+        "testDir": "F:/work/crispy-tivi/e2e/playwright/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "F:/work/crispy-tivi/e2e/playwright/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "F:/work/crispy-tivi/e2e/playwright/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "F:/work/crispy-tivi/e2e/playwright/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "tv",
+        "name": "tv",
+        "testDir": "F:/work/crispy-tivi/e2e/playwright/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 16,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "smoke.spec.ts",
+      "file": "smoke.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Smoke Tests",
+          "file": "smoke.spec.ts",
+          "line": 16,
+          "column": 6,
+          "specs": [
+            {
+              "title": "app loads and renders the Flutter canvas",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop",
+                  "projectName": "desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 32068,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:21:5",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                          "column": 14,
+                          "line": 63
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39m..\\helpers\\selectors.ts:63\n\n\u001b[0m \u001b[90m 61 |\u001b[39m   \u001b[90m// Large viewports (e.g. 1920├ù1080 TV) render more widgets\u001b[39m\n \u001b[90m 62 |\u001b[39m   \u001b[90m// and need extra time for CanvasKit to initialize.\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 63 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'canvas'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30\u001b[39m_000 })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 64 |\u001b[39m\n \u001b[90m 65 |\u001b[39m   \u001b[90m// Allow time for the widget tree to render and settle.\u001b[39m\n \u001b[90m 66 |\u001b[39m   \u001b[90m// Flutter web startup involves deferred loading, font\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                            "column": 14,
+                            "line": 63
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n\n   at ..\\helpers\\selectors.ts:63\n\n  61 |   // Large viewports (e.g. 1920├ù1080 TV) render more widgets\n  62 |   // and need extra time for CanvasKit to initialize.\n> 63 |   await page.waitForSelector('canvas', { timeout: 30_000 });\n     |              ^\n  64 |\n  65 |   // Allow time for the widget tree to render and settle.\n  66 |   // Flutter web startup involves deferred loading, font\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:21:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-23T17:05:56.799Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-the-Flutter-canvas-desktop\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-the-Flutter-canvas-desktop\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-the-Flutter-canvas-desktop\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                        "column": 14,
+                        "line": 63
+                      }
+                    },
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 32166,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:21:5",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                          "column": 14,
+                          "line": 63
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39m..\\helpers\\selectors.ts:63\n\n\u001b[0m \u001b[90m 61 |\u001b[39m   \u001b[90m// Large viewports (e.g. 1920├ù1080 TV) render more widgets\u001b[39m\n \u001b[90m 62 |\u001b[39m   \u001b[90m// and need extra time for CanvasKit to initialize.\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 63 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'canvas'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30\u001b[39m_000 })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 64 |\u001b[39m\n \u001b[90m 65 |\u001b[39m   \u001b[90m// Allow time for the widget tree to render and settle.\u001b[39m\n \u001b[90m 66 |\u001b[39m   \u001b[90m// Flutter web startup involves deferred loading, font\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                            "column": 14,
+                            "line": 63
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n\n   at ..\\helpers\\selectors.ts:63\n\n  61 |   // Large viewports (e.g. 1920├ù1080 TV) render more widgets\n  62 |   // and need extra time for CanvasKit to initialize.\n> 63 |   await page.waitForSelector('canvas', { timeout: 30_000 });\n     |              ^\n  64 |\n  65 |   // Allow time for the widget tree to render and settle.\n  66 |   // Flutter web startup involves deferred loading, font\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:21:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-02-23T17:06:30.007Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-the-Flutter-canvas-desktop-retry1\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-the-Flutter-canvas-desktop-retry1\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-the-Flutter-canvas-desktop-retry1\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-the-Flutter-canvas-desktop-retry1\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                        "column": 14,
+                        "line": 63
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "4219922fea2e2bd3c691-bc2cae1fbf8544c2867c",
+              "file": "smoke.spec.ts",
+              "line": 17,
+              "column": 7
+            },
+            {
+              "title": "app loads and renders profile selection",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop",
+                  "projectName": "desktop",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 32110,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:40:5",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                          "column": 14,
+                          "line": 63
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39m..\\helpers\\selectors.ts:63\n\n\u001b[0m \u001b[90m 61 |\u001b[39m   \u001b[90m// Large viewports (e.g. 1920├ù1080 TV) render more widgets\u001b[39m\n \u001b[90m 62 |\u001b[39m   \u001b[90m// and need extra time for CanvasKit to initialize.\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 63 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'canvas'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30\u001b[39m_000 })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 64 |\u001b[39m\n \u001b[90m 65 |\u001b[39m   \u001b[90m// Allow time for the widget tree to render and settle.\u001b[39m\n \u001b[90m 66 |\u001b[39m   \u001b[90m// Flutter web startup involves deferred loading, font\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                            "column": 14,
+                            "line": 63
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n\n   at ..\\helpers\\selectors.ts:63\n\n  61 |   // Large viewports (e.g. 1920├ù1080 TV) render more widgets\n  62 |   // and need extra time for CanvasKit to initialize.\n> 63 |   await page.waitForSelector('canvas', { timeout: 30_000 });\n     |              ^\n  64 |\n  65 |   // Allow time for the widget tree to render and settle.\n  66 |   // Flutter web startup involves deferred loading, font\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:40:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-23T17:07:03.509Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-profile-selection-desktop\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-profile-selection-desktop\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-profile-selection-desktop\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                        "column": 14,
+                        "line": 63
+                      }
+                    },
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 32134,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:40:5",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                          "column": 14,
+                          "line": 63
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39m..\\helpers\\selectors.ts:63\n\n\u001b[0m \u001b[90m 61 |\u001b[39m   \u001b[90m// Large viewports (e.g. 1920├ù1080 TV) render more widgets\u001b[39m\n \u001b[90m 62 |\u001b[39m   \u001b[90m// and need extra time for CanvasKit to initialize.\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 63 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'canvas'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30\u001b[39m_000 })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 64 |\u001b[39m\n \u001b[90m 65 |\u001b[39m   \u001b[90m// Allow time for the widget tree to render and settle.\u001b[39m\n \u001b[90m 66 |\u001b[39m   \u001b[90m// Flutter web startup involves deferred loading, font\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                            "column": 14,
+                            "line": 63
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n\n   at ..\\helpers\\selectors.ts:63\n\n  61 |   // Large viewports (e.g. 1920├ù1080 TV) render more widgets\n  62 |   // and need extra time for CanvasKit to initialize.\n> 63 |   await page.waitForSelector('canvas', { timeout: 30_000 });\n     |              ^\n  64 |\n  65 |   // Allow time for the widget tree to render and settle.\n  66 |   // Flutter web startup involves deferred loading, font\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:40:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-02-23T17:07:36.782Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-profile-selection-desktop-retry1\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-profile-selection-desktop-retry1\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-profile-selection-desktop-retry1\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-loads-and-renders-profile-selection-desktop-retry1\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                        "column": 14,
+                        "line": 63
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "4219922fea2e2bd3c691-86193fd4cfeaa610ee58",
+              "file": "smoke.spec.ts",
+              "line": 36,
+              "column": 7
+            },
+            {
+              "title": "app shows a MaterialApp-like structure",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop",
+                  "projectName": "desktop",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 32093,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:95:5",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                          "column": 14,
+                          "line": 63
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39m..\\helpers\\selectors.ts:63\n\n\u001b[0m \u001b[90m 61 |\u001b[39m   \u001b[90m// Large viewports (e.g. 1920├ù1080 TV) render more widgets\u001b[39m\n \u001b[90m 62 |\u001b[39m   \u001b[90m// and need extra time for CanvasKit to initialize.\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 63 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'canvas'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30\u001b[39m_000 })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 64 |\u001b[39m\n \u001b[90m 65 |\u001b[39m   \u001b[90m// Allow time for the widget tree to render and settle.\u001b[39m\n \u001b[90m 66 |\u001b[39m   \u001b[90m// Flutter web startup involves deferred loading, font\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                            "column": 14,
+                            "line": 63
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n\n   at ..\\helpers\\selectors.ts:63\n\n  61 |   // Large viewports (e.g. 1920├ù1080 TV) render more widgets\n  62 |   // and need extra time for CanvasKit to initialize.\n> 63 |   await page.waitForSelector('canvas', { timeout: 30_000 });\n     |              ^\n  64 |\n  65 |   // Allow time for the widget tree to render and settle.\n  66 |   // Flutter web startup involves deferred loading, font\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:95:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-23T17:08:10.300Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-shows-a-MaterialApp-like-structure-desktop\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-shows-a-MaterialApp-like-structure-desktop\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-shows-a-MaterialApp-like-structure-desktop\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                        "column": 14,
+                        "line": 63
+                      }
+                    },
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 32150,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:95:5",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                          "column": 14,
+                          "line": 63
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39m..\\helpers\\selectors.ts:63\n\n\u001b[0m \u001b[90m 61 |\u001b[39m   \u001b[90m// Large viewports (e.g. 1920├ù1080 TV) render more widgets\u001b[39m\n \u001b[90m 62 |\u001b[39m   \u001b[90m// and need extra time for CanvasKit to initialize.\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 63 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'canvas'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30\u001b[39m_000 })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 64 |\u001b[39m\n \u001b[90m 65 |\u001b[39m   \u001b[90m// Allow time for the widget tree to render and settle.\u001b[39m\n \u001b[90m 66 |\u001b[39m   \u001b[90m// Flutter web startup involves deferred loading, font\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                            "column": 14,
+                            "line": 63
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n\n   at ..\\helpers\\selectors.ts:63\n\n  61 |   // Large viewports (e.g. 1920├ù1080 TV) render more widgets\n  62 |   // and need extra time for CanvasKit to initialize.\n> 63 |   await page.waitForSelector('canvas', { timeout: 30_000 });\n     |              ^\n  64 |\n  65 |   // Allow time for the widget tree to render and settle.\n  66 |   // Flutter web startup involves deferred loading, font\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:95:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-02-23T17:08:43.596Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-shows-a-MaterialApp-like-structure-desktop-retry1\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-shows-a-MaterialApp-like-structure-desktop-retry1\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-shows-a-MaterialApp-like-structure-desktop-retry1\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-app-shows-a-MaterialApp-like-structure-desktop-retry1\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                        "column": 14,
+                        "line": 63
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "4219922fea2e2bd3c691-3d8776a65887b9e71067",
+              "file": "smoke.spec.ts",
+              "line": 91,
+              "column": 7
+            },
+            {
+              "title": "no critical console errors during startup",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop",
+                  "projectName": "desktop",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 32077,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:154:5",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                          "column": 14,
+                          "line": 63
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39m..\\helpers\\selectors.ts:63\n\n\u001b[0m \u001b[90m 61 |\u001b[39m   \u001b[90m// Large viewports (e.g. 1920├ù1080 TV) render more widgets\u001b[39m\n \u001b[90m 62 |\u001b[39m   \u001b[90m// and need extra time for CanvasKit to initialize.\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 63 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'canvas'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30\u001b[39m_000 })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 64 |\u001b[39m\n \u001b[90m 65 |\u001b[39m   \u001b[90m// Allow time for the widget tree to render and settle.\u001b[39m\n \u001b[90m 66 |\u001b[39m   \u001b[90m// Flutter web startup involves deferred loading, font\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                            "column": 14,
+                            "line": 63
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n\n   at ..\\helpers\\selectors.ts:63\n\n  61 |   // Large viewports (e.g. 1920├ù1080 TV) render more widgets\n  62 |   // and need extra time for CanvasKit to initialize.\n> 63 |   await page.waitForSelector('canvas', { timeout: 30_000 });\n     |              ^\n  64 |\n  65 |   // Allow time for the widget tree to render and settle.\n  66 |   // Flutter web startup involves deferred loading, font\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:154:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-23T17:09:17.087Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-no-critical-console-errors-during-startup-desktop\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-no-critical-console-errors-during-startup-desktop\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-no-critical-console-errors-during-startup-desktop\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                        "column": 14,
+                        "line": 63
+                      }
+                    },
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 32068,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:154:5",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                          "column": 14,
+                          "line": 63
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39m..\\helpers\\selectors.ts:63\n\n\u001b[0m \u001b[90m 61 |\u001b[39m   \u001b[90m// Large viewports (e.g. 1920├ù1080 TV) render more widgets\u001b[39m\n \u001b[90m 62 |\u001b[39m   \u001b[90m// and need extra time for CanvasKit to initialize.\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 63 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'canvas'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30\u001b[39m_000 })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 64 |\u001b[39m\n \u001b[90m 65 |\u001b[39m   \u001b[90m// Allow time for the widget tree to render and settle.\u001b[39m\n \u001b[90m 66 |\u001b[39m   \u001b[90m// Flutter web startup involves deferred loading, font\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                            "column": 14,
+                            "line": 63
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('canvas') to be visible\u001b[22m\n\n\n   at ..\\helpers\\selectors.ts:63\n\n  61 |   // Large viewports (e.g. 1920├ù1080 TV) render more widgets\n  62 |   // and need extra time for CanvasKit to initialize.\n> 63 |   await page.waitForSelector('canvas', { timeout: 30_000 });\n     |              ^\n  64 |\n  65 |   // Allow time for the widget tree to render and settle.\n  66 |   // Flutter web startup involves deferred loading, font\n    at waitForFlutterReady (F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts:63:14)\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\smoke.spec.ts:154:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-02-23T17:09:50.317Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-no-critical-console-errors-during-startup-desktop-retry1\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-no-critical-console-errors-during-startup-desktop-retry1\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-no-critical-console-errors-during-startup-desktop-retry1\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\smoke-Smoke-Tests-no-critical-console-errors-during-startup-desktop-retry1\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\helpers\\selectors.ts",
+                        "column": 14,
+                        "line": 63
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "4219922fea2e2bd3c691-5b5f0672e66507008042",
+              "file": "smoke.spec.ts",
+              "line": 137,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-02-23T17:05:55.789Z",
+    "duration": 266975.564,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 4,
+    "flaky": 0
+  }
+}
