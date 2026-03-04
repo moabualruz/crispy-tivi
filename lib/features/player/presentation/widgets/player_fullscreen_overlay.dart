@@ -100,7 +100,17 @@ class _PlayerFullscreenOverlayState
       ]);
     } else {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      SystemChrome.setPreferredOrientations([]);
+      // On phones, restore the app-wide landscape lock.
+      // On tablets, unlock to allow free rotation.
+      final isPhone = MediaQuery.sizeOf(context).shortestSide < 600.0;
+      SystemChrome.setPreferredOrientations(
+        isPhone
+            ? [
+              DeviceOrientation.landscapeLeft,
+              DeviceOrientation.landscapeRight,
+            ]
+            : [],
+      );
     }
   }
 

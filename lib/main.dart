@@ -5,7 +5,8 @@ import 'dart:io' show Platform, ServerSocket, Socket, exitCode;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart'
+    show DeviceOrientation, SystemChrome, rootBundle;
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 
@@ -21,6 +22,7 @@ import 'core/data/event_driven_invalidator.dart';
 import 'core/data/ffi_backend.dart';
 import 'core/data/ws_backend.dart';
 import 'core/utils/timezone_utils.dart';
+import 'core/widgets/responsive_layout.dart';
 import 'core/widgets/smart_image.dart';
 import 'core/widgets/ui_auto_scale.dart';
 import 'features/iptv/application/playlist_sync_service.dart';
@@ -100,6 +102,22 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache
     ..maximumSizeBytes = config.cache.maxImageCacheMb * 1024 * 1024
     ..maximumSize = config.cache.maxImageMemCacheObjects;
+
+  // Force landscape on mobile phones (shortestSide < 600dp).
+  // Uses PlatformDispatcher pre-runApp — no BuildContext needed.
+  // Fallback in MaterialApp.router builder handles rare 0×0 case.
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    final view = WidgetsBinding.instance.platformDispatcher.views.firstOrNull;
+    if (view != null) {
+      final logicalSize = view.physicalSize / view.devicePixelRatio;
+      if (logicalSize.shortestSide > 0 && logicalSize.shortestSide < 600) {
+        await SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      }
+    }
+  }
 
   // Single-instance guard (desktop only).
   if (!await _ensureSingleInstance()) {
@@ -198,6 +216,9 @@ class CrispyTiviApp extends ConsumerStatefulWidget {
 
 class _CrispyTiviAppState extends ConsumerState<CrispyTiviApp>
     with WindowListener {
+  /// Guards the orientation-lock fallback so it runs at most once.
+  bool _orientationLocked = false;
+
   @override
   void initState() {
     super.initState();
@@ -288,6 +309,16 @@ class _CrispyTiviAppState extends ConsumerState<CrispyTiviApp>
             themeMode: ThemeMode.dark,
             routerConfig: router,
             builder: (context, child) {
+              // Fallback orientation lock: if PlatformDispatcher
+              // reported 0×0 at startup, lock here on first build.
+              if (!_orientationLocked && context.isPhoneFormFactor) {
+                _orientationLocked = true;
+                SystemChrome.setPreferredOrientations([
+                  DeviceOrientation.landscapeLeft,
+                  DeviceOrientation.landscapeRight,
+                ]);
+              }
+
               // Compute auto-scale for 1440p+ screens, then apply
               // text scale from theme settings.
               final mq = MediaQuery.of(context);

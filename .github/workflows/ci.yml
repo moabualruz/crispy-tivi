@@ -412,12 +412,37 @@ jobs:
 
           ls -lh release/
 
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Find the previous release tag
+          PREV_TAG=$(gh release list --limit 1 --json tagName -q '.[0].tagName' 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            echo "Previous release: $PREV_TAG"
+            CHANGES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s (\`%.7h\`)" --no-merges)
+          else
+            echo "No previous release found — listing all commits"
+            CHANGES=$(git log --pretty=format:"- %s (\`%.7h\`)" --no-merges -20)
+          fi
+
+          if [ -z "$CHANGES" ]; then
+            CHANGES="- No notable changes"
+          fi
+
+          # Write to file to preserve newlines
+          echo "$CHANGES" > /tmp/changelog.txt
+          echo "Generated changelog:"
+          cat /tmp/changelog.txt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VER="${{ env.VERSION }}"
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          CHANGES=$(cat /tmp/changelog.txt)
 
           gh release create "v${VER}" release/* \
             --title "v${VER}" \
@@ -426,6 +451,10 @@ jobs:
           ## CrispyTivi v${VER}
 
           Automated alpha build from [\`${SHORT_SHA}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}).
+
+          ### What's Changed
+
+          ${CHANGES}
 
           ### Downloads
 

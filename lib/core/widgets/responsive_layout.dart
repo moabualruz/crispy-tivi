@@ -135,6 +135,11 @@ extension LayoutContext on BuildContext {
     return LayoutClass.fromWidth(width * autoScale);
   }
 
+  /// True when the device is a phone (shortest side < 600dp).
+  /// Independent of current orientation. Always false on web.
+  bool get isPhoneFormFactor =>
+      MediaQuery.sizeOf(this).shortestSide < Breakpoints.medium;
+
   bool get isCompact => layoutClass == LayoutClass.compact;
   bool get isMedium => layoutClass == LayoutClass.medium;
   bool get isExpanded => layoutClass == LayoutClass.expanded;
