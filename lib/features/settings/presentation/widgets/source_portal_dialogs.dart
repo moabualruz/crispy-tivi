@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
-import '../../../../core/theme/crispy_spacing.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
+import 'source_form_fields.dart';
 
 /// Shows a dialog to add a Stalker Portal source.
 void showAddStalkerDialog({
@@ -23,40 +23,10 @@ void showAddStalkerDialog({
         (ctx) => AlertDialog(
           title: const Text('Add Stalker Portal'),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    hintText: 'My Portal',
-                    prefixIcon: Icon(Icons.label),
-                  ),
-                  autofocus: true,
-                ),
-                const SizedBox(height: CrispySpacing.sm),
-                TextField(
-                  controller: urlCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Portal URL',
-                    hintText: 'http://portal.example.com',
-                    prefixIcon: Icon(Icons.dns),
-                  ),
-                  keyboardType: TextInputType.url,
-                ),
-                const SizedBox(height: CrispySpacing.sm),
-                TextField(
-                  controller: macCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'MAC Address',
-                    hintText: '00:1A:2B:3C:4D:5E',
-                    prefixIcon: Icon(Icons.router),
-                    helperText: 'Format: XX:XX:XX:XX:XX:XX',
-                  ),
-                  textCapitalization: TextCapitalization.characters,
-                ),
-              ],
+            child: StalkerFormFields(
+              nameCtrl: nameCtrl,
+              urlCtrl: urlCtrl,
+              macCtrl: macCtrl,
             ),
           ),
           actions: [
@@ -71,8 +41,7 @@ void showAddStalkerDialog({
                 if (url.isEmpty || mac.isEmpty) return;
 
                 // Validate MAC format.
-                final macPattern = RegExp(r'^([0-9A-F]{2}:){5}[0-9A-F]{2}$');
-                if (!macPattern.hasMatch(mac)) {
+                if (!kMacAddressPattern.hasMatch(mac)) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
@@ -92,7 +61,7 @@ void showAddStalkerDialog({
                 final messenger = ScaffoldMessenger.of(context);
 
                 final source = PlaylistSource(
-                  id: 'src_${DateTime.now().millisecondsSinceEpoch}',
+                  id: PlaylistSource.generateId(),
                   name: name,
                   url: url,
                   type: PlaylistSourceType.stalkerPortal,
@@ -110,19 +79,25 @@ void showAddStalkerDialog({
                 );
 
                 // Trigger channel sync.
-                final count = await ref
-                    .read(playlistSyncServiceProvider)
-                    .syncSource(source);
-
-                if (!isMounted()) return;
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Loaded $count channels '
-                      'from "$name"',
+                try {
+                  final result = await ref
+                      .read(playlistSyncServiceProvider)
+                      .syncSource(source);
+                  if (!isMounted()) return;
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Loaded ${result.totalChannels} channels '
+                        'from "$name"',
+                      ),
                     ),
-                  ),
-                );
+                  );
+                } catch (e) {
+                  if (!isMounted()) return;
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Sync failed for "$name": $e')),
+                  );
+                }
               },
               child: const Text('Add'),
             ),

@@ -128,6 +128,24 @@ class PlaylistSource {
   @override
   int get hashCode => Object.hash(runtimeType, id);
 
+  /// Generates a unique source ID based on current timestamp.
+  static String generateId() => 'src_${DateTime.now().millisecondsSinceEpoch}';
+
+  /// Builds the Xtream Codes XMLTV EPG URL from server URL and credentials.
+  static String buildXtreamEpgUrl(
+    String url,
+    String username,
+    String password,
+  ) {
+    final parsed = Uri.tryParse(url);
+    final base =
+        parsed != null
+            ? '${parsed.scheme}://${parsed.host}'
+                '${parsed.hasPort ? ":${parsed.port}" : ""}'
+            : url;
+    return '$base/xmltv.php?username=$username&password=$password';
+  }
+
   @override
   String toString() => 'PlaylistSource($name, type=$type)';
 }

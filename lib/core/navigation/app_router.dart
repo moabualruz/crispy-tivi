@@ -40,6 +40,7 @@ import '../../features/vod/presentation/screens/vod_details_screen.dart';
 import '../../features/media_servers/shared/presentation/screens/media_item_details_screen.dart';
 import '../domain/entities/media_item.dart';
 import '../domain/media_source.dart';
+import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/player/presentation/providers/player_providers.dart';
 import 'app_shell.dart';
 
@@ -200,6 +201,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         if (path == AppRoutes.settings && !profile.canAccessSettings) {
           return AppRoutes.home;
         }
+      }
+
+      // ── Onboarding guard ──
+      // Block all non-onboarding routes when no sources configured.
+      final hasSources = settingsAsync.value?.sources.isNotEmpty ?? true;
+      final isOnboarding = path == AppRoutes.onboarding;
+      final isProfiles = path == AppRoutes.profiles;
+
+      if (!hasSources && !isOnboarding && !isProfiles) {
+        if (profileAsync.value?.activeProfile != null) {
+          return AppRoutes.onboarding;
+        }
+      }
+      if (hasSources && isOnboarding) {
+        final defaultScreen = settingsAsync.value?.defaultScreen ?? 'home';
+        return defaultScreen == 'live_tv' ? AppRoutes.tv : AppRoutes.home;
       }
 
       return null;
@@ -451,6 +468,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.profiles,
         builder: (context, state) => const ProfileSelectionScreen(),
+      ),
+
+      GoRoute(
+        path: AppRoutes.onboarding,
+        pageBuilder:
+            (context, state) =>
+                _adaptivePage(context, state.pageKey, const OnboardingScreen()),
       ),
 
       GoRoute(

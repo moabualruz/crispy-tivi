@@ -291,13 +291,19 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       // Let's just save the new models, they will upsert!
       await cache.saveVodItems(result.vodItems);
 
+      // Auto-save discovered EPG URL (e.g. from M3U header).
+      if (result.discoveredEpgUrl != null &&
+          (source.epgUrl == null || source.epgUrl!.isEmpty)) {
+        await autoSaveEpgUrl(source, result.discoveredEpgUrl!);
+      }
+
       // Fetch EPG after single source sync.
       await fetchEpg();
 
       return result;
     } catch (e) {
-      debugPrint('PlaylistSync error: $e');
-      return const SyncResult();
+      debugPrint('PlaylistSync syncSource error: $e');
+      rethrow;
     }
   }
 

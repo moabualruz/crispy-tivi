@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
-import '../../../../core/theme/crispy_spacing.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
+import 'source_form_fields.dart';
 
 /// Shows a dialog to add an M3U playlist source.
 void showAddM3uDialog({
@@ -20,30 +20,7 @@ void showAddM3uDialog({
     builder:
         (ctx) => AlertDialog(
           title: const Text('Add M3U Playlist'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  hintText: 'My Playlist',
-                  prefixIcon: Icon(Icons.label),
-                ),
-                autofocus: true,
-              ),
-              const SizedBox(height: CrispySpacing.sm),
-              TextField(
-                controller: urlCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Playlist URL',
-                  hintText: 'https://example.com/playlist.m3u',
-                  prefixIcon: Icon(Icons.link),
-                ),
-                keyboardType: TextInputType.url,
-              ),
-            ],
-          ),
+          content: M3uFormFields(nameCtrl: nameCtrl, urlCtrl: urlCtrl),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -61,7 +38,7 @@ void showAddM3uDialog({
                 final messenger = ScaffoldMessenger.of(context);
 
                 final source = PlaylistSource(
-                  id: 'src_${DateTime.now().millisecondsSinceEpoch}',
+                  id: PlaylistSource.generateId(),
                   name: name,
                   url: url,
                   type: PlaylistSourceType.m3u,
@@ -74,19 +51,25 @@ void showAddM3uDialog({
                   ),
                 );
                 // Trigger channel sync.
-                final count = await ref
-                    .read(playlistSyncServiceProvider)
-                    .syncSource(source);
-
-                if (!isMounted()) return;
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Loaded $count channels '
-                      'from "$name"',
+                try {
+                  final result = await ref
+                      .read(playlistSyncServiceProvider)
+                      .syncSource(source);
+                  if (!isMounted()) return;
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Loaded ${result.totalChannels} channels '
+                        'from "$name"',
+                      ),
                     ),
-                  ),
-                );
+                  );
+                } catch (e) {
+                  if (!isMounted()) return;
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Sync failed for "$name": $e')),
+                  );
+                }
               },
               child: const Text('Add'),
             ),
@@ -115,46 +98,11 @@ void showAddXtreamDialog({
         (ctx) => AlertDialog(
           title: const Text('Add Xtream Codes'),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    hintText: 'My IPTV Provider',
-                    prefixIcon: Icon(Icons.label),
-                  ),
-                  autofocus: true,
-                ),
-                const SizedBox(height: CrispySpacing.sm),
-                TextField(
-                  controller: urlCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Server URL',
-                    hintText: 'http://provider.com:8080',
-                    prefixIcon: Icon(Icons.dns),
-                  ),
-                  keyboardType: TextInputType.url,
-                ),
-                const SizedBox(height: CrispySpacing.sm),
-                TextField(
-                  controller: userCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Username',
-                    prefixIcon: Icon(Icons.person),
-                  ),
-                ),
-                const SizedBox(height: CrispySpacing.sm),
-                TextField(
-                  controller: passCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock),
-                  ),
-                  obscureText: true,
-                ),
-              ],
+            child: XtreamFormFields(
+              nameCtrl: nameCtrl,
+              urlCtrl: urlCtrl,
+              userCtrl: userCtrl,
+              passCtrl: passCtrl,
             ),
           ),
           actions: [
@@ -177,24 +125,14 @@ void showAddXtreamDialog({
 
                 final messenger = ScaffoldMessenger.of(context);
 
-                // Normalize URL for EPG derivation.
-                final normalizedUrl = Uri.tryParse(url);
-                final epgBase =
-                    normalizedUrl != null
-                        ? '${normalizedUrl.scheme}://'
-                            '${normalizedUrl.host}'
-                            '${normalizedUrl.hasPort ? ":${normalizedUrl.port}" : ""}'
-                        : url;
                 final source = PlaylistSource(
-                  id: 'src_${DateTime.now().millisecondsSinceEpoch}',
+                  id: PlaylistSource.generateId(),
                   name: name,
                   url: url,
                   type: PlaylistSourceType.xtream,
                   username: user,
                   password: pass,
-                  epgUrl:
-                      '$epgBase/xmltv.php?username=$user'
-                      '&password=$pass',
+                  epgUrl: PlaylistSource.buildXtreamEpgUrl(url, user, pass),
                 );
                 ref.read(settingsNotifierProvider.notifier).addSource(source);
                 if (context.mounted) Navigator.pop(ctx);
@@ -206,19 +144,25 @@ void showAddXtreamDialog({
                 );
 
                 // Trigger channel sync.
-                final count = await ref
-                    .read(playlistSyncServiceProvider)
-                    .syncSource(source);
-
-                if (!isMounted()) return;
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Loaded $count channels '
-                      'from "$name"',
+                try {
+                  final result = await ref
+                      .read(playlistSyncServiceProvider)
+                      .syncSource(source);
+                  if (!isMounted()) return;
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Loaded ${result.totalChannels} channels '
+                        'from "$name"',
+                      ),
                     ),
-                  ),
-                );
+                  );
+                } catch (e) {
+                  if (!isMounted()) return;
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Sync failed for "$name": $e')),
+                  );
+                }
               },
               child: const Text('Add'),
             ),

@@ -9,6 +9,7 @@ abstract final class AppRoutes {
   static const String settings = '/settings';
   static const String login = '/login';
   static const String profiles = '/profiles';
+  static const String onboarding = '/onboarding';
   static const String favorites = '/favorites';
   static const String multiview = '/multiview';
   static const String mediaServers = '/media-servers';

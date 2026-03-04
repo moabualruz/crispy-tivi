@@ -136,9 +136,7 @@ class ProfileSelectionScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (!hasSources) {
-      // Navigate to Home — the empty state there will
-      // prompt the user to add a source (BUG-003 fix).
-      context.go(AppRoutes.home);
+      context.go(AppRoutes.onboarding);
       return;
     }
 
