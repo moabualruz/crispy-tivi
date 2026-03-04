@@ -25,7 +25,7 @@ class MockVodNotifier extends VodNotifier {
 }
 
 // Mock AsyncNotifier for ProfileServiceProvider — returns empty profile state
-// so HomeGreetingSection renders without hitting the real backend.
+// so home providers that depend on it don't hit the real backend.
 class MockProfileService extends ProfileService {
   @override
   Future<ProfileState> build() async => const ProfileState();
@@ -93,7 +93,7 @@ void main() {
         ProviderScope(
           overrides: [
             vodProvider.overrideWith(() => MockVodNotifier(mockVodState)),
-            // Profile — empty state so greeting section renders without backend.
+            // Profile — empty state so home providers don't hit the backend.
             profileServiceProvider.overrideWith(MockProfileService.new),
             continueWatchingMoviesProvider.overrideWith(
               (ref) => Future.value(mockHistory),

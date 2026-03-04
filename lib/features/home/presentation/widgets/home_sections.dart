@@ -15,7 +15,6 @@ import '../../../favorites/presentation/providers/favorites_controller.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../../player/data/watch_history_service.dart';
-import '../../../profiles/data/profile_service.dart';
 import '../../../recommendations/domain/entities/recommendation.dart';
 import '../../../recommendations/presentation/providers/recommendation_providers.dart';
 import '../../../vod/domain/entities/vod_item.dart';
@@ -93,94 +92,6 @@ void _showChannelContextMenu(
               : null,
     ),
   );
-}
-
-// ── Greeting Section (FE-H-09) ──────────────────────────
-
-/// Returns the time-of-day greeting label based on [hour] (0–23).
-///
-/// - 5–11 → "Good Morning"
-/// - 12–16 → "Good Afternoon"
-/// - 17–20 → "Good Evening"
-/// - 21–4  → "Late Night"
-String greetingForHour(int hour) {
-  if (hour >= 5 && hour < 12) return 'Good Morning';
-  if (hour >= 12 && hour < 17) return 'Good Afternoon';
-  if (hour >= 17 && hour < 21) return 'Good Evening';
-  return 'Late Night';
-}
-
-/// Returns a [TimeOfDay] context icon paired with the current period.
-IconData greetingIconForHour(int hour) {
-  if (hour >= 5 && hour < 12) return Icons.wb_sunny_outlined;
-  if (hour >= 12 && hour < 17) return Icons.light_mode_outlined;
-  if (hour >= 17 && hour < 21) return Icons.nights_stay_outlined;
-  return Icons.dark_mode_outlined;
-}
-
-/// A personalized greeting row shown at the top of the home screen.
-///
-/// Displays `"<greeting>, <ProfileName>!"` alongside a contextual
-/// icon derived from the current local time. The greeting is purely
-/// presentational — no new data sources, just `DateTime.now()` and
-/// the active profile name from [profileServiceProvider].
-class HomeGreetingSection extends ConsumerWidget {
-  /// Creates the greeting section.
-  const HomeGreetingSection({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(profileServiceProvider);
-    final now = DateTime.now();
-    final hour = now.hour;
-    final greeting = greetingForHour(hour);
-    final greetingIcon = greetingIconForHour(hour);
-
-    final cs = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    // Resolve active profile name; fall back to empty string gracefully.
-    // ProfileState.activeProfile can throw when profiles list is empty,
-    // so guard with a null-safe try-catch pattern via the async state.
-    final profileState = profileAsync.asData?.value;
-    String profileName = '';
-    if (profileState != null && profileState.profiles.isNotEmpty) {
-      profileName = profileState.activeProfile?.name ?? '';
-    }
-    // Omit the name when it's the uncustomized "Default" profile so
-    // the greeting reads "Good Afternoon!" instead of
-    // "Good Afternoon, Default!".
-    final isDefaultName = profileName.toLowerCase() == 'default';
-    final greetingLabel =
-        profileName.isNotEmpty && !isDefaultName
-            ? '$greeting, $profileName!'
-            : '$greeting!';
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        CrispySpacing.md,
-        CrispySpacing.lg,
-        CrispySpacing.md,
-        CrispySpacing.xs,
-      ),
-      child: Row(
-        children: [
-          Icon(greetingIcon, size: 28, color: cs.primary),
-          const SizedBox(width: CrispySpacing.sm),
-          Expanded(
-            child: Text(
-              greetingLabel,
-              style: textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ── Continue Watching Section ───────────────────────────

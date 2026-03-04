@@ -39,9 +39,6 @@ class HomeScreen extends ConsumerWidget {
       body: FocusTraversalGroup(
         child: CustomScrollView(
           slivers: [
-            // 0. Time-of-day greeting + profile name (FE-H-09)
-            const SliverToBoxAdapter(child: HomeGreetingSection()),
-
             // 1. Hero Banner
             if (featuredItems.isNotEmpty)
               SliverToBoxAdapter(child: VodHeroBanner(items: featuredItems)),
