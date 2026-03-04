@@ -1,0 +1,560 @@
+# Comprehensive Crawl Logs
+# Date: 2026-02-23T18:01:31.462Z
+# Viewport: 1920x1080
+
+## Console Errors (153)
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- [PAGE_ERROR] Cannot read properties of null (reading 'toString')
+- [PAGE_ERROR] Cannot read properties of null (reading 'toString')
+- [PAGE_ERROR] Cannot read properties of null (reading 'toString')
+
+## Console Warnings (4)
+- [.WebGL-0xdbc015ce900]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- [.WebGL-0xdbc015ce900]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- [.WebGL-0xdbc015ce900]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- [.WebGL-0xdbc015ce900]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+
+## Full Log
+[17:58:06.604] === Phase 1: App Load ===
+[17:58:06.788] [console.debug] Injecting <script> tag. Using callback.
+[17:58:07.263] [console.debug] TrustedTypes available. Creating policy: gis-dart
+[17:58:07.463] [console.log] WsBackend _onMessage: {"data":"{\"player\":{\"upscaleEnabled\":false,\"upscaleQuality\":\"maximum\"}}","id":"req-1"}
+[17:58:07.463] [console.log] WsBackend _onMessage completed command: getSetting (id: req-1) with payload length: 94
+[17:58:07.467] [console.warning] [.WebGL-0xdbc015ce900]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[17:58:07.488] [console.log] WsBackend _onMessage: {"data":"[{\"id\":\"src_1771567852776\",\"name\":\"look4k\",\"url\":\"http://look4k.com\",\"type\":\"xtream\",\"epgUrl\":\"http://look4k.com/xmltv.php?username=4917676477361&password=3278818818\",\"userAgent\":null,\"refreshIntervalMinutes\":60,\"username\":\"4917676477361\",\"password\":\"3278818818\",\"accessToken\":null,\"deviceId\":null,\"userid\":null,\"macAddress\":null}]","id":"req-2"}
+[17:58:07.488] [console.log] WsBackend _onMessage completed command: getSetting (id: req-2) with payload length: 395
+[17:58:07.489] [console.warning] [.WebGL-0xdbc015ce900]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[17:58:07.510] [console.log] WsBackend _onMessage: {"data":null,"id":"req-3"}
+[17:58:07.510] [console.log] WsBackend _onMessage completed command: getSetting (id: req-3) with payload length: 26
+[17:58:07.511] [console.warning] [.WebGL-0xdbc015ce900]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[17:58:07.529] [console.log] WsBackend _onMessage: {"data":null,"id":"req-4"}
+[17:58:07.529] [console.log] WsBackend _onMessage completed command: getSetting (id: req-4) with payload length: 26
+[17:58:07.530] [console.warning] [.WebGL-0xdbc015ce900]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+[17:58:07.543] [console.log] WsBackend _onMessage: {"data":null,"id":"req-5"}
+[17:58:07.543] [console.log] WsBackend _onMessage completed command: getSetting (id: req-5) with payload length: 26
+[17:58:07.549] [console.log] WsBackend _onMessage: {"data":null,"id":"req-6"}
+[17:58:07.549] [console.log] WsBackend _onMessage completed command: getSetting (id: req-6) with payload length: 26
+[17:58:07.561] [console.log] WsBackend _onMessage: {"data":null,"id":"req-7"}
+[17:58:07.561] [console.log] WsBackend _onMessage completed command: getSetting (id: req-7) with payload length: 26
+[17:58:07.566] [console.log] WsBackend _onMessage: {"data":null,"id":"req-8"}
+[17:58:07.566] [console.log] WsBackend _onMessage completed command: getSetting (id: req-8) with payload length: 26
+[17:58:07.579] [console.log] WsBackend _onMessage: {"data":null,"id":"req-9"}
+[17:58:07.579] [console.log] WsBackend _onMessage completed command: getSetting (id: req-9) with payload length: 26
+[17:58:07.613] [console.log] WsBackend _onMessage: {"data":[{"avatar_index":0,"dvr_permission":2,"dvr_quota_mb":null,"id":"default","is_child":false,"max_allowed_rating":4,"name":"Default","pin":null,"pin_version":1,"role":0}],"id":"req-10"}
+[17:58:07.613] [console.log] WsBackend _onMessage completed command: loadProfiles (id: req-10) with payload length: 190
+[17:58:07.785] [console.log] PlaylistSync: loading from cache…
+[17:58:08.051] [console.log] WsBackend _onMessage: [Large Payload of length 6252686]
+[17:58:08.051] [console.log] WsBackend _onMessage completed command: loadChannels (id: req-11) with payload length: 6252686
+[17:58:08.060] [console.log] CacheService: loaded 12697 channels in 274ms
+[17:58:08.524] [console.log] WsBackend _onMessage: [Large Payload of length 12679905]
+[17:58:08.524] [console.log] WsBackend _onMessage completed command: loadVodItems (id: req-12) with payload length: 12679905
+[17:58:08.524] [console.log] CacheService: loaded 21782 VOD items in 722ms
+[17:58:08.942] [console.log] WsBackend _onMessage: [Large Payload of length 14465780]
+[17:58:08.942] [console.log] WsBackend _onMessage completed command: loadEpgEntries (id: req-13) with payload length: 14465780
+[17:58:09.079] [console.log] CacheService: loaded 58024 EPG entries across 1232 channels in 1293ms
+[17:58:09.080] [console.log] PlaylistSync: cache read complete in 1295ms — 12697 channels (275ms), 21782 VODs (723ms), 1232 EPG channels / 58024 entries (1294ms)
+[17:58:09.461] [console.log] WsBackend _onMessage: {"count":0,"id":"req-14","ok":true}
+[17:58:09.461] [console.log] WsBackend _onMessage completed command: evictStaleEpg (id: req-14) with payload length: 35
+[17:58:10.078] [console.log] WsBackend _onMessage: [Large Payload of length 6397732]
+[17:58:10.078] [console.log] WsBackend _onMessage completed command: filterChannelsBySource (id: req-15) with payload length: 6397732
+[17:58:10.105] [console.log] PlaylistSync: cache → UI complete in 2320ms
+[17:58:10.106] [console.log] WsBackend _onMessage: {"data":[],"id":"req-16"}
+[17:58:10.106] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-16) with payload length: 25
+[17:58:10.108] [console.log] WsBackend _onMessage: {"data":[],"id":"req-17"}
+[17:58:10.108] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-17) with payload length: 25
+[17:58:10.118] [console.log] WsBackend _onMessage: {"data":1771869486,"id":"req-18"}
+[17:58:10.118] [console.log] WsBackend _onMessage completed command: getLastSyncTime (id: req-18) with payload length: 33
+[17:58:10.118] [console.log] PlaylistSync: all sources synced within 24h — BUT IGNORING IT FOR DEBUGGING
+[17:58:10.246] [console.log] WsBackend _onMessage: [Large Payload of length 3845]
+[17:58:10.247] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-19) with payload length: 3845
+[17:58:10.248] [console.log] WsBackend _onMessage: [Large Payload of length 3549]
+[17:58:10.248] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-20) with payload length: 3549
+[17:58:10.250] [console.log] WsBackend _onMessage: [Large Payload of length 3068]
+[17:58:10.250] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-21) with payload length: 3068
+[17:58:10.250] [console.log] RefreshPlaylist: categories loaded — Live: 165, VOD: 133, Series: 94
+[17:58:11.063] [console.log] WsBackend _onMessage: [Large Payload of length 6605053]
+[17:58:11.063] [console.log] WsBackend _onMessage completed command: parseXtreamLiveStreams (id: req-22) with payload length: 6605053
+[17:58:11.674] [console.log] WsBackend _onMessage: [Large Payload of length 6689763]
+[17:58:11.674] [console.log] WsBackend _onMessage completed command: resolveChannelCategories (id: req-23) with payload length: 6689763
+[17:58:12.082] [console.log] WsBackend _onMessage: [Large Payload of length 2281]
+[17:58:12.082] [console.log] WsBackend _onMessage completed command: extractSortedGroups (id: req-24) with payload length: 2281
+[17:58:12.378] [console.log] RefreshPlaylist: fetched 12391 VOD JSON items from HTTP
+[17:58:12.436] [console.log] WsBackend _send: parseVodStreams sending ${json.length} characters to Rust
+[17:58:12.758] Screenshot: 001-app-loaded-1920x1080.png
+[17:58:12.766] Canvas visible: OK
+[17:58:12.766] === Phase 2: Profile Selection ===
+[17:58:12.988] [console.log] WsBackend _onMessage: [Large Payload of length 5867657]
+[17:58:12.988] [console.log] WsBackend _onMessage completed command: parseVodStreams (id: req-25) with payload length: 5867657
+[17:58:12.988] [console.log] WsBackend parseVodStreams received ${resultList.length} items from Rust
+[17:58:12.992] [console.log] RefreshPlaylist: Resolving categories for 12391 items using map size 133
+[17:58:13.395] Screenshot: 002-profile-selection-1920x1080.png
+[17:58:13.399] Profile title visible: false
+[17:58:13.400] Add Profile visible: false
+[17:58:13.403] Profile items found: 0
+[17:58:13.648] [console.log] WsBackend _onMessage: [Large Payload of length 6693342]
+[17:58:13.648] [console.log] WsBackend _onMessage completed command: resolveVodCategories (id: req-26) with payload length: 6693342
+[17:58:13.648] [console.log] RefreshPlaylist: resolveVodCategories returned JSON string of length 5999401
+[17:58:13.648] [console.log] RefreshPlaylist: resolveVodCategories decoded to List of size 12391
+[17:58:13.658] [console.log] RefreshPlaylist: Successfully mapped 12391 items back to VodItem objects.
+[17:58:13.658] [console.log] RefreshPlaylist: 12391 VOD movies loaded
+[17:58:14.816] [console.log] WsBackend _send: parseSeries sending ${json.length} characters to Rust
+[17:58:15.754] [console.log] WsBackend _onMessage: [Large Payload of length 6515763]
+[17:58:15.754] [console.log] WsBackend _onMessage completed command: parseSeries (id: req-27) with payload length: 6515763
+[17:58:15.754] [console.log] WsBackend parseSeries received ${resultList.length} items from Rust
+[17:58:16.645] [console.log] WsBackend _onMessage: [Large Payload of length 7213791]
+[17:58:16.645] [console.log] WsBackend _onMessage completed command: resolveVodCategories (id: req-28) with payload length: 7213791
+[17:58:16.645] [console.log] RefreshPlaylist: 9358 series loaded
+[17:58:17.673] [console.log] WsBackend _onMessage: [Large Payload of length 4288]
+[17:58:17.673] [console.log] WsBackend _onMessage completed command: extractSortedVodCategories (id: req-29) with payload length: 4288
+[17:58:17.717] [console.log] WsBackend _onMessage: {"count":0,"id":"req-30","ok":true}
+[17:58:17.717] [console.log] WsBackend _onMessage completed command: deleteRemovedChannels (id: req-30) with payload length: 35
+[17:58:17.718] [console.log] CacheService: deleted 0 stale channels for source src_1771567852776 in 32ms
+[17:58:17.780] [console.log] WsBackend _onMessage: {"count":0,"id":"req-31","ok":true}
+[17:58:17.780] [console.log] WsBackend _onMessage completed command: deleteRemovedVodItems (id: req-31) with payload length: 35
+[17:58:17.780] [console.log] CacheService: deleted 0 stale VOD items for source src_1771567852776 in 59ms
+[17:58:17.781] [console.log] WsBackend _onMessage: {"id":"req-32","ok":true}
+[17:58:17.781] [console.log] WsBackend _onMessage completed command: setLastSyncTime (id: req-32) with payload length: 25
+[17:58:17.781] [console.log] PlaylistSync: look4k → 12697 channels, 21749 VOD items
+[17:58:18.477] [console.log] WsBackend _onMessage: [Large Payload of length 6905612]
+[17:58:18.477] [console.log] WsBackend _onMessage completed command: sortChannels (id: req-33) with payload length: 6905612
+[17:58:19.127] [console.log] WsBackend _onMessage: [Large Payload of length 6397732]
+[17:58:19.127] [console.log] WsBackend _onMessage completed command: filterChannelsBySource (id: req-34) with payload length: 6397732
+[17:58:19.591] [console.log] WsBackend _onMessage: {"data":[],"id":"req-35"}
+[17:58:19.591] [console.log] WsBackend _onMessage completed command: detectDuplicateChannels (id: req-35) with payload length: 25
+[17:58:20.222] [console.log] WsBackend _onMessage: [Large Payload of length 6905612]
+[17:58:20.222] [console.log] WsBackend _onMessage completed command: sortChannels (id: req-36) with payload length: 6905612
+[17:58:21.159] [console.log] WsBackend _onMessage: {"count":12697,"id":"req-37","ok":true}
+[17:58:21.159] [console.log] WsBackend _onMessage completed command: saveChannels (id: req-37) with payload length: 39
+[17:58:21.159] [console.log] CacheService: saved 12697 channels in 927ms
+[17:58:21.408] Profile selected: false
+[17:58:22.530] [console.log] WsBackend _onMessage: {"count":21749,"id":"req-38","ok":true}
+[17:58:22.530] [console.log] WsBackend _onMessage completed command: saveVodItems (id: req-38) with payload length: 39
+[17:58:22.530] [console.log] CacheService: saved 21749 VOD items in 1370ms
+[17:58:22.533] [console.log] WsBackend _onMessage: {"id":"req-39","ok":true}
+[17:58:22.533] [console.log] WsBackend _onMessage completed command: saveCategories (id: req-39) with payload length: 25
+[17:58:22.533] [console.log] CacheService: saved 390 categories (live, vod) in 3ms
+[17:58:22.533] [console.log] PlaylistSync: persisted 12697 channels + 21749 VODs to DB
+[17:58:22.994] [console.log] WsBackend _onMessage: {"data":{},"id":"req-40"}
+[17:58:22.994] [console.log] WsBackend _onMessage completed command: getAllCachedImageUrls (id: req-40) with payload length: 25
+[17:58:22.994] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.994] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.994] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.994] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.994] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.994] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.995] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.995] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.995] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.995] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.995] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.995] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.995] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.995] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.995] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.996] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.997] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:22.998] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.000] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.001] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.003] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.004] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.005] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.006] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.007] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.009] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.010] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.012] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.013] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.015] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.016] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.017] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.019] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.021] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.022] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.023] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.025] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.026] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.028] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.029] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.030] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.032] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.033] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.035] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.036] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.037] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.038] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.039] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.041] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.042] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.044] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.045] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.046] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.047] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.049] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.051] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.053] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.055] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.056] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.058] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.059] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.061] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.062] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.063] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.065] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.066] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.067] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.069] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.070] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.071] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.073] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.074] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.075] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.076] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.077] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.079] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.081] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.082] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.084] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.086] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.088] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.090] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.092] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.301] [console.log] WsBackend _onMessage: [Large Payload of length 6905612]
+[17:58:23.301] [console.log] WsBackend _onMessage completed command: sortChannels (id: req-41) with payload length: 6905612
+[17:58:23.319] [console.log] PlaylistSync: fetching EPG from http://look4k.com/xmltv.php?username=4917676477361&password=3278818818
+[17:58:23.323] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.325] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.327] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.328] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.329] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.331] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.332] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.333] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.334] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.336] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.337] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.338] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.340] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.341] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.368] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.374] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.376] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.377] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.378] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.379] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.380] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.382] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.383] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.384] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.386] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.388] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.389] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.390] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.392] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.393] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.394] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.396] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.397] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.398] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.400] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.401] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.402] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.403] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.404] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.406] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.407] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.408] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.409] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.412] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.412] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.413] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.415] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.416] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.417] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.420] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.422] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.424] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.425] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.481] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.482] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.484] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.485] Screenshot: 003-after-profile-select-1920x1080.png
+[17:58:23.485] === Phase 3: Home Screen ===
+[17:58:23.486] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.488] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.489] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.491] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.492] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.494] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.495] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.496] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.497] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.498] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.500] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[17:58:23.500] [console.log] ImageFetch: found 0 logos for 50 channels
+[17:58:23.501] [console.log] WsBackend _onMessage: {"data":{"vod_1001014":"https://image.tmdb.org/t/p/w500/nvK6gYa4diCnQkDVN42uoYXPrdT.jpg","vod_582538":"https://image.tmdb.org/t/p/w500/q3xxECv3n5lP7TlBQZtLhwtyspd.jpg","vod_582553":"https://image.tmdb.org/t/p/w500/w67lQSdz4ULkaMiyIgKmQQBcO00.jpg","vod_994828":"https://image.tmdb.org/t/p/w500/p8qKskzxLhAgqbcDgxaaCDUcXhw.jpg","vod_999354":"https://image.tmdb.org/t/p/w500/f9NOLejYqlbiAUFs6gvEads79OK.jpg"},"id":"req-42"}
+[17:58:23.501] [console.log] WsBackend _onMessage completed command: getAllCachedImageUrls (id: req-42) with payload length: 420
+[17:58:23.580] Screenshot: 004-home-screen-1920x1080.png
+[17:58:23.583] Home section "Continue Watching": false
+[17:58:23.586] Home section "Recent Channels": false
+[17:58:23.588] Home section "Your Favorites": false
+[17:58:23.590] Home section "Recommended": false
+[17:58:23.591] Home section "Latest": false
+[17:58:23.591] === Phase 4: Navigation Tabs ===
+[17:58:23.591] --- Navigating to: Home ---
+[17:58:25.894] [console.log] WsBackend _onMessage: [Large Payload of length 35337]
+[17:58:25.894] [console.log] WsBackend _onMessage completed command: extractEpgChannelNames (id: req-43) with payload length: 35337
+[17:58:29.225] [console.log] WsBackend _onMessage: [Large Payload of length 24863837]
+[17:58:29.225] [console.log] WsBackend _onMessage completed command: parseEpg (id: req-44) with payload length: 24863837
+[17:58:29.437] Click failed: "Home"
+[17:58:29.456] [console.log] PlaylistSync: parsed 91950 EPG entries from http://look4k.com/xmltv.php?username=4917676477361&password=3278818818
+[17:58:33.337] [console.log] WsBackend _onMessage: [Large Payload of length 24880712]
+[17:58:33.338] [console.log] WsBackend _onMessage completed command: matchEpgToChannels (id: req-45) with payload length: 24880712
+[17:58:33.338] [console.log] PlaylistSync: EPG match stats — direct_id: 0, name_as_id: 0, norm_name: 0, tvg_id_exact: 91950, tvg_id_lower: 0, unmatched: 0, xmltv_name: 0 → 0 channels
+[17:58:33.338] [console.log] PlaylistSync: fetching short EPG for 200 channels via Xtream API
+[17:58:34.451] Aria click failed: "Home"
+[17:58:36.523] Screenshot: 005-tab-home-1920x1080.png
+[17:58:36.523] --- Navigating to: Search ---
+[17:58:38.043] [console.log] ImageFetch: found 0 posters for 50 VOD items
+[17:58:42.383] Click failed: "Search"
+[17:58:47.386] Aria click failed: "Search"
+[17:58:49.464] Screenshot: 006-tab-search-1920x1080.png
+[17:58:49.464] --- Navigating to: Live TV ---
+[17:58:51.483] [console.log] PlaylistSync: short EPG — fetched: 0, errors: 0, total EPG channels now: 0
+[17:58:51.487] [console.log] WsBackend _onMessage: {"count":0,"id":"req-46","ok":true}
+[17:58:51.487] [console.log] WsBackend _onMessage completed command: saveEpgEntries (id: req-46) with payload length: 35
+[17:58:51.487] [console.log] CacheService: upserted 0 EPG entries across 0 channels in 1ms
+[17:58:51.487] [console.log] PlaylistSync: persisted EPG for 0 channels to DB
+[17:58:51.487] [console.log] PlaylistSync: EPG loaded for 0 of 12697 channels
+[17:58:55.314] Click failed: "Live TV"
+[17:59:00.327] Aria click failed: "Live TV"
+[17:59:02.447] Screenshot: 007-tab-live tv-1920x1080.png
+[17:59:02.447] Checking TV screen...
+[17:59:02.450] TV groups sidebar: false
+[17:59:02.452] TV search inputs: 0
+[17:59:02.531] Screenshot: 008-tv-detail-1920x1080.png
+[17:59:02.531] --- Navigating to: Guide ---
+[17:59:08.384] Click failed: "Guide"
+[17:59:13.397] Aria click failed: "Guide"
+[17:59:15.475] Screenshot: 009-tab-guide-1920x1080.png
+[17:59:15.475] Checking EPG/Guide screen...
+[17:59:15.478] EPG "Now" marker: false
+[17:59:15.481] EPG filter elements: 0
+[17:59:15.484] EPG Day/Week toggle: false
+[17:59:15.569] Screenshot: 010-epg-detail-1920x1080.png
+[17:59:15.569] --- Navigating to: Movies ---
+[17:59:21.423] Click failed: "Movies"
+[17:59:26.432] Aria click failed: "Movies"
+[17:59:28.504] Screenshot: 011-tab-movies-1920x1080.png
+[17:59:28.504] Checking VOD screen (Movies)...
+[17:59:28.507] VOD poster cards: 0
+[17:59:28.507] --- Navigating to: Series ---
+[17:59:34.361] Click failed: "Series"
+[17:59:39.369] Aria click failed: "Series"
+[17:59:41.440] Screenshot: 012-tab-series-1920x1080.png
+[17:59:41.440] Checking VOD screen (Series)...
+[17:59:41.442] VOD poster cards: 0
+[17:59:41.442] --- Navigating to: DVR ---
+[17:59:47.297] Click failed: "DVR"
+[17:59:52.302] Aria click failed: "DVR"
+[17:59:54.382] Screenshot: 013-tab-dvr-1920x1080.png
+[17:59:54.382] --- Navigating to: Favorites ---
+[18:00:00.240] Click failed: "Favorites"
+[18:00:05.241] Aria click failed: "Favorites"
+[18:00:07.310] Screenshot: 014-tab-favorites-1920x1080.png
+[18:00:07.310] --- Navigating to: Settings ---
+[18:00:13.168] Click failed: "Settings"
+[18:00:18.180] Aria click failed: "Settings"
+[18:00:20.251] Screenshot: 015-tab-settings-1920x1080.png
+[18:00:20.251] Checking Settings screen...
+[18:00:20.349] Screenshot: 016-settings-detail-1920x1080.png
+[18:00:20.349] === Phase 5: Settings Deep Dive ===
+[18:00:26.207] Click failed: "Settings"
+[18:00:31.236] Click failed: "Playlists"
+[18:00:34.766] Click failed: "Appearance"
+[18:00:38.298] Click failed: "Playback"
+[18:00:41.831] Click failed: "EPG"
+[18:00:45.366] Click failed: "General"
+[18:00:48.881] Click failed: "About"
+[18:00:48.886] === Phase 6: Context Menu Tests ===
+[18:00:54.744] Click failed: "Live TV"
+[18:00:59.751] Aria click failed: "Live TV"
+[18:01:01.763] Channel items found: 0
+[18:01:01.763] === Phase 7: Responsive Layout ===
+[18:01:01.764] Navigation elements: 0
+[18:01:01.764] Viewport: 1920x1080
+[18:01:01.764] === Phase 8: Keyboard Navigation ===
+[18:01:01.991] [console.log] Null check operator used on a null value
+[18:01:01.992] [console.log]     at Object.bP6 (http://127.0.0.1:3000/main.dart.js:33986:3)
+[18:01:01.992] [console.log]     at Object.bP7 (http://127.0.0.1:3000/main.dart.js:33962:5)
+[18:01:01.992] [console.log]     at aTz.a4M (http://127.0.0.1:3000/main.dart.js:130687:19)
+[18:01:01.992] [console.log]     at Object.bGm (http://127.0.0.1:3000/main.dart.js:33918:19)
+[18:01:01.992] [console.log]     at aTz.pZ (http://127.0.0.1:3000/main.dart.js:130378:5)
+[18:01:01.992] [console.log]     at aTz.pZ (http://127.0.0.1:3000/main.dart.js:130385:9)
+[18:01:01.993] [console.log]     at a6Y.fE (http://127.0.0.1:3000/main.dart.js:130755:16)
+[18:01:01.993] [console.log]     at a6Y.Dy (http://127.0.0.1:3000/main.dart.js:125333:16)
+[18:01:01.993] [console.log]     at ar7.b80 (http://127.0.0.1:3000/main.dart.js:125349:46)
+[18:01:01.993] [console.log]     at Hm.b6o (http://127.0.0.1:3000/main.dart.js:141778:5)
+[18:01:02.415] [PAGE_ERROR] Cannot read properties of null (reading 'toString')
+[18:01:03.029] [PAGE_ERROR] Cannot read properties of null (reading 'toString')
+[18:01:03.654] [PAGE_ERROR] Cannot read properties of null (reading 'toString')
+[18:01:03.919] Screenshot: 017-keyboard-tab-focus-1920x1080.png
+[18:01:05.516] Screenshot: 018-keyboard-arrow-nav-1920x1080.png
+[18:01:05.516] === Phase 9: Empty States ===
+[18:01:11.368] Click failed: "Movies"
+[18:01:16.368] Aria click failed: "Movies"
+[18:01:18.452] Screenshot: 019-movies-state-1920x1080.png
+[18:01:24.315] Click failed: "Guide"
+[18:01:29.327] Aria click failed: "Guide"
+[18:01:31.394] Screenshot: 020-epg-state-1920x1080.png
+[18:01:31.394] === Phase 10: Final Summary ===
+[18:01:31.462] Screenshot: 021-final-state-1920x1080.png

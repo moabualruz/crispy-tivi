@@ -1,0 +1,9 @@
+# Test reports are transient — regenerated on each run.
+screenshots/
+playwright-report/
+*.log
+
+# Keep issue tracker and gitkeep.
+!issues.md
+!.gitignore
+!.gitkeep

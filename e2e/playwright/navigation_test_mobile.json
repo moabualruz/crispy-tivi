@@ -1,0 +1,618 @@
+{
+  "config": {
+    "configFile": "F:\\work\\crispy-tivi\\e2e\\playwright\\playwright.config.ts",
+    "rootDir": "F:/work/crispy-tivi/e2e/playwright/tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "F:/work/crispy-tivi/e2e/playwright/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "F:/work/crispy-tivi/e2e/playwright/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "F:/work/crispy-tivi/e2e/playwright/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "tablet",
+        "name": "tablet",
+        "testDir": "F:/work/crispy-tivi/e2e/playwright/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "F:/work/crispy-tivi/e2e/playwright/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "F:/work/crispy-tivi/e2e/playwright/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "F:/work/crispy-tivi/e2e/playwright/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "tv",
+        "name": "tv",
+        "testDir": "F:/work/crispy-tivi/e2e/playwright/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 16,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "navigation.spec.ts",
+      "file": "navigation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Navigation",
+          "file": "navigation.spec.ts",
+          "line": 21,
+          "column": 6,
+          "specs": [
+            {
+              "title": "all 5 nav tabs are clickable",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile",
+                  "projectName": "mobile",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2248,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                          "column": 16,
+                          "line": 23
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 21 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m'Navigation'\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 22 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m     \u001b[36mawait\u001b[39m waitForFlutterReady(page)\u001b[33m;\u001b[39m\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m     \u001b[90m// Get past the profile selection gate.\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                            "column": 16,
+                            "line": 23
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n\n  21 | test.describe('Navigation', () => {\n  22 |   test.beforeEach(async ({ page }) => {\n> 23 |     await page.goto('/');\n     |                ^\n  24 |     await waitForFlutterReady(page);\n  25 |\n  26 |     // Get past the profile selection gate.\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-23T17:42:21.870Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-all-5-nav-tabs-are-clickable-mobile\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-all-5-nav-tabs-are-clickable-mobile\\video.webm"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                        "column": 16,
+                        "line": 23
+                      }
+                    },
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2250,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                          "column": 16,
+                          "line": 23
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 21 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m'Navigation'\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 22 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m     \u001b[36mawait\u001b[39m waitForFlutterReady(page)\u001b[33m;\u001b[39m\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m     \u001b[90m// Get past the profile selection gate.\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                            "column": 16,
+                            "line": 23
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n\n  21 | test.describe('Navigation', () => {\n  22 |   test.beforeEach(async ({ page }) => {\n> 23 |     await page.goto('/');\n     |                ^\n  24 |     await waitForFlutterReady(page);\n  25 |\n  26 |     // Get past the profile selection gate.\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-02-23T17:42:25.275Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-all-5-nav-tabs-are-clickable-mobile-retry1\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-all-5-nav-tabs-are-clickable-mobile-retry1\\video.webm"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-all-5-nav-tabs-are-clickable-mobile-retry1\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                        "column": 16,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-99a0093258c6a90cb357",
+              "file": "navigation.spec.ts",
+              "line": 30,
+              "column": 7
+            },
+            {
+              "title": "clicking each tab does not produce page errors",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile",
+                  "projectName": "mobile",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2266,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                          "column": 16,
+                          "line": 23
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 21 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m'Navigation'\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 22 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m     \u001b[36mawait\u001b[39m waitForFlutterReady(page)\u001b[33m;\u001b[39m\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m     \u001b[90m// Get past the profile selection gate.\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                            "column": 16,
+                            "line": 23
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n\n  21 | test.describe('Navigation', () => {\n  22 |   test.beforeEach(async ({ page }) => {\n> 23 |     await page.goto('/');\n     |                ^\n  24 |     await waitForFlutterReady(page);\n  25 |\n  26 |     // Get past the profile selection gate.\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-23T17:42:28.758Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-clic-2b074-oes-not-produce-page-errors-mobile\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-clic-2b074-oes-not-produce-page-errors-mobile\\video.webm"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                        "column": 16,
+                        "line": 23
+                      }
+                    },
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2251,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                          "column": 16,
+                          "line": 23
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 21 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m'Navigation'\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 22 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m     \u001b[36mawait\u001b[39m waitForFlutterReady(page)\u001b[33m;\u001b[39m\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m     \u001b[90m// Get past the profile selection gate.\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                            "column": 16,
+                            "line": 23
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n\n  21 | test.describe('Navigation', () => {\n  22 |   test.beforeEach(async ({ page }) => {\n> 23 |     await page.goto('/');\n     |                ^\n  24 |     await waitForFlutterReady(page);\n  25 |\n  26 |     // Get past the profile selection gate.\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-02-23T17:42:32.231Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-clic-2b074-oes-not-produce-page-errors-mobile-retry1\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-clic-2b074-oes-not-produce-page-errors-mobile-retry1\\video.webm"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-clic-2b074-oes-not-produce-page-errors-mobile-retry1\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                        "column": 16,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-1cb7614d1c9c5656a36a",
+              "file": "navigation.spec.ts",
+              "line": 54,
+              "column": 7
+            },
+            {
+              "title": "navigating away and back to Home preserves state",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile",
+                  "projectName": "mobile",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2254,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                          "column": 16,
+                          "line": 23
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 21 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m'Navigation'\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 22 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m     \u001b[36mawait\u001b[39m waitForFlutterReady(page)\u001b[33m;\u001b[39m\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m     \u001b[90m// Get past the profile selection gate.\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                            "column": 16,
+                            "line": 23
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n\n  21 | test.describe('Navigation', () => {\n  22 |   test.beforeEach(async ({ page }) => {\n> 23 |     await page.goto('/');\n     |                ^\n  24 |     await waitForFlutterReady(page);\n  25 |\n  26 |     // Get past the profile selection gate.\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-23T17:42:35.668Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-navi-f8505-ack-to-Home-preserves-state-mobile\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-navi-f8505-ack-to-Home-preserves-state-mobile\\video.webm"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                        "column": 16,
+                        "line": 23
+                      }
+                    },
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2290,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                          "column": 16,
+                          "line": 23
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 21 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m'Navigation'\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 22 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m     \u001b[36mawait\u001b[39m waitForFlutterReady(page)\u001b[33m;\u001b[39m\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m     \u001b[90m// Get past the profile selection gate.\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                            "column": 16,
+                            "line": 23
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n\n  21 | test.describe('Navigation', () => {\n  22 |   test.beforeEach(async ({ page }) => {\n> 23 |     await page.goto('/');\n     |                ^\n  24 |     await waitForFlutterReady(page);\n  25 |\n  26 |     // Get past the profile selection gate.\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-02-23T17:42:39.115Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-navi-f8505-ack-to-Home-preserves-state-mobile-retry1\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-navi-f8505-ack-to-Home-preserves-state-mobile-retry1\\video.webm"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-navi-f8505-ack-to-Home-preserves-state-mobile-retry1\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                        "column": 16,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-0fd20b843c21b48ebdd1",
+              "file": "navigation.spec.ts",
+              "line": 76,
+              "column": 7
+            },
+            {
+              "title": "full navigation cycle through all tabs completes",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile",
+                  "projectName": "mobile",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2261,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                          "column": 16,
+                          "line": 23
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 21 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m'Navigation'\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 22 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m     \u001b[36mawait\u001b[39m waitForFlutterReady(page)\u001b[33m;\u001b[39m\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m     \u001b[90m// Get past the profile selection gate.\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                            "column": 16,
+                            "line": 23
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n\n  21 | test.describe('Navigation', () => {\n  22 |   test.beforeEach(async ({ page }) => {\n> 23 |     await page.goto('/');\n     |                ^\n  24 |     await waitForFlutterReady(page);\n  25 |\n  26 |     // Get past the profile selection gate.\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-23T17:42:42.617Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-full-5197d--through-all-tabs-completes-mobile\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-full-5197d--through-all-tabs-completes-mobile\\video.webm"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                        "column": 16,
+                        "line": 23
+                      }
+                    },
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2273,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16",
+                        "location": {
+                          "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                          "column": 16,
+                          "line": 23
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 21 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m'Navigation'\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 22 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m     \u001b[36mawait\u001b[39m waitForFlutterReady(page)\u001b[33m;\u001b[39m\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m     \u001b[90m// Get past the profile selection gate.\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                            "column": 16,
+                            "line": 23
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"load\"\u001b[22m\n\n\n  21 | test.describe('Navigation', () => {\n  22 |   test.beforeEach(async ({ page }) => {\n> 23 |     await page.goto('/');\n     |                ^\n  24 |     await waitForFlutterReady(page);\n  25 |\n  26 |     // Get past the profile selection gate.\n    at F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts:23:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-02-23T17:42:46.079Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-full-5197d--through-all-tabs-completes-mobile-retry1\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-full-5197d--through-all-tabs-completes-mobile-retry1\\video.webm"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "F:\\work\\crispy-tivi\\e2e\\playwright\\test-results\\navigation-Navigation-full-5197d--through-all-tabs-completes-mobile-retry1\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "F:\\work\\crispy-tivi\\e2e\\playwright\\tests\\navigation.spec.ts",
+                        "column": 16,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-3a40d501ac0247118490",
+              "file": "navigation.spec.ts",
+              "line": 108,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-02-23T17:42:20.876Z",
+    "duration": 27689.308999999997,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 4,
+    "flaky": 0
+  }
+}

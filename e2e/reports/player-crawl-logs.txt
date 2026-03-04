@@ -1,0 +1,193 @@
+# Player Crawl Logs
+## Errors (31)
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+
+## Full Log
+[18:07:44.375] Starting Player E2E Test
+[18:07:44.605] [console.warning] WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost
+[18:07:44.612] [console.debug] Injecting <script> tag. Using callback.
+[18:07:45.217] [console.debug] TrustedTypes available. Creating policy: gis-dart
+[18:07:45.446] [console.log] WsBackend _onMessage: {"data":"{\"player\":{\"upscaleEnabled\":false,\"upscaleQuality\":\"maximum\"}}","id":"req-1"}
+[18:07:45.447] [console.log] WsBackend _onMessage completed command: getSetting (id: req-1) with payload length: 94
+[18:07:45.448] [console.warning] [.WebGL-0x388c01d45b00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[18:07:45.469] [console.log] WsBackend _onMessage: {"data":"[{\"id\":\"src_1771567852776\",\"name\":\"look4k\",\"url\":\"http://look4k.com\",\"type\":\"xtream\",\"epgUrl\":\"http://look4k.com/xmltv.php?username=4917676477361&password=3278818818\",\"userAgent\":null,\"refreshIntervalMinutes\":60,\"username\":\"4917676477361\",\"password\":\"3278818818\",\"accessToken\":null,\"deviceId\":null,\"userid\":null,\"macAddress\":null}]","id":"req-2"}
+[18:07:45.470] [console.log] WsBackend _onMessage completed command: getSetting (id: req-2) with payload length: 395
+[18:07:45.470] [console.warning] [.WebGL-0x388c01d45b00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[18:07:45.497] [console.log] WsBackend _onMessage: {"data":null,"id":"req-3"}
+[18:07:45.497] [console.log] WsBackend _onMessage completed command: getSetting (id: req-3) with payload length: 26
+[18:07:45.498] [console.warning] [.WebGL-0x388c01d45b00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[18:07:45.524] [console.log] WsBackend _onMessage: {"data":null,"id":"req-4"}
+[18:07:45.524] [console.log] WsBackend _onMessage completed command: getSetting (id: req-4) with payload length: 26
+[18:07:45.524] [console.warning] [.WebGL-0x388c01d45b00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+[18:07:45.556] [console.log] WsBackend _onMessage: {"data":null,"id":"req-5"}
+[18:07:45.557] [console.log] WsBackend _onMessage completed command: getSetting (id: req-5) with payload length: 26
+[18:07:45.577] [console.log] WsBackend _onMessage: {"data":null,"id":"req-6"}
+[18:07:45.577] [console.log] WsBackend _onMessage completed command: getSetting (id: req-6) with payload length: 26
+[18:07:45.598] [console.log] WsBackend _onMessage: {"data":null,"id":"req-7"}
+[18:07:45.598] [console.log] WsBackend _onMessage completed command: getSetting (id: req-7) with payload length: 26
+[18:07:45.617] [console.log] WsBackend _onMessage: {"data":null,"id":"req-8"}
+[18:07:45.617] [console.log] WsBackend _onMessage completed command: getSetting (id: req-8) with payload length: 26
+[18:07:45.634] [console.log] WsBackend _onMessage: {"data":null,"id":"req-9"}
+[18:07:45.634] [console.log] WsBackend _onMessage completed command: getSetting (id: req-9) with payload length: 26
+[18:07:45.682] [console.log] WsBackend _onMessage: {"data":[{"avatar_index":0,"dvr_permission":2,"dvr_quota_mb":null,"id":"default","is_child":false,"max_allowed_rating":4,"name":"Default","pin":null,"pin_version":1,"role":0}],"id":"req-10"}
+[18:07:45.682] [console.log] WsBackend _onMessage completed command: loadProfiles (id: req-10) with payload length: 190
+[18:07:45.833] [console.log] PlaylistSync: loading from cache…
+[18:07:46.559] [console.log] WsBackend _onMessage: [Large Payload of length 6252686]
+[18:07:46.559] [console.log] WsBackend _onMessage completed command: loadChannels (id: req-11) with payload length: 6252686
+[18:07:46.573] [console.log] CacheService: loaded 12697 channels in 740ms
+[18:07:47.130] [console.log] WsBackend _onMessage: [Large Payload of length 12679905]
+[18:07:47.130] [console.log] WsBackend _onMessage completed command: loadVodItems (id: req-12) with payload length: 12679905
+[18:07:47.130] [console.log] CacheService: loaded 21782 VOD items in 1286ms
+[18:07:47.598] [console.log] WsBackend _onMessage: [Large Payload of length 14358817]
+[18:07:47.598] [console.log] WsBackend _onMessage completed command: loadEpgEntries (id: req-13) with payload length: 14358817
+[18:07:47.766] [console.log] CacheService: loaded 57591 EPG entries across 1232 channels in 1932ms
+[18:07:47.767] [console.log] PlaylistSync: cache read complete in 1935ms — 12697 channels (740ms), 21782 VODs (1286ms), 1232 EPG channels / 57591 entries (1933ms)
+[18:07:48.158] [console.log] WsBackend _onMessage: {"count":0,"id":"req-14","ok":true}
+[18:07:48.158] [console.log] WsBackend _onMessage completed command: evictStaleEpg (id: req-14) with payload length: 35
+[18:07:48.372] [console.log] WsBackend _onMessage: [Large Payload of length 6397732]
+[18:07:48.372] [console.log] WsBackend _onMessage completed command: filterChannelsBySource (id: req-15) with payload length: 6397732
+[18:07:48.405] [console.log] PlaylistSync: cache → UI complete in 2572ms
+[18:07:48.415] [console.log] WsBackend _onMessage: {"data":[],"id":"req-16"}
+[18:07:48.415] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-16) with payload length: 25
+[18:07:48.418] [console.log] WsBackend _onMessage: {"data":[],"id":"req-17"}
+[18:07:48.418] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-17) with payload length: 25
+[18:07:48.428] [console.log] WsBackend _onMessage: {"data":1771869711,"id":"req-18"}
+[18:07:48.428] [console.log] WsBackend _onMessage completed command: getLastSyncTime (id: req-18) with payload length: 33
+[18:07:48.428] [console.log] PlaylistSync: all sources synced within 24h — BUT IGNORING IT FOR DEBUGGING
+[18:07:48.544] [console.log] WsBackend _onMessage: [Large Payload of length 3845]
+[18:07:48.544] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-19) with payload length: 3845
+[18:07:48.546] [console.log] WsBackend _onMessage: [Large Payload of length 3549]
+[18:07:48.546] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-20) with payload length: 3549
+[18:07:48.547] [console.log] WsBackend _onMessage: [Large Payload of length 3068]
+[18:07:48.547] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-21) with payload length: 3068
+[18:07:48.547] [console.log] RefreshPlaylist: categories loaded — Live: 165, VOD: 133, Series: 94
+[18:07:49.413] [console.log] WsBackend _onMessage: [Large Payload of length 6605053]
+[18:07:49.413] [console.log] WsBackend _onMessage completed command: parseXtreamLiveStreams (id: req-22) with payload length: 6605053
+[18:07:49.860] Navigating to Live TV
+[18:07:50.061] [console.log] WsBackend _onMessage: [Large Payload of length 6689763]
+[18:07:50.061] [console.log] WsBackend _onMessage completed command: resolveChannelCategories (id: req-23) with payload length: 6689763
+[18:07:50.494] [console.log] WsBackend _onMessage: [Large Payload of length 2281]
+[18:07:50.494] [console.log] WsBackend _onMessage completed command: extractSortedGroups (id: req-24) with payload length: 2281
+[18:07:50.780] [console.log] RefreshPlaylist: fetched 12391 VOD JSON items from HTTP
+[18:07:50.843] [console.log] WsBackend _send: parseVodStreams sending ${json.length} characters to Rust
+[18:07:51.368] [console.log] WsBackend _onMessage: [Large Payload of length 5867657]
+[18:07:51.368] [console.log] WsBackend _onMessage completed command: parseVodStreams (id: req-25) with payload length: 5867657
+[18:07:51.368] [console.log] WsBackend parseVodStreams received ${resultList.length} items from Rust
+[18:07:51.368] [console.log] RefreshPlaylist: Resolving categories for 12391 items using map size 133
+[18:07:52.066] [console.log] WsBackend _onMessage: [Large Payload of length 6693342]
+[18:07:52.067] [console.log] WsBackend _onMessage completed command: resolveVodCategories (id: req-26) with payload length: 6693342
+[18:07:52.067] [console.log] RefreshPlaylist: resolveVodCategories returned JSON string of length 5999401
+[18:07:52.067] [console.log] RefreshPlaylist: resolveVodCategories decoded to List of size 12391
+[18:07:52.080] [console.log] RefreshPlaylist: Successfully mapped 12391 items back to VodItem objects.
+[18:07:52.080] [console.log] RefreshPlaylist: 12391 VOD movies loaded
+[18:07:52.470] Clicking to start channel playback
+[18:07:52.975] [console.log] WsBackend _send: parseSeries sending ${json.length} characters to Rust
+[18:07:53.900] [console.log] WsBackend _onMessage: [Large Payload of length 6515763]
+[18:07:53.900] [console.log] WsBackend _onMessage completed command: parseSeries (id: req-27) with payload length: 6515763
+[18:07:53.900] [console.log] WsBackend parseSeries received ${resultList.length} items from Rust
+[18:07:54.827] [console.log] WsBackend _onMessage: [Large Payload of length 7213791]
+[18:07:54.827] [console.log] WsBackend _onMessage completed command: resolveVodCategories (id: req-28) with payload length: 7213791
+[18:07:54.827] [console.log] RefreshPlaylist: 9358 series loaded
+[18:07:55.970] [console.log] WsBackend _onMessage: [Large Payload of length 4288]
+[18:07:55.970] [console.log] WsBackend _onMessage completed command: extractSortedVodCategories (id: req-29) with payload length: 4288
+[18:07:55.976] Screenshot: 001-01-player-loaded-1280x900.png
+[18:07:55.976] Invoking Player HUD
+[18:07:56.012] [console.log] WsBackend _onMessage: {"count":0,"id":"req-30","ok":true}
+[18:07:56.013] [console.log] WsBackend _onMessage completed command: deleteRemovedChannels (id: req-30) with payload length: 35
+[18:07:56.013] [console.log] CacheService: deleted 0 stale channels for source src_1771567852776 in 43ms
+[18:07:56.076] [console.log] WsBackend _onMessage: {"count":0,"id":"req-31","ok":true}
+[18:07:56.076] [console.log] WsBackend _onMessage completed command: deleteRemovedVodItems (id: req-31) with payload length: 35
+[18:07:56.077] [console.log] CacheService: deleted 0 stale VOD items for source src_1771567852776 in 59ms
+[18:07:56.077] [console.log] WsBackend _onMessage: {"id":"req-32","ok":true}
+[18:07:56.077] [console.log] WsBackend _onMessage completed command: setLastSyncTime (id: req-32) with payload length: 25
+[18:07:56.077] [console.log] PlaylistSync: look4k → 12697 channels, 21749 VOD items
+[18:07:56.573] Screenshot: 002-02-player-hud-visible-1280x900.png
+[18:07:56.573] Clicking Play/Pause
+[18:07:56.876] [console.log] WsBackend _onMessage: [Large Payload of length 6905612]
+[18:07:56.876] [console.log] WsBackend _onMessage completed command: sortChannels (id: req-33) with payload length: 6905612
+[18:07:57.602] [console.log] WsBackend _onMessage: [Large Payload of length 6397732]
+[18:07:57.602] [console.log] WsBackend _onMessage completed command: filterChannelsBySource (id: req-34) with payload length: 6397732
+[18:07:58.051] Screenshot: 003-03-player-paused-1280x900.png
+[18:07:58.063] [console.log] WsBackend _onMessage: {"data":[],"id":"req-35"}
+[18:07:58.063] [console.log] WsBackend _onMessage completed command: detectDuplicateChannels (id: req-35) with payload length: 25
+[18:07:58.570] Clicking Audio Submenu
+[18:07:58.797] [console.log] WsBackend _onMessage: [Large Payload of length 6905612]
+[18:07:58.797] [console.log] WsBackend _onMessage completed command: sortChannels (id: req-36) with payload length: 6905612
+[18:07:59.627] Screenshot: 004-04-audio-submenu-open-1280x900.png
+[18:07:59.738] [console.log] WsBackend _onMessage: {"count":12697,"id":"req-37","ok":true}
+[18:07:59.738] [console.log] WsBackend _onMessage completed command: saveChannels (id: req-37) with payload length: 39
+[18:07:59.738] [console.log] CacheService: saved 12697 channels in 930ms
+[18:08:00.136] Clicking Player Settings Submenu
+[18:08:01.961] Screenshot: 005-05-settings-submenu-open-1280x900.png
+[18:08:01.961] Clicking inside Submenu item
+[18:08:02.852] [console.log] WsBackend _onMessage: {"count":21749,"id":"req-38","ok":true}
+[18:08:02.852] [console.log] WsBackend _onMessage completed command: saveVodItems (id: req-38) with payload length: 39
+[18:08:02.852] [console.log] CacheService: saved 21749 VOD items in 3115ms
+[18:08:02.856] [console.log] WsBackend _onMessage: {"id":"req-39","ok":true}
+[18:08:02.856] [console.log] WsBackend _onMessage completed command: saveCategories (id: req-39) with payload length: 25
+[18:08:02.856] [console.log] CacheService: saved 390 categories (live, vod) in 3ms
+[18:08:02.856] [console.log] PlaylistSync: persisted 12697 channels + 21749 VODs to DB
+[18:08:03.276] [console.log] WsBackend _onMessage: {"data":{},"id":"req-40"}
+[18:08:03.276] [console.log] WsBackend _onMessage completed command: getAllCachedImageUrls (id: req-40) with payload length: 25
+[18:08:03.276] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.276] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.276] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.276] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.276] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.277] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.279] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.280] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.282] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.283] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.284] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.285] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.286] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.287] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.288] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.289] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.290] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.291] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.292] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.293] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.294] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.295] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.296] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.297] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.298] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.299] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.300] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.301] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.302] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.329] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.330] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+[18:08:03.331] Screenshot: 006-06-submenu-interaction-1280x900.png

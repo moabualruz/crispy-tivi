@@ -1,0 +1,121 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../profiles/domain/permission_guard.dart';
+import '../domain/entities/recording.dart';
+import 'dvr_service.dart';
+
+/// Result of a schedule attempt.
+enum ScheduleResult {
+  /// Recording was scheduled successfully.
+  scheduled,
+
+  /// A conflict was detected — caller should
+  /// show resolution UI.
+  conflict,
+
+  /// The current profile does not have permission
+  /// to schedule recordings.
+  permissionDenied,
+}
+
+/// Serialize a [Recording] to a map matching the
+/// Rust `Recording` struct field names.
+Map<String, dynamic> recordingToMap(Recording r) {
+  return {
+    'id': r.id,
+    'channel_id': r.channelId,
+    'channel_name': r.channelName,
+    'channel_logo_url': r.channelLogoUrl,
+    'program_name': r.programName,
+    'stream_url': r.streamUrl,
+    'start_time': r.startTime.toIso8601String(),
+    'end_time': r.endTime.toIso8601String(),
+    'status': r.status.name,
+    'file_path': r.filePath,
+    'file_size_bytes': r.fileSizeBytes,
+    'is_recurring': r.isRecurring,
+    'recur_days': r.recurDays,
+    'owner_profile_id': r.ownerProfileId,
+    'is_shared': r.isShared,
+    'auto_delete_policy': r.autoDeletePolicy.name,
+    'keep_episode_count': r.keepEpisodeCount,
+  };
+}
+
+/// DVR state.
+class DvrState {
+  const DvrState({this.recordings = const [], this.progressBytes = const {}});
+
+  final List<Recording> recordings;
+
+  /// Live progress for in-progress recordings:
+  /// recordingId -> bytes written.
+  final Map<String, int> progressBytes;
+
+  List<Recording> get scheduled =>
+      recordings.where((r) => r.status == RecordingStatus.scheduled).toList();
+
+  List<Recording> get inProgress =>
+      recordings.where((r) => r.status == RecordingStatus.recording).toList();
+
+  List<Recording> get completed =>
+      recordings.where((r) => r.status == RecordingStatus.completed).toList();
+
+  int get totalStorageBytes => recordings
+      .where((r) => r.fileSizeBytes != null)
+      .fold(0, (sum, r) => sum + r.fileSizeBytes!);
+
+  String get totalStorageMB =>
+      '${(totalStorageBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+
+  DvrState copyWith({
+    List<Recording>? recordings,
+    Map<String, int>? progressBytes,
+  }) {
+    return DvrState(
+      recordings: recordings ?? this.recordings,
+      progressBytes: progressBytes ?? this.progressBytes,
+    );
+  }
+}
+
+/// Provider for recordings visible to the current user.
+///
+/// Filters based on DVR permissions:
+/// - Admins and full DVR access: see all recordings
+/// - View only: see shared recordings and own recordings
+/// - None: see no recordings
+final visibleRecordingsProvider = Provider<List<Recording>>((ref) {
+  final dvrState = ref.watch(dvrServiceProvider).value;
+  if (dvrState == null) return [];
+
+  final permissionGuard = ref.read(permissionGuardProvider);
+
+  return dvrState.recordings.where((rec) {
+    return permissionGuard.canViewRecording(
+      ownerProfileId: rec.ownerProfileId,
+      isShared: rec.isShared,
+    );
+  }).toList();
+});
+
+/// Provider for scheduled recordings visible to
+/// current user.
+final visibleScheduledRecordingsProvider = Provider<List<Recording>>((ref) {
+  final visible = ref.watch(visibleRecordingsProvider);
+  return visible.where((r) => r.status == RecordingStatus.scheduled).toList();
+});
+
+/// Provider for completed recordings visible to
+/// current user.
+final visibleCompletedRecordingsProvider = Provider<List<Recording>>((ref) {
+  final visible = ref.watch(visibleRecordingsProvider);
+  return visible.where((r) => r.status == RecordingStatus.completed).toList();
+});
+
+/// Provider for in-progress recordings visible to
+/// current user.
+final visibleInProgressRecordingsProvider = Provider<List<Recording>>((ref) {
+  final visible = ref.watch(visibleRecordingsProvider);
+  return visible.where((r) => r.status == RecordingStatus.recording).toList();
+});

@@ -1,0 +1,74 @@
+platform :osx, '11.0'
+
+# CocoaPods analytics sends network stats synchronously
+# affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(
+    File.join('..', 'Flutter', 'ephemeral', 'Flutter-Generated.xcconfig'),
+    __FILE__,
+  )
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. " \
+          "Run flutter pub get first."
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found. " \
+        "Try deleting Flutter-Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(
+  File.join('packages', 'flutter_tools', 'bin', 'podhelper'),
+  flutter_root,
+)
+
+flutter_macos_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_macos_pods(
+    File.dirname(File.realpath(__FILE__)),
+  )
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_macos_build_settings(target)
+    target.build_configurations.each do |config|
+      config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = '11.0'
+    end
+  end
+
+  # === Rust FFI: Add build phase to Runner ===
+  # Injects a Run Script phase that compiles
+  # crispy-ffi as a universal macOS dylib.
+  main_project = installer.aggregate_targets
+    .first.user_project
+  runner = main_project.targets
+    .find { |t| t.name == 'Runner' }
+  if runner
+    phase = runner.new_shell_script_build_phase(
+      'Build Rust FFI',
+    )
+    phase.shell_script = <<~SH
+      bash "$SRCROOT/../scripts/build_rust.sh" macos
+    SH
+    # Move to run before "Compile Sources".
+    runner.build_phases.unshift(
+      runner.build_phases.pop,
+    )
+  end
+end
