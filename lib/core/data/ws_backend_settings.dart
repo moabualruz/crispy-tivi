@@ -114,12 +114,6 @@ mixin _WsSettingsMixin on _WsBackendBase {
     return mac.replaceAll(':', '');
   }
 
-  List<String> guessLogoDomains(String name) {
-    // Sync — local Dart fallback.
-    final trimmed = name.trim().toLowerCase();
-    if (trimmed.isEmpty) return [];
-    final word = trimmed.split(RegExp(r'\s+')).first;
-    if (word.isEmpty) return [];
-    return [word, '$word.com', '$word.tv', '$word.org'];
-  }
+  /// Delegates to shared [dartGuessLogoDomains].
+  List<String> guessLogoDomains(String name) => dartGuessLogoDomains(name);
 }

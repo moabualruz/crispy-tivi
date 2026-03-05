@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/widgets/confirm_delete_dialog.dart';
 import '../../data/transfer_service.dart';
@@ -485,7 +486,7 @@ class _CloudBrowserScreenState extends ConsumerState<CloudBrowserScreen> {
 
   Widget _buildContent(bool isMultiSelect, Set<String> selectedPaths) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingStateWidget();
     }
 
     if (_error != null) {

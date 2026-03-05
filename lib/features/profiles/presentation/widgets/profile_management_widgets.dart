@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../parental/domain/content_rating.dart';
@@ -117,7 +118,7 @@ class ProfileManagementTile extends ConsumerWidget {
                 ? 'Profile "${profile.name}" shared.'
                 : 'Profile "${profile.name}" copied to clipboard.',
           ),
-          duration: const Duration(seconds: 3),
+          duration: CrispyAnimation.toastDuration,
         ),
       );
     }

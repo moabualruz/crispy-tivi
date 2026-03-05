@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/crispy_animation.dart';
+import '../theme/crispy_colors.dart';
 
 /// Positioned star overlay for favorite toggle.
 ///
@@ -55,7 +56,7 @@ class FavoriteStarOverlay extends StatelessWidget {
             child: Icon(
               isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
               size: size,
-              color: isFavorite ? Colors.amber : Colors.white70,
+              color: isFavorite ? CrispyColors.highlightAmber : Colors.white70,
             ),
           ),
         ),

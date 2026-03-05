@@ -24,7 +24,7 @@ Future<void> playEpisode({
 
   Duration? startPos;
   if (h != null && h.positionMs > 0 && h.durationMs > 0) {
-    final prog = (h.positionMs / h.durationMs).clamp(0.0, 1.0);
+    final prog = h.progress.clamp(0.0, 1.0);
     if (prog < kCompletionThreshold && context.mounted) {
       final resume = await showResumeDialog(
         context,

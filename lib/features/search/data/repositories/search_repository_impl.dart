@@ -8,6 +8,7 @@ import '../../../../core/domain/media_source.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../../vod/domain/entities/vod_item.dart';
+import '../../domain/constants/search_source_key.dart';
 import '../../domain/entities/grouped_search_results.dart';
 import '../../domain/entities/search_filter.dart';
 import '../../domain/repositories/search_repository.dart';
@@ -192,7 +193,10 @@ class SearchRepositoryImpl implements SearchRepository {
               type: MediaType.channel,
               logoUrl: meta?['logo_url'] as String? ?? ch?.logoUrl,
               streamUrl: meta?['stream_url'] as String? ?? ch?.streamUrl,
-              metadata: {if (ch != null) 'channel': ch, 'source': 'iptv'},
+              metadata: {
+                if (ch != null) 'channel': ch,
+                'source': SearchSourceKey.iptv,
+              },
             ),
           );
         case 'movie':
@@ -214,7 +218,7 @@ class SearchRepositoryImpl implements SearchRepository {
               overview: meta?['description'] as String? ?? v?.description,
               metadata: {
                 if (v != null) 'vodItem': v,
-                'source': 'iptv_vod',
+                'source': SearchSourceKey.iptvVod,
                 'category': meta?['category'] as String? ?? v?.category,
               },
             ),
@@ -238,7 +242,7 @@ class SearchRepositoryImpl implements SearchRepository {
               overview: meta?['description'] as String? ?? v?.description,
               metadata: {
                 if (v != null) 'vodItem': v,
-                'source': 'iptv_vod',
+                'source': SearchSourceKey.iptvVod,
                 'category': meta?['category'] as String? ?? v?.category,
               },
             ),
@@ -270,7 +274,7 @@ class SearchRepositoryImpl implements SearchRepository {
               metadata: {
                 if (ch != null) 'channel': ch,
                 if (entry != null) 'epgEntry': entry,
-                'source': 'iptv_epg',
+                'source': SearchSourceKey.iptvEpg,
               },
             ),
           );

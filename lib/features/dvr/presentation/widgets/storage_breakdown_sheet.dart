@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../data/dvr_service.dart';
 import '../../domain/utils/storage_breakdown.dart';
 import 'storage_bar.dart';
@@ -100,8 +101,7 @@ class StorageBreakdownSheet extends ConsumerWidget {
               // Body
               Expanded(
                 child: stateAsync.when(
-                  loading:
-                      () => const Center(child: CircularProgressIndicator()),
+                  loading: () => const LoadingStateWidget(),
                   error: (err, _) => Center(child: Text('Error: $err')),
                   data: (state) {
                     final data = computeStorageBreakdown(state.recordings);

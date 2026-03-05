@@ -10,6 +10,7 @@ import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/utils/duration_formatter.dart';
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
+import 'package:crispy_tivi/core/widgets/loading_state_widget.dart';
 import '../widgets/watched_indicator.dart';
 
 /// Shared series navigation screen for Emby and Jellyfin.
@@ -140,7 +141,7 @@ class _MediaServerSeriesScreenState
       loading:
           () => Scaffold(
             appBar: AppBar(title: Text(widget.title)),
-            body: const Center(child: CircularProgressIndicator()),
+            body: const LoadingStateWidget(),
           ),
       error:
           (error, _) => Scaffold(
@@ -208,7 +209,7 @@ class _EpisodesPane extends ConsumerWidget {
     final episodesAsync = episodesProvider(ref, seriesId, seasonId);
 
     return episodesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const LoadingStateWidget(),
       error:
           (error, _) => Center(child: Text('Failed to load episodes: $error')),
       data:

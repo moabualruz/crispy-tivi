@@ -7,9 +7,11 @@ import '../../../../core/domain/entities/media_type.dart';
 import '../../../../core/domain/media_source.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/error_state_widget.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../favorites/presentation/providers/favorites_controller.dart';
@@ -19,6 +21,7 @@ import '../../../iptv/domain/entities/channel.dart';
 import '../../../vod/domain/entities/vod_item.dart';
 import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../../voice_search/presentation/widgets/voice_search_button.dart';
+import '../../domain/constants/search_source_key.dart';
 import '../../domain/entities/search_filter.dart';
 import '../../domain/entities/search_state.dart';
 import '../providers/search_providers.dart';
@@ -27,29 +30,6 @@ import '../widgets/grouped_results_list.dart';
 import '../widgets/recent_searches_list.dart';
 import '../widgets/search_filter_sheet.dart';
 import '../widgets/tv_search_panel.dart';
-
-// ── Source key constants ──────────────────────────────────────────────────────
-
-/// Keys used in [MediaItem.metadata] to identify the data source.
-abstract final class SearchSourceKey {
-  /// IPTV live channel source.
-  static const String iptv = 'iptv';
-
-  /// IPTV VOD source.
-  static const String iptvVod = 'iptv_vod';
-
-  /// IPTV EPG program source.
-  static const String iptvEpg = 'iptv_epg';
-
-  /// Jellyfin media server source.
-  static const String jellyfin = 'jellyfin';
-
-  /// Emby media server source.
-  static const String emby = 'emby';
-
-  /// Plex media server source.
-  static const String plex = 'plex';
-}
 
 // ── UI dimension constants ────────────────────────────────────────────────────
 
@@ -60,7 +40,7 @@ const double _kFilterDotSize = 8.0;
 const double _kFilterDotInset = 8.0;
 
 /// Duration for brief informational snackbars (e.g. favorite toggled).
-const Duration _kSnackBarShort = Duration(seconds: 2);
+const Duration _kSnackBarShort = CrispyAnimation.snackBarDuration;
 
 // ── Wide-screen grid breakpoint ───────────────────────────────────────────────
 
@@ -433,7 +413,7 @@ class _SearchBody extends StatelessWidget {
 
     // Show loading state.
     if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingStateWidget();
     }
 
     // Show error state.

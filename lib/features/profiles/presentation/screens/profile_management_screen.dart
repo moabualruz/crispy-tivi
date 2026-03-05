@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../data/profile_service.dart';
 import '../profile_constants.dart';
@@ -29,7 +30,7 @@ class ProfileManagementScreen extends ConsumerWidget {
       key: TestKeys.profileManagementScreen,
       appBar: AppBar(title: const Text('Manage Profiles')),
       body: stateAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const LoadingStateWidget(),
         error:
             (err, stack) => Center(
               child: Text(

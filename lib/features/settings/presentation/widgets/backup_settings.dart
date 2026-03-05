@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
 import '../../data/backup_service.dart';
@@ -311,7 +312,7 @@ class _SettingsImportExportSectionState
     messenger.showSnackBar(
       const SnackBar(
         content: Text('Settings exported to clipboard'),
-        duration: Duration(seconds: 3),
+        duration: CrispyAnimation.toastDuration,
       ),
     );
   }
@@ -413,7 +414,7 @@ class _SettingsImportExportSectionState
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Settings imported successfully'),
-          duration: Duration(seconds: 3),
+          duration: CrispyAnimation.toastDuration,
         ),
       );
     } on FormatException {

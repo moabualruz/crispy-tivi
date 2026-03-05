@@ -8,6 +8,7 @@ import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../domain/entities/playback_state.dart';
+import '../../domain/utils/skip_segment_utils.dart';
 import '../providers/player_providers.dart';
 import 'player_osd/osd_shared.dart';
 
@@ -97,16 +98,6 @@ class _SkipSegmentButtonState extends ConsumerState<SkipSegmentButton>
     _hide();
   }
 
-  String _segmentLabel(SkipSegment seg, List<SkipSegment> all) {
-    final idx = all.indexOf(seg);
-    // Heuristic: first segment = intro, last = credits,
-    // middle segments = recap.
-    if (idx == 0 && all.length == 1) return 'Skip Intro';
-    if (idx == 0) return 'Skip Intro';
-    if (idx == all.length - 1) return 'Skip Credits';
-    return 'Skip Recap';
-  }
-
   @override
   Widget build(BuildContext context) {
     // Watch position + segments; react to changes.
@@ -136,7 +127,7 @@ class _SkipSegmentButtonState extends ConsumerState<SkipSegmentButton>
         if (hit == null) {
           if (_visible) _hide();
         } else if (hit != _activeSegment) {
-          _show(hit, _segmentLabel(hit, segments));
+          _show(hit, segmentLabel(hit, segments));
         }
       },
     );

@@ -3,61 +3,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/date_format_utils.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../domain/entities/epg_entry.dart';
-
-// ── Domain model ───────────────────────────────────────────────
-
-/// A user-set reminder for an upcoming EPG programme.
-@immutable
-class EpgReminder {
-  const EpgReminder({
-    required this.channelId,
-    required this.programId,
-    required this.startTime,
-    required this.title,
-    required this.channelName,
-  });
-
-  /// Channel the reminder is set on.
-  final String channelId;
-
-  /// Unique identifier: "${channelId}_${startTime.millisecondsSinceEpoch}".
-  final String programId;
-
-  /// Programme start time (UTC).
-  final DateTime startTime;
-
-  /// Programme title for display.
-  final String title;
-
-  /// Human-readable channel name.
-  final String channelName;
-
-  /// Whether this reminder should fire soon (≤ 5 min before start).
-  bool get isDue {
-    final remaining = startTime.difference(DateTime.now().toUtc());
-    return remaining.inMinutes <= 5 && remaining.inSeconds > 0;
-  }
-
-  /// Whether this programme has already started.
-  bool get isPast => DateTime.now().toUtc().isAfter(startTime);
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is EpgReminder &&
-          channelId == other.channelId &&
-          programId == other.programId;
-
-  @override
-  int get hashCode => Object.hash(channelId, programId);
-
-  @override
-  String toString() => 'EpgReminder($title @ $startTime)';
-}
+import '../../domain/entities/epg_reminder.dart';
 
 // ── Provider ──────────────────────────────────────────────────
 
@@ -116,7 +68,10 @@ class EpgReminderNotifier extends Notifier<List<EpgReminder>> {
   ///
   /// TODO: wire [flutter_local_notifications] to show a system
   /// notification when a reminder becomes due.
-  List<EpgReminder> getDueReminders() => state.where((r) => r.isDue).toList();
+  List<EpgReminder> getDueReminders() {
+    final now = DateTime.now().toUtc();
+    return state.where((r) => r.isDue(now)).toList();
+  }
 }
 
 /// Global provider for [EpgReminderNotifier].
@@ -164,7 +119,7 @@ class EpgReminderToggleButton extends ConsumerWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Reminder removed for "${entry.title}"'),
-                duration: const Duration(seconds: 2),
+                duration: CrispyAnimation.snackBarDuration,
               ),
             );
           } else {
@@ -178,7 +133,7 @@ class EpgReminderToggleButton extends ConsumerWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Reminder set for "${entry.title}"'),
-                duration: const Duration(seconds: 2),
+                duration: CrispyAnimation.snackBarDuration,
               ),
             );
           }
@@ -233,8 +188,9 @@ class EpgReminderSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reminders = ref.watch(epgReminderProvider);
+    final now = DateTime.now().toUtc();
     final upcoming =
-        reminders.where((r) => !r.isPast).toList()
+        reminders.where((r) => !r.isPast(now)).toList()
           ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
     final cs = Theme.of(context).colorScheme;
@@ -382,9 +338,7 @@ class _ReminderTile extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final local = reminder.startTime.toLocal();
-    final timeStr =
-        '${local.hour.toString().padLeft(2, '0')}:'
-        '${local.minute.toString().padLeft(2, '0')}';
+    final timeStr = formatHHmm(local);
     final dateStr =
         '${local.day.toString().padLeft(2, '0')}/'
         '${local.month.toString().padLeft(2, '0')}';

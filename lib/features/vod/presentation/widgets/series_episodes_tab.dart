@@ -6,10 +6,12 @@ import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../domain/entities/vod_item.dart';
+import '../../domain/utils/episode_utils.dart';
 import '../providers/vod_providers.dart';
 import 'episode_tile.dart';
 import 'series_episode_fetcher.dart';
@@ -141,18 +143,6 @@ class _SeriesEpisodesTabState extends ConsumerState<SeriesEpisodesTab> {
     }
   }
 
-  /// Computes the index of the "up next" episode.
-  ///
-  /// Up next = the episode immediately after the last-watched
-  /// episode in [filtered]. Returns -1 when there is no last-watched
-  /// episode or it is the final episode in the list.
-  int _upNextIndex(Map<String, double> pMap, String? lastId) {
-    if (lastId == null || widget.filtered.isEmpty) return -1;
-    final lastIdx = widget.filtered.indexWhere((e) => e.streamUrl == lastId);
-    if (lastIdx < 0 || lastIdx >= widget.filtered.length - 1) return -1;
-    return lastIdx + 1;
-  }
-
   /// Scrolls the list so that the episode at [index] is vertically
   /// centred in the viewport.
   void _scrollToIndex(int index) {
@@ -176,7 +166,7 @@ class _SeriesEpisodesTabState extends ConsumerState<SeriesEpisodesTab> {
   @override
   Widget build(BuildContext context) {
     if (widget.episodesAsync.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingStateWidget();
     }
     if (widget.episodesAsync.hasError) {
       return _errorBody(
@@ -197,7 +187,7 @@ class _SeriesEpisodesTabState extends ConsumerState<SeriesEpisodesTab> {
     final lastId =
         ref.watch(lastWatchedEpisodeIdProvider(widget.series.id)).asData?.value;
 
-    final upNextIdx = _upNextIndex(pMap, lastId);
+    final upNextIdx = upNextIndex(widget.filtered, pMap, lastId);
 
     // Auto-scroll once per unique last-watched episode to avoid
     // re-scrolling every rebuild.
@@ -243,23 +233,9 @@ class _SeriesEpisodesTabState extends ConsumerState<SeriesEpisodesTab> {
     );
   }
 
-  /// Builds a map of season number → episode count from the full
-  /// episode list in [episodesAsync], so each dropdown item can
-  /// display its count (FE-SRD-04).
-  Map<int, int> _episodeCountBySeason() {
-    final allEpisodes = widget.episodesAsync.value?.episodes ?? [];
-    final counts = <int, int>{};
-    for (final ep in allEpisodes) {
-      final s = ep.seasonNumber;
-      if (s != null) {
-        counts[s] = (counts[s] ?? 0) + 1;
-      }
-    }
-    return counts;
-  }
-
   Widget _seasonSelector() {
-    final countBySeason = _episodeCountBySeason();
+    final allEpisodes = widget.episodesAsync.value?.episodes ?? [];
+    final countBySeason = episodeCountBySeason(allEpisodes);
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),

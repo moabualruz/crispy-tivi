@@ -6,6 +6,7 @@ import '../../../../config/settings_notifier.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/side_panel.dart';
 import 'settings_shared_widgets.dart' show kSettingsPanelWidth;
 
@@ -44,7 +45,7 @@ class _SettingsPanelBody extends ConsumerWidget {
     final settingsAsync = ref.watch(settingsNotifierProvider);
 
     return settingsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const LoadingStateWidget(),
       error: (e, _) => Center(child: Text('Error: $e')),
       data: (settings) {
         final config = settings.config;

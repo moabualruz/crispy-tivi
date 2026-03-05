@@ -99,8 +99,8 @@ mixin _MemorySyncMixin on _MemoryStorage {
     return computed == storedHash;
   }
 
-  bool isHashedPin(String value) =>
-      value.length == 64 && RegExp(r'^[0-9a-fA-F]+$').hasMatch(value);
+  /// Delegates to shared [dartIsHashedPin].
+  bool isHashedPin(String value) => dartIsHashedPin(value);
 
   // ── Xtream URL Builders ────────────────────────
 

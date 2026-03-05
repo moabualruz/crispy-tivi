@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../data/profile_service.dart';
@@ -105,8 +106,7 @@ class _SourceAccessDialogState extends ConsumerState<SourceAccessDialog> {
                   ),
                 )
                 : settingsAsync.when(
-                  loading:
-                      () => const Center(child: CircularProgressIndicator()),
+                  loading: () => const LoadingStateWidget(),
                   error: (e, _) => Text('Error: $e'),
                   data:
                       (settings) => _buildSourceList(

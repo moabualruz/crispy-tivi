@@ -79,6 +79,12 @@ class CrispyColors extends ThemeExtension<CrispyColors> {
     0xFFE65100,
   ); // Material deep-orange-800
 
+  /// Highlight / accent amber — used for active-state indicators such as
+  /// A-B loop markers, category favorite stars, and lock-screen icons.
+  ///
+  /// Equivalent to `Colors.amber` (Material amber-500, #FFC107).
+  static const Color highlightAmber = Color(0xFFFFC107);
+
   // ── Cinematic vignette gradient tokens ─────────────────────
 
   /// Semi-transparent black for vignette gradient mid-stop (50% opacity).

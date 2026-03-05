@@ -5,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:crispy_tivi/core/domain/entities/media_item.dart';
 import 'package:crispy_tivi/core/navigation/app_routes.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
-import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
+import 'package:crispy_tivi/core/widgets/loading_state_widget.dart';
+import 'package:crispy_tivi/core/widgets/not_connected_widget.dart';
 
 /// Shared scaffold for Emby, Jellyfin, and Plex home screens.
 ///
@@ -63,49 +64,7 @@ class MediaServerHomeScreen extends ConsumerWidget {
                 librariesProvider: librariesProvider,
                 libraryListBuilder: libraryListBuilder,
               )
-              : _NotConnectedState(serverName: serverName),
-    );
-  }
-}
-
-/// Proper empty state shown when no source is connected.
-///
-/// Presents an icon, a descriptive message, and a "Connect" action
-/// that pops the screen so the user can use the login flow.
-class _NotConnectedState extends StatelessWidget {
-  const _NotConnectedState({required this.serverName});
-
-  final String serverName;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.link_off, size: 64, color: cs.onSurfaceVariant),
-          const SizedBox(height: CrispySpacing.md),
-          Text(
-            'Not connected to $serverName',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: CrispySpacing.sm),
-          Text(
-            'Sign in to browse your libraries.',
-            style: TextStyle(color: cs.onSurfaceVariant),
-          ),
-          const SizedBox(height: CrispySpacing.lg),
-          FilledButton.icon(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.login),
-            label: const Text('Connect'),
-          ),
-        ],
-      ),
+              : NotConnectedWidget(serverName: serverName),
     );
   }
 }
@@ -130,7 +89,7 @@ class _LibraryBody extends ConsumerWidget {
         }
         return libraryListBuilder(libraries);
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const LoadingStateWidget(),
       error: (e, _) => Center(child: Text('Error: $e')),
     );
   }

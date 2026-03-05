@@ -231,10 +231,7 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
     final history = await ref.read(watchHistoryServiceProvider).getById(id);
 
     if (history != null && history.positionMs > 0 && history.durationMs > 0) {
-      final progress = (history.positionMs / history.durationMs).clamp(
-        0.0,
-        1.0,
-      );
+      final progress = history.progress.clamp(0.0, 1.0);
       if (progress < kCompletionThreshold && context.mounted) {
         final formatted = ref
             .read(crispyBackendProvider)

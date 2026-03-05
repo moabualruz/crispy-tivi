@@ -1125,7 +1125,7 @@ class _EmptyServerStateState extends State<_EmptyServerState>
 
   void _scheduleAutoAdvance() {
     _autoAdvance?.cancel();
-    _autoAdvance = Timer(const Duration(seconds: 4), () {
+    _autoAdvance = Timer(CrispyAnimation.osdAutoHide, () {
       if (!mounted) return;
       final next = (_currentPage + 1) % _steps.length;
       _pageController.animateToPage(

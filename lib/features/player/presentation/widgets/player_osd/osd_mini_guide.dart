@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/theme/crispy_colors.dart';
 import '../../../../../core/utils/date_format_utils.dart';
+import '../../../../../core/utils/duration_formatter.dart';
 import '../../../../../core/theme/crispy_radius.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
 import '../../../../epg/presentation/providers/epg_providers.dart';
@@ -91,10 +92,7 @@ class _CurrentProgrammeCell extends StatelessWidget {
   String _timeRemaining() {
     final remaining = entry.endTime.difference(DateTime.now().toUtc());
     if (remaining.isNegative) return '';
-    final h = remaining.inHours;
-    final m = remaining.inMinutes.remainder(60);
-    if (h > 0) return '${h}h ${m}m left';
-    return '${m}m left';
+    return '${DurationFormatter.humanShort(remaining)} left';
   }
 
   @override

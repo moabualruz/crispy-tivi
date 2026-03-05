@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../features/vod/presentation/providers/favorite_categories_provider.dart';
+import '../theme/crispy_colors.dart';
 import '../theme/crispy_spacing.dart';
 
 /// A searchable dropdown for selecting categories.
@@ -289,7 +290,7 @@ class _CategorySearchSheetState extends State<_CategorySearchSheet> {
                           const Icon(
                             Icons.star_rounded,
                             size: 16,
-                            color: Colors.amber,
+                            color: CrispyColors.highlightAmber,
                           ),
                           const SizedBox(width: CrispySpacing.xs),
                         ],
@@ -312,7 +313,7 @@ class _CategorySearchSheetState extends State<_CategorySearchSheet> {
                                     : Icons.star_outline_rounded,
                                 color:
                                     isFav
-                                        ? Colors.amber
+                                        ? CrispyColors.highlightAmber
                                         : colorScheme.onSurfaceVariant,
                                 size: 20,
                               ),

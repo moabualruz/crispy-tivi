@@ -7,10 +7,11 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/confirm_delete_dialog.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
-import '../../../../core/widgets/responsive_layout.dart';
 import '../../../../core/widgets/smart_image.dart';
+import '../widgets/favorites_list.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../player/presentation/providers/player_providers.dart';
+import '../../domain/utils/favorites_sort_utils.dart';
 import '../providers/favorites_history_provider.dart';
 
 // F-08: channel logo dimensions as named constants.
@@ -46,30 +47,8 @@ class _RecentlyWatchedTabState extends ConsumerState<RecentlyWatchedTab> {
   bool _isSelecting = false;
 
   /// FE-FAV-02: Apply sort to the channel list.
-  List<Channel> _sorted(List<Channel> channels, FavoritesSort sort) {
-    final list = List<Channel>.from(channels);
-    switch (sort) {
-      case FavoritesSort.recentlyAdded:
-        break;
-      case FavoritesSort.nameAsc:
-        list.sort(
-          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-        );
-      case FavoritesSort.nameDesc:
-        list.sort(
-          (a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()),
-        );
-      case FavoritesSort.contentType:
-        list.sort((a, b) {
-          final ga = a.group ?? '';
-          final gb = b.group ?? '';
-          final cmp = ga.compareTo(gb);
-          if (cmp != 0) return cmp;
-          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-        });
-    }
-    return list;
-  }
+  List<Channel> _sorted(List<Channel> channels, FavoritesSort sort) =>
+      sortFavorites(channels, sort);
 
   void _enterSelectMode(String channelId) {
     setState(() {
@@ -162,64 +141,34 @@ class _RecentlyWatchedTabState extends ConsumerState<RecentlyWatchedTab> {
             },
           ),
         Expanded(
-          child: ResponsiveLayout(
-            compactBody: _buildList(context, sorted, crossAxisCount: 1),
-            largeBody: _buildList(context, sorted, crossAxisCount: 2),
+          child: FavoritesList<Channel>(
+            items: sorted,
+            itemBuilder:
+                (ctx, channel) => RecentlyWatchedItem(
+                  channel: channel,
+                  isSelecting: _isSelecting,
+                  isSelected: _selected.contains(channel.id),
+                  onPlay: () {
+                    ref
+                        .read(playbackSessionProvider.notifier)
+                        .startPlayback(
+                          streamUrl: channel.streamUrl,
+                          isLive: true,
+                          channelName: channel.name,
+                          channelLogoUrl: channel.logoUrl,
+                        );
+                  },
+                  onRemove: () {
+                    ref
+                        .read(favoritesHistoryProvider.notifier)
+                        .removeFromHistory(channel.id);
+                  },
+                  onLongPress: () => _enterSelectMode(channel.id),
+                  onToggleSelect: () => _toggleSelection(channel.id),
+                ),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildList(
-    BuildContext context,
-    List<Channel> channels, {
-    required int crossAxisCount,
-  }) {
-    Widget itemBuilder(BuildContext ctx, int index) {
-      final channel = channels[index];
-      return RecentlyWatchedItem(
-        channel: channel,
-        isSelecting: _isSelecting,
-        isSelected: _selected.contains(channel.id),
-        onPlay: () {
-          ref
-              .read(playbackSessionProvider.notifier)
-              .startPlayback(
-                streamUrl: channel.streamUrl,
-                isLive: true,
-                channelName: channel.name,
-                channelLogoUrl: channel.logoUrl,
-              );
-        },
-        onRemove: () {
-          ref
-              .read(favoritesHistoryProvider.notifier)
-              .removeFromHistory(channel.id);
-        },
-        onLongPress: () => _enterSelectMode(channel.id),
-        onToggleSelect: () => _toggleSelection(channel.id),
-      );
-    }
-
-    if (crossAxisCount == 1) {
-      return ListView.builder(
-        padding: const EdgeInsets.all(CrispySpacing.md),
-        itemCount: channels.length,
-        itemBuilder: (context, index) => itemBuilder(context, index),
-      );
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(CrispySpacing.md),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: CrispySpacing.sm,
-        mainAxisSpacing: CrispySpacing.sm,
-        childAspectRatio: 4.5,
-      ),
-      itemCount: channels.length,
-      itemBuilder: (context, index) => itemBuilder(context, index),
     );
   }
 }

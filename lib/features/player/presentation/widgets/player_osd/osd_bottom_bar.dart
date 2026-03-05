@@ -466,7 +466,7 @@ class OsdBottomBar extends ConsumerWidget {
                   icon: isLocked ? Icons.lock_rounded : Icons.lock_open_rounded,
                   tooltip: isLocked ? 'Unlock Screen' : 'Lock Screen',
                   onPressed: onToggleLock,
-                  iconColor: isLocked ? Colors.amber : null,
+                  iconColor: isLocked ? CrispyColors.highlightAmber : null,
                   order: 7,
                 );
               },
@@ -650,7 +650,9 @@ class _AbMarkerSeekBar extends StatelessWidget {
                         top: 0,
                         bottom: 0,
                         child: Container(
-                          color: Colors.amber.withValues(alpha: 0.15),
+                          color: CrispyColors.highlightAmber.withValues(
+                            alpha: 0.15,
+                          ),
                         ),
                       ),
 
@@ -696,7 +698,7 @@ class _AbMarker extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.xxs),
           decoration: BoxDecoration(
-            color: Colors.amber,
+            color: CrispyColors.highlightAmber,
             borderRadius: BorderRadius.circular(CrispyRadius.tvSm),
           ),
           child: Text(
@@ -711,7 +713,9 @@ class _AbMarker extends StatelessWidget {
         ),
 
         // Vertical line
-        Expanded(child: Container(width: 2, color: Colors.amber)),
+        Expanded(
+          child: Container(width: 2, color: CrispyColors.highlightAmber),
+        ),
       ],
     );
   }

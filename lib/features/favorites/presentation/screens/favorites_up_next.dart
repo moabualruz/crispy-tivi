@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../../player/presentation/providers/player_providers.dart';
+import '../../domain/utils/cw_filter_utils.dart';
 
 // ── FE-FAV-10: Up Next tab ────────────────────────────────────
 
@@ -29,15 +31,12 @@ class UpNextTab extends ConsumerWidget {
     final isLoading = continueMovies.isLoading || continueSeries.isLoading;
 
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingStateWidget();
     }
 
     final movies = continueMovies.value ?? const [];
     final series = continueSeries.value ?? const [];
-    final seen = <String>{};
-    final combined =
-        [...movies, ...series].where((e) => seen.add(e.id)).toList()
-          ..sort((a, b) => b.lastWatched.compareTo(a.lastWatched));
+    final combined = mergeDedupSort(movies, series);
 
     if (combined.isEmpty) {
       return const Center(

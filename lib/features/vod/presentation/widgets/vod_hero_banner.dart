@@ -97,7 +97,7 @@ class _VodHeroBannerState extends ConsumerState<VodHeroBanner> {
 /// Layered trailer video overlay for hero banner cards.
 ///
 /// Behaviour:
-/// - After [_kTrailerDelay] (3 s) the muted [media_kit] player
+/// - After [CrispyAnimation.trailerDelay] (3 s) the muted [media_kit] player
 ///   starts playing the item's trailer URL ([VodItem.backdropUrl]
 ///   is used as a proxy — real trailer URLs would come from
 ///   a `trailerUrl` field once the domain entity has one).
@@ -120,7 +120,7 @@ class _TrailerOverlay extends StatefulWidget {
   State<_TrailerOverlay> createState() => _TrailerOverlayState();
 }
 
-const Duration _kTrailerDelay = Duration(seconds: 3);
+const Duration _kTrailerDelay = CrispyAnimation.trailerDelay;
 
 class _TrailerOverlayState extends State<_TrailerOverlay>
     with WidgetsBindingObserver {

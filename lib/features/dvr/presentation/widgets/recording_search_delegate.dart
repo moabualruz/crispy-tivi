@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../data/dvr_service.dart';
 import '../../domain/entities/recording.dart';
+import '../../domain/utils/recording_search.dart';
 
 /// Opens the [RecordingSearchDelegate] for DVR-internal search.
 void showRecordingSearch(BuildContext context, WidgetRef ref) {
@@ -66,7 +68,7 @@ class RecordingSearchDelegate extends SearchDelegate<void> {
     final stateAsync = ref.watch(dvrServiceProvider);
 
     return stateAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const LoadingStateWidget(),
       error: (e, _) => Center(child: Text('Error: $e')),
       data: (state) {
         final all = [
@@ -90,22 +92,8 @@ class RecordingSearchDelegate extends SearchDelegate<void> {
   }
 
   /// Case-insensitive match against title, channel name, and date.
-  List<Recording> _filter(List<Recording> recordings, String q) {
-    if (q.isEmpty) return recordings;
-    final lower = q.toLowerCase();
-    return recordings.where((r) {
-      return r.programName.toLowerCase().contains(lower) ||
-          r.channelName.toLowerCase().contains(lower) ||
-          _formatDate(r.startTime).contains(lower);
-    }).toList();
-  }
-
-  String _formatDate(DateTime dt) {
-    // Format: "2025-12-25", "dec 25", "25/12"
-    final month = dt.month.toString().padLeft(2, '0');
-    final day = dt.day.toString().padLeft(2, '0');
-    return '${dt.year}-$month-$day';
-  }
+  List<Recording> _filter(List<Recording> recordings, String q) =>
+      filterRecordings(recordings, q);
 }
 
 // ─────────────────────────────────────────────────────────

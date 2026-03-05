@@ -344,19 +344,10 @@ final epgAwareChannelListProvider = Provider<List<Channel>>((ref) {
 
   if (epgMatchIds.isEmpty) return channelState.filteredChannels;
 
-  // Build lookup of channels already in the filtered list.
-  final baseList = channelState.filteredChannels;
-  final baseIds = baseList.map((c) => c.id).toSet();
-
-  // Include all channels whose effective EPG id matches.
-  final extras =
-      channelState.channels.where((c) {
-        if (baseIds.contains(c.id)) return false; // already present
-        // Match on channel id or tvgId since EPG entries may use tvgId.
-        final effectiveId = epgState.epgOverrides[c.id] ?? c.tvgId ?? c.id;
-        return epgMatchIds.contains(effectiveId) || epgMatchIds.contains(c.id);
-      }).toList();
-
-  if (extras.isEmpty) return baseList;
-  return [...baseList, ...extras];
+  return mergeEpgMatchedChannels(
+    channelState.filteredChannels,
+    channelState.channels,
+    epgMatchIds,
+    epgState.epgOverrides,
+  );
 });

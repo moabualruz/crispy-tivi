@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/crispy_spacing.dart';
+
 /// A generated placeholder image showing the first letter(s) of a
 /// title on a gradient background.
 ///
@@ -43,7 +45,7 @@ class GeneratedPlaceholder extends StatelessWidget {
         child: FittedBox(
           fit: BoxFit.scaleDown,
           child: Padding(
-            padding: const EdgeInsets.all(4),
+            padding: const EdgeInsets.all(CrispySpacing.xs),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

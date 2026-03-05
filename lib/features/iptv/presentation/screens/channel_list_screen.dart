@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/utils/debounce_throttle.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../../../core/widgets/responsive_layout.dart';
@@ -38,7 +38,7 @@ class ChannelListScreen extends ConsumerStatefulWidget {
 
 class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
   final _searchController = TextEditingController();
-  Timer? _debounceTimer;
+  final _searchDebouncer = Debouncer(duration: CrispyAnimation.normal);
   bool _showSearchBar = false;
   String? _lastKnownRoute;
   bool _autoResumeRan = false;
@@ -82,7 +82,7 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
+    _searchDebouncer.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -363,7 +363,7 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
     setState(() {
       _showSearchBar = !_showSearchBar;
       if (!_showSearchBar) {
-        _debounceTimer?.cancel();
+        _searchDebouncer.cancel();
         _searchController.clear();
         ref.read(channelListProvider.notifier).search('');
       }
@@ -371,9 +371,7 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
   }
 
   void _onSearchChanged(String q) {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(
-      const Duration(milliseconds: 300),
+    _searchDebouncer.run(
       () => ref.read(channelListProvider.notifier).search(q),
     );
   }

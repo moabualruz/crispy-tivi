@@ -10,6 +10,7 @@ import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/duration_formatter.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../domain/entities/vod_item.dart';
@@ -350,7 +351,9 @@ class _CardContent extends StatelessWidget {
                       _Pill(label: item.rating!, cs: cs, textTheme: textTheme),
                     if (item.duration != null)
                       _Pill(
-                        label: _formatDuration(item.duration!),
+                        label: DurationFormatter.humanShort(
+                          Duration(minutes: item.duration!),
+                        ),
                         cs: cs,
                         textTheme: textTheme,
                       ),
@@ -433,13 +436,6 @@ class _CardContent extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  String _formatDuration(int minutes) {
-    if (minutes < 60) return '${minutes}m';
-    final h = minutes ~/ 60;
-    final m = minutes % 60;
-    return m == 0 ? '${h}h' : '${h}h ${m}m';
   }
 }
 

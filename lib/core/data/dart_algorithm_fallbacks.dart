@@ -212,6 +212,44 @@ bool dartCanDeleteRecording(
   }
 }
 
+// ── PIN / Security ────────────────────────────────────────────────
+
+/// Returns true when [value] looks like a hex-encoded SHA-256 hash
+/// (64 lowercase or uppercase hex digits).
+///
+/// Sync fallback — mirrors
+/// `crispy-core` PIN hashing checks in ws_backend and memory_backend.
+bool dartIsHashedPin(String value) =>
+    value.length == 64 && RegExp(r'^[0-9a-fA-F]+$').hasMatch(value);
+
+// ── Filename / Path ───────────────────────────────────────────────
+
+/// Replace characters that are invalid in filenames with underscores.
+///
+/// Keeps word characters (`\w`), spaces, and hyphens; replaces
+/// everything else with `_`.
+///
+/// Sync fallback — mirrors `crispy-core` DVR filename sanitisation.
+String dartSanitizeFilename(String name) =>
+    name.replaceAll(RegExp(r'[^\w\s-]'), '_');
+
+// ── Logo Domain Guessing ──────────────────────────────────────────
+
+/// Derive candidate logo/CDN domains from a provider/channel [name].
+///
+/// Returns the first lowercase word plus common TLD variants.
+/// E.g. `"Sky News"` → `["sky", "sky.com", "sky.tv", "sky.org"]`.
+///
+/// Sync fallback — mirrors
+/// `crispy-core::algorithms::group_icon::guess_logo_domains`.
+List<String> dartGuessLogoDomains(String name) {
+  final trimmed = name.trim().toLowerCase();
+  if (trimmed.isEmpty) return [];
+  final word = trimmed.split(RegExp(r'\s+')).first;
+  if (word.isEmpty) return [];
+  return [word, '$word.com', '$word.tv', '$word.org'];
+}
+
 // ── Dedup ─────────────────────────────────────────────────────────
 
 /// Returns true if [channelId] appears in the `channel_ids` list

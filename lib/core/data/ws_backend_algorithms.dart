@@ -54,9 +54,8 @@ mixin _WsAlgorithmsMixin on _WsBackendBase {
     return data as bool;
   }
 
-  bool isHashedPin(String value) {
-    return value.length == 64 && RegExp(r'^[0-9a-fA-F]+$').hasMatch(value);
-  }
+  /// Delegates to shared [dartIsHashedPin].
+  bool isHashedPin(String value) => dartIsHashedPin(value);
 
   // ── Search ─────────────────────────────────────
 

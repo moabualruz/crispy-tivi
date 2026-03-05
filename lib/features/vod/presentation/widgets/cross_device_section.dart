@@ -69,8 +69,7 @@ class CrossDeviceSection extends ConsumerWidget {
       overlayBuilder: (ctx, vodItem) {
         final item = items.firstWhereOrNull((e) => e.id == vodItem.id);
         if (item == null) return const SizedBox.shrink();
-        final progress =
-            item.durationMs > 0 ? item.positionMs / item.durationMs : 0.0;
+        final progress = item.progress;
 
         return WatchHistoryCardOverlay(
           onDismiss:

@@ -7,6 +7,7 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../domain/entities/search_state.dart';
 import '../providers/search_providers.dart';
 import 'grouped_results_list.dart';
@@ -483,7 +484,7 @@ class _TvResultsPanel extends StatelessWidget {
     }
 
     if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingStateWidget();
     }
 
     if (state.error != null) {

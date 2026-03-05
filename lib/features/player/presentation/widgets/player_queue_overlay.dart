@@ -8,6 +8,7 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/duration_formatter.dart';
 import '../providers/osd_providers.dart';
 import '../providers/player_providers.dart';
+import 'player_osd/osd_shared.dart';
 
 // ─────────────────────────────────────────────────────────────
 //  Queue item model
@@ -494,49 +495,17 @@ class OsdQueueButton extends ConsumerWidget {
 
     final isVisible = ref.watch(queueProvider.select((s) => s.isVisible));
 
-    Widget button = Tooltip(
-      message: isVisible ? 'Close Queue' : 'Queue',
-      child: IconButton(
-        onPressed: () {
-          ref.read(queueProvider.notifier).toggleVisibility();
-          // Keep OSD visible while queue is open.
-          ref.read(osdStateProvider.notifier).show();
-        },
-        icon: Icon(
-          Icons.queue_rounded,
-          color:
-              isVisible ? Theme.of(context).colorScheme.primary : Colors.white,
-          size: 22,
-        ),
-        style: ButtonStyle(
-          padding: const WidgetStatePropertyAll(EdgeInsets.all(8)),
-          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
-          overlayColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.focused)) {
-              return Colors.white.withValues(alpha: 0.2);
-            }
-            if (states.contains(WidgetState.hovered)) {
-              return Colors.white.withValues(alpha: 0.1);
-            }
-            return Colors.transparent;
-          }),
-          side: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.focused)) {
-              return const BorderSide(color: Colors.white, width: 2);
-            }
-            return BorderSide.none;
-          }),
-        ),
-      ),
+    return OsdIconButton(
+      icon: Icons.queue_rounded,
+      tooltip: isVisible ? 'Close Queue' : 'Queue',
+      iconColor:
+          isVisible ? Theme.of(context).colorScheme.primary : Colors.white,
+      order: order,
+      onPressed: () {
+        ref.read(queueProvider.notifier).toggleVisibility();
+        // Keep OSD visible while queue is open.
+        ref.read(osdStateProvider.notifier).show();
+      },
     );
-
-    if (order != null) {
-      button = FocusTraversalOrder(
-        order: NumericFocusOrder(order!),
-        child: button,
-      );
-    }
-
-    return button;
   }
 }

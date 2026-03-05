@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/duration_formatter.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../domain/entities/vod_item.dart';
@@ -155,7 +156,9 @@ class _VodLandscapeCardState extends ConsumerState<VodLandscapeCard> {
                               const SizedBox(width: CrispySpacing.xs),
                             if (widget.item.duration != null)
                               _MetaBadge(
-                                label: _formatDuration(widget.item.duration!),
+                                label: DurationFormatter.humanShort(
+                                  Duration(minutes: widget.item.duration!),
+                                ),
                                 cs: cs,
                                 textTheme: textTheme,
                               ),
@@ -294,14 +297,4 @@ class _MatchBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-// ── Duration formatter ────────────────────────────────────
-
-/// Formats a duration in minutes as "Xh Ym" or "Xm".
-String _formatDuration(int minutes) {
-  if (minutes < 60) return '${minutes}m';
-  final h = minutes ~/ 60;
-  final m = minutes % 60;
-  return m == 0 ? '${h}h' : '${h}h ${m}m';
 }

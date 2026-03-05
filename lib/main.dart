@@ -23,6 +23,7 @@ import 'core/data/event_driven_invalidator.dart';
 import 'core/data/ffi_backend.dart';
 import 'core/data/ws_backend.dart';
 import 'core/utils/timezone_utils.dart';
+import 'core/widgets/loading_state_widget.dart';
 import 'core/widgets/responsive_layout.dart';
 import 'core/widgets/smart_image.dart';
 import 'core/widgets/ui_auto_scale.dart';
@@ -289,9 +290,7 @@ class _CrispyTiviAppState extends ConsumerState<CrispyTiviApp>
 
     return settingsAsync.when(
       loading:
-          () => const MaterialApp(
-            home: Scaffold(body: Center(child: CircularProgressIndicator())),
-          ),
+          () => const MaterialApp(home: Scaffold(body: LoadingStateWidget())),
       error:
           (error, stack) => MaterialApp(
             home: Scaffold(body: Center(child: Text('Config error: $error'))),

@@ -6,6 +6,7 @@ import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../../profiles/data/profile_service.dart';
 import 'package:crispy_tivi/features/home/domain/utils/upcoming_programs.dart';
+import 'package:crispy_tivi/features/vod/domain/utils/episode_utils.dart';
 import 'package:crispy_tivi/features/vod/domain/utils/vod_utils.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/vod_providers.dart';
 import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
@@ -125,95 +126,6 @@ final top10VodProvider = Provider<List<VodItem>>((ref) {
   final vodState = ref.watch(vodProvider);
   return top10Vod(vodState.items, vodState.newReleases);
 });
-
-// ── Next-episode auto-queue threshold ───────────────────
-//
-// When an episode's progress meets or exceeds this value,
-// the Continue Watching row shows the NEXT episode instead
-// of the nearly-completed one. Set lower than
-// [kCompletionThreshold] (0.95) so the card switches before
-// the backend removes the entry from the continue-watching
-// list.
-const double _kNextEpisodeThreshold = 0.90;
-
-/// Resolves the next unplayed episode for series entries that
-/// are >= 90% complete.
-///
-/// For each entry in [entries]:
-/// - Progress < 90% → kept as-is.
-/// - Progress >= 90% → look up the series' episode list in
-///   [vodProvider] and substitute the next sequential episode
-///   (next by episode number within the same or next season).
-/// - If no next episode is found (series complete), the
-///   original entry is kept.
-///
-/// The returned list preserves the original sort order.
-List<WatchHistoryEntry> resolveNextEpisodes(
-  List<WatchHistoryEntry> entries,
-  List<VodItem> allVodItems,
-) {
-  return entries.map((entry) {
-    if (entry.mediaType != 'episode') return entry;
-    if (entry.durationMs <= 0) return entry;
-    final progress = entry.positionMs / entry.durationMs;
-    if (progress < _kNextEpisodeThreshold) return entry;
-
-    final seriesId = entry.seriesId;
-    final season = entry.seasonNumber;
-    final episode = entry.episodeNumber;
-    if (seriesId == null || season == null || episode == null) return entry;
-
-    // Gather all episodes for this series, sorted by season then episode.
-    final seriesEpisodes =
-        allVodItems
-            .where(
-              (v) =>
-                  v.type == VodType.episode &&
-                  v.seriesId == seriesId &&
-                  v.seasonNumber != null &&
-                  v.episodeNumber != null,
-            )
-            .toList()
-          ..sort((a, b) {
-            final sc = a.seasonNumber!.compareTo(b.seasonNumber!);
-            return sc != 0 ? sc : a.episodeNumber!.compareTo(b.episodeNumber!);
-          });
-
-    if (seriesEpisodes.isEmpty) return entry;
-
-    // Find the current episode index and advance by one.
-    final currentIdx = seriesEpisodes.indexWhere(
-      (v) => v.seasonNumber == season && v.episodeNumber == episode,
-    );
-    if (currentIdx == -1 || currentIdx + 1 >= seriesEpisodes.length) {
-      // No next episode — series complete; keep original.
-      return entry;
-    }
-
-    final next = seriesEpisodes[currentIdx + 1];
-
-    // Return a new entry describing the next episode so the
-    // Continue Watching card shows the upcoming episode's
-    // metadata (title, thumbnail, episode numbers).
-    return WatchHistoryEntry(
-      id: next.id,
-      mediaType: 'episode',
-      name: next.name,
-      streamUrl: next.streamUrl,
-      posterUrl: next.posterUrl ?? entry.posterUrl,
-      seriesPosterUrl: entry.seriesPosterUrl,
-      positionMs: 0,
-      durationMs: 0,
-      lastWatched: entry.lastWatched,
-      seriesId: next.seriesId,
-      seasonNumber: next.seasonNumber,
-      episodeNumber: next.episodeNumber,
-      deviceId: entry.deviceId,
-      deviceName: entry.deviceName,
-      profileId: entry.profileId,
-    );
-  }).toList();
-}
 
 /// Continue-watching series list with next-episode substitution.
 ///

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:crispy_tivi/core/domain/entities/media_item.dart';
 import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
+import 'package:crispy_tivi/core/widgets/loading_state_widget.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 
 /// Default grid delegate for media server library poster grids.
@@ -205,7 +206,7 @@ class _PaginatedMediaLibraryScreenState
 
           return _buildGrid(_items);
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const LoadingStateWidget(),
         error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
@@ -238,7 +239,7 @@ class _PaginatedMediaLibraryScreenState
             const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.all(CrispySpacing.md),
-                child: Center(child: CircularProgressIndicator()),
+                child: LoadingStateWidget(),
               ),
             ),
           if (_hasError && _errorMessage != null)

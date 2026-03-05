@@ -24,6 +24,7 @@ import '../../features/profiles/domain/enums/user_role.dart';
 import '../../features/search/domain/entities/'
     'search_history_entry.dart';
 import '../../features/vod/domain/entities/vod_item.dart';
+import '../utils/date_format_utils.dart';
 import 'crispy_backend.dart';
 
 part 'cache_service_channels.dart';
@@ -126,45 +127,15 @@ class CacheService extends _CacheServiceBase
 /// Format [DateTime] as a NaiveDateTime string for
 /// Rust serde.
 ///
-/// Rust's `NaiveDateTime` expects
-/// `"2024-01-01T15:00:00"` — no timezone suffix,
-/// no fractional seconds. Dart's
-/// `toIso8601String()` emits
-/// `"2024-01-01T15:00:00.000Z"` which Rust's serde
-/// cannot parse.
-String _toNaiveDateTime(DateTime dt) {
-  final utc = dt.toUtc();
-  return '${utc.year.toString().padLeft(4, '0')}-'
-      '${utc.month.toString().padLeft(2, '0')}-'
-      '${utc.day.toString().padLeft(2, '0')}T'
-      '${utc.hour.toString().padLeft(2, '0')}:'
-      '${utc.minute.toString().padLeft(2, '0')}:'
-      '${utc.second.toString().padLeft(2, '0')}';
-}
+/// Delegates to [toNaiveDateTime] in
+/// `date_format_utils.dart`.
+String _toNaiveDateTime(DateTime dt) => toNaiveDateTime(dt);
 
 /// Parse a NaiveDateTime string (no timezone) as UTC.
 ///
-/// Rust's `NaiveDateTime` serde produces
-/// `"2024-01-01T15:00:00"` — [DateTime.parse] treats
-/// this as local time, but in this app all NaiveDateTime
-/// values are UTC. This helper ensures the round-trip
-/// `_toNaiveDateTime` → `_parseNaiveUtc` preserves
-/// the UTC flag.
-DateTime _parseNaiveUtc(String s) {
-  final dt = DateTime.parse(s);
-  return dt.isUtc
-      ? dt
-      : DateTime.utc(
-        dt.year,
-        dt.month,
-        dt.day,
-        dt.hour,
-        dt.minute,
-        dt.second,
-        dt.millisecond,
-        dt.microsecond,
-      );
-}
+/// Delegates to [parseNaiveUtc] in
+/// `date_format_utils.dart`.
+DateTime _parseNaiveUtc(String s) => parseNaiveUtc(s);
 
 /// Parses a [DateTime] from a map value that may
 /// be a [String], [DateTime], or null. Treats

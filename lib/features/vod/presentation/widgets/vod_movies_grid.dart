@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/navigation/app_routes.dart';
-import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/stream_url_actions.dart';
 import '../../../../core/widgets/context_menu_builders.dart';
@@ -12,6 +11,7 @@ import '../../../../core/widgets/responsive_layout.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../domain/entities/vod_item.dart';
 import '../providers/vod_providers.dart';
+import 'media_grid.dart';
 import 'vod_poster_card.dart';
 import 'vod_search_sort_bar.dart';
 
@@ -26,8 +26,10 @@ double vodMaxExtent(BuildContext context) {
   return 170;
 }
 
-/// Sliver grid of VOD movie poster cards with
-/// context menu support.
+/// Sliver grid of VOD movie poster cards with context menu support.
+///
+/// Thin wrapper around [VodDensityMediaGrid] that provides the
+/// movie-specific item builder (navigation, context menu, playback).
 class VodMoviesGrid extends ConsumerWidget {
   const VodMoviesGrid({
     super.key,
@@ -42,29 +44,15 @@ class VodMoviesGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final w = MediaQuery.sizeOf(context).width;
-    final double maxExtent = density.maxCardExtent(w);
-    final double crossSpacing =
-        (maxExtent * (CrispyAnimation.hoverScale - 1.0)) + CrispySpacing.xs;
-    final double mainSpacing =
-        (maxExtent * 1.5 * (CrispyAnimation.hoverScale - 1.0)) +
-        CrispySpacing.sm;
-
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),
-      sliver: SliverGrid(
-        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: maxExtent,
-          childAspectRatio: 2 / 3,
-          mainAxisSpacing: mainSpacing,
-          crossAxisSpacing: crossSpacing,
-        ),
-        delegate: SliverChildBuilderDelegate(
-          (ctx, i) => _buildCard(context, ref, movies[i], autofocus: i == 0),
-          childCount: movies.length,
-          semanticIndexCallback: (_, index) => index,
-        ),
-      ),
+    return VodDensityMediaGrid<VodItem>(
+      items: movies,
+      density: density,
+      crossSpacingExtra: CrispySpacing.xs,
+      mainSpacingExtra: CrispySpacing.sm,
+      semanticIndexCallback: (_, index) => index,
+      itemBuilder:
+          (ctx, item, autofocus) =>
+              _buildCard(context, ref, item, autofocus: autofocus),
     );
   }
 

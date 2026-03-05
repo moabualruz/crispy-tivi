@@ -93,7 +93,7 @@ class WatchHistoryCardOverlay extends StatelessWidget {
                   color: CrispyColors.vignetteEnd,
                   shape: BoxShape.circle,
                 ),
-                padding: const EdgeInsets.all(4.0),
+                padding: const EdgeInsets.all(CrispySpacing.xs),
                 child: Icon(Icons.close, size: 16, color: cs.onSurface),
               ),
             ),
@@ -179,8 +179,7 @@ class ContinueWatchingSection extends ConsumerWidget {
       overlayBuilder: (ctx, vodItem) {
         final item = items.firstWhereOrNull((e) => e.id == vodItem.id);
         if (item == null) return const SizedBox.shrink();
-        final progress =
-            item.durationMs > 0 ? item.positionMs / item.durationMs : 0.0;
+        final progress = item.progress;
 
         // Build the bottom-left info badge.
         // For series episodes: show "S2 E5" chip + "Xm left" chip.

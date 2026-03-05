@@ -68,10 +68,7 @@ class StartMediaServerPlaybackUseCase {
         if (history != null &&
             history.positionMs > 0 &&
             history.durationMs > 0) {
-          final progress = (history.positionMs / history.durationMs).clamp(
-            0.0,
-            1.0,
-          );
+          final progress = history.progress.clamp(0.0, 1.0);
           if (progress < kCompletionThreshold) {
             startPosition = Duration(milliseconds: history.positionMs);
           }

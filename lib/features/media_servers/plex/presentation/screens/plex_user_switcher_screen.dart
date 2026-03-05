@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/core/testing/test_keys.dart';
+import 'package:crispy_tivi/core/widgets/loading_state_widget.dart';
 import 'package:crispy_tivi/core/theme/crispy_animation.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
@@ -32,7 +33,7 @@ class PlexUserSwitcherScreen extends ConsumerWidget {
       key: TestKeys.plexUserSwitcherScreen,
       appBar: AppBar(title: const Text('Switch Profile')),
       body: usersAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const LoadingStateWidget(),
         error:
             (e, _) => Center(
               child: Padding(

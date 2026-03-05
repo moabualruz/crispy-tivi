@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -42,7 +43,7 @@ class ProfileSelectionScreen extends ConsumerWidget {
       key: TestKeys.profileSelectionScreen,
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: stateAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const LoadingStateWidget(),
         error:
             (err, stack) => Center(
               child: Text(

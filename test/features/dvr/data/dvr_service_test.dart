@@ -74,7 +74,99 @@ class _MockPermissionGuard implements PermissionGuard {
   bool requiresFullDvr() => true;
 }
 
+/// Naive datetime regex: no timezone suffix, no
+/// fractional seconds (matches Rust NaiveDateTime
+/// serde format `"YYYY-MM-DDTHH:mm:ss"`).
+final _naiveDateTimeRe = RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$');
+
 void main() {
+  // ── recordingToMap datetime format ─────────────
+
+  group('recordingToMap', () {
+    test('serializes start_time as naive datetime '
+        '(no timezone, no fractional seconds)', () {
+      final recording = Recording(
+        id: 'test-id',
+        channelName: 'CNN',
+        programName: 'News',
+        startTime: DateTime.utc(2024, 1, 1, 15, 0, 0),
+        endTime: DateTime.utc(2024, 1, 1, 16, 0, 0),
+      );
+
+      final map = recordingToMap(recording);
+
+      expect(
+        map['start_time'] as String,
+        matches(_naiveDateTimeRe),
+        reason:
+            'start_time must be NaiveDateTime format '
+            '(no timezone suffix, no fractional seconds)',
+      );
+    });
+
+    test('serializes end_time as naive datetime '
+        '(no timezone, no fractional seconds)', () {
+      final recording = Recording(
+        id: 'test-id',
+        channelName: 'CNN',
+        programName: 'News',
+        startTime: DateTime.utc(2024, 1, 1, 15, 0, 0),
+        endTime: DateTime.utc(2024, 1, 1, 16, 30, 45),
+      );
+
+      final map = recordingToMap(recording);
+
+      expect(
+        map['end_time'] as String,
+        matches(_naiveDateTimeRe),
+        reason:
+            'end_time must be NaiveDateTime format '
+            '(no timezone suffix, no fractional seconds)',
+      );
+    });
+
+    test('datetime values are correctly formatted', () {
+      final recording = Recording(
+        id: 'test-id',
+        channelName: 'CNN',
+        programName: 'News',
+        startTime: DateTime.utc(2024, 6, 15, 20, 30, 0),
+        endTime: DateTime.utc(2024, 6, 15, 21, 45, 0),
+      );
+
+      final map = recordingToMap(recording);
+
+      expect(map['start_time'], '2024-06-15T20:30:00');
+      expect(map['end_time'], '2024-06-15T21:45:00');
+    });
+
+    test('rejects ISO 8601 format with timezone suffix', () {
+      final recording = Recording(
+        id: 'test-id',
+        channelName: 'CNN',
+        programName: 'News',
+        startTime: DateTime.utc(2024, 1, 1, 15, 0, 0),
+        endTime: DateTime.utc(2024, 1, 1, 16, 0, 0),
+      );
+
+      final map = recordingToMap(recording);
+
+      // Must NOT end with 'Z' or contain fractional
+      // seconds — Rust NaiveDateTime cannot parse
+      // ISO 8601 strings with timezone info.
+      expect(
+        (map['start_time'] as String).endsWith('Z'),
+        isFalse,
+        reason: 'start_time must not have UTC "Z" suffix',
+      );
+      expect(
+        (map['end_time'] as String).endsWith('Z'),
+        isFalse,
+        reason: 'end_time must not have UTC "Z" suffix',
+      );
+    });
+  });
+
   late ProviderContainer container;
   late CrispyBackend backend;
 

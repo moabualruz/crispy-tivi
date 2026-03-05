@@ -10,9 +10,12 @@ import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/core/navigation/app_routes.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_animation.dart';
+import 'package:crispy_tivi/core/theme/crispy_colors.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/widgets/horizontal_scroll_row.dart';
+import 'package:crispy_tivi/core/widgets/loading_state_widget.dart';
+import 'package:crispy_tivi/core/widgets/not_connected_widget.dart';
 import '../../../shared/presentation/widgets/media_server_item_card.dart';
 import '../../../shared/presentation/widgets/media_server_library_card.dart';
 import '../../../shared/presentation/widgets/watched_indicator.dart';
@@ -40,7 +43,7 @@ const double _kHeroBannerHeight = 420.0;
 
 /// Auto-advance interval for the hero banner carousel.
 // PX-FE-06
-const Duration _kHeroAdvanceInterval = Duration(seconds: 8);
+const Duration _kHeroAdvanceInterval = CrispyAnimation.heroAdvanceInterval;
 
 // ── Home screen ───────────────────────────────────────────────────────
 
@@ -98,46 +101,8 @@ class PlexHomeScreen extends ConsumerWidget {
       ),
       body:
           source == null
-              ? const _PlexNotConnected(serverName: 'Plex')
+              ? const NotConnectedWidget(serverName: 'Plex')
               : const _PlexLibraryBody(),
-    );
-  }
-}
-
-/// Minimal not-connected fallback for the Plex home screen.
-class _PlexNotConnected extends StatelessWidget {
-  const _PlexNotConnected({this.serverName = 'Plex'});
-
-  final String serverName;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.link_off, size: 64, color: cs.onSurfaceVariant),
-          const SizedBox(height: CrispySpacing.md),
-          Text(
-            'Not connected to $serverName',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: CrispySpacing.sm),
-          Text(
-            'Sign in to browse your libraries.',
-            style: TextStyle(color: cs.onSurfaceVariant),
-          ),
-          const SizedBox(height: CrispySpacing.lg),
-          FilledButton.icon(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.login),
-            label: const Text('Connect'),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -157,7 +122,7 @@ class _PlexLibraryBody extends ConsumerWidget {
         }
         return _PlexHomeBody(libraries: libraries);
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const LoadingStateWidget(),
       error: (e, _) => Center(child: Text('Error: $e')),
     );
   }
@@ -357,8 +322,8 @@ class _PlexHeroBannerState extends ConsumerState<_PlexHeroBanner> {
                     colors: [
                       Color(0x00000000),
                       Color(0x00000000),
-                      Color(0x80000000),
-                      Color(0xE6000000),
+                      CrispyColors.vignetteStart,
+                      CrispyColors.vignetteEnd,
                       Colors.black,
                     ],
                     stops: [0.0, 0.3, 0.6, 0.85, 1.0],

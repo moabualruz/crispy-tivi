@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/date_format_utils.dart';
 import '../../../../core/utils/timezone_utils.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
@@ -122,11 +123,8 @@ class EpgProgramBlock extends ConsumerWidget {
     final opacity = isPast ? (canCatchup ? 0.75 : 0.5) : 1.0;
 
     // Format start/end times for the accessibility label.
-    final startHour = entry.startTime.hour.toString().padLeft(2, '0');
-    final startMin = entry.startTime.minute.toString().padLeft(2, '0');
-    final endHour = entry.endTime.hour.toString().padLeft(2, '0');
-    final endMin = entry.endTime.minute.toString().padLeft(2, '0');
-    final timeLabel = '$startHour:$startMin – $endHour:$endMin';
+    final timeLabel =
+        '${formatHHmm(entry.startTime)} – ${formatHHmm(entry.endTime)}';
 
     // FE-EPG-04: genre tint (10–15% opacity overlay).
     final genreTint = _genreTint(entry.category);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/theme/crispy_colors.dart';
 import '../../providers/player_providers.dart';
 import 'osd_shared.dart';
 
@@ -35,7 +36,11 @@ class OsdAbLoopButton extends ConsumerWidget {
 
     final (icon, tooltip, color) = switch (loopState.phase) {
       AbLoopPhase.idle => (_AbIcon.idle, 'Set loop start (A)', Colors.white),
-      AbLoopPhase.aSet => (_AbIcon.aSet, 'Set loop end (B)', Colors.amber),
+      AbLoopPhase.aSet => (
+        _AbIcon.aSet,
+        'Set loop end (B)',
+        CrispyColors.highlightAmber,
+      ),
       AbLoopPhase.abSet => (
         _AbIcon.abSet,
         'Clear A-B loop',

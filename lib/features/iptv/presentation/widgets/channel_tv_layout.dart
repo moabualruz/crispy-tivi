@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/utils/debounce_throttle.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -76,7 +77,7 @@ const Duration _kDialTimeout = Duration(seconds: 2);
 
 class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
     with ChannelPreviewMixin {
-  Timer? _previewDebounce;
+  final _previewDebouncer = Debouncer(duration: CrispyAnimation.normal);
 
   // ── Sidebar collapse state ───────────────────────────────────
   bool _isGroupsCollapsed = false;
@@ -89,7 +90,7 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
 
   @override
   void dispose() {
-    _previewDebounce?.cancel();
+    _previewDebouncer.dispose();
     _dialTimer?.cancel();
     _focusNode.dispose();
     _channelScrollController.dispose();
@@ -131,7 +132,7 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Channel $digits not found'),
-            duration: const Duration(seconds: 2),
+            duration: CrispyAnimation.snackBarDuration,
           ),
         );
       }
@@ -185,8 +186,7 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
 
   /// Debounced preview on D-pad focus change (300 ms).
   void _onChannelFocused(Channel ch) {
-    _previewDebounce?.cancel();
-    _previewDebounce = Timer(const Duration(milliseconds: 300), () {
+    _previewDebouncer.run(() {
       if (mounted) previewChannel(ch);
     });
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/domain/entities/media_item.dart';
 import '../../../../core/domain/entities/media_type.dart';
 import '../../../../core/theme/crispy_animation.dart';
+import '../../domain/constants/search_source_key.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/duration_formatter.dart';
@@ -66,17 +67,17 @@ class EnhancedSearchResultCard extends StatelessWidget {
     final source = item.metadata['source'];
     if (source == null) return null;
     switch (source) {
-      case 'iptv':
+      case SearchSourceKey.iptv:
         return 'IPTV';
-      case 'iptv_vod':
+      case SearchSourceKey.iptvVod:
         return 'VOD';
-      case 'iptv_epg':
+      case SearchSourceKey.iptvEpg:
         return 'EPG';
-      case 'jellyfin':
+      case SearchSourceKey.jellyfin:
         return 'Jellyfin';
-      case 'emby':
+      case SearchSourceKey.emby:
         return 'Emby';
-      case 'plex':
+      case SearchSourceKey.plex:
         return 'Plex';
       default:
         return source.toString().toUpperCase();
@@ -88,7 +89,7 @@ class EnhancedSearchResultCard extends StatelessWidget {
   Color _sourceBarColor(ColorScheme cs) {
     final source = item.metadata['source'] as String?;
     // EPG programs — use outline to distinguish from playable content.
-    if (source == 'iptv_epg') return cs.outline;
+    if (source == SearchSourceKey.iptvEpg) return cs.outline;
     // Live TV channels.
     if (item.type == MediaType.channel) return cs.primary;
     // VOD series.

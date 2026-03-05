@@ -63,8 +63,8 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
     return false;
   }
 
-  String sanitizeFilename(String name) =>
-      name.replaceAll(RegExp(r'[^\w\s-]'), '_');
+  /// Delegates to shared [dartSanitizeFilename].
+  String sanitizeFilename(String name) => dartSanitizeFilename(name);
 
   // ── Group Icon ────────────────────────────────
 
@@ -193,13 +193,8 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
 
   String macToDeviceId(String mac) => mac.replaceAll(':', '');
 
-  List<String> guessLogoDomains(String name) {
-    final trimmed = name.trim().toLowerCase();
-    if (trimmed.isEmpty) return [];
-    final word = trimmed.split(RegExp(r'\s+')).first;
-    if (word.isEmpty) return [];
-    return [word, '$word.com', '$word.tv', '$word.org'];
-  }
+  /// Delegates to shared [dartGuessLogoDomains].
+  List<String> guessLogoDomains(String name) => dartGuessLogoDomains(name);
 
   // ── URL Normalization ─────────────────────────
 

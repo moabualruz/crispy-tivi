@@ -6,6 +6,7 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../providers/player_providers.dart';
+import 'player_osd/osd_shared.dart';
 
 // ─────────────────────────────────────────────────────────────
 //  EQ band constants
@@ -503,47 +504,15 @@ class OsdEqButton extends ConsumerWidget {
     final isEnabled = ref.watch(equalizerProvider.select((s) => s.isEnabled));
     final colorScheme = Theme.of(context).colorScheme;
 
-    Widget button = Tooltip(
-      message: 'Equalizer',
-      child: IconButton(
-        onPressed: () {
-          ref.read(equalizerProvider.notifier).toggleVisibility();
-          ref.read(osdStateProvider.notifier).show();
-        },
-        icon: Icon(
-          Icons.equalizer_rounded,
-          color: isVisible || isEnabled ? colorScheme.primary : Colors.white,
-          size: 22,
-        ),
-        style: ButtonStyle(
-          padding: const WidgetStatePropertyAll(EdgeInsets.all(8)),
-          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
-          overlayColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.focused)) {
-              return Colors.white.withValues(alpha: 0.2);
-            }
-            if (states.contains(WidgetState.hovered)) {
-              return Colors.white.withValues(alpha: 0.1);
-            }
-            return Colors.transparent;
-          }),
-          side: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.focused)) {
-              return const BorderSide(color: Colors.white, width: 2);
-            }
-            return BorderSide.none;
-          }),
-        ),
-      ),
+    return OsdIconButton(
+      icon: Icons.equalizer_rounded,
+      tooltip: 'Equalizer',
+      iconColor: isVisible || isEnabled ? colorScheme.primary : Colors.white,
+      order: order,
+      onPressed: () {
+        ref.read(equalizerProvider.notifier).toggleVisibility();
+        ref.read(osdStateProvider.notifier).show();
+      },
     );
-
-    if (order != null) {
-      button = FocusTraversalOrder(
-        order: NumericFocusOrder(order!),
-        child: button,
-      );
-    }
-
-    return button;
   }
 }

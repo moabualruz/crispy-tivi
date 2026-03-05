@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/crispy_colors.dart';
 import '../../../core/theme/crispy_spacing.dart';
 
 /// Avatar container size (width and height) used in profile tiles.
@@ -139,7 +140,7 @@ LinearGradient profileAvatarGradient(Color color) => LinearGradient(
 /// 12 distinct, accessible colors that work well on dark backgrounds.
 const List<Color> kProfileAccentColors = [
   Color(0xFF3B82F6), // Blue (default)
-  Color(0xFFE50914), // Netflix Red
+  CrispyColors.netflixRed, // Netflix Red
   Color(0xFF00BFA5), // Teal
   Color(0xFFFF6D00), // Orange
   Color(0xFFAA00FF), // Purple

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/navigation/app_routes.dart';
-import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/content_badge.dart';
@@ -11,13 +10,14 @@ import '../../../../core/widgets/context_menu_builders.dart';
 import '../../../../core/widgets/context_menu_panel.dart';
 import '../../domain/entities/vod_item.dart';
 import '../providers/vod_providers.dart';
+import 'media_grid.dart';
 import 'vod_movies_grid.dart' show vodMaxExtent;
 import 'vod_poster_card.dart';
 
 /// Sliver grid of series poster cards with context menu support.
 ///
-/// Mirrors [VodMoviesGrid] but navigates to [AppRoutes.seriesDetail]
-/// and uses the series context menu.
+/// Thin wrapper around [MediaGrid] that provides the series-specific
+/// item builder (new-episode badge, unwatched overlay, series navigation).
 class SeriesMoviesGrid extends ConsumerWidget {
   const SeriesMoviesGrid({super.key, required this.series});
 
@@ -26,35 +26,23 @@ class SeriesMoviesGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final double maxExtent = vodMaxExtent(context);
-    final double crossSpacing =
-        (maxExtent * (CrispyAnimation.hoverScale - 1.0)) + CrispySpacing.sm;
-    final double mainSpacing =
-        (maxExtent * 1.5 * (CrispyAnimation.hoverScale - 1.0)) +
-        CrispySpacing.md;
 
     // Resolve the set of series IDs with new episodes once per build.
     final newEpisodesIds = ref.watch(seriesWithNewEpisodesProvider);
 
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),
-      sliver: SliverGrid(
-        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: maxExtent,
-          childAspectRatio: 2 / 3,
-          mainAxisSpacing: mainSpacing,
-          crossAxisSpacing: crossSpacing,
-        ),
-        delegate: SliverChildBuilderDelegate(
-          (ctx, i) => _buildCard(
+    return MediaGrid<VodItem>(
+      items: series,
+      maxExtent: maxExtent,
+      crossSpacingExtra: CrispySpacing.sm,
+      mainSpacingExtra: CrispySpacing.md,
+      itemBuilder:
+          (ctx, item, autofocus) => _buildCard(
             context,
             ref,
-            series[i],
+            item,
             newEpisodesIds,
-            autofocus: i == 0,
+            autofocus: autofocus,
           ),
-          childCount: series.length,
-        ),
-      ),
     );
   }
 

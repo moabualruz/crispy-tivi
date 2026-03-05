@@ -63,4 +63,36 @@ void main() {
       ); // unknown returns unrated
     });
   });
+
+  group('ContentRatingLevel.displayLabel', () {
+    test('nc17 returns All / Unrestricted', () {
+      expect(ContentRatingLevel.nc17.displayLabel, 'All / Unrestricted');
+    });
+
+    test('g returns code and description', () {
+      expect(ContentRatingLevel.g.displayLabel, 'G — General Audiences');
+    });
+
+    test('pg returns code and description', () {
+      expect(
+        ContentRatingLevel.pg.displayLabel,
+        'PG — Parental Guidance Suggested',
+      );
+    });
+
+    test('pg13 returns code and description', () {
+      expect(
+        ContentRatingLevel.pg13.displayLabel,
+        'PG-13 — Parents Strongly Cautioned',
+      );
+    });
+
+    test('r returns code and description', () {
+      expect(ContentRatingLevel.r.displayLabel, 'R — Restricted');
+    });
+
+    test('unrated returns code and description', () {
+      expect(ContentRatingLevel.unrated.displayLabel, 'Unrated — Not Rated');
+    });
+  });
 }

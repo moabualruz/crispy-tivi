@@ -91,4 +91,13 @@ enum ContentRatingLevel {
       orElse: () => unrated,
     );
   }
+
+  /// Display label used in UI dropdowns and pickers.
+  ///
+  /// NC-17 is shown as "All / Unrestricted" since it represents the
+  /// unrestricted default cap for non-kids profiles.
+  String get displayLabel {
+    if (this == nc17) return 'All / Unrestricted';
+    return '$code — $description';
+  }
 }

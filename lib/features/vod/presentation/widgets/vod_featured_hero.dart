@@ -22,7 +22,7 @@ import '../../domain/entities/vod_item.dart';
 /// - Progress dots below the banner indicate the active item.
 /// - Focus/hover pauses the auto-cycle.
 /// - Items with a non-null [VodItem.backdropUrl] auto-play a muted
-///   trailer after [_kTrailerDelay] (2 s); cycle resumes after 15 s
+///   trailer after [CrispyAnimation.trailerDelayFeatured] (2 s); cycle resumes after 15 s
 ///   or when the trailer ends naturally.
 /// - Tapping the banner navigates to the VOD detail screen.
 class VodFeaturedHero extends ConsumerStatefulWidget {
@@ -35,8 +35,8 @@ class VodFeaturedHero extends ConsumerStatefulWidget {
 }
 
 const int _kMaxItems = 5;
-const Duration _kCycleDuration = Duration(seconds: 8);
-const Duration _kTrailerDelay = Duration(seconds: 2);
+const Duration _kCycleDuration = CrispyAnimation.heroAdvanceInterval;
+const Duration _kTrailerDelay = CrispyAnimation.trailerDelayFeatured;
 const Duration _kTrailerMaxDuration = Duration(seconds: 15);
 
 class _VodFeaturedHeroState extends ConsumerState<VodFeaturedHero> {

@@ -120,7 +120,7 @@ class _WatchlistCardState extends ConsumerState<_WatchlistCard> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Removed "${item.name}" from My List'),
-                      duration: const Duration(seconds: 3),
+                      duration: CrispyAnimation.toastDuration,
                       action: SnackBarAction(
                         label: 'Undo',
                         onPressed:

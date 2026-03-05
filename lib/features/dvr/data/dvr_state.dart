@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/date_format_utils.dart';
 import '../../profiles/domain/permission_guard.dart';
 import '../domain/entities/recording.dart';
 import 'dvr_service.dart';
@@ -28,8 +29,8 @@ Map<String, dynamic> recordingToMap(Recording r) {
     'channel_logo_url': r.channelLogoUrl,
     'program_name': r.programName,
     'stream_url': r.streamUrl,
-    'start_time': r.startTime.toIso8601String(),
-    'end_time': r.endTime.toIso8601String(),
+    'start_time': toNaiveDateTime(r.startTime),
+    'end_time': toNaiveDateTime(r.endTime),
     'status': r.status.name,
     'file_path': r.filePath,
     'file_size_bytes': r.fileSizeBytes,

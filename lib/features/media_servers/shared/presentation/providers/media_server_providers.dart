@@ -2,13 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/config/settings_notifier.dart';
+import 'package:crispy_tivi/core/constants.dart';
 import 'package:crispy_tivi/core/domain/entities/media_item.dart';
+import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/core/exceptions/media_source_exception.dart';
-import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
-import 'package:crispy_tivi/core/constants.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_source.dart';
+import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
 
 // ── MSB-FE-07: Cross-server resume item type ──────────────────────────
 
@@ -26,26 +27,7 @@ class ServerResumeItem {
   final PlaylistSource server;
 }
 
-/// Fallback device ID used when no device-specific ID is configured.
-///
-/// Emby/Jellyfin use this to track sessions per device. For production,
-/// this should be replaced with a platform-generated UUID stored in
-/// persistent settings (see [PlaylistSource.deviceId]).
-const String kDefaultDeviceId = 'crispy_tivi_web';
-
 // ── Internal factory helpers ───────────────────────────────────────────
-
-/// Builds the shared Emby/Jellyfin authorization header value.
-String _embyAuthHeader(String? deviceId) =>
-    'MediaBrowser Client="CrispyTivi", Device="CrispyTivi Web", '
-    'DeviceId="${deviceId ?? kDefaultDeviceId}", Version="0.1.0"';
-
-/// Maps [PlaylistSourceType] to [MediaServerType].
-MediaServerType _toServerType(PlaylistSourceType type) => switch (type) {
-  PlaylistSourceType.emby => MediaServerType.emby,
-  PlaylistSourceType.jellyfin => MediaServerType.jellyfin,
-  _ => throw ArgumentError('Unsupported server type: $type'),
-};
 
 /// Constructs a [MediaServerSource] from a [PlaylistSource] config.
 MediaServerSource _buildMediaServerSource(PlaylistSource config) {
@@ -53,9 +35,7 @@ MediaServerSource _buildMediaServerSource(PlaylistSource config) {
   if (config.accessToken != null) {
     dio.options.headers['X-Emby-Token'] = config.accessToken;
   }
-  dio.options.headers['X-Emby-Authorization'] = _embyAuthHeader(
-    config.deviceId,
-  );
+  dio.options.headers['X-Emby-Authorization'] = embyAuthHeader(config.deviceId);
 
   return MediaServerSource(
     apiClient: MediaServerApiClient(dio, baseUrl: config.url),
@@ -65,7 +45,7 @@ MediaServerSource _buildMediaServerSource(PlaylistSource config) {
     serverName: config.name,
     serverId: config.id,
     accessToken: config.accessToken ?? '',
-    type: _toServerType(config.type),
+    type: toServerType(config.type),
   );
 }
 
@@ -249,7 +229,7 @@ final allServersResumeItemsProvider = FutureProvider<List<ServerResumeItem>>((
         apiClient: MediaServerApiClient(dio, baseUrl: server.url),
         serverUrl: server.url,
         userId: server.userId!,
-        deviceId: server.deviceId ?? 'crispy_tivi_web',
+        deviceId: server.deviceId ?? kDefaultDeviceId,
         serverName: server.name,
         serverId: server.id,
         accessToken: server.accessToken ?? '',

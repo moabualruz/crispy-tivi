@@ -1,13 +1,12 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
 import '../../../dvr/domain/utils/dvr_payload.dart';
-import '../../../parental/domain/content_rating.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../profiles/data/profile_service.dart';
 import '../../domain/entities/vod_item.dart';
+import '../../domain/utils/episode_utils.dart';
+import '../../domain/utils/vod_filter_utils.dart';
 import '../../domain/utils/vod_utils.dart';
 import '../widgets/series_episode_fetcher.dart';
 import 'vod_favorites_provider.dart';
@@ -237,11 +236,7 @@ final episodeProgressMapProvider =
     FutureProvider.family<Map<String, double>, String>((ref, seriesId) async {
       final backend = ref.watch(crispyBackendProvider);
       final resultJson = await backend.computeEpisodeProgressFromDb(seriesId);
-      final result = jsonDecode(resultJson) as Map<String, dynamic>;
-      final map = (result['progress_map'] as Map<String, dynamic>).map(
-        (k, v) => MapEntry(k, (v as num).toDouble()),
-      );
-      return map;
+      return decodeEpisodeProgress(resultJson).progressMap;
     });
 
 /// Stream URL of the most-recently-watched episode
@@ -252,8 +247,7 @@ final lastWatchedEpisodeIdProvider = FutureProvider.family<String?, String>((
 ) async {
   final backend = ref.watch(crispyBackendProvider);
   final resultJson = await backend.computeEpisodeProgressFromDb(seriesId);
-  final result = jsonDecode(resultJson) as Map<String, dynamic>;
-  return result['last_watched_url'] as String?;
+  return decodeEpisodeProgress(resultJson).lastWatchedUrl;
 });
 
 /// Filters VOD items based on active profile's
@@ -273,10 +267,7 @@ final filteredVodProvider = Provider.autoDispose<List<VodItem>>((ref) {
   // No restrictions for unrestricted profiles (or when no profile loaded).
   if (profile == null || !profile.isRestricted) return items;
 
-  return items.where((item) {
-    final rating = ContentRatingLevel.fromString(item.rating);
-    return rating.isAllowedFor(profile.ratingLevel);
-  }).toList();
+  return filterByContentRating(items, profile.ratingLevel);
 });
 
 /// Filtered movies only.

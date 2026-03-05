@@ -7,6 +7,7 @@ import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/duration_formatter.dart';
 import '../providers/player_providers.dart';
+import 'player_osd/osd_shared.dart';
 
 // ─────────────────────────────────────────────────────────────
 //  Bookmark model
@@ -413,45 +414,12 @@ class OsdBookmarkButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    Widget button = Tooltip(
-      message: 'Bookmark',
-      child: IconButton(
-        onPressed: () => _addBookmark(context, ref),
-        icon: const Icon(
-          Icons.bookmark_add_outlined,
-          color: Colors.white,
-          size: 22,
-        ),
-        style: ButtonStyle(
-          padding: const WidgetStatePropertyAll(EdgeInsets.all(8)),
-          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
-          overlayColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.focused)) {
-              return Colors.white.withValues(alpha: 0.2);
-            }
-            if (states.contains(WidgetState.hovered)) {
-              return Colors.white.withValues(alpha: 0.1);
-            }
-            return Colors.transparent;
-          }),
-          side: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.focused)) {
-              return const BorderSide(color: Colors.white, width: 2);
-            }
-            return BorderSide.none;
-          }),
-        ),
-      ),
+    return OsdIconButton(
+      icon: Icons.bookmark_add_outlined,
+      tooltip: 'Bookmark',
+      order: order,
+      onPressed: () => _addBookmark(context, ref),
     );
-
-    if (order != null) {
-      button = FocusTraversalOrder(
-        order: NumericFocusOrder(order!),
-        child: button,
-      );
-    }
-
-    return button;
   }
 
   void _addBookmark(BuildContext context, WidgetRef ref) {

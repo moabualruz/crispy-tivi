@@ -5,7 +5,9 @@ import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/relative_time_formatter.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
@@ -81,7 +83,7 @@ class ProfileWatchHistoryScreen extends ConsumerWidget {
         ],
       ),
       body: historyAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const LoadingStateWidget(),
         error:
             (err, _) => Center(
               child: Text(
@@ -172,18 +174,6 @@ class _WatchHistoryItem extends StatelessWidget {
   final WatchHistoryEntry entry;
   final VoidCallback onDelete;
 
-  String _formatDate(DateTime dt) {
-    final local = dt.toLocal();
-    final now = DateTime.now();
-    final diff = now.difference(local);
-
-    if (diff.inDays == 0) return 'Today';
-    if (diff.inDays == 1) return 'Yesterday';
-    if (diff.inDays < 7) return '${diff.inDays} days ago';
-    // Full date for older entries.
-    return '${local.day}/${local.month}/${local.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -191,7 +181,7 @@ class _WatchHistoryItem extends StatelessWidget {
 
     final hasPoster = entry.posterUrl != null && entry.posterUrl!.isNotEmpty;
     final hasProgress = entry.durationMs > 0 && entry.mediaType != 'channel';
-    final watchedDate = _formatDate(entry.lastWatched);
+    final watchedDate = formatRelativeTime(entry.lastWatched);
 
     // Subtitle: episode label + watched date.
     final subtitleParts = <String>[];

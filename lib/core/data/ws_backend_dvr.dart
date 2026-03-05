@@ -86,10 +86,8 @@ mixin _WsDvrMixin on _WsBackendBase {
     return data as bool;
   }
 
-  String sanitizeFilename(String name) {
-    // Sync — local Dart fallback.
-    return name.replaceAll(RegExp(r'[^\w\s-]'), '_');
-  }
+  /// Delegates to shared [dartSanitizeFilename].
+  String sanitizeFilename(String name) => dartSanitizeFilename(name);
 
   // ── DVR: Recordings to Start ──────────────────
 

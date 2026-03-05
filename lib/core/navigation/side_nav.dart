@@ -10,6 +10,7 @@ import '../theme/crispy_animation.dart';
 import '../theme/crispy_radius.dart';
 import '../theme/crispy_spacing.dart';
 import '../widgets/focus_wrapper.dart';
+import '../widgets/loading_state_widget.dart';
 import '../widgets/pin_input_dialog.dart';
 import 'app_routes.dart';
 import 'nav_badge_provider.dart';
@@ -448,8 +449,7 @@ class ProfileSwitcherSheet extends ConsumerWidget {
               // ── Profile list ─────────────────────────────────────────
               Flexible(
                 child: profileAsync.when(
-                  loading:
-                      () => const Center(child: CircularProgressIndicator()),
+                  loading: () => const LoadingStateWidget(),
                   error:
                       (err, _) => Center(
                         child: Text(

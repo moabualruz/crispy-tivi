@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/date_format_utils.dart';
@@ -20,50 +21,13 @@ import '../../../player/data/watch_history_service.dart';
 import '../../../recommendations/domain/entities/recommendation.dart';
 import '../../../recommendations/presentation/providers/recommendation_providers.dart';
 import '../../../vod/domain/entities/vod_item.dart';
+import '../../../favorites/domain/utils/cw_filter_utils.dart';
 import '../../../vod/presentation/widgets/continue_watching_section.dart';
 import '../../../vod/presentation/widgets/cross_device_section.dart';
+import '../../domain/utils/home_utils.dart';
 import '../providers/home_providers.dart';
 import 'channel_list_section.dart';
 import 'vod_row.dart';
-
-// ── FE-H-05: Dynamic personalized row labels ────────────
-
-/// Returns a rich label string for a home-screen section based on
-/// [type] and optional context data.
-///
-/// Rules:
-/// - `'continue_watching'` — appends item count badge when > 0.
-/// - `'recently_added'`   — shows "Added this week · N new" when items
-///   were added within the last 7 days; falls back to "Latest Added".
-/// - `'recommendations'`  — returns the [dynamicTitle] from the
-///   [RecommendationSection] (already computed by the engine).
-///
-/// All other types return [fallback] unchanged.
-String dynamicSectionLabel({
-  required String type,
-  String fallback = '',
-  int count = 0,
-  List<VodItem>? items,
-}) {
-  switch (type) {
-    case 'continue_watching':
-      if (count <= 0) return fallback;
-      return '$fallback · $count item${count == 1 ? '' : 's'}';
-
-    case 'recently_added':
-      if (items == null || items.isEmpty) return fallback;
-      final cutoff = DateTime.now().subtract(const Duration(days: 7));
-      final recent =
-          items
-              .where((i) => i.addedAt != null && i.addedAt!.isAfter(cutoff))
-              .length;
-      if (recent > 0) return 'Added this week · $recent new';
-      return fallback;
-
-    default:
-      return fallback;
-  }
-}
 
 /// Shows the channel long-press context menu with
 /// favorite-toggle, copy-URL, and external-player actions.
@@ -115,8 +79,11 @@ class HomeContinueWatchingSection extends ConsumerWidget {
     final cwMovies = cwMoviesIdx.asData?.value ?? [];
     final cwSeries = cwSeriesIdx.asData?.value ?? [];
     final crossDeviceItems = crossDeviceIdx.asData?.value ?? [];
-    final allContinueWatching = [...cwMovies, ...cwSeries]
-      ..sort((a, b) => b.lastWatched.compareTo(a.lastWatched));
+    final allContinueWatching = mergeDedupSort(
+      cwMovies,
+      cwSeries,
+      deduplicate: false,
+    );
 
     // FE-H-05: dynamic label — "Continue Watching · 3 items".
     final cwTitle = dynamicSectionLabel(
@@ -283,7 +250,7 @@ class _DismissableRecommendationSections extends ConsumerWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: const Text('Removed from recommendations'),
-                        duration: const Duration(seconds: 4),
+                        duration: CrispyAnimation.osdAutoHide,
                         action: SnackBarAction(
                           label: 'Undo',
                           onPressed:

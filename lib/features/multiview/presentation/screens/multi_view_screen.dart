@@ -180,7 +180,7 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Channel $digits not found'),
-            duration: const Duration(seconds: 2),
+            duration: CrispyAnimation.snackBarDuration,
           ),
         );
       }

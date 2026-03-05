@@ -7,6 +7,7 @@ import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/group_sidebar.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
@@ -586,7 +587,7 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
   Widget _buildLoading() {
     return Scaffold(
       appBar: AppBar(title: const Text('Program Guide')),
-      body: const Center(child: CircularProgressIndicator()),
+      body: const LoadingStateWidget(),
     );
   }
 

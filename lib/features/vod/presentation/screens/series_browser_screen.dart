@@ -8,21 +8,18 @@ import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
-import '../../../../core/widgets/empty_state_widget.dart';
-import '../../../../core/widgets/error_state_widget.dart';
-import '../../../../core/widgets/genre_pill_row.dart';
-import '../../../../core/widgets/vod_grid_loading_shell.dart';
 import '../../../../core/widgets/content_badge.dart';
+import '../../../../core/widgets/genre_pill_row.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../domain/entities/vod_item.dart';
 import '../mixins/vod_sortable_browser_mixin.dart';
 import '../providers/vod_providers.dart';
+import '../widgets/vod_browser_shell.dart';
 import '../widgets/continue_watching_section.dart';
 import '../widgets/recently_added_section.dart';
 import '../widgets/series_featured_banner.dart';
 import '../widgets/series_movies_grid.dart';
-import '../widgets/vod_movies_grid.dart' show vodMaxExtent;
 import '../widgets/vod_search_sort_bar.dart';
 
 /// Top-level Series browser screen (V2 navigation).
@@ -103,23 +100,16 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
     // T04: surgical selectors — only rebuild when isLoading or error changes.
     final isLoading = ref.watch(vodProvider.select((s) => s.isLoading));
     final error = ref.watch(vodProvider.select((s) => s.error));
-
-    if (isLoading) {
-      return _buildLoading(context);
-    }
-    if (error != null) {
-      return _buildError(error);
-    }
-
     final allSeries = _allFilteredSeries;
 
-    if (allSeries.isEmpty) return _buildEmpty();
-
     // Re-sort whenever items, sort option, category, or query change.
-    if (!identical(allSeries, _lastAll) ||
-        sortOption != _lastSortOption ||
-        selectedCategory != _lastCategory ||
-        searchQuery != _lastQuery) {
+    if (!isLoading &&
+        error == null &&
+        allSeries.isNotEmpty &&
+        (!identical(allSeries, _lastAll) ||
+            sortOption != _lastSortOption ||
+            selectedCategory != _lastCategory ||
+            searchQuery != _lastQuery)) {
       _lastAll = allSeries;
       _lastSortOption = sortOption;
       _lastCategory = selectedCategory;
@@ -127,23 +117,32 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
       Future.microtask(() => _refreshSortedSeries(allSeries));
     }
 
-    return Scaffold(
-      key: TestKeys.seriesBrowserScreen,
-      appBar: AppBar(
-        title: const Text('Series'),
-        actions: [
-          IconButton(
-            tooltip: 'My List',
-            icon: const Icon(Icons.playlist_add_check_rounded),
-            onPressed: () => context.go(AppRoutes.favorites),
-          ),
-          const AppBarSearchButton(),
-        ],
-      ),
-      // T09: add Semantics label for screen reader accessibility.
-      body: Semantics(
-        label: 'Series browser',
-        child: FocusTraversalGroup(child: _buildBody(context, allSeries)),
+    return VodBrowserShell(
+      title: 'Series',
+      isLoading: isLoading,
+      error: error,
+      isEmpty: allSeries.isEmpty,
+      emptyIcon: Icons.tv_off,
+      emptyTitle: 'No series available',
+      emptyDescription: 'Add a playlist source in Settings',
+      child: Scaffold(
+        key: TestKeys.seriesBrowserScreen,
+        appBar: AppBar(
+          title: const Text('Series'),
+          actions: [
+            IconButton(
+              tooltip: 'My List',
+              icon: const Icon(Icons.playlist_add_check_rounded),
+              onPressed: () => context.go(AppRoutes.favorites),
+            ),
+            const AppBarSearchButton(),
+          ],
+        ),
+        // T09: add Semantics label for screen reader accessibility.
+        body: Semantics(
+          label: 'Series browser',
+          child: FocusTraversalGroup(child: _buildBody(context, allSeries)),
+        ),
       ),
     );
   }
@@ -273,29 +272,6 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
           badgeBuilder: newEpisodeBadge,
         );
       }, childCount: nonEmptyCategories.length),
-    );
-  }
-
-  // T06: AppBar shown consistently in loading state.
-  Widget _buildLoading(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Series')),
-      body: VodGridLoadingShell(maxCrossAxisExtent: vodMaxExtent(context)),
-    );
-  }
-
-  Widget _buildError(String error) {
-    return Scaffold(body: ErrorStateWidget(message: 'Failed to load: $error'));
-  }
-
-  Widget _buildEmpty() {
-    return const Scaffold(
-      body: EmptyStateWidget(
-        icon: Icons.tv_off,
-        title: 'No series available',
-        description: 'Add a playlist source in Settings',
-        showSettingsButton: true,
-      ),
     );
   }
 }

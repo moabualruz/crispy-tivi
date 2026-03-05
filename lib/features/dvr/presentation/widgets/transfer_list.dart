@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/theme/crispy_radius.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../data/transfer_service.dart';
 import '../../domain/entities/transfer_task.dart';
 
@@ -17,7 +18,7 @@ class TransferList extends ConsumerWidget {
     final transferState = ref.watch(transferServiceProvider);
 
     return transferState.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const LoadingStateWidget(),
       error: (e, _) => Center(child: Text('Error: $e')),
       data: (state) {
         final tasks = state.tasks;

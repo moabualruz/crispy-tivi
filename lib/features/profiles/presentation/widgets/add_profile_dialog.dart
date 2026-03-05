@@ -376,7 +376,7 @@ class MaturityRatingDropdown extends StatelessWidget {
                   children: [
                     MaturityRatingBadge(level: level, compact: true),
                     const SizedBox(width: CrispySpacing.sm),
-                    Text(_ratingLabel(level)),
+                    Text(level.displayLabel),
                   ],
                 ),
               );
@@ -386,11 +386,6 @@ class MaturityRatingDropdown extends StatelessWidget {
         },
       ),
     );
-  }
-
-  static String _ratingLabel(ContentRatingLevel level) {
-    if (level == ContentRatingLevel.nc17) return 'All / Unrestricted';
-    return '${level.code} — ${level.description}';
   }
 }
 

@@ -78,7 +78,7 @@ class ThemeState {
 
   /// Returns the effective primary accent color.
   Color get primaryColor =>
-      accent.color ?? customAccent ?? const Color(0xFF3B82F6);
+      accent.color ?? customAccent ?? AccentColor.blue.color!;
 
   /// Returns the effective container color.
   Color get primaryContainer => accent.container ?? _darken(primaryColor, 0.3);

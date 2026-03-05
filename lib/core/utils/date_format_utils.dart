@@ -1,3 +1,44 @@
+/// Formats [DateTime] as a NaiveDateTime string for Rust serde.
+///
+/// Rust's `NaiveDateTime` expects `"2024-01-01T15:00:00"` —
+/// no timezone suffix, no fractional seconds. Dart's
+/// `toIso8601String()` emits `"2024-01-01T15:00:00.000Z"` which
+/// Rust cannot parse.
+///
+/// Always converts to UTC first so the value is stable regardless
+/// of the device's local timezone.
+String toNaiveDateTime(DateTime dt) {
+  final utc = dt.toUtc();
+  return '${utc.year.toString().padLeft(4, '0')}-'
+      '${utc.month.toString().padLeft(2, '0')}-'
+      '${utc.day.toString().padLeft(2, '0')}T'
+      '${utc.hour.toString().padLeft(2, '0')}:'
+      '${utc.minute.toString().padLeft(2, '0')}:'
+      '${utc.second.toString().padLeft(2, '0')}';
+}
+
+/// Parses a NaiveDateTime string (no timezone) as UTC.
+///
+/// Rust's `NaiveDateTime` serde produces `"2024-01-01T15:00:00"`.
+/// [DateTime.parse] treats this as local time; this helper
+/// reinterprets it as UTC so the round-trip
+/// `toNaiveDateTime` → `parseNaiveUtc` is lossless.
+DateTime parseNaiveUtc(String s) {
+  final dt = DateTime.parse(s);
+  return dt.isUtc
+      ? dt
+      : DateTime.utc(
+        dt.year,
+        dt.month,
+        dt.day,
+        dt.hour,
+        dt.minute,
+        dt.second,
+        dt.millisecond,
+        dt.microsecond,
+      );
+}
+
 /// Formats a [DateTime] as "HH:mm" (24-hour clock).
 ///
 /// Uses the [DateTime] value as-is (no timezone conversion).
@@ -35,3 +76,20 @@ String formatYMD(DateTime dt) =>
 
 /// Formats a [DateTime] as "D/M/YYYY HH:mm".
 String formatDMYHHmm(DateTime dt) => '${formatDMY(dt)} ${formatHHmm(dt)}';
+
+/// Formats a [Duration] as a human-readable "time remaining" label.
+///
+/// Returns:
+///   - `""` for non-positive durations
+///   - `"Xm left"` for durations under one hour
+///   - `"Xh left"` for exact hour durations
+///   - `"Xh Ym left"` otherwise
+String formatTimeRemaining(Duration remaining) {
+  final totalMinutes = remaining.inMinutes;
+  if (totalMinutes <= 0) return '';
+  if (totalMinutes < 60) return '${totalMinutes}m left';
+  final hours = totalMinutes ~/ 60;
+  final minutes = totalMinutes % 60;
+  if (minutes == 0) return '${hours}h left';
+  return '${hours}h ${minutes}m left';
+}

@@ -3,29 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/date_format_utils.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
-import '../../../../core/widgets/responsive_layout.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../domain/utils/cw_filter_utils.dart';
+import '../widgets/favorites_list.dart';
 
 // FE-FAV-09: VOD poster dimensions (2:3 portrait ratio).
 const double kPosterWidth = 56.0;
 const double kPosterHeight = 84.0;
-
-/// FE-FAV-04: Formats a duration as "Xm left" or "Xh Ym left".
-String formatTimeRemaining(Duration remaining) {
-  final totalMinutes = remaining.inMinutes;
-  if (totalMinutes <= 0) return '';
-  if (totalMinutes < 60) return '${totalMinutes}m left';
-  final hours = totalMinutes ~/ 60;
-  final minutes = totalMinutes % 60;
-  if (minutes == 0) return '${hours}h left';
-  return '${hours}h ${minutes}m left';
-}
 
 // ── Continue Watching tab ─────────────────────────────────────
 
@@ -62,17 +53,14 @@ class _ContinueWatchingTabState extends ConsumerState<ContinueWatchingTab> {
     final isLoading = moviesAsync.isLoading || seriesAsync.isLoading;
 
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingStateWidget();
     }
 
     final movies = moviesAsync.value ?? const [];
     final series = seriesAsync.value ?? const [];
 
-    // Combine and dedup by id, sort by most recently watched first.
-    final seen = <String>{};
-    final all =
-        [...movies, ...series].where((e) => seen.add(e.id)).toList()
-          ..sort((a, b) => b.lastWatched.compareTo(a.lastWatched));
+    // Combine, dedup by id, sort by most recently watched first.
+    final all = mergeDedupSort(movies, series);
 
     if (all.isEmpty) {
       return const EmptyStateWidget(
@@ -99,79 +87,45 @@ class _ContinueWatchingTabState extends ConsumerState<ContinueWatchingTab> {
                     icon: Icons.filter_list_off,
                     title: 'No ${_activeFilter.label.toLowerCase()} items',
                   )
-                  : ResponsiveLayout(
-                    compactBody: _buildList(
-                      context,
-                      items: filtered,
-                      crossAxisCount: 1,
-                    ),
-                    largeBody: _buildList(
-                      context,
-                      items: filtered,
-                      crossAxisCount: 2,
-                    ),
+                  : FavoritesList<WatchHistoryEntry>(
+                    items: filtered,
+                    itemBuilder: (ctx, entry) {
+                      final remainingMs = entry.durationMs - entry.positionMs;
+                      final remaining =
+                          remainingMs > 0
+                              ? Duration(milliseconds: remainingMs)
+                              : null;
+                      return ContinueWatchingItem(
+                        entry: entry,
+                        timeRemaining: remaining,
+                        onSelect: () {
+                          ref
+                              .read(playbackSessionProvider.notifier)
+                              .startPlayback(
+                                streamUrl: entry.streamUrl,
+                                channelName: entry.name,
+                                posterUrl: entry.posterUrl,
+                                startPosition:
+                                    entry.positionMs > 0
+                                        ? Duration(
+                                          milliseconds: entry.positionMs,
+                                        )
+                                        : Duration.zero,
+                              );
+                        },
+                        onMarkWatched: () async {
+                          await ref
+                              .read(watchHistoryServiceProvider)
+                              .updatePosition(entry.id, entry.durationMs);
+                          // Invalidate providers so the list refreshes.
+                          ref.invalidate(continueWatchingMoviesProvider);
+                          ref.invalidate(continueWatchingSeriesProvider);
+                        },
+                      );
+                    },
                   ),
         ),
       ],
-    );
-  }
-
-  Widget _buildList(
-    BuildContext context, {
-    required List<WatchHistoryEntry> items,
-    required int crossAxisCount,
-  }) {
-    Widget itemBuilder(BuildContext ctx, int index) {
-      final entry = items[index];
-      final remainingMs = entry.durationMs - entry.positionMs;
-      final remaining =
-          remainingMs > 0 ? Duration(milliseconds: remainingMs) : null;
-
-      return ContinueWatchingItem(
-        entry: entry,
-        timeRemaining: remaining,
-        onSelect: () {
-          ref
-              .read(playbackSessionProvider.notifier)
-              .startPlayback(
-                streamUrl: entry.streamUrl,
-                channelName: entry.name,
-                posterUrl: entry.posterUrl,
-                startPosition:
-                    entry.positionMs > 0
-                        ? Duration(milliseconds: entry.positionMs)
-                        : Duration.zero,
-              );
-        },
-        onMarkWatched: () async {
-          await ref
-              .read(watchHistoryServiceProvider)
-              .updatePosition(entry.id, entry.durationMs);
-          // Invalidate providers so the list refreshes.
-          ref.invalidate(continueWatchingMoviesProvider);
-          ref.invalidate(continueWatchingSeriesProvider);
-        },
-      );
-    }
-
-    if (crossAxisCount == 1) {
-      return ListView.builder(
-        padding: const EdgeInsets.all(CrispySpacing.md),
-        itemCount: items.length,
-        itemBuilder: itemBuilder,
-      );
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(CrispySpacing.md),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: CrispySpacing.sm,
-        mainAxisSpacing: CrispySpacing.sm,
-        childAspectRatio: 4.5,
-      ),
-      itemCount: items.length,
-      itemBuilder: itemBuilder,
     );
   }
 }

@@ -113,7 +113,7 @@ class _PlayerOsdState extends ConsumerState<PlayerOsd> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Screenshot saved'),
-        duration: Duration(seconds: 2),
+        duration: CrispyAnimation.snackBarDuration,
       ),
     );
   }

@@ -11,6 +11,7 @@ import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/navigation/app_router.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
+import 'package:crispy_tivi/core/widgets/loading_state_widget.dart';
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
@@ -353,7 +354,7 @@ class JellyfinQuickConnectScreen extends ConsumerWidget {
       key: TestKeys.jellyfinQuickConnectScreen,
       appBar: AppBar(title: const Text('Jellyfin Quick Connect')),
       body: asyncState.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const LoadingStateWidget(),
         error:
             (e, _) => _ErrorBody(message: e.toString(), serverUrl: serverUrl),
         data: (qcState) => _QcBody(qcState: qcState, serverUrl: serverUrl),
@@ -373,7 +374,7 @@ class _QcBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return switch (qcState.phase) {
-      _QcPhase.initiating => const Center(child: CircularProgressIndicator()),
+      _QcPhase.initiating => const LoadingStateWidget(),
       _QcPhase.polling => _CodeDisplay(
         code: qcState.code ?? '------',
         secondsRemaining: qcState.secondsRemaining ?? _kQcTtlSeconds,

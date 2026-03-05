@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/loading_state_widget.dart';
 import '../../domain/entities/multiview_session.dart';
 import '../../domain/entities/saved_layout.dart';
 import '../providers/multiview_providers.dart';
@@ -89,7 +90,7 @@ class SavedLayoutsSheet extends ConsumerWidget {
                     },
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const LoadingStateWidget(),
                 error:
                     (e, _) => Center(
                       child: Text(

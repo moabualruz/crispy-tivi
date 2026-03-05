@@ -66,6 +66,26 @@ abstract final class CrispyAnimation {
   /// Seek step for skip-back / skip-forward actions.
   static const Duration seekStep = Duration(seconds: 10);
 
+  // ── Feedback / UI ──────────────────────────────────────────
+
+  /// Duration for brief snackbar / notification messages (2 s).
+  static const Duration snackBarDuration = Duration(seconds: 2);
+
+  /// Duration for longer toast / informational messages (3 s).
+  static const Duration toastDuration = Duration(seconds: 3);
+
+  /// Auto-advance interval for hero banner carousels (8 s).
+  static const Duration heroAdvanceInterval = Duration(seconds: 8);
+
+  /// Delay before a trailer starts on a featured (auto-cycling) hero (2 s).
+  ///
+  /// Shorter than [trailerDelay] because the featured hero cycles every 8 s
+  /// and needs the trailer to begin quickly.
+  static const Duration trailerDelayFeatured = Duration(seconds: 2);
+
+  /// Delay before a trailer starts on a static hero banner card (3 s).
+  static const Duration trailerDelay = Duration(seconds: 3);
+
   // ── Scales ─────────────────────────────────────────────────
 
   /// Scale multiplier when a card is focused or hovered.

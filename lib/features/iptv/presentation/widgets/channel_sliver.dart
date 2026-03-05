@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/date_format_utils.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
@@ -139,7 +140,7 @@ class ChannelSliver extends ConsumerWidget {
               () => ScaffoldMessenger.of(ctx).showSnackBar(
                 SnackBar(
                   content: Text('${ch.name} hidden'),
-                  duration: const Duration(seconds: 2),
+                  duration: CrispyAnimation.snackBarDuration,
                 ),
               ),
           child: item,

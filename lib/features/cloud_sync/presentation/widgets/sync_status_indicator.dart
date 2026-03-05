@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/date_format_utils.dart';
 import '../../../../core/utils/relative_time_formatter.dart';
 import '../../domain/entities/cloud_sync_state.dart';
 import '../providers/cloud_sync_providers.dart';
@@ -168,8 +169,7 @@ class SyncStatusChip extends ConsumerWidget {
 
   String _getTooltip(CloudSyncState state) {
     if (state.lastSyncTime != null) {
-      final time = state.lastSyncTime!.toLocal();
-      return 'Last synced: ${time.hour}:${time.minute.toString().padLeft(2, '0')}';
+      return 'Last synced: ${formatHHmmLocal(state.lastSyncTime!)}';
     }
     return _getChipText(state);
   }

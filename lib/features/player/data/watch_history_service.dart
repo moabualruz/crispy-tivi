@@ -261,7 +261,7 @@ final watchProgressProvider = FutureProvider.family<double?, String>((
   if (history == null || history.durationMs == 0) {
     return null;
   }
-  final progress = (history.positionMs / history.durationMs).clamp(0.0, 1.0);
+  final progress = history.progress.clamp(0.0, 1.0);
   return progress < kCompletionThreshold ? progress : null;
 });
 
@@ -289,6 +289,6 @@ final vodItemIsCompletedProvider = FutureProvider.family<bool, String>((
   final service = ref.watch(watchHistoryServiceProvider);
   final history = await service.getById(mediaId);
   if (history == null || history.durationMs == 0) return false;
-  final progress = (history.positionMs / history.durationMs).clamp(0.0, 1.0);
+  final progress = history.progress.clamp(0.0, 1.0);
   return progress >= kCompletionThreshold;
 });
