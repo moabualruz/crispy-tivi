@@ -43,6 +43,19 @@ mixin _FfiEpgMixin on _FfiBackendBase {
     );
   }
 
+  Future<Map<String, List<Map<String, dynamic>>>> getEpgBySources(
+    List<String> sourceIds,
+  ) async {
+    final json = await rust_api.getEpgBySources(
+      sourceIdsJson: jsonEncode(sourceIds),
+    );
+    final decoded = jsonDecode(json) as Map<String, dynamic>;
+    return decoded.map(
+      (key, value) =>
+          MapEntry(key, (value as List).cast<Map<String, dynamic>>()),
+    );
+  }
+
   Future<Map<String, List<Map<String, dynamic>>>> loadEpgEntries() async {
     final json = await rust_api.loadEpgEntries();
     final decoded = jsonDecode(json) as Map<String, dynamic>;

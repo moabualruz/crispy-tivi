@@ -36,6 +36,8 @@ mixin _FfiSettingsMixin on _FfiBackendBase {
     syncTimeMs: syncTimeMs,
   );
 
+  Future<String> getSourceStats() => rust_api.getSourceStats();
+
   // ── Settings ─────────────────────────────────────
 
   Future<String?> getSetting(String key) => rust_api.getSetting(key: key);

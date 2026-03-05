@@ -36,6 +36,16 @@ mixin _MemoryChannelsMixin on _MemoryStorage {
     return toRemove.length;
   }
 
+  Future<List<Map<String, dynamic>>> getChannelsBySources(
+    List<String> sourceIds,
+  ) async {
+    if (sourceIds.isEmpty) return channels.values.toList();
+    final idSet = sourceIds.toSet();
+    return channels.values
+        .where((c) => idSet.contains(c['source_id']))
+        .toList();
+  }
+
   // ── Channel Favorites ───────────────────────────
 
   Future<List<String>> getFavorites(String profileId) async =>
@@ -58,6 +68,15 @@ mixin _MemoryChannelsMixin on _MemoryStorage {
     categories
       ..clear()
       ..addAll(cats);
+  }
+
+  Future<Map<String, List<String>>> getCategoriesBySources(
+    List<String> sourceIds,
+  ) async {
+    if (sourceIds.isEmpty) return Map.from(categories);
+    // MemoryBackend categories don't track source_id,
+    // so return all when filtering is requested.
+    return Map.from(categories);
   }
 
   // ── Category Favorites ──────────────────────────

@@ -19,6 +19,17 @@ pub fn get_epgs_for_channels(
     Ok(serde_json::to_string(&epg)?)
 }
 
+/// Load EPG entries filtered by source IDs. Returns JSON {channel_id: [entries]}.
+///
+/// Deserialises `source_ids_json` as `Vec<String>`. An empty
+/// array returns ALL EPG entries (same as `load_epg_entries`).
+pub fn get_epg_by_sources(source_ids_json: String) -> Result<String> {
+    let ids: Vec<String> =
+        serde_json::from_str(&source_ids_json).context("Invalid source_ids JSON")?;
+    let epg = svc()?.get_epg_by_sources(&ids)?;
+    Ok(serde_json::to_string(&epg)?)
+}
+
 /// Save EPG entries from JSON {channel_id: [entries]}.
 pub fn save_epg_entries(json: String) -> Result<usize> {
     let entries: HashMap<String, Vec<EpgEntry>> =

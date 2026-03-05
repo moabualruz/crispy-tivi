@@ -60,6 +60,34 @@ mixin _MemorySettingsMixin on _MemoryStorage {
     }
   }
 
+  Future<String> getSourceStats() async {
+    final stats = <Map<String, dynamic>>[];
+    final allIds = <String>{};
+    for (final c in channels.values) {
+      final sid = c['source_id'] as String?;
+      if (sid != null) allIds.add(sid);
+    }
+    for (final v in vodItems.values) {
+      final sid = v['source_id'] as String?;
+      if (sid != null) allIds.add(sid);
+    }
+    for (final sid in allIds) {
+      final chCount =
+          channels.values.where((c) => c['source_id'] == sid).length;
+      final vodCount =
+          vodItems.values.where((v) => v['source_id'] == sid).length;
+      stats.add({
+        'source_id': sid,
+        'channel_count': chCount,
+        'vod_count': vodCount,
+      });
+    }
+    stats.sort(
+      (a, b) => (a['source_id'] as String).compareTo(b['source_id'] as String),
+    );
+    return jsonEncode(stats);
+  }
+
   // ── Settings ───────────────────────────────────
 
   Future<String?> getSetting(String key) async => settings[key];

@@ -35,6 +35,11 @@ mixin _WsSettingsMixin on _WsBackendBase {
     if (syncTimeMs != null) 'syncTime': syncTimeMs ~/ 1000,
   });
 
+  Future<String> getSourceStats() async {
+    final data = await _send('getSourceStats');
+    return data as String;
+  }
+
   // ── Settings ─────────────────────────────────────
 
   Future<String?> getSetting(String key) async {

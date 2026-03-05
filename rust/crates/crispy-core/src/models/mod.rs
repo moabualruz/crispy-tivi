@@ -489,6 +489,22 @@ pub struct Source {
     pub updated_at: Option<NaiveDateTime>,
 }
 
+// ── SourceStats ─────────────────────────────────────
+
+/// Per-source content counts.
+///
+/// Returned by `get_source_stats()`. Summarises how many
+/// channels and VOD items belong to each source.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SourceStats {
+    /// Source identifier.
+    pub source_id: String,
+    /// Number of live channels for this source.
+    pub channel_count: i64,
+    /// Number of VOD items for this source.
+    pub vod_count: i64,
+}
+
 fn default_refresh_interval() -> i32 {
     60
 }

@@ -25,6 +25,15 @@ mixin _FfiVodMixin on _FfiBackendBase {
     return result.toInt();
   }
 
+  Future<List<Map<String, dynamic>>> getVodBySources(
+    List<String> sourceIds,
+  ) async {
+    final json = await rust_api.getVodBySources(
+      sourceIdsJson: jsonEncode(sourceIds),
+    );
+    return _decodeJsonList(json);
+  }
+
   // ── VOD Favorites ────────────────────────────────
 
   Future<List<String>> getVodFavorites(String profileId) =>

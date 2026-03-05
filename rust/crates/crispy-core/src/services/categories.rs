@@ -53,6 +53,43 @@ impl CrispyService {
         Ok(map)
     }
 
+    /// Load categories filtered by source IDs, grouped by type.
+    ///
+    /// If `source_ids` is empty, all categories are returned
+    /// (same behaviour as `load_categories()`). Otherwise only
+    /// categories whose `source_id` is in the list are returned.
+    pub fn get_categories_by_sources(
+        &self,
+        source_ids: &[String],
+    ) -> Result<HashMap<String, Vec<String>>, DbError> {
+        if source_ids.is_empty() {
+            return self.load_categories();
+        }
+        let conn = self.db.get()?;
+        let placeholders: Vec<String> = (1..=source_ids.len()).map(|i| format!("?{i}")).collect();
+        let sql = format!(
+            "SELECT category_type, name
+             FROM db_categories
+             WHERE source_id IN ({})
+             ORDER BY category_type, name",
+            placeholders.join(", ")
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let params: Vec<&dyn rusqlite::types::ToSql> = source_ids
+            .iter()
+            .map(|s| s as &dyn rusqlite::types::ToSql)
+            .collect();
+        let rows = stmt.query_map(params.as_slice(), |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        let mut map: HashMap<String, Vec<String>> = HashMap::new();
+        for r in rows {
+            let (cat_type, name) = r?;
+            map.entry(cat_type).or_default().push(name);
+        }
+        Ok(map)
+    }
+
     // ── Favorite Categories ─────────────────────────
 
     /// Add a category to a profile's favourites.

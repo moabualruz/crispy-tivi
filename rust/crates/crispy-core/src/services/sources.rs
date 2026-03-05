@@ -3,7 +3,7 @@ use rusqlite::params;
 use super::{CrispyService, bool_to_int, dt_to_ts, int_to_bool, opt_dt_to_ts, opt_ts_to_dt};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
-use crate::models::Source;
+use crate::models::{Source, SourceStats};
 
 impl CrispyService {
     /// Get all sources ordered by sort_order.
@@ -179,6 +179,64 @@ impl CrispyService {
         Ok(())
     }
 
+    /// Get per-source channel and VOD item counts.
+    ///
+    /// Runs two aggregate queries and merges the results into one
+    /// `SourceStats` entry per distinct `source_id`.
+    pub fn get_source_stats(&self) -> Result<Vec<SourceStats>, DbError> {
+        let conn = self.db.get()?;
+
+        // Channel counts per source.
+        let mut ch_stmt = conn.prepare(
+            "SELECT source_id, COUNT(*) AS cnt
+             FROM db_channels
+             WHERE source_id IS NOT NULL
+             GROUP BY source_id",
+        )?;
+        let ch_rows = ch_stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+        })?;
+        let mut ch_map: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+        for r in ch_rows {
+            let (sid, cnt) = r?;
+            ch_map.insert(sid, cnt);
+        }
+
+        // VOD counts per source.
+        let mut vod_stmt = conn.prepare(
+            "SELECT source_id, COUNT(*) AS cnt
+             FROM db_vod_items
+             WHERE source_id IS NOT NULL
+             GROUP BY source_id",
+        )?;
+        let vod_rows = vod_stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+        })?;
+        let mut vod_map: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+        for r in vod_rows {
+            let (sid, cnt) = r?;
+            vod_map.insert(sid, cnt);
+        }
+
+        // Merge: union of all source_ids from both maps.
+        let mut all_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+        all_ids.extend(ch_map.keys().cloned());
+        all_ids.extend(vod_map.keys().cloned());
+
+        let mut stats: Vec<SourceStats> = all_ids
+            .into_iter()
+            .map(|sid| SourceStats {
+                channel_count: *ch_map.get(&sid).unwrap_or(&0),
+                vod_count: *vod_map.get(&sid).unwrap_or(&0),
+                source_id: sid,
+            })
+            .collect();
+
+        // Stable ordering by source_id.
+        stats.sort_by(|a, b| a.source_id.cmp(&b.source_id));
+        Ok(stats)
+    }
+
     /// Update only the sync status fields on a source.
     pub fn update_source_sync_status(
         &self,
@@ -203,6 +261,45 @@ impl CrispyService {
 #[cfg(test)]
 mod tests {
     use crate::services::test_helpers::*;
+
+    #[test]
+    fn test_get_source_stats() {
+        let svc = make_service();
+
+        // Two sources.
+        svc.save_source(&make_source("src_a", "A", "m3u")).unwrap();
+        svc.save_source(&make_source("src_b", "B", "xtream"))
+            .unwrap();
+
+        // 2 channels on src_a, 1 on src_b.
+        let mut ch1 = make_channel("ch1", "Ch1");
+        ch1.source_id = Some("src_a".to_string());
+        let mut ch2 = make_channel("ch2", "Ch2");
+        ch2.source_id = Some("src_a".to_string());
+        let mut ch3 = make_channel("ch3", "Ch3");
+        ch3.source_id = Some("src_b".to_string());
+        svc.save_channels(&[ch1, ch2, ch3]).unwrap();
+
+        // 3 VOD items on src_b, 0 on src_a.
+        let mut v1 = make_vod_item("v1", "Movie 1");
+        v1.source_id = Some("src_b".to_string());
+        let mut v2 = make_vod_item("v2", "Movie 2");
+        v2.source_id = Some("src_b".to_string());
+        let mut v3 = make_vod_item("v3", "Movie 3");
+        v3.source_id = Some("src_b".to_string());
+        svc.save_vod_items(&[v1, v2, v3]).unwrap();
+
+        let stats = svc.get_source_stats().unwrap();
+        assert_eq!(stats.len(), 2);
+
+        let a = stats.iter().find(|s| s.source_id == "src_a").unwrap();
+        assert_eq!(a.channel_count, 2);
+        assert_eq!(a.vod_count, 0);
+
+        let b = stats.iter().find(|s| s.source_id == "src_b").unwrap();
+        assert_eq!(b.channel_count, 1);
+        assert_eq!(b.vod_count, 3);
+    }
 
     #[test]
     fn source_crud_roundtrip() {

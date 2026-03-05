@@ -156,6 +156,55 @@ impl CrispyService {
         Ok(map)
     }
 
+    /// Load EPG entries filtered by source IDs, grouped by channel_id.
+    ///
+    /// If `source_ids` is empty, all EPG entries are returned
+    /// (same behaviour as `load_epg_entries()`). Otherwise only
+    /// entries whose `source_id` is in the list are returned.
+    pub fn get_epg_by_sources(
+        &self,
+        source_ids: &[String],
+    ) -> Result<HashMap<String, Vec<EpgEntry>>, DbError> {
+        if source_ids.is_empty() {
+            return self.load_epg_entries();
+        }
+        let conn = self.db.get()?;
+        let placeholders: Vec<String> = (1..=source_ids.len()).map(|i| format!("?{i}")).collect();
+        let sql = format!(
+            "SELECT
+                channel_id, title, start_time,
+                end_time, description, category,
+                icon_url, source_id
+            FROM db_epg_entries
+            WHERE source_id IN ({})
+            ORDER BY channel_id, start_time",
+            placeholders.join(", ")
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let params: Vec<&dyn rusqlite::types::ToSql> = source_ids
+            .iter()
+            .map(|s| s as &dyn rusqlite::types::ToSql)
+            .collect();
+        let rows = stmt.query_map(params.as_slice(), |row| {
+            Ok(EpgEntry {
+                channel_id: row.get(0)?,
+                title: row.get(1)?,
+                start_time: ts_to_dt(row.get(2)?),
+                end_time: ts_to_dt(row.get(3)?),
+                description: row.get(4)?,
+                category: row.get(5)?,
+                icon_url: row.get(6)?,
+                source_id: row.get(7)?,
+            })
+        })?;
+        let mut map: HashMap<String, Vec<EpgEntry>> = HashMap::new();
+        for r in rows {
+            let entry = r?;
+            map.entry(entry.channel_id.clone()).or_default().push(entry);
+        }
+        Ok(map)
+    }
+
     /// Delete EPG entries older than `days` days.
     /// Returns count deleted.
     pub fn evict_stale_epg(&self, days: i64) -> Result<usize, DbError> {
@@ -242,6 +291,60 @@ mod tests {
             .get_epgs_for_channels(&["ch1".to_string()], 0, dt.and_utc().timestamp() - 1)
             .unwrap();
         assert!(before.is_empty() || before.get("ch1").map(|v| v.is_empty()).unwrap_or(true));
+    }
+
+    #[test]
+    fn test_get_epg_by_sources_empty_returns_all() {
+        let svc = make_service();
+        let dt = parse_dt("2025-01-15 10:00:00");
+        let dt_end = parse_dt("2025-01-15 11:00:00");
+        let make_entry = |ch: &str, src: &str| EpgEntry {
+            channel_id: ch.to_string(),
+            title: "Show".to_string(),
+            start_time: dt,
+            end_time: dt_end,
+            description: None,
+            category: None,
+            icon_url: None,
+            source_id: Some(src.to_string()),
+        };
+        let mut map = HashMap::new();
+        map.insert("ch1".to_string(), vec![make_entry("ch1", "src_a")]);
+        map.insert("ch2".to_string(), vec![make_entry("ch2", "src_b")]);
+        svc.save_epg_entries(&map).unwrap();
+
+        // Empty source_ids => all entries.
+        let result = svc.get_epg_by_sources(&[]).unwrap();
+        assert_eq!(result.len(), 2, "expected 2 channels");
+        assert!(result.contains_key("ch1"));
+        assert!(result.contains_key("ch2"));
+    }
+
+    #[test]
+    fn test_get_epg_by_sources_filters() {
+        let svc = make_service();
+        let dt = parse_dt("2025-01-15 10:00:00");
+        let dt_end = parse_dt("2025-01-15 11:00:00");
+        let make_entry = |ch: &str, src: &str| EpgEntry {
+            channel_id: ch.to_string(),
+            title: "Show".to_string(),
+            start_time: dt,
+            end_time: dt_end,
+            description: None,
+            category: None,
+            icon_url: None,
+            source_id: Some(src.to_string()),
+        };
+        let mut map = HashMap::new();
+        map.insert("ch1".to_string(), vec![make_entry("ch1", "src_a")]);
+        map.insert("ch2".to_string(), vec![make_entry("ch2", "src_b")]);
+        svc.save_epg_entries(&map).unwrap();
+
+        // Filter to src_a only.
+        let result = svc.get_epg_by_sources(&["src_a".to_string()]).unwrap();
+        assert_eq!(result.len(), 1, "expected only ch1");
+        assert!(result.contains_key("ch1"));
+        assert!(!result.contains_key("ch2"));
     }
 
     #[test]

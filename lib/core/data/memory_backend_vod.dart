@@ -31,6 +31,16 @@ mixin _MemoryVodMixin on _MemoryStorage {
     return toRemove.length;
   }
 
+  Future<List<Map<String, dynamic>>> getVodBySources(
+    List<String> sourceIds,
+  ) async {
+    if (sourceIds.isEmpty) return vodItems.values.toList();
+    final idSet = sourceIds.toSet();
+    return vodItems.values
+        .where((v) => idSet.contains(v['source_id']))
+        .toList();
+  }
+
   // ── VOD Favorites ──────────────────────────────
 
   Future<List<String>> getVodFavorites(String profileId) async =>

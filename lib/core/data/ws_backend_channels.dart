@@ -30,6 +30,13 @@ mixin _WsChannelsMixin on _WsBackendBase {
     return _countFromResult(res);
   }
 
+  Future<List<Map<String, dynamic>>> getChannelsBySources(
+    List<String> sourceIds,
+  ) async {
+    final data = await _send('getChannelsBySources', {'sourceIds': sourceIds});
+    return (data as List).cast<Map<String, dynamic>>();
+  }
+
   // ── Channel Favorites ────────────────────────────
 
   Future<List<String>> getFavorites(String profileId) async {
@@ -53,6 +60,16 @@ mixin _WsChannelsMixin on _WsBackendBase {
 
   Future<void> saveCategories(Map<String, List<String>> categories) =>
       _send('saveCategories', {'categories': categories});
+
+  Future<Map<String, List<String>>> getCategoriesBySources(
+    List<String> sourceIds,
+  ) async {
+    final data = await _send('getCategoriesBySources', {
+      'sourceIds': sourceIds,
+    });
+    final raw = data as Map<String, dynamic>;
+    return raw.map((k, v) => MapEntry(k, (v as List).cast<String>()));
+  }
 
   // ── Category Favorites ───────────────────────────
 

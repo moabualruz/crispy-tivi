@@ -15,6 +15,17 @@ pub fn save_channels(json: String) -> Result<usize> {
     Ok(svc()?.save_channels(&channels)?)
 }
 
+/// Load channels filtered by source IDs. Returns JSON array.
+///
+/// Deserialises `source_ids_json` as `Vec<String>`. An empty
+/// array returns ALL channels (same as `load_channels`).
+pub fn get_channels_by_sources(source_ids_json: String) -> Result<String> {
+    let ids: Vec<String> =
+        serde_json::from_str(&source_ids_json).context("Invalid source_ids JSON")?;
+    let channels = svc()?.get_channels_by_sources(&ids)?;
+    Ok(serde_json::to_string(&channels)?)
+}
+
 /// Load channels by IDs. Returns JSON array.
 pub fn get_channels_by_ids(ids: Vec<String>) -> Result<String> {
     let channels = svc()?.get_channels_by_ids(&ids)?;
@@ -45,6 +56,17 @@ pub fn remove_favorite(profile_id: String, channel_id: String) -> Result<()> {
 }
 
 // ── Categories ───────────────────────────────────────
+
+/// Load categories filtered by source IDs as JSON object {type: [names]}.
+///
+/// Deserialises `source_ids_json` as `Vec<String>`. An empty
+/// array returns ALL categories (same as `load_categories`).
+pub fn get_categories_by_sources(source_ids_json: String) -> Result<String> {
+    let ids: Vec<String> =
+        serde_json::from_str(&source_ids_json).context("Invalid source_ids JSON")?;
+    let cats = svc()?.get_categories_by_sources(&ids)?;
+    Ok(serde_json::to_string(&cats)?)
+}
 
 /// Load categories as JSON object {type: [names]}.
 pub fn load_categories() -> Result<String> {

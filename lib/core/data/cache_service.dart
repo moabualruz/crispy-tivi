@@ -159,6 +159,9 @@ class CacheService extends _CacheServiceBase
     );
   }
 
+  /// Get per-source stats (channel count, VOD count).
+  Future<String> getSourceStats() => _backend.getSourceStats();
+
   // ── Clear ─────────────────────────────────────
 
   /// Clears all cached data.

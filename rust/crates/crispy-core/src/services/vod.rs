@@ -113,6 +113,61 @@ impl CrispyService {
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
+    /// Load VOD items filtered by source IDs.
+    ///
+    /// If `source_ids` is empty, all VOD items are returned
+    /// (same behaviour as `load_vod_items()`). Otherwise only
+    /// items whose `source_id` is in the list are returned.
+    pub fn get_vod_by_sources(&self, source_ids: &[String]) -> Result<Vec<VodItem>, DbError> {
+        if source_ids.is_empty() {
+            return self.load_vod_items();
+        }
+        let conn = self.db.get()?;
+        let placeholders: Vec<String> = (1..=source_ids.len()).map(|i| format!("?{i}")).collect();
+        let sql = format!(
+            "SELECT
+                id, name, stream_url, type,
+                poster_url, backdrop_url,
+                description, rating, year,
+                duration, category, series_id,
+                season_number, episode_number,
+                ext, is_favorite, added_at,
+                updated_at, source_id
+            FROM db_vod_items
+            WHERE source_id IN ({})",
+            placeholders.join(", ")
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let params: Vec<&dyn rusqlite::types::ToSql> = source_ids
+            .iter()
+            .map(|s| s as &dyn rusqlite::types::ToSql)
+            .collect();
+        let rows = stmt.query_map(params.as_slice(), |row| {
+            Ok(VodItem {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                stream_url: row.get(2)?,
+                item_type: row.get(3)?,
+                poster_url: row.get(4)?,
+                backdrop_url: row.get(5)?,
+                description: row.get(6)?,
+                rating: row.get(7)?,
+                year: row.get(8)?,
+                duration: row.get(9)?,
+                category: row.get(10)?,
+                series_id: row.get(11)?,
+                season_number: row.get(12)?,
+                episode_number: row.get(13)?,
+                ext: row.get(14)?,
+                is_favorite: int_to_bool(row.get(15)?),
+                added_at: opt_ts_to_dt(row.get(16)?),
+                updated_at: opt_ts_to_dt(row.get(17)?),
+                source_id: row.get(18)?,
+            })
+        })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
     /// Delete VOD items from `source_id` not in
     /// `keep_ids`. Returns count deleted.
     pub fn delete_removed_vod_items(
@@ -196,6 +251,39 @@ mod tests {
         assert_eq!(loaded.len(), 2);
         assert!(loaded.iter().any(|v| v.id == "v1"));
         assert!(loaded.iter().any(|v| v.id == "v2"));
+    }
+
+    #[test]
+    fn test_get_vod_by_sources_empty_returns_all() {
+        let svc = make_service();
+        let mut v1 = make_vod_item("v1", "Movie 1");
+        v1.source_id = Some("src_a".to_string());
+        let mut v2 = make_vod_item("v2", "Movie 2");
+        v2.source_id = Some("src_b".to_string());
+        svc.save_vod_items(&[v1, v2]).unwrap();
+
+        // Empty slice => all items.
+        let result = svc.get_vod_by_sources(&[]).unwrap();
+        assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn test_get_vod_by_sources_filters() {
+        let svc = make_service();
+        let mut v1 = make_vod_item("v1", "Movie 1");
+        v1.source_id = Some("src_a".to_string());
+        let mut v2 = make_vod_item("v2", "Movie 2");
+        v2.source_id = Some("src_b".to_string());
+        let mut v3 = make_vod_item("v3", "Movie 3");
+        v3.source_id = Some("src_a".to_string());
+        svc.save_vod_items(&[v1, v2, v3]).unwrap();
+
+        let result = svc.get_vod_by_sources(&["src_a".to_string()]).unwrap();
+        assert_eq!(result.len(), 2);
+        let ids: Vec<&str> = result.iter().map(|v| v.id.as_str()).collect();
+        assert!(ids.contains(&"v1"));
+        assert!(ids.contains(&"v3"));
+        assert!(!ids.contains(&"v2"));
     }
 
     #[test]

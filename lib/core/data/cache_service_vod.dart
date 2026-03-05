@@ -30,6 +30,13 @@ mixin _CacheVodMixin on _CacheServiceBase {
     return result;
   }
 
+  /// Load VOD items filtered by source IDs.
+  /// Empty [sourceIds] returns all VOD items.
+  Future<List<VodItem>> getVodBySources(List<String> sourceIds) async {
+    final maps = await _backend.getVodBySources(sourceIds);
+    return maps.map(mapToVodItem).toList();
+  }
+
   /// Update a single VOD item's favorite flag.
   Future<void> updateVodFavorite(String itemId, bool isFavorite) async {
     await _backend.updateVodFavorite(itemId, isFavorite);

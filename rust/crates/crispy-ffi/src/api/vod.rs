@@ -15,6 +15,17 @@ pub fn save_vod_items(json: String) -> Result<usize> {
     Ok(svc()?.save_vod_items(&items)?)
 }
 
+/// Load VOD items filtered by source IDs. Returns JSON array.
+///
+/// Deserialises `source_ids_json` as `Vec<String>`. An empty
+/// array returns ALL VOD items (same as `load_vod_items`).
+pub fn get_vod_by_sources(source_ids_json: String) -> Result<String> {
+    let ids: Vec<String> =
+        serde_json::from_str(&source_ids_json).context("Invalid source_ids JSON")?;
+    let items = svc()?.get_vod_by_sources(&ids)?;
+    Ok(serde_json::to_string(&items)?)
+}
+
 /// Delete VOD items not in keep_ids for a source.
 pub fn delete_removed_vod_items(source_id: String, keep_ids: Vec<String>) -> Result<usize> {
     Ok(svc()?.delete_removed_vod_items(&source_id, &keep_ids)?)

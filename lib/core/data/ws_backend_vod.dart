@@ -25,6 +25,13 @@ mixin _WsVodMixin on _WsBackendBase {
     return _countFromResult(res);
   }
 
+  Future<List<Map<String, dynamic>>> getVodBySources(
+    List<String> sourceIds,
+  ) async {
+    final data = await _send('getVodBySources', {'sourceIds': sourceIds});
+    return (data as List).cast<Map<String, dynamic>>();
+  }
+
   // ── VOD Favorites ────────────────────────────────
 
   Future<List<String>> getVodFavorites(String profileId) async {

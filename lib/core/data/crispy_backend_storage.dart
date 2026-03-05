@@ -46,6 +46,10 @@ abstract class _BackendStorageMethods {
     int? syncTimeMs,
   });
 
+  /// Get per-source stats (channel count, VOD count).
+  /// Returns JSON string of SourceStats array.
+  Future<String> getSourceStats();
+
   // ── Sync Metadata ────────────────────────────────────
 
   /// Get last sync time for a source (Unix seconds).

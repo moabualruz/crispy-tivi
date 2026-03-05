@@ -14,6 +14,15 @@ Future<String> loadChannels() =>
 Future<BigInt> saveChannels({required String json}) =>
     RustLib.instance.api.crateApiChannelsSaveChannels(json: json);
 
+/// Load channels filtered by source IDs. Returns JSON array.
+///
+/// Deserialises `source_ids_json` as `Vec<String>`. An empty
+/// array returns ALL channels (same as `load_channels`).
+Future<String> getChannelsBySources({required String sourceIdsJson}) => RustLib
+    .instance
+    .api
+    .crateApiChannelsGetChannelsBySources(sourceIdsJson: sourceIdsJson);
+
 /// Load channels by IDs. Returns JSON array.
 Future<String> getChannelsByIds({required List<String> ids}) =>
     RustLib.instance.api.crateApiChannelsGetChannelsByIds(ids: ids);
@@ -49,6 +58,15 @@ Future<void> removeFavorite({
   profileId: profileId,
   channelId: channelId,
 );
+
+/// Load categories filtered by source IDs as JSON object {type: [names]}.
+///
+/// Deserialises `source_ids_json` as `Vec<String>`. An empty
+/// array returns ALL categories (same as `load_categories`).
+Future<String> getCategoriesBySources({required String sourceIdsJson}) =>
+    RustLib.instance.api.crateApiChannelsGetCategoriesBySources(
+      sourceIdsJson: sourceIdsJson,
+    );
 
 /// Load categories as JSON object {type: [names]}.
 Future<String> loadCategories() =>

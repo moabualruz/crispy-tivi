@@ -654,6 +654,36 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             Ok(json!({"data": report}))
         })(),
 
+        // ── Source-Filtered Queries ────────────
+        "getChannelsBySources" => (|| {
+            let ids = get_str_vec(args, "sourceIds")?;
+            let data = svc
+                .get_channels_by_sources(&ids)
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": data}))
+        })(),
+        "getVodBySources" => (|| {
+            let ids = get_str_vec(args, "sourceIds")?;
+            let data = svc.get_vod_by_sources(&ids).map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": data}))
+        })(),
+        "getEpgBySources" => (|| {
+            let ids = get_str_vec(args, "sourceIds")?;
+            let data = svc.get_epg_by_sources(&ids).map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": data}))
+        })(),
+        "getCategoriesBySources" => (|| {
+            let ids = get_str_vec(args, "sourceIds")?;
+            let data = svc
+                .get_categories_by_sources(&ids)
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": data}))
+        })(),
+        "getSourceStats" => {
+            let data = svc.get_source_stats().map_err(|e| anyhow!("{e}"));
+            data.map(|d| json!({"data": d}))
+        }
+
         // ── Bulk ───────────────────────────────
         "clearAll" => svc
             .clear_all()

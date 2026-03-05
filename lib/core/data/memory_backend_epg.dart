@@ -27,6 +27,22 @@ mixin _MemoryEpgMixin on _MemoryStorage {
     return result;
   }
 
+  Future<Map<String, List<Map<String, dynamic>>>> getEpgBySources(
+    List<String> sourceIds,
+  ) async {
+    if (sourceIds.isEmpty) return Map.from(epg);
+    final idSet = sourceIds.toSet();
+    final result = <String, List<Map<String, dynamic>>>{};
+    for (final entry in epg.entries) {
+      final filtered =
+          entry.value.where((e) => idSet.contains(e['source_id'])).toList();
+      if (filtered.isNotEmpty) {
+        result[entry.key] = filtered;
+      }
+    }
+    return result;
+  }
+
   Future<Map<String, List<Map<String, dynamic>>>> loadEpgEntries() async =>
       Map.from(epg);
 

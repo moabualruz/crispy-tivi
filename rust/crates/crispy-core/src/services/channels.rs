@@ -108,6 +108,59 @@ impl CrispyService {
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
+    /// Load channels filtered by source IDs.
+    ///
+    /// If `source_ids` is empty, all channels are returned
+    /// (same behaviour as `load_channels()`). Otherwise only
+    /// channels whose `source_id` is in the list are returned.
+    pub fn get_channels_by_sources(&self, source_ids: &[String]) -> Result<Vec<Channel>, DbError> {
+        if source_ids.is_empty() {
+            return self.load_channels();
+        }
+        let conn = self.db.get()?;
+        let placeholders: Vec<String> = (1..=source_ids.len()).map(|i| format!("?{i}")).collect();
+        let sql = format!(
+            "SELECT
+                id, name, stream_url, number,
+                channel_group, logo_url, tvg_id,
+                tvg_name, is_favorite, user_agent,
+                has_catchup, catchup_days,
+                catchup_type, catchup_source,
+                source_id, added_at, updated_at
+            FROM db_channels
+            WHERE source_id IN ({})",
+            placeholders.join(", ")
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let params: Vec<&dyn rusqlite::types::ToSql> = source_ids
+            .iter()
+            .map(|s| s as &dyn rusqlite::types::ToSql)
+            .collect();
+        let rows = stmt.query_map(params.as_slice(), |row| {
+            Ok(Channel {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                stream_url: row.get(2)?,
+                number: row.get(3)?,
+                channel_group: row.get(4)?,
+                logo_url: row.get(5)?,
+                tvg_id: row.get(6)?,
+                tvg_name: row.get(7)?,
+                is_favorite: int_to_bool(row.get(8)?),
+                user_agent: row.get(9)?,
+                has_catchup: int_to_bool(row.get(10)?),
+                catchup_days: row.get(11)?,
+                catchup_type: row.get(12)?,
+                catchup_source: row.get(13)?,
+                resolution: None,
+                source_id: row.get(14)?,
+                added_at: opt_ts_to_dt(row.get(15)?),
+                updated_at: opt_ts_to_dt(row.get(16)?),
+            })
+        })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
     /// Load channels by a list of IDs.
     pub fn get_channels_by_ids(&self, ids: &[String]) -> Result<Vec<Channel>, DbError> {
         let conn = self.db.get()?;
@@ -240,6 +293,39 @@ mod tests {
         assert_eq!(loaded.len(), 2);
         assert!(loaded.iter().any(|c| c.id == "ch1"));
         assert!(loaded.iter().any(|c| c.id == "ch2"));
+    }
+
+    #[test]
+    fn test_get_channels_by_sources_empty_returns_all() {
+        let svc = make_service();
+        let mut ch1 = make_channel("ch1", "Channel 1");
+        ch1.source_id = Some("src_a".to_string());
+        let mut ch2 = make_channel("ch2", "Channel 2");
+        ch2.source_id = Some("src_b".to_string());
+        svc.save_channels(&[ch1, ch2]).unwrap();
+
+        // Empty slice => all channels.
+        let result = svc.get_channels_by_sources(&[]).unwrap();
+        assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn test_get_channels_by_sources_filters() {
+        let svc = make_service();
+        let mut ch1 = make_channel("ch1", "Channel 1");
+        ch1.source_id = Some("src_a".to_string());
+        let mut ch2 = make_channel("ch2", "Channel 2");
+        ch2.source_id = Some("src_b".to_string());
+        let mut ch3 = make_channel("ch3", "Channel 3");
+        ch3.source_id = Some("src_a".to_string());
+        svc.save_channels(&[ch1, ch2, ch3]).unwrap();
+
+        let result = svc.get_channels_by_sources(&["src_a".to_string()]).unwrap();
+        assert_eq!(result.len(), 2);
+        let ids: Vec<&str> = result.iter().map(|c| c.id.as_str()).collect();
+        assert!(ids.contains(&"ch1"));
+        assert!(ids.contains(&"ch3"));
+        assert!(!ids.contains(&"ch2"));
     }
 
     #[test]

@@ -52,6 +52,16 @@ mixin _WsEpgMixin on _WsBackendBase {
     );
   }
 
+  Future<Map<String, List<Map<String, dynamic>>>> getEpgBySources(
+    List<String> sourceIds,
+  ) async {
+    final data = await _send('getEpgBySources', {'sourceIds': sourceIds});
+    final raw = data as Map<String, dynamic>;
+    return raw.map(
+      (k, v) => MapEntry(k, (v as List).cast<Map<String, dynamic>>()),
+    );
+  }
+
   Future<Map<String, List<Map<String, dynamic>>>> loadEpgEntries() async {
     final data = await _send('loadEpgEntries');
     final raw = data as Map<String, dynamic>;

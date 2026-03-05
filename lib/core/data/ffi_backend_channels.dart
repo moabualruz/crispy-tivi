@@ -30,6 +30,15 @@ mixin _FfiChannelsMixin on _FfiBackendBase {
     return result.toInt();
   }
 
+  Future<List<Map<String, dynamic>>> getChannelsBySources(
+    List<String> sourceIds,
+  ) async {
+    final json = await rust_api.getChannelsBySources(
+      sourceIdsJson: jsonEncode(sourceIds),
+    );
+    return _decodeJsonList(json);
+  }
+
   // ── Channel Favorites ────────────────────────────
 
   Future<List<String>> getFavorites(String profileId) =>
@@ -53,6 +62,18 @@ mixin _FfiChannelsMixin on _FfiBackendBase {
 
   Future<void> saveCategories(Map<String, List<String>> categories) =>
       rust_api.saveCategories(json: jsonEncode(categories));
+
+  Future<Map<String, List<String>>> getCategoriesBySources(
+    List<String> sourceIds,
+  ) async {
+    final json = await rust_api.getCategoriesBySources(
+      sourceIdsJson: jsonEncode(sourceIds),
+    );
+    final decoded = jsonDecode(json) as Map<String, dynamic>;
+    return decoded.map(
+      (key, value) => MapEntry(key, (value as List).cast<String>()),
+    );
+  }
 
   // ── Category Favorites ───────────────────────────
 

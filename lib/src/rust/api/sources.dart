@@ -6,6 +6,10 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+/// Get per-source channel and VOD counts. Returns JSON array of SourceStats.
+Future<String> getSourceStats() =>
+    RustLib.instance.api.crateApiSourcesGetSourceStats();
+
 /// Get all sources as JSON array.
 Future<String> getSources() => RustLib.instance.api.crateApiSourcesGetSources();
 

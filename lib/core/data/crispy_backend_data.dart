@@ -20,6 +20,12 @@ abstract class _BackendDataMethods {
   /// Returns count deleted.
   Future<int> deleteRemovedChannels(String sourceId, List<String> keepIds);
 
+  /// Load channels filtered by source IDs.
+  /// Empty [sourceIds] returns all channels.
+  Future<List<Map<String, dynamic>>> getChannelsBySources(
+    List<String> sourceIds,
+  );
+
   // ── Channel Favorites ────────────────────────────────
 
   /// Get favourite channel IDs for a profile.
@@ -42,6 +48,10 @@ abstract class _BackendDataMethods {
   /// Delete VOD items not in [keepIds] for [sourceId].
   /// Returns count deleted.
   Future<int> deleteRemovedVodItems(String sourceId, List<String> keepIds);
+
+  /// Load VOD items filtered by source IDs.
+  /// Empty [sourceIds] returns all VOD items.
+  Future<List<Map<String, dynamic>>> getVodBySources(List<String> sourceIds);
 
   // ── VOD Favorites ────────────────────────────────────
 
@@ -72,6 +82,12 @@ abstract class _BackendDataMethods {
 
   /// Save categories from {type: [names]}.
   Future<void> saveCategories(Map<String, List<String>> categories);
+
+  /// Load categories filtered by source IDs.
+  /// Empty [sourceIds] returns all categories.
+  Future<Map<String, List<String>>> getCategoriesBySources(
+    List<String> sourceIds,
+  );
 
   // ── Category Favorites ───────────────────────────────
 
@@ -147,6 +163,12 @@ abstract class _BackendDataMethods {
     List<String> channelIds,
     DateTime start,
     DateTime end,
+  );
+
+  /// Load EPG entries filtered by source IDs.
+  /// Empty [sourceIds] returns all EPG entries.
+  Future<Map<String, List<Map<String, dynamic>>>> getEpgBySources(
+    List<String> sourceIds,
   );
 
   /// Load EPG entries as {channelId: [entries]}.

@@ -43,6 +43,32 @@ mixin _CacheChannelsMixin on _CacheServiceBase {
     return _backend.extractSortedGroups(json);
   }
 
+  /// Load channels filtered by source IDs.
+  /// Empty [sourceIds] returns all channels.
+  Future<List<Channel>> getChannelsBySources(List<String> sourceIds) async {
+    final maps = await _backend.getChannelsBySources(sourceIds);
+    return maps.map(mapToChannel).toList();
+  }
+
+  /// Load categories filtered by source IDs.
+  /// Empty [sourceIds] returns all categories.
+  Future<Map<String, List<String>>> getCategoriesBySources(
+    List<String> sourceIds,
+  ) => _backend.getCategoriesBySources(sourceIds);
+
+  /// Load EPG entries filtered by source IDs.
+  /// Empty [sourceIds] returns all EPG entries.
+  Future<Map<String, List<EpgEntry>>> getEpgBySources(
+    List<String> sourceIds,
+  ) async {
+    final raw = await _backend.getEpgBySources(sourceIds);
+    final result = <String, List<EpgEntry>>{};
+    for (final entry in raw.entries) {
+      result[entry.key] = entry.value.map(mapToEpgEntry).toList();
+    }
+    return result;
+  }
+
   // ── EPG Entries ───────────────────────────────────
 
   /// Fetch exactly the programs airing within [start] and [end]

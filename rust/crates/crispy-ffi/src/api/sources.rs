@@ -3,6 +3,12 @@ use crispy_core::models::Source;
 
 use super::svc;
 
+/// Get per-source channel and VOD counts. Returns JSON array of SourceStats.
+pub fn get_source_stats() -> Result<String> {
+    let stats = svc()?.get_source_stats()?;
+    Ok(serde_json::to_string(&stats)?)
+}
+
 /// Get all sources as JSON array.
 pub fn get_sources() -> Result<String> {
     let sources = svc()?.get_sources()?;

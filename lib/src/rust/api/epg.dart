@@ -21,6 +21,15 @@ Future<String> getEpgsForChannels({
   endTime: endTime,
 );
 
+/// Load EPG entries filtered by source IDs. Returns JSON {channel_id: [entries]}.
+///
+/// Deserialises `source_ids_json` as `Vec<String>`. An empty
+/// array returns ALL EPG entries (same as `load_epg_entries`).
+Future<String> getEpgBySources({required String sourceIdsJson}) => RustLib
+    .instance
+    .api
+    .crateApiEpgGetEpgBySources(sourceIdsJson: sourceIdsJson);
+
 /// Save EPG entries from JSON {channel_id: [entries]}.
 Future<BigInt> saveEpgEntries({required String json}) =>
     RustLib.instance.api.crateApiEpgSaveEpgEntries(json: json);

@@ -13,6 +13,15 @@ Future<String> loadVodItems() => RustLib.instance.api.crateApiVodLoadVodItems();
 Future<BigInt> saveVodItems({required String json}) =>
     RustLib.instance.api.crateApiVodSaveVodItems(json: json);
 
+/// Load VOD items filtered by source IDs. Returns JSON array.
+///
+/// Deserialises `source_ids_json` as `Vec<String>`. An empty
+/// array returns ALL VOD items (same as `load_vod_items`).
+Future<String> getVodBySources({required String sourceIdsJson}) => RustLib
+    .instance
+    .api
+    .crateApiVodGetVodBySources(sourceIdsJson: sourceIdsJson);
+
 /// Delete VOD items not in keep_ids for a source.
 Future<BigInt> deleteRemovedVodItems({
   required String sourceId,
