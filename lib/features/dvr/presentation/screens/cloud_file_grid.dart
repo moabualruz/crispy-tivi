@@ -9,6 +9,7 @@ import '../../../../core/utils/date_format_utils.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../domain/entities/storage_backend.dart';
 import '../../domain/storage_provider.dart';
+import '../../domain/utils/file_filter.dart';
 import 'cloud_browser_providers.dart';
 
 /// Bytes in one megabyte (binary).

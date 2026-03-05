@@ -5,6 +5,7 @@ import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
+import '../../domain/utils/watch_streak.dart';
 
 /// Riverpod provider that computes [ProfileViewingStats] for a given profile.
 ///
@@ -87,7 +88,7 @@ class ProfileViewingStats {
             .toList();
 
     // Watch streak — consecutive calendar days with any entry.
-    final streak = _computeStreak(entries);
+    final streak = computeWatchStreak(entries);
 
     return ProfileViewingStats(
       totalHoursWatched: totalHours,
@@ -109,37 +110,6 @@ class ProfileViewingStats {
       default:
         return 'Other';
     }
-  }
-
-  /// Computes the current watch streak (consecutive days ending today or
-  /// yesterday with at least one entry).
-  static int _computeStreak(List<WatchHistoryEntry> entries) {
-    if (entries.isEmpty) return 0;
-
-    // Collect distinct calendar days (local time).
-    final days = <DateTime>{};
-    for (final e in entries) {
-      final d = e.lastWatched;
-      days.add(DateTime(d.year, d.month, d.day));
-    }
-
-    final today = DateTime.now();
-    final todayNorm = DateTime(today.year, today.month, today.day);
-
-    // Walk backwards from today; allow starting from yesterday too.
-    var current =
-        days.contains(todayNorm)
-            ? todayNorm
-            : todayNorm.subtract(const Duration(days: 1));
-
-    if (!days.contains(current)) return 0;
-
-    var streak = 0;
-    while (days.contains(current)) {
-      streak++;
-      current = current.subtract(const Duration(days: 1));
-    }
-    return streak;
   }
 }
 

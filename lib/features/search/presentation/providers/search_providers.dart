@@ -20,6 +20,7 @@ import '../../domain/entities/search_history_entry.dart';
 import '../../domain/entities/search_state.dart';
 import '../../domain/repositories/search_history_repository.dart';
 import '../../domain/repositories/search_repository.dart';
+import '../../domain/utils/search_categories.dart';
 
 // ── Repository Providers ─────────────────────────────────────────────────────
 
@@ -98,25 +99,13 @@ class SearchNotifier extends Notifier<SearchState> {
   /// Loads available categories from VOD and IPTV.
   void _loadCategories() {
     try {
-      final categories = <String>{};
-
-      // Gather VOD categories.
       final vodItems = ref.read(vodProvider).items;
-      for (final item in vodItems) {
-        if (item.category != null && item.category!.isNotEmpty) {
-          categories.add(item.category!);
-        }
-      }
-
-      // Gather IPTV channel group names.
       final channelState = ref.read(channelListProvider);
-      for (final group in channelState.groups) {
-        if (group.isNotEmpty) {
-          categories.add(group);
-        }
-      }
-
-      state = state.copyWith(availableCategories: categories.toList()..sort());
+      final categories = buildSearchCategories(
+        vodItems.map((i) => i.category),
+        channelState.groups,
+      );
+      state = state.copyWith(availableCategories: categories);
     } catch (_) {
       // Ignore category load errors
     }

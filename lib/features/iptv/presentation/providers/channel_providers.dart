@@ -5,6 +5,7 @@ import '../../../../core/data/cache_service.dart';
 import '../../data/parsers/m3u_parser.dart';
 import '../../domain/entities/channel.dart';
 import '../../domain/utils/channel_utils.dart';
+import '../../domain/utils/epg_search.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../favorites/presentation/providers/favorites_controller.dart';
 import '../../../profiles/data/profile_service.dart';
@@ -333,20 +334,13 @@ final epgAwareChannelListProvider = Provider<List<Channel>>((ref) {
 
   final epgState = ref.watch(epgProvider);
   final now = DateTime.now();
-  final lowerQuery = query.toLowerCase();
 
   // Build set of channel IDs that are currently airing a matching program.
-  final epgMatchIds = <String>{};
-  for (final entry in epgState.entries.entries) {
-    final channelId = entry.key;
-    for (final program in entry.value) {
-      if (program.isLiveAt(now) &&
-          program.title.toLowerCase().contains(lowerQuery)) {
-        epgMatchIds.add(channelId);
-        break;
-      }
-    }
-  }
+  final epgMatchIds = channelIdsWithMatchingLiveProgram(
+    epgState.entries,
+    query,
+    now: now,
+  );
 
   if (epgMatchIds.isEmpty) return channelState.filteredChannels;
 

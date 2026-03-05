@@ -57,8 +57,8 @@ mixin PlaylistEpgHelper {
       ref.read(epgProvider.notifier).setLoading();
 
       final backend = ref.read(crispyBackendProvider);
-      final repo = ref.read(channelRepositoryProvider);
-      final channels = await repo.getChannels();
+      final cache = ref.read(cacheServiceProvider);
+      final channels = await cache.loadChannels();
       final channelsJson = jsonEncode(channels.map(channelToMap).toList());
 
       // Pass 1: XMLTV EPG Sync (Full async backend operation)

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../data/dvr_service.dart';
-import '../../domain/entities/recording.dart';
+import '../../domain/utils/storage_breakdown.dart';
 import 'storage_bar.dart';
 
 // ─────────────────────────────────────────────────────────
@@ -24,130 +24,26 @@ void showStorageBreakdownSheet(BuildContext context) {
 }
 
 // ─────────────────────────────────────────────────────────
-//  Storage breakdown data helpers
+//  Presentation-layer icon mapping
 // ─────────────────────────────────────────────────────────
 
-/// Per-category storage summary.
-class _CategoryBreakdown {
-  const _CategoryBreakdown({
-    required this.label,
-    required this.count,
-    required this.bytes,
-    required this.icon,
-  });
-
-  final String label;
-  final int count;
-  final int bytes;
-  final IconData icon;
-
-  double get mb => bytes / (1024 * 1024);
-
-  String get mbLabel => '${mb.toStringAsFixed(1)} MB';
-}
-
-/// Recordings recommended for clean-up.
-class _CleanUpCandidate {
-  const _CleanUpCandidate({required this.recording, required this.reason});
-
-  final Recording recording;
-  final String reason;
-}
-
-/// Computes storage breakdown from a list of recordings.
-_StorageBreakdownData _computeBreakdown(List<Recording> recordings) {
-  final completed =
-      recordings.where((r) => r.status == RecordingStatus.completed).toList();
-  final scheduled =
-      recordings.where((r) => r.status == RecordingStatus.scheduled).toList();
-  final inProgress =
-      recordings.where((r) => r.status == RecordingStatus.recording).toList();
-  final failed =
-      recordings.where((r) => r.status == RecordingStatus.failed).toList();
-
-  int bytesFor(List<Recording> recs) =>
-      recs.fold(0, (sum, r) => sum + (r.fileSizeBytes ?? 0));
-
-  // Build per-channel breakdown from completed recordings.
-  final channelBytes = <String, int>{};
-  final channelCounts = <String, int>{};
-  for (final r in completed) {
-    channelBytes[r.channelName] =
-        (channelBytes[r.channelName] ?? 0) + (r.fileSizeBytes ?? 0);
-    channelCounts[r.channelName] = (channelCounts[r.channelName] ?? 0) + 1;
+/// Returns the icon for a [CategoryBreakdown] by its label.
+///
+/// Icons belong in the presentation layer; the domain model is
+/// icon-free.
+IconData _iconForCategory(String label) {
+  switch (label) {
+    case 'Completed':
+      return Icons.check_circle_outline;
+    case 'In Progress':
+      return Icons.fiber_manual_record;
+    case 'Scheduled':
+      return Icons.schedule;
+    case 'Failed':
+      return Icons.error_outline;
+    default:
+      return Icons.folder_outlined;
   }
-
-  final categories = [
-    _CategoryBreakdown(
-      label: 'Completed',
-      count: completed.length,
-      bytes: bytesFor(completed),
-      icon: Icons.check_circle_outline,
-    ),
-    if (inProgress.isNotEmpty)
-      _CategoryBreakdown(
-        label: 'In Progress',
-        count: inProgress.length,
-        bytes: bytesFor(inProgress),
-        icon: Icons.fiber_manual_record,
-      ),
-    if (scheduled.isNotEmpty)
-      _CategoryBreakdown(
-        label: 'Scheduled',
-        count: scheduled.length,
-        bytes: 0,
-        icon: Icons.schedule,
-      ),
-    if (failed.isNotEmpty)
-      _CategoryBreakdown(
-        label: 'Failed',
-        count: failed.length,
-        bytes: bytesFor(failed),
-        icon: Icons.error_outline,
-      ),
-  ];
-
-  // Clean-up candidates: old completed recordings (>30 days) with
-  // deleteAfterWatching policy or failed recordings.
-  final cutoff = DateTime.now().subtract(const Duration(days: 30));
-  final cleanUpCandidates = <_CleanUpCandidate>[
-    for (final r in completed)
-      if (r.endTime.isBefore(cutoff))
-        _CleanUpCandidate(recording: r, reason: 'Recorded over 30 days ago'),
-    for (final r in failed)
-      _CleanUpCandidate(recording: r, reason: 'Failed recording'),
-  ];
-
-  return _StorageBreakdownData(
-    totalBytes: bytesFor(recordings),
-    totalCount: recordings.length,
-    categories: categories,
-    channelBytes: channelBytes,
-    channelCounts: channelCounts,
-    cleanUpCandidates: cleanUpCandidates.take(10).toList(), // cap at 10
-  );
-}
-
-class _StorageBreakdownData {
-  const _StorageBreakdownData({
-    required this.totalBytes,
-    required this.totalCount,
-    required this.categories,
-    required this.channelBytes,
-    required this.channelCounts,
-    required this.cleanUpCandidates,
-  });
-
-  final int totalBytes;
-  final int totalCount;
-  final List<_CategoryBreakdown> categories;
-  final Map<String, int> channelBytes;
-  final Map<String, int> channelCounts;
-  final List<_CleanUpCandidate> cleanUpCandidates;
-
-  double get totalMB => totalBytes / (1024 * 1024);
-
-  String get totalMBLabel => '${totalMB.toStringAsFixed(1)} MB';
 }
 
 // ─────────────────────────────────────────────────────────
@@ -208,7 +104,7 @@ class StorageBreakdownSheet extends ConsumerWidget {
                       () => const Center(child: CircularProgressIndicator()),
                   error: (err, _) => Center(child: Text('Error: $err')),
                   data: (state) {
-                    final data = _computeBreakdown(state.recordings);
+                    final data = computeStorageBreakdown(state.recordings);
                     return ListView(
                       controller: scrollController,
                       padding: const EdgeInsets.symmetric(
@@ -268,7 +164,7 @@ class StorageBreakdownSheet extends ConsumerWidget {
     );
   }
 
-  List<Widget> _buildChannelRows(_StorageBreakdownData data) {
+  List<Widget> _buildChannelRows(StorageBreakdownData data) {
     // Sort by bytes descending.
     final entries =
         data.channelBytes.entries.toList()
@@ -296,7 +192,7 @@ class StorageBreakdownSheet extends ConsumerWidget {
 class _TotalTile extends StatelessWidget {
   const _TotalTile({required this.data});
 
-  final _StorageBreakdownData data;
+  final StorageBreakdownData data;
 
   @override
   Widget build(BuildContext context) {
@@ -371,7 +267,7 @@ class _SectionHeader extends StatelessWidget {
 class _CategoryTile extends StatelessWidget {
   const _CategoryTile({required this.category, required this.totalBytes});
 
-  final _CategoryBreakdown category;
+  final CategoryBreakdown category;
   final int totalBytes;
 
   double get _fraction =>
@@ -391,7 +287,11 @@ class _CategoryTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(category.icon, size: 18, color: cs.onSurfaceVariant),
+          Icon(
+            _iconForCategory(category.label),
+            size: 18,
+            color: cs.onSurfaceVariant,
+          ),
           const SizedBox(width: CrispySpacing.sm),
           Expanded(
             child: Column(
@@ -499,7 +399,7 @@ class _ChannelRow extends StatelessWidget {
 class _CleanUpSection extends StatelessWidget {
   const _CleanUpSection({required this.candidates, required this.ref});
 
-  final List<_CleanUpCandidate> candidates;
+  final List<CleanUpCandidate> candidates;
   final WidgetRef ref;
 
   @override
@@ -530,7 +430,7 @@ class _CleanUpSection extends StatelessWidget {
 class _CleanUpTile extends StatelessWidget {
   const _CleanUpTile({required this.candidate, required this.ref});
 
-  final _CleanUpCandidate candidate;
+  final CleanUpCandidate candidate;
   final WidgetRef ref;
 
   @override

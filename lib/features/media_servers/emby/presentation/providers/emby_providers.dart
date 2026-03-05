@@ -5,6 +5,7 @@ import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_source.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/providers/media_server_providers.dart';
+import 'package:crispy_tivi/features/media_servers/shared/presentation/providers/shared_filter.dart';
 
 // Re-export the shared public-users provider under the legacy Emby alias so
 // existing callers that import this file keep working without changes.
@@ -157,24 +158,33 @@ enum EmbyLibrarySortBy {
 }
 
 /// Immutable filter state for [EmbyLibraryFilterNotifier].
-class EmbyLibraryFilter {
+class EmbyLibraryFilter extends MediaLibraryFilter {
   const EmbyLibraryFilter({
     this.sortBy = EmbyLibrarySortBy.name,
     this.ascending = true,
-    this.selectedGenres = const [],
+    super.selectedGenres = const {},
     this.selectedYears = const [],
     this.hdOnly = false,
-    this.hdrOnly = false,
+    super.hdrOnly = false,
   });
 
   final EmbyLibrarySortBy sortBy;
   final bool ascending;
-  final List<String> selectedGenres;
-  final List<String> selectedYears;
-  final bool hdOnly;
-  final bool hdrOnly;
 
-  /// Converts genre list to comma-separated API param (null if empty).
+  /// Emby-specific: year filter values (e.g. "2020", "2021").
+  final List<String> selectedYears;
+
+  /// Emby-specific: HD-only filter.
+  final bool hdOnly;
+
+  @override
+  bool get hasActiveFilters =>
+      selectedGenres.isNotEmpty ||
+      selectedYears.isNotEmpty ||
+      hdOnly ||
+      hdrOnly;
+
+  /// Converts genre set to comma-separated API param (null if empty).
   String? get genresParam =>
       selectedGenres.isEmpty ? null : selectedGenres.join(',');
 
@@ -182,10 +192,22 @@ class EmbyLibraryFilter {
   String? get yearsParam =>
       selectedYears.isEmpty ? null : selectedYears.join(',');
 
+  @override
+  EmbyLibraryFilter copyWithBase({bool? hdrOnly, Set<String>? selectedGenres}) {
+    return EmbyLibraryFilter(
+      sortBy: sortBy,
+      ascending: ascending,
+      selectedGenres: selectedGenres ?? this.selectedGenres,
+      selectedYears: selectedYears,
+      hdOnly: hdOnly,
+      hdrOnly: hdrOnly ?? this.hdrOnly,
+    );
+  }
+
   EmbyLibraryFilter copyWith({
     EmbyLibrarySortBy? sortBy,
     bool? ascending,
-    List<String>? selectedGenres,
+    Set<String>? selectedGenres,
     List<String>? selectedYears,
     bool? hdOnly,
     bool? hdrOnly,
@@ -205,9 +227,16 @@ class EmbyLibraryFilter {
 ///
 /// Scoped per-library via the [parentId] family parameter so each
 /// [EmbyLibraryScreen] instance keeps its own filter state.
-class EmbyLibraryFilterNotifier extends Notifier<EmbyLibraryFilter> {
+///
+/// Common mutations ([toggleGenre], [toggleHdr]) are inherited from
+/// [MediaLibraryFilterNotifier].
+class EmbyLibraryFilterNotifier
+    extends MediaLibraryFilterNotifier<EmbyLibraryFilter> {
   @override
   EmbyLibraryFilter build() => const EmbyLibraryFilter();
+
+  @override
+  void updateState(EmbyLibraryFilter s) => state = s;
 
   /// Updates the sort field; resets to ascending when the field changes.
   void setSortBy(EmbyLibrarySortBy sortBy) {
@@ -219,14 +248,6 @@ class EmbyLibraryFilterNotifier extends Notifier<EmbyLibraryFilter> {
   void toggleSortOrder() {
     // FE-EB-08
     state = state.copyWith(ascending: !state.ascending);
-  }
-
-  /// Toggles a genre in the selected set.
-  void toggleGenre(String genre) {
-    // FE-EB-08
-    final current = List<String>.from(state.selectedGenres);
-    current.contains(genre) ? current.remove(genre) : current.add(genre);
-    state = state.copyWith(selectedGenres: current);
   }
 
   /// Toggles a year in the selected set.
@@ -243,14 +264,9 @@ class EmbyLibraryFilterNotifier extends Notifier<EmbyLibraryFilter> {
     state = state.copyWith(hdOnly: !state.hdOnly);
   }
 
-  /// Toggles the HDR-only filter.
-  void toggleHdr() {
-    // FE-EB-08
-    state = state.copyWith(hdrOnly: !state.hdrOnly);
-  }
-
   /// Clears all active filters.
-  void clearAll() {
+  @override
+  void reset() {
     // FE-EB-08
     state = const EmbyLibraryFilter();
   }

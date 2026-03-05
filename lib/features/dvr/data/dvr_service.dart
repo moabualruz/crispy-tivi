@@ -19,6 +19,7 @@ import 'dvr_capture_helper.dart';
 import 'dvr_state.dart';
 import 'recording_engine.dart';
 import 'transfer_service.dart';
+import '../domain/utils/dvr_payload.dart';
 
 export 'dvr_state.dart';
 
@@ -420,23 +421,12 @@ class DvrService extends AsyncNotifier<DvrState> {
     final recordings = state.value?.recordings ?? [];
     if (recordings.isEmpty) return;
 
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final now = DateTime.now();
     // Serialize in the camelCase epoch-ms format expected by Rust.
-    final recordingsJson = jsonEncode(
-      recordings
-          .map(
-            (r) => {
-              'id': r.id,
-              'status': r.status.name,
-              'startTime': r.startTime.millisecondsSinceEpoch,
-              'endTime': r.endTime.millisecondsSinceEpoch,
-            },
-          )
-          .toList(),
-    );
+    final recordingsJson = buildRecordingsCheckJson(recordings);
 
     _backend
-        .getRecordingsToStart(recordingsJson, nowMs)
+        .getRecordingsToStart(recordingsJson, now.millisecondsSinceEpoch)
         .then((resultJson) {
           final ids = (jsonDecode(resultJson) as List).cast<String>();
           for (final id in ids) {

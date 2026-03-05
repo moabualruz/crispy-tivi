@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/utils/pin_lockout.dart';
+
 /// Lockout duration applied after [kPinMaxAttempts] consecutive wrong
 /// PIN attempts for a given profile.
 // FE-PM-03
@@ -19,16 +21,9 @@ class _ProfileLockEntry {
   final int failedAttempts;
   final DateTime? lockedUntil;
 
-  bool get isLocked {
-    if (lockedUntil == null) return false;
-    return DateTime.now().isBefore(lockedUntil!);
-  }
+  bool get isLocked => isLockActive(lockedUntil);
 
-  Duration get remaining {
-    if (lockedUntil == null) return Duration.zero;
-    final diff = lockedUntil!.difference(DateTime.now());
-    return diff.isNegative ? Duration.zero : diff;
-  }
+  Duration get remaining => lockRemaining(lockedUntil);
 
   _ProfileLockEntry copyWith({
     int? failedAttempts,

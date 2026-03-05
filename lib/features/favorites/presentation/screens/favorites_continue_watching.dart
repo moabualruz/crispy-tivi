@@ -10,26 +10,11 @@ import '../../../../core/widgets/smart_image.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../../player/presentation/providers/player_providers.dart';
+import '../../domain/utils/cw_filter_utils.dart';
 
 // FE-FAV-09: VOD poster dimensions (2:3 portrait ratio).
 const double kPosterWidth = 56.0;
 const double kPosterHeight = 84.0;
-
-/// FE-FAV-03: Status filter for the Continue Watching tab.
-enum CwFilter { all, watching, completed }
-
-extension CwFilterLabel on CwFilter {
-  String get label {
-    switch (this) {
-      case CwFilter.all:
-        return 'All';
-      case CwFilter.watching:
-        return 'Watching';
-      case CwFilter.completed:
-        return 'Completed';
-    }
-  }
-}
 
 /// FE-FAV-04: Formats a duration as "Xm left" or "Xh Ym left".
 String formatTimeRemaining(Duration remaining) {
@@ -66,18 +51,8 @@ class ContinueWatchingTab extends ConsumerStatefulWidget {
 class _ContinueWatchingTabState extends ConsumerState<ContinueWatchingTab> {
   CwFilter _activeFilter = CwFilter.all;
 
-  List<WatchHistoryEntry> _applyFilter(List<WatchHistoryEntry> entries) {
-    return entries.where((e) {
-      switch (_activeFilter) {
-        case CwFilter.all:
-          return true;
-        case CwFilter.watching:
-          return e.progress > 0 && !e.isNearlyComplete;
-        case CwFilter.completed:
-          return e.isNearlyComplete;
-      }
-    }).toList();
-  }
+  List<WatchHistoryEntry> _applyFilter(List<WatchHistoryEntry> entries) =>
+      filterByCwStatus(entries, _activeFilter);
 
   @override
   Widget build(BuildContext context) {

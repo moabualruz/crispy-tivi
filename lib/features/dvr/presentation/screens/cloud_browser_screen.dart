@@ -11,6 +11,7 @@ import '../../data/transfer_service.dart';
 import '../../domain/entities/storage_backend.dart';
 import '../../domain/entities/transfer_task.dart';
 import '../../domain/storage_provider.dart';
+import '../../domain/utils/file_filter.dart';
 import '../widgets/file_metadata_sheet.dart';
 import 'cloud_browser_providers.dart';
 import 'cloud_file_grid.dart';

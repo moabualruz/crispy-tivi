@@ -2,13 +2,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../iptv/domain/entities/channel.dart';
-import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../../profiles/data/profile_service.dart';
+import 'package:crispy_tivi/features/home/domain/utils/upcoming_programs.dart';
 import 'package:crispy_tivi/features/vod/domain/utils/vod_utils.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/vod_providers.dart';
 import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
+
+export 'package:crispy_tivi/features/home/domain/utils/upcoming_programs.dart'
+    show UpcomingProgram;
 
 // ── FE-H-08: Dismissed recommendations ──────────────────
 
@@ -229,31 +232,13 @@ final continueWatchingSeriesNextEpisodeProvider =
 
 // ── Upcoming Programs (FE-H-07) ──────────────────────────
 
-/// Maximum look-ahead window for upcoming programs.
-const Duration _kUpcomingWindow = Duration(minutes: 120);
-
-/// Maximum number of upcoming programme entries to surface.
-const int _kUpcomingMax = 20;
-
-/// A single upcoming programme entry shown in
-/// [HomeUpcomingProgramsSection].
-class UpcomingProgram {
-  const UpcomingProgram({required this.channel, required this.entry});
-
-  /// The favorite channel this programme airs on.
-  final Channel channel;
-
-  /// The upcoming EPG entry.
-  final EpgEntry entry;
-}
-
 /// Upcoming programmes for favorite channels within the
-/// next [_kUpcomingWindow] (120 minutes).
+/// next 120 minutes.
 ///
 /// Queries EPG data for all favorite channels, collects
 /// entries that start within the look-ahead window, sorts
-/// by start time ascending, and caps the result at
-/// [_kUpcomingMax] entries.
+/// by start time ascending, and caps the result at 20
+/// entries.
 ///
 /// Returns an empty list when:
 /// - No favorite channels are loaded.
@@ -267,21 +252,5 @@ final upcomingProgramsProvider = Provider<List<UpcomingProgram>>((ref) {
   final favorites = favoritesAsync.asData?.value;
   if (favorites == null || favorites.isEmpty) return const [];
 
-  final now = DateTime.now().toUtc();
-  final cutoff = now.add(_kUpcomingWindow);
-  final results = <UpcomingProgram>[];
-
-  for (final channel in favorites) {
-    final epgKey = channel.tvgId ?? channel.id;
-    final channelEntries = epgState.entriesForChannel(epgKey);
-    for (final entry in channelEntries) {
-      // Include entries that start after now and before the cutoff.
-      if (entry.startTime.isAfter(now) && entry.startTime.isBefore(cutoff)) {
-        results.add(UpcomingProgram(channel: channel, entry: entry));
-      }
-    }
-  }
-
-  results.sort((a, b) => a.entry.startTime.compareTo(b.entry.startTime));
-  return results.take(_kUpcomingMax).toList();
+  return filterUpcomingPrograms(epgState.entriesForChannel, favorites);
 });

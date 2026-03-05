@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
+import '../../../dvr/domain/utils/dvr_payload.dart';
 import '../../../parental/domain/content_rating.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../profiles/data/profile_service.dart';
@@ -418,13 +419,10 @@ const kNewEpisodesDays = 14;
 /// The set rebuilds only when the series list changes.
 final seriesWithNewEpisodesProvider = Provider.autoDispose<Set<String>>((ref) {
   final series = ref.watch(filteredSeriesProvider);
-  final cutoff = DateTime.now().subtract(
-    const Duration(days: kNewEpisodesDays),
+  return seriesIdsWithNewEpisodes(
+    series.map((s) => (id: s.id, updatedAt: s.updatedAt)).toList(),
+    days: kNewEpisodesDays,
   );
-  return {
-    for (final s in series)
-      if (s.updatedAt != null && s.updatedAt!.isAfter(cutoff)) s.id,
-  };
 });
 
 /// Same-category recommendations for a given VOD item.
@@ -483,14 +481,17 @@ final seriesUnwatchedCountProvider = FutureProvider.family
     .autoDispose<int, String>((ref, seriesId) async {
       final service = ref.watch(watchHistoryServiceProvider);
       final all = await service.getAll();
-      var count = 0;
-      for (final entry in all) {
-        if (entry.seriesId == seriesId &&
-            entry.mediaType == 'episode' &&
-            entry.durationMs > 0 &&
-            !entry.isNearlyComplete) {
-          count++;
-        }
-      }
-      return count;
+      return countInProgressEpisodesForSeries(
+        all
+            .map(
+              (e) => (
+                seriesId: e.seriesId,
+                mediaType: e.mediaType,
+                durationMs: e.durationMs,
+                isNearlyComplete: e.isNearlyComplete,
+              ),
+            )
+            .toList(),
+        seriesId,
+      );
     });

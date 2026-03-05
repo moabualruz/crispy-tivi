@@ -5,6 +5,7 @@ import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_source.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/providers/media_server_providers.dart';
+import 'package:crispy_tivi/features/media_servers/shared/presentation/providers/shared_filter.dart';
 
 // Re-export the shared public-users provider so existing callers that
 // import this file keep working without changes.
@@ -180,27 +181,45 @@ enum JellyfinSortField {
 }
 
 /// State for the Jellyfin library sort/filter toolbar (FE-JF-08).
-class JellyfinLibraryFilter {
+class JellyfinLibraryFilter extends MediaLibraryFilter {
   const JellyfinLibraryFilter({
     this.sortField = JellyfinSortField.name,
     this.sortDescending = false,
-    this.selectedGenres = const {},
+    super.selectedGenres = const {},
     this.watchedOnly = false,
     this.unwatchedOnly = false,
-    this.hdrOnly = false,
+    super.hdrOnly = false,
   });
 
   final JellyfinSortField sortField;
   final bool sortDescending;
 
-  /// Set of genre names to filter by (empty = no genre filter).
-  final Set<String> selectedGenres;
-
+  /// Jellyfin-specific: show watched items only.
   final bool watchedOnly;
+
+  /// Jellyfin-specific: show unwatched items only.
   final bool unwatchedOnly;
-  final bool hdrOnly;
 
   String get sortOrder => sortDescending ? 'Descending' : 'Ascending';
+
+  @override
+  bool get hasActiveFilters =>
+      selectedGenres.isNotEmpty || watchedOnly || unwatchedOnly || hdrOnly;
+
+  @override
+  JellyfinLibraryFilter copyWithBase({
+    bool? hdrOnly,
+    Set<String>? selectedGenres,
+  }) {
+    return JellyfinLibraryFilter(
+      sortField: sortField,
+      sortDescending: sortDescending,
+      selectedGenres: selectedGenres ?? this.selectedGenres,
+      watchedOnly: watchedOnly,
+      unwatchedOnly: unwatchedOnly,
+      hdrOnly: hdrOnly ?? this.hdrOnly,
+    );
+  }
 
   JellyfinLibraryFilter copyWith({
     JellyfinSortField? sortField,
@@ -225,9 +244,16 @@ class JellyfinLibraryFilter {
 ///
 /// Each [JellyfinLibraryScreen] instance gets its own scoped notifier
 /// via [jellyfinLibraryFilterProvider].
-class JellyfinLibraryFilterNotifier extends Notifier<JellyfinLibraryFilter> {
+///
+/// Common mutations ([toggleGenre], [toggleHdr]) are inherited from
+/// [MediaLibraryFilterNotifier].
+class JellyfinLibraryFilterNotifier
+    extends MediaLibraryFilterNotifier<JellyfinLibraryFilter> {
   @override
   JellyfinLibraryFilter build() => const JellyfinLibraryFilter();
+
+  @override
+  void updateState(JellyfinLibraryFilter s) => state = s;
 
   void setSortField(JellyfinSortField field) {
     if (state.sortField == field) {
@@ -238,16 +264,8 @@ class JellyfinLibraryFilterNotifier extends Notifier<JellyfinLibraryFilter> {
     }
   }
 
-  void toggleGenre(String genre) {
-    final genres = Set<String>.from(state.selectedGenres);
-    if (genres.contains(genre)) {
-      genres.remove(genre);
-    } else {
-      genres.add(genre);
-    }
-    state = state.copyWith(selectedGenres: genres);
-  }
-
+  /// Jellyfin-specific: set watched-only filter (mutually exclusive with
+  /// unwatched-only).
   void setWatchedOnly(bool value) {
     state = state.copyWith(
       watchedOnly: value,
@@ -255,6 +273,8 @@ class JellyfinLibraryFilterNotifier extends Notifier<JellyfinLibraryFilter> {
     );
   }
 
+  /// Jellyfin-specific: set unwatched-only filter (mutually exclusive with
+  /// watched-only).
   void setUnwatchedOnly(bool value) {
     state = state.copyWith(
       unwatchedOnly: value,
@@ -262,10 +282,12 @@ class JellyfinLibraryFilterNotifier extends Notifier<JellyfinLibraryFilter> {
     );
   }
 
+  /// Jellyfin-specific setter for HDR filter (accepts explicit bool value).
   void setHdrOnly(bool value) {
     state = state.copyWith(hdrOnly: value);
   }
 
+  @override
   void reset() {
     state = const JellyfinLibraryFilter();
   }

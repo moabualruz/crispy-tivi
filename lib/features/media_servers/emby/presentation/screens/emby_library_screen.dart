@@ -208,7 +208,7 @@ class _EmbyFilterToolbar extends ConsumerWidget {
                       // Clear all (visible when any filter is active)
                       if (hasActiveFilter)
                         TextButton.icon(
-                          onPressed: notifier.clearAll,
+                          onPressed: notifier.reset,
                           icon: const Icon(Icons.clear_all, size: 16),
                           label: const Text('Clear'),
                           style: TextButton.styleFrom(

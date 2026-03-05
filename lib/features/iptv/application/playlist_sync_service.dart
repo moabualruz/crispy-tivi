@@ -9,8 +9,6 @@ import '../../../core/data/cache_service.dart';
 import '../../../core/data/crispy_backend.dart';
 import '../../../core/domain/entities/playlist_source.dart';
 import '../../vod/presentation/providers/vod_providers.dart';
-import '../data/datasources/channel_local_datasource.dart';
-import '../data/repositories/channel_repository_impl.dart';
 import 'playlist_epg_helper.dart';
 import 'playlist_sync_helpers.dart';
 
@@ -97,20 +95,6 @@ PartitionResult partitionStaleSources(
 
   return (stale: stale, nextSync: nextSync);
 }
-
-/// Singleton datasource so repository and sync share
-/// the same store.
-final channelDatasourceProvider = Provider<ChannelLocalDatasource>(
-  (_) => ChannelLocalDatasource(),
-);
-
-/// Repository backed by the shared datasource.
-final channelRepositoryProvider = Provider<ChannelRepositoryImpl>(
-  (ref) => ChannelRepositoryImpl(
-    ref.read(channelDatasourceProvider),
-    ref.read(crispyBackendProvider),
-  ),
-);
 
 /// Service that syncs playlist sources → channels
 /// + VODs.

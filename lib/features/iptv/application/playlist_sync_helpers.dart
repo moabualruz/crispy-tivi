@@ -174,14 +174,13 @@ mixin PlaylistSyncHelpers {
     );
   }
 
-  /// Reloads channels from repository into the UI
-  /// notifier.
+  /// Reloads channels from cache into the UI notifier.
   ///
   /// Applies source access filtering based on the
   /// current profile's permissions.
   Future<void> reloadChannelList() async {
-    final repo = ref.read(channelRepositoryProvider);
-    var channels = await repo.getChannels();
+    final cache = ref.read(cacheServiceProvider);
+    var channels = await cache.loadChannels();
 
     // Filter by source access.
     channels = await filterBySourceAccess(channels);
