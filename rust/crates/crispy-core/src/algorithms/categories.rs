@@ -241,6 +241,42 @@ pub fn build_type_categories(items_json: &str, vod_type: &str) -> String {
     serde_json::to_string(&sorted).unwrap_or_else(|_| "[]".to_string())
 }
 
+// ── build_search_categories ───────────────────────
+
+/// Merge VOD categories and channel groups into a single
+/// deduplicated, sorted list.
+///
+/// * `vod_categories_json` — JSON array of nullable strings
+/// * `channel_groups_json` — JSON array of strings
+///
+/// Returns a sorted JSON array of unique non-empty strings.
+pub fn build_search_categories(vod_categories_json: &str, channel_groups_json: &str) -> String {
+    let vod_cats: Vec<Option<String>> =
+        serde_json::from_str(vod_categories_json).unwrap_or_default();
+    let groups: Vec<String> = serde_json::from_str(channel_groups_json).unwrap_or_default();
+
+    let mut set = HashSet::new();
+
+    for c in vod_cats.iter().flatten() {
+        let trimmed = c.trim();
+        if !trimmed.is_empty() {
+            set.insert(trimmed.to_string());
+        }
+    }
+
+    for group in &groups {
+        let trimmed = group.trim();
+        if !trimmed.is_empty() {
+            set.insert(trimmed.to_string());
+        }
+    }
+
+    let mut sorted: Vec<String> = set.into_iter().collect();
+    sorted.sort();
+
+    serde_json::to_string(&sorted).unwrap_or_else(|_| "[]".to_string())
+}
+
 // ── Tests ────────────────────────────────────────
 
 #[cfg(test)]
@@ -643,5 +679,63 @@ mod tests {
         ];
         let cats = run_build_type_cats(items, "movie");
         assert_eq!(cats, vec!["Drama"]);
+    }
+
+    // ── build_search_categories ─────────────────────
+
+    fn run_build_search_cats(
+        vod_cats: Vec<Option<&str>>,
+        channel_groups: Vec<&str>,
+    ) -> Vec<String> {
+        let vod_json = serde_json::to_string(
+            &vod_cats
+                .into_iter()
+                .map(|c| c.map(String::from))
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+        let groups_json = serde_json::to_string(
+            &channel_groups
+                .into_iter()
+                .map(String::from)
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+        let result = build_search_categories(&vod_json, &groups_json);
+        serde_json::from_str(&result).unwrap()
+    }
+
+    #[test]
+    fn bsc_merges_and_deduplicates() {
+        let result = run_build_search_cats(
+            vec![Some("Action"), Some("Drama"), Some("Action")],
+            vec!["Sports", "Drama", "News"],
+        );
+        // Deduplicated + sorted: Action, Drama, News, Sports.
+        assert_eq!(result, vec!["Action", "Drama", "News", "Sports"]);
+    }
+
+    #[test]
+    fn bsc_skips_null_and_empty() {
+        let result = run_build_search_cats(vec![None, Some(""), Some("Action")], vec!["", "News"]);
+        assert_eq!(result, vec!["Action", "News"]);
+    }
+
+    #[test]
+    fn bsc_both_empty_returns_empty() {
+        let result = run_build_search_cats(vec![], vec![]);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn bsc_only_vod_categories() {
+        let result = run_build_search_cats(vec![Some("Comedy"), Some("Drama")], vec![]);
+        assert_eq!(result, vec!["Comedy", "Drama"]);
+    }
+
+    #[test]
+    fn bsc_only_channel_groups() {
+        let result = run_build_search_cats(vec![], vec!["Sports", "News"]);
+        assert_eq!(result, vec!["News", "Sports"]);
     }
 }

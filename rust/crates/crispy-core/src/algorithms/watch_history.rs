@@ -5,7 +5,7 @@
 //! Also ports streak/stats/merge/filter helpers from
 //! profiles and favorites domain utils.
 
-use chrono::{NaiveDate, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, Datelike, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::algorithms::json_utils::parse_json_vec;
@@ -442,6 +442,224 @@ pub fn count_in_progress_episodes(history_json: &str, series_id: &str) -> usize 
                 && (e.position_ms as f64 / e.duration_ms as f64) < COMPLETION_THRESHOLD
         })
         .count()
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Function 7: resolve_next_episodes
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A minimal VOD item used by `resolve_next_episodes`.
+#[derive(Debug, Deserialize)]
+struct VodEpisodeItem {
+    id: String,
+    name: String,
+    #[serde(rename = "type")]
+    item_type: String,
+    stream_url: String,
+    #[serde(default)]
+    poster_url: Option<String>,
+    #[serde(default)]
+    series_id: Option<String>,
+    #[serde(default)]
+    season_number: Option<i32>,
+    #[serde(default)]
+    episode_number: Option<i32>,
+}
+
+/// A watch-history entry as passed to `resolve_next_episodes`.
+///
+/// Mirrors `WatchHistory` but `last_watched` is an ISO 8601 string
+/// (flexible serde) and position/duration come from the JSON payload.
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct ResolveEntry {
+    id: String,
+    media_type: String,
+    name: String,
+    stream_url: String,
+    #[serde(default)]
+    poster_url: Option<String>,
+    #[serde(default)]
+    series_poster_url: Option<String>,
+    #[serde(default)]
+    position_ms: i64,
+    #[serde(default)]
+    duration_ms: i64,
+    last_watched: String,
+    #[serde(default)]
+    series_id: Option<String>,
+    #[serde(default)]
+    season_number: Option<i32>,
+    #[serde(default)]
+    episode_number: Option<i32>,
+    #[serde(default)]
+    device_id: Option<String>,
+    #[serde(default)]
+    device_name: Option<String>,
+    #[serde(default)]
+    profile_id: Option<String>,
+}
+
+/// Resolves "next episode" substitution for watch-history entries.
+///
+/// For each entry whose `media_type == "episode"` and progress (
+/// `position_ms / duration_ms`) is **at or above** `threshold`, looks
+/// up the next episode in the same series and substitutes it so the
+/// continue-watching row points forward.
+///
+/// * `entries_json`   — JSON array of `ResolveEntry` objects.
+/// * `vod_items_json` — JSON array of `VodEpisodeItem` objects.
+/// * `threshold`      — completion ratio (e.g. `0.90`) at or above
+///   which the entry is considered finished and the next episode should
+///   be shown.
+///
+/// Returns a JSON array in the same order as the input, with qualifying
+/// entries replaced by their successor episode data.
+pub fn resolve_next_episodes(entries_json: &str, vod_items_json: &str, threshold: f64) -> String {
+    let entries: Vec<ResolveEntry> = serde_json::from_str(entries_json).unwrap_or_default();
+    let vod_items: Vec<VodEpisodeItem> = serde_json::from_str(vod_items_json).unwrap_or_default();
+
+    let resolved: Vec<ResolveEntry> = entries
+        .into_iter()
+        .map(|entry| {
+            // Only process episode entries with positive duration.
+            if entry.media_type != "episode" || entry.duration_ms <= 0 {
+                return entry;
+            }
+
+            let progress = entry.position_ms as f64 / entry.duration_ms as f64;
+            if progress < threshold {
+                return entry;
+            }
+
+            // Find all episodes for the same series.
+            let series_id = match &entry.series_id {
+                Some(s) => s.clone(),
+                None => return entry,
+            };
+
+            let mut siblings: Vec<&VodEpisodeItem> = vod_items
+                .iter()
+                .filter(|v| {
+                    v.item_type == "episode"
+                        && v.series_id.as_deref() == Some(series_id.as_str())
+                        && v.season_number.is_some()
+                        && v.episode_number.is_some()
+                })
+                .collect();
+
+            // Sort by (season_number ASC, episode_number ASC).
+            siblings.sort_by_key(|v| (v.season_number.unwrap(), v.episode_number.unwrap()));
+
+            // Find the current episode position.
+            let current_pos = siblings.iter().position(|v| {
+                v.season_number == entry.season_number && v.episode_number == entry.episode_number
+            });
+
+            match current_pos {
+                Some(idx) if idx + 1 < siblings.len() => {
+                    let next = siblings[idx + 1];
+                    ResolveEntry {
+                        id: next.id.clone(),
+                        name: next.name.clone(),
+                        stream_url: next.stream_url.clone(),
+                        poster_url: next.poster_url.clone().or(entry.poster_url),
+                        series_poster_url: entry.series_poster_url,
+                        position_ms: 0,
+                        duration_ms: 0,
+                        last_watched: entry.last_watched,
+                        series_id: next.series_id.clone(),
+                        season_number: next.season_number,
+                        episode_number: next.episode_number,
+                        device_id: entry.device_id,
+                        device_name: entry.device_name,
+                        profile_id: entry.profile_id,
+                        // keep episode media_type
+                        media_type: "episode".to_string(),
+                    }
+                }
+                _ => entry,
+            }
+        })
+        .collect();
+
+    serde_json::to_string(&resolved).unwrap_or_else(|_| "[]".to_string())
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Function 8: episode_count_by_season
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A minimal episode item used by `episode_count_by_season`.
+#[derive(Debug, Deserialize)]
+struct EpisodeSeasonItem {
+    #[serde(default)]
+    season_number: Option<i32>,
+}
+
+/// Counts episodes per season for a list of episode objects.
+///
+/// * `episodes_json` — JSON array of objects with a `season_number`
+///   field (nullable integer). Items with `null` or missing
+///   `season_number` are skipped.
+///
+/// Returns a JSON object whose keys are stringified season numbers and
+/// whose values are episode counts: `{ "1": 5, "2": 3 }`.
+pub fn episode_count_by_season(episodes_json: &str) -> String {
+    let items: Vec<EpisodeSeasonItem> = serde_json::from_str(episodes_json).unwrap_or_default();
+
+    let mut counts: std::collections::BTreeMap<i32, usize> = std::collections::BTreeMap::new();
+
+    for item in &items {
+        if let Some(season) = item.season_number {
+            *counts.entry(season).or_insert(0) += 1;
+        }
+    }
+
+    // Build a JSON object with string keys.
+    let obj: serde_json::Map<String, serde_json::Value> = counts
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), serde_json::Value::from(v)))
+        .collect();
+
+    serde_json::to_string(&serde_json::Value::Object(obj)).unwrap_or_else(|_| "{}".to_string())
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Function 9: vod_badge_kind
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// The number of milliseconds in 30 days.
+const THIRTY_DAYS_MS: i64 = 30 * 24 * 60 * 60 * 1_000;
+
+/// Determines the badge label to show on a VOD card.
+///
+/// Decision priority:
+/// 1. If `year` is present and `year >= (now's year − 1)` → `"new_release"`.
+/// 2. If `added_at_ms` is present and within the last 30 days → `"new_to_library"`.
+/// 3. Otherwise → `"new_to_library"` (fallback for recently-added lists).
+///
+/// * `year`        — release year of the VOD item.
+/// * `added_at_ms` — epoch-ms timestamp when the item was added to the library.
+/// * `now_ms`      — current time as epoch-ms (injectable for tests).
+///
+/// Returns the badge kind string directly (not JSON-wrapped).
+pub fn vod_badge_kind(year: Option<i32>, added_at_ms: Option<i64>, now_ms: i64) -> String {
+    let now: DateTime<Utc> = DateTime::from_timestamp_millis(now_ms).unwrap_or_default();
+    let current_year = now.year();
+
+    if let Some(y) = year
+        && y >= current_year - 1
+    {
+        return "new_release".to_string();
+    }
+
+    if let Some(added) = added_at_ms
+        && now_ms - added <= THIRTY_DAYS_MS
+    {
+        return "new_to_library".to_string();
+    }
+
+    "new_to_library".to_string()
 }
 
 #[cfg(test)]
@@ -1127,5 +1345,296 @@ mod tests {
         ])
         .unwrap();
         assert_eq!(count_in_progress_episodes(&entries, "s1"), 1);
+    }
+
+    // ── resolve_next_episodes ────────────────────────
+
+    fn make_resolve_entry(
+        id: &str,
+        series_id: Option<&str>,
+        season_number: Option<i32>,
+        episode_number: Option<i32>,
+        position_ms: i64,
+        duration_ms: i64,
+    ) -> serde_json::Value {
+        serde_json::json!({
+            "id": id,
+            "media_type": "episode",
+            "name": format!("Episode {}", id),
+            "stream_url": format!("http://example.com/{}", id),
+            "poster_url": null,
+            "series_poster_url": "http://example.com/series_poster.jpg",
+            "position_ms": position_ms,
+            "duration_ms": duration_ms,
+            "last_watched": "2024-03-01T10:00:00",
+            "series_id": series_id,
+            "season_number": season_number,
+            "episode_number": episode_number,
+            "device_id": "dev-1",
+            "device_name": "My Device",
+            "profile_id": "profile-1",
+        })
+    }
+
+    fn make_vod_episode(
+        id: &str,
+        series_id: &str,
+        season_number: i32,
+        episode_number: i32,
+    ) -> serde_json::Value {
+        serde_json::json!({
+            "id": id,
+            "name": format!("S{:02}E{:02}", season_number, episode_number),
+            "type": "episode",
+            "stream_url": format!("http://example.com/vod/{}", id),
+            "poster_url": format!("http://example.com/poster/{}.jpg", id),
+            "series_id": series_id,
+            "season_number": season_number,
+            "episode_number": episode_number,
+        })
+    }
+
+    #[test]
+    fn resolve_next_episode_same_season() {
+        let entries = serde_json::to_string(&vec![make_resolve_entry(
+            "ep1",
+            Some("s1"),
+            Some(1),
+            Some(1),
+            9500,
+            10000,
+        )])
+        .unwrap();
+        let vod = serde_json::to_string(&vec![
+            make_vod_episode("ep1", "s1", 1, 1),
+            make_vod_episode("ep2", "s1", 1, 2),
+        ])
+        .unwrap();
+
+        let result: Vec<serde_json::Value> =
+            serde_json::from_str(&resolve_next_episodes(&entries, &vod, 0.9)).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0]["id"], "ep2");
+        assert_eq!(result[0]["season_number"], 1);
+        assert_eq!(result[0]["episode_number"], 2);
+        assert_eq!(result[0]["position_ms"], 0);
+        assert_eq!(result[0]["duration_ms"], 0);
+        // series_poster_url from original entry preserved
+        assert_eq!(
+            result[0]["series_poster_url"],
+            "http://example.com/series_poster.jpg"
+        );
+        // device / profile from original entry preserved
+        assert_eq!(result[0]["device_id"], "dev-1");
+        assert_eq!(result[0]["profile_id"], "profile-1");
+    }
+
+    #[test]
+    fn resolve_next_episode_crosses_season_boundary() {
+        let entries = serde_json::to_string(&vec![make_resolve_entry(
+            "ep3",
+            Some("s1"),
+            Some(1),
+            Some(3),
+            9000,
+            10000,
+        )])
+        .unwrap();
+        let vod = serde_json::to_string(&vec![
+            make_vod_episode("ep1", "s1", 1, 1),
+            make_vod_episode("ep2", "s1", 1, 2),
+            make_vod_episode("ep3", "s1", 1, 3),
+            make_vod_episode("ep4", "s1", 2, 1), // next season
+        ])
+        .unwrap();
+
+        let result: Vec<serde_json::Value> =
+            serde_json::from_str(&resolve_next_episodes(&entries, &vod, 0.9)).unwrap();
+        assert_eq!(result[0]["id"], "ep4");
+        assert_eq!(result[0]["season_number"], 2);
+        assert_eq!(result[0]["episode_number"], 1);
+    }
+
+    #[test]
+    fn resolve_last_episode_keeps_original() {
+        let entries = serde_json::to_string(&vec![make_resolve_entry(
+            "ep2",
+            Some("s1"),
+            Some(1),
+            Some(2),
+            9500,
+            10000,
+        )])
+        .unwrap();
+        let vod = serde_json::to_string(&vec![
+            make_vod_episode("ep1", "s1", 1, 1),
+            make_vod_episode("ep2", "s1", 1, 2), // last episode
+        ])
+        .unwrap();
+
+        let result: Vec<serde_json::Value> =
+            serde_json::from_str(&resolve_next_episodes(&entries, &vod, 0.9)).unwrap();
+        assert_eq!(result[0]["id"], "ep2"); // unchanged
+        assert_eq!(result[0]["position_ms"], 9500); // position preserved
+    }
+
+    #[test]
+    fn resolve_below_threshold_keeps_original() {
+        let entries = serde_json::to_string(&vec![make_resolve_entry(
+            "ep1",
+            Some("s1"),
+            Some(1),
+            Some(1),
+            5000,
+            10000, // 50% — below threshold
+        )])
+        .unwrap();
+        let vod = serde_json::to_string(&vec![
+            make_vod_episode("ep1", "s1", 1, 1),
+            make_vod_episode("ep2", "s1", 1, 2),
+        ])
+        .unwrap();
+
+        let result: Vec<serde_json::Value> =
+            serde_json::from_str(&resolve_next_episodes(&entries, &vod, 0.9)).unwrap();
+        assert_eq!(result[0]["id"], "ep1"); // unchanged
+    }
+
+    #[test]
+    fn resolve_non_episode_entry_keeps_original() {
+        let entry = serde_json::json!({
+            "id": "movie1",
+            "media_type": "movie",
+            "name": "Some Movie",
+            "stream_url": "http://example.com/movie1",
+            "position_ms": 9500i64,
+            "duration_ms": 10000i64,
+            "last_watched": "2024-03-01T10:00:00",
+        });
+        let entries = serde_json::to_string(&vec![entry]).unwrap();
+        let vod = "[]";
+
+        let result: Vec<serde_json::Value> =
+            serde_json::from_str(&resolve_next_episodes(&entries, vod, 0.9)).unwrap();
+        assert_eq!(result[0]["id"], "movie1");
+        assert_eq!(result[0]["media_type"], "movie");
+    }
+
+    #[test]
+    fn resolve_empty_vod_items_keeps_original() {
+        let entries = serde_json::to_string(&vec![make_resolve_entry(
+            "ep1",
+            Some("s1"),
+            Some(1),
+            Some(1),
+            9500,
+            10000,
+        )])
+        .unwrap();
+
+        let result: Vec<serde_json::Value> =
+            serde_json::from_str(&resolve_next_episodes(&entries, "[]", 0.9)).unwrap();
+        assert_eq!(result[0]["id"], "ep1"); // unchanged — no VOD items to look up
+    }
+
+    #[test]
+    fn resolve_multiple_series_resolved_independently() {
+        let entries = serde_json::to_string(&vec![
+            make_resolve_entry("s1e1", Some("series-a"), Some(1), Some(1), 9500, 10000),
+            make_resolve_entry("s2e1", Some("series-b"), Some(1), Some(1), 9500, 10000),
+        ])
+        .unwrap();
+        let vod = serde_json::to_string(&vec![
+            make_vod_episode("s1e1", "series-a", 1, 1),
+            make_vod_episode("s1e2", "series-a", 1, 2),
+            make_vod_episode("s2e1", "series-b", 1, 1),
+            make_vod_episode("s2e2", "series-b", 1, 2),
+        ])
+        .unwrap();
+
+        let result: Vec<serde_json::Value> =
+            serde_json::from_str(&resolve_next_episodes(&entries, &vod, 0.9)).unwrap();
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0]["id"], "s1e2");
+        assert_eq!(result[1]["id"], "s2e2");
+    }
+
+    // ── episode_count_by_season ──────────────────────
+
+    #[test]
+    fn episode_count_by_season_multiple_seasons() {
+        let episodes = serde_json::to_string(&vec![
+            serde_json::json!({"season_number": 1}),
+            serde_json::json!({"season_number": 1}),
+            serde_json::json!({"season_number": 2}),
+            serde_json::json!({"season_number": 2}),
+            serde_json::json!({"season_number": 2}),
+        ])
+        .unwrap();
+
+        let result: std::collections::HashMap<String, usize> =
+            serde_json::from_str(&episode_count_by_season(&episodes)).unwrap();
+        assert_eq!(result["1"], 2);
+        assert_eq!(result["2"], 3);
+    }
+
+    #[test]
+    fn episode_count_null_season_skipped() {
+        let episodes = serde_json::to_string(&vec![
+            serde_json::json!({"season_number": 1}),
+            serde_json::json!({"season_number": null}),
+            serde_json::json!({}), // no season_number key
+        ])
+        .unwrap();
+
+        let result: std::collections::HashMap<String, usize> =
+            serde_json::from_str(&episode_count_by_season(&episodes)).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result["1"], 1);
+    }
+
+    #[test]
+    fn episode_count_empty_returns_empty_object() {
+        let result: std::collections::HashMap<String, usize> =
+            serde_json::from_str(&episode_count_by_season("[]")).unwrap();
+        assert!(result.is_empty());
+    }
+
+    // ── vod_badge_kind ───────────────────────────────
+
+    #[test]
+    fn vod_badge_new_release_by_year_current_year() {
+        // year == now's year → "new_release"
+        let now = date_ms(2024, 6, 15);
+        assert_eq!(vod_badge_kind(Some(2024), None, now), "new_release");
+    }
+
+    #[test]
+    fn vod_badge_new_release_by_year_last_year() {
+        // year == now's year - 1 → "new_release"
+        let now = date_ms(2024, 6, 15);
+        assert_eq!(vod_badge_kind(Some(2023), None, now), "new_release");
+    }
+
+    #[test]
+    fn vod_badge_new_to_library_by_date_within_30_days() {
+        let now = date_ms(2024, 6, 15);
+        let added = now - 10 * 24 * 60 * 60 * 1_000; // 10 days ago
+        assert_eq!(vod_badge_kind(None, Some(added), now), "new_to_library");
+    }
+
+    #[test]
+    fn vod_badge_fallback_when_old_year_and_no_date() {
+        let now = date_ms(2024, 6, 15);
+        // year 2020 is not >= 2023 (2024-1)
+        assert_eq!(vod_badge_kind(Some(2020), None, now), "new_to_library");
+    }
+
+    #[test]
+    fn vod_badge_year_takes_priority_over_date() {
+        // year == current year AND recent date — year rule wins first
+        let now = date_ms(2024, 6, 15);
+        let added = now - 5 * 24 * 60 * 60 * 1_000; // 5 days ago
+        assert_eq!(vod_badge_kind(Some(2024), Some(added), now), "new_release");
     }
 }

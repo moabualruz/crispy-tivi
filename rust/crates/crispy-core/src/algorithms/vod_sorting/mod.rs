@@ -88,6 +88,7 @@ pub struct EpisodeProgressResult {
 pub use categorize::build_vod_category_map;
 pub use filter::{
     filter_recently_added, filter_top_vod, filter_vod_by_content_rating, parse_content_rating,
+    similar_vod_items,
 };
 pub use progress::compute_episode_progress;
 pub use sorting::sort_vod_items;

@@ -475,4 +475,116 @@ mixin _FfiParsersMixin on _FfiBackendBase {
 
   Future<String> mergeEpgWindow(String existingJson, String newJson) =>
       rust_api.mergeEpgWindow(existingJson: existingJson, newJson: newJson);
+
+  // ── EPG: Upcoming Programs ──────────────────────
+
+  Future<String> filterUpcomingPrograms(
+    String epgMapJson,
+    String favoritesJson,
+    int nowMs,
+    int windowMinutes,
+    int limit,
+  ) => rust_api.filterUpcomingPrograms(
+    epgMapJson: epgMapJson,
+    favoritesJson: favoritesJson,
+    nowMs: PlatformInt64Util.from(nowMs),
+    windowMinutes: windowMinutes,
+    limit: BigInt.from(limit),
+  );
+
+  // ── Search (Advanced) ───────────────────────────
+
+  Future<String> searchChannelsByLiveProgram(
+    String epgMapJson,
+    String query,
+    int nowMs,
+  ) => rust_api.searchChannelsByLiveProgram(
+    epgMapJson: epgMapJson,
+    query: query,
+    nowMs: PlatformInt64Util.from(nowMs),
+  );
+
+  Future<String> mergeEpgMatchedChannels(
+    String baseJson,
+    String allChannelsJson,
+    String matchedIdsJson,
+    String epgOverridesJson,
+  ) => rust_api.mergeEpgMatchedChannels(
+    baseJson: baseJson,
+    allChannelsJson: allChannelsJson,
+    matchedIdsJson: matchedIdsJson,
+    epgOverridesJson: epgOverridesJson,
+  );
+
+  String buildSearchCategories(
+    String vodCategoriesJson,
+    String channelGroupsJson,
+  ) => rust_api.buildSearchCategories(
+    vodCategoriesJson: vodCategoriesJson,
+    channelGroupsJson: channelGroupsJson,
+  );
+
+  // ── DVR (Advanced) ──────────────────────────────
+
+  Future<String> computeStorageBreakdown(String recordingsJson, int nowMs) =>
+      rust_api.computeStorageBreakdown(
+        recordingsJson: recordingsJson,
+        nowMs: PlatformInt64Util.from(nowMs),
+      );
+
+  Future<String> filterDvrRecordings(String recordingsJson, String query) =>
+      rust_api.filterDvrRecordings(
+        recordingsJson: recordingsJson,
+        query: query,
+      );
+
+  String classifyFileType(String filename) =>
+      rust_api.classifyFileType(filename: filename);
+
+  Future<String> sortRemoteFiles(String filesJson, String order) =>
+      rust_api.sortRemoteFiles(filesJson: filesJson, order: order);
+
+  // ── Watch History (Advanced) ────────────────────
+
+  Future<String> resolveNextEpisodes(
+    String entriesJson,
+    String vodItemsJson,
+    double threshold,
+  ) => rust_api.resolveNextEpisodes(
+    entriesJson: entriesJson,
+    vodItemsJson: vodItemsJson,
+    threshold: threshold,
+  );
+
+  String episodeCountBySeason(String episodesJson) =>
+      rust_api.episodeCountBySeason(episodesJson: episodesJson);
+
+  String vodBadgeKind(int? year, int? addedAtMs, int nowMs) =>
+      rust_api.vodBadgeKind(
+        year: year,
+        addedAtMs: addedAtMs != null ? PlatformInt64Util.from(addedAtMs) : null,
+        nowMs: PlatformInt64Util.from(nowMs),
+      );
+
+  Future<String> similarVodItems(String itemsJson, String itemId, int limit) =>
+      rust_api.similarVodItems(
+        itemsJson: itemsJson,
+        itemId: itemId,
+        limit: BigInt.from(limit),
+      );
+
+  // ── PIN Lockout ─────────────────────────────────
+
+  bool isLockActive(int lockedUntilMs, int nowMs) => rust_api.isLockActive(
+    lockedUntilMs: PlatformInt64Util.from(lockedUntilMs),
+    nowMs: PlatformInt64Util.from(nowMs),
+  );
+
+  int lockRemainingMs(int lockedUntilMs, int nowMs) =>
+      rust_api
+          .lockRemainingMs(
+            lockedUntilMs: PlatformInt64Util.from(lockedUntilMs),
+            nowMs: PlatformInt64Util.from(nowMs),
+          )
+          .toInt();
 }

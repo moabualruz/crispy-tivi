@@ -510,4 +510,80 @@ abstract class _BackendAlgorithmMethods {
   /// Both inputs and output are JSON:
   /// `{ "channelId": [ { "startTime": epochMs, ... } ] }`
   Future<String> mergeEpgWindow(String existingJson, String newJson);
+
+  // ── EPG: Upcoming Programs ───────────────────────
+
+  /// Filter EPG entries for upcoming programs on
+  /// favorite channels.
+  Future<String> filterUpcomingPrograms(
+    String epgMapJson,
+    String favoritesJson,
+    int nowMs,
+    int windowMinutes,
+    int limit,
+  );
+
+  // ── Search (Advanced) ─────────────────────────────
+
+  /// Search channels by live program title.
+  Future<String> searchChannelsByLiveProgram(
+    String epgMapJson,
+    String query,
+    int nowMs,
+  );
+
+  /// Merge EPG-matched channels into base results.
+  Future<String> mergeEpgMatchedChannels(
+    String baseJson,
+    String allChannelsJson,
+    String matchedIdsJson,
+    String epgOverridesJson,
+  );
+
+  /// Build merged search categories from VOD and
+  /// channel groups.
+  String buildSearchCategories(
+    String vodCategoriesJson,
+    String channelGroupsJson,
+  );
+
+  // ── DVR (Advanced) ────────────────────────────────
+
+  /// Compute storage breakdown for recordings.
+  Future<String> computeStorageBreakdown(String recordingsJson, int nowMs);
+
+  /// Filter recordings by search query.
+  Future<String> filterDvrRecordings(String recordingsJson, String query);
+
+  /// Classify a file by its extension.
+  String classifyFileType(String filename);
+
+  /// Sort remote files by the given order.
+  Future<String> sortRemoteFiles(String filesJson, String order);
+
+  // ── Watch History (Advanced) ──────────────────────
+
+  /// Resolve next episodes for in-progress series.
+  Future<String> resolveNextEpisodes(
+    String entriesJson,
+    String vodItemsJson,
+    double threshold,
+  );
+
+  /// Count episodes per season.
+  String episodeCountBySeason(String episodesJson);
+
+  /// Determine badge kind for a VOD card.
+  String vodBadgeKind(int? year, int? addedAtMs, int nowMs);
+
+  /// Find similar VOD items by category overlap.
+  Future<String> similarVodItems(String itemsJson, String itemId, int limit);
+
+  // ── PIN Lockout ───────────────────────────────────
+
+  /// Check if a PIN lockout is currently active.
+  bool isLockActive(int lockedUntilMs, int nowMs);
+
+  /// Remaining milliseconds in a PIN lockout.
+  int lockRemainingMs(int lockedUntilMs, int nowMs);
 }

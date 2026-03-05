@@ -165,6 +165,57 @@ pub fn parse_content_rating(rating: Option<&str>) -> i32 {
     5 // unrated
 }
 
+/// Return VOD items in the same category as a given item.
+///
+/// - `items_json`: JSON array of VOD items (must have `id` and `category`).
+/// - `item_id`: the ID of the reference item.
+/// - `limit`: maximum number of results to return.
+///
+/// Finds the item whose `id` matches `item_id`, reads its `category`,
+/// then returns up to `limit` other items that share the same non-empty
+/// category. The reference item itself is excluded from results.
+///
+/// Returns `"[]"` if `item_id` is not found, if the item's category is
+/// null or empty, or if the JSON cannot be parsed.
+#[allow(dead_code)]
+pub fn similar_vod_items(items_json: &str, item_id: &str, limit: usize) -> String {
+    let Ok(items) = serde_json::from_str::<Vec<serde_json::Value>>(items_json) else {
+        return "[]".to_string();
+    };
+
+    // Find the reference item's category.
+    let category = items
+        .iter()
+        .find(|v| v.get("id").and_then(|id| id.as_str()) == Some(item_id))
+        .and_then(|v| v.get("category"))
+        .and_then(|c| c.as_str())
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty());
+
+    let Some(category) = category else {
+        return "[]".to_string();
+    };
+
+    let similar: Vec<&serde_json::Value> = items
+        .iter()
+        .filter(|v| {
+            // Exclude the reference item itself.
+            let id = v.get("id").and_then(|id| id.as_str()).unwrap_or("");
+            if id == item_id {
+                return false;
+            }
+            // Match on category.
+            v.get("category")
+                .and_then(|c| c.as_str())
+                .map(|c| c.trim())
+                .is_some_and(|c| c == category)
+        })
+        .take(limit)
+        .collect();
+
+    serde_json::to_string(&similar).unwrap_or_else(|_| "[]".to_string())
+}
+
 /// Filter VOD items by content rating.
 ///
 /// Items with rating level <= `max_rating_value` pass.
@@ -187,4 +238,106 @@ pub fn filter_vod_by_content_rating(items_json: &str, max_rating_value: i32) -> 
         .collect();
 
     serde_json::to_string(&filtered).unwrap_or_else(|_| "[]".to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_item(id: &str, category: Option<&str>) -> serde_json::Value {
+        let mut obj = serde_json::json!({
+            "id": id,
+            "name": id,
+            "stream_url": "",
+            "type": "movie",
+        });
+        if let Some(cat) = category {
+            obj["category"] = serde_json::Value::String(cat.to_string());
+        } else {
+            obj["category"] = serde_json::Value::Null;
+        }
+        obj
+    }
+
+    fn items_json(items: &[serde_json::Value]) -> String {
+        serde_json::to_string(items).unwrap()
+    }
+
+    #[test]
+    fn similar_vod_items_returns_same_category_items() {
+        let items = vec![
+            make_item("1", Some("Action")),
+            make_item("2", Some("Action")),
+            make_item("3", Some("Action")),
+            make_item("4", Some("Drama")),
+        ];
+        let result = similar_vod_items(&items_json(&items), "1", 10);
+        let parsed: Vec<serde_json::Value> = serde_json::from_str(&result).unwrap();
+        let ids: Vec<&str> = parsed.iter().map(|v| v["id"].as_str().unwrap()).collect();
+        assert_eq!(ids, vec!["2", "3"]);
+    }
+
+    #[test]
+    fn similar_vod_items_excludes_reference_item_itself() {
+        let items = vec![
+            make_item("1", Some("Action")),
+            make_item("2", Some("Action")),
+        ];
+        let result = similar_vod_items(&items_json(&items), "1", 10);
+        let parsed: Vec<serde_json::Value> = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed.len(), 1);
+        assert_eq!(parsed[0]["id"].as_str().unwrap(), "2");
+    }
+
+    #[test]
+    fn similar_vod_items_returns_empty_when_item_not_found() {
+        let items = vec![make_item("1", Some("Action"))];
+        let result = similar_vod_items(&items_json(&items), "999", 10);
+        assert_eq!(result, "[]");
+    }
+
+    #[test]
+    fn similar_vod_items_returns_empty_when_category_is_null() {
+        let items = vec![make_item("1", None), make_item("2", Some("Action"))];
+        let result = similar_vod_items(&items_json(&items), "1", 10);
+        assert_eq!(result, "[]");
+    }
+
+    #[test]
+    fn similar_vod_items_returns_empty_when_no_items_in_same_category() {
+        let items = vec![
+            make_item("1", Some("Action")),
+            make_item("2", Some("Drama")),
+            make_item("3", Some("Comedy")),
+        ];
+        let result = similar_vod_items(&items_json(&items), "1", 10);
+        assert_eq!(result, "[]");
+    }
+
+    #[test]
+    fn similar_vod_items_respects_limit() {
+        let items = vec![
+            make_item("1", Some("Action")),
+            make_item("2", Some("Action")),
+            make_item("3", Some("Action")),
+            make_item("4", Some("Action")),
+            make_item("5", Some("Action")),
+        ];
+        let result = similar_vod_items(&items_json(&items), "1", 2);
+        let parsed: Vec<serde_json::Value> = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed.len(), 2);
+    }
+
+    #[test]
+    fn similar_vod_items_returns_empty_for_invalid_json() {
+        let result = similar_vod_items("not-json", "1", 10);
+        assert_eq!(result, "[]");
+    }
+
+    #[test]
+    fn similar_vod_items_returns_empty_when_category_is_empty_string() {
+        let items = vec![make_item("1", Some("")), make_item("2", Some(""))];
+        let result = similar_vod_items(&items_json(&items), "1", 10);
+        assert_eq!(result, "[]");
+    }
 }

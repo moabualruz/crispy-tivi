@@ -262,4 +262,105 @@ mixin _WsAlgorithmsMixin on _WsBackendBase {
   /// Sync — delegates to shared [dartCountInProgressEpisodes].
   int countInProgressEpisodes(String historyJson, String seriesId) =>
       dartCountInProgressEpisodes(historyJson, seriesId);
+
+  // ── EPG: Upcoming Programs ──────────────────────
+
+  Future<String> filterUpcomingPrograms(
+    String epgMapJson,
+    String favoritesJson,
+    int nowMs,
+    int windowMinutes,
+    int limit,
+  ) async {
+    final data = await _send('filterUpcomingPrograms', {
+      'epgMapJson': epgMapJson,
+      'favoritesJson': favoritesJson,
+      'nowMs': nowMs,
+      'windowMinutes': windowMinutes,
+      'limit': limit,
+    });
+    return data as String;
+  }
+
+  // ── Search (Advanced) ───────────────────────────
+
+  Future<String> searchChannelsByLiveProgram(
+    String epgMapJson,
+    String query,
+    int nowMs,
+  ) async {
+    final data = await _send('searchChannelsByLiveProgram', {
+      'epgMapJson': epgMapJson,
+      'query': query,
+      'nowMs': nowMs,
+    });
+    return data as String;
+  }
+
+  Future<String> mergeEpgMatchedChannels(
+    String baseJson,
+    String allChannelsJson,
+    String matchedIdsJson,
+    String epgOverridesJson,
+  ) async {
+    final data = await _send('mergeEpgMatchedChannels', {
+      'baseJson': baseJson,
+      'allChannelsJson': allChannelsJson,
+      'matchedIdsJson': matchedIdsJson,
+      'epgOverridesJson': epgOverridesJson,
+    });
+    return data as String;
+  }
+
+  /// Sync — delegates to shared [dartBuildSearchCategories].
+  String buildSearchCategories(
+    String vodCategoriesJson,
+    String channelGroupsJson,
+  ) => dartBuildSearchCategories(vodCategoriesJson, channelGroupsJson);
+
+  // ── Watch History (Advanced) ────────────────────
+
+  Future<String> resolveNextEpisodes(
+    String entriesJson,
+    String vodItemsJson,
+    double threshold,
+  ) async {
+    final data = await _send('resolveNextEpisodes', {
+      'entriesJson': entriesJson,
+      'vodItemsJson': vodItemsJson,
+      'threshold': threshold,
+    });
+    return data as String;
+  }
+
+  /// Sync — delegates to shared [dartEpisodeCountBySeason].
+  String episodeCountBySeason(String episodesJson) =>
+      dartEpisodeCountBySeason(episodesJson);
+
+  /// Sync — delegates to shared [dartVodBadgeKind].
+  String vodBadgeKind(int? year, int? addedAtMs, int nowMs) =>
+      dartVodBadgeKind(year, addedAtMs, nowMs);
+
+  Future<String> similarVodItems(
+    String itemsJson,
+    String itemId,
+    int limit,
+  ) async {
+    final data = await _send('similarVodItems', {
+      'itemsJson': itemsJson,
+      'itemId': itemId,
+      'limit': limit,
+    });
+    return data as String;
+  }
+
+  // ── PIN Lockout ─────────────────────────────────
+
+  /// Sync — delegates to shared [dartIsLockActive].
+  bool isLockActive(int lockedUntilMs, int nowMs) =>
+      dartIsLockActive(lockedUntilMs, nowMs);
+
+  /// Sync — delegates to shared [dartLockRemainingMs].
+  int lockRemainingMs(int lockedUntilMs, int nowMs) =>
+      dartLockRemainingMs(lockedUntilMs, nowMs);
 }

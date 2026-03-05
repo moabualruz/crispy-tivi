@@ -108,3 +108,19 @@ Future<String> mergeEpgWindow({
   existingJson: existingJson,
   newJson: newJson,
 );
+
+/// Filter EPG entries for upcoming programs on
+/// favorite channels.
+Future<String> filterUpcomingPrograms({
+  required String epgMapJson,
+  required String favoritesJson,
+  required PlatformInt64 nowMs,
+  required int windowMinutes,
+  required BigInt limit,
+}) => RustLib.instance.api.crateApiEpgFilterUpcomingPrograms(
+  epgMapJson: epgMapJson,
+  favoritesJson: favoritesJson,
+  nowMs: nowMs,
+  windowMinutes: windowMinutes,
+  limit: limit,
+);

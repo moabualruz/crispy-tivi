@@ -213,6 +213,143 @@ pub fn enrich_search_results(
     enriched
 }
 
+/// Find channel IDs whose currently-airing EPG program title matches a query.
+///
+/// Iterates a `channelId -> [EpgEntry]` map. For each channel, checks if any
+/// program currently live (startTime <= now_ms < endTime) has a title containing
+/// the query (case-insensitive). Short-circuits per channel after the first match.
+///
+/// * `epg_map_json` — JSON object `{ "channelId": [{ "title", "startTime" (ms),
+///   "endTime" (ms) }] }`
+/// * `query` — search string (case-insensitive match)
+/// * `now_ms` — current time as epoch-ms
+///
+/// Returns JSON array of matched channel ID strings.
+pub fn search_channels_by_live_program(epg_map_json: &str, query: &str, now_ms: i64) -> String {
+    use serde_json::Value;
+
+    if query.is_empty() {
+        return "[]".to_string();
+    }
+
+    let epg_map: serde_json::Map<String, Value> = serde_json::from_str::<Value>(epg_map_json)
+        .ok()
+        .and_then(|v| {
+            if let Value::Object(m) = v {
+                Some(m)
+            } else {
+                None
+            }
+        })
+        .unwrap_or_default();
+
+    let q = query.to_lowercase();
+    let mut matched_ids: Vec<&str> = Vec::new();
+
+    for (channel_id, entries_val) in &epg_map {
+        let entries = match entries_val.as_array() {
+            Some(a) => a,
+            None => continue,
+        };
+
+        let has_match = entries.iter().any(|entry| {
+            let start = entry.get("startTime").and_then(|v| v.as_i64()).unwrap_or(0);
+            let end = entry.get("endTime").and_then(|v| v.as_i64()).unwrap_or(0);
+            let is_live = start <= now_ms && now_ms < end;
+            if !is_live {
+                return false;
+            }
+            entry
+                .get("title")
+                .and_then(|v| v.as_str())
+                .is_some_and(|t| t.to_lowercase().contains(&q))
+        });
+
+        if has_match {
+            matched_ids.push(channel_id.as_str());
+        }
+    }
+
+    serde_json::to_string(&matched_ids).unwrap_or_else(|_| "[]".to_string())
+}
+
+/// Merge EPG-matched channels into a base channel list.
+///
+/// Finds channels from `all_channels_json` not already in `base_json` whose
+/// effective EPG ID is in `matched_ids_json`. The effective EPG ID is resolved
+/// as: `epg_overrides[channel.id]` > `channel.tvg_id` > `channel.id`.
+///
+/// * `base_json`          — JSON array of channel objects (with `id` field)
+/// * `all_channels_json`  — JSON array of all channel objects
+/// * `matched_ids_json`   — JSON array of matched EPG ID strings
+/// * `epg_overrides_json` — JSON object `{ channelId: effectiveEpgId }`
+///
+/// Returns JSON array of merged channel objects (base + extras).
+pub fn merge_epg_matched_channels(
+    base_json: &str,
+    all_channels_json: &str,
+    matched_ids_json: &str,
+    epg_overrides_json: &str,
+) -> String {
+    use serde_json::Value;
+    use std::collections::HashSet;
+
+    let base: Vec<Value> = serde_json::from_str(base_json).unwrap_or_default();
+    let all_channels: Vec<Value> = serde_json::from_str(all_channels_json).unwrap_or_default();
+    let matched_ids: HashSet<String> = serde_json::from_str::<Vec<String>>(matched_ids_json)
+        .unwrap_or_default()
+        .into_iter()
+        .collect();
+    let overrides: serde_json::Map<String, Value> =
+        serde_json::from_str::<Value>(epg_overrides_json)
+            .ok()
+            .and_then(|v| {
+                if let Value::Object(m) = v {
+                    Some(m)
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_default();
+
+    let base_ids: HashSet<String> = base
+        .iter()
+        .filter_map(|c| c.get("id").and_then(|v| v.as_str()).map(String::from))
+        .collect();
+
+    let extras: Vec<&Value> = all_channels
+        .iter()
+        .filter(|c| {
+            let id = c.get("id").and_then(|v| v.as_str()).unwrap_or("");
+            if base_ids.contains(id) {
+                return false;
+            }
+            // Resolve effective EPG ID.
+            let effective_id = overrides
+                .get(id)
+                .and_then(|v| v.as_str())
+                .or_else(|| {
+                    c.get("tvg_id")
+                        .and_then(|v| v.as_str())
+                        .filter(|s| !s.is_empty())
+                })
+                .unwrap_or(id);
+
+            matched_ids.contains(effective_id) || matched_ids.contains(id)
+        })
+        .collect();
+
+    if extras.is_empty() {
+        return base_json.to_string();
+    }
+
+    let mut merged = base;
+    for extra in extras {
+        merged.push(extra.clone());
+    }
+    serde_json::to_string(&merged).unwrap_or_else(|_| "[]".to_string())
+}
+
 // ── internal helpers ───────────────────────────────────
 
 /// Score based on position: first item = 1.0, last = 0.0.
@@ -919,5 +1056,132 @@ mod tests {
         assert!(r.movies.is_empty());
         assert!(r.series.is_empty());
         assert!(r.epg_programs.is_empty());
+    }
+
+    // ── search_channels_by_live_program ─────────────────
+
+    #[test]
+    fn live_program_search_match_found() {
+        let epg_map = r#"{"ch1": [
+            {"title": "Morning News", "startTime": 1000, "endTime": 5000},
+            {"title": "Sport Live", "startTime": 5000, "endTime": 9000}
+        ]}"#;
+        // now=2000 → "Morning News" is live (1000 <= 2000 < 5000).
+        let result = search_channels_by_live_program(epg_map, "news", 2000);
+        let ids: Vec<String> = serde_json::from_str(&result).unwrap();
+        assert_eq!(ids, vec!["ch1"]);
+    }
+
+    #[test]
+    fn live_program_search_no_match() {
+        let epg_map = r#"{"ch1": [
+            {"title": "Morning News", "startTime": 1000, "endTime": 5000}
+        ]}"#;
+        let result = search_channels_by_live_program(epg_map, "sport", 2000);
+        let ids: Vec<String> = serde_json::from_str(&result).unwrap();
+        assert!(ids.is_empty());
+    }
+
+    #[test]
+    fn live_program_search_case_insensitive() {
+        let epg_map = r#"{"ch1": [
+            {"title": "BREAKING NEWS", "startTime": 1000, "endTime": 5000}
+        ]}"#;
+        let result = search_channels_by_live_program(epg_map, "breaking", 2000);
+        let ids: Vec<String> = serde_json::from_str(&result).unwrap();
+        assert_eq!(ids.len(), 1);
+    }
+
+    #[test]
+    fn live_program_search_program_not_live() {
+        let epg_map = r#"{"ch1": [
+            {"title": "Morning News", "startTime": 1000, "endTime": 2000}
+        ]}"#;
+        // now=3000 → program has ended.
+        let result = search_channels_by_live_program(epg_map, "news", 3000);
+        let ids: Vec<String> = serde_json::from_str(&result).unwrap();
+        assert!(ids.is_empty());
+    }
+
+    #[test]
+    fn live_program_search_empty_query_returns_empty() {
+        let epg_map = r#"{"ch1": [
+            {"title": "News", "startTime": 1000, "endTime": 5000}
+        ]}"#;
+        let result = search_channels_by_live_program(epg_map, "", 2000);
+        let ids: Vec<String> = serde_json::from_str(&result).unwrap();
+        assert!(ids.is_empty());
+    }
+
+    #[test]
+    fn live_program_search_multiple_channels() {
+        let epg_map = r#"{
+            "ch1": [{"title": "News Hour", "startTime": 1000, "endTime": 5000}],
+            "ch2": [{"title": "Sport News", "startTime": 1000, "endTime": 5000}],
+            "ch3": [{"title": "Movie Time", "startTime": 1000, "endTime": 5000}]
+        }"#;
+        let result = search_channels_by_live_program(epg_map, "news", 2000);
+        let mut ids: Vec<String> = serde_json::from_str(&result).unwrap();
+        ids.sort();
+        assert_eq!(ids, vec!["ch1", "ch2"]);
+    }
+
+    // ── merge_epg_matched_channels ──────────────────────
+
+    #[test]
+    fn merge_adds_extra_channels() {
+        let base = r#"[{"id": "c1", "name": "BBC"}]"#;
+        let all = r#"[
+            {"id": "c1", "name": "BBC"},
+            {"id": "c2", "name": "CNN", "tvg_id": "cnn-epg"},
+            {"id": "c3", "name": "Fox"}
+        ]"#;
+        let matched_ids = r#"["cnn-epg"]"#;
+        let overrides = "{}";
+        let result = merge_epg_matched_channels(base, all, matched_ids, overrides);
+        let v: serde_json::Value = serde_json::from_str(&result).unwrap();
+        let arr = v.as_array().unwrap();
+        assert_eq!(arr.len(), 2);
+        assert_eq!(arr[0]["id"], "c1");
+        assert_eq!(arr[1]["id"], "c2");
+    }
+
+    #[test]
+    fn merge_no_duplicates() {
+        let base = r#"[{"id": "c1", "name": "BBC"}]"#;
+        let all = r#"[{"id": "c1", "name": "BBC"}]"#;
+        let matched_ids = r#"["c1"]"#;
+        let overrides = "{}";
+        let result = merge_epg_matched_channels(base, all, matched_ids, overrides);
+        let v: serde_json::Value = serde_json::from_str(&result).unwrap();
+        // c1 already in base → no extras added → returns base unchanged.
+        assert_eq!(v.as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn merge_uses_epg_overrides() {
+        let base = r#"[{"id": "c1", "name": "BBC"}]"#;
+        let all = r#"[
+            {"id": "c1", "name": "BBC"},
+            {"id": "c2", "name": "CNN"}
+        ]"#;
+        let matched_ids = r#"["override-key"]"#;
+        let overrides = r#"{"c2": "override-key"}"#;
+        let result = merge_epg_matched_channels(base, all, matched_ids, overrides);
+        let v: serde_json::Value = serde_json::from_str(&result).unwrap();
+        let arr = v.as_array().unwrap();
+        assert_eq!(arr.len(), 2);
+        assert_eq!(arr[1]["id"], "c2");
+    }
+
+    #[test]
+    fn merge_no_extras_returns_base() {
+        let base = r#"[{"id": "c1", "name": "BBC"}]"#;
+        let all = r#"[{"id": "c1", "name": "BBC"}, {"id": "c2", "name": "CNN"}]"#;
+        let matched_ids = r#"["nonexistent"]"#;
+        let overrides = "{}";
+        let result = merge_epg_matched_channels(base, all, matched_ids, overrides);
+        // Should return base unchanged.
+        assert_eq!(result, base);
     }
 }

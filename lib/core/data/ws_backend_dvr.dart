@@ -89,6 +89,41 @@ mixin _WsDvrMixin on _WsBackendBase {
   /// Delegates to shared [dartSanitizeFilename].
   String sanitizeFilename(String name) => dartSanitizeFilename(name);
 
+  // ── DVR (Advanced) ────────────────────────────
+
+  Future<String> computeStorageBreakdown(
+    String recordingsJson,
+    int nowMs,
+  ) async {
+    final data = await _send('computeStorageBreakdown', {
+      'recordingsJson': recordingsJson,
+      'nowMs': nowMs,
+    });
+    return data as String;
+  }
+
+  Future<String> filterDvrRecordings(
+    String recordingsJson,
+    String query,
+  ) async {
+    final data = await _send('filterRecordings', {
+      'recordingsJson': recordingsJson,
+      'query': query,
+    });
+    return data as String;
+  }
+
+  /// Sync — delegates to shared [dartClassifyFileType].
+  String classifyFileType(String filename) => dartClassifyFileType(filename);
+
+  Future<String> sortRemoteFiles(String filesJson, String order) async {
+    final data = await _send('sortRemoteFiles', {
+      'filesJson': filesJson,
+      'order': order,
+    });
+    return data as String;
+  }
+
   // ── DVR: Recordings to Start ──────────────────
 
   Future<String> getRecordingsToStart(String recordingsJson, int nowMs) async {

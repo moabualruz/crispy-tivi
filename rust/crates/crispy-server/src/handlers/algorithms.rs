@@ -764,6 +764,135 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             "data": crispy_core::algorithms::watch_progress::NEXT_EPISODE_THRESHOLD
         })),
 
+        // ── EPG Upcoming ─────────────────────────
+        "filterUpcomingPrograms" => (|| {
+            let epg_map = get_str(args, "epgMapJson")?;
+            let favorites = get_str(args, "favoritesJson")?;
+            let now_ms = get_i64(args, "nowMs")?;
+            let window = get_i64(args, "windowMinutes")? as u32;
+            let limit = get_i64(args, "limit")? as usize;
+            let result = crispy_core::algorithms::epg_matching::filter_upcoming_programs(
+                &epg_map, &favorites, now_ms, window, limit,
+            );
+            Ok(json!({"data": result}))
+        })(),
+
+        // ── Search (advanced) ─────────────────────
+        "searchChannelsByLiveProgram" => (|| {
+            let epg_map = get_str(args, "epgMapJson")?;
+            let query = get_str(args, "query")?;
+            let now_ms = get_i64(args, "nowMs")?;
+            let result = crispy_core::algorithms::search::search_channels_by_live_program(
+                &epg_map, &query, now_ms,
+            );
+            Ok(json!({"data": result}))
+        })(),
+        "mergeEpgMatchedChannels" => (|| {
+            let base = get_str(args, "baseJson")?;
+            let all_channels = get_str(args, "allChannelsJson")?;
+            let matched_ids = get_str(args, "matchedIdsJson")?;
+            let overrides = get_str(args, "epgOverridesJson")?;
+            let result = crispy_core::algorithms::search::merge_epg_matched_channels(
+                &base,
+                &all_channels,
+                &matched_ids,
+                &overrides,
+            );
+            Ok(json!({"data": result}))
+        })(),
+
+        // ── Categories (search) ───────────────────
+        "buildSearchCategories" => (|| {
+            let vod_cats = get_str(args, "vodCategoriesJson")?;
+            let ch_groups = get_str(args, "channelGroupsJson")?;
+            let result =
+                crispy_core::algorithms::categories::build_search_categories(&vod_cats, &ch_groups);
+            Ok(json!({"data": result}))
+        })(),
+
+        // ── DVR (advanced) ────────────────────────
+        "getRecordingsToStart" => (|| {
+            let recordings = get_str(args, "recordingsJson")?;
+            let now_ms = get_i64(args, "nowMs")?;
+            let result = crispy_core::algorithms::dvr::get_recordings_to_start(&recordings, now_ms);
+            Ok(json!({"data": result}))
+        })(),
+        "computeStorageBreakdown" => (|| {
+            let recordings = get_str(args, "recordingsJson")?;
+            let now_ms = get_i64(args, "nowMs")?;
+            let result =
+                crispy_core::algorithms::dvr::compute_storage_breakdown(&recordings, now_ms);
+            Ok(json!({"data": result}))
+        })(),
+        "filterRecordings" => (|| {
+            let recordings = get_str(args, "recordingsJson")?;
+            let query = get_str(args, "query")?;
+            let result = crispy_core::algorithms::dvr::filter_recordings(&recordings, &query);
+            Ok(json!({"data": result}))
+        })(),
+        "classifyFileType" => (|| {
+            let filename = get_str(args, "filename")?;
+            let result = crispy_core::algorithms::dvr::classify_file_type(&filename);
+            Ok(json!({"data": result}))
+        })(),
+        "sortRemoteFiles" => (|| {
+            let files = get_str(args, "filesJson")?;
+            let order = get_str(args, "order")?;
+            let result = crispy_core::algorithms::dvr::sort_remote_files(&files, &order);
+            Ok(json!({"data": result}))
+        })(),
+
+        // ── PIN Lockout ───────────────────────────
+        "isLockActive" => (|| {
+            let locked_until = get_i64(args, "lockedUntilMs")?;
+            let now = get_i64(args, "nowMs")?;
+            let result = crispy_core::algorithms::pin::is_lock_active(locked_until, now);
+            Ok(json!({"data": result}))
+        })(),
+        "lockRemainingMs" => (|| {
+            let locked_until = get_i64(args, "lockedUntilMs")?;
+            let now = get_i64(args, "nowMs")?;
+            let result = crispy_core::algorithms::pin::lock_remaining_ms(locked_until, now);
+            Ok(json!({"data": result}))
+        })(),
+
+        // ── Watch History (advanced) ──────────────
+        "resolveNextEpisodes" => (|| {
+            let entries = get_str(args, "entriesJson")?;
+            let vod_items = get_str(args, "vodItemsJson")?;
+            let threshold = args
+                .get("threshold")
+                .and_then(|v| v.as_f64())
+                .ok_or_else(|| anyhow!("Missing f64: threshold"))?;
+            let result = crispy_core::algorithms::watch_history::resolve_next_episodes(
+                &entries, &vod_items, threshold,
+            );
+            Ok(json!({"data": result}))
+        })(),
+        "episodeCountBySeason" => (|| {
+            let episodes = get_str(args, "episodesJson")?;
+            let result = crispy_core::algorithms::watch_history::episode_count_by_season(&episodes);
+            Ok(json!({"data": result}))
+        })(),
+        "vodBadgeKind" => (|| {
+            let year = args.get("year").and_then(|v| v.as_i64()).map(|v| v as i32);
+            let added_at = args.get("addedAtMs").and_then(|v| v.as_i64());
+            let now_ms = get_i64(args, "nowMs")?;
+            let result =
+                crispy_core::algorithms::watch_history::vod_badge_kind(year, added_at, now_ms);
+            Ok(json!({"data": result}))
+        })(),
+
+        // ── VOD Similarity ────────────────────────
+        "similarVodItems" => (|| {
+            let items = get_str(args, "itemsJson")?;
+            let item_id = get_str(args, "itemId")?;
+            let limit = get_i64(args, "limit")? as usize;
+            let result =
+                crispy_core::algorithms::vod_sorting::similar_vod_items(&items, &item_id, limit);
+            Ok(json!({"data": result}))
+        })(),
+
         _ => return None,
     };
     Some(r)

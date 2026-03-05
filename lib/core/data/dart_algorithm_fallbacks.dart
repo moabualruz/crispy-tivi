@@ -419,3 +419,157 @@ bool dartIsDuplicate(String groupsJson, String channelId) {
   }
   return false;
 }
+
+// ── Search Categories ──────────────────────────────────────────────
+
+/// Merge VOD categories and channel groups into a unique sorted list.
+///
+/// Mirrors `crispy-core::algorithms::categories::build_search_categories`.
+String dartBuildSearchCategories(
+  String vodCategoriesJson,
+  String channelGroupsJson,
+) {
+  List<dynamic> vodCats;
+  List<dynamic> groups;
+  try {
+    vodCats = jsonDecode(vodCategoriesJson) as List;
+  } catch (_) {
+    vodCats = [];
+  }
+  try {
+    groups = jsonDecode(channelGroupsJson) as List;
+  } catch (_) {
+    groups = [];
+  }
+  final set = <String>{};
+  for (final c in vodCats) {
+    if (c is String) {
+      final trimmed = c.trim();
+      if (trimmed.isNotEmpty) set.add(trimmed);
+    }
+  }
+  for (final g in groups) {
+    if (g is String) {
+      final trimmed = g.trim();
+      if (trimmed.isNotEmpty) set.add(trimmed);
+    }
+  }
+  final sorted = set.toList()..sort();
+  return jsonEncode(sorted);
+}
+
+// ── File Classification ────────────────────────────────────────────
+
+/// Classify a file by its extension.
+///
+/// Mirrors `crispy-core::algorithms::dvr::classify_file_type`.
+String dartClassifyFileType(String filename) {
+  final dot = filename.lastIndexOf('.');
+  if (dot < 0 || dot == filename.length - 1) return 'other';
+  final ext = filename.substring(dot + 1).toLowerCase();
+  const video = {
+    'mp4',
+    'mkv',
+    'avi',
+    'mov',
+    'ts',
+    'mpg',
+    'mpeg',
+    'm2ts',
+    'wmv',
+    'flv',
+    'webm',
+    'm4v',
+  };
+  const audio = {
+    'mp3',
+    'aac',
+    'flac',
+    'ogg',
+    'wav',
+    'opus',
+    'm4a',
+    'wma',
+    'ac3',
+    'eac3',
+  };
+  const subtitle = {
+    'srt',
+    'ass',
+    'ssa',
+    'vtt',
+    'sub',
+    'idx',
+    'sup',
+    'dfxp',
+    'ttml',
+  };
+  if (video.contains(ext)) return 'video';
+  if (audio.contains(ext)) return 'audio';
+  if (subtitle.contains(ext)) return 'subtitle';
+  return 'other';
+}
+
+// ── Episode Count by Season ────────────────────────────────────────
+
+/// Count episodes grouped by season number.
+///
+/// Mirrors `crispy-core::algorithms::watch_history::episode_count_by_season`.
+String dartEpisodeCountBySeason(String episodesJson) {
+  List<dynamic> items;
+  try {
+    items = jsonDecode(episodesJson) as List;
+  } catch (_) {
+    return '{}';
+  }
+  final counts = <int, int>{};
+  for (final item in items) {
+    if (item is Map<String, dynamic>) {
+      final season = item['season_number'] as int?;
+      if (season != null) {
+        counts[season] = (counts[season] ?? 0) + 1;
+      }
+    }
+  }
+  final obj = <String, int>{};
+  for (final key in (counts.keys.toList()..sort())) {
+    obj[key.toString()] = counts[key]!;
+  }
+  return jsonEncode(obj);
+}
+
+// ── VOD Badge Kind ─────────────────────────────────────────────────
+
+/// Determines the badge label for a VOD card.
+///
+/// Mirrors `crispy-core::algorithms::watch_history::vod_badge_kind`.
+String dartVodBadgeKind(int? year, int? addedAtMs, int nowMs) {
+  final now = DateTime.fromMillisecondsSinceEpoch(nowMs);
+  if (year != null && year >= now.year - 1) {
+    return 'new_release';
+  }
+  const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+  if (addedAtMs != null && nowMs - addedAtMs <= thirtyDaysMs) {
+    return 'new_to_library';
+  }
+  return 'new_to_library';
+}
+
+// ── PIN Lockout ────────────────────────────────────────────────────
+
+/// Check if a PIN lockout is currently active.
+///
+/// Mirrors `crispy-core::algorithms::pin::is_lock_active`.
+bool dartIsLockActive(int lockedUntilMs, int nowMs) {
+  if (lockedUntilMs <= 0) return false;
+  return nowMs < lockedUntilMs;
+}
+
+/// Remaining milliseconds in a PIN lockout.
+///
+/// Mirrors `crispy-core::algorithms::pin::lock_remaining_ms`.
+int dartLockRemainingMs(int lockedUntilMs, int nowMs) {
+  if (lockedUntilMs <= 0) return 0;
+  final remaining = lockedUntilMs - nowMs;
+  return remaining > 0 ? remaining : 0;
+}

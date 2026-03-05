@@ -483,3 +483,93 @@ Future<String> groupSearchResults({
   vodJson: vodJson,
   epgJson: epgJson,
 );
+
+/// Search channels by matching live program title.
+Future<String> searchChannelsByLiveProgram({
+  required String epgMapJson,
+  required String query,
+  required PlatformInt64 nowMs,
+}) => RustLib.instance.api.crateApiAlgorithmsSearchChannelsByLiveProgram(
+  epgMapJson: epgMapJson,
+  query: query,
+  nowMs: nowMs,
+);
+
+/// Merge EPG-matched channel IDs into a base list.
+Future<String> mergeEpgMatchedChannels({
+  required String baseJson,
+  required String allChannelsJson,
+  required String matchedIdsJson,
+  required String epgOverridesJson,
+}) => RustLib.instance.api.crateApiAlgorithmsMergeEpgMatchedChannels(
+  baseJson: baseJson,
+  allChannelsJson: allChannelsJson,
+  matchedIdsJson: matchedIdsJson,
+  epgOverridesJson: epgOverridesJson,
+);
+
+/// Build merged/deduped search categories.
+String buildSearchCategories({
+  required String vodCategoriesJson,
+  required String channelGroupsJson,
+}) => RustLib.instance.api.crateApiAlgorithmsBuildSearchCategories(
+  vodCategoriesJson: vodCategoriesJson,
+  channelGroupsJson: channelGroupsJson,
+);
+
+/// Check if a PIN lockout is currently active.
+bool isLockActive({
+  required PlatformInt64 lockedUntilMs,
+  required PlatformInt64 nowMs,
+}) => RustLib.instance.api.crateApiAlgorithmsIsLockActive(
+  lockedUntilMs: lockedUntilMs,
+  nowMs: nowMs,
+);
+
+/// Return ms remaining in a PIN lockout.
+PlatformInt64 lockRemainingMs({
+  required PlatformInt64 lockedUntilMs,
+  required PlatformInt64 nowMs,
+}) => RustLib.instance.api.crateApiAlgorithmsLockRemainingMs(
+  lockedUntilMs: lockedUntilMs,
+  nowMs: nowMs,
+);
+
+/// Resolve next episodes for continue-watching.
+Future<String> resolveNextEpisodes({
+  required String entriesJson,
+  required String vodItemsJson,
+  required double threshold,
+}) => RustLib.instance.api.crateApiAlgorithmsResolveNextEpisodes(
+  entriesJson: entriesJson,
+  vodItemsJson: vodItemsJson,
+  threshold: threshold,
+);
+
+/// Count episodes per season.
+String episodeCountBySeason({required String episodesJson}) => RustLib
+    .instance
+    .api
+    .crateApiAlgorithmsEpisodeCountBySeason(episodesJson: episodesJson);
+
+/// Determine badge kind for a VOD item.
+String vodBadgeKind({
+  int? year,
+  PlatformInt64? addedAtMs,
+  required PlatformInt64 nowMs,
+}) => RustLib.instance.api.crateApiAlgorithmsVodBadgeKind(
+  year: year,
+  addedAtMs: addedAtMs,
+  nowMs: nowMs,
+);
+
+/// Find similar VOD items by genre/category overlap.
+Future<String> similarVodItems({
+  required String itemsJson,
+  required String itemId,
+  required BigInt limit,
+}) => RustLib.instance.api.crateApiAlgorithmsSimilarVodItems(
+  itemsJson: itemsJson,
+  itemId: itemId,
+  limit: limit,
+);

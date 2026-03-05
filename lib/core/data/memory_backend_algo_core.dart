@@ -622,4 +622,101 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
   /// Delegates to shared [dartCountInProgressEpisodes].
   int countInProgressEpisodes(String historyJson, String seriesId) =>
       dartCountInProgressEpisodes(historyJson, seriesId);
+
+  // ── EPG: Upcoming Programs ──────────────────────
+
+  Future<String> filterUpcomingPrograms(
+    String epgMapJson,
+    String favoritesJson,
+    int nowMs,
+    int windowMinutes,
+    int limit,
+  ) async => '[]';
+
+  // ── Search (Advanced) ───────────────────────────
+
+  Future<String> searchChannelsByLiveProgram(
+    String epgMapJson,
+    String query,
+    int nowMs,
+  ) async => '[]';
+
+  Future<String> mergeEpgMatchedChannels(
+    String baseJson,
+    String allChannelsJson,
+    String matchedIdsJson,
+    String epgOverridesJson,
+  ) async => baseJson;
+
+  /// Delegates to shared [dartBuildSearchCategories].
+  String buildSearchCategories(
+    String vodCategoriesJson,
+    String channelGroupsJson,
+  ) => dartBuildSearchCategories(vodCategoriesJson, channelGroupsJson);
+
+  // ── DVR (Advanced) ──────────────────────────────
+
+  Future<String> computeStorageBreakdown(
+    String recordingsJson,
+    int nowMs,
+  ) async => '{"total_bytes":0,"by_status":{}}';
+
+  Future<String> filterDvrRecordings(
+    String recordingsJson,
+    String query,
+  ) async {
+    if (query.isEmpty) return recordingsJson;
+    List<dynamic> items;
+    try {
+      items = jsonDecode(recordingsJson) as List;
+    } catch (_) {
+      return '[]';
+    }
+    final q = query.toLowerCase();
+    final filtered =
+        items.whereType<Map<String, dynamic>>().where((r) {
+          final name = (r['program_name'] as String? ?? '').toLowerCase();
+          final channel = (r['channel_name'] as String? ?? '').toLowerCase();
+          return name.contains(q) || channel.contains(q);
+        }).toList();
+    return jsonEncode(filtered);
+  }
+
+  /// Delegates to shared [dartClassifyFileType].
+  String classifyFileType(String filename) => dartClassifyFileType(filename);
+
+  Future<String> sortRemoteFiles(String filesJson, String order) async =>
+      filesJson;
+
+  // ── Watch History (Advanced) ────────────────────
+
+  Future<String> resolveNextEpisodes(
+    String entriesJson,
+    String vodItemsJson,
+    double threshold,
+  ) async => '[]';
+
+  /// Delegates to shared [dartEpisodeCountBySeason].
+  String episodeCountBySeason(String episodesJson) =>
+      dartEpisodeCountBySeason(episodesJson);
+
+  /// Delegates to shared [dartVodBadgeKind].
+  String vodBadgeKind(int? year, int? addedAtMs, int nowMs) =>
+      dartVodBadgeKind(year, addedAtMs, nowMs);
+
+  Future<String> similarVodItems(
+    String itemsJson,
+    String itemId,
+    int limit,
+  ) async => '[]';
+
+  // ── PIN Lockout ─────────────────────────────────
+
+  /// Delegates to shared [dartIsLockActive].
+  bool isLockActive(int lockedUntilMs, int nowMs) =>
+      dartIsLockActive(lockedUntilMs, nowMs);
+
+  /// Delegates to shared [dartLockRemainingMs].
+  int lockRemainingMs(int lockedUntilMs, int nowMs) =>
+      dartLockRemainingMs(lockedUntilMs, nowMs);
 }

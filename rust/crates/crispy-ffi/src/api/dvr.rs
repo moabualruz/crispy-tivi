@@ -245,3 +245,24 @@ pub fn can_delete_recording(
 pub fn get_recordings_to_start(recordings_json: String, now_ms: i64) -> String {
     crispy_core::algorithms::dvr::get_recordings_to_start(&recordings_json, now_ms)
 }
+
+/// Compute storage breakdown for recordings.
+pub fn compute_storage_breakdown(recordings_json: String, now_ms: i64) -> String {
+    crispy_core::algorithms::dvr::compute_storage_breakdown(&recordings_json, now_ms)
+}
+
+/// Filter recordings by search query.
+pub fn filter_dvr_recordings(recordings_json: String, query: String) -> String {
+    crispy_core::algorithms::dvr::filter_recordings(&recordings_json, &query)
+}
+
+/// Classify a file by its extension.
+#[flutter_rust_bridge::frb(sync)]
+pub fn classify_file_type(filename: String) -> String {
+    crispy_core::algorithms::dvr::classify_file_type(&filename)
+}
+
+/// Sort remote files by the given order.
+pub fn sort_remote_files(files_json: String, order: String) -> String {
+    crispy_core::algorithms::dvr::sort_remote_files(&files_json, &order)
+}

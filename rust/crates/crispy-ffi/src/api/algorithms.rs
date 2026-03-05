@@ -526,3 +526,84 @@ pub fn group_search_results(
         &epg_json,
     )
 }
+
+// ── Search (advanced) ───────────────────────────────
+
+/// Search channels by matching live program title.
+pub fn search_channels_by_live_program(epg_map_json: String, query: String, now_ms: i64) -> String {
+    crispy_core::algorithms::search::search_channels_by_live_program(&epg_map_json, &query, now_ms)
+}
+
+/// Merge EPG-matched channel IDs into a base list.
+pub fn merge_epg_matched_channels(
+    base_json: String,
+    all_channels_json: String,
+    matched_ids_json: String,
+    epg_overrides_json: String,
+) -> String {
+    crispy_core::algorithms::search::merge_epg_matched_channels(
+        &base_json,
+        &all_channels_json,
+        &matched_ids_json,
+        &epg_overrides_json,
+    )
+}
+
+// ── Categories (search) ─────────────────────────────
+
+/// Build merged/deduped search categories.
+#[flutter_rust_bridge::frb(sync)]
+pub fn build_search_categories(vod_categories_json: String, channel_groups_json: String) -> String {
+    crispy_core::algorithms::categories::build_search_categories(
+        &vod_categories_json,
+        &channel_groups_json,
+    )
+}
+
+// ── PIN Lockout ─────────────────────────────────────
+
+/// Check if a PIN lockout is currently active.
+#[flutter_rust_bridge::frb(sync)]
+pub fn is_lock_active(locked_until_ms: i64, now_ms: i64) -> bool {
+    crispy_core::algorithms::pin::is_lock_active(locked_until_ms, now_ms)
+}
+
+/// Return ms remaining in a PIN lockout.
+#[flutter_rust_bridge::frb(sync)]
+pub fn lock_remaining_ms(locked_until_ms: i64, now_ms: i64) -> i64 {
+    crispy_core::algorithms::pin::lock_remaining_ms(locked_until_ms, now_ms)
+}
+
+// ── Watch History (advanced) ────────────────────────
+
+/// Resolve next episodes for continue-watching.
+pub fn resolve_next_episodes(
+    entries_json: String,
+    vod_items_json: String,
+    threshold: f64,
+) -> String {
+    crispy_core::algorithms::watch_history::resolve_next_episodes(
+        &entries_json,
+        &vod_items_json,
+        threshold,
+    )
+}
+
+/// Count episodes per season.
+#[flutter_rust_bridge::frb(sync)]
+pub fn episode_count_by_season(episodes_json: String) -> String {
+    crispy_core::algorithms::watch_history::episode_count_by_season(&episodes_json)
+}
+
+/// Determine badge kind for a VOD item.
+#[flutter_rust_bridge::frb(sync)]
+pub fn vod_badge_kind(year: Option<i32>, added_at_ms: Option<i64>, now_ms: i64) -> String {
+    crispy_core::algorithms::watch_history::vod_badge_kind(year, added_at_ms, now_ms)
+}
+
+// ── VOD Similarity ──────────────────────────────────
+
+/// Find similar VOD items by genre/category overlap.
+pub fn similar_vod_items(items_json: String, item_id: String, limit: usize) -> String {
+    crispy_core::algorithms::vod_sorting::similar_vod_items(&items_json, &item_id, limit)
+}

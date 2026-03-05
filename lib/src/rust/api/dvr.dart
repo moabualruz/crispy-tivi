@@ -181,3 +181,34 @@ Future<String> getRecordingsToStart({
   recordingsJson: recordingsJson,
   nowMs: nowMs,
 );
+
+/// Compute storage breakdown for recordings.
+Future<String> computeStorageBreakdown({
+  required String recordingsJson,
+  required PlatformInt64 nowMs,
+}) => RustLib.instance.api.crateApiDvrComputeStorageBreakdown(
+  recordingsJson: recordingsJson,
+  nowMs: nowMs,
+);
+
+/// Filter recordings by search query.
+Future<String> filterDvrRecordings({
+  required String recordingsJson,
+  required String query,
+}) => RustLib.instance.api.crateApiDvrFilterDvrRecordings(
+  recordingsJson: recordingsJson,
+  query: query,
+);
+
+/// Classify a file by its extension.
+String classifyFileType({required String filename}) =>
+    RustLib.instance.api.crateApiDvrClassifyFileType(filename: filename);
+
+/// Sort remote files by the given order.
+Future<String> sortRemoteFiles({
+  required String filesJson,
+  required String order,
+}) => RustLib.instance.api.crateApiDvrSortRemoteFiles(
+  filesJson: filesJson,
+  order: order,
+);

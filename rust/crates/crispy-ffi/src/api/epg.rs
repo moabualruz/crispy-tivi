@@ -166,3 +166,21 @@ pub fn parse_xtream_short_epg(listings_json: String, channel_id: String) -> Resu
 pub fn merge_epg_window(existing_json: String, new_json: String) -> String {
     crispy_core::algorithms::epg_matching::merge_epg_window(&existing_json, &new_json)
 }
+
+/// Filter EPG entries for upcoming programs on
+/// favorite channels.
+pub fn filter_upcoming_programs(
+    epg_map_json: String,
+    favorites_json: String,
+    now_ms: i64,
+    window_minutes: u32,
+    limit: usize,
+) -> String {
+    crispy_core::algorithms::epg_matching::filter_upcoming_programs(
+        &epg_map_json,
+        &favorites_json,
+        now_ms,
+        window_minutes,
+        limit,
+    )
+}
