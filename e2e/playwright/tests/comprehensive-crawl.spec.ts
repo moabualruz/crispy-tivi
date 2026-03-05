@@ -139,10 +139,10 @@ test.describe('Comprehensive QA Crawl', () => {
       await waitForFlutterReady(page);
       await screenshot(page, 'app-loaded');
 
-      // Verify canvas renders
-      const canvas = page.locator('canvas');
-      await expect(canvas.first()).toBeVisible();
-      logMsg('Canvas visible: OK');
+      // Verify flutter-view renders
+      const flutterView = page.locator('flutter-view');
+      await expect(flutterView.first()).toBeVisible();
+      logMsg('flutter-view visible: OK');
 
       // ── 2. Profile Selection ─────────────────────
       logMsg('=== Phase 2: Profile Selection ===');

@@ -29,31 +29,30 @@ void main() {
       // Navigate to Settings.
       await navRobot.waitForShell();
       await navRobot.tapSettings();
-
       await settingsRobot.waitForSettings();
 
-      // Record the initial value.
+      // Record the initial value (scrolls into view).
       const toggleLabel = 'Auto-resume last channel';
-      final initialValue = settingsRobot.getSwitchValue(toggleLabel);
+      final initialValue = await settingsRobot.getSwitchValue(toggleLabel);
 
       // Toggle it.
       await settingsRobot.toggleSwitch(toggleLabel);
       expect(
-        settingsRobot.getSwitchValue(toggleLabel),
+        await settingsRobot.getSwitchValue(toggleLabel),
         isNot(initialValue),
         reason: 'toggle should flip',
       );
 
-      // Navigate away to Home, then back to Settings.
+      // Navigate away to Live TV, then back to Settings.
       await navRobot.tapLiveTv();
       await tester.pump(const Duration(milliseconds: 500));
 
       await navRobot.tapSettings();
       await settingsRobot.waitForSettings();
 
-      // Verify persistence.
+      // Verify persistence (scrolls into view again).
       expect(
-        settingsRobot.getSwitchValue(toggleLabel),
+        await settingsRobot.getSwitchValue(toggleLabel),
         isNot(initialValue),
         reason: 'toggled value should persist after navigation',
       );
@@ -79,14 +78,14 @@ void main() {
       // Switch to the Playback tab.
       await settingsRobot.tapTab('Playback');
 
-      // Record initial value.
+      // Record initial value (scrolls into view).
       const toggleLabel = 'Auto Frame Rate';
-      final initialValue = settingsRobot.getSwitchValue(toggleLabel);
+      final initialValue = await settingsRobot.getSwitchValue(toggleLabel);
 
       // Toggle it.
       await settingsRobot.toggleSwitch(toggleLabel);
       expect(
-        settingsRobot.getSwitchValue(toggleLabel),
+        await settingsRobot.getSwitchValue(toggleLabel),
         isNot(initialValue),
         reason: 'toggle should flip',
       );
@@ -103,7 +102,7 @@ void main() {
 
       // Verify persistence.
       expect(
-        settingsRobot.getSwitchValue(toggleLabel),
+        await settingsRobot.getSwitchValue(toggleLabel),
         isNot(initialValue),
         reason: 'AFR toggle should persist after navigation',
       );

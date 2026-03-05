@@ -106,31 +106,34 @@ class SideNav extends ConsumerWidget {
                   // FE-AS-09: watch freshness state to re-render when
                   // a section is visited and its "NEW" badge clears.
                   final freshness = freshnessRef.watch(navFreshnessProvider);
-                  return ListView.builder(
+                  // SingleChildScrollView + Column (only 9 items) so
+                  // every nav destination is always built — needed for
+                  // integration tests on short viewports where a lazy
+                  // ListView would never build off-screen items.
+                  return SingleChildScrollView(
                     padding: EdgeInsets.zero,
-                    itemCount: destinations.length,
-                    itemBuilder: (context, index) {
-                      final dest = destinations[index];
-                      final badge = switch (dest.route) {
-                        AppRoutes.dvr => badges.dvr,
-                        AppRoutes.favorites => badges.favorites,
-                        _ => null,
-                      };
-                      // FE-AS-09: show "NEW" pill when route is in the
-                      // freshness set and has never been visited.
-                      final isNew =
-                          kFreshnessBadgeRoutes.contains(dest.route) &&
-                          freshness.lastVisited[dest.route] == null;
-                      return _buildItem(
-                        context,
-                        theme,
-                        colorScheme,
-                        index,
-                        extended,
-                        badge: badge,
-                        isNew: isNew,
-                      );
-                    },
+                    child: Column(
+                      children: List.generate(destinations.length, (index) {
+                        final dest = destinations[index];
+                        final badge = switch (dest.route) {
+                          AppRoutes.dvr => badges.dvr,
+                          AppRoutes.favorites => badges.favorites,
+                          _ => null,
+                        };
+                        final isNew =
+                            kFreshnessBadgeRoutes.contains(dest.route) &&
+                            freshness.lastVisited[dest.route] == null;
+                        return _buildItem(
+                          context,
+                          theme,
+                          colorScheme,
+                          index,
+                          extended,
+                          badge: badge,
+                          isNew: isNew,
+                        );
+                      }),
+                    ),
                   );
                 },
               ),

@@ -1,366 +1,111 @@
 # Comprehensive Crawl Logs
-# Date: 2026-03-05T10:15:06.157Z
-# Viewport: 360x800
+# Date: 2026-03-05T19:31:46.209Z
+# Viewport: 1920x1080
 
-## Console Errors (33)
-- Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-- [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-- [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-- Access to XMLHttpRequest at 'http://maventv.one:8080/images/SQXIGXJRpPIesgtGKOaYYeniDOi4ydqe-x9dmLmydUJzN7sjrZREL-IYJfJYXOZm1r1Os1svzyP-62V1bezsnrgIOe0qq4SR2xFAGhpicgU.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to XMLHttpRequest at 'http://31.59.212.63:8080/live/4917676477361/3278818818/536113.m3u8?token=MjJMSUxJclFqVWpHcW5S' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to XMLHttpRequest at 'http://31.59.212.63:8080/live/4917676477361/3278818818/536113.m3u8?token=Wk9oamFvNUdnempYMXk4' (redirected from 'http://look4k.com/live/4917676477361/3278818818/536113.m3u8') from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- WebHlsVideo: fatal networkError manifestLoadError
-- Failed to load resource: net::ERR_FAILED
-- Access to XMLHttpRequest at 'http://31.59.212.63:8080/live/4917676477361/3278818818/536113.m3u8?token=MjJMSUxJclFqVWpHcW5S' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to XMLHttpRequest at 'http://31.59.212.63:8080/live/4917676477361/3278818818/536113.m3u8?token=MjJMSUxJclFqVWpHcW5S' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-- NotAllowedError, Wake Lock permission request denied
-- NotAllowedError, Wake Lock permission request denied
-- NotAllowedError, Wake Lock permission request denied
-- [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-- [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-- [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-- [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-- [PAGE_ERROR] Cannot read properties of null (reading 'toString')
+## Console Errors (2)
+- WebSocket connection to 'ws://127.0.0.1:8080/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED
+- [PAGE_ERROR] Error
 
-## Console Warnings (5)
-- [.WebGL-0x42ec0b157800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-- [.WebGL-0x42ec0b157800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-- [.WebGL-0x42ec0b157800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-- [.WebGL-0x42ec0b157800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
-- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+## Console Warnings (0)
 
 ## Full Log
-[10:12:19.682] === Phase 1: App Load ===
-[10:12:19.849] [console.debug] Injecting <script> tag. Using callback.
-[10:12:20.516] [console.debug] TrustedTypes available. Creating policy: gis-dart
-[10:12:20.585] [console.log] WsBackend _onMessage: {"data":[{"avatar_index":0,"dvr_permission":2,"dvr_quota_mb":null,"id":"default","is_child":false,"max_allowed_rating":4,"name":"Default","pin":null,"pin_version":1,"role":0}],"id":"req-1"}
-[10:12:20.585] [console.log] WsBackend _onMessage completed command: loadProfiles (id: req-1) with payload length: 189
-[10:12:20.691] [console.log] WsBackend _onMessage: {"data":null,"id":"req-2"}
-[10:12:20.691] [console.log] WsBackend _onMessage completed command: getSetting (id: req-2) with payload length: 26
-[10:12:20.692] [console.warning] [.WebGL-0x42ec0b157800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-[10:12:20.699] [console.log] WsBackend _onMessage: {"data":"[{\"id\":\"look4k_xtream\",\"name\":\"look4k\",\"url\":\"http://look4k.com\",\"type\":\"xtream\",\"username\":\"4917676477361\",\"password\":\"3278818818\",\"epgUrl\":\"\",\"refreshIntervalMinutes\":60}]","id":"req-3"}
-[10:12:20.699] [console.log] WsBackend _onMessage completed command: getSetting (id: req-3) with payload length: 227
-[10:12:20.699] [console.warning] [.WebGL-0x42ec0b157800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-[10:12:20.706] [console.log] WsBackend _onMessage: {"data":null,"id":"req-4"}
-[10:12:20.707] [console.log] WsBackend _onMessage completed command: getSetting (id: req-4) with payload length: 26
-[10:12:20.707] [console.warning] [.WebGL-0x42ec0b157800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-[10:12:20.707] [console.log] WsBackend _onMessage: {"data":null,"id":"req-5"}
-[10:12:20.707] [console.log] WsBackend _onMessage completed command: getSetting (id: req-5) with payload length: 26
-[10:12:20.708] [console.log] WsBackend _onMessage: {"data":null,"id":"req-6"}
-[10:12:20.708] [console.log] WsBackend _onMessage completed command: getSetting (id: req-6) with payload length: 26
-[10:12:20.708] [console.log] WsBackend _onMessage: {"data":null,"id":"req-7"}
-[10:12:20.708] [console.log] WsBackend _onMessage completed command: getSetting (id: req-7) with payload length: 26
-[10:12:20.709] [console.log] WsBackend _onMessage: {"data":null,"id":"req-8"}
-[10:12:20.709] [console.log] WsBackend _onMessage completed command: getSetting (id: req-8) with payload length: 26
-[10:12:20.709] [console.log] WsBackend _onMessage: {"data":null,"id":"req-9"}
-[10:12:20.709] [console.log] WsBackend _onMessage completed command: getSetting (id: req-9) with payload length: 26
-[10:12:20.710] [console.log] WsBackend _onMessage: {"data":null,"id":"req-10"}
-[10:12:20.710] [console.log] WsBackend _onMessage completed command: getSetting (id: req-10) with payload length: 27
-[10:12:20.710] [console.log] WsBackend _onMessage: {"data":null,"id":"req-11"}
-[10:12:20.710] [console.log] WsBackend _onMessage completed command: getSetting (id: req-11) with payload length: 27
-[10:12:20.711] [console.log] WsBackend _onMessage: {"data":null,"id":"req-12"}
-[10:12:20.711] [console.log] WsBackend _onMessage completed command: getSetting (id: req-12) with payload length: 27
-[10:12:20.711] [console.log] WsBackend _onMessage: {"data":null,"id":"req-13"}
-[10:12:20.711] [console.log] WsBackend _onMessage completed command: getSetting (id: req-13) with payload length: 27
-[10:12:20.711] [console.log] WsBackend _onMessage: {"data":null,"id":"req-14"}
-[10:12:20.712] [console.log] WsBackend _onMessage completed command: getSetting (id: req-14) with payload length: 27
-[10:12:20.712] [console.log] WsBackend _onMessage: {"data":null,"id":"req-15"}
-[10:12:20.712] [console.log] WsBackend _onMessage completed command: getSetting (id: req-15) with payload length: 27
-[10:12:20.712] [console.log] WsBackend _onMessage: {"data":null,"id":"req-16"}
-[10:12:20.713] [console.log] WsBackend _onMessage completed command: getSetting (id: req-16) with payload length: 27
-[10:12:20.713] [console.log] WsBackend _onMessage: {"data":null,"id":"req-17"}
-[10:12:20.713] [console.log] WsBackend _onMessage completed command: getSetting (id: req-17) with payload length: 27
-[10:12:20.713] [console.log] WsBackend _onMessage: {"data":null,"id":"req-18"}
-[10:12:20.713] [console.log] WsBackend _onMessage completed command: getSetting (id: req-18) with payload length: 27
-[10:12:20.714] [console.log] WsBackend _onMessage: {"data":null,"id":"req-19"}
-[10:12:20.714] [console.log] WsBackend _onMessage completed command: getSetting (id: req-19) with payload length: 27
-[10:12:20.714] [console.log] WsBackend _onMessage: {"data":null,"id":"req-20"}
-[10:12:20.714] [console.log] WsBackend _onMessage completed command: getSetting (id: req-20) with payload length: 27
-[10:12:20.715] [console.log] WsBackend _onMessage: {"data":null,"id":"req-21"}
-[10:12:20.715] [console.log] WsBackend _onMessage completed command: getSetting (id: req-21) with payload length: 27
-[10:12:20.715] [console.log] WsBackend _onMessage: {"data":null,"id":"req-22"}
-[10:12:20.715] [console.log] WsBackend _onMessage completed command: getSetting (id: req-22) with payload length: 27
-[10:12:20.715] [console.log] WsBackend _onMessage: {"data":null,"id":"req-23"}
-[10:12:20.716] [console.log] WsBackend _onMessage completed command: getSetting (id: req-23) with payload length: 27
-[10:12:20.721] [console.log] WsBackend _onMessage: {"data":null,"id":"req-24"}
-[10:12:20.721] [console.log] WsBackend _onMessage completed command: getSetting (id: req-24) with payload length: 27
-[10:12:20.722] [console.warning] [.WebGL-0x42ec0b157800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
-[10:12:20.960] [console.log] WsBackend _onMessage: {"data":[],"id":"req-25"}
-[10:12:20.960] [console.log] WsBackend _onMessage completed command: loadReminders (id: req-25) with payload length: 25
-[10:12:20.975] [console.log] WsBackend _onMessage: {"data":[],"id":"req-26"}
-[10:12:20.975] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-26) with payload length: 25
-[10:12:20.976] [console.log] WsBackend _onMessage: {"data":[],"id":"req-27"}
-[10:12:20.976] [console.log] WsBackend _onMessage completed command: getWatchlistItems (id: req-27) with payload length: 25
-[10:12:20.977] [console.log] WsBackend _onMessage: {"data":[],"id":"req-28"}
-[10:12:20.977] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-28) with payload length: 25
-[10:12:20.977] [console.log] WsBackend _onMessage: {"data":[],"id":"req-29"}
-[10:12:20.977] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-29) with payload length: 25
-[10:12:20.977] [console.log] WsBackend _onMessage: {"data":"f4d03705-4b7a-4652-a04e-30b97bdf781e","id":"req-30"}
-[10:12:20.977] [console.log] WsBackend _onMessage completed command: getSetting (id: req-30) with payload length: 61
-[10:12:21.041] [console.log] PlaylistSync: loading from cache…
-[10:12:21.210] [console.log] WsBackend _onMessage: [Large Payload of length 6183288]
-[10:12:21.210] [console.log] WsBackend _onMessage completed command: loadChannels (id: req-31) with payload length: 6183288
-[10:12:21.227] [console.log] CacheService: loaded 12913 channels in 459ms
-[10:12:21.227] [console.log] WsBackend _onMessage: {"data":[],"id":"req-32"}
-[10:12:21.227] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-32) with payload length: 25
-[10:12:21.227] [console.log] WsBackend _onMessage: {"data":[],"id":"req-33"}
-[10:12:21.227] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-33) with payload length: 25
-[10:12:21.253] [console.log] WsBackend _onMessage: {"data":[],"id":"req-34"}
-[10:12:21.253] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-34) with payload length: 25
-[10:12:21.253] [console.log] WsBackend _onMessage: {"data":[],"id":"req-35"}
-[10:12:21.253] [console.log] WsBackend _onMessage completed command: loadRecordings (id: req-35) with payload length: 25
-[10:12:21.705] [console.log] WsBackend _onMessage: [Large Payload of length 12585337]
-[10:12:21.705] [console.log] WsBackend _onMessage completed command: loadVodItems (id: req-36) with payload length: 12585337
-[10:12:21.707] [console.log] CacheService: loaded 21770 VOD items in 820ms
-[10:12:21.707] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-37"}
-[10:12:21.707] [console.log] WsBackend _onMessage completed command: filterContinueWatching (id: req-37) with payload length: 27
-[10:12:21.707] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-38"}
-[10:12:21.707] [console.log] WsBackend _onMessage completed command: filterContinueWatching (id: req-38) with payload length: 27
-[10:12:21.707] [console.log] WsBackend _onMessage: {"data":[],"id":"req-39"}
-[10:12:21.707] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-39) with payload length: 25
-[10:12:21.979] [console.log] WsBackend _onMessage: [Large Payload of length 6183288]
-[10:12:21.979] [console.log] WsBackend _onMessage completed command: loadChannels (id: req-40) with payload length: 6183288
-[10:12:21.992] [console.log] CacheService: loaded 12913 channels in 950ms
-[10:12:21.994] [console.error] Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[10:12:21.995] [console.error] Failed to load resource: net::ERR_FAILED
-[10:12:22.516] [console.log] WsBackend _onMessage: [Large Payload of length 12585337]
-[10:12:22.516] [console.log] WsBackend _onMessage completed command: loadVodItems (id: req-41) with payload length: 12585337
-[10:12:22.516] [console.log] CacheService: loaded 21770 VOD items in 1435ms
-[10:12:22.516] [console.log] PlaylistSync: cache read complete in 1436ms — 12913 channels (950ms), 21770 VODs (1435ms)
-[10:12:22.911] [console.log] WsBackend _onMessage: {"data":[],"id":"req-42"}
-[10:12:22.911] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-42) with payload length: 25
-[10:12:22.911] [console.log] WsBackend _onMessage: {"data":[],"id":"req-43"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-43) with payload length: 25
-[10:12:22.912] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-44"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: filterCrossDevice (id: req-44) with payload length: 27
-[10:12:22.912] [console.log] WsBackend _onMessage: {"data":[],"id":"req-45"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-45) with payload length: 25
-[10:12:22.912] [console.log] WsBackend _onMessage: {"data":[],"id":"req-46"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-46) with payload length: 25
-[10:12:22.912] [console.log] WsBackend _onMessage: {"data":[],"id":"req-47"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-47) with payload length: 25
-[10:12:22.912] [console.log] WsBackend _onMessage: {"data":[],"id":"req-48"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-48) with payload length: 25
-[10:12:22.912] [console.log] WsBackend _onMessage: {"data":[],"id":"req-49"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-49) with payload length: 25
-[10:12:22.912] [console.log] WsBackend _onMessage: {"data":[],"id":"req-50"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-50) with payload length: 25
-[10:12:22.912] [console.log] WsBackend _onMessage: {"data":[],"id":"req-51"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-51) with payload length: 25
-[10:12:22.912] [console.log] WsBackend _onMessage: {"data":[],"id":"req-52"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-52) with payload length: 25
-[10:12:22.912] [console.log] WsBackend _onMessage: {"data":[],"id":"req-53"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-53) with payload length: 25
-[10:12:22.912] [console.log] WsBackend _onMessage: {"data":[],"id":"req-54"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-54) with payload length: 25
-[10:12:22.912] [console.log] WsBackend _onMessage: {"data":[],"id":"req-55"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-55) with payload length: 25
-[10:12:22.912] [console.log] WsBackend _onMessage: {"data":[],"id":"req-56"}
-[10:12:22.912] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-56) with payload length: 25
-[10:12:23.163] [console.log] WsBackend _onMessage: [Large Payload of length 6575810]
-[10:12:23.163] [console.log] WsBackend _onMessage completed command: filterChannelsBySource (id: req-57) with payload length: 6575810
-[10:12:23.216] [console.log] PlaylistSync: cache → UI complete in 2173ms
-[10:12:23.216] [console.log] WsBackend _onMessage: {"data":[],"id":"req-58"}
-[10:12:23.216] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-58) with payload length: 25
-[10:12:23.216] [console.log] WsBackend _onMessage: {"data":[],"id":"req-59"}
-[10:12:23.216] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-59) with payload length: 25
-[10:12:23.265] [console.log] WsBackend _onMessage: {"data":[],"id":"req-60"}
-[10:12:23.265] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-60) with payload length: 25
-[10:12:23.265] [console.log] WsBackend _onMessage: {"data":[],"id":"req-61"}
-[10:12:23.265] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-61) with payload length: 25
-[10:12:23.304] [console.error] Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[10:12:23.305] [console.error] Failed to load resource: net::ERR_FAILED
-[10:12:23.801] [console.log] WsBackend _onMessage: [Large Payload of length 8271966]
-[10:12:23.801] [console.log] WsBackend _onMessage completed command: getEpgsForChannels (id: req-62) with payload length: 8271966
-[10:12:23.966] [console.log] CacheService: loaded 32669 EPG entries for 1197 viewed channels in 756ms
-[10:12:24.356] [console.log] WsBackend _onMessage: {"data":1772702959,"id":"req-63"}
-[10:12:24.356] [console.log] WsBackend _onMessage completed command: getLastSyncTime (id: req-63) with payload length: 33
-[10:12:24.356] [console.log] PlaylistSync: all sources synced within 24h — next sync in 1396m
-[10:12:24.356] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-64"}
-[10:12:24.357] [console.log] WsBackend _onMessage completed command: computeRecommendations (id: req-64) with payload length: 27
-[10:12:24.357] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-[10:12:24.357] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-[10:12:24.357] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-[10:12:24.367] [console.log] WsBackend _onMessage: {"data":[],"id":"req-65"}
-[10:12:24.367] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-65) with payload length: 25
-[10:12:24.979] [console.log] WsBackend _onMessage: {"data":[],"id":"req-66"}
-[10:12:24.979] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-66) with payload length: 25
-[10:12:24.979] [console.log] WsBackend _onMessage: {"data":[],"id":"req-67"}
-[10:12:24.979] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-67) with payload length: 25
-[10:12:26.956] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-68"}
-[10:12:26.956] [console.log] WsBackend _onMessage completed command: deserializeRecommendationSections (id: req-68) with payload length: 27
-[10:12:26.956] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-69"}
-[10:12:26.956] [console.log] WsBackend _onMessage completed command: computeRecommendations (id: req-69) with payload length: 27
-[10:12:26.956] [console.log] WsBackend _onMessage: {"data":[],"id":"req-70"}
-[10:12:26.956] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-70) with payload length: 25
-[10:12:27.114] [console.log] WsBackend _onMessage: [Large Payload of length 6042]
-[10:12:27.114] [console.log] WsBackend _onMessage completed command: computeRecommendations (id: req-71) with payload length: 6042
-[10:12:27.115] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-72"}
-[10:12:27.115] [console.log] WsBackend _onMessage completed command: deserializeRecommendationSections (id: req-72) with payload length: 27
-[10:12:27.115] [console.log] WsBackend _onMessage: {"data":[],"id":"req-73"}
-[10:12:27.115] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-73) with payload length: 25
-[10:12:29.039] [console.log] WsBackend _onMessage: [Large Payload of length 6399]
-[10:12:29.039] [console.log] WsBackend _onMessage completed command: deserializeRecommendationSections (id: req-74) with payload length: 6399
-[10:12:29.196] [console.log] WsBackend _onMessage: [Large Payload of length 6042]
-[10:12:29.197] [console.log] WsBackend _onMessage completed command: computeRecommendations (id: req-75) with payload length: 6042
-[10:12:29.219] [console.log] WsBackend _onMessage: [Large Payload of length 6399]
-[10:12:29.219] [console.log] WsBackend _onMessage completed command: deserializeRecommendationSections (id: req-76) with payload length: 6399
-[10:12:29.256] [console.log] WsBackend _onMessage: {"data":[],"id":"req-77"}
-[10:12:29.257] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-77) with payload length: 25
-[10:12:29.296] Screenshot: 001-app-loaded-360x800.png
-[10:12:29.313] Canvas visible: OK
-[10:12:29.313] === Phase 2: Profile Selection ===
-[10:12:29.396] Screenshot: 002-profile-selection-360x800.png
-[10:12:29.401] Profile title visible: false
-[10:12:29.403] Add Profile visible: false
-[10:12:29.406] Profile items found: 1
-[10:12:31.363] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-[10:12:37.423] Profile selected: false
-[10:12:39.607] Screenshot: 003-after-profile-select-360x800.png
-[10:12:39.607] === Phase 3: Home Screen ===
-[10:12:39.671] Screenshot: 004-home-screen-360x800.png
-[10:12:39.674] Home section "Continue Watching": false
-[10:12:39.677] Home section "Recent Channels": false
-[10:12:39.679] Home section "Your Favorites": false
-[10:12:39.680] Home section "Recommended": false
-[10:12:39.685] Home section "Latest": false
-[10:12:39.685] === Phase 4: Navigation Tabs ===
-[10:12:39.685] --- Navigating to: Home ---
-[10:12:41.731] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-[10:12:43.908] [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-[10:12:45.542] [console.log] WsBackend _onMessage: {"pong":true}
-[10:12:47.609] Screenshot: 005-tab-home-360x800.png
-[10:12:47.609] --- Navigating to: Search ---
-[10:12:47.778] [console.log] WsBackend _onMessage: {"data":[],"id":"req-78"}
-[10:12:47.778] [console.log] WsBackend _onMessage completed command: loadSearchHistory (id: req-78) with payload length: 25
-[10:12:49.720] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-[10:12:51.231] Screenshot: 006-tab-search-360x800.png
-[10:12:51.231] --- Navigating to: Live TV ---
-[10:12:55.500] [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-[10:12:55.516] [console.log] WsBackend _onMessage: {"data":null,"id":"req-79"}
-[10:12:55.516] [console.log] WsBackend _onMessage completed command: getSetting (id: req-79) with payload length: 27
-[10:12:59.145] Screenshot: 007-tab-live tv-360x800.png
-[10:12:59.145] Checking TV screen...
-[10:12:59.147] TV groups sidebar: false
-[10:12:59.153] TV search inputs: 1
-[10:12:59.204] Screenshot: 008-tv-detail-360x800.png
-[10:12:59.204] --- Navigating to: Guide ---
-[10:12:59.643] [console.log] PlayerService: play [LIVE] http://look4k.com/live/4917676477361/3278818818/536113.ts
-[10:13:00.229] [console.error] Access to XMLHttpRequest at 'http://maventv.one:8080/images/SQXIGXJRpPIesgtGKOaYYeniDOi4ydqe-x9dmLmydUJzN7sjrZREL-IYJfJYXOZm1r1Os1svzyP-62V1bezsnrgIOe0qq4SR2xFAGhpicgU.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[10:13:00.229] [console.error] Failed to load resource: net::ERR_FAILED
-[10:13:00.308] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 1
-[10:13:00.308] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
-[10:13:00.308] [console.log] PlayerService: attached web video #web-hls-video-1
-[10:13:00.308] [console.log] PlayerService: play [LIVE] http://look4k.com/live/4917676477361/3278818818/536113.m3u8
-[10:13:00.308] [console.log] PlayerService: web bridge active, skipping media_kit open
-[10:13:00.438] [console.error] Access to XMLHttpRequest at 'http://31.59.212.63:8080/live/4917676477361/3278818818/536113.m3u8?token=MjJMSUxJclFqVWpHcW5S' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[10:13:00.438] [console.error] Failed to load resource: net::ERR_FAILED
-[10:13:00.837] [console.log] WebHlsVideo: found video element (attempt 2)
-[10:13:00.838] [console.log] WebHlsVideo: hls.js attached for http://look4k.com/live/4917676477361/3278818818/536113.m3u8
-[10:13:01.006] [console.error] Access to XMLHttpRequest at 'http://31.59.212.63:8080/live/4917676477361/3278818818/536113.m3u8?token=Wk9oamFvNUdnempYMXk4' (redirected from 'http://look4k.com/live/4917676477361/3278818818/536113.m3u8') from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[10:13:01.006] [console.error] WebHlsVideo: fatal networkError manifestLoadError
-[10:13:01.006] [console.log] WebHlsVideo: network error, attempting recovery...
-[10:13:01.006] [console.error] Failed to load resource: net::ERR_FAILED
-[10:13:01.557] [console.error] Access to XMLHttpRequest at 'http://31.59.212.63:8080/live/4917676477361/3278818818/536113.m3u8?token=MjJMSUxJclFqVWpHcW5S' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[10:13:01.557] [console.error] Failed to load resource: net::ERR_FAILED
-[10:13:02.355] [console.log] WsBackend _onMessage: [Large Payload of length 8271966]
-[10:13:02.355] [console.log] WsBackend _onMessage completed command: getEpgsForChannels (id: req-80) with payload length: 8271966
-[10:13:02.566] [console.log] CacheService: loaded 32669 EPG entries for 1197 viewed channels in 2930ms
-[10:13:03.635] [console.error] Access to XMLHttpRequest at 'http://31.59.212.63:8080/live/4917676477361/3278818818/536113.m3u8?token=MjJMSUxJclFqVWpHcW5S' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[10:13:03.635] [console.error] Failed to load resource: net::ERR_FAILED
-[10:13:03.735] Screenshot: 009-tab-guide-360x800.png
-[10:13:03.735] Checking EPG/Guide screen...
-[10:13:03.760] EPG "Now" marker: true
-[10:13:03.784] EPG filter elements: 0
-[10:13:03.811] EPG Day/Week toggle: false
-[10:13:04.080] Screenshot: 010-epg-detail-360x800.png
-[10:13:04.080] --- Navigating to: Movies ---
-[10:13:06.779] [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-[10:13:06.780] [console.log] PlayerService: play [LIVE] http://look4k.com/live/4917676477361/3278818818/536102.ts
-[10:13:06.780] [console.log] PlayerService: web bridge active, skipping media_kit open
-[10:13:06.784] [console.log] WebHlsVideo: found video element (attempt 1)
-[10:13:06.787] [console.log] WebHlsVideo: hls.js attached for http://look4k.com/live/4917676477361/3278818818/536102.m3u8
-[10:13:09.670] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-[10:13:10.576] [console.log] WsBackend _onMessage: {"pong":true}
-[10:13:10.756] Screenshot: 011-tab-movies-360x800.png
-[10:13:10.756] Checking VOD screen (Movies)...
-[10:13:10.774] VOD poster cards: 5
-[10:13:10.774] --- Navigating to: Series ---
-[10:13:13.740] [console.log] WebHlsVideo: manifest parsed, levels: 1
-[10:13:14.208] [console.log] WebHlsVideo: video dimensions 1920x1080
-[10:13:14.296] [console.error] NotAllowedError, Wake Lock permission request denied
-[10:13:16.653] Click failed: "Series"
-[10:13:21.660] Aria click failed: "Series"
-[10:13:23.732] Screenshot: 012-tab-series-360x800.png
-[10:13:23.733] Checking VOD screen (Series)...
-[10:13:23.735] VOD poster cards: 5
-[10:13:23.735] --- Navigating to: DVR ---
-[10:13:25.239] [console.error] NotAllowedError, Wake Lock permission request denied
-[10:13:29.590] Click failed: "DVR"
-[10:13:34.604] Aria click failed: "DVR"
-[10:13:35.537] [console.log] WsBackend _onMessage: {"pong":true}
-[10:13:36.701] Screenshot: 013-tab-dvr-360x800.png
-[10:13:36.701] --- Navigating to: Favorites ---
-[10:13:36.795] [console.log] PlayerService: live stream stalled for 10s — reconnecting
-[10:13:36.857] [console.error] NotAllowedError, Wake Lock permission request denied
-[10:13:42.546] Click failed: "Favorites"
-[10:13:47.552] Aria click failed: "Favorites"
-[10:13:49.668] Screenshot: 014-tab-favorites-360x800.png
-[10:13:49.668] --- Navigating to: Settings ---
-[10:13:53.856] [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-[10:13:54.151] [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-[10:13:57.726] Screenshot: 015-tab-settings-360x800.png
-[10:13:57.726] Checking Settings screen...
-[10:13:57.730] Settings "Theme": visible
-[10:13:57.737] Settings "Cache": visible
-[10:13:57.761] Screenshot: 016-settings-detail-360x800.png
-[10:13:57.761] === Phase 5: Settings Deep Dive ===
-[10:14:00.540] [console.log] WsBackend _onMessage: {"pong":true}
-[10:14:03.117] [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-[10:14:07.346] Screenshot: 017-settings-playlists-360x800.png
-[10:14:07.346] Settings section "Playlists": visible
-[10:14:10.878] Click failed: "Appearance"
-[10:14:15.066] Screenshot: 018-settings-playback-360x800.png
-[10:14:15.066] Settings section "Playback": visible
-[10:14:15.153] [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-[10:14:16.631] Screenshot: 019-settings-epg-360x800.png
-[10:14:16.631] Settings section "EPG": visible
-[10:14:20.160] Click failed: "General"
-[10:14:23.692] Click failed: "About"
-[10:14:23.699] === Phase 6: Context Menu Tests ===
-[10:14:25.534] [console.log] WsBackend _onMessage: {"pong":true}
-[10:14:29.555] Click failed: "Live TV"
-[10:14:34.562] Aria click failed: "Live TV"
-[10:14:36.573] Channel items found: 0
-[10:14:36.574] === Phase 7: Responsive Layout ===
-[10:14:36.575] Navigation elements: 0
-[10:14:36.575] Viewport: 360x800
-[10:14:36.575] === Phase 8: Keyboard Navigation ===
-[10:14:38.758] Screenshot: 020-keyboard-tab-focus-360x800.png
-[10:14:38.764] [PAGE_ERROR] Cannot read properties of null (reading 'toString')
-[10:14:40.324] Screenshot: 021-keyboard-arrow-nav-360x800.png
-[10:14:40.324] === Phase 9: Empty States ===
-[10:14:46.179] Click failed: "Movies"
-[10:14:50.540] [console.log] WsBackend _onMessage: {"pong":true}
-[10:14:51.183] Aria click failed: "Movies"
-[10:14:53.210] Screenshot: 022-movies-state-360x800.png
-[10:14:59.073] Click failed: "Guide"
-[10:15:04.085] Aria click failed: "Guide"
-[10:15:06.123] Screenshot: 023-epg-state-360x800.png
-[10:15:06.123] === Phase 10: Final Summary ===
-[10:15:06.157] Screenshot: 024-final-state-360x800.png
+[19:28:21.933] === Phase 1: App Load ===
+[19:28:22.133] [console.debug] Injecting <script> tag. Using callback.
+[19:28:22.865] [console.debug] TrustedTypes available. Creating policy: gis-dart
+[19:28:24.900] [console.error] WebSocket connection to 'ws://127.0.0.1:8080/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED
+[19:28:24.902] [PAGE_ERROR] Error
+[19:28:27.984] Screenshot: 001-app-loaded-1920x1080.png
+[19:28:27.995] flutter-view visible: OK
+[19:28:27.995] === Phase 2: Profile Selection ===
+[19:28:28.070] Screenshot: 002-profile-selection-1920x1080.png
+[19:28:28.074] Profile title visible: false
+[19:28:28.080] Add Profile visible: false
+[19:28:28.084] Profile items found: 0
+[19:28:36.089] Profile selected: false
+[19:28:38.168] Screenshot: 003-after-profile-select-1920x1080.png
+[19:28:38.168] === Phase 3: Home Screen ===
+[19:28:38.256] Screenshot: 004-home-screen-1920x1080.png
+[19:28:38.259] Home section "Continue Watching": false
+[19:28:38.262] Home section "Recent Channels": false
+[19:28:38.264] Home section "Your Favorites": false
+[19:28:38.266] Home section "Recommended": false
+[19:28:38.270] Home section "Latest": false
+[19:28:38.270] === Phase 4: Navigation Tabs ===
+[19:28:38.270] --- Navigating to: Home ---
+[19:28:44.139] Click failed: "Home"
+[19:28:49.141] Aria click failed: "Home"
+[19:28:51.238] Screenshot: 005-tab-home-1920x1080.png
+[19:28:51.238] --- Navigating to: Search ---
+[19:28:57.100] Click failed: "Search"
+[19:29:02.104] Aria click failed: "Search"
+[19:29:04.191] Screenshot: 006-tab-search-1920x1080.png
+[19:29:04.191] --- Navigating to: Live TV ---
+[19:29:10.057] Click failed: "Live TV"
+[19:29:15.063] Aria click failed: "Live TV"
+[19:29:17.135] Screenshot: 007-tab-live tv-1920x1080.png
+[19:29:17.135] Checking TV screen...
+[19:29:17.138] TV groups sidebar: false
+[19:29:17.140] TV search inputs: 0
+[19:29:17.222] Screenshot: 008-tv-detail-1920x1080.png
+[19:29:17.222] --- Navigating to: Guide ---
+[19:29:23.084] Click failed: "Guide"
+[19:29:28.088] Aria click failed: "Guide"
+[19:29:30.173] Screenshot: 009-tab-guide-1920x1080.png
+[19:29:30.173] Checking EPG/Guide screen...
+[19:29:30.176] EPG "Now" marker: false
+[19:29:30.178] EPG filter elements: 0
+[19:29:30.180] EPG Day/Week toggle: false
+[19:29:30.279] Screenshot: 010-epg-detail-1920x1080.png
+[19:29:30.279] --- Navigating to: Movies ---
+[19:29:36.148] Click failed: "Movies"
+[19:29:41.159] Aria click failed: "Movies"
+[19:29:43.227] Screenshot: 011-tab-movies-1920x1080.png
+[19:29:43.227] Checking VOD screen (Movies)...
+[19:29:43.229] VOD poster cards: 0
+[19:29:43.229] --- Navigating to: Series ---
+[19:29:49.090] Click failed: "Series"
+[19:29:54.099] Aria click failed: "Series"
+[19:29:56.186] Screenshot: 012-tab-series-1920x1080.png
+[19:29:56.186] Checking VOD screen (Series)...
+[19:29:56.198] VOD poster cards: 0
+[19:29:56.198] --- Navigating to: DVR ---
+[19:30:02.056] Click failed: "DVR"
+[19:30:07.066] Aria click failed: "DVR"
+[19:30:09.150] Screenshot: 013-tab-dvr-1920x1080.png
+[19:30:09.150] --- Navigating to: Favorites ---
+[19:30:14.990] Click failed: "Favorites"
+[19:30:19.997] Aria click failed: "Favorites"
+[19:30:22.068] Screenshot: 014-tab-favorites-1920x1080.png
+[19:30:22.068] --- Navigating to: Settings ---
+[19:30:27.920] Click failed: "Settings"
+[19:30:32.923] Aria click failed: "Settings"
+[19:30:35.004] Screenshot: 015-tab-settings-1920x1080.png
+[19:30:35.004] Checking Settings screen...
+[19:30:35.090] Screenshot: 016-settings-detail-1920x1080.png
+[19:30:35.090] === Phase 5: Settings Deep Dive ===
+[19:30:40.941] Click failed: "Settings"
+[19:30:45.964] Click failed: "Playlists"
+[19:30:49.495] Click failed: "Appearance"
+[19:30:53.030] Click failed: "Playback"
+[19:30:56.561] Click failed: "EPG"
+[19:31:00.091] Click failed: "General"
+[19:31:03.626] Click failed: "About"
+[19:31:03.635] === Phase 6: Context Menu Tests ===
+[19:31:09.486] Click failed: "Live TV"
+[19:31:14.491] Aria click failed: "Live TV"
+[19:31:16.498] Channel items found: 0
+[19:31:16.498] === Phase 7: Responsive Layout ===
+[19:31:16.500] Navigation elements: 0
+[19:31:16.500] Viewport: 1920x1080
+[19:31:16.500] === Phase 8: Keyboard Navigation ===
+[19:31:18.634] Screenshot: 017-keyboard-tab-focus-1920x1080.png
+[19:31:20.254] Screenshot: 018-keyboard-arrow-nav-1920x1080.png
+[19:31:20.254] === Phase 9: Empty States ===
+[19:31:26.097] Click failed: "Movies"
+[19:31:31.103] Aria click failed: "Movies"
+[19:31:33.183] Screenshot: 019-movies-state-1920x1080.png
+[19:31:39.045] Click failed: "Guide"
+[19:31:44.058] Aria click failed: "Guide"
+[19:31:46.140] Screenshot: 020-epg-state-1920x1080.png
+[19:31:46.140] === Phase 10: Final Summary ===
+[19:31:46.209] Screenshot: 021-final-state-1920x1080.png

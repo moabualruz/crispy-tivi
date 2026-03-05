@@ -1,198 +1,238 @@
-# Cleanup & Optimization Plan — Sweep Results
+# Cleanup & Rust Migration Plan
 
-Generated: 2026-03-05
-Sources: `/sweep-dedup` (4 agents), `/sweep-logic` (3 agents)
+> Created: 2026-03-05 | Last Updated: 2026-03-05
+> Source reports: `docs/dedup_report.md`, `docs/logic_migration_candidates.md`
+> Total items: 39 across 8 sprints (6 work + 1 Rust internal + 1 final)
+
+---
 
 ## Overview
 
-| Sprint | Scope | Risk | Tasks | Est. Lines Saved | Status |
-|--------|-------|------|-------|------------------|--------|
-| 1 | Zero-risk redirects (use existing utils/tokens) | Zero | 10 | ~120 | Done |
-| 2 | New shared components + token additions | Low | 9 | ~100 | Done |
-| 3 | Pure function extractions from presentation | Low | 10 | ~200 | Done |
-| 4 | Shared widget extractions + schema fixes | Medium | 7 | ~180 | Done |
-| 5 | State-coupled logic extractions | Medium | 5 | ~60 | Done |
-| 6 | Doc sync | Zero | 1 | 0 | Done |
-| **Total** | | | **42** | **~660** | **All Done** |
+| Sprint | Scope | Items | Risk | Status |
+|--------|-------|-------|------|--------|
+| 1 | Zero-risk dedup (deletes + redirects) | 6 | None | [ ] Pending |
+| 2 | Shared Dart widgets + helpers | 5 | Low | [ ] Pending |
+| 3 | Rust: threshold constants + JSON helpers | 5 | Low | [ ] Pending |
+| 4 | Rust migration: channel + VOD algorithms | 5 | Medium | [ ] Pending |
+| 5 | Rust migration: watch history + profiles | 5 | Medium | [ ] Pending |
+| 6 | Rust migration: EPG + DVR + search | 5 | Medium | [ ] Pending |
+| 7 | Rust migration: complex algorithms | 4 | Higher | [ ] Pending |
+| Final | Cleanup & validation | 7 | None | [ ] Pending |
 
 ---
 
-## Sprint 1 — Zero-Risk Redirects
+## Sprint 1 — Zero-Risk Dedup (Deletes & Redirects)
 
-**Risk:** Zero — all changes redirect to existing canonical implementations.
-No new code, no behavior change.
+**Goal:** Eliminate byte-identical or near-identical duplicates. No behavior change.
 
-| # | Task | Files | Source (dedup/logic) |
-|---|------|-------|---------------------|
-| 1.1 | Replace `_formatDuration(int)` in 2 VOD widgets → `DurationFormatter.humanShort(Duration(minutes: m))` | `vod_landscape_card.dart`, `quick_info_card.dart` | Dedup-B #1, Logic-C #1 |
-| 1.2 | Replace `_timeRemaining()` in OSD → `'${DurationFormatter.humanShort(remaining)} left'` | `osd_mini_guide.dart` | Dedup-B #2, Logic-C #4 |
-| 1.3 | Replace inline `positionMs/durationMs` → `entry.progress` at 8 call sites | `continue_watching_section.dart`, `cross_device_section.dart`, `episode_playback_helper.dart`, `watch_history_service.dart` (×2), `start_media_server_playback_use_case.dart`, `vod_details_screen.dart`, `home_providers.dart` | Logic-A #15, Logic-C #6 |
-| 1.4 | Replace `_formatDate` YYYY-MM-DD → `formatYMD(dt)` from `date_format_utils.dart` | `recording_search_delegate.dart` | Dedup-B #11, Logic-C #5c |
-| 1.5 | Replace inline `padLeft(2,'0')` HH:mm → `formatHHmm`/`formatHHmmLocal` | `epg_program_block.dart`, `sync_status_indicator.dart` (also fixes hours zero-pad bug), `epg_reminder_sheet.dart` | Dedup-B #2, Logic-C #5a/b/d |
-| 1.6 | Replace `_formatDate` relative → `formatRelativeTime` | `profile_watch_history_screen.dart` | Dedup-B #3, Logic-A #14 |
-| 1.7 | Use existing `CrispyColors.vignetteStart/End` in plex_home_screen, `CrispyColors.netflixRed` in profile_constants, `AccentColor.blue.color` in theme_provider | `plex_home_screen.dart`, `profile_constants.dart`, `theme_provider.dart` | Dedup-D #1B/1D/1E |
-| 1.8 | Use `OsdIconButton` or extract `osdButtonStyle()` in 5 player overlay files | `audio_equalizer_overlay.dart`, `bookmark_overlay.dart`, `player_queue_overlay.dart`, `osd_ab_loop_button.dart`, `osd_center_controls.dart` | Dedup-D #6 |
-| 1.9 | Use `CrispyAnimation.normal` for `Duration(ms:300)` (2 files), `CrispyAnimation.osdAutoHide` for `Duration(seconds:4)` (2 files) | `channel_tv_layout.dart`, `channel_list_screen.dart`, `home_sections.dart`, `media_server_browser_screen.dart` | Dedup-D #5C/5F |
-| 1.10 | Replace `'iptv_vod'`/`'iptv_epg'` literals → `SearchContentSource` constants | `enhanced_search_result_card.dart`, `search_repository_impl.dart` | Dedup-D #4A |
-
-**Gate:** `flutter test && flutter analyze && cd rust && cargo clippy --workspace -- -D warnings`
+**Gate:** `cd rust && cargo test` + `cd rust && cargo clippy --workspace -- -D warnings` + `dart analyze lib/ test/` + `flutter test`
 
 **Agent Dispatch:**
-- Tasks {1.1, 1.2}: 1 agent (VOD + player widgets, no overlap)
-- Tasks {1.3}: 1 agent (8 files, all `entry.progress` replacements)
-- Tasks {1.4, 1.5, 1.6}: 1 agent (date formatting across features)
-- Tasks {1.7, 1.9}: 1 agent (token/constant replacements)
-- Tasks {1.8}: 1 agent (OSD button style consolidation)
-- Task {1.10}: 1 agent (search constants)
-- Total: 6 agents, background-safe, all parallel (no file overlap)
+- Tasks {1.1, 1.2, 1.3}: 1 agent (overlapping theme/constant files)
+- Tasks {1.4, 1.5}: 1 agent (overlapping FFI files)
+- Task {1.6}: 1 agent (independent)
+- Total: 3 agents, parallel
+
+| # | Task | Source | Files | Savings | Status |
+|---|------|--------|-------|---------|--------|
+| 1.1 | Merge `EpgVideoPreview` + `ChannelVideoPreview` → shared widget | Dedup G1 | `epg_video_preview.dart`, `channel_video_preview.dart`, `core/widgets/` | ~100 lines | [ ] |
+| 1.2 | Redirect `formatBytes` clones to `format_utils.dart` | Dedup G2 | `file_metadata_sheet.dart`, `cloud_file_grid.dart`, `recording.dart`, `dvr_state.dart`, `network_diagnostics_settings.dart`, `storage_breakdown.dart` | ~40 lines | [ ] |
+| 1.3 | Unify accent color palette (`kProfileAccentColors` → `AccentColorValues`) | Dedup G3 | `accent_color.dart`, `profile_constants.dart` | ~12 lines | [ ] |
+| 1.4 | Extract `_decodeJsonList` / `_decodeMap` helper for FFI backend | Dedup G16 | `ffi_backend_*.dart` (6 files) | ~20 lines | [ ] |
+| 1.5 | Extract `_countFromResult` helper for WsBackend | Dedup G16 | `ws_backend_*.dart` (5 files) | ~10 lines | [ ] |
+| 1.6 | Delete Dart `extractSortedGroups`, redirect to FFI | Dedup G12 | `channel_utils.dart`, `channel_providers.dart`, `playlist_sync_helpers.dart` | ~35 lines | [ ] |
+
+**Sprint 1 total: ~217 lines** | Commit: (pending)
 
 ---
 
-## Sprint 2 — New Shared Components & Token Additions
+## Sprint 2 — Shared Dart Widgets & Helpers
 
-**Risk:** Low — new shared component + caller updates. Tests exist for callers.
+**Goal:** Extract shared UI components to eliminate copy-paste patterns.
 
-| # | Task | Files | Source |
-|---|------|-------|-------|
-| 2.1 | Add `LoadingStateWidget` to `lib/core/widgets/`, replace 26 `Center(child: CircularProgressIndicator())` sites | `lib/core/widgets/loading_state_widget.dart` (new) + 20 feature files | Dedup-A #7 |
-| 2.2 | Replace 6 bare `error: (e, _) => Center(child: Text('Error: $e'))` → `ErrorStateWidget` | 6 feature files | Dedup-A #8 |
-| 2.3 | Add `CrispyColors.statusGood/statusWarn/statusError` tokens; replace hardcoded hex in 3 files | `crispy_colors.dart`, `vod_source_picker.dart`, `add_profile_dialog.dart`, `settings_shared_widgets.dart` | Dedup-D #1A |
-| 2.4 | Add `CrispyColors.highlightAmber` token; replace `Colors.amber` in 4 files | `crispy_colors.dart`, `osd_bottom_bar.dart`, `osd_ab_loop_button.dart`, `category_dropdown.dart`, `favorite_star_overlay.dart` | Dedup-D #1F |
-| 2.5 | Add `CrispyAnimation.snackBarDuration` (2s), `.toastDuration` (3s), `.heroAdvanceInterval` (8s); replace inline durations | `crispy_animation.dart` (or equivalent token file) + 15+ feature files | Dedup-D #5A/5B/5D |
-| 2.6 | Add `dartIsHashedPin` + `dartSanitizeFilename` + `dartGuessLogoDomains` to `dart_algorithm_fallbacks.dart`; redirect 6 callers | `dart_algorithm_fallbacks.dart`, `ws_backend_algorithms.dart`, `memory_backend_sync.dart`, `ws_backend_dvr.dart`, `memory_backend_algo_core.dart`, `ws_backend_settings.dart` | Dedup-B #6/7/12 |
-| 2.7 | Extract `MediaTypeIconHelper.iconFor(MediaType)` → `lib/core/utils/`; redirect 4 call sites | New `media_type_icons.dart` + `enhanced_search_result_card.dart`, `grouped_results_list.dart`, `profile_watch_history_screen.dart`, `emby_my_media_section.dart` | Dedup-D #7 |
-| 2.8 | Replace manual `Timer` debounce → `Debouncer` utility in 3 files | `channel_list_screen.dart`, `channel_tv_layout.dart`, `search_providers.dart` | Logic-C #10 |
-| 2.9 | Replace `EdgeInsets.all(4)` → `CrispySpacing.xs` (2 files), `vertical: 2` → `CrispySpacing.xxs` (1 file) | `generated_placeholder.dart`, `continue_watching_section.dart`, `settings_shared_widgets.dart` | Dedup-D #2A/2C |
-
-**Gate:** `flutter test && flutter analyze`
+**Gate:** `dart analyze lib/ test/` + `flutter test`
 
 **Agent Dispatch:**
-- Tasks {2.1, 2.2}: 1 agent (loading/error widget extraction — touches many files but single concern)
-- Tasks {2.3, 2.4, 2.5, 2.9}: 1 agent (all token additions to `crispy_colors.dart`/`crispy_animation.dart` + replacements)
-- Task {2.6}: 1 agent (backend fallback consolidation, 6 data-layer files)
-- Tasks {2.7, 2.8}: 1 agent (utility extractions)
-- Total: 4 agents, background-safe, all parallel
+- Tasks {2.1, 2.2}: 1 agent (widget extractions)
+- Tasks {2.3, 2.4}: 1 agent (dialog/section patterns)
+- Task {2.5}: 1 agent (independent)
+- Total: 3 agents, parallel
+
+| # | Task | Source | Files | Savings | Status |
+|---|------|--------|-------|---------|--------|
+| 2.1 | Create `ErrorStateWidget` to unify `.when()` error arms | Dedup G5, G10 | 9+ screens, `core/widgets/` | ~30 lines | [ ] |
+| 2.2 | Create `AsyncFilledButton` to replace 15 inline spinners | Dedup G6 | 15 files, `core/widgets/` | ~60 lines | [ ] |
+| 2.3 | Extract `SourceDialogActions` from 3 source-add dialogs | Dedup G4 | `source_add_dialogs.dart`, `source_portal_dialogs.dart` | ~45 lines | [ ] |
+| 2.4 | Extract `asyncSliverSection` helper for Emby/Jellyfin/VOD | Dedup G7 | 4 files | ~50 lines | [ ] |
+| 2.5 | Redirect `padLeft` time formatting to `date_format_utils.dart` | Dedup G11 | 6 files | ~25 lines | [ ] |
+
+**Sprint 2 total: ~210 lines** | Commit: (pending)
 
 ---
 
-## Sprint 3 — Pure Function Extractions from Presentation
+## Sprint 3 — Rust Internal: Constants + JSON Helpers
 
-**Risk:** Low — extracting pure functions from presentation to domain/utils.
-Functions have zero framework dependencies. Tests should be added for each.
+**Goal:** Clean up Rust internals — extract shared helpers, name constants, unify thresholds.
 
-| # | Task | From → To | Lines | Source |
-|---|------|-----------|-------|-------|
-| 3.1 | Extract `_sorted(channels, FavoritesSort)` | `favorites_recently_watched.dart` → `favorites/domain/utils/favorites_sort.dart` | 22 | Logic-A #4 |
-| 3.2 | Extract `dynamicSectionLabel` | `home_sections.dart` → `home/domain/utils/home_utils.dart` | 25 | Logic-A #5 |
-| 3.3 | Extract `resolveNextEpisodes` | `home_providers.dart` → `vod/domain/utils/episode_utils.dart` | 65 | Logic-A #6 |
-| 3.4 | Extract `ProfileViewingStats.compute` + `_mediaTypeToGenreLabel` | `profile_viewing_stats_tile.dart` → `profiles/domain/utils/profile_stats.dart` | 65 | Logic-A #7 |
-| 3.5 | Extract `_filter` recording search | `recording_search_delegate.dart` → `dvr/domain/utils/recording_search.dart` | 18 | Logic-A #8 |
-| 3.6 | Extract `_episodeCountBySeason` + `_upNextIndex` | `series_episodes_tab.dart` → `vod/domain/utils/episode_utils.dart` | 16 | Logic-A #9/10 |
-| 3.7 | Extract `_segmentLabel` | `skip_segment_button.dart` → `player/domain/utils/skip_segment_utils.dart` | 8 | Logic-A #12 |
-| 3.8 | Extract `_embyAuthHeader` + `_toServerType` | `media_server_providers.dart` → `media_servers/shared/utils/` | 9 | Logic-A #11 |
-| 3.9 | Add `_ratingLabel` as `displayLabel` getter on `ContentRatingLevel` | `add_profile_dialog.dart` → `parental/domain/content_rating.dart` | 4 | Logic-A #13 |
-| 3.10 | Add `formatTimeRemaining(Duration)` to `date_format_utils.dart`; redirect `favorites_continue_watching.dart` + `osd_mini_guide.dart` | 2 files → `date_format_utils.dart` | 9 | Logic-A #2 |
-
-**Gate:** `flutter test && flutter analyze`
+**Gate:** `cd rust && cargo test` + `cd rust && cargo clippy --workspace -- -D warnings` + `flutter test`
 
 **Agent Dispatch:**
-- Tasks {3.1, 3.5}: 1 agent (favorites + DVR domain utils — no overlap)
-- Tasks {3.2, 3.3, 3.6}: 1 agent (home/VOD episode utils — `episode_utils.dart` shared)
-- Tasks {3.4, 3.9}: 1 agent (profiles domain — no overlap)
-- Tasks {3.7, 3.8, 3.10}: 1 agent (player + media_servers + core utils — no overlap)
-- Total: 4 agents, background-safe, all parallel
+- Tasks {3.1, 3.2, 3.3}: 1 agent (Rust algorithms)
+- Tasks {3.4, 3.5}: 1 agent (Rust + Dart threshold alignment)
+- Total: 2 agents, parallel
+
+| # | Task | Source | Files | Savings | Status |
+|---|------|--------|-------|---------|--------|
+| 3.1 | Extract `parse_json_vec<T>` helper from 9 algorithm functions | Dedup G15 | `vod_sorting/*.rs`, `watch_progress.rs`, `source_filter.rs`, `dvr.rs` | ~30 lines | [ ] |
+| 3.2 | Replace raw `0.95` in `recommendations/mod.rs` tests with `COMPLETION_THRESHOLD` | Logic #8 | `recommendations/mod.rs`, `watch_progress.rs` | ~5 lines | [ ] |
+| 3.3 | Add `NEXT_EPISODE_THRESHOLD` constant, name table string constants | Logic #8 | `watch_progress.rs`, `recommendations/sections.rs`, `database/mod.rs`, services | ~10 lines | [ ] |
+| 3.4 | Expose Rust thresholds via FFI sync functions | Logic #8 | `crispy-ffi/src/api/algorithms.rs`, `crispy_backend.dart` | +20 lines (new FFI) | [ ] |
+| 3.5 | Fix Dart threshold inconsistency (0.90 vs 0.95) — align all callers | Logic #8 | `favorites_history_service.dart`, `favorites_up_next.dart`, `episode_utils.dart`, `constants.dart` | ~10 lines | [ ] |
+
+**Sprint 3 total: ~75 lines saved + threshold bug fix** | Commit: (pending)
 
 ---
 
-## Sprint 4 — Shared Widget Extractions & Schema Fixes
+## Sprint 4 — Rust Migration: Channel + VOD Algorithms
 
-**Risk:** Medium — new shared widgets, behavioral parameterization required.
+**Goal:** Move channel filter/sort pipeline and VOD utilities to Rust.
 
-| # | Task | Files | Source |
-|---|------|-------|-------|
-| 4.1 | Merge `_PlexNotConnected` + `_NotConnectedState` → shared `NotConnectedWidget` | `plex_home_screen.dart`, `media_server_home_screen.dart`, new `not_connected_widget.dart` | Dedup-A #1 |
-| 4.2 | Extract `ContinueWatchingMerger` (merge+dedup+sort CW providers) — used by `ContinueWatchingTab`, `UpNextTab`, `HomeContinueWatchingSection` | `favorites_continue_watching.dart`, `favorites_up_next.dart`, `home_sections.dart` → shared util | Dedup-A #3, Logic-B #3.2 |
-| 4.3 | Unify `_buildList` responsive ListView/GridView from favorites tabs | `favorites_continue_watching.dart`, `favorites_recently_watched.dart` → shared `FavoritesList` widget | Dedup-A #4 |
-| 4.4 | Unify `VodMoviesGrid`/`SeriesMoviesGrid` SliverGrid scaffolding → parameterized `MediaGrid` | `vod_movies_grid.dart`, `series_movies_grid.dart` | Dedup-A #5 |
-| 4.5 | Extract `VodBrowserShell` for loading/error/empty guard triad | `vod_browser_screen.dart`, `series_browser_screen.dart` | Dedup-A #2 |
-| 4.6 | Consolidate `recordingToMap` divergence — unify datetime format (`_toNaiveDateTime` everywhere) | `cache_service_dvr.dart`, `dvr_state.dart` | Dedup-C #1 |
-| 4.7 | Fix `sync_status_indicator.dart` hours zero-padding bug (use `formatHHmmLocal`) | `sync_status_indicator.dart` | Logic-C #5b (bug) |
-
-**Gate:** `flutter test && flutter analyze && cd rust && cargo test`
+**Gate:** `cd rust && cargo test` + `cd rust && cargo clippy --workspace -- -D warnings` + `dart analyze lib/ test/` + `flutter test`
 
 **Agent Dispatch:**
-- Tasks {4.1}: 1 agent (media server widget merge)
-- Tasks {4.2, 4.3}: 1 agent (favorites shared utils + widget — same files)
-- Tasks {4.4, 4.5}: 1 agent (VOD grid + browser shell — related)
-- Tasks {4.6}: 1 agent (DVR schema fix — data layer)
-- Task {4.7}: Trivial — include in Sprint 1 instead if convenient
-- Total: 4 agents, background-safe
+- Task {4.1}: 1 agent (largest — Rust + Dart, sequential)
+- Tasks {4.2, 4.3}: 1 agent (overlapping vod_sorting module)
+- Tasks {4.4, 4.5}: 1 agent (overlapping FFI + backend)
+- Total: 3 agents, first sequential, then 2 parallel
+
+| # | Task | Source | Files | Savings | Status |
+|---|------|--------|-------|---------|--------|
+| 4.1 | Migrate `filterAndSortChannels` to Rust `algorithms/sorting.rs` | Logic #1 | `sorting.rs` + FFI + `channel_list_state.dart` | ~118 lines | [ ] |
+| 4.2 | Migrate `filterRecentlyAdded` to Rust `vod_sorting/filter.rs` | Logic #10 | `filter.rs` + FFI + `vod_utils.dart` + providers | ~20 lines | [ ] |
+| 4.3 | Align `top10Vod` with Rust `filter_top_vod`, redirect callers | Dedup G13 + Logic #10 | `filter.rs` + `vod_utils.dart` + `home_providers.dart` | ~30 lines | [ ] |
+| 4.4 | Migrate `sortFavorites` to Rust | Logic #11 | `sorting.rs` + FFI + `favorites_sort_utils.dart` | ~33 lines | [ ] |
+| 4.5 | Migrate `sortCategoriesWithFavorites` + `_buildTypeCategories` | Logic #15, #17 | `categories.rs` + FFI + providers | ~25 lines | [ ] |
+
+**Sprint 4 total: ~226 lines** | Commit: (pending)
 
 ---
 
-## Sprint 5 — State-Coupled Logic Extractions
+## Sprint 5 — Rust Migration: Watch History + Profiles
 
-**Risk:** Medium — logic tightly bound to Riverpod state; partial extraction.
+**Goal:** Move watch-history algorithms and profile statistics to Rust.
 
-| # | Task | Files | Source |
-|---|------|-------|-------|
-| 5.1 | Extract `filterByContentRating(items, ratingLevel)` from `filteredVodProvider` → `vod/domain/utils/vod_utils.dart` | `vod_providers.dart` | Logic-B #2.4 |
-| 5.2 | Extract `filterEpgChannels` from `EpgState.filteredChannels` → pure function | `epg_providers.dart` | Logic-B #3.5 |
-| 5.3 | Extract `EpgReminder` class to `iptv/domain/entities/` with clock-injectable `isDue(now)` | `epg_reminder_sheet.dart` → `iptv/domain/entities/epg_reminder.dart` | Logic-B #1.2 |
-| 5.4 | Unify `_kTrailerDelay` — `vod_hero_banner.dart` (3s) vs `vod_featured_hero.dart` (2s) — pick one or make configurable | `vod_hero_banner.dart`, `vod_featured_hero.dart` | Dedup-D #5E |
-| 5.5 | Extract `decodeEpisodeProgressMap(String json) → Map<String,double>` from `episodeProgressMapProvider` | `vod_providers.dart` | Logic-B #6.2 |
-
-**Gate:** `flutter test && flutter analyze`
+**Gate:** `cd rust && cargo test` + `cd rust && cargo clippy --workspace -- -D warnings` + `flutter test`
 
 **Agent Dispatch:**
-- Tasks {5.1, 5.2, 5.5}: 1 agent (VOD + EPG provider extractions — shared `vod_providers.dart`)
-- Tasks {5.3}: 1 agent (EPG reminder domain extraction)
-- Task {5.4}: 1 agent (VOD hero constants)
-- Total: 3 agents, background-safe
+- Tasks {5.1, 5.2}: 1 agent (watch_history.rs module)
+- Tasks {5.3, 5.4}: 1 agent (overlapping FFI + backend files)
+- Task {5.5}: 1 agent (independent)
+- Total: 3 agents, parallel
+
+| # | Task | Source | Files | Savings | Status |
+|---|------|--------|-------|---------|--------|
+| 5.1 | Migrate `computeWatchStreak` to Rust `watch_history.rs` | Logic #4 | `watch_history.rs` + FFI + `watch_streak.dart` | ~40 lines | [ ] |
+| 5.2 | Migrate `ProfileViewingStats.compute` to Rust | Logic #4 | `watch_history.rs` + FFI + `profile_stats.dart` | ~97 lines | [ ] |
+| 5.3 | Migrate `mergeDedupSort` + `filterByCwStatus` to Rust | Logic #7 | `watch_history.rs` + FFI + `cw_filter_utils.dart` | ~68 lines | [ ] |
+| 5.4 | Migrate `seriesIdsWithNewEpisodes` + `countInProgressEpisodes` | Logic #9 | `watch_history.rs` or `dvr.rs` + FFI + `dvr_payload.dart` | ~71 lines | [ ] |
+| 5.5 | Consolidate `parseRating` in Dart (shared helper for MemoryBackend) | Dedup G14 | `vod_utils.dart`, `memory_backend_algo_vod.dart`, `memory_backend_reco_*.dart` | ~25 lines | [ ] |
+
+**Sprint 5 total: ~301 lines** | Commit: (pending)
 
 ---
 
-## Sprint 6 — Doc Sync
+## Sprint 6 — Rust Migration: EPG + DVR + Search
 
-| # | Task |
-|---|------|
-| 6.1 | Update all tracking docs: `PROGRESS.md`, `TASKS.md`, `EXECUTION_STATE.md`, `GLOBAL_PROGRESS.md`, `.ai/docs/` as needed |
+**Goal:** Move EPG, DVR, and search algorithms to Rust.
+
+**Gate:** `cd rust && cargo test` + `cd rust && cargo clippy --workspace -- -D warnings` + `flutter test`
+
+**Agent Dispatch:**
+- Tasks {6.1, 6.2}: 1 agent (epg_matching.rs module)
+- Tasks {6.3, 6.4}: 1 agent (dvr.rs + search.rs)
+- Task {6.5}: 1 agent (independent)
+- Total: 3 agents, parallel
+
+| # | Task | Source | Files | Savings | Status |
+|---|------|--------|-------|---------|--------|
+| 6.1 | Migrate `filterUpcomingPrograms` to Rust `epg_matching.rs` | Logic #5 | `epg_matching.rs` + FFI + `upcoming_programs.dart` | ~23 lines | [ ] |
+| 6.2 | Migrate `channelIdsWithMatchingLiveProgram` to Rust `search.rs` | Logic #6 | `search.rs` + FFI + `epg_search.dart` | ~61 lines | [ ] |
+| 6.3 | Migrate `computeStorageBreakdown` to Rust `dvr.rs` | Logic #3 | `dvr.rs` + FFI + `storage_breakdown.dart` | ~70 lines | [ ] |
+| 6.4 | Migrate `filterRecordings` + `matchesFilter`/`sortFiles` | Logic #12, #13 | `dvr.rs` + `search.rs` + FFI + `file_filter.dart` + `recording_search.dart` | ~140 lines | [ ] |
+| 6.5 | Migrate `buildSearchCategories` to Rust `categories.rs` | Logic #14 | `categories.rs` + FFI + `search_categories.dart` | ~25 lines | [ ] |
+
+**Sprint 6 total: ~319 lines** | Commit: (pending)
+
+---
+
+## Sprint 7 — Rust Migration: Complex Algorithms
+
+**Goal:** Move the most complex remaining algorithms to Rust.
+
+**Gate:** `cd rust && cargo test` + `cd rust && cargo clippy --workspace -- -D warnings` + `flutter test`
+
+**Agent Dispatch:**
+- Task {7.1}: 1 agent (complex, sequential)
+- Tasks {7.2, 7.3}: 1 agent (parallel, simpler)
+- Task {7.4}: 1 agent (independent)
+- Total: 3 agents (7.1 first, then {7.2, 7.3, 7.4} parallel)
+
+| # | Task | Source | Files | Savings | Status |
+|---|------|--------|-------|---------|--------|
+| 7.1 | Migrate `resolveNextEpisodes` to Rust | Logic #2 | New module or `watch_history.rs` + FFI + `episode_utils.dart` | ~65 lines | [ ] |
+| 7.2 | Migrate `vodSimilarItems` (same-category reco) to Rust | Logic #18 | `vod_sorting/` + FFI + `vod_providers.dart` | ~8 lines | [ ] |
+| 7.3 | Migrate `episodeCountBySeason` + `_badgeKind` | Logic #22, #23 | `vod_sorting/` + FFI + `episode_utils.dart` + widget | ~22 lines | [ ] |
+| 7.4 | Migrate `isLockActive`/`lockRemaining` to Rust `pin.rs` | Logic #21 | `pin.rs` + FFI + `pin_lockout.dart` | ~20 lines | [ ] |
+
+**Sprint 7 total: ~115 lines** | Commit: (pending)
+
+---
+
+## Final Sprint — Cleanup & Validation
+
+**Goal:** Confirm zero issues, update all docs, write memory notes.
+
+| # | Task | Status |
+|---|------|--------|
+| F.1 | Run full Rust test suite — confirm all pass | [ ] |
+| F.2 | Run `flutter test` — confirm all pass | [ ] |
+| F.3 | Run `dart analyze lib/ test/` — confirm 0 issues | [ ] |
+| F.4 | Run formatters (`cargo fmt`, `dart format`) | [ ] |
+| F.5 | Update dedup report — mark completed groups | [ ] |
+| F.6 | Update logic report — mark completed candidates | [ ] |
+| F.7 | Update project memory | [ ] |
+
+---
+
+## Progress Summary
+
+| Sprint | Scope | Lines Saved | Items Done | Status |
+|--------|-------|------------|------------|--------|
+| 1 | Zero-risk dedup | ~217 | 0/6 | [ ] |
+| 2 | Shared widgets | ~210 | 0/5 | [ ] |
+| 3 | Rust constants | ~75 | 0/5 | [ ] |
+| 4 | Channel+VOD→Rust | ~226 | 0/5 | [ ] |
+| 5 | History+Profile→Rust | ~301 | 0/5 | [ ] |
+| 6 | EPG+DVR+Search→Rust | ~319 | 0/5 | [ ] |
+| 7 | Complex→Rust | ~115 | 0/4 | [ ] |
+| **Total** | | **~1,463** | **0/35** | |
 
 ---
 
 ## Decision Log
 
-| # | Decision | Rationale |
-|---|----------|-----------|
-| D1 | Zero-risk redirects first (Sprint 1) | Unlocks cleaner codebase for subsequent extractions; no behavioral change possible |
-| D2 | `DurationFormatter.humanShort` preferred over Rust `formatDurationMinutes` for widget-level formatting | Avoids async bridge overhead; Dart util already exists and matches widget expectations (omits trailing "0m") |
-| D3 | `_formatSize` stays in Sprint 1 only if `formatBytes` handles zero/negative; otherwise Sprint 4 with behavioral fix | Behavioral difference in edge cases |
-| D4 | `ContentRatingLevel.fromString` in Dart NOT deleted (parallel to Rust intentionally) | Dart domain type serves UI/profile management; Rust handles bulk backend filtering |
-| D5 | `_defaultChannelSort` in Dart NOT deleted (richer client-side sort pipeline) | Rust `sort_channels` lacks multi-sort mode support (byWatchTime, manual order, etc.) |
-| D6 | `copyWith` boilerplate NOT addressed (340 lines across 11 entities) | Structural cost of non-generated Dart; would require `freezed` adoption which is out of scope |
-| D7 | `@JsonSerializable` media server models NOT addressed | Already code-generated; no manual duplication |
-| D8 | SavedStream/KeywordRule camelCase JSON keys NOT changed | Low risk of breakage vs. minimal benefit; note inconsistency for future migration |
-| D9 | `formatPlaybackDuration(posMs, posMs)` pattern in thumbnail/OSD kept as-is | Likely intentional for compact timestamp display; not a clear bug |
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2026-03-05 | Dedup before logic migration | Zero-risk wins unblock cleaner extractions |
+| 2026-03-05 | Rust internals Sprint 3 before migrations Sprint 4+ | JSON helper and constants are prerequisites |
+| 2026-03-05 | Threshold unification early (Sprint 3) | Fixes a real bug (0.90 vs 0.95 inconsistency) |
+| 2026-03-05 | filterAndSortChannels first Rust migration | Highest impact: 118 lines, runs on every state mutation |
+| 2026-03-05 | resolveNextEpisodes last (Sprint 7) | Most complex, needs careful SQL join design |
+| 2026-03-05 | MemoryBackend fallbacks stay in Dart | Intentional design — Dart mirrors for WsBackend/test sync paths |
 
-## Stay-in-Place Exclusions
+---
 
-| # | File | What | Why Stay |
-|---|------|------|----------|
-| E1 | `channel_list_state.dart` | `_defaultChannelSort` | Client-side multi-sort pipeline; Rust lacks these modes |
-| E2 | `content_rating.dart` | `ContentRatingLevel.fromString` | Intentional dual representation (Dart domain type + Rust i32) |
-| E3 | `vod_providers.dart` | `VodState._buildCategoryMap` | Builds per-category item map that Rust doesn't provide |
-| E4 | All `@JsonSerializable` models | Generated fromJson/toJson | Code-generated, not manual duplication |
-| E5 | `cache_service_*.dart` | 10+ `_mapTo*`/`*ToMap` pairs | Necessary serialization layer; uniform boilerplate, not extractable |
-| E6 | All `copyWith` methods | Domain entity boilerplate (340 lines) | Requires `freezed` adoption (out of scope) |
-| E7 | `normalizeServerUrl` in `url_utils.dart` | Different from `normalizeApiBaseUrl` (keeps path vs strips) | Distinct operations, not true duplicates |
+## References
 
-## Progress Summary
-
-| Sprint | Planned | Done | Blocked | Notes |
-|--------|---------|------|---------|-------|
-| 1 | 10 | 10 | 0 | 1849 tests, gate pass |
-| 2 | 9 | 9 | 0 | 1849 tests, gate pass |
-| 3 | 10 | 10 | 0 | 1937 tests (+88), gate pass |
-| 4 | 7 | 7 | 0 | 1947 tests (+10), gate pass |
-| 5 | 5 | 5 | 0 | 1982 tests (+35), gate pass |
-| 6 | 1 | 1 | 0 | Doc sync complete |
+- [Dedup Report](docs/dedup_report.md)
+- [Logic Migration Candidates](docs/logic_migration_candidates.md)

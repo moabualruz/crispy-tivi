@@ -5,7 +5,7 @@ import * as fs from "fs";
 /**
  * Manual QA crawl using coordinate-based clicking.
  *
- * Flutter CanvasKit renders everything into a <canvas>,
+ * Flutter web renders everything into a <flutter-view>,
  * so ARIA selectors don't work in release builds.
  * This test uses pixel coordinates determined from the
  * app's responsive layout.
@@ -109,7 +109,7 @@ test.describe("Manual QA Crawl", () => {
     // ── Load ────────────────────────────────────
     log("=== LOAD ===");
     await page.goto("/");
-    await page.waitForSelector("canvas", {
+    await page.waitForSelector("flutter-view", {
       timeout: 30_000,
     });
     // Wait for Flutter to render

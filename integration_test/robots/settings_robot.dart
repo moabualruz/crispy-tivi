@@ -20,16 +20,39 @@ class SettingsRobot {
     matching: find.byType(SwitchListTile),
   );
 
+  /// Scrolls the settings content area until [finder] becomes
+  /// visible. Uses [dragUntilVisible] which works regardless of
+  /// how many Scrollable widgets exist on-screen (side nav, tabs,
+  /// settings content).
+  Future<void> _scrollIntoView(Finder finder) async {
+    await tester.dragUntilVisible(
+      finder,
+      settingsScreen,
+      const Offset(0, -200),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+  }
+
   /// Returns the current value of a [SwitchListTile].
-  bool getSwitchValue(String title) {
-    final widget = tester.widget<SwitchListTile>(switchTile(title));
-    return widget.value;
+  ///
+  /// Scrolls the tile into view first because the settings list is
+  /// lazy and may not build off-screen items on short viewports
+  /// (e.g. landscape phones at 411dp height).
+  Future<bool> getSwitchValue(String title) async {
+    final finder = switchTile(title);
+    await _scrollIntoView(finder);
+    return tester.widget<SwitchListTile>(finder).value;
   }
 
   /// Taps a [SwitchListTile] to toggle it.
+  ///
+  /// Scrolls the tile into view first. An extra pump after
+  /// scrolling lets the scroll animation settle so the tap offset
+  /// is accurate.
   Future<void> toggleSwitch(String title) async {
-    await tester.ensureVisible(switchTile(title));
-    await tester.tap(switchTile(title));
+    final finder = switchTile(title);
+    await _scrollIntoView(finder);
+    await tester.tap(finder);
     await tester.pump(const Duration(milliseconds: 300));
   }
 

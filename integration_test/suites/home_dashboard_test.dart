@@ -16,9 +16,7 @@ void main() {
   tearDownAll(() => FfiTestHelper.cleanup());
 
   group('Home Dashboard Suite', () {
-    testWidgets('App shell renders home screen', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('App shell renders home screen', (WidgetTester tester) async {
       await FfiTestHelper.ensureRustInitialized();
       app.main();
       await tester.pump(const Duration(milliseconds: 500));

@@ -4,8 +4,8 @@ import * as fs from 'fs';
 
 // ─── Selector Architecture ───────────────────────────────────
 //
-// Flutter web (CanvasKit renderer) draws all UI into a <canvas>
-// element. DOM-based selectors (CSS, XPath) cannot reach widget
+// Flutter web renders all UI into a <flutter-view> element.
+// DOM-based selectors (CSS, XPath) cannot reach widget
 // content directly. Playwright accesses the app through Flutter's
 // semantics overlay — a parallel invisible DOM tree that mirrors
 // the widget tree with ARIA attributes.
@@ -107,10 +107,10 @@ export const BREAKPOINTS = {
 /**
  * Wait for the Flutter web app to finish rendering.
  *
- * Flutter CanvasKit renders to a `<canvas>` element. This
+ * Flutter web renders to a `<flutter-view>` element. This
  * function waits for:
  * 1. DOM content loaded
- * 2. Canvas element visible (CanvasKit initialized)
+ * 2. flutter-view element visible (Flutter initialized)
  * 3. Additional settle time for widget tree rendering
  * 4. Semantics overlay activation (if available)
  *
@@ -124,10 +124,10 @@ export async function waitForFlutterReady(
   // because Flutter web continuously fetches fonts/WASM.
   await page.waitForLoadState('domcontentloaded');
 
-  // Wait for Flutter's CanvasKit to create the <canvas>.
+  // Wait for Flutter to create the <flutter-view>.
   // Large viewports (e.g. 1920×1080 TV) render more widgets
-  // and need extra time for CanvasKit to initialize.
-  await page.waitForSelector('canvas', { timeout: 30_000 });
+  // and need extra time for Flutter to initialize.
+  await page.waitForSelector('flutter-view', { timeout: 30_000 });
 
   // Allow time for the widget tree to render and settle.
   // Flutter web startup involves deferred loading, font
@@ -142,7 +142,7 @@ export async function waitForFlutterReady(
   // provides an "Enable accessibility" button that, when
   // clicked, creates a DOM-based semantics tree with ARIA
   // roles and labels. Without this, all content is trapped
-  // inside the <canvas> and invisible to Playwright.
+  // inside the <flutter-view> and invisible to Playwright.
   await enableSemanticsOverlay(page);
 }
 

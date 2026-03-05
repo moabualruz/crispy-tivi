@@ -85,8 +85,7 @@ abstract class FfiTestHelper {
     try {
       final localFile = File('$dir/test_creds.local.json');
       if (localFile.existsSync()) {
-        return jsonDecode(localFile.readAsStringSync())
-            as Map<String, dynamic>;
+        return jsonDecode(localFile.readAsStringSync()) as Map<String, dynamic>;
       }
       final fallbackFile = File('$dir/test_creds.json');
       if (fallbackFile.existsSync()) {

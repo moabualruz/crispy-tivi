@@ -14,7 +14,7 @@ import {
  * - compact/medium (< 840dp): Bottom NavigationBar
  * - expanded/large (>= 840dp): Side NavigationRail
  *
- * Flutter CanvasKit renders to <canvas>, so we cannot inspect
+ * Flutter web renders to <flutter-view>, so we cannot inspect
  * DOM-based nav components. Instead, we use:
  * 1. Semantics/ARIA queries for nav elements
  * 2. Screenshot-based visual verification
@@ -76,11 +76,11 @@ test.describe('Responsive Layout', () => {
       // element occupying the left edge of the screen.
       // At compact viewport, the content should span the
       // full width.
-      const canvas = page.locator('canvas');
-      const canvasBox = await canvas.first().boundingBox();
-      expect(canvasBox).not.toBeNull();
-      // Canvas should start near x=0 (no side rail).
-      expect(canvasBox!.x).toBeLessThan(10);
+      const flutterView = page.locator('flutter-view');
+      const flutterViewBox = await flutterView.first().boundingBox();
+      expect(flutterViewBox).not.toBeNull();
+      // flutter-view should start near x=0 (no side rail).
+      expect(flutterViewBox!.x).toBeLessThan(10);
     },
   );
 
@@ -137,18 +137,18 @@ test.describe('Responsive Layout', () => {
         `responsive-overview-${projectName}`,
       );
 
-      // Verify the canvas is rendered at the expected size.
+      // Verify the flutter-view is rendered at the expected size.
       const viewport = page.viewportSize();
-      const canvas = page.locator('canvas');
-      const canvasBox = await canvas.first().boundingBox();
-      expect(canvasBox).not.toBeNull();
+      const flutterView = page.locator('flutter-view');
+      const flutterViewBox = await flutterView.first().boundingBox();
+      expect(flutterViewBox).not.toBeNull();
 
       if (viewport) {
-        // Canvas should approximately fill the viewport.
-        expect(canvasBox!.width).toBeGreaterThan(
+        // flutter-view should approximately fill the viewport.
+        expect(flutterViewBox!.width).toBeGreaterThan(
           viewport.width * 0.5,
         );
-        expect(canvasBox!.height).toBeGreaterThan(
+        expect(flutterViewBox!.height).toBeGreaterThan(
           viewport.height * 0.5,
         );
       }
