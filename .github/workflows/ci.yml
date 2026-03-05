@@ -278,11 +278,22 @@ jobs:
       - name: Build Rust for macOS
         run: bash scripts/build_rust.sh macos
       - run: flutter pub get
-      - run: flutter build macos --release
+      - run: flutter build macos --release --obfuscate --split-debug-info=build/macos-symbols
+      - name: Package macOS app
+        run: |
+          ditto -c -k --keepParent \
+            build/macos/Build/Products/Release/crispy_tivi.app \
+            build/macos-release.zip
       - uses: actions/upload-artifact@v4
         with:
           name: macos-release
-          path: build/macos/Build/Products/Release/
+          path: build/macos-release.zip
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dsyms
+          path: build/macos/Build/Products/Release/**/*.dSYM
           retention-days: 7
 
   # ── Build iOS ───────────────────────────────────
@@ -402,8 +413,8 @@ jobs:
           # Android APK
           cp artifacts/android-release/app-release.apk "release/CrispyTivi-${VER}-android.apk"
 
-          # macOS
-          (cd artifacts/macos-release && zip -r "../../release/CrispyTivi-${VER}-macos.zip" .)
+          # macOS (already packaged with ditto to preserve symlinks)
+          cp artifacts/macos-release/macos-release.zip "release/CrispyTivi-${VER}-macos.zip"
 
           # Web
           (cd artifacts/web-release && zip -r "../../release/CrispyTivi-${VER}-web.zip" .)
