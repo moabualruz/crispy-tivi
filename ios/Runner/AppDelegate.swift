@@ -39,6 +39,26 @@ import AVKit
         })
     }
 
+    // Register device form factor MethodChannel
+    if let controller = window?.rootViewController as? FlutterViewController {
+        let deviceChannel = FlutterMethodChannel(name: "crispy/device", binaryMessenger: controller.binaryMessenger)
+        deviceChannel.setMethodCallHandler({ (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
+            switch call.method {
+            case "getFormFactor":
+                switch UIDevice.current.userInterfaceIdiom {
+                case .pad:
+                    result("tablet")
+                case .tv:
+                    result("tv")
+                default:
+                    result("phone")
+                }
+            default:
+                result(FlutterMethodNotImplemented)
+            }
+        })
+    }
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

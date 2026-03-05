@@ -16,6 +16,7 @@ import 'core/data/app_directories.dart';
 import 'core/navigation/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
+import 'core/utils/device_form_factor.dart';
 import 'core/utils/input_mode_notifier.dart';
 import 'core/data/cache_service.dart';
 import 'core/data/event_driven_invalidator.dart';
@@ -46,10 +47,15 @@ const String _kWinMax = 'win_max';
 
 /// Computes UI auto-scale factor for high-resolution screens.
 ///
+/// Only applies on desktop and Android TV — phones and tablets use
+/// native DPI scaling and should never be auto-scaled.
+///
 /// Below 1440px physical height: 1.0 (no scaling).
 /// 1440–2160px: linear interpolation from 1.0 to 2.0.
 /// Above 2160px: continues scaling linearly (e.g. 8K will be ~4.75).
 double computeUiAutoScale(double logicalHeight, double devicePixelRatio) {
+  if (!DeviceFormFactorService.current.supportsAutoScale) return 1.0;
+
   final physicalHeight = logicalHeight * devicePixelRatio;
 
   if (physicalHeight < 1440) {
@@ -94,6 +100,7 @@ Future<bool> _ensureSingleInstance() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await DeviceFormFactorService.init();
 
   final configString = await rootBundle.loadString(
     'assets/config/app_config.json',

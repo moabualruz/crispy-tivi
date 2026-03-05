@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:universal_io/io.dart';
 
+import 'device_form_factor.dart';
+
 /// Central registry of platform-specific feature
 /// availability.
 ///
@@ -44,4 +46,7 @@ abstract final class PlatformCapabilities {
   /// Haptic feedback.
   /// Mobile only.
   static bool get haptic => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+
+  /// True when running on an Android TV device (leanback mode).
+  static bool get isTV => DeviceFormFactorService.current.isTV;
 }

@@ -1,6 +1,8 @@
 package com.crispytivi.crispy_tivi
 
 import android.app.PictureInPictureParams
+import android.app.UiModeManager
+import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
 import android.util.Rational
@@ -35,6 +37,22 @@ class MainActivity: FlutterActivity() {
                         startActivity(intent)
                     }
                     result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "crispy/device").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getFormFactor" -> {
+                    val isLeanback = packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
+                    val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
+                    val isTvMode = uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
+                    if (isLeanback || isTvMode) {
+                        result.success("tv")
+                    } else {
+                        result.success("mobile")
+                    }
                 }
                 else -> result.notImplemented()
             }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../utils/device_form_factor.dart';
 import 'ui_auto_scale.dart';
 
 /// Breakpoints for adaptive layout decisions.
@@ -49,7 +50,11 @@ enum LayoutClass {
       this == LayoutClass.expanded || this == LayoutClass.large;
 
   /// True for TV layouts needing D-pad focus management.
-  bool get isTvLayout => this == LayoutClass.large;
+  /// Uses actual Android TV detection (leanback) in addition to the
+  /// width heuristic, so TVs at unusual resolutions still get
+  /// D-pad focus and overscan padding.
+  bool get isTvLayout =>
+      this == LayoutClass.large || DeviceFormFactorService.current.isTV;
 }
 
 /// Adaptive layout wrapper.
