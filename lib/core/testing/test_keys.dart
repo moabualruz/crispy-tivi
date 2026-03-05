@@ -76,7 +76,6 @@ abstract final class TestKeys {
   // Named interactive widgets
   // ──────────────────────────────────────────────────────────────
 
-  static const themeToggleSwitch = ValueKey('theme_toggle_switch');
   static const guestAvatar = ValueKey('guest_avatar');
   static const addProfileButton = ValueKey('add_profile_btn');
   static const playerGestureDetector = ValueKey('player_gesture_detector');

@@ -10,29 +10,34 @@ class SettingsRobot {
 
   Finder get settingsScreen => find.byKey(TestKeys.settingsScreen);
 
-  // TODO: Uncomment when dark mode toggle feature is implemented.
-  // Finder get themeToggle => find.byKey(TestKeys.themeToggleSwitch);
-
   Future<void> waitForSettings() async {
     await tester.pumpUntilFound(settingsScreen);
   }
 
-  // TODO: Re-enable when dark mode toggle feature is implemented.
-  // Future<void> toggleTheme() async {
-  //   await tester.pumpUntilFound(themeToggle);
-  //   await tester.tap(themeToggle);
-  //   // Pump to let the animation and state change finish
-  //   await tester.pump(const Duration(milliseconds: 500));
-  // }
+  /// Finds a [SwitchListTile] by its title text.
+  Finder switchTile(String title) => find.ancestor(
+    of: find.text(title),
+    matching: find.byType(SwitchListTile),
+  );
 
-  void verifyThemeBrightness(
-    ThemeData themeData,
-    Brightness expectedBrightness,
-  ) {
-    expect(
-      themeData.brightness,
-      expectedBrightness,
-      reason: 'Theme brightness should match the expected toggled state.',
-    );
+  /// Returns the current value of a [SwitchListTile].
+  bool getSwitchValue(String title) {
+    final widget = tester.widget<SwitchListTile>(switchTile(title));
+    return widget.value;
+  }
+
+  /// Taps a [SwitchListTile] to toggle it.
+  Future<void> toggleSwitch(String title) async {
+    await tester.ensureVisible(switchTile(title));
+    await tester.tap(switchTile(title));
+    await tester.pump(const Duration(milliseconds: 300));
+  }
+
+  /// Taps a settings category tab by label.
+  Future<void> tapTab(String label) async {
+    final tab = find.text(label);
+    await tester.ensureVisible(tab);
+    await tester.tap(tab);
+    await tester.pump(const Duration(milliseconds: 500));
   }
 }

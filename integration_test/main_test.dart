@@ -5,9 +5,9 @@ import 'package:integration_test/integration_test.dart';
 import 'suites/profile_onboarding_test.dart' as profile_test;
 import 'suites/navigation_shell_test.dart' as navigation_test;
 import 'suites/live_tv_media_test.dart' as live_tv_test;
-import 'suites/settings_persistence_test.dart' as settings_test;
 import 'suites/home_dashboard_test.dart' as home_test;
 import 'suites/dvr_cloud_test.dart' as dvr_test;
+import 'suites/settings_persistence_test.dart' as settings_test;
 
 import 'test_helpers/ffi_helper.dart';
 
@@ -33,9 +33,9 @@ void main() {
   profile_test.main();
   navigation_test.main();
   live_tv_test.main();
-  settings_test.main();
   home_test.main();
   dvr_test.main();
+  settings_test.main();
 
   // Clean up the temp test database directory.
   tearDownAll(() => FfiTestHelper.cleanup());
