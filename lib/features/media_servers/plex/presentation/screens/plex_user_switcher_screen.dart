@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_animation.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
@@ -28,6 +29,7 @@ class PlexUserSwitcherScreen extends ConsumerWidget {
     final activeUser = ref.watch(plexActiveUserProvider);
 
     return Scaffold(
+      key: TestKeys.plexUserSwitcherScreen,
       appBar: AppBar(title: const Text('Switch Profile')),
       body: usersAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -158,120 +160,124 @@ class _PlexUserCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedScale(
-        scale: isActive ? 1.05 : 1.0,
-        duration: CrispyAnimation.fast,
-        curve: CrispyAnimation.focusCurve,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                // PX-FE-02: selection ring.
-                AnimatedContainer(
-                  duration: CrispyAnimation.fast,
-                  width: 100,
-                  height: 100,
+    return Semantics(
+      button: true,
+      label: 'Select user',
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedScale(
+          scale: isActive ? 1.05 : 1.0,
+          duration: CrispyAnimation.fast,
+          curve: CrispyAnimation.focusCurve,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  // PX-FE-02: selection ring.
+                  AnimatedContainer(
+                    duration: CrispyAnimation.fast,
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isActive ? cs.primary : Colors.transparent,
+                        width: 3,
+                      ),
+                    ),
+                  ),
+                  // PX-FE-02: avatar.
+                  CircleAvatar(
+                    radius: 44,
+                    backgroundColor: cs.surfaceContainerHighest,
+                    backgroundImage:
+                        user.avatarUrl != null
+                            ? NetworkImage(user.avatarUrl!)
+                            : null,
+                    child:
+                        user.avatarUrl == null
+                            ? Text(
+                              user.name.isNotEmpty
+                                  ? user.name[0].toUpperCase()
+                                  : '?',
+                              style: tt.headlineMedium?.copyWith(
+                                color: cs.onSurface,
+                              ),
+                            )
+                            : null,
+                  ),
+                  // PX-FE-02: active checkmark badge.
+                  if (isActive)
+                    Positioned(
+                      bottom: 2,
+                      right: 2,
+                      child: Container(
+                        padding: const EdgeInsets.all(CrispySpacing.xxs),
+                        decoration: BoxDecoration(
+                          color: cs.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: cs.surface, width: 2),
+                        ),
+                        child: Icon(Icons.check, size: 14, color: cs.onPrimary),
+                      ),
+                    ),
+                  // PX-FE-02: protected/PIN indicator.
+                  if (user.isProtected && !isActive)
+                    Positioned(
+                      bottom: 2,
+                      right: 2,
+                      child: Container(
+                        padding: const EdgeInsets.all(CrispySpacing.xxs),
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerHigh,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: cs.surface, width: 2),
+                        ),
+                        child: Icon(
+                          Icons.lock_outline,
+                          size: 14,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: CrispySpacing.sm),
+              Text(
+                user.name,
+                style: tt.labelMedium?.copyWith(
+                  color: isActive ? cs.primary : cs.onSurface,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+              // PX-FE-02: "Active" label under the selected user.
+              if (isActive) ...[
+                const SizedBox(height: CrispySpacing.xxs),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: CrispySpacing.xs,
+                    vertical: CrispySpacing.xxs,
+                  ),
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isActive ? cs.primary : Colors.transparent,
-                      width: 3,
+                    color: cs.primaryContainer,
+                    borderRadius: BorderRadius.circular(CrispyRadius.tv),
+                  ),
+                  child: Text(
+                    'Active',
+                    style: tt.labelSmall?.copyWith(
+                      color: cs.onPrimaryContainer,
+                      fontSize: 10,
                     ),
                   ),
                 ),
-                // PX-FE-02: avatar.
-                CircleAvatar(
-                  radius: 44,
-                  backgroundColor: cs.surfaceContainerHighest,
-                  backgroundImage:
-                      user.avatarUrl != null
-                          ? NetworkImage(user.avatarUrl!)
-                          : null,
-                  child:
-                      user.avatarUrl == null
-                          ? Text(
-                            user.name.isNotEmpty
-                                ? user.name[0].toUpperCase()
-                                : '?',
-                            style: tt.headlineMedium?.copyWith(
-                              color: cs.onSurface,
-                            ),
-                          )
-                          : null,
-                ),
-                // PX-FE-02: active checkmark badge.
-                if (isActive)
-                  Positioned(
-                    bottom: 2,
-                    right: 2,
-                    child: Container(
-                      padding: const EdgeInsets.all(CrispySpacing.xxs),
-                      decoration: BoxDecoration(
-                        color: cs.primary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: cs.surface, width: 2),
-                      ),
-                      child: Icon(Icons.check, size: 14, color: cs.onPrimary),
-                    ),
-                  ),
-                // PX-FE-02: protected/PIN indicator.
-                if (user.isProtected && !isActive)
-                  Positioned(
-                    bottom: 2,
-                    right: 2,
-                    child: Container(
-                      padding: const EdgeInsets.all(CrispySpacing.xxs),
-                      decoration: BoxDecoration(
-                        color: cs.surfaceContainerHigh,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: cs.surface, width: 2),
-                      ),
-                      child: Icon(
-                        Icons.lock_outline,
-                        size: 14,
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
               ],
-            ),
-            const SizedBox(height: CrispySpacing.sm),
-            Text(
-              user.name,
-              style: tt.labelMedium?.copyWith(
-                color: isActive ? cs.primary : cs.onSurface,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
-            // PX-FE-02: "Active" label under the selected user.
-            if (isActive) ...[
-              const SizedBox(height: CrispySpacing.xxs),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: CrispySpacing.xs,
-                  vertical: CrispySpacing.xxs,
-                ),
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer,
-                  borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                ),
-                child: Text(
-                  'Active',
-                  style: tt.labelSmall?.copyWith(
-                    color: cs.onPrimaryContainer,
-                    fontSize: 10,
-                  ),
-                ),
-              ),
             ],
-          ],
+          ),
         ),
       ),
     );

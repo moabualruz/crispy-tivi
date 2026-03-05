@@ -75,6 +75,7 @@ class CloudStorageSettingsSection extends ConsumerWidget {
                         b.type.label + (b.isDefault ? ' (Default)' : ''),
                       ),
                       trailing: PopupMenuButton<String>(
+                        tooltip: 'Storage options',
                         onSelected:
                             (action) =>
                                 _onBackendAction(context, ref, b, action),

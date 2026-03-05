@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -38,6 +39,7 @@ class ProfileSelectionScreen extends ConsumerWidget {
     final stateAsync = ref.watch(profileServiceProvider);
 
     return Scaffold(
+      key: TestKeys.profileSelectionScreen,
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: stateAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -373,6 +375,7 @@ class _ProfileTileState extends ConsumerState<_ProfileTile> {
                 RoleIndicator(
                   role: widget.profile.role,
                   child: Container(
+                    key: widget.profile.isGuest ? TestKeys.guestAvatar : null,
                     width: kProfileAvatarSize,
                     height: kProfileAvatarSize,
                     decoration: BoxDecoration(
@@ -489,6 +492,7 @@ class _AddProfileTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return FocusWrapper(
+      key: TestKeys.addProfileButton,
       onSelect: onTap,
       borderRadius: CrispyRadius.tv,
       scaleFactor: 1.15,

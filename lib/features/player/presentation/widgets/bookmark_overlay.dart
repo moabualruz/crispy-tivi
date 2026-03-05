@@ -226,27 +226,31 @@ class _BookmarkPin extends StatelessWidget {
       left: x - 6,
       top: 0,
       bottom: 0,
-      child: GestureDetector(
-        onTap: onTap,
-        onLongPress: () => onLongPress(context),
-        child: Align(
-          alignment: Alignment.center,
-          child: Tooltip(
-            message: bookmark.label ?? _formatDuration(bookmark.position),
-            child: Transform.rotate(
-              angle: 0.785398, // 45 degrees in radians
-              child: Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: colorScheme.tertiary,
-                  borderRadius: BorderRadius.circular(CrispyRadius.tvSm),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      blurRadius: 4,
-                    ),
-                  ],
+      child: Semantics(
+        button: true,
+        label: 'Bookmark',
+        child: GestureDetector(
+          onTap: onTap,
+          onLongPress: () => onLongPress(context),
+          child: Align(
+            alignment: Alignment.center,
+            child: Tooltip(
+              message: bookmark.label ?? _formatDuration(bookmark.position),
+              child: Transform.rotate(
+                angle: 0.785398, // 45 degrees in radians
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: colorScheme.tertiary,
+                    borderRadius: BorderRadius.circular(CrispyRadius.tvSm),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -352,6 +356,7 @@ class _BookmarkEditSheetState extends State<BookmarkEditSheet> {
             autofocus: true,
             decoration: InputDecoration(
               hintText: 'Bookmark label (optional)',
+              labelText: 'Bookmark label',
               hintStyle: TextStyle(
                 color: colorScheme.onSurface.withValues(alpha: 0.4),
               ),

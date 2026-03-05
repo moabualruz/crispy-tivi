@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/utils/url_utils.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
@@ -352,6 +353,7 @@ class _MediaServerLoginScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: TestKeys.mediaServerLoginScreen,
       appBar: AppBar(title: Text('Connect ${widget.serverName}')),
       body: SingleChildScrollView(
         child: Column(

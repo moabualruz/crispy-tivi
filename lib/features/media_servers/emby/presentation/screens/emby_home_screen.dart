@@ -262,73 +262,77 @@ class _EmbyResumeCard extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final progress = item.watchProgress;
 
-    return GestureDetector(
-      onTap: () => _navigate(context, ref),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(CrispyRadius.tv),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Poster image
-            if (item.logoUrl != null)
-              Image.network(
-                item.logoUrl!,
-                fit: BoxFit.cover,
-                errorBuilder:
-                    (_, _, _) => ColoredBox(
-                      color: cs.surfaceContainerHigh,
-                      child: Icon(
-                        Icons.movie_outlined,
-                        color: cs.onSurfaceVariant,
+    return Semantics(
+      button: true,
+      label: 'Resume watching',
+      child: GestureDetector(
+        onTap: () => _navigate(context, ref),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(CrispyRadius.tv),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Poster image
+              if (item.logoUrl != null)
+                Image.network(
+                  item.logoUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (_, _, _) => ColoredBox(
+                        color: cs.surfaceContainerHigh,
+                        child: Icon(
+                          Icons.movie_outlined,
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
+                )
+              else
+                ColoredBox(
+                  color: cs.surfaceContainerHigh,
+                  child: Icon(Icons.movie_outlined, color: cs.onSurfaceVariant),
+                ),
+              // Progress bar overlay
+              if (progress != null && progress > 0)
+                WatchedIndicator(
+                  isWatched: false,
+                  isInProgress: true,
+                  watchProgress: progress,
+                ),
+              // Title scrim at bottom
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(
+                    CrispySpacing.xs,
+                    CrispySpacing.lg,
+                    CrispySpacing.xs,
+                    CrispySpacing.xs,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        cs.surface.withValues(alpha: 0.85),
+                        cs.surface.withValues(alpha: 0),
+                      ],
                     ),
-              )
-            else
-              ColoredBox(
-                color: cs.surfaceContainerHigh,
-                child: Icon(Icons.movie_outlined, color: cs.onSurfaceVariant),
-              ),
-            // Progress bar overlay
-            if (progress != null && progress > 0)
-              WatchedIndicator(
-                isWatched: false,
-                isInProgress: true,
-                watchProgress: progress,
-              ),
-            // Title scrim at bottom
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(
-                  CrispySpacing.xs,
-                  CrispySpacing.lg,
-                  CrispySpacing.xs,
-                  CrispySpacing.xs,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      cs.surface.withValues(alpha: 0.85),
-                      cs.surface.withValues(alpha: 0),
-                    ],
+                  ),
+                  child: Text(
+                    item.name,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: cs.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                child: Text(
-                  item.name,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: cs.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -370,63 +374,67 @@ class _EmbyNextUpCard extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final seriesName = item.metadata['SeriesName'] as String?;
 
-    return GestureDetector(
-      onTap: () => _navigate(context, ref),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(CrispyRadius.tv),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (item.logoUrl != null)
-                    Image.network(
-                      item.logoUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder:
-                          (_, _, _) => ColoredBox(
-                            color: cs.surfaceContainerHigh,
-                            child: Icon(
-                              Icons.tv_outlined,
-                              color: cs.onSurfaceVariant,
+    return Semantics(
+      button: true,
+      label: 'Continue watching',
+      child: GestureDetector(
+        onTap: () => _navigate(context, ref),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(CrispyRadius.tv),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (item.logoUrl != null)
+                      Image.network(
+                        item.logoUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder:
+                            (_, _, _) => ColoredBox(
+                              color: cs.surfaceContainerHigh,
+                              child: Icon(
+                                Icons.tv_outlined,
+                                color: cs.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                    )
-                  else
-                    ColoredBox(
-                      color: cs.surfaceContainerHigh,
-                      child: Icon(
-                        Icons.tv_outlined,
-                        color: cs.onSurfaceVariant,
+                      )
+                    else
+                      ColoredBox(
+                        color: cs.surfaceContainerHigh,
+                        child: Icon(
+                          Icons.tv_outlined,
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: CrispySpacing.xs),
-          // Episode name
-          Text(
-            item.name,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          // Series name (FE-EB-05 requirement)
-          if (seriesName != null)
+            const SizedBox(height: CrispySpacing.xs),
+            // Episode name
             Text(
-              seriesName,
+              item.name,
               style: Theme.of(
                 context,
-              ).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+              ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-        ],
+            // Series name (FE-EB-05 requirement)
+            if (seriesName != null)
+              Text(
+                seriesName,
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -465,97 +473,101 @@ class _EmbyCollectionCard extends StatelessWidget {
             ? '$childCount item${childCount == 1 ? '' : 's'}'
             : null;
 
-    return GestureDetector(
-      onTap: () {
-        // FE-EB-10: drill into collection contents using paginated library
-        context.push(
-          '/emby/library/${item.id}?title=${Uri.encodeComponent(item.name)}',
-        );
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(CrispyRadius.tv),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Poster image
-            if (item.logoUrl != null)
-              Image.network(
-                item.logoUrl!,
-                fit: BoxFit.cover,
-                errorBuilder:
-                    (_, _, _) => ColoredBox(
-                      color: cs.surfaceContainerHigh,
-                      child: Icon(
-                        Icons.collections_outlined,
-                        color: cs.onSurfaceVariant,
+    return Semantics(
+      button: true,
+      label: 'Browse collection',
+      child: GestureDetector(
+        onTap: () {
+          // FE-EB-10: drill into collection contents using paginated library
+          context.push(
+            '/emby/library/${item.id}?title=${Uri.encodeComponent(item.name)}',
+          );
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(CrispyRadius.tv),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Poster image
+              if (item.logoUrl != null)
+                Image.network(
+                  item.logoUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (_, _, _) => ColoredBox(
+                        color: cs.surfaceContainerHigh,
+                        child: Icon(
+                          Icons.collections_outlined,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                )
+              else
+                ColoredBox(
+                  color: cs.surfaceContainerHigh,
+                  child: Icon(
+                    Icons.collections_outlined,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+              // Child count badge (bottom-left)
+              if (countLabel != null)
+                Positioned(
+                  left: CrispySpacing.xs,
+                  bottom: CrispySpacing.xs,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: CrispySpacing.xs,
+                      vertical: CrispySpacing.xxs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: cs.surface.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(CrispyRadius.tv),
+                    ),
+                    child: Text(
+                      countLabel,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-              )
-            else
-              ColoredBox(
-                color: cs.surfaceContainerHigh,
-                child: Icon(
-                  Icons.collections_outlined,
-                  color: cs.onSurfaceVariant,
+                  ),
                 ),
-              ),
-            // Child count badge (bottom-left)
-            if (countLabel != null)
+              // Title scrim
               Positioned(
-                left: CrispySpacing.xs,
-                bottom: CrispySpacing.xs,
+                left: 0,
+                right: 0,
+                bottom: 0,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: CrispySpacing.xs,
-                    vertical: CrispySpacing.xxs,
+                  padding: const EdgeInsets.fromLTRB(
+                    CrispySpacing.xs,
+                    CrispySpacing.lg,
+                    CrispySpacing.xs,
+                    CrispySpacing.sm,
                   ),
                   decoration: BoxDecoration(
-                    color: cs.surface.withValues(alpha: 0.85),
-                    borderRadius: BorderRadius.circular(CrispyRadius.tv),
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        cs.surface.withValues(alpha: 0.85),
+                        cs.surface.withValues(alpha: 0),
+                      ],
+                    ),
                   ),
                   child: Text(
-                    countLabel,
+                    item.name,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: cs.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
-            // Title scrim
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(
-                  CrispySpacing.xs,
-                  CrispySpacing.lg,
-                  CrispySpacing.xs,
-                  CrispySpacing.sm,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      cs.surface.withValues(alpha: 0.85),
-                      cs.surface.withValues(alpha: 0),
-                    ],
-                  ),
-                ),
-                child: Text(
-                  item.name,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: cs.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

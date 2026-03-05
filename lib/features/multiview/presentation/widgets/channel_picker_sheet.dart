@@ -51,6 +51,7 @@ class _ChannelPickerSheetState extends ConsumerState<ChannelPickerSheet> {
                 controller: _searchController,
                 decoration: const InputDecoration(
                   hintText: 'Search channels...',
+                  labelText: 'Search channels',
                   prefixIcon: Icon(Icons.search),
                   border: OutlineInputBorder(),
                   isDense: true,

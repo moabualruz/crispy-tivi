@@ -235,66 +235,75 @@ class _JellyfinResumeCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    return GestureDetector(
-      onTap: () => _navigateTo(context),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(CrispyRadius.tv),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Thumbnail.
-            if (item.logoUrl != null)
-              Image.network(
-                item.logoUrl!,
-                fit: BoxFit.cover,
-                errorBuilder:
-                    (_, _, _) => ColoredBox(color: cs.surfaceContainerHighest),
-              )
-            else
-              ColoredBox(
-                color: cs.surfaceContainerHighest,
-                child: Icon(Icons.movie, color: cs.onSurfaceVariant, size: 32),
-              ),
-            // Bottom gradient + title.
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      cs.surface.withValues(alpha: 0.85),
-                      cs.surface.withValues(alpha: 0.0),
-                    ],
+    return Semantics(
+      button: true,
+      label: 'Resume watching',
+      child: GestureDetector(
+        onTap: () => _navigateTo(context),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(CrispyRadius.tv),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Thumbnail.
+              if (item.logoUrl != null)
+                Image.network(
+                  item.logoUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (_, _, _) =>
+                          ColoredBox(color: cs.surfaceContainerHighest),
+                )
+              else
+                ColoredBox(
+                  color: cs.surfaceContainerHighest,
+                  child: Icon(
+                    Icons.movie,
+                    color: cs.onSurfaceVariant,
+                    size: 32,
                   ),
                 ),
-                padding: const EdgeInsets.fromLTRB(
-                  CrispySpacing.xs,
-                  CrispySpacing.lg,
-                  CrispySpacing.xs,
-                  CrispySpacing.xxs,
-                ),
-                child: Text(
-                  item.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: tt.labelSmall?.copyWith(
-                    color: cs.onSurface,
-                    fontWeight: FontWeight.w600,
+              // Bottom gradient + title.
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        cs.surface.withValues(alpha: 0.85),
+                        cs.surface.withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(
+                    CrispySpacing.xs,
+                    CrispySpacing.lg,
+                    CrispySpacing.xs,
+                    CrispySpacing.xxs,
+                  ),
+                  child: Text(
+                    item.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: tt.labelSmall?.copyWith(
+                      color: cs.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-            ),
-            // FE-JF-04: progress bar showing resume position.
-            WatchedIndicator(
-              isWatched: item.isWatched,
-              isInProgress: item.isInProgress,
-              watchProgress: item.watchProgress,
-            ),
-          ],
+              // FE-JF-04: progress bar showing resume position.
+              WatchedIndicator(
+                isWatched: item.isWatched,
+                isInProgress: item.isInProgress,
+                watchProgress: item.watchProgress,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -335,88 +344,93 @@ class _JellyfinNextUpCard extends StatelessWidget {
     // or fall back to parentId label.
     final seriesName = item.metadata['seriesName'] as String?;
 
-    return GestureDetector(
-      onTap: () {
-        // FE-JF-05: navigate to details screen.
-        context.push(
-          AppRoutes.mediaServerDetails,
-          extra: {
-            'item': item,
-            'serverType': MediaServerType.jellyfin,
-            'heroTag': 'jellyfin_nextup_${item.id}',
-          },
-        );
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(CrispyRadius.tv),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Thumbnail.
-            if (item.logoUrl != null)
-              Image.network(
-                item.logoUrl!,
-                fit: BoxFit.cover,
-                errorBuilder:
-                    (_, _, _) => ColoredBox(color: cs.surfaceContainerHighest),
-              )
-            else
-              ColoredBox(
-                color: cs.surfaceContainerHighest,
-                child: Icon(Icons.tv, color: cs.onSurfaceVariant, size: 32),
-              ),
-            // Bottom gradient + episode + series labels.
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      cs.surface.withValues(alpha: 0.88),
-                      cs.surface.withValues(alpha: 0.0),
-                    ],
-                  ),
+    return Semantics(
+      button: true,
+      label: 'Continue watching',
+      child: GestureDetector(
+        onTap: () {
+          // FE-JF-05: navigate to details screen.
+          context.push(
+            AppRoutes.mediaServerDetails,
+            extra: {
+              'item': item,
+              'serverType': MediaServerType.jellyfin,
+              'heroTag': 'jellyfin_nextup_${item.id}',
+            },
+          );
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(CrispyRadius.tv),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Thumbnail.
+              if (item.logoUrl != null)
+                Image.network(
+                  item.logoUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (_, _, _) =>
+                          ColoredBox(color: cs.surfaceContainerHighest),
+                )
+              else
+                ColoredBox(
+                  color: cs.surfaceContainerHighest,
+                  child: Icon(Icons.tv, color: cs.onSurfaceVariant, size: 32),
                 ),
-                padding: const EdgeInsets.fromLTRB(
-                  CrispySpacing.xs,
-                  CrispySpacing.lg,
-                  CrispySpacing.xs,
-                  CrispySpacing.xxs,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // FE-JF-05: episode name.
-                    Text(
-                      item.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: tt.labelSmall?.copyWith(
-                        color: cs.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
+              // Bottom gradient + episode + series labels.
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        cs.surface.withValues(alpha: 0.88),
+                        cs.surface.withValues(alpha: 0.0),
+                      ],
                     ),
-                    // FE-JF-05: series name below episode name.
-                    if (seriesName != null)
+                  ),
+                  padding: const EdgeInsets.fromLTRB(
+                    CrispySpacing.xs,
+                    CrispySpacing.lg,
+                    CrispySpacing.xs,
+                    CrispySpacing.xxs,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // FE-JF-05: episode name.
                       Text(
-                        seriesName,
+                        item.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: tt.labelSmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                          fontSize: 10,
+                          color: cs.onSurface,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                  ],
+                      // FE-JF-05: series name below episode name.
+                      if (seriesName != null)
+                        Text(
+                          seriesName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: tt.labelSmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                            fontSize: 10,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

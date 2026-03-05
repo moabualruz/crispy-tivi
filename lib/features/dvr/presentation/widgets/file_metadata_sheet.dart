@@ -381,28 +381,32 @@ class _ActionChip extends StatelessWidget {
     return AnimatedScale(
       scale: 1.0,
       duration: CrispyAnimation.fast,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(CrispyRadius.tv),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: CrispySpacing.md,
-            vertical: CrispySpacing.sm,
-          ),
-          decoration: BoxDecoration(
-            border: Border.all(color: color.withValues(alpha: 0.5)),
-            borderRadius: BorderRadius.circular(CrispyRadius.tv),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 18, color: color),
-              const SizedBox(width: CrispySpacing.xs),
-              Text(
-                label,
-                style: TextStyle(color: color, fontWeight: FontWeight.w500),
-              ),
-            ],
+      child: Semantics(
+        button: true,
+        label: label,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(CrispyRadius.tv),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: CrispySpacing.md,
+              vertical: CrispySpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              border: Border.all(color: color.withValues(alpha: 0.5)),
+              borderRadius: BorderRadius.circular(CrispyRadius.tv),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18, color: color),
+                const SizedBox(width: CrispySpacing.xs),
+                Text(
+                  label,
+                  style: TextStyle(color: color, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
           ),
         ),
       ),

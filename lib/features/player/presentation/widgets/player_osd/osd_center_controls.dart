@@ -32,6 +32,7 @@ class OsdCenterControls extends StatelessWidget {
         if (onSeekBack != null)
           OsdCenterButton(
             icon: Icons.replay_10_rounded,
+            semanticLabel: 'Skip back 10 seconds',
             size: CrispySpacing.xxl, // 48
             onTap: onSeekBack!,
           ),
@@ -41,6 +42,7 @@ class OsdCenterControls extends StatelessWidget {
         // Play / Pause (hero -- largest, 60px)
         OsdCenterButton(
           icon: isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+          semanticLabel: isPlaying ? 'Pause' : 'Play',
           size: 60,
           onTap: onPlayPause,
         ),
@@ -51,6 +53,7 @@ class OsdCenterControls extends StatelessWidget {
         if (onSeekForward != null)
           OsdCenterButton(
             icon: Icons.forward_10_rounded,
+            semanticLabel: 'Skip forward 10 seconds',
             size: CrispySpacing.xxl, // 48
             onTap: onSeekForward!,
           ),
@@ -65,12 +68,14 @@ class OsdCenterButton extends StatelessWidget {
     required this.icon,
     required this.size,
     required this.onTap,
+    this.semanticLabel,
     super.key,
   });
 
   final IconData icon;
   final double size;
   final VoidCallback onTap;
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +95,7 @@ class OsdCenterButton extends StatelessWidget {
       ),
       child: IconButton(
         onPressed: onTap,
+        tooltip: semanticLabel,
         icon: Icon(icon, color: Colors.white, size: size),
         style: ButtonStyle(
           padding: const WidgetStatePropertyAll(EdgeInsets.zero),

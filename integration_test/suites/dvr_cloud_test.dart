@@ -7,13 +7,19 @@ import '../test_helpers/ffi_helper.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(() async {
+    await FfiTestHelper.ensureTestIsolation();
+    await FfiTestHelper.seedTestSource();
+  });
+  tearDownAll(() => FfiTestHelper.cleanup());
+
   group('DVR Cloud Storage Suite', () {
     testWidgets('Navigate and Initialize Cloud Providers', (
       WidgetTester tester,
     ) async {
       await FfiTestHelper.ensureRustInitialized();
       app.main();
-      await tester.pumpAndSettle(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
 
       // We assume Dvr is mapped via a side-bar or sub-nav item.
       // E.g., `find.byKey(const ValueKey('nav_item_dvr'))` in real conditions.

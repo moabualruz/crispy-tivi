@@ -407,6 +407,7 @@ class CastMiniController extends ConsumerWidget {
 
             // Play/pause
             IconButton(
+              tooltip: 'Play/Pause',
               onPressed: () {
                 if (isPlaying) {
                   ref.read(castServiceProvider.notifier).pauseCast();
@@ -423,6 +424,7 @@ class CastMiniController extends ConsumerWidget {
 
             // Stop
             IconButton(
+              tooltip: 'Stop',
               onPressed: () {
                 ref.read(castServiceProvider.notifier).stopCast();
               },

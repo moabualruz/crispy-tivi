@@ -392,10 +392,14 @@ class RecentlyWatchedItem extends StatelessWidget {
           child: ListTile(
             leading:
                 isSelecting
-                    ? Checkbox(
-                      value: isSelected,
-                      onChanged: (_) => onToggleSelect(),
-                      activeColor: cs.primary,
+                    ? Semantics(
+                      label: 'Select channel',
+                      checked: isSelected,
+                      child: Checkbox(
+                        value: isSelected,
+                        onChanged: (_) => onToggleSelect(),
+                        activeColor: cs.primary,
+                      ),
                     )
                     : SizedBox(
                       width: kLogoWidth,
@@ -420,6 +424,7 @@ class RecentlyWatchedItem extends StatelessWidget {
                     ? null
                     : IconButton(
                       onPressed: onRemove,
+                      tooltip: 'Remove from list',
                       icon: const Icon(Icons.close, size: 18),
                     ),
           ),

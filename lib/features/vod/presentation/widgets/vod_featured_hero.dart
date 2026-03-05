@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -141,125 +142,135 @@ class _VodFeaturedHeroState extends ConsumerState<VodFeaturedHero> {
     return MouseRegion(
       onEnter: (_) => _onFocusEnter(),
       onExit: (_) => _onFocusExit(),
-      child: GestureDetector(
-        onTap: _tap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // ── Hero image area ──
-            SizedBox(
-              height: heroH,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Backdrop poster with AnimatedSwitcher for fade transition.
-                  AnimatedSwitcher(
-                    duration: CrispyAnimation.slow,
-                    switchInCurve: CrispyAnimation.enterCurve,
-                    switchOutCurve: CrispyAnimation.exitCurve,
-                    child: SmartImage(
-                      key: ValueKey('hero_${item.id}'),
-                      itemId: item.id,
-                      title: item.name,
-                      imageUrl: item.backdropUrl ?? item.posterUrl,
-                      imageKind: 'backdrop',
-                      fit: BoxFit.cover,
-                      icon: Icons.movie,
-                      memCacheWidth: 1200,
+      child: Semantics(
+        button: true,
+        label: 'View details',
+        child: GestureDetector(
+          onTap: _tap,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── Hero image area ──
+              SizedBox(
+                height: heroH,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Backdrop poster with AnimatedSwitcher for fade transition.
+                    AnimatedSwitcher(
+                      duration: CrispyAnimation.slow,
+                      switchInCurve: CrispyAnimation.enterCurve,
+                      switchOutCurve: CrispyAnimation.exitCurve,
+                      child: SmartImage(
+                        key: TestKeys.heroItem(item.id),
+                        itemId: item.id,
+                        title: item.name,
+                        imageUrl: item.backdropUrl ?? item.posterUrl,
+                        imageKind: 'backdrop',
+                        fit: BoxFit.cover,
+                        icon: Icons.movie,
+                        memCacheWidth: 1200,
+                      ),
                     ),
-                  ),
 
-                  // Trailer indicator overlay — subtle border pulse when active.
-                  // Full video playback requires a `trailerUrl` domain field.
-                  if (_showTrailer)
-                    AnimatedOpacity(
-                      opacity: _showTrailer ? 1.0 : 0.0,
-                      duration: CrispyAnimation.normal,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: cs.primary.withValues(alpha: 0.6),
-                            width: 2,
+                    // Trailer indicator overlay — subtle border pulse when active.
+                    // Full video playback requires a `trailerUrl` domain field.
+                    if (_showTrailer)
+                      AnimatedOpacity(
+                        opacity: _showTrailer ? 1.0 : 0.0,
+                        duration: CrispyAnimation.normal,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: cs.primary.withValues(alpha: 0.6),
+                              width: 2,
+                            ),
+                            borderRadius: BorderRadius.circular(
+                              CrispyRadius.tv,
+                            ),
                           ),
-                          borderRadius: BorderRadius.circular(CrispyRadius.tv),
                         ),
                       ),
-                    ),
 
-                  // Bottom gradient scrim for text legibility.
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          stops: const [0.4, 1.0],
-                          colors: [
-                            Colors.transparent,
-                            cs.surface.withValues(alpha: 0.92),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Title + metadata overlay at the bottom.
-                  Positioned(
-                    left: CrispySpacing.md,
-                    right: CrispySpacing.md,
-                    bottom: CrispySpacing.md,
-                    child: AnimatedSwitcher(
-                      duration: CrispyAnimation.normal,
-                      child: _HeroMeta(
-                        key: ValueKey('meta_${item.id}'),
-                        item: item,
-                        textTheme: textTheme,
-                        cs: cs,
-                        showTrailer: _showTrailer,
-                      ),
-                    ),
-                  ),
-
-                  // Trailer badge (top-right) when trailer is playing.
-                  if (_showTrailer)
-                    Positioned(
-                      top: CrispySpacing.sm,
-                      right: CrispySpacing.sm,
-                      child: _TrailerBadge(cs: cs, textTheme: textTheme),
-                    ),
-                ],
-              ),
-            ),
-
-            // ── Progress dots ──
-            if (items.length > 1)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: CrispySpacing.sm),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(items.length, (i) {
-                    return GestureDetector(
-                      onTap: () => _goTo(i),
-                      child: AnimatedContainer(
-                        duration: CrispyAnimation.fast,
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: CrispySpacing.xxs,
-                        ),
-                        width: i == _current ? 20 : 8,
-                        height: 4,
+                    // Bottom gradient scrim for text legibility.
+                    Positioned.fill(
+                      child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color:
-                              i == _current
-                                  ? cs.primary
-                                  : cs.onSurface.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(CrispyRadius.tv),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            stops: const [0.4, 1.0],
+                            colors: [
+                              Colors.transparent,
+                              cs.surface.withValues(alpha: 0.92),
+                            ],
+                          ),
                         ),
                       ),
-                    );
-                  }),
+                    ),
+
+                    // Title + metadata overlay at the bottom.
+                    Positioned(
+                      left: CrispySpacing.md,
+                      right: CrispySpacing.md,
+                      bottom: CrispySpacing.md,
+                      child: AnimatedSwitcher(
+                        duration: CrispyAnimation.normal,
+                        child: _HeroMeta(
+                          key: TestKeys.metaItem(item.id),
+                          item: item,
+                          textTheme: textTheme,
+                          cs: cs,
+                          showTrailer: _showTrailer,
+                        ),
+                      ),
+                    ),
+
+                    // Trailer badge (top-right) when trailer is playing.
+                    if (_showTrailer)
+                      Positioned(
+                        top: CrispySpacing.sm,
+                        right: CrispySpacing.sm,
+                        child: _TrailerBadge(cs: cs, textTheme: textTheme),
+                      ),
+                  ],
                 ),
               ),
-          ],
+
+              // ── Progress dots ──
+              if (items.length > 1)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: CrispySpacing.sm,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(items.length, (i) {
+                      return GestureDetector(
+                        onTap: () => _goTo(i),
+                        child: AnimatedContainer(
+                          duration: CrispyAnimation.fast,
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: CrispySpacing.xxs,
+                          ),
+                          width: i == _current ? 20 : 8,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color:
+                                i == _current
+                                    ? cs.primary
+                                    : cs.onSurface.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(
+                              CrispyRadius.tv,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

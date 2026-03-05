@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../test_helpers/pump_until_found.dart';
 
@@ -7,13 +7,12 @@ class HomeRobot {
 
   HomeRobot(this.tester);
 
-  Finder get homeScreen => find.byKey(const ValueKey('home_screen'));
-  Finder get heroBanner => find.byKey(const ValueKey('hero_banner'));
+  Finder get homeScreen => find.byKey(TestKeys.homeScreen);
+  Finder get heroBanner => find.byKey(TestKeys.heroBanner);
   Finder get continueWatchingSection =>
-      find.byKey(const ValueKey('section_continue_watching'));
-  Finder get top10Section => find.byKey(const ValueKey('section_top_10'));
-  Finder get latestVodSection =>
-      find.byKey(const ValueKey('section_latest_vod'));
+      find.byKey(TestKeys.sectionContinueWatching);
+  Finder get top10Section => find.byKey(TestKeys.sectionTop10);
+  Finder get latestVodSection => find.byKey(TestKeys.sectionLatestVod);
 
   Future<void> waitForHome() async {
     await tester.pumpUntilFound(homeScreen);

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 
 import '../helpers/test_app.dart';
 
@@ -45,7 +46,7 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
       // The "Add Profile" tile should be visible.
-      expect(find.text('Add Profile'), findsOneWidget);
+      expect(find.byKey(TestKeys.addProfileButton), findsOneWidget);
 
       // An add icon should be present on the tile.
       expect(find.byIcon(Icons.add), findsOneWidget);
@@ -63,7 +64,7 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
       // Tap the "Add Profile" tile.
-      final addBtn = find.text('Add Profile');
+      final addBtn = find.byKey(TestKeys.addProfileButton);
       expect(addBtn, findsOneWidget);
       await tester.tap(addBtn);
       await tester.pumpAndSettle(const Duration(seconds: 2));
@@ -106,14 +107,13 @@ void main() {
       // The app shell should render with a Scaffold.
       expect(find.byType(Scaffold), findsWidgets);
 
-      // At least one navigation tab label should
-      // be visible (bottom bar or side nav).
+      // At least one navigation item key should be present.
       final hasTab =
-          find.text('Home').evaluate().isNotEmpty ||
-          find.text('TV').evaluate().isNotEmpty ||
-          find.text('Guide').evaluate().isNotEmpty ||
-          find.text('VODs').evaluate().isNotEmpty ||
-          find.text('Settings').evaluate().isNotEmpty;
+          find.byKey(TestKeys.navItem('Home')).evaluate().isNotEmpty ||
+          find.byKey(TestKeys.navItem('Live TV')).evaluate().isNotEmpty ||
+          find.byKey(TestKeys.navItem('Guide')).evaluate().isNotEmpty ||
+          find.byKey(TestKeys.navItem('Movies')).evaluate().isNotEmpty ||
+          find.byKey(TestKeys.navItem('Settings')).evaluate().isNotEmpty;
       expect(hasTab, isTrue);
     });
   });

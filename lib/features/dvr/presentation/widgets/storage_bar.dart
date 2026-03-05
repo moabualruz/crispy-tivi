@@ -77,6 +77,10 @@ class StorageBar extends StatelessWidget {
 
     if (onTap == null) return bar;
 
-    return InkWell(onTap: onTap, child: bar);
+    return Semantics(
+      button: true,
+      label: 'Storage settings',
+      child: InkWell(onTap: onTap, child: bar),
+    );
   }
 }

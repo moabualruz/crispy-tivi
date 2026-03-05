@@ -177,27 +177,31 @@ class _ContextMenuPanelContent extends StatelessWidget {
     final iconColor =
         item.isDestructive ? colorScheme.error : colorScheme.onSurfaceVariant;
 
-    return InkWell(
-      onTap: () {
-        Navigator.of(context).pop();
-        item.onTap();
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: CrispySpacing.md,
-          vertical: CrispySpacing.sm,
-        ),
-        child: Row(
-          children: [
-            Icon(item.icon, size: 20, color: iconColor),
-            const SizedBox(width: CrispySpacing.md),
-            Expanded(
-              child: Text(
-                item.label,
-                style: textTheme.bodyMedium?.copyWith(color: color),
+    return Semantics(
+      button: true,
+      label: item.label,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).pop();
+          item.onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: CrispySpacing.md,
+            vertical: CrispySpacing.sm,
+          ),
+          child: Row(
+            children: [
+              Icon(item.icon, size: 20, color: iconColor),
+              const SizedBox(width: CrispySpacing.md),
+              Expanded(
+                child: Text(
+                  item.label,
+                  style: textTheme.bodyMedium?.copyWith(color: color),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

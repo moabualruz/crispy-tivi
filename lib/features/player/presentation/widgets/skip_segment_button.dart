@@ -177,39 +177,45 @@ class _SkipButtonState extends State<_SkipButton> {
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: CrispyAnimation.fast,
-          padding: const EdgeInsets.symmetric(
-            horizontal: CrispySpacing.md,
-            vertical: CrispySpacing.sm,
-          ),
-          decoration: BoxDecoration(
-            color:
-                _hovered
-                    ? colorScheme.onSurface.withValues(alpha: 0.9)
-                    : colorScheme.surface.withValues(alpha: 0.85),
-            border: Border.all(color: CrispyColors.netflixRed, width: 2),
-            borderRadius: BorderRadius.circular(CrispyRadius.md),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                widget.label,
-                style: textTheme.labelLarge?.copyWith(
-                  color: _hovered ? colorScheme.surface : colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
+      child: Semantics(
+        button: true,
+        label: 'Skip segment',
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: CrispyAnimation.fast,
+            padding: const EdgeInsets.symmetric(
+              horizontal: CrispySpacing.md,
+              vertical: CrispySpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color:
+                  _hovered
+                      ? colorScheme.onSurface.withValues(alpha: 0.9)
+                      : colorScheme.surface.withValues(alpha: 0.85),
+              border: Border.all(color: CrispyColors.netflixRed, width: 2),
+              borderRadius: BorderRadius.circular(CrispyRadius.md),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.label,
+                  style: textTheme.labelLarge?.copyWith(
+                    color:
+                        _hovered ? colorScheme.surface : colorScheme.onSurface,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(width: CrispySpacing.xs),
-              Icon(
-                Icons.skip_next_rounded,
-                size: 18,
-                color: _hovered ? colorScheme.surface : CrispyColors.netflixRed,
-              ),
-            ],
+                const SizedBox(width: CrispySpacing.xs),
+                Icon(
+                  Icons.skip_next_rounded,
+                  size: 18,
+                  color:
+                      _hovered ? colorScheme.surface : CrispyColors.netflixRed,
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../providers/favorites_history_provider.dart';
@@ -34,6 +35,7 @@ class HistoryScreen extends ConsumerWidget {
     return DefaultTabController(
       length: 4,
       child: Scaffold(
+        key: TestKeys.favoritesScreen,
         appBar: AppBar(
           title: Row(
             mainAxisSize: MainAxisSize.min,

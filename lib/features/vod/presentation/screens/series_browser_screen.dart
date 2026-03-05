@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
@@ -98,6 +99,7 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
     if (allSeries.isEmpty) return _buildEmpty();
 
     return Scaffold(
+      key: TestKeys.seriesBrowserScreen,
       appBar: AppBar(
         title: const Text('Series'),
         actions: [

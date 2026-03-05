@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_colors.dart';
+import 'package:flutter/material.dart';
 import 'package:crispy_tivi/core/utils/scroll_linker.dart';
 import 'package:crispy_tivi/core/widgets/responsive_layout.dart';
 import 'package:crispy_tivi/features/epg/presentation/providers/epg_providers.dart';
@@ -204,7 +205,7 @@ class _VirtualEpgGridState extends State<VirtualEpgGrid> {
                         top: 0,
                         bottom: 0,
                         child: Container(
-                          key: const Key('nowLine'),
+                          key: TestKeys.epgNowLine,
                           width: _kNowLineWidth,
                           color: Theme.of(context).crispyColors.epgNowLine,
                         ),
@@ -226,6 +227,7 @@ class _VirtualEpgGridState extends State<VirtualEpgGrid> {
           child: Container(
             color: Theme.of(context).scaffoldBackgroundColor,
             child: ListView.builder(
+              key: TestKeys.epgChannelList,
               controller: _channelsScroll,
               itemCount: widget.channels.length,
               itemExtent: _rowHeight,

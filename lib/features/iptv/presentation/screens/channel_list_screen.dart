@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../../../core/widgets/responsive_layout.dart';
@@ -92,6 +93,7 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
       channelListProvider.select((s) => s.showingGroupsView),
     );
     return Scaffold(
+      key: TestKeys.channelListScreen,
       body: ResponsiveLayout(
         compactBody: PopScope(
           canPop: showingGroups,
@@ -159,7 +161,7 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
             ),
             _searchBtn(),
             IconButton(
-              key: const ValueKey('channel_list_favorite_btn'),
+              key: TestKeys.channelListFavoriteButton,
               icon: const Icon(Icons.favorite_border_rounded),
               tooltip: 'Favorites',
               onPressed: () => context.push(AppRoutes.favorites),

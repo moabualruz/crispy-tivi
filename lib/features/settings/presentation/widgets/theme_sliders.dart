@@ -73,6 +73,8 @@ class TextScaleSlider extends StatelessWidget {
                   divisions: 6,
                   label: '$percentage%',
                   onChanged: onChanged,
+                  semanticFormatterCallback:
+                      (v) => 'Text scale ${(v * 100).round()}%',
                 ),
               ),
               Text(
@@ -167,6 +169,7 @@ class GlassOpacitySlider extends StatelessWidget {
             divisions: 10,
             label: label,
             onChanged: onChanged,
+            semanticFormatterCallback: (v) => 'Opacity ${(v * 100).round()}%',
           ),
         ],
       ),

@@ -116,63 +116,69 @@ class _LibraryTypeTile extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     final count = _childCount;
 
-    return Material(
-      color: cs.surfaceContainerHigh,
-      borderRadius: const BorderRadius.all(Radius.circular(CrispyRadius.tv)),
-      child: InkWell(
+    return Semantics(
+      button: true,
+      label: 'Browse library',
+      child: Material(
+        color: cs.surfaceContainerHigh,
         borderRadius: const BorderRadius.all(Radius.circular(CrispyRadius.tv)),
-        onTap: () {
-          context.push(
-            '/emby/library/${library.id}'
-            '?title=${Uri.encodeComponent(library.name)}',
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(CrispySpacing.md),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer,
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(CrispyRadius.tv),
+        child: InkWell(
+          borderRadius: const BorderRadius.all(
+            Radius.circular(CrispyRadius.tv),
+          ),
+          onTap: () {
+            context.push(
+              '/emby/library/${library.id}'
+              '?title=${Uri.encodeComponent(library.name)}',
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(CrispySpacing.md),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: cs.primaryContainer,
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(CrispyRadius.tv),
+                    ),
+                  ),
+                  child: Icon(
+                    _iconFor(library),
+                    color: cs.onPrimaryContainer,
+                    size: 22,
                   ),
                 ),
-                child: Icon(
-                  _iconFor(library),
-                  color: cs.onPrimaryContainer,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: CrispySpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      library.name,
-                      style: tt.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (count != null) ...[
-                      const SizedBox(height: CrispySpacing.xxs),
+                const SizedBox(width: CrispySpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
                       Text(
-                        '$count ${count == 1 ? 'item' : 'items'}',
-                        style: tt.labelSmall?.copyWith(
-                          color: cs.onSurfaceVariant,
+                        library.name,
+                        style: tt.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
+                      if (count != null) ...[
+                        const SizedBox(height: CrispySpacing.xxs),
+                        Text(
+                          '$count ${count == 1 ? 'item' : 'items'}',
+                          style: tt.labelSmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

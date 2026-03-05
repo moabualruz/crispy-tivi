@@ -52,6 +52,7 @@ class ChannelSearchBarSliver extends StatelessWidget {
               labelText: 'Search channels',
               prefixIcon: const Icon(Icons.search, size: 20),
               suffixIcon: IconButton(
+                tooltip: 'Close search',
                 icon: const Icon(Icons.close, size: 18),
                 onPressed: onClose,
               ),

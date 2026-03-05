@@ -6,6 +6,7 @@ import 'package:crispy_tivi/core/domain/entities/media_item.dart';
 import 'package:crispy_tivi/core/domain/entities/media_type.dart';
 import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/core/navigation/app_routes.dart';
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/utils/format_utils.dart';
@@ -117,6 +118,7 @@ class _EmbySeriesScreenState extends ConsumerState<EmbySeriesScreen>
         if (tabController == null) return const SizedBox.shrink();
 
         return Scaffold(
+          key: TestKeys.embySeriesScreen,
           appBar: AppBar(
             title: _BreadcrumbTitle(title: widget.title),
             bottom:

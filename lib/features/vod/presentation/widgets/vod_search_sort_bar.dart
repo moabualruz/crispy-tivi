@@ -132,6 +132,7 @@ class VodSearchSortBar extends StatelessWidget {
                 onChanged: onSearchChanged,
                 decoration: InputDecoration(
                   hintText: hintText,
+                  labelText: 'Search',
                   prefixIcon: const Icon(Icons.search, size: _kSearchIconSize),
                   suffixIcon:
                       searchQuery.isNotEmpty
@@ -140,6 +141,7 @@ class VodSearchSortBar extends StatelessWidget {
                               Icons.close,
                               size: _kClearIconSize,
                             ),
+                            tooltip: 'Clear search',
                             onPressed: () {
                               searchController?.clear();
                               onSearchChanged('');

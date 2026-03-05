@@ -8,6 +8,12 @@ import '../test_helpers/ffi_helper.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(() async {
+    await FfiTestHelper.ensureTestIsolation();
+    await FfiTestHelper.seedTestSource();
+  });
+  tearDownAll(() => FfiTestHelper.cleanup());
+
   group('Global Navigation & Shell Suite', () {
     testWidgets('AppShell Sidebar Verification', (WidgetTester tester) async {
       await FfiTestHelper.setupNavigationBackendState();
@@ -15,7 +21,7 @@ void main() {
       app.main();
 
       // Ensure the initial routing finishes
-      await tester.pumpAndSettle(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
 
       final navRobot = NavigationRobot(tester);
 
@@ -24,8 +30,8 @@ void main() {
       // Atomic checks
       await navRobot.verifyNavigationItemsExist();
 
-      // Constraint Assetion
-      navRobot.verifyLiveTvCollapsedConstraint();
+      // Constraint assertion
+      navRobot.verifyLiveTvNavConstraint();
     });
   });
 }

@@ -18,6 +18,7 @@ import '../widgets/offline_banner.dart';
 import '../widgets/responsive_layout.dart';
 import 'app_routes.dart';
 import 'breadcrumb_bar.dart';
+import '../testing/test_keys.dart';
 import 'nav_badge_provider.dart';
 import 'nav_destinations.dart';
 import 'section_fab_provider.dart';
@@ -372,6 +373,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final fab = isTv ? null : _buildFab(context);
 
     return Scaffold(
+      key: TestKeys.appShell,
       floatingActionButton: fab,
       body: Column(
         children: [
@@ -542,6 +544,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
 
     return Scaffold(
+      key: TestKeys.appShell,
       floatingActionButton: fab,
       body: Column(
         children: [

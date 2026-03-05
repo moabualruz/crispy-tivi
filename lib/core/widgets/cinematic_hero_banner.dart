@@ -57,6 +57,7 @@ class CinematicHeroBanner extends StatelessWidget {
           color: Colors.black54,
           child: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
+            tooltip: 'Back',
             onPressed: () => context.pop(),
           ),
         ),

@@ -156,6 +156,7 @@ class SavedLayoutTile extends StatelessWidget {
       ),
       trailing: IconButton(
         icon: Icon(Icons.delete_outline, color: colorScheme.onSurfaceVariant),
+        tooltip: 'Delete layout',
         onPressed: () {
           showDialog(
             context: context,

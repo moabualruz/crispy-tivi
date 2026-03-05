@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../cloud_sync/presentation/widgets/cloud_sync_section.dart';
@@ -196,6 +197,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     final settingsAsync = ref.watch(settingsNotifierProvider);
 
     return Scaffold(
+      key: TestKeys.settingsScreen,
       appBar: AppBar(
         title: const Text('Settings'),
         actions: [

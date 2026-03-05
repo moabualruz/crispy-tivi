@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../test_helpers/pump_until_found.dart';
@@ -7,11 +8,13 @@ class DvrRobot {
 
   DvrRobot(this.tester);
 
-  Finder get dvrScreen => find.byKey(const ValueKey('dvr_screen'));
-  Finder get cloudStorageTab => find.byKey(const ValueKey('tab_cloud_storage'));
-  Finder get configS3Button => find.byKey(const ValueKey('config_s3_storage'));
-  Finder get configWebDavButton =>
-      find.byKey(const ValueKey('config_webdav_storage'));
+  Finder get dvrScreen => find.byKey(TestKeys.dvrScreen);
+  Finder get cloudStorageTab => find.byKey(TestKeys.tabCloudStorage);
+
+  // TODO: Uncomment when dedicated S3/WebDAV add buttons are implemented.
+  // Finder get configS3Button => find.byKey(TestKeys.configS3Storage);
+  // Finder get configWebDavButton => find.byKey(TestKeys.configWebDavStorage);
+
   Finder get errorSnackbar => find.byType(SnackBar);
 
   Future<void> waitForDvrScreen() async {
@@ -23,13 +26,14 @@ class DvrRobot {
     await tester.pumpAndSettle();
   }
 
-  Future<void> configureS3Provider() async {
-    await tester.scrollUntilVisible(
-      configS3Button,
-      200,
-      scrollable: find.byType(SingleChildScrollView),
-    );
-    await tester.tap(configS3Button);
-    await tester.pumpAndSettle();
-  }
+  // TODO: Re-enable when dedicated S3/WebDAV add buttons are implemented.
+  // Future<void> configureS3Provider() async {
+  //   await tester.scrollUntilVisible(
+  //     configS3Button,
+  //     200,
+  //     scrollable: find.byType(SingleChildScrollView),
+  //   );
+  //   await tester.tap(configS3Button);
+  //   await tester.pumpAndSettle();
+  // }
 }

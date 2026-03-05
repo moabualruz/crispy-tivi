@@ -318,63 +318,67 @@ class _UserAvatarTile extends StatelessWidget {
                 '?tag=${user.primaryImageTag}&height=80'
             : null;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(CrispyRadius.tv),
-      child: SizedBox(
-        width: 72,
-        child: Padding(
-          padding: const EdgeInsets.all(CrispySpacing.xs),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: cs.primaryContainer,
-                    backgroundImage:
-                        imageUrl != null ? NetworkImage(imageUrl) : null,
-                    child:
-                        imageUrl == null
-                            ? Text(
-                              user.name.isNotEmpty
-                                  ? user.name[0].toUpperCase()
-                                  : '?',
-                              style: TextStyle(
-                                color: cs.onPrimaryContainer,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                            : null,
-                  ),
-                  // PIN indicator badge when user has a password.
-                  if (user.hasConfiguredPassword)
-                    Container(
-                      padding: const EdgeInsets.all(CrispySpacing.xxs),
-                      decoration: BoxDecoration(
-                        color: cs.surfaceContainerHigh,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: cs.outline, width: 1),
-                      ),
-                      child: Icon(
-                        Icons.lock_outline,
-                        size: 10,
-                        color: cs.onSurfaceVariant,
-                      ),
+    return Semantics(
+      button: true,
+      label: 'Select user',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(CrispyRadius.tv),
+        child: SizedBox(
+          width: 72,
+          child: Padding(
+            padding: const EdgeInsets.all(CrispySpacing.xs),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: cs.primaryContainer,
+                      backgroundImage:
+                          imageUrl != null ? NetworkImage(imageUrl) : null,
+                      child:
+                          imageUrl == null
+                              ? Text(
+                                user.name.isNotEmpty
+                                    ? user.name[0].toUpperCase()
+                                    : '?',
+                                style: TextStyle(
+                                  color: cs.onPrimaryContainer,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                              : null,
                     ),
-                ],
-              ),
-              const SizedBox(height: CrispySpacing.xs),
-              Text(
-                user.name,
-                style: Theme.of(context).textTheme.labelSmall,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+                    // PIN indicator badge when user has a password.
+                    if (user.hasConfiguredPassword)
+                      Container(
+                        padding: const EdgeInsets.all(CrispySpacing.xxs),
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerHigh,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: cs.outline, width: 1),
+                        ),
+                        child: Icon(
+                          Icons.lock_outline,
+                          size: 10,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: CrispySpacing.xs),
+                Text(
+                  user.name,
+                  style: Theme.of(context).textTheme.labelSmall,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ),
       ),

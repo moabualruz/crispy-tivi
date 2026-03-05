@@ -128,34 +128,38 @@ class _PolicyOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = selected ? cs.primary : cs.onSurfaceVariant;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: CrispySpacing.xs,
-          horizontal: CrispySpacing.xs,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              selected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_unchecked,
-              size: 20,
-              color: color,
-            ),
-            const SizedBox(width: CrispySpacing.sm),
-            Icon(policy.icon, size: 20, color: color),
-            const SizedBox(width: CrispySpacing.sm),
-            Text(
-              policy.label,
-              style: tt.bodyMedium?.copyWith(
+    return Semantics(
+      button: true,
+      label: 'Select policy',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(4),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: CrispySpacing.xs,
+            horizontal: CrispySpacing.xs,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                size: 20,
                 color: color,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
               ),
-            ),
-          ],
+              const SizedBox(width: CrispySpacing.sm),
+              Icon(policy.icon, size: 20, color: color),
+              const SizedBox(width: CrispySpacing.sm),
+              Text(
+                policy.label,
+                style: tt.bodyMedium?.copyWith(
+                  color: color,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:universal_io/io.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/utils/platform_capabilities.dart';
 import '../../../favorites/data/favorites_history_service.dart';
 import '../../../iptv/domain/entities/channel.dart';
@@ -437,7 +438,7 @@ class _PlayerFullscreenOverlayState
               focusNode: _focusNode,
               onKeyEvent: _onKeyEvent,
               child: GestureDetector(
-                key: const Key('player_fullscreen_gesture_detector'),
+                key: TestKeys.playerGestureDetector,
                 onTap: _onTap,
                 onDoubleTapDown:
                     isInPip

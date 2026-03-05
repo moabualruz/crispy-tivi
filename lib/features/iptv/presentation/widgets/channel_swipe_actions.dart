@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../../domain/entities/channel.dart';
@@ -42,7 +43,7 @@ class ChannelSwipeActions extends ConsumerStatefulWidget {
 class _ChannelSwipeActionsState extends ConsumerState<ChannelSwipeActions> {
   /// Key used by [Dismissible]. Must be unique per item so
   /// Flutter can differentiate rows during animations.
-  late final _dismissKey = ValueKey('swipe_${widget.channel.id}');
+  late final _dismissKey = TestKeys.swipeChannel(widget.channel.id);
 
   // ── Favorite toggle (left swipe / end-to-start) ─────────────
 

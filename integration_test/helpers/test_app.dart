@@ -9,6 +9,7 @@ import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/crispy_backend.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/navigation/app_router.dart';
 import 'package:crispy_tivi/core/theme/app_theme.dart';
 import 'package:crispy_tivi/core/theme/theme_provider.dart';
@@ -238,13 +239,23 @@ const _tabIcons = <String, IconData>{
   'Settings': Icons.settings_outlined,
 };
 
+/// Maps legacy tab labels (used in tests) to actual nav destination labels.
+const _labelToNavDest = <String, String>{'TV': 'Live TV', 'VODs': 'Movies'};
+
 /// Navigates to a navigation tab by [label].
 ///
-/// Tries text first (bottom nav on mobile), then falls
-/// back to icon (side rail on desktop where labels are
-/// hidden when collapsed).
+/// Tries TestKeys first (most reliable), then text, then icon fallback.
 Future<void> navigateToTab(WidgetTester tester, String label) async {
-  // Strategy 1: find by text (bottom navigation bar).
+  // Strategy 1: find by TestKeys nav item key (works on all form factors).
+  final navDest = _labelToNavDest[label] ?? label;
+  final keyFinder = find.byKey(TestKeys.navItem(navDest));
+  if (keyFinder.evaluate().isNotEmpty) {
+    await tester.tap(keyFinder.first);
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+    return;
+  }
+
+  // Strategy 2: find by text (bottom navigation bar).
   final textFinder = find.text(label);
   if (textFinder.evaluate().isNotEmpty) {
     await tester.tap(textFinder.first);
@@ -252,7 +263,7 @@ Future<void> navigateToTab(WidgetTester tester, String label) async {
     return;
   }
 
-  // Strategy 2: find by icon (side rail, collapsed).
+  // Strategy 3: find by icon (side rail, collapsed).
   final icon = _tabIcons[label];
   if (icon != null) {
     final iconFinder = find.byIcon(icon);
@@ -283,18 +294,22 @@ Future<void> navigateToTab(WidgetTester tester, String label) async {
 }
 
 /// Asserts that a navigation tab with [label] is present
-/// in the widget tree (by text or icon).
+/// in the widget tree (by key, text, or icon).
 void expectTabExists(String label) {
+  final navDest = _labelToNavDest[label] ?? label;
+  final byKey = find.byKey(TestKeys.navItem(navDest));
   final byText = find.text(label);
   final icon = _tabIcons[label];
   final byIcon = icon != null ? find.byIcon(icon) : find.text(label);
 
   expect(
-    byText.evaluate().isNotEmpty || byIcon.evaluate().isNotEmpty,
+    byKey.evaluate().isNotEmpty ||
+        byText.evaluate().isNotEmpty ||
+        byIcon.evaluate().isNotEmpty,
     isTrue,
     reason:
         'Expected navigation tab "$label" to exist '
-        '(by text or icon).',
+        '(by key, text, or icon).',
   );
 }
 

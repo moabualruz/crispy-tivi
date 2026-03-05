@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../test_helpers/pump_until_found.dart';
@@ -7,19 +8,22 @@ class SettingsRobot {
 
   SettingsRobot(this.tester);
 
-  Finder get themeToggle => find.byKey(const ValueKey('theme_toggle_switch'));
-  Finder get settingsScreen => find.byKey(const ValueKey('settings_screen'));
+  Finder get settingsScreen => find.byKey(TestKeys.settingsScreen);
+
+  // TODO: Uncomment when dark mode toggle feature is implemented.
+  // Finder get themeToggle => find.byKey(TestKeys.themeToggleSwitch);
 
   Future<void> waitForSettings() async {
     await tester.pumpUntilFound(settingsScreen);
   }
 
-  Future<void> toggleTheme() async {
-    await tester.pumpUntilFound(themeToggle);
-    await tester.tap(themeToggle);
-    // Pump to let the animation and state change finish
-    await tester.pump(const Duration(milliseconds: 500));
-  }
+  // TODO: Re-enable when dark mode toggle feature is implemented.
+  // Future<void> toggleTheme() async {
+  //   await tester.pumpUntilFound(themeToggle);
+  //   await tester.tap(themeToggle);
+  //   // Pump to let the animation and state change finish
+  //   await tester.pump(const Duration(milliseconds: 500));
+  // }
 
   void verifyThemeBrightness(
     ThemeData themeData,

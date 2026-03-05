@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/stream_url_actions.dart';
 import '../../../../core/widgets/context_menu_builders.dart';
@@ -86,6 +87,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
+        key: TestKeys.seriesDetailScreen,
         backgroundColor: cs.surface,
         body: FocusTraversalGroup(
           child: NestedScrollView(
@@ -285,13 +287,17 @@ class _AutoplayToggle extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Switch(
-          value: autoplay,
-          onChanged:
-              (v) => ref
-                  .read(settingsNotifierProvider.notifier)
-                  .setAutoplayNextEpisode(v),
-          activeThumbColor: cs.primary,
+        Semantics(
+          label: 'Autoplay next episode',
+          toggled: autoplay,
+          child: Switch(
+            value: autoplay,
+            onChanged:
+                (v) => ref
+                    .read(settingsNotifierProvider.notifier)
+                    .setAutoplayNextEpisode(v),
+            activeThumbColor: cs.primary,
+          ),
         ),
         const SizedBox(width: CrispySpacing.xs),
         Text(

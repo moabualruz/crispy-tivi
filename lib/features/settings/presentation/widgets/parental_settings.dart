@@ -270,11 +270,15 @@ class _ProfileRestrictionsDialogState
                     const Icon(Icons.child_care, size: 18),
                     const SizedBox(width: CrispySpacing.xs),
                     const Expanded(child: Text('Child Profile')),
-                    Switch(
-                      value: isChild,
-                      onChanged: (val) {
-                        setState(() => _isChild[profile.id] = val);
-                      },
+                    Semantics(
+                      label: 'Child profile',
+                      toggled: isChild,
+                      child: Switch(
+                        value: isChild,
+                        onChanged: (val) {
+                          setState(() => _isChild[profile.id] = val);
+                        },
+                      ),
                     ),
                   ],
                 ),

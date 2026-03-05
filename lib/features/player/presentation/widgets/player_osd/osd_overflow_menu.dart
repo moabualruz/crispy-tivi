@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/testing/test_keys.dart';
 import 'osd_shared.dart';
 
 /// Overflow menu for less-used OSD controls.
@@ -141,7 +142,7 @@ class OsdOverflowMenu extends StatelessWidget {
     Color? iconColor,
   }) {
     return PopupMenuItem(
-      key: ValueKey('osd_overflow_item_$value'),
+      key: TestKeys.osdOverflowItem(value),
       value: value,
       child: Row(
         children: [

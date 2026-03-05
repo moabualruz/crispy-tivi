@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/domain/entities/media_item.dart';
 import '../../../../../core/domain/media_source.dart';
+import '../../../../../core/testing/test_keys.dart';
 import '../../../../../core/theme/crispy_colors.dart';
 import '../../../../../core/theme/crispy_radius.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
@@ -74,6 +75,7 @@ class _MediaItemDetailsScreenState
     final durationText = DurationFormatter.humanShortMs(item.durationMs);
 
     return Scaffold(
+      key: TestKeys.mediaItemDetailsScreen,
       backgroundColor: colorScheme.surface,
       body: CustomScrollView(
         slivers: [

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:crispy_tivi/core/domain/entities/media_item.dart';
 import 'package:crispy_tivi/core/domain/media_source.dart';
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 
 /// Default grid delegate for media server library poster grids.
@@ -158,6 +159,7 @@ class _PaginatedMediaLibraryScreenState
     final initialData = ref.watch(widget.initialDataProvider);
 
     return Scaffold(
+      key: TestKeys.paginatedLibraryScreen,
       appBar: AppBar(
         // PX-FE-BREAD: use titleWidget when provided (breadcrumb titles).
         title: widget.titleWidget ?? Text(widget.title),

@@ -8,6 +8,7 @@ import 'package:crispy_tivi/core/domain/entities/media_item.dart';
 import 'package:crispy_tivi/core/domain/entities/media_type.dart';
 import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/core/navigation/app_routes.dart';
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_animation.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
@@ -59,6 +60,7 @@ class PlexHomeScreen extends ConsumerWidget {
     final activeUser = ref.watch(plexActiveUserProvider);
 
     return Scaffold(
+      key: TestKeys.plexHomeScreen,
       appBar: AppBar(
         title: Text(source?.displayName ?? 'Plex'),
         actions: [
@@ -89,6 +91,7 @@ class PlexHomeScreen extends ConsumerWidget {
             ),
           IconButton(
             icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
             onPressed: () => context.go('/settings'),
           ),
         ],
@@ -314,118 +317,122 @@ class _PlexHeroBannerState extends ConsumerState<_PlexHeroBanner> {
         (item.metadata['thumbUrl'] as String?) ??
         item.logoUrl;
 
-    return GestureDetector(
-      onTap: () => _onTap(context),
-      child: SizedBox(
-        height: _kHeroBannerHeight,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // PX-FE-06: backdrop image.
-            AnimatedSwitcher(
-              duration: CrispyAnimation.slow,
-              child:
-                  imageUrl != null
-                      ? Image.network(
-                        imageUrl,
-                        key: ValueKey(imageUrl),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        errorBuilder:
-                            (_, _, _) =>
-                                ColoredBox(color: cs.surfaceContainerHighest),
-                      )
-                      : ColoredBox(
-                        key: const ValueKey('placeholder'),
-                        color: cs.surfaceContainerHighest,
-                      ),
-            ),
+    return Semantics(
+      button: true,
+      label: 'View details',
+      child: GestureDetector(
+        onTap: () => _onTap(context),
+        child: SizedBox(
+          height: _kHeroBannerHeight,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // PX-FE-06: backdrop image.
+              AnimatedSwitcher(
+                duration: CrispyAnimation.slow,
+                child:
+                    imageUrl != null
+                        ? Image.network(
+                          imageUrl,
+                          key: ValueKey(imageUrl),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorBuilder:
+                              (_, _, _) =>
+                                  ColoredBox(color: cs.surfaceContainerHighest),
+                        )
+                        : ColoredBox(
+                          key: const ValueKey('placeholder'),
+                          color: cs.surfaceContainerHighest,
+                        ),
+              ),
 
-            // PX-FE-06: bottom vignette gradient.
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0x00000000),
-                    Color(0x00000000),
-                    Color(0x80000000),
-                    Color(0xE6000000),
-                    Colors.black,
-                  ],
-                  stops: [0.0, 0.3, 0.6, 0.85, 1.0],
+              // PX-FE-06: bottom vignette gradient.
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0x00000000),
+                      Color(0x00000000),
+                      Color(0x80000000),
+                      Color(0xE6000000),
+                      Colors.black,
+                    ],
+                    stops: [0.0, 0.3, 0.6, 0.85, 1.0],
+                  ),
                 ),
               ),
-            ),
 
-            // PX-FE-06: title / metadata overlay.
-            Positioned(
-              left: CrispySpacing.lg,
-              right: CrispySpacing.lg,
-              bottom: CrispySpacing.lg,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item.name,
-                    style: tt.headlineSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      shadows: const [
-                        Shadow(blurRadius: 8, color: Colors.black54),
-                      ],
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (item.overview != null) ...[
-                    const SizedBox(height: CrispySpacing.xs),
+              // PX-FE-06: title / metadata overlay.
+              Positioned(
+                left: CrispySpacing.lg,
+                right: CrispySpacing.lg,
+                bottom: CrispySpacing.lg,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     Text(
-                      item.overview!,
-                      style: tt.bodySmall?.copyWith(
-                        color: Colors.white70,
+                      item.name,
+                      style: tt.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
                         shadows: const [
-                          Shadow(blurRadius: 6, color: Colors.black54),
+                          Shadow(blurRadius: 8, color: Colors.black54),
                         ],
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                  // PX-FE-06: page indicator dots when multiple items.
-                  if (widget.items.length > 1) ...[
-                    const SizedBox(height: CrispySpacing.sm),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(widget.items.length, (i) {
-                        return AnimatedContainer(
-                          duration: CrispyAnimation.fast,
-                          curve: CrispyAnimation.focusCurve,
-                          margin: const EdgeInsets.only(
-                            right: CrispySpacing.xs,
-                          ),
-                          width: i == _currentIndex ? 20 : 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color:
-                                i == _currentIndex
-                                    ? Colors.white
-                                    : Colors.white38,
-                            borderRadius: BorderRadius.circular(
-                              CrispyRadius.tv,
+                    if (item.overview != null) ...[
+                      const SizedBox(height: CrispySpacing.xs),
+                      Text(
+                        item.overview!,
+                        style: tt.bodySmall?.copyWith(
+                          color: Colors.white70,
+                          shadows: const [
+                            Shadow(blurRadius: 6, color: Colors.black54),
+                          ],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    // PX-FE-06: page indicator dots when multiple items.
+                    if (widget.items.length > 1) ...[
+                      const SizedBox(height: CrispySpacing.sm),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(widget.items.length, (i) {
+                          return AnimatedContainer(
+                            duration: CrispyAnimation.fast,
+                            curve: CrispyAnimation.focusCurve,
+                            margin: const EdgeInsets.only(
+                              right: CrispySpacing.xs,
                             ),
-                          ),
-                        );
-                      }),
-                    ),
+                            width: i == _currentIndex ? 20 : 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color:
+                                  i == _currentIndex
+                                      ? Colors.white
+                                      : Colors.white38,
+                              borderRadius: BorderRadius.circular(
+                                CrispyRadius.tv,
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -492,61 +499,66 @@ class _PlexOnDeckCard extends ConsumerWidget {
     // PX-FE-04
     final cs = Theme.of(context).colorScheme;
 
-    return GestureDetector(
-      onTap: () => _onTap(context, ref),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(CrispyRadius.tv),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (item.logoUrl != null)
-              Image.network(
-                item.logoUrl!,
-                fit: BoxFit.cover,
-                errorBuilder:
-                    (_, _, _) => ColoredBox(
-                      color: cs.surfaceContainerHighest,
-                      child: const Center(child: Icon(Icons.broken_image)),
+    return Semantics(
+      button: true,
+      label: 'Resume watching',
+      child: GestureDetector(
+        onTap: () => _onTap(context, ref),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(CrispyRadius.tv),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (item.logoUrl != null)
+                Image.network(
+                  item.logoUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (_, _, _) => ColoredBox(
+                        color: cs.surfaceContainerHighest,
+                        child: const Center(child: Icon(Icons.broken_image)),
+                      ),
+                )
+              else
+                ColoredBox(
+                  color: cs.surfaceContainerHighest,
+                  child: Center(
+                    child: Icon(Icons.movie, size: 40, color: cs.onSurface),
+                  ),
+                ),
+              // PX-FE-04: progress bar via WatchedIndicator.
+              WatchedIndicator(
+                isWatched: item.isWatched,
+                isInProgress:
+                    item.playbackPositionMs != null && !item.isWatched,
+                watchProgress: item.watchProgress,
+              ),
+              // Title overlay at bottom.
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: ColoredBox(
+                  color: cs.surface.withValues(alpha: 0.72),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: CrispySpacing.xs,
+                      vertical: CrispySpacing.xxs,
                     ),
-              )
-            else
-              ColoredBox(
-                color: cs.surfaceContainerHighest,
-                child: Center(
-                  child: Icon(Icons.movie, size: 40, color: cs.onSurface),
-                ),
-              ),
-            // PX-FE-04: progress bar via WatchedIndicator.
-            WatchedIndicator(
-              isWatched: item.isWatched,
-              isInProgress: item.playbackPositionMs != null && !item.isWatched,
-              watchProgress: item.watchProgress,
-            ),
-            // Title overlay at bottom.
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: ColoredBox(
-                color: cs.surface.withValues(alpha: 0.72),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: CrispySpacing.xs,
-                    vertical: CrispySpacing.xxs,
-                  ),
-                  child: Text(
-                    item.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelSmall?.copyWith(color: cs.onSurface),
+                    child: Text(
+                      item.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelSmall?.copyWith(color: cs.onSurface),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

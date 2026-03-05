@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/widgets/confirm_delete_dialog.dart';
 import '../../data/transfer_service.dart';
@@ -311,6 +312,7 @@ class _CloudBrowserScreenState extends ConsumerState<CloudBrowserScreen> {
     final sortOrder = ref.watch(sortOrderProvider);
 
     return Scaffold(
+      key: TestKeys.cloudBrowserScreen,
       appBar: AppBar(
         title:
             isMultiSelect

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 
 /// A pill-style step indicator for the onboarding wizard.
@@ -24,26 +25,30 @@ class OnboardingStepIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(totalSteps, (index) {
-        final isActive = index == currentStep;
-        return AnimatedContainer(
-          duration: CrispyAnimation.fast,
-          curve: CrispyAnimation.enterCurve,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: isActive ? 24 : 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color:
-                isActive
-                    ? colorScheme.primary
-                    : colorScheme.onSurface.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(4),
-          ),
-        );
-      }),
+    return Semantics(
+      label: 'Step ${currentStep + 1} of $totalSteps',
+      child: Row(
+        key: TestKeys.onboardingStepIndicator,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(totalSteps, (index) {
+          final isActive = index == currentStep;
+          return AnimatedContainer(
+            duration: CrispyAnimation.fast,
+            curve: CrispyAnimation.enterCurve,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            width: isActive ? 24 : 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color:
+                  isActive
+                      ? colorScheme.primary
+                      : colorScheme.onSurface.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          );
+        }),
+      ),
     );
   }
 }

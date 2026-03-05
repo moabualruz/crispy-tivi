@@ -200,57 +200,61 @@ class _GroupHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // FE-DVR-05
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: CrispySpacing.md,
-          vertical: CrispySpacing.sm,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: tt.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: cs.onSurface,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: CrispySpacing.sm),
-            // Episode count badge
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: CrispySpacing.sm,
-                vertical: CrispySpacing.xxs,
-              ),
-              decoration: BoxDecoration(
-                color: cs.primaryContainer,
-                borderRadius: BorderRadius.circular(CrispyRadius.tv),
-              ),
-              child: Text(
-                '$episodeCount ep',
-                style: tt.labelSmall?.copyWith(
-                  color: cs.onPrimaryContainer,
-                  fontWeight: FontWeight.w600,
+    return Semantics(
+      button: true,
+      label: 'Toggle group',
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: CrispySpacing.md,
+            vertical: CrispySpacing.sm,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: tt.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: cs.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ),
-            const SizedBox(width: CrispySpacing.xs),
-            // Animated chevron
-            AnimatedRotation(
-              turns: isCollapsed ? -0.25 : 0,
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                Icons.expand_more,
-                color: cs.onSurfaceVariant,
-                size: 20,
+              const SizedBox(width: CrispySpacing.sm),
+              // Episode count badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: CrispySpacing.sm,
+                  vertical: CrispySpacing.xxs,
+                ),
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer,
+                  borderRadius: BorderRadius.circular(CrispyRadius.tv),
+                ),
+                child: Text(
+                  '$episodeCount ep',
+                  style: tt.labelSmall?.copyWith(
+                    color: cs.onPrimaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: CrispySpacing.xs),
+              // Animated chevron
+              AnimatedRotation(
+                turns: isCollapsed ? -0.25 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  Icons.expand_more,
+                  color: cs.onSurfaceVariant,
+                  size: 20,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

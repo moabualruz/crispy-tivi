@@ -158,6 +158,7 @@ class _ChannelZapOverlayState extends State<ChannelZapOverlay> {
                     ),
                     const Spacer(),
                     IconButton(
+                      tooltip: 'Close',
                       icon: Icon(
                         Icons.close,
                         color: colorScheme.onSurfaceVariant,

@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -8,8 +9,8 @@ class MediaRobot {
 
   MediaRobot(this.tester);
 
-  Finder get epgChannelList => find.byKey(const ValueKey('epg_list'));
-  Finder get firstChannelItem => find.byKey(const ValueKey('channel_0'));
+  Finder get epgChannelList => find.byKey(TestKeys.epgChannelList);
+  Finder get firstChannelItem => find.byKey(TestKeys.channelItem(0));
   Finder get videoVideo => find.byType(Video); // media_kit video player widget
 
   Future<void> waitForEpg() async {

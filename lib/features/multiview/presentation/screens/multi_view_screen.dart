@@ -18,6 +18,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -226,6 +227,7 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
         }
       },
       child: Scaffold(
+        key: TestKeys.multiViewScreen,
         backgroundColor: Colors.black,
         body: FocusTraversalGroup(
           child: Stack(

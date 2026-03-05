@@ -43,6 +43,7 @@ import '../domain/media_source.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/player/presentation/providers/player_providers.dart';
 import 'app_shell.dart';
+import '../testing/test_keys.dart';
 
 /// Fallback screen shown when required route data is missing.
 ///
@@ -61,6 +62,7 @@ class _FallbackScreen extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final displayTitle = kDebugMode ? title : 'Page not found';
     return Scaffold(
+      key: TestKeys.notFoundScreen,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

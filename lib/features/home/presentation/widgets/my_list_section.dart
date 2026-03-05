@@ -241,67 +241,71 @@ class _WatchlistCardState extends ConsumerState<_WatchlistCard> {
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: _tap,
-        onLongPress: _onLongPress,
-        child: AnimatedScale(
-          scale: _isHovered ? CrispyAnimation.hoverScale : 1.0,
-          duration: CrispyAnimation.fast,
-          curve: CrispyAnimation.focusCurve,
-          child: SizedBox(
-            width: _kCardWidth,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                  child: SizedBox(
-                    width: _kCardWidth,
-                    height: _kCardHeight,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        SmartImage(
-                          itemId: item.id,
-                          title: item.name,
-                          imageUrl: item.posterUrl,
-                          imageKind: 'poster',
-                          fit: BoxFit.cover,
-                          icon:
-                              item.type == VodType.movie
-                                  ? Icons.movie_outlined
-                                  : Icons.tv,
-                          memCacheWidth: 200,
-                        ),
-                        // Remove button overlay — visible on hover.
-                        AnimatedOpacity(
-                          opacity: _isHovered ? 1.0 : 0.0,
-                          duration: CrispyAnimation.fast,
-                          child: Positioned.fill(
-                            child: ColoredBox(
-                              color: cs.surface.withValues(alpha: 0.55),
-                              child: Center(
-                                child: Icon(
-                                  Icons.close_rounded,
-                                  color: cs.onSurface,
-                                  size: 32,
+      child: Semantics(
+        button: true,
+        label: 'Open item',
+        child: GestureDetector(
+          onTap: _tap,
+          onLongPress: _onLongPress,
+          child: AnimatedScale(
+            scale: _isHovered ? CrispyAnimation.hoverScale : 1.0,
+            duration: CrispyAnimation.fast,
+            curve: CrispyAnimation.focusCurve,
+            child: SizedBox(
+              width: _kCardWidth,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(CrispyRadius.tv),
+                    child: SizedBox(
+                      width: _kCardWidth,
+                      height: _kCardHeight,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          SmartImage(
+                            itemId: item.id,
+                            title: item.name,
+                            imageUrl: item.posterUrl,
+                            imageKind: 'poster',
+                            fit: BoxFit.cover,
+                            icon:
+                                item.type == VodType.movie
+                                    ? Icons.movie_outlined
+                                    : Icons.tv,
+                            memCacheWidth: 200,
+                          ),
+                          // Remove button overlay — visible on hover.
+                          AnimatedOpacity(
+                            opacity: _isHovered ? 1.0 : 0.0,
+                            duration: CrispyAnimation.fast,
+                            child: Positioned.fill(
+                              child: ColoredBox(
+                                color: cs.surface.withValues(alpha: 0.55),
+                                child: Center(
+                                  child: Icon(
+                                    Icons.close_rounded,
+                                    color: cs.onSurface,
+                                    size: 32,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: CrispySpacing.xs),
-                Text(
-                  item.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodySmall,
-                ),
-              ],
+                  const SizedBox(height: CrispySpacing.xs),
+                  Text(
+                    item.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodySmall,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

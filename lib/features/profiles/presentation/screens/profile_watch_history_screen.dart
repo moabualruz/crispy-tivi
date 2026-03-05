@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -56,6 +57,7 @@ class ProfileWatchHistoryScreen extends ConsumerWidget {
     final historyAsync = ref.watch(profileWatchHistoryProvider(profileId));
 
     return Scaffold(
+      key: TestKeys.profileWatchHistoryScreen,
       appBar: AppBar(
         title: Text("$profileName's History"),
         actions: [

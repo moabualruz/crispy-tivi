@@ -104,6 +104,7 @@ class _SidePanelState extends State<SidePanel>
                         const Spacer(),
                         IconButton(
                           icon: const Icon(Icons.close, color: Colors.white),
+                          tooltip: 'Close panel',
                           onPressed: _close,
                         ),
                       ],

@@ -120,6 +120,7 @@ class _EpgAssignDialogState extends ConsumerState<EpgAssignDialog> {
             TextField(
               decoration: const InputDecoration(
                 hintText: 'Search channels...',
+                labelText: 'Search channels',
                 prefixIcon: Icon(Icons.search),
                 isDense: true,
               ),

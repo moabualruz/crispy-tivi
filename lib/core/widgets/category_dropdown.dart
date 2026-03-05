@@ -236,6 +236,7 @@ class _CategorySearchSheetState extends State<_CategorySearchSheet> {
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'Search categories\u2026',
+                  labelText: 'Search categories',
                   prefixIcon: const Icon(Icons.search, size: 20),
                   isDense: true,
                   border: OutlineInputBorder(borderRadius: BorderRadius.zero),

@@ -57,12 +57,16 @@ class OnboardingSyncStep extends ConsumerWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: CrispySpacing.xxl),
-              FocusWrapper(
-                autofocus: true,
-                onSelect: () => _enterApp(context, ref),
-                child: FilledButton(
-                  onPressed: () => _enterApp(context, ref),
-                  child: const Text('Enter App'),
+              Semantics(
+                button: true,
+                label: 'Enter the app',
+                child: FocusWrapper(
+                  autofocus: true,
+                  onSelect: () => _enterApp(context, ref),
+                  child: FilledButton(
+                    onPressed: () => _enterApp(context, ref),
+                    child: const Text('Enter App'),
+                  ),
                 ),
               ),
             ],
@@ -90,18 +94,26 @@ class OnboardingSyncStep extends ConsumerWidget {
                 ),
               ],
               const SizedBox(height: CrispySpacing.lg),
-              FocusWrapper(
-                autofocus: true,
-                onSelect: () => notifier.retrySync(),
-                child: FilledButton(
-                  onPressed: () => notifier.retrySync(),
-                  child: const Text('Retry'),
+              Semantics(
+                button: true,
+                label: 'Retry connection',
+                child: FocusWrapper(
+                  autofocus: true,
+                  onSelect: () => notifier.retrySync(),
+                  child: FilledButton(
+                    onPressed: () => notifier.retrySync(),
+                    child: const Text('Retry'),
+                  ),
                 ),
               ),
               const SizedBox(height: CrispySpacing.sm),
-              TextButton(
-                onPressed: () => notifier.editSource(),
-                child: const Text('Edit source details'),
+              Semantics(
+                button: true,
+                label: 'Edit source details',
+                child: TextButton(
+                  onPressed: () => notifier.editSource(),
+                  child: const Text('Edit source details'),
+                ),
               ),
             ],
           ),

@@ -2,12 +2,68 @@ import { Page } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// ─── Constants ───────────────────────────────────────────────
-// Text labels matching Flutter widget content. These correspond
-// to the labels in AppShell._destinations and
-// ProfileSelectionScreen in the CrispyTivi codebase.
+// ─── Selector Architecture ───────────────────────────────────
+//
+// Flutter web (CanvasKit renderer) draws all UI into a <canvas>
+// element. DOM-based selectors (CSS, XPath) cannot reach widget
+// content directly. Playwright accesses the app through Flutter's
+// semantics overlay — a parallel invisible DOM tree that mirrors
+// the widget tree with ARIA attributes.
+//
+// ## How Flutter Semantics Map to ARIA
+//
+// Every Flutter widget that sets `semanticLabel` (or is wrapped
+// in `Semantics(label: '...')`) creates an `flt-semantics` custom
+// element in the semantics overlay with a matching `aria-label`.
+// Example:
+//   Dart:  FocusWrapper(semanticLabel: 'Live TV', ...)
+//   DOM:   <flt-semantics aria-label="Live TV" role="button">
+//
+// Playwright query patterns (preferred order):
+//   1. page.getByRole('button', { name: 'Live TV' })
+//      — best for interactive elements with a known role
+//   2. page.getByText('Live TV')
+//      — best for static text / labels
+//   3. page.locator('flt-semantics[aria-label="Live TV"]')
+//      — precise fallback when role is unknown
+//   4. page.locator('[aria-label*="Live"]')
+//      — partial-match fallback for dynamic labels
+//
+// ## Source of Truth for Labels
+//
+// - Structural widget keys: `lib/core/testing/test_keys.dart`
+//   These are ValueKey constants used in integration tests via
+//   `find.byKey(TestKeys.xxx)`. They are NOT aria-labels.
+//
+// - Navigation labels: `lib/core/navigation/nav_destinations.dart`
+//   The `NavItem.label` strings are set as `semanticLabel` on
+//   the `FocusWrapper` wrapping each nav item in `side_nav.dart`.
+//   These become `aria-label` values in the semantics overlay.
+//
+// - Interactive element labels: set per-widget via `semanticLabel`
+//   parameters on `FocusWrapper`, `Semantics`, or `Tooltip.message`.
+//
+// ## Activation Required
+//
+// Flutter web semantics overlay is NOT active by default. You must
+// click the hidden "Enable accessibility" button first. The
+// `waitForFlutterReady()` helper does this automatically via
+// `enableSemanticsOverlay()`. Without activation, all ARIA queries
+// return zero results.
+//
+// ─────────────────────────────────────────────────────────────
 
-/** Navigation tab labels in AppShell display order. */
+/** Navigation tab labels in side rail display order.
+ *
+ * Source: `lib/core/navigation/nav_destinations.dart` —
+ * `sideDestinations[*].label`. These exact strings are set as
+ * `semanticLabel` on each `FocusWrapper` nav item in `side_nav.dart`
+ * and appear as `aria-label` on `flt-semantics` nodes at runtime.
+ *
+ * The bottom bar (`bottomDestinations`) is a 5-item subset:
+ * Home, Live TV, Search, Movies, Settings — used at compact/medium
+ * breakpoints (< 840dp).
+ */
 export const NAV_TABS = [
   'Home',
   'Search',

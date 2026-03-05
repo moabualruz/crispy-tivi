@@ -85,6 +85,7 @@ class _ToastCard extends ConsumerWidget {
           ),
           trailing: IconButton(
             icon: const Icon(Icons.close, color: Colors.white70, size: 18),
+            tooltip: 'Dismiss',
             onPressed:
                 () => ref
                     .read(notificationServiceProvider.notifier)

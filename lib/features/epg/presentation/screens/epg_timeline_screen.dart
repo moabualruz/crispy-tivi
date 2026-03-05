@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
@@ -310,6 +311,7 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
     // to preserve scroll position.
 
     return Scaffold(
+      key: TestKeys.epgScreen,
       body: ResponsiveLayout(
         compactBody: _buildMobileLayout(state),
         largeBody: _buildTvLayout(state),

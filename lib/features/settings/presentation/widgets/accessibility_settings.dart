@@ -338,6 +338,7 @@ class _SliderTile extends StatelessWidget {
             max: max,
             divisions: divisions,
             onChanged: onChanged,
+            semanticFormatterCallback: (v) => '$title $valueLabel',
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../vod/presentation/providers/vod_providers.dart';
@@ -24,12 +25,13 @@ class HomeScreen extends ConsumerWidget {
     final featuredItems = ref.watch(vodProvider.select((s) => s.featured));
 
     return Scaffold(
+      key: TestKeys.homeScreen,
       appBar: AppBar(
         title: const Text('CrispyTivi'),
         actions: [
           const AppBarSearchButton(),
           IconButton(
-            key: const ValueKey('home_favorites_btn'),
+            key: TestKeys.homeFavoritesButton,
             icon: const Icon(Icons.favorite_border_rounded),
             tooltip: 'Favorites',
             onPressed: () => context.go(AppRoutes.favorites),
@@ -41,7 +43,10 @@ class HomeScreen extends ConsumerWidget {
           slivers: [
             // 1. Hero Banner
             if (featuredItems.isNotEmpty)
-              SliverToBoxAdapter(child: VodHeroBanner(items: featuredItems)),
+              SliverToBoxAdapter(
+                key: TestKeys.heroBanner,
+                child: VodHeroBanner(items: featuredItems),
+              ),
 
             // 1b. My List (FE-H-01) — hidden when empty
             const SliverToBoxAdapter(child: MyListSection()),

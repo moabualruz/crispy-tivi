@@ -320,21 +320,25 @@ class _WatchlistButton extends StatelessWidget {
     return AnimatedOpacity(
       opacity: show ? 1.0 : 0.0,
       duration: CrispyAnimation.fast,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onToggle,
-        child: Container(
-          width: 26,
-          height: 26,
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerHighest.withValues(alpha: 0.8),
-            shape: BoxShape.circle,
-          ),
-          alignment: Alignment.center,
-          child: Icon(
-            isFavorite ? Icons.bookmark_rounded : Icons.add_rounded,
-            size: 16,
-            color: isFavorite ? cs.primary : cs.onSurface,
+      child: Semantics(
+        button: true,
+        label: isFavorite ? 'Remove from watchlist' : 'Add to watchlist',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onToggle,
+          child: Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest.withValues(alpha: 0.8),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              isFavorite ? Icons.bookmark_rounded : Icons.add_rounded,
+              size: 16,
+              color: isFavorite ? cs.primary : cs.onSurface,
+            ),
           ),
         ),
       ),

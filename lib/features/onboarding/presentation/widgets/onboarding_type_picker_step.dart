@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/domain/entities/playlist_source.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
@@ -26,6 +27,7 @@ class OnboardingTypePickerStep extends ConsumerWidget {
 
     final cards = [
       _TypeCard(
+        key: TestKeys.onboardingSourceType('m3u'),
         icon: Icons.playlist_play,
         title: 'M3U Playlist',
         subtitle: 'Add via URL or file link',
@@ -33,12 +35,14 @@ class OnboardingTypePickerStep extends ConsumerWidget {
         onTap: () => notifier.selectSourceType(PlaylistSourceType.m3u),
       ),
       _TypeCard(
+        key: TestKeys.onboardingSourceType('xtream'),
         icon: Icons.dns,
         title: 'Xtream Codes',
         subtitle: 'Server URL with login credentials',
         onTap: () => notifier.selectSourceType(PlaylistSourceType.xtream),
       ),
       _TypeCard(
+        key: TestKeys.onboardingSourceType('stalker'),
         icon: Icons.router,
         title: 'Stalker Portal',
         subtitle: 'Portal URL with MAC address',
@@ -69,10 +73,14 @@ class OnboardingTypePickerStep extends ConsumerWidget {
             Column(children: cards),
           const SizedBox(height: CrispySpacing.lg),
           Center(
-            child: TextButton.icon(
-              onPressed: () => ref.read(onboardingProvider.notifier).goBack(),
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Back'),
+            child: Semantics(
+              button: true,
+              label: 'Go back to previous step',
+              child: TextButton.icon(
+                onPressed: () => ref.read(onboardingProvider.notifier).goBack(),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Back'),
+              ),
             ),
           ),
         ],
@@ -84,6 +92,7 @@ class OnboardingTypePickerStep extends ConsumerWidget {
 /// Glassmorphic card representing a single source type.
 class _TypeCard extends StatelessWidget {
   const _TypeCard({
+    super.key,
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -104,46 +113,50 @@ class _TypeCard extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.all(CrispySpacing.xs),
-      child: FocusWrapper(
-        autofocus: autofocus,
-        onSelect: onTap,
-        borderRadius: CrispyRadius.lg,
-        child: GestureDetector(
-          onTap: onTap,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(CrispyRadius.lg),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: Container(
-                padding: const EdgeInsets.all(CrispySpacing.lg),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.3,
-                  ),
-                  borderRadius: BorderRadius.circular(CrispyRadius.lg),
-                  border: Border.all(
-                    color: colorScheme.outline.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon, size: 40, color: colorScheme.primary),
-                    const SizedBox(height: CrispySpacing.sm),
-                    Text(
-                      title,
-                      style: textTheme.titleMedium,
-                      textAlign: TextAlign.center,
+      child: Semantics(
+        button: true,
+        label: 'Select $title source type',
+        child: FocusWrapper(
+          autofocus: autofocus,
+          onSelect: onTap,
+          borderRadius: CrispyRadius.lg,
+          child: GestureDetector(
+            onTap: onTap,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(CrispyRadius.lg),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Container(
+                  padding: const EdgeInsets.all(CrispySpacing.lg),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.3,
                     ),
-                    const SizedBox(height: CrispySpacing.xs),
-                    Text(
-                      subtitle,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
+                    borderRadius: BorderRadius.circular(CrispyRadius.lg),
+                    border: Border.all(
+                      color: colorScheme.outline.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 40, color: colorScheme.primary),
+                      const SizedBox(height: CrispySpacing.sm),
+                      Text(
+                        title,
+                        style: textTheme.titleMedium,
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                      const SizedBox(height: CrispySpacing.xs),
+                      Text(
+                        subtitle,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

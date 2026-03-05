@@ -39,18 +39,22 @@ class OnboardingWelcomeStep extends ConsumerWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: CrispySpacing.xxl),
-            FocusWrapper(
-              autofocus: true,
-              onSelect:
-                  () => ref
-                      .read(onboardingProvider.notifier)
-                      .goToStep(OnboardingStep.typePicker),
-              child: FilledButton(
-                onPressed:
+            Semantics(
+              button: true,
+              label: 'Get started with setup',
+              child: FocusWrapper(
+                autofocus: true,
+                onSelect:
                     () => ref
                         .read(onboardingProvider.notifier)
                         .goToStep(OnboardingStep.typePicker),
-                child: const Text('Get Started'),
+                child: FilledButton(
+                  onPressed:
+                      () => ref
+                          .read(onboardingProvider.notifier)
+                          .goToStep(OnboardingStep.typePicker),
+                  child: const Text('Get Started'),
+                ),
               ),
             ),
           ],

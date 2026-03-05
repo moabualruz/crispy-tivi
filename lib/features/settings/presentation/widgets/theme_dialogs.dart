@@ -146,64 +146,68 @@ class MainHueOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(CrispyRadius.tv),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: CrispySpacing.sm,
-          horizontal: CrispySpacing.xs,
-        ),
-        child: Row(
-          children: [
-            // Color preview
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: hue.surface,
-                borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                border: Border.all(color: colorScheme.outline, width: 1),
-              ),
-              child: Center(
-                child: Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: hue.raised,
-                    borderRadius: BorderRadius.circular(CrispyRadius.tv),
+    return Semantics(
+      button: true,
+      label: 'Select color',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(CrispyRadius.tv),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: CrispySpacing.sm,
+            horizontal: CrispySpacing.xs,
+          ),
+          child: Row(
+            children: [
+              // Color preview
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: hue.surface,
+                  borderRadius: BorderRadius.circular(CrispyRadius.tv),
+                  border: Border.all(color: colorScheme.outline, width: 1),
+                ),
+                child: Center(
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: hue.raised,
+                      borderRadius: BorderRadius.circular(CrispyRadius.tv),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: CrispySpacing.md),
+              const SizedBox(width: CrispySpacing.md),
 
-            // Text
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    hue.displayName,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+              // Text
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hue.displayName,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
                     ),
-                  ),
-                  Text(
-                    hue.description,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                    Text(
+                      hue.description,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
-            // Selection indicator
-            if (isSelected)
-              Icon(Icons.check_circle, color: colorScheme.primary),
-          ],
+              // Selection indicator
+              if (isSelected)
+                Icon(Icons.check_circle, color: colorScheme.primary),
+            ],
+          ),
         ),
       ),
     );
@@ -249,45 +253,49 @@ class DensityOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(CrispyRadius.tv),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: CrispySpacing.sm,
-          horizontal: CrispySpacing.xs,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              _icon,
-              size: 28,
-              color: isSelected ? colorScheme.primary : colorScheme.onSurface,
-            ),
-            const SizedBox(width: CrispySpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    density.label,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                  Text(
-                    _description,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+    return Semantics(
+      button: true,
+      label: 'Select density',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(CrispyRadius.tv),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: CrispySpacing.sm,
+            horizontal: CrispySpacing.xs,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                _icon,
+                size: 28,
+                color: isSelected ? colorScheme.primary : colorScheme.onSurface,
               ),
-            ),
-            if (isSelected)
-              Icon(Icons.check_circle, color: colorScheme.primary),
-          ],
+              const SizedBox(width: CrispySpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      density.label,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    Text(
+                      _description,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isSelected)
+                Icon(Icons.check_circle, color: colorScheme.primary),
+            ],
+          ),
         ),
       ),
     );
@@ -314,33 +322,37 @@ class AccentColorChip extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(CrispyRadius.tv),
-              border:
+        Semantics(
+          button: true,
+          label: 'Select accent color',
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(CrispyRadius.tv),
+                border:
+                    isSelected
+                        ? Border.all(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          width: 3,
+                        )
+                        : null,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child:
                   isSelected
-                      ? Border.all(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        width: 3,
-                      )
+                      ? const Icon(Icons.check, color: Colors.white, size: 24)
                       : null,
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.4),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
             ),
-            child:
-                isSelected
-                    ? const Icon(Icons.check, color: Colors.white, size: 24)
-                    : null,
           ),
         ),
         const SizedBox(height: CrispySpacing.xs),

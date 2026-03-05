@@ -203,19 +203,23 @@ class BreadcrumbBar extends StatelessWidget {
       } else {
         // Parent crumb — tappable, navigates back.
         widgets.add(
-          InkWell(
-            borderRadius: BorderRadius.circular(CrispyRadius.tv),
-            onTap: () => context.go(crumb.path),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: CrispySpacing.xs,
-                vertical: CrispySpacing.xxs,
-              ),
-              child: Text(
-                crumb.label,
-                style: textTheme.labelSmall?.copyWith(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.normal,
+          Semantics(
+            button: true,
+            label: 'Navigate to parent',
+            child: InkWell(
+              borderRadius: BorderRadius.circular(CrispyRadius.tv),
+              onTap: () => context.go(crumb.path),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: CrispySpacing.xs,
+                  vertical: CrispySpacing.xxs,
+                ),
+                child: Text(
+                  crumb.label,
+                  style: textTheme.labelSmall?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.normal,
+                  ),
                 ),
               ),
             ),

@@ -377,28 +377,31 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
                     ),
                     child: SizedBox(
                       width: 48,
-                      child: TextField(
-                        controller: _controllers[i],
-                        focusNode: _focusNodes[i],
-                        textAlign: TextAlign.center,
-                        keyboardType: TextInputType.number,
-                        maxLength: 1,
-                        obscureText: true,
-                        enabled: !_isVerifying && !isLocked,
-                        autofocus: i == 0,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: InputDecoration(
-                          counterText: '',
-                          border: const OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
+                      child: Semantics(
+                        label: 'PIN digit ${i + 1}',
+                        child: TextField(
+                          controller: _controllers[i],
+                          focusNode: _focusNodes[i],
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          maxLength: 1,
+                          obscureText: true,
+                          enabled: !_isVerifying && !isLocked,
+                          autofocus: i == 0,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          decoration: InputDecoration(
+                            counterText: '',
+                            border: const OutlineInputBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                            filled: true,
+                            fillColor: colorScheme.surfaceContainerHighest,
                           ),
-                          filled: true,
-                          fillColor: colorScheme.surfaceContainerHighest,
+                          style: textTheme.headlineMedium,
+                          onChanged: (v) => _onDigitChanged(i, v),
                         ),
-                        style: textTheme.headlineMedium,
-                        onChanged: (v) => _onDigitChanged(i, v),
                       ),
                     ),
                   );

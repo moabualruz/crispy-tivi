@@ -8,13 +8,19 @@ import '../test_helpers/ffi_helper.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(() async {
+    await FfiTestHelper.ensureTestIsolation();
+    await FfiTestHelper.seedTestSource();
+  });
+  tearDownAll(() => FfiTestHelper.cleanup());
+
   group('Home Dashboard Suite', () {
     testWidgets('Verify Hero cycle and section order', (
       WidgetTester tester,
     ) async {
       await FfiTestHelper.ensureRustInitialized();
       app.main();
-      await tester.pumpAndSettle(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
 
       final homeRobot = HomeRobot(tester);
 

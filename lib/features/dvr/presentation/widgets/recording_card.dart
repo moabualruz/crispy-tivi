@@ -112,6 +112,7 @@ class RecordingCard extends ConsumerWidget {
                   _buildSizeDisplay(context, ref),
                   const SizedBox(width: CrispySpacing.sm),
                   PopupMenuButton<String>(
+                    tooltip: 'Recording options',
                     onSelected: (action) async {
                       await _onMenuAction(action, context, ref);
                     },

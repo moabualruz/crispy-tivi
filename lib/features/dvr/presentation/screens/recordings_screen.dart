@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../data/dvr_service.dart';
 import '../widgets/keyword_rule_dialog.dart';
@@ -52,6 +53,7 @@ class _DvrScaffoldState extends ConsumerState<_DvrScaffold> {
     return DefaultTabController(
       length: 4,
       child: Scaffold(
+        key: TestKeys.dvrScreen,
         appBar: AppBar(
           title: const Text('Recordings'),
           bottom: const TabBar(
@@ -60,7 +62,11 @@ class _DvrScaffoldState extends ConsumerState<_DvrScaffold> {
               Tab(text: 'Scheduled'),
               Tab(text: 'In Progress'),
               Tab(text: 'Completed'),
-              Tab(icon: Icon(Icons.cloud_upload, size: 18), text: 'Transfers'),
+              Tab(
+                key: TestKeys.tabCloudStorage,
+                icon: Icon(Icons.cloud_upload, size: 18),
+                text: 'Transfers',
+              ),
             ],
           ),
           actions: [

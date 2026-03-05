@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 
 import '../helpers/test_app.dart';
 
@@ -56,13 +57,10 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 3));
 
         // Wait for player to boot
-        expect(
-          find.byKey(const Key('player_gesture_detector')),
-          findsOneWidget,
-        );
+        expect(find.byKey(TestKeys.playerGestureDetector), findsOneWidget);
 
         // Tap the center of the video to invoke OSD
-        await tester.tap(find.byKey(const Key('player_gesture_detector')));
+        await tester.tap(find.byKey(TestKeys.playerGestureDetector));
         await tester.pumpAndSettle(const Duration(milliseconds: 500));
 
         // Find and tap the Overflow (Settings) menu
@@ -97,7 +95,7 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 3));
 
         // Invoke OSD
-        await tester.tap(find.byKey(const Key('player_gesture_detector')));
+        await tester.tap(find.byKey(TestKeys.playerGestureDetector));
         await tester.pumpAndSettle(const Duration(milliseconds: 500));
 
         // Find and tap fullscreen
@@ -132,7 +130,7 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 3));
 
         // Invoke OSD
-        await tester.tap(find.byKey(const Key('player_gesture_detector')));
+        await tester.tap(find.byKey(TestKeys.playerGestureDetector));
         await tester.pumpAndSettle(const Duration(milliseconds: 500));
 
         // Find and tap the Overflow menu

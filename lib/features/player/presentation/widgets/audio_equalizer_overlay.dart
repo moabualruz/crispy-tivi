@@ -274,11 +274,16 @@ class _EqualizerPanel extends StatelessWidget {
                   ),
                 ),
                 // Enable/disable toggle
-                Switch(
-                  value: eq.isEnabled,
-                  onChanged: (_) => onToggleEnabled(),
+                Semantics(
+                  label: 'Enable equalizer',
+                  toggled: eq.isEnabled,
+                  child: Switch(
+                    value: eq.isEnabled,
+                    onChanged: (_) => onToggleEnabled(),
+                  ),
                 ),
                 IconButton(
+                  tooltip: 'Close',
                   onPressed: onClose,
                   icon: Icon(
                     Icons.close_rounded,

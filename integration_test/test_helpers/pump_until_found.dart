@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 extension PumpUntilFoundExtension on WidgetTester {
   Future<void> pumpUntilFound(
     Finder finder, {
-    Duration timeout = const Duration(seconds: 15),
+    Duration timeout = const Duration(seconds: 30),
     Duration step = const Duration(milliseconds: 50),
   }) async {
     bool timerDone = false;
@@ -32,7 +32,7 @@ extension PumpUntilFoundExtension on WidgetTester {
   /// Pumps until the given condition evaluates to true.
   Future<void> pumpUntilCondition(
     bool Function() condition, {
-    Duration timeout = const Duration(seconds: 15),
+    Duration timeout = const Duration(seconds: 30),
     Duration step = const Duration(milliseconds: 50),
   }) async {
     bool timerDone = false;

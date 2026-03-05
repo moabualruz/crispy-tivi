@@ -249,6 +249,7 @@ class _QueuePanel extends StatelessWidget {
                   ),
                 ),
                 IconButton(
+                  tooltip: 'Close',
                   onPressed: onClose,
                   icon: Icon(
                     Icons.close_rounded,

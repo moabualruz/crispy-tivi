@@ -212,24 +212,28 @@ class _TrailerOverlayState extends State<_TrailerOverlay>
                 child: Positioned(
                   right: CrispySpacing.sm,
                   bottom: CrispySpacing.sm,
-                  child: GestureDetector(
-                    onTap: _toggleMute,
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: cs.surface.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                        border: Border.all(
-                          color: cs.outline.withValues(alpha: 0.5),
+                  child: Semantics(
+                    button: true,
+                    label: 'Toggle mute',
+                    child: GestureDetector(
+                      onTap: _toggleMute,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: cs.surface.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(CrispyRadius.tv),
+                          border: Border.all(
+                            color: cs.outline.withValues(alpha: 0.5),
+                          ),
                         ),
-                      ),
-                      child: Icon(
-                        _muted
-                            ? Icons.volume_off_rounded
-                            : Icons.volume_up_rounded,
-                        size: 16,
-                        color: cs.onSurface,
+                        child: Icon(
+                          _muted
+                              ? Icons.volume_off_rounded
+                              : Icons.volume_up_rounded,
+                          size: 16,
+                          color: cs.onSurface,
+                        ),
                       ),
                     ),
                   ),

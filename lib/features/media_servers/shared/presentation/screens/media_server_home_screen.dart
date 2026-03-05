@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:crispy_tivi/core/domain/entities/media_item.dart';
 import 'package:crispy_tivi/core/navigation/app_routes.dart';
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 
 /// Shared scaffold for Emby, Jellyfin, and Plex home screens.
@@ -45,11 +46,13 @@ class MediaServerHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
+      key: TestKeys.mediaServerHomeScreen,
       appBar: AppBar(
         title: Text(serverName),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
             onPressed: () => context.push(AppRoutes.settings),
           ),
         ],

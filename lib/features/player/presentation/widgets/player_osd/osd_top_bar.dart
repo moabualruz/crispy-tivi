@@ -72,6 +72,7 @@ class OsdTopBar extends StatelessWidget {
             // Back button (left arrow, white, 24px)
             IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+              tooltip: 'Back',
               onPressed:
                   onBack ??
                   () {

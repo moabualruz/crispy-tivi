@@ -197,30 +197,34 @@ class _QuickTile extends StatelessWidget {
       child: Material(
         color: colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(CrispyRadius.tv),
-        child: InkWell(
-          onTap: () => data.onTap(context),
-          borderRadius: BorderRadius.circular(CrispyRadius.tv),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: CrispySpacing.sm,
-              vertical: CrispySpacing.sm,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(data.icon, color: colorScheme.primary, size: 28),
-                const SizedBox(height: CrispySpacing.xs),
-                Text(
-                  data.label,
-                  style: textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    height: 1.2,
+        child: Semantics(
+          button: true,
+          label: data.label,
+          child: InkWell(
+            onTap: () => data.onTap(context),
+            borderRadius: BorderRadius.circular(CrispyRadius.tv),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: CrispySpacing.sm,
+                vertical: CrispySpacing.sm,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(data.icon, color: colorScheme.primary, size: 28),
+                  const SizedBox(height: CrispySpacing.xs),
+                  Text(
+                    data.label,
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      height: 1.2,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

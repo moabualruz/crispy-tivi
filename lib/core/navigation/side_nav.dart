@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/profiles/data/profile_service.dart';
 import '../../features/profiles/domain/entities/user_profile.dart';
 import '../../features/profiles/presentation/profile_constants.dart';
+import '../testing/test_keys.dart';
 import '../theme/crispy_animation.dart';
 import '../theme/crispy_radius.dart';
 import '../theme/crispy_spacing.dart';
@@ -165,7 +166,7 @@ class SideNav extends ConsumerWidget {
     final badgedIcon = _wrapWithBadge(iconWidget, badge, colorScheme);
 
     return FocusWrapper(
-      key: ValueKey('nav_item_${dest.label.toLowerCase()}'),
+      key: TestKeys.navItem(dest.label),
       onSelect: () => onDestinationSelected(index),
       borderRadius: CrispyRadius.sm,
       scaleFactor: 1.05,
@@ -287,7 +288,7 @@ class _ProfileIndicatorRow extends ConsumerWidget {
             vertical: CrispySpacing.xs,
           ),
           child: FocusWrapper(
-            key: const ValueKey('nav_profile_switcher_btn'),
+            key: TestKeys.navProfileSwitcherButton,
             onSelect:
                 () =>
                     hasMultipleProfiles

@@ -575,6 +575,8 @@ class _OsdVolumeButtonState extends State<OsdVolumeButton> {
                         child: Slider(
                           value: widget.volume,
                           onChanged: widget.onVolumeChange,
+                          semanticFormatterCallback:
+                              (v) => 'Volume ${(v * 100).round()}%',
                         ),
                       )
                       : const SizedBox.shrink(),

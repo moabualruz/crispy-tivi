@@ -38,6 +38,7 @@ class SourceTile extends StatelessWidget {
       ),
       trailing: IconButton(
         icon: const Icon(Icons.delete_outline),
+        tooltip: 'Delete source',
         onPressed: () {
           showDialog(
             context: context,

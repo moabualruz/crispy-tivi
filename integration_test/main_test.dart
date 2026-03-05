@@ -1,3 +1,4 @@
+import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 // Import individual test suites
@@ -8,17 +9,34 @@ import 'suites/settings_persistence_test.dart' as settings_test;
 import 'suites/home_dashboard_test.dart' as home_test;
 import 'suites/dvr_cloud_test.dart' as dvr_test;
 
+import 'test_helpers/ffi_helper.dart';
+
 void main() {
-  // Global integration test binding to support flutter driver execution locally and on device.
+  // Global integration test binding to support flutter driver
+  // execution locally and on device.
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  // Isolate the test database from the production one.
+  // Each target (windows, emulator-5554, etc.) gets its own
+  // temp directory so parallel runs on the same host are safe.
+  // Also seed a dummy IPTV source so the onboarding wizard
+  // is bypassed — tests expect the main app shell.
+  setUpAll(() async {
+    await FfiTestHelper.ensureTestIsolation();
+    await FfiTestHelper.seedTestSource();
+  });
+
   // Master Runner Logic
-  // Explicitly run these sequentially to prevent native memory leaks
-  // and ensure the FFI state transitions correctly from one test to the next.
+  // Explicitly run these sequentially to prevent native memory
+  // leaks and ensure the FFI state transitions correctly from
+  // one test to the next.
   profile_test.main();
   navigation_test.main();
   live_tv_test.main();
   settings_test.main();
   home_test.main();
   dvr_test.main();
+
+  // Clean up the temp test database directory.
+  tearDownAll(() => FfiTestHelper.cleanup());
 }

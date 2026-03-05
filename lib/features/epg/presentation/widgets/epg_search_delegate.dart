@@ -55,7 +55,11 @@ class EpgSearchDelegate extends SearchDelegate<void> {
   List<Widget> buildActions(BuildContext context) {
     return [
       if (query.isNotEmpty)
-        IconButton(icon: const Icon(Icons.clear), onPressed: () => query = ''),
+        IconButton(
+          icon: const Icon(Icons.clear),
+          tooltip: 'Clear search',
+          onPressed: () => query = '',
+        ),
     ];
   }
 
@@ -63,6 +67,7 @@ class EpgSearchDelegate extends SearchDelegate<void> {
   Widget buildLeading(BuildContext context) {
     return IconButton(
       icon: const Icon(Icons.arrow_back),
+      tooltip: 'Back',
       onPressed: () => close(context, null),
     );
   }

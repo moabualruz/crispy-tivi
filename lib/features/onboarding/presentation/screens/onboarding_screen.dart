@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../providers/onboarding_notifier.dart';
@@ -86,6 +87,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return PopScope(
       canPop: false,
       child: Scaffold(
+        key: TestKeys.onboardingScreen,
         backgroundColor: colorScheme.surface,
         body: Stack(
           children: [

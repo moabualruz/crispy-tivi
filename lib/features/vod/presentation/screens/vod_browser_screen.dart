@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/error_state_widget.dart';
@@ -38,6 +39,7 @@ class VodBrowserScreen extends ConsumerWidget {
     }
 
     return Scaffold(
+      key: TestKeys.vodBrowserScreen,
       appBar: AppBar(
         title: const Text('Movies'),
         actions: [

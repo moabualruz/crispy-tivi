@@ -40,19 +40,23 @@ class FavoriteStarOverlay extends StatelessWidget {
     return AnimatedOpacity(
       opacity: show ? 1.0 : 0.0,
       duration: CrispyAnimation.fast,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onToggle,
-        child: Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: isFavorite ? Colors.black54 : Colors.black38,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
-            size: size,
-            color: isFavorite ? Colors.amber : Colors.white70,
+      child: Semantics(
+        button: true,
+        label: 'Toggle favorite',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onToggle,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isFavorite ? Colors.black54 : Colors.black38,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
+              size: size,
+              color: isFavorite ? Colors.amber : Colors.white70,
+            ),
           ),
         ),
       ),

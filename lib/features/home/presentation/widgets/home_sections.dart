@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/stream_url_actions.dart';
@@ -124,6 +125,7 @@ class HomeContinueWatchingSection extends ConsumerWidget {
     );
 
     return Column(
+      key: TestKeys.sectionContinueWatching,
       mainAxisSize: MainAxisSize.min,
       children: [
         if (allContinueWatching.isNotEmpty)
@@ -351,15 +353,18 @@ class _DismissableRecommendationSections extends ConsumerWidget {
                   );
                 }
                 return Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onLongPress:
-                        () => _showNotInterestedSheet(
-                          context,
-                          ref,
-                          rec.itemId,
-                          rec.itemName,
-                        ),
+                  child: Semantics(
+                    label: 'Show options',
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onLongPress:
+                          () => _showNotInterestedSheet(
+                            context,
+                            ref,
+                            rec.itemId,
+                            rec.itemName,
+                          ),
+                    ),
                   ),
                 );
               },
@@ -503,6 +508,7 @@ class HomeLatestVodSection extends ConsumerWidget {
     );
 
     return VodRow(
+      key: TestKeys.sectionLatestVod,
       title: latestTitle,
       icon: Icons.new_releases,
       items: latest,
@@ -527,6 +533,7 @@ class HomeTop10Section extends ConsumerWidget {
     if (top10.isEmpty) return const SizedBox.shrink();
 
     return VodRow(
+      key: TestKeys.sectionTop10,
       title: 'Top 10 Today',
       icon: Icons.auto_awesome,
       items: top10,
@@ -594,91 +601,97 @@ class _UpcomingProgramCard extends ConsumerWidget {
     final entry = program.entry;
     final startLabel = _formatTime(entry.startTime);
 
-    return GestureDetector(
-      onTap: () {
-        // Pre-position the EPG timeline to the programme's start
-        // time, then navigate — gives a seamless "jump to timeslot"
-        // experience without needing extra query parameters.
-        ref
-            .read(epgProvider.notifier)
-            .setFocusedTime(entry.startTime.toLocal());
-        context.go(AppRoutes.epg);
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(CrispyRadius.sm),
-        child: ColoredBox(
-          color: cs.surfaceContainerLow,
-          child: Row(
-            children: [
-              // Channel logo thumbnail.
-              SizedBox(
-                width: 64,
-                height: double.infinity,
-                child: SmartImage(
-                  itemId: channel.id,
-                  title: channel.name,
-                  imageUrl: channel.logoUrl,
-                  imageKind: 'logo',
-                  fit: BoxFit.contain,
-                  icon: Icons.tv,
-                  memCacheWidth: 128,
-                ),
-              ),
-              // Programme info.
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: CrispySpacing.sm,
-                    vertical: CrispySpacing.xs,
+    return Semantics(
+      button: true,
+      label: 'View in guide',
+      child: GestureDetector(
+        onTap: () {
+          // Pre-position the EPG timeline to the programme's start
+          // time, then navigate — gives a seamless "jump to timeslot"
+          // experience without needing extra query parameters.
+          ref
+              .read(epgProvider.notifier)
+              .setFocusedTime(entry.startTime.toLocal());
+          context.go(AppRoutes.epg);
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(CrispyRadius.sm),
+          child: ColoredBox(
+            color: cs.surfaceContainerLow,
+            child: Row(
+              children: [
+                // Channel logo thumbnail.
+                SizedBox(
+                  width: 64,
+                  height: double.infinity,
+                  child: SmartImage(
+                    itemId: channel.id,
+                    title: channel.name,
+                    imageUrl: channel.logoUrl,
+                    imageKind: 'logo',
+                    fit: BoxFit.contain,
+                    icon: Icons.tv,
+                    memCacheWidth: 128,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        entry.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
+                ),
+                // Programme info.
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: CrispySpacing.sm,
+                      vertical: CrispySpacing.xs,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          entry.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
-                      ),
-                      const SizedBox(height: CrispySpacing.xxs),
-                      Text(
-                        channel.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: cs.onSurfaceVariant,
+                        const SizedBox(height: CrispySpacing.xxs),
+                        Text(
+                          channel.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: cs.onSurfaceVariant),
                         ),
-                      ),
-                      const SizedBox(height: CrispySpacing.xxs),
-                      Row(
-                        children: [
-                          Icon(Icons.access_time, size: 10, color: cs.primary),
-                          const SizedBox(width: CrispySpacing.xxs),
-                          Text(
-                            startLabel,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelSmall?.copyWith(
+                        const SizedBox(height: CrispySpacing.xxs),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              size: 10,
                               color: cs.primary,
-                              fontWeight: FontWeight.bold,
                             ),
-                          ),
-                          // Genre chip — only shown when category is available.
-                          if (entry.category != null &&
-                              entry.category!.isNotEmpty) ...[
-                            const SizedBox(width: CrispySpacing.xs),
-                            _GenreChip(label: entry.category!),
+                            const SizedBox(width: CrispySpacing.xxs),
+                            Text(
+                              startLabel,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelSmall?.copyWith(
+                                color: cs.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            // Genre chip — only shown when category is available.
+                            if (entry.category != null &&
+                                entry.category!.isNotEmpty) ...[
+                              const SizedBox(width: CrispySpacing.xs),
+                              _GenreChip(label: entry.category!),
+                            ],
                           ],
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

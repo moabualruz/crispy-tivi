@@ -6,6 +6,7 @@ import '../../../../core/domain/entities/media_item.dart';
 import '../../../../core/domain/entities/media_type.dart';
 import '../../../../core/domain/media_source.dart';
 import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/error_state_widget.dart';
@@ -266,6 +267,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     // layout instead of the standard search bar + body.
     if (context.isLarge) {
       return Scaffold(
+        key: TestKeys.searchScreen,
         body: TvSearchPanel(
           onItemTap: _onItemTap,
           onItemFavorite: _onItemFavorite,
@@ -275,6 +277,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
 
     return Scaffold(
+      key: TestKeys.searchScreen,
       appBar: AppBar(
         title: TextField(
           controller: _searchController,
@@ -283,6 +286,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           style: textTheme.titleMedium,
           decoration: InputDecoration(
             hintText: 'Search movies, shows, channels...',
+            labelText: 'Search',
             border: InputBorder.none,
             hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
             suffixIcon:
@@ -588,124 +592,131 @@ class _BestMatchCard extends StatelessWidget {
         horizontal: CrispySpacing.md,
         vertical: CrispySpacing.sm,
       ),
-      child: InkWell(
-        onTap: onDetails,
-        borderRadius: BorderRadius.circular(CrispyRadius.md),
-        child: Container(
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(CrispyRadius.md),
-            border: Border.all(
-              color: colorScheme.primary.withValues(alpha: 0.4),
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Poster
-              ClipRRect(
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(CrispyRadius.md),
-                  bottomLeft: Radius.circular(CrispyRadius.md),
-                ),
-                child:
-                    item.logoUrl != null
-                        ? Image.network(
-                          item.logoUrl!,
-                          width: _kBestMatchPosterWidth,
-                          height: _kBestMatchPosterHeight,
-                          fit: BoxFit.cover,
-                          errorBuilder:
-                              (ctx, err, st) => _posterPlaceholder(colorScheme),
-                        )
-                        : _posterPlaceholder(colorScheme),
+      child: Semantics(
+        button: true,
+        label: 'View details',
+        child: InkWell(
+          onTap: onDetails,
+          borderRadius: BorderRadius.circular(CrispyRadius.md),
+          child: Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(CrispyRadius.md),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.4),
               ),
-              const SizedBox(width: CrispySpacing.md),
-              // Info + actions
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: CrispySpacing.sm,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Poster
+                ClipRRect(
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(CrispyRadius.md),
+                    bottomLeft: Radius.circular(CrispyRadius.md),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // "Best Match" label
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: CrispySpacing.xs,
-                          vertical: CrispySpacing.xxs,
+                  child:
+                      item.logoUrl != null
+                          ? Image.network(
+                            item.logoUrl!,
+                            width: _kBestMatchPosterWidth,
+                            height: _kBestMatchPosterHeight,
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (ctx, err, st) =>
+                                    _posterPlaceholder(colorScheme),
+                          )
+                          : _posterPlaceholder(colorScheme),
+                ),
+                const SizedBox(width: CrispySpacing.md),
+                // Info + actions
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: CrispySpacing.sm,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // "Best Match" label
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: CrispySpacing.xs,
+                            vertical: CrispySpacing.xxs,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary,
+                            borderRadius: BorderRadius.circular(
+                              CrispyRadius.xs,
+                            ),
+                          ),
+                          child: Text(
+                            'Best Match',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.primary,
-                          borderRadius: BorderRadius.circular(CrispyRadius.xs),
-                        ),
-                        child: Text(
-                          'Best Match',
-                          style: textTheme.labelSmall?.copyWith(
-                            color: colorScheme.onPrimary,
+                        const SizedBox(height: CrispySpacing.xs),
+                        // Title
+                        Text(
+                          item.name,
+                          style: textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(height: CrispySpacing.xs),
-                      // Title
-                      Text(
-                        item.name,
-                        style: textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      // Year + match type
-                      Row(
-                        children: [
-                          if (year != null) ...[
+                        // Year + match type
+                        Row(
+                          children: [
+                            if (year != null) ...[
+                              Text(
+                                '$year',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: CrispySpacing.xs),
+                              Text(
+                                '•',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: CrispySpacing.xs),
+                            ],
                             Text(
-                              '$year',
+                              matchType,
                               style: textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
-                            const SizedBox(width: CrispySpacing.xs),
-                            Text(
-                              '•',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(width: CrispySpacing.xs),
                           ],
-                          Text(
-                            matchType,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: CrispySpacing.sm),
-                      // Play button
-                      FilledButton.icon(
-                        onPressed: onTap,
-                        style: FilledButton.styleFrom(
-                          minimumSize: Size.zero,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: CrispySpacing.md,
-                            vertical: CrispySpacing.xs,
-                          ),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        icon: const Icon(Icons.play_arrow, size: 18),
-                        label: const Text('Play'),
-                      ),
-                    ],
+                        const SizedBox(height: CrispySpacing.sm),
+                        // Play button
+                        FilledButton.icon(
+                          onPressed: onTap,
+                          style: FilledButton.styleFrom(
+                            minimumSize: Size.zero,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: CrispySpacing.md,
+                              vertical: CrispySpacing.xs,
+                            ),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          icon: const Icon(Icons.play_arrow, size: 18),
+                          label: const Text('Play'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: CrispySpacing.sm),
-            ],
+                const SizedBox(width: CrispySpacing.sm),
+              ],
+            ),
           ),
         ),
       ),

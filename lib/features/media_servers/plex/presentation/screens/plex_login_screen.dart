@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/navigation/app_router.dart';
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
@@ -366,10 +367,12 @@ class _PlexOAuthScreenState extends State<_PlexOAuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: TestKeys.plexLoginScreen,
       appBar: AppBar(
         title: const Text('Sign in with Plex'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
+          tooltip: 'Cancel',
           onPressed: widget.onCancel,
         ),
       ),
@@ -576,6 +579,7 @@ class _ServerSelector extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: CrispySpacing.sm),
                 child: FocusWrapper(
                   onSelect: () => onSelect(server),
+                  semanticLabel: 'Select server',
                   child: InkWell(
                     onTap: () => onSelect(server),
                     borderRadius: const BorderRadius.all(

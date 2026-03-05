@@ -17,6 +17,7 @@ import '../../domain/entities/vod_item.dart';
 import '../../domain/utils/vod_utils.dart';
 import '../providers/vod_providers.dart';
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/testing/test_keys.dart';
 import '../widgets/cast_scroll_row.dart';
 import '../widgets/episode_playback_helper.dart' show showResumeDialog;
 import '../widgets/vod_detail_body.dart';
@@ -107,6 +108,7 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
     return Semantics(
       label: item.name,
       child: Scaffold(
+        key: TestKeys.vodDetailsScreen,
         backgroundColor: Theme.of(context).colorScheme.surface,
         body: FocusTraversalGroup(
           child: CustomScrollView(
