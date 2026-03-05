@@ -6,14 +6,12 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/date_format_utils.dart';
+import '../../../../core/utils/format_utils.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../domain/entities/storage_backend.dart';
 import '../../domain/storage_provider.dart';
 import '../../domain/utils/file_filter.dart';
 import 'cloud_browser_providers.dart';
-
-/// Bytes in one megabyte (binary).
-const int kBytesPerMb = 1024 * 1024;
 
 /// Height of the bulk-action bar at the bottom of the screen.
 const double kBulkBarHeight = 64.0;
@@ -237,7 +235,6 @@ class RemoteFileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final sizeMB = file.sizeBytes / kBytesPerMb;
 
     return FocusWrapper(
       onSelect: onTap,
@@ -291,8 +288,8 @@ class RemoteFileCard extends StatelessWidget {
                   file.isDirectory
                       ? null
                       : Text(
-                        '${sizeMB.toStringAsFixed(1)}'
-                        ' MB · '
+                        '${formatBytes(file.sizeBytes)}'
+                        ' · '
                         '${formatDMY(file.modifiedAt)}',
                         style: TextStyle(
                           color:

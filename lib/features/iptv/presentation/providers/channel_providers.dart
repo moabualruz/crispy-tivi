@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../data/parsers/m3u_parser.dart';
 import '../../domain/entities/channel.dart';
-import '../../domain/utils/channel_utils.dart';
 import '../../domain/utils/epg_search.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../favorites/presentation/providers/favorites_controller.dart';
@@ -56,7 +55,9 @@ class ChannelListNotifier extends Notifier<ChannelListState> {
       final channels = parsed.channels;
 
       // Extract unique groups (Arabic-first, then Latin, each A–Z).
-      final groups = extractSortedGroups(channels);
+      final groups = await ref
+          .read(cacheServiceProvider)
+          .extractSortedGroups(channels);
 
       // Apply initial favorites sync if available
       List<Channel> finalChannels = channels;
@@ -154,7 +155,7 @@ class ChannelListNotifier extends Notifier<ChannelListState> {
   Future<void> refreshFromBackend() async {
     final cache = ref.read(cacheServiceProvider);
     final channels = await cache.loadChannels();
-    final groups = extractSortedGroups(channels);
+    final groups = await cache.extractSortedGroups(channels);
     loadChannels(channels, groups);
   }
 

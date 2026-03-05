@@ -4,9 +4,35 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/network/http_service.dart';
+import '../../../../core/widgets/async_filled_button.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import 'source_form_fields.dart';
+
+/// Returns the standard [Cancel | Add] action list for source-add dialogs.
+///
+/// Shared by [_M3uAddDialog], [_XtreamAddDialog], and [_StalkerAddDialog].
+/// Use this helper instead of duplicating the pattern inline.
+///
+/// - When [isVerifying] is `true`, Cancel is disabled and the submit button
+///   shows a loading spinner (via [AsyncFilledButton]).
+/// - [submitLabel] defaults to `'Add'`; override for different button text.
+List<Widget> sourceDialogActions({
+  required bool isVerifying,
+  required VoidCallback onCancel,
+  required VoidCallback onSubmit,
+  String submitLabel = 'Add',
+}) => [
+  TextButton(
+    onPressed: isVerifying ? null : onCancel,
+    child: const Text('Cancel'),
+  ),
+  AsyncFilledButton(
+    isLoading: isVerifying,
+    label: submitLabel,
+    onPressed: onSubmit,
+  ),
+];
 
 /// Shows a dialog to add an M3U playlist source.
 void showAddM3uDialog({
@@ -144,23 +170,11 @@ class _M3uAddDialogState extends ConsumerState<_M3uAddDialog> {
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _isVerifying ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _isVerifying ? null : _submit,
-          child:
-              _isVerifying
-                  ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                  : const Text('Add'),
-        ),
-      ],
+      actions: sourceDialogActions(
+        isVerifying: _isVerifying,
+        onCancel: () => Navigator.pop(context),
+        onSubmit: _submit,
+      ),
     );
   }
 }
@@ -325,23 +339,11 @@ class _XtreamAddDialogState extends ConsumerState<_XtreamAddDialog> {
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _isVerifying ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _isVerifying ? null : _submit,
-          child:
-              _isVerifying
-                  ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                  : const Text('Add'),
-        ),
-      ],
+      actions: sourceDialogActions(
+        isVerifying: _isVerifying,
+        onCancel: () => Navigator.pop(context),
+        onSubmit: _submit,
+      ),
     );
   }
 }

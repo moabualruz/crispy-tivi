@@ -6,7 +6,7 @@ mixin _FfiChannelsMixin on _FfiBackendBase {
 
   Future<List<Map<String, dynamic>>> loadChannels() async {
     final json = await rust_api.loadChannels();
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<int> saveChannels(List<Map<String, dynamic>> channels) async {
@@ -16,7 +16,7 @@ mixin _FfiChannelsMixin on _FfiBackendBase {
 
   Future<List<Map<String, dynamic>>> getChannelsByIds(List<String> ids) async {
     final json = await rust_api.getChannelsByIds(ids: ids);
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<int> deleteRemovedChannels(
@@ -158,7 +158,7 @@ mixin _FfiChannelsMixin on _FfiBackendBase {
     String channelsJson,
   ) async {
     final json = await rust_api.detectDuplicateChannels(json: channelsJson);
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<Map<String, dynamic>> matchEpgToChannels({

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/date_format_utils.dart';
+import '../../../core/utils/format_utils.dart';
 import '../../profiles/domain/permission_guard.dart';
 import '../domain/entities/recording.dart';
 import 'dvr_service.dart';
@@ -66,8 +67,7 @@ class DvrState {
       .where((r) => r.fileSizeBytes != null)
       .fold(0, (sum, r) => sum + r.fileSizeBytes!);
 
-  String get totalStorageMB =>
-      '${(totalStorageBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  String get totalStorageMB => formatBytes(totalStorageBytes);
 
   DvrState copyWith({
     List<Recording>? recordings,

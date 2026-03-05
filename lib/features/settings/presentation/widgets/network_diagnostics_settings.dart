@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/format_utils.dart';
 import '../../../../core/widgets/section_header.dart';
 import 'settings_shared_widgets.dart';
 
@@ -356,9 +357,7 @@ class _NetworkDiagnosticsSheetState
         label: 'Download Speed',
         status: status,
         value: '$mbpsStr Mbps',
-        detail:
-            '${(bytes / 1024 / 1024).toStringAsFixed(2)} MB in '
-            '${seconds.toStringAsFixed(1)} s',
+        detail: '${formatBytes(bytes)} in ${seconds.toStringAsFixed(1)} s',
       );
     } on TimeoutException {
       return const _DiagResult(

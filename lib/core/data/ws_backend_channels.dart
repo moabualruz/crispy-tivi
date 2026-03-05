@@ -11,8 +11,7 @@ mixin _WsChannelsMixin on _WsBackendBase {
 
   Future<int> saveChannels(List<Map<String, dynamic>> channels) async {
     final res = await _send('saveChannels', {'channels': channels});
-    if (res is Map) return (res['count'] as num).toInt();
-    return 0;
+    return _countFromResult(res);
   }
 
   Future<List<Map<String, dynamic>>> getChannelsByIds(List<String> ids) async {
@@ -28,8 +27,7 @@ mixin _WsChannelsMixin on _WsBackendBase {
       'sourceId': sourceId,
       'keepIds': keepIds,
     });
-    if (res is Map) return (res['count'] as num).toInt();
-    return 0;
+    return _countFromResult(res);
   }
 
   // ── Channel Favorites ────────────────────────────

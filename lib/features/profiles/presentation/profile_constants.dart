@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/crispy_colors.dart';
+import '../../../core/theme/accent_color.dart';
 import '../../../core/theme/crispy_spacing.dart';
 
 /// Avatar container size (width and height) used in profile tiles.
@@ -138,13 +138,13 @@ LinearGradient profileAvatarGradient(Color color) => LinearGradient(
 /// Accent color palette for per-profile theme overrides (FE-PM-08).
 ///
 /// 12 distinct, accessible colors that work well on dark backgrounds.
+///
+/// The first six entries mirror [kAppAccentPalette] (the six primary
+/// app-wide accent colors). The remaining six are profile-only extras.
 const List<Color> kProfileAccentColors = [
-  Color(0xFF3B82F6), // Blue (default)
-  CrispyColors.netflixRed, // Netflix Red
-  Color(0xFF00BFA5), // Teal
-  Color(0xFFFF6D00), // Orange
-  Color(0xFFAA00FF), // Purple
-  Color(0xFF00C853), // Green
+  // ── Shared with kAppAccentPalette ──────────────────────────
+  ...kAppAccentPalette,
+  // ── Profile-only extras ────────────────────────────────────
   Color(0xFFE84393), // Pink
   Color(0xFFFFD600), // Yellow
   Color(0xFF00B0FF), // Light Blue

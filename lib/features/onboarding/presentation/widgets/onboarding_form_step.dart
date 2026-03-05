@@ -5,6 +5,7 @@ import '../../../../core/data/cache_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../../core/network/http_service.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/async_filled_button.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../settings/presentation/widgets/source_form_fields.dart';
 import '../providers/onboarding_notifier.dart';
@@ -243,16 +244,10 @@ class _OnboardingFormStepState extends ConsumerState<OnboardingFormStep> {
             child: FocusWrapper(
               autofocus: false,
               onSelect: _isVerifying ? null : () => _submit(sourceType),
-              child: FilledButton(
-                onPressed: _isVerifying ? null : () => _submit(sourceType),
-                child:
-                    _isVerifying
-                        ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                        : const Text('Connect'),
+              child: AsyncFilledButton(
+                isLoading: _isVerifying,
+                label: 'Connect',
+                onPressed: () => _submit(sourceType),
               ),
             ),
           ),

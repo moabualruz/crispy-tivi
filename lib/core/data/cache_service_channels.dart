@@ -33,6 +33,16 @@ mixin _CacheChannelsMixin on _CacheServiceBase {
     return maps.map(mapToChannel).toList();
   }
 
+  /// Returns sorted, deduplicated group names from [channels].
+  ///
+  /// Delegates to the Rust backend, which applies Arabic-first
+  /// then Latin alphabetical ordering.
+  Future<List<String>> extractSortedGroups(List<Channel> channels) async {
+    if (channels.isEmpty) return [];
+    final json = jsonEncode(channels.map(channelToMap).toList());
+    return _backend.extractSortedGroups(json);
+  }
+
   // ── EPG Entries ───────────────────────────────────
 
   /// Fetch exactly the programs airing within [start] and [end]

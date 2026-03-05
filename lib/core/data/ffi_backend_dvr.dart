@@ -6,7 +6,7 @@ mixin _FfiDvrMixin on _FfiBackendBase {
 
   Future<List<Map<String, dynamic>>> loadRecordings() async {
     final json = await rust_api.loadRecordings();
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<void> saveRecording(Map<String, dynamic> recording) =>
@@ -26,7 +26,7 @@ mixin _FfiDvrMixin on _FfiBackendBase {
 
   Future<List<Map<String, dynamic>>> loadStorageBackends() async {
     final json = await rust_api.loadStorageBackends();
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<void> saveStorageBackend(Map<String, dynamic> backend) =>
@@ -39,7 +39,7 @@ mixin _FfiDvrMixin on _FfiBackendBase {
 
   Future<List<Map<String, dynamic>>> loadTransferTasks() async {
     final json = await rust_api.loadTransferTasks();
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<void> saveTransferTask(Map<String, dynamic> task) =>

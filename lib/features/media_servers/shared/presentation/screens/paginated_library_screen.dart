@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:crispy_tivi/core/domain/entities/media_item.dart';
 import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
+import 'package:crispy_tivi/core/widgets/error_state_widget.dart';
 import 'package:crispy_tivi/core/widgets/loading_state_widget.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 
@@ -207,7 +208,7 @@ class _PaginatedMediaLibraryScreenState
           return _buildGrid(_items);
         },
         loading: () => const LoadingStateWidget(),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => ErrorStateWidget(message: 'Error: $e'),
       ),
     );
   }

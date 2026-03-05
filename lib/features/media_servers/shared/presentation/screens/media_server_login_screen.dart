@@ -10,6 +10,7 @@ import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/utils/url_utils.dart';
+import 'package:crispy_tivi/core/widgets/async_filled_button.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/error_sanitizer.dart';
 
@@ -412,17 +413,10 @@ class _MediaServerLoginScreenState
                             (v) => v == null || v.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: CrispySpacing.lg),
-                      FilledButton(
-                        onPressed: _isLoading ? null : _connect,
-                        child:
-                            _isLoading
-                                ? const SizedBox.square(
-                                  dimension: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                                : const Text('Connect'),
+                      AsyncFilledButton(
+                        isLoading: _isLoading,
+                        label: 'Connect',
+                        onPressed: _connect,
                       ),
                     ],
                   ),

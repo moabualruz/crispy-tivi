@@ -18,7 +18,7 @@ mixin _FfiSettingsMixin on _FfiBackendBase {
 
   Future<List<Map<String, dynamic>>> loadSavedLayouts() async {
     final json = await rust_api.loadSavedLayouts();
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<void> saveSavedLayout(Map<String, dynamic> layout) =>
@@ -38,7 +38,7 @@ mixin _FfiSettingsMixin on _FfiBackendBase {
 
   Future<List<Map<String, dynamic>>> loadSearchHistory() async {
     final json = await rust_api.loadSearchHistory();
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<void> saveSearchEntry(Map<String, dynamic> entry) =>

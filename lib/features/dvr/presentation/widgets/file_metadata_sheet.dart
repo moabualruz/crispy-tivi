@@ -4,6 +4,7 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/date_format_utils.dart';
+import '../../../../core/utils/format_utils.dart';
 import '../../domain/storage_provider.dart';
 
 // ── Sheet size constants ──────────────────────────────────────────
@@ -25,12 +26,6 @@ const double _kDragHandleHeight = 4.0;
 
 /// Size of the file type icon in the header.
 const double _kFileIconSize = 48.0;
-
-/// Bytes in one megabyte (binary).
-const int _kBytesPerMb = 1024 * 1024;
-
-/// Bytes in one gigabyte (binary).
-const int _kBytesPerGb = 1024 * 1024 * 1024;
 
 // ── File type helpers ─────────────────────────────────────────────
 
@@ -59,18 +54,6 @@ String _typeLabel(RemoteFile file) {
   if (file.isDirectory) return 'Folder';
   final ext = file.name.split('.').last.toUpperCase();
   return '$ext File';
-}
-
-/// Formats [bytes] as a human-readable size string.
-String _formatSize(int bytes) {
-  if (bytes <= 0) return '0 B';
-  if (bytes >= _kBytesPerGb) {
-    return '${(bytes / _kBytesPerGb).toStringAsFixed(2)} GB';
-  }
-  if (bytes >= _kBytesPerMb) {
-    return '${(bytes / _kBytesPerMb).toStringAsFixed(1)} MB';
-  }
-  return '${(bytes / 1024).toStringAsFixed(0)} KB';
 }
 
 /// A bottom sheet that displays metadata for a [RemoteFile].
@@ -207,7 +190,11 @@ class FileMetadataSheet extends StatelessWidget {
                       icon: Icons.straighten,
                       label: 'Size',
                       value:
-                          file.isDirectory ? '—' : _formatSize(file.sizeBytes),
+                          file.isDirectory
+                              ? '—'
+                              : file.sizeBytes <= 0
+                              ? '0 B'
+                              : formatBytes(file.sizeBytes),
                     ),
                     _MetadataRow(
                       icon: Icons.schedule,

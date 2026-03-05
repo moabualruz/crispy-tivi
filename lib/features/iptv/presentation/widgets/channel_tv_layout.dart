@@ -25,7 +25,7 @@ import 'channel_resume_banner.dart';
 import 'channel_search_bar_sliver.dart';
 import 'channel_sliver.dart';
 import 'channel_sort_menu.dart';
-import 'channel_video_preview.dart';
+import '../../../../core/widgets/video_preview_widget.dart';
 
 /// TV/desktop two-panel layout for the channel list.
 ///
@@ -246,7 +246,7 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        ChannelVideoPreview(onTap: expandPlayer),
+                        VideoPreviewWidget(onTap: expandPlayer),
                         if (displayChannel != null)
                           Positioned(
                             left: 0,

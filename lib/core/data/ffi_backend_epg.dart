@@ -6,7 +6,7 @@ mixin _FfiEpgMixin on _FfiBackendBase {
 
   Future<List<Map<String, dynamic>>> parseEpg(String content) async {
     final json = await rust_api.parseEpg(content: content);
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<Map<String, String>> extractEpgChannelNames(String content) async {
@@ -103,7 +103,7 @@ mixin _FfiEpgMixin on _FfiBackendBase {
 
   Future<List<Map<String, dynamic>>> loadWatchHistory() async {
     final json = await rust_api.loadWatchHistory();
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<void> saveWatchHistory(Map<String, dynamic> entry) =>
@@ -116,7 +116,7 @@ mixin _FfiEpgMixin on _FfiBackendBase {
 
   Future<List<Map<String, dynamic>>> loadReminders() async {
     final json = await rust_api.loadReminders();
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<void> saveReminder(Map<String, dynamic> reminder) =>

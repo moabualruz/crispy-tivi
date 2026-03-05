@@ -11,7 +11,6 @@ import '../../vod/domain/entities/vod_item.dart';
 import '../../vod/presentation/providers/vod_favorites_provider.dart';
 import '../../vod/presentation/providers/vod_providers.dart';
 import '../domain/entities/channel.dart';
-import '../domain/utils/channel_utils.dart';
 import '../../../core/domain/entities/playlist_source.dart';
 import '../presentation/providers/channel_providers.dart';
 import 'duplicate_detection_service.dart';
@@ -130,7 +129,7 @@ mixin PlaylistSyncHelpers {
     }
 
     if (cachedChannels.isNotEmpty) {
-      final groups = extractSortedGroups(cachedChannels);
+      final groups = await cache.extractSortedGroups(cachedChannels);
       ref
           .read(channelListProvider.notifier)
           .loadChannels(cachedChannels, groups);
@@ -186,7 +185,7 @@ mixin PlaylistSyncHelpers {
     channels = await filterBySourceAccess(channels);
 
     // Recompute groups from filtered channels.
-    final groups = extractSortedGroups(channels);
+    final groups = await cache.extractSortedGroups(channels);
 
     ref.read(channelListProvider.notifier).loadChannels(channels, groups);
     syncSourceNames();

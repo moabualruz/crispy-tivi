@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/widgets/error_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -26,7 +27,9 @@ class RecordingsScreen extends ConsumerWidget {
 
     return stateAsync.when(
       loading: () => const Scaffold(body: LoadingStateWidget()),
-      error: (err, _) => Scaffold(body: Center(child: Text('DVR error: $err'))),
+      error:
+          (err, _) =>
+              Scaffold(body: ErrorStateWidget(message: 'DVR error: $err')),
       data: (state) => _DvrScaffold(state: state),
     );
   }

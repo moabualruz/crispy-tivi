@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:crispy_tivi/core/domain/entities/media_item.dart';
 import 'package:crispy_tivi/core/navigation/app_routes.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
+import 'package:crispy_tivi/core/widgets/error_state_widget.dart';
 import 'package:crispy_tivi/core/widgets/loading_state_widget.dart';
 import 'package:crispy_tivi/core/widgets/not_connected_widget.dart';
 
@@ -90,7 +91,7 @@ class _LibraryBody extends ConsumerWidget {
         return libraryListBuilder(libraries);
       },
       loading: () => const LoadingStateWidget(),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, _) => ErrorStateWidget(message: 'Error: $e'),
     );
   }
 }

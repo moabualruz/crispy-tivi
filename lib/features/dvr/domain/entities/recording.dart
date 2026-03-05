@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../../../../core/utils/format_utils.dart';
 import 'recording_profile.dart';
 
 /// Auto-delete policy applied when a recording series grows.
@@ -106,7 +107,7 @@ class Recording {
 
   String get fileSizeMB {
     if (fileSizeBytes == null) return '—';
-    return '${(fileSizeBytes! / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return formatBytes(fileSizeBytes!);
   }
 
   Recording copyWith({

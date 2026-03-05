@@ -7,6 +7,7 @@ import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/error_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/group_sidebar.dart';
 import '../../../../core/widgets/responsive_layout.dart';
@@ -24,7 +25,7 @@ import '../widgets/epg_mobile_video_overlay.dart';
 import '../widgets/epg_program_block.dart';
 import '../widgets/epg_program_info_panel.dart';
 import '../widgets/epg_state_helpers.dart';
-import '../widgets/epg_video_preview.dart';
+import '../../../../core/widgets/video_preview_widget.dart';
 import '../widgets/epg_whats_on_now_row.dart';
 import '../widgets/virtual_epg_grid.dart';
 
@@ -406,7 +407,7 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
                               onRecord: recordSelectedEntry,
                             ),
                           ),
-                          EpgVideoPreview(onTap: expandPlayer),
+                          VideoPreviewWidget(onTap: expandPlayer),
                         ],
                       ),
                     ),
@@ -594,7 +595,7 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
   Widget _buildError(String error, ColorScheme colorScheme) {
     return Scaffold(
       appBar: AppBar(title: const Text('Program Guide')),
-      body: Center(child: Text('Error: $error')),
+      body: ErrorStateWidget(message: 'Error: $error'),
     );
   }
 

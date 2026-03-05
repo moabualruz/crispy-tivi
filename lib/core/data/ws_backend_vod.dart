@@ -11,8 +11,7 @@ mixin _WsVodMixin on _WsBackendBase {
 
   Future<int> saveVodItems(List<Map<String, dynamic>> items) async {
     final res = await _send('saveVodItems', {'items': items});
-    if (res is Map) return (res['count'] as num).toInt();
-    return 0;
+    return _countFromResult(res);
   }
 
   Future<int> deleteRemovedVodItems(
@@ -23,8 +22,7 @@ mixin _WsVodMixin on _WsBackendBase {
       'sourceId': sourceId,
       'keepIds': keepIds,
     });
-    if (res is Map) return (res['count'] as num).toInt();
-    return 0;
+    return _countFromResult(res);
   }
 
   // ── VOD Favorites ────────────────────────────────

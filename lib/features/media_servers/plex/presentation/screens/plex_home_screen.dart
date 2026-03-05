@@ -14,6 +14,7 @@ import 'package:crispy_tivi/core/theme/crispy_colors.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/widgets/horizontal_scroll_row.dart';
+import 'package:crispy_tivi/core/widgets/error_state_widget.dart';
 import 'package:crispy_tivi/core/widgets/loading_state_widget.dart';
 import 'package:crispy_tivi/core/widgets/not_connected_widget.dart';
 import '../../../shared/presentation/widgets/media_server_item_card.dart';
@@ -123,7 +124,7 @@ class _PlexLibraryBody extends ConsumerWidget {
         return _PlexHomeBody(libraries: libraries);
       },
       loading: () => const LoadingStateWidget(),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, _) => ErrorStateWidget(message: 'Error: $e'),
     );
   }
 }

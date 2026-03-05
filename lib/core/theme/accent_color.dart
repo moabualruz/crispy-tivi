@@ -31,6 +31,21 @@ enum AccentColor {
   custom,
 }
 
+/// The canonical app accent palette — the six primary named accent colors,
+/// ordered to match [AccentColor] (blue → red → teal → orange → purple → green).
+///
+/// Use this list wherever a fixed palette of app-wide accent swatches is
+/// needed (e.g. profile accent pickers, theme demos) instead of repeating
+/// the hex literals.
+const List<Color> kAppAccentPalette = [
+  Color(0xFF3B82F6), // blue
+  CrispyColors.netflixRed, // red
+  Color(0xFF00BFA5), // teal
+  Color(0xFFFF6D00), // orange
+  Color(0xFFAA00FF), // purple
+  Color(0xFF00C853), // green
+];
+
 /// Extension providing color values for each [AccentColor].
 extension AccentColorValues on AccentColor {
   /// The primary accent color.

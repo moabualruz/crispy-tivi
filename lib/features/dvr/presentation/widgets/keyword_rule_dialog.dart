@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/error_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../data/keyword_rule_provider.dart';
 
@@ -94,7 +95,7 @@ class KeywordRulesSheet extends ConsumerWidget {
               Expanded(
                 child: rulesAsync.when(
                   loading: () => const LoadingStateWidget(),
-                  error: (err, _) => Center(child: Text('Error: $err')),
+                  error: (err, _) => ErrorStateWidget(message: 'Error: $err'),
                   data:
                       (rules) =>
                           rules.isEmpty

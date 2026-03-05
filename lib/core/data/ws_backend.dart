@@ -19,6 +19,13 @@ part 'ws_backend_settings.dart';
 part 'ws_backend_sync.dart';
 part 'ws_backend_algorithms.dart';
 
+/// Extract a count integer from a WebSocket result map.
+///
+/// Returns `(res['count'] as num).toInt()` when [res] is a [Map],
+/// and `0` otherwise.
+int _countFromResult(dynamic res) =>
+    res is Map ? (res['count'] as num).toInt() : 0;
+
 /// Base class that exposes the WebSocket transport
 /// to all mixins via the `_send` helper.
 ///

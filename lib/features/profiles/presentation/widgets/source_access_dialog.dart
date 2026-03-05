@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/widgets/async_filled_button.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
@@ -123,16 +124,10 @@ class _SourceAccessDialogState extends ConsumerState<SourceAccessDialog> {
           child: const Text('Cancel'),
         ),
         if (!widget.profile.isAdmin)
-          FilledButton(
+          AsyncFilledButton(
+            isLoading: _saving,
+            label: 'Save',
             onPressed: _saving || _loading ? null : _saveAccess,
-            child:
-                _saving
-                    ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                    : const Text('Save'),
           ),
       ],
     );

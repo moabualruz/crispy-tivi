@@ -15,6 +15,13 @@ part 'ffi_backend_settings.dart';
 part 'ffi_backend_sync.dart';
 part 'ffi_backend_parsers.dart';
 
+/// Decode a JSON string into a list of string-keyed maps.
+///
+/// Used throughout FFI backend parts to avoid repeating
+/// the inline cast pattern.
+List<Map<String, dynamic>> _decodeJsonList(String json) =>
+    (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+
 /// Base class that exposes the Rust FFI API import to
 /// all mixins.
 ///

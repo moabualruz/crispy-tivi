@@ -64,20 +64,17 @@ mixin _WsEpgMixin on _WsBackendBase {
     Map<String, List<Map<String, dynamic>>> entries,
   ) async {
     final res = await _send('saveEpgEntries', {'entries': entries});
-    if (res is Map) return (res['count'] as num).toInt();
-    return 0;
+    return _countFromResult(res);
   }
 
   Future<int> evictStaleEpg(int days) async {
     final res = await _send('evictStaleEpg', {'days': days});
-    if (res is Map) return (res['count'] as num).toInt();
-    return 0;
+    return _countFromResult(res);
   }
 
   Future<int> syncXmltvEpg({required String url}) async {
     final res = await _send('syncXmltvEpg', {'url': url});
-    if (res is Map) return (res['count'] as num).toInt();
-    return 0;
+    return _countFromResult(res);
   }
 
   Future<int> syncXtreamEpg({
@@ -92,8 +89,7 @@ mixin _WsEpgMixin on _WsBackendBase {
       'password': password,
       'channelsJson': channelsJson,
     });
-    if (res is Map) return (res['count'] as num).toInt();
-    return 0;
+    return _countFromResult(res);
   }
 
   Future<int> syncStalkerEpg({
@@ -104,8 +100,7 @@ mixin _WsEpgMixin on _WsBackendBase {
       'baseUrl': baseUrl,
       'channelsJson': channelsJson,
     });
-    if (res is Map) return (res['count'] as num).toInt();
-    return 0;
+    return _countFromResult(res);
   }
 
   Future<void> clearEpgEntries() => _send('clearEpgEntries');

@@ -1,3 +1,4 @@
+import '../../../../core/utils/format_utils.dart';
 import '../entities/recording.dart';
 
 // ──────────────────────────────────────────────────────────────
@@ -25,7 +26,7 @@ class CategoryBreakdown {
   double get mb => bytes / (1024 * 1024);
 
   /// Formatted size label, e.g. "12.3 MB".
-  String get mbLabel => '${mb.toStringAsFixed(1)} MB';
+  String get mbLabel => formatBytes(bytes);
 }
 
 /// A recording recommended for clean-up, with a human-readable
@@ -73,7 +74,7 @@ class StorageBreakdownData {
   double get totalMB => totalBytes / (1024 * 1024);
 
   /// Formatted total size label, e.g. "42.0 MB".
-  String get totalMBLabel => '${totalMB.toStringAsFixed(1)} MB';
+  String get totalMBLabel => formatBytes(totalBytes);
 }
 
 // ──────────────────────────────────────────────────────────────

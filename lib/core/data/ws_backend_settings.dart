@@ -82,10 +82,7 @@ mixin _WsSettingsMixin on _WsBackendBase {
 
   Future<int> deleteSearchByQuery(String query) async {
     final res = await _send('deleteSearchByQuery', {'query': query});
-    if (res is Map) {
-      return (res['count'] as num).toInt();
-    }
-    return 0;
+    return _countFromResult(res);
   }
 
   // ── Maintenance ──────────────────────────────────
@@ -96,10 +93,7 @@ mixin _WsSettingsMixin on _WsBackendBase {
 
   Future<int> clearAllWatchHistory() async {
     final res = await _send('clearAllWatchHistory');
-    if (res is Map) {
-      return (res['count'] as num).toInt();
-    }
-    return 0;
+    return _countFromResult(res);
   }
 
   // ── Normalize ──────────────────────────────────

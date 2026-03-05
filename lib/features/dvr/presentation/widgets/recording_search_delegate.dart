@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/error_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../data/dvr_service.dart';
 import '../../domain/entities/recording.dart';
@@ -69,7 +70,7 @@ class RecordingSearchDelegate extends SearchDelegate<void> {
 
     return stateAsync.when(
       loading: () => const LoadingStateWidget(),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, _) => ErrorStateWidget(message: 'Error: $e'),
       data: (state) {
         final all = [
           ...state.scheduled,

@@ -6,7 +6,7 @@ mixin _FfiProfilesMixin on _FfiBackendBase {
 
   Future<List<Map<String, dynamic>>> loadProfiles() async {
     final json = await rust_api.loadProfiles();
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<void> saveProfile(Map<String, dynamic> profile) =>

@@ -5,6 +5,7 @@ import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
+import 'source_add_dialogs.dart' show sourceDialogActions;
 import 'source_form_fields.dart';
 
 /// Shows a dialog to add a Stalker Portal source.
@@ -173,23 +174,11 @@ class _StalkerAddDialogState extends ConsumerState<_StalkerAddDialog> {
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _isVerifying ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _isVerifying ? null : _submit,
-          child:
-              _isVerifying
-                  ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                  : const Text('Add'),
-        ),
-      ],
+      actions: sourceDialogActions(
+        isVerifying: _isVerifying,
+        onCancel: () => Navigator.pop(context),
+        onSubmit: _submit,
+      ),
     );
   }
 }

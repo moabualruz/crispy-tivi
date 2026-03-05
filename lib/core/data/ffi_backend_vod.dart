@@ -6,7 +6,7 @@ mixin _FfiVodMixin on _FfiBackendBase {
 
   Future<List<Map<String, dynamic>>> loadVodItems() async {
     final json = await rust_api.loadVodItems();
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<int> saveVodItems(List<Map<String, dynamic>> items) async {
@@ -40,7 +40,7 @@ mixin _FfiVodMixin on _FfiBackendBase {
 
   Future<List<Map<String, dynamic>>> getWatchlistItems(String profileId) async {
     final json = await rust_api.getWatchlistItems(profileId: profileId);
-    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return _decodeJsonList(json);
   }
 
   Future<void> addWatchlistItem(String profileId, String vodItemId) =>
