@@ -619,6 +619,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                       );
                     }
                     return NavigationDestination(
+                      key: TestKeys.navItem(d.label),
                       icon: icon,
                       selectedIcon: selectedIcon,
                       label: d.label,

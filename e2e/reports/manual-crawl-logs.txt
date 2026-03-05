@@ -1,1037 +1,453 @@
 # Manual Crawl Logs
-# Date: 2026-02-23T17:59:34.139Z
+# Date: 2026-03-05T09:57:32.406Z
 # Viewport: 1280x900
 
-## Console Errors (397)
-- Access to image at 'http://var8k.com:8080/images/41s42CRXafa3OuRGvCtfYPEBmse_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/9iFMG4zyAkLnvfEwNqIiiEEQ342_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/15eRWcN3yyW9AZIDcAReenpCwXo_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/jfCW2V8bOlBxhrOA59gxXjp30qT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/tweRvn1nnpq24eOIiGJBPFZB8RU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/dKYp9uUlDufvL0gWHve8nuzePdk_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/xzZaU0MN6L9oc1pl0RUXSB7hWwD_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'https://media0095.elcinema.com/uploads/_315x420_76f16f00d07927c6339bacf8ea267843c1215af001daad67998adcd7a6166e40.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://imageoo.blog:8880/photo/%D8%B3%D9%84%D9%8A%D9%85%D8%A7%D9%86%20%D9%83%D9%88%D9%84%D9%85%D8%A8%D9%88.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://imageoo.blog:8880/photo/%D9%88%D8%AD%D9%88%D8%B4%202.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://imageoo.blog:8880/photo/%D9%85%D8%AA%D8%A7%D9%87%D8%A9.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://imageoo.blog:8880/photo/%D9%85%D8%AD%D8%A7%D9%81%D8%B8%D8%A9%2015.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://imageoo.blog:8880/photo/%D9%86%D9%88%D8%B1%D9%8A%D8%A9%20%D9%86%D8%B5%D9%8A%D8%A8.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'https://media0093.elcinema.com/uploads/_315x420_76f16f00d07927c6339bacf8ea267843c1215af001daad67998adcd7a6166e40.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://imageoo.blog:8880/photo/%D8%A7%D9%84%D9%83%D9%8A%D8%A9.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'https://images2.imgbox.com/21/42/o8CF4Ot7_o.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'https://images2.imgbox.com/ae/2c/ikh52us4_o.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'https://images2.imgbox.com/bf/69/9ySOPWYw_o.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_CONNECTION_REFUSED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Access to image at 'http://look4k.com:8080/images/4namANWEykRNdAT1rwN94laNXg4_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/b8OqiO1LuBFAwlpWXG0f3y0x8e9_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/9kG2UE6vmf5ZYcqkZuZxD1Bv392_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/uS0NrRZ4EeoKW0sBloyc8NnVn4k_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/z0zDBvwtKA34DKFu4TAaeOt5fWS_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/lRULKJHjahvr2a7Krtjxtib0Yw2_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Access to image at 'http://look4k.com:8080/images/jrnCkZnktMTNYOEN5uo63nKKKHN_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/2EKt3ui4zpMojy4LJlUxLJIiCnj_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/bXyz4zRt3lFVoJOW4cs2IIxGRIB_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Access to image at 'http://look4k.com:8080/images/7gKg3LcgcsrfLgYtKOqGBIoFq1j_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Access to image at 'http://look4k.com:8080/images/7NVm7hFjrY7y1ncNmw7d1JxckR3_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Access to image at 'http://look4k.com:8080/images/80kf72crZ4HJInHmp1MfQXUzNg9_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/r1gdFxHgcA49sXpSReq7GS18JeT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/eS6cWaq6mlPHfG1T0ouevZb5dn7_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/2T8wf39inK5YY1j8bLO5dRI0lz3_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/hgmkq4IY2y0LljpbmUP5407AhjM_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/ollPAAAgZ7euU8VisfqU3cuXhZ6_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/hzXSE66v6KthZ8nPoLZmsi2G05j_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/oHTNil93kpVQ6TOE4pzypgxPKLb_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/dJX06UwlLIwbLLt9UQ6DlkHF4jz_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/oq1pGVQ2t3Cy4v7sA4LRhNjtZuJ_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/rODFJOFiPk1UVCe4pmBza8T6feO_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/vqzNJRH4YyquRiWxCCOH0aXggHI_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Access to image at 'http://var8k.com:8080/images/41s42CRXafa3OuRGvCtfYPEBmse_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_CONNECTION_REFUSED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_CONNECTION_RESET
-- Failed to load resource: net::ERR_CONNECTION_RESET
-- Failed to load resource: net::ERR_CONNECTION_RESET
-- Failed to load resource: net::ERR_CONNECTION_RESET
-- Access to image at 'http://look4k.com:8080/images/vvevzdYIrk2636maNW4qeWmlPFG_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/3my9l7h3PJYQLoVo6zn2jgvgURX_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/k3mW4qfJo6SKqe6laRyNGnbB9n5_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/A6cyOt9mhmvWA2uHcVsGkcCaHCz_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/msaHYavXvc3EfoT6QusSHFSUYyI_small.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Access to image at 'http://look4k.com:8080/images/9iFMG4zyAkLnvfEwNqIiiEEQ342_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/tweRvn1nnpq24eOIiGJBPFZB8RU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/15eRWcN3yyW9AZIDcAReenpCwXo_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/xzZaU0MN6L9oc1pl0RUXSB7hWwD_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/dKYp9uUlDufvL0gWHve8nuzePdk_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_CONNECTION_RESET
-- Access to image at 'http://look4k.com:8080/images/jfCW2V8bOlBxhrOA59gxXjp30qT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Access to image at 'http://look4k.com:8080/images/tweRvn1nnpq24eOIiGJBPFZB8RU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/dKYp9uUlDufvL0gWHve8nuzePdk_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/xzZaU0MN6L9oc1pl0RUXSB7hWwD_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/jfCW2V8bOlBxhrOA59gxXjp30qT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/wjWX2IAZphVJydldUZBTwzDIFHb_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/pFuYqNiNOSACxg6d8yTmnIeu6hS_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/ctU9S47MoJDN9CB7SCaitcfyyIu_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/sSlGFy0MOrvoOEiUbQztiVyf5AF_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/iiXW7L30x4U89VEyTRmxkIM0lrN_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Access to image at 'http://look4k.com:8080/images/tCZZFxQdneZ2z9ajfrKKp92Pvei_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/6zURFypawtxSLTZ5zOyUJxqQ4z4_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_CONNECTION_RESET
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Access to image at 'http://look4k.com:8080/images/hnqGHps3mm2f216aNLtdmsGxUUU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-- Failed to load resource: net::ERR_CONNECTION_RESET
-- Access to image at 'http://look4k.com:8080/images/wjWX2IAZphVJydldUZBTwzDIFHb_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/8FHOtUpNIk5ZPEay2N2EY5lrxkv_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/uwB0yTkLEM8gENuXxHtkYaG3HEx_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/gKnhEsjNefpKnUdAkn7INzIFLSu_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/hnqGHps3mm2f216aNLtdmsGxUUU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/jfCW2V8bOlBxhrOA59gxXjp30qT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://var8k.com:8080/images/41s42CRXafa3OuRGvCtfYPEBmse_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/tweRvn1nnpq24eOIiGJBPFZB8RU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/9iFMG4zyAkLnvfEwNqIiiEEQ342_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/dKYp9uUlDufvL0gWHve8nuzePdk_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/15eRWcN3yyW9AZIDcAReenpCwXo_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/xzZaU0MN6L9oc1pl0RUXSB7hWwD_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/tCZZFxQdneZ2z9ajfrKKp92Pvei_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/msaHYavXvc3EfoT6QusSHFSUYyI_small.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/iiXW7L30x4U89VEyTRmxkIM0lrN_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/ctU9S47MoJDN9CB7SCaitcfyyIu_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/pFuYqNiNOSACxg6d8yTmnIeu6hS_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/wjWX2IAZphVJydldUZBTwzDIFHb_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_CONNECTION_REFUSED
-- Access to image at 'http://look4k.com:8080/images/msaHYavXvc3EfoT6QusSHFSUYyI_small.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://var8k.com:8080/images/41s42CRXafa3OuRGvCtfYPEBmse_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/dKYp9uUlDufvL0gWHve8nuzePdk_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/tweRvn1nnpq24eOIiGJBPFZB8RU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/xzZaU0MN6L9oc1pl0RUXSB7hWwD_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/jfCW2V8bOlBxhrOA59gxXjp30qT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/wjWX2IAZphVJydldUZBTwzDIFHb_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/pFuYqNiNOSACxg6d8yTmnIeu6hS_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/ctU9S47MoJDN9CB7SCaitcfyyIu_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/iiXW7L30x4U89VEyTRmxkIM0lrN_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/tCZZFxQdneZ2z9ajfrKKp92Pvei_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/hnqGHps3mm2f216aNLtdmsGxUUU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/9iFMG4zyAkLnvfEwNqIiiEEQ342_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/15eRWcN3yyW9AZIDcAReenpCwXo_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/tPExtAM958Gx07itJ7nWqSddBQ9_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/ffnBY54B4Etmu0UCpMXiJNNTlRV_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/ynT06XivgBDkg7AtbDbX1dJeBGY_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/AmXGX7y4GaDqBoOouPpMDWjKgLP_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/msaHYavXvc3EfoT6QusSHFSUYyI_small.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/tweRvn1nnpq24eOIiGJBPFZB8RU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://var8k.com:8080/images/41s42CRXafa3OuRGvCtfYPEBmse_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/dKYp9uUlDufvL0gWHve8nuzePdk_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/xzZaU0MN6L9oc1pl0RUXSB7hWwD_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/jfCW2V8bOlBxhrOA59gxXjp30qT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Failed to load resource: net::ERR_CONNECTION_REFUSED
-- Access to image at 'http://look4k.com:8080/images/pFuYqNiNOSACxg6d8yTmnIeu6hS_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/ctU9S47MoJDN9CB7SCaitcfyyIu_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/iiXW7L30x4U89VEyTRmxkIM0lrN_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/tCZZFxQdneZ2z9ajfrKKp92Pvei_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/hnqGHps3mm2f216aNLtdmsGxUUU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-- Failed to load resource: net::ERR_FAILED
-- Access to image at 'http://look4k.com:8080/images/tPExtAM958Gx07itJ7nWqSddBQ9_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+## Console Errors (28)
+- Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+- Failed to load resource: net::ERR_FAILED
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- [PAGE_ERROR] Unexpected null value.
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- [PAGE_ERROR] Unexpected null value.
+- [PAGE_ERROR] Unexpected null value.
+- [PAGE_ERROR] Unexpected null value.
+- [PAGE_ERROR] Unexpected null value.
+- [PAGE_ERROR] Unexpected null value.
+- [PAGE_ERROR] Unexpected null value.
+- Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+- Failed to load resource: net::ERR_FAILED
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+- Failed to load resource: net::ERR_FAILED
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
 - Failed to load resource: net::ERR_FAILED
 
-## Console Warnings (4)
-- [.WebGL-0x23ec05d04000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-- [.WebGL-0x23ec05d04000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-- [.WebGL-0x23ec05d04000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-- [.WebGL-0x23ec05d04000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+## Console Warnings (35)
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+- WebVideoBridge: <video> #web-hls-video-1 not found in DOM
 
 ## Full Log
-[17:58:10.945] === LOAD ===
-[17:58:11.124] [console.debug] Injecting <script> tag. Using callback.
-[17:58:11.602] [console.debug] TrustedTypes available. Creating policy: gis-dart
-[17:58:11.800] [console.log] WsBackend _onMessage: {"data":"{\"player\":{\"upscaleEnabled\":false,\"upscaleQuality\":\"maximum\"}}","id":"req-1"}
-[17:58:11.800] [console.log] WsBackend _onMessage completed command: getSetting (id: req-1) with payload length: 94
-[17:58:11.803] [console.warning] [.WebGL-0x23ec05d04000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-[17:58:11.821] [console.log] WsBackend _onMessage: {"data":"[{\"id\":\"src_1771567852776\",\"name\":\"look4k\",\"url\":\"http://look4k.com\",\"type\":\"xtream\",\"epgUrl\":\"http://look4k.com/xmltv.php?username=4917676477361&password=3278818818\",\"userAgent\":null,\"refreshIntervalMinutes\":60,\"username\":\"4917676477361\",\"password\":\"3278818818\",\"accessToken\":null,\"deviceId\":null,\"userid\":null,\"macAddress\":null}]","id":"req-2"}
-[17:58:11.821] [console.log] WsBackend _onMessage completed command: getSetting (id: req-2) with payload length: 395
-[17:58:11.821] [console.warning] [.WebGL-0x23ec05d04000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-[17:58:11.839] [console.log] WsBackend _onMessage: {"data":null,"id":"req-3"}
-[17:58:11.840] [console.log] WsBackend _onMessage completed command: getSetting (id: req-3) with payload length: 26
-[17:58:11.840] [console.warning] [.WebGL-0x23ec05d04000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-[17:58:11.858] [console.log] WsBackend _onMessage: {"data":null,"id":"req-4"}
-[17:58:11.858] [console.log] WsBackend _onMessage completed command: getSetting (id: req-4) with payload length: 26
-[17:58:11.859] [console.warning] [.WebGL-0x23ec05d04000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
-[17:58:11.878] [console.log] WsBackend _onMessage: {"data":null,"id":"req-5"}
-[17:58:11.878] [console.log] WsBackend _onMessage completed command: getSetting (id: req-5) with payload length: 26
-[17:58:11.894] [console.log] WsBackend _onMessage: {"data":null,"id":"req-6"}
-[17:58:11.894] [console.log] WsBackend _onMessage completed command: getSetting (id: req-6) with payload length: 26
-[17:58:11.898] [console.log] WsBackend _onMessage: {"data":null,"id":"req-7"}
-[17:58:11.898] [console.log] WsBackend _onMessage completed command: getSetting (id: req-7) with payload length: 26
-[17:58:11.913] [console.log] WsBackend _onMessage: {"data":null,"id":"req-8"}
-[17:58:11.913] [console.log] WsBackend _onMessage completed command: getSetting (id: req-8) with payload length: 26
-[17:58:11.928] [console.log] WsBackend _onMessage: {"data":null,"id":"req-9"}
-[17:58:11.928] [console.log] WsBackend _onMessage completed command: getSetting (id: req-9) with payload length: 26
-[17:58:11.966] [console.log] WsBackend _onMessage: {"data":[{"avatar_index":0,"dvr_permission":2,"dvr_quota_mb":null,"id":"default","is_child":false,"max_allowed_rating":4,"name":"Default","pin":null,"pin_version":1,"role":0}],"id":"req-10"}
-[17:58:11.966] [console.log] WsBackend _onMessage completed command: loadProfiles (id: req-10) with payload length: 190
-[17:58:12.127] [console.log] PlaylistSync: loading from cache…
-[17:58:12.389] [console.log] WsBackend _onMessage: [Large Payload of length 6252686]
-[17:58:12.389] [console.log] WsBackend _onMessage completed command: loadChannels (id: req-11) with payload length: 6252686
-[17:58:12.398] [console.log] CacheService: loaded 12697 channels in 270ms
-[17:58:12.890] [console.log] WsBackend _onMessage: [Large Payload of length 12679905]
-[17:58:12.890] [console.log] WsBackend _onMessage completed command: loadVodItems (id: req-12) with payload length: 12679905
-[17:58:12.890] [console.log] CacheService: loaded 21782 VOD items in 751ms
-[17:58:13.327] [console.log] WsBackend _onMessage: [Large Payload of length 14465780]
-[17:58:13.327] [console.log] WsBackend _onMessage completed command: loadEpgEntries (id: req-13) with payload length: 14465780
-[17:58:13.474] [console.log] CacheService: loaded 58024 EPG entries across 1232 channels in 1346ms
-[17:58:13.475] [console.log] PlaylistSync: cache read complete in 1348ms — 12697 channels (270ms), 21782 VODs (751ms), 1232 EPG channels / 58024 entries (1347ms)
-[17:58:13.835] [console.log] WsBackend _onMessage: {"count":0,"id":"req-14","ok":true}
-[17:58:13.835] [console.log] WsBackend _onMessage completed command: evictStaleEpg (id: req-14) with payload length: 35
-[17:58:14.034] [console.log] WsBackend _onMessage: [Large Payload of length 6397732]
-[17:58:14.034] [console.log] WsBackend _onMessage completed command: filterChannelsBySource (id: req-15) with payload length: 6397732
-[17:58:14.061] [console.log] PlaylistSync: cache → UI complete in 1934ms
-[17:58:14.062] [console.log] WsBackend _onMessage: {"data":[],"id":"req-16"}
-[17:58:14.062] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-16) with payload length: 25
-[17:58:14.065] [console.log] WsBackend _onMessage: {"data":[],"id":"req-17"}
-[17:58:14.065] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-17) with payload length: 25
-[17:58:14.075] [console.log] WsBackend _onMessage: {"data":1771869486,"id":"req-18"}
-[17:58:14.075] [console.log] WsBackend _onMessage completed command: getLastSyncTime (id: req-18) with payload length: 33
-[17:58:14.075] [console.log] PlaylistSync: all sources synced within 24h — BUT IGNORING IT FOR DEBUGGING
-[17:58:14.202] [console.log] WsBackend _onMessage: [Large Payload of length 3845]
-[17:58:14.202] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-19) with payload length: 3845
-[17:58:14.204] [console.log] WsBackend _onMessage: [Large Payload of length 3549]
-[17:58:14.204] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-20) with payload length: 3549
-[17:58:14.205] [console.log] WsBackend _onMessage: [Large Payload of length 3068]
-[17:58:14.205] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-21) with payload length: 3068
-[17:58:14.205] [console.log] RefreshPlaylist: categories loaded — Live: 165, VOD: 133, Series: 94
-[17:58:15.051] [console.log] WsBackend _onMessage: [Large Payload of length 6605053]
-[17:58:15.051] [console.log] WsBackend _onMessage completed command: parseXtreamLiveStreams (id: req-22) with payload length: 6605053
-[17:58:15.783] [console.log] WsBackend _onMessage: [Large Payload of length 6689763]
-[17:58:15.783] [console.log] WsBackend _onMessage completed command: resolveChannelCategories (id: req-23) with payload length: 6689763
-[17:58:16.221] [console.log] WsBackend _onMessage: [Large Payload of length 2281]
-[17:58:16.221] [console.log] WsBackend _onMessage completed command: extractSortedGroups (id: req-24) with payload length: 2281
-[17:58:16.521] [console.log] RefreshPlaylist: fetched 12391 VOD JSON items from HTTP
-[17:58:16.580] [console.log] WsBackend _send: parseVodStreams sending ${json.length} characters to Rust
-[17:58:17.109] [console.log] WsBackend _onMessage: [Large Payload of length 5867657]
-[17:58:17.109] [console.log] WsBackend _onMessage completed command: parseVodStreams (id: req-25) with payload length: 5867657
-[17:58:17.109] [console.log] WsBackend parseVodStreams received ${resultList.length} items from Rust
-[17:58:17.114] [console.log] RefreshPlaylist: Resolving categories for 12391 items using map size 133
-[17:58:17.532] Screenshot: 001-01-app-loaded-1920x1080.png
-[17:58:17.532] === PROFILE SELECTION ===
-[17:58:17.785] [console.log] WsBackend _onMessage: [Large Payload of length 6693342]
-[17:58:17.785] [console.log] WsBackend _onMessage completed command: resolveVodCategories (id: req-26) with payload length: 6693342
-[17:58:17.785] [console.log] RefreshPlaylist: resolveVodCategories returned JSON string of length 5999401
-[17:58:17.785] [console.log] RefreshPlaylist: resolveVodCategories decoded to List of size 12391
-[17:58:17.796] [console.log] RefreshPlaylist: Successfully mapped 12391 items back to VodItem objects.
-[17:58:17.796] [console.log] RefreshPlaylist: 12391 VOD movies loaded
-[17:58:17.798] Screenshot: 002-02-profile-screen-1920x1080.png
-[17:58:17.808] Clicked Default profile at coords
-[17:58:18.684] [console.log] WsBackend _send: parseSeries sending ${json.length} characters to Rust
-[17:58:19.595] [console.log] WsBackend _onMessage: [Large Payload of length 6515763]
-[17:58:19.595] [console.log] WsBackend _onMessage completed command: parseSeries (id: req-27) with payload length: 6515763
-[17:58:19.595] [console.log] WsBackend parseSeries received ${resultList.length} items from Rust
-[17:58:20.572] [console.log] WsBackend _onMessage: [Large Payload of length 7213791]
-[17:58:20.572] [console.log] WsBackend _onMessage completed command: resolveVodCategories (id: req-28) with payload length: 7213791
-[17:58:20.573] [console.log] RefreshPlaylist: 9358 series loaded
-[17:58:21.574] [console.log] WsBackend _onMessage: [Large Payload of length 4288]
-[17:58:21.574] [console.log] WsBackend _onMessage completed command: extractSortedVodCategories (id: req-29) with payload length: 4288
-[17:58:21.649] [console.log] WsBackend _onMessage: {"count":0,"id":"req-30","ok":true}
-[17:58:21.650] [console.log] WsBackend _onMessage completed command: deleteRemovedChannels (id: req-30) with payload length: 35
-[17:58:21.650] [console.log] CacheService: deleted 0 stale channels for source src_1771567852776 in 34ms
-[17:58:21.652] Screenshot: 003-03-after-profile-click-1920x1080.png
-[17:58:21.718] [console.log] WsBackend _onMessage: {"count":0,"id":"req-31","ok":true}
-[17:58:21.718] [console.log] WsBackend _onMessage completed command: deleteRemovedVodItems (id: req-31) with payload length: 35
-[17:58:21.718] [console.log] CacheService: deleted 0 stale VOD items for source src_1771567852776 in 91ms
-[17:58:21.720] [console.log] WsBackend _onMessage: {"id":"req-32","ok":true}
-[17:58:21.721] [console.log] WsBackend _onMessage completed command: setLastSyncTime (id: req-32) with payload length: 25
-[17:58:21.721] [console.log] PlaylistSync: look4k → 12697 channels, 21749 VOD items
-[17:58:22.284] [console.error] Access to image at 'http://var8k.com:8080/images/41s42CRXafa3OuRGvCtfYPEBmse_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.284] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.285] [console.error] Access to image at 'http://look4k.com:8080/images/9iFMG4zyAkLnvfEwNqIiiEEQ342_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.285] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.285] [console.error] Access to image at 'http://look4k.com:8080/images/15eRWcN3yyW9AZIDcAReenpCwXo_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.285] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.302] [console.error] Access to image at 'http://look4k.com:8080/images/jfCW2V8bOlBxhrOA59gxXjp30qT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.302] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.303] [console.error] Access to image at 'http://look4k.com:8080/images/tweRvn1nnpq24eOIiGJBPFZB8RU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.303] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.303] [console.error] Access to image at 'http://look4k.com:8080/images/dKYp9uUlDufvL0gWHve8nuzePdk_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.303] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.303] [console.error] Access to image at 'http://look4k.com:8080/images/xzZaU0MN6L9oc1pl0RUXSB7hWwD_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.303] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.303] [console.error] Access to image at 'https://media0095.elcinema.com/uploads/_315x420_76f16f00d07927c6339bacf8ea267843c1215af001daad67998adcd7a6166e40.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.303] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.355] [console.error] Access to image at 'http://imageoo.blog:8880/photo/%D8%B3%D9%84%D9%8A%D9%85%D8%A7%D9%86%20%D9%83%D9%88%D9%84%D9%85%D8%A8%D9%88.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.355] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.356] [console.error] Access to image at 'http://imageoo.blog:8880/photo/%D9%88%D8%AD%D9%88%D8%B4%202.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.356] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.356] [console.error] Access to image at 'http://imageoo.blog:8880/photo/%D9%85%D8%AA%D8%A7%D9%87%D8%A9.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.356] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.356] [console.error] Access to image at 'http://imageoo.blog:8880/photo/%D9%85%D8%AD%D8%A7%D9%81%D8%B8%D8%A9%2015.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.356] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.407] [console.error] Access to image at 'http://imageoo.blog:8880/photo/%D9%86%D9%88%D8%B1%D9%8A%D8%A9%20%D9%86%D8%B5%D9%8A%D8%A8.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.407] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.407] [console.error] Access to image at 'https://media0093.elcinema.com/uploads/_315x420_76f16f00d07927c6339bacf8ea267843c1215af001daad67998adcd7a6166e40.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.407] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.407] [console.error] Access to image at 'http://imageoo.blog:8880/photo/%D8%A7%D9%84%D9%83%D9%8A%D8%A9.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.407] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.407] [console.error] Access to image at 'https://images2.imgbox.com/21/42/o8CF4Ot7_o.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.408] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.408] [console.error] Access to image at 'https://images2.imgbox.com/ae/2c/ikh52us4_o.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.408] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:22.461] [console.error] Access to image at 'https://images2.imgbox.com/bf/69/9ySOPWYw_o.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:22.461] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:24.421] [console.error] Failed to load resource: net::ERR_CONNECTION_REFUSED
-[17:58:24.674] [console.log] WsBackend _onMessage: [Large Payload of length 6905612]
-[17:58:24.674] [console.log] WsBackend _onMessage completed command: sortChannels (id: req-33) with payload length: 6905612
-[17:58:25.078] [console.log] WsBackend _onMessage: {"data":[],"id":"req-34"}
-[17:58:25.078] [console.log] WsBackend _onMessage completed command: loadReminders (id: req-34) with payload length: 25
-[17:58:25.078] [console.log] WsBackend _onMessage: [Large Payload of length 1564]
-[17:58:25.078] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-35) with payload length: 1564
-[17:58:25.078] [console.log] WsBackend _onMessage: [Large Payload of length 1564]
-[17:58:25.078] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-36) with payload length: 1564
-[17:58:25.078] [console.log] WsBackend _onMessage: {"data":"4e51ae3b-7424-4272-b6ed-bb93b57d7a53","id":"req-37"}
-[17:58:25.078] [console.log] WsBackend _onMessage completed command: getSetting (id: req-37) with payload length: 61
-[17:58:25.235] [console.log] WsBackend _onMessage: [Large Payload of length 6252686]
-[17:58:25.235] [console.log] WsBackend _onMessage completed command: loadChannels (id: req-38) with payload length: 6252686
-[17:58:25.240] [console.log] CacheService: loaded 12697 channels in 3137ms
-[17:58:25.241] [console.log] WsBackend _onMessage: [Large Payload of length 1564]
-[17:58:25.241] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-39) with payload length: 1564
-[17:58:25.254] [console.log] WsBackend _onMessage: [Large Payload of length 1564]
-[17:58:25.254] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-40) with payload length: 1564
-[17:58:25.254] [console.log] WsBackend _onMessage: {"data":[],"id":"req-41"}
-[17:58:25.254] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-41) with payload length: 25
-[17:58:25.255] [console.log] WsBackend _onMessage: {"data":[],"id":"req-42"}
-[17:58:25.255] [console.log] WsBackend _onMessage completed command: loadSearchHistory (id: req-42) with payload length: 25
-[17:58:25.484] [console.log] WsBackend _onMessage: [Large Payload of length 6397732]
-[17:58:25.484] [console.log] WsBackend _onMessage completed command: filterChannelsBySource (id: req-43) with payload length: 6397732
-[17:58:25.969] [console.log] WsBackend _onMessage: {"data":"[{\"id\":\"4c18u6\",\"media_type\":\"movie\",\"name\":\"Legend (2015)\",\"stream_url\":\"http://look4k.com/movie/4917676477361/3278818818/1004368.mp4\",\"poster_url\":null,\"position_ms\":445791,\"duration_ms\":7862592,\"last_watched\":\"2026-02-23T07:35:52\",\"series_id\":null,\"season_number\":null,\"episode_number\":null,\"device_id\":\"4e51ae3b-7424-4272-b6ed-bb93b57d7a53\",\"device_name\":\"MKH-PC\"}]","id":"req-44"}
-[17:58:25.969] [console.log] WsBackend _onMessage completed command: filterContinueWatching (id: req-44) with payload length: 434
-[17:58:25.969] [console.log] WsBackend _onMessage: [Large Payload of length 994]
-[17:58:25.969] [console.log] WsBackend _onMessage completed command: filterContinueWatching (id: req-45) with payload length: 994
-[17:58:25.969] [console.log] WsBackend _onMessage: [Large Payload of length 1564]
-[17:58:25.970] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-46) with payload length: 1564
-[17:58:25.970] [console.log] WsBackend _onMessage: {"data":[],"id":"req-47"}
-[17:58:25.970] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-47) with payload length: 25
-[17:58:26.019] [console.log] WsBackend _onMessage: {"data":[],"id":"req-48"}
-[17:58:26.019] [console.log] WsBackend _onMessage completed command: detectDuplicateChannels (id: req-48) with payload length: 25
-[17:58:26.471] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-49"}
-[17:58:26.471] [console.log] WsBackend _onMessage completed command: filterCrossDevice (id: req-49) with payload length: 27
-[17:58:26.471] [console.log] WsBackend _onMessage: {"data":[],"id":"req-50"}
-[17:58:26.471] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-50) with payload length: 25
-[17:58:27.525] Screenshot: 004-04-post-profile-state-1920x1080.png
-[17:58:27.525] === HOME SCREEN ===
-[17:58:27.587] Screenshot: 005-05-home-screen-1920x1080.png
-[17:58:27.587] === NAV: TV ===
-[17:58:29.184] [console.log] WsBackend _onMessage: [Large Payload of length 6905612]
-[17:58:29.184] [console.log] WsBackend _onMessage completed command: sortChannels (id: req-51) with payload length: 6905612
-[17:58:29.521] [console.log] WsBackend _onMessage: [Large Payload of length 15085]
-[17:58:29.521] [console.log] WsBackend _onMessage completed command: computeRecommendations (id: req-52) with payload length: 15085
-[17:58:29.521] [console.log] WsBackend _onMessage: {"data":{},"id":"req-53"}
-[17:58:29.521] [console.log] WsBackend _onMessage completed command: getAllCachedImageUrls (id: req-53) with payload length: 25
-[17:58:29.522] [console.log] WsBackend _onMessage: {"data":null,"id":"req-54"}
-[17:58:29.522] [console.log] WsBackend _onMessage completed command: getSetting (id: req-54) with payload length: 27
-[17:58:29.681] Screenshot: 006-06-tv-screen-1920x1080.png
-[17:58:30.779] Screenshot: 007-07-tv-scrolled-1920x1080.png
-[17:58:30.780] === NAV: GUIDE ===
-[17:58:30.974] [console.log] WsBackend _onMessage: {"count":12697,"id":"req-55","ok":true}
-[17:58:30.974] [console.log] WsBackend _onMessage completed command: saveChannels (id: req-55) with payload length: 39
-[17:58:30.974] [console.log] CacheService: saved 12697 channels in 1778ms
-[17:58:31.662] [console.log] WsBackend _onMessage: [Large Payload of length 14243]
-[17:58:31.662] [console.log] WsBackend _onMessage completed command: deserializeRecommendationSections (id: req-56) with payload length: 14243
-[17:58:32.867] Screenshot: 008-08-epg-screen-1920x1080.png
-[17:58:33.375] [console.log] WsBackend _onMessage: {"count":21749,"id":"req-57","ok":true}
-[17:58:33.375] [console.log] WsBackend _onMessage completed command: saveVodItems (id: req-57) with payload length: 39
-[17:58:33.376] [console.log] CacheService: saved 21749 VOD items in 2400ms
-[17:58:33.379] [console.log] WsBackend _onMessage: {"id":"req-58","ok":true}
-[17:58:33.379] [console.log] WsBackend _onMessage completed command: saveCategories (id: req-58) with payload length: 25
-[17:58:33.379] [console.log] CacheService: saved 390 categories (live, vod) in 3ms
-[17:58:33.379] [console.log] PlaylistSync: persisted 12697 channels + 21749 VODs to DB
-[17:58:33.813] [console.log] WsBackend _onMessage: {"data":{},"id":"req-59"}
-[17:58:33.813] [console.log] WsBackend _onMessage completed command: getAllCachedImageUrls (id: req-59) with payload length: 25
-[17:58:33.897] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:33.995] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:34.091] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:34.177] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:34.263] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:34.352] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:34.442] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:34.511] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:34.575] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:34.583] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:34.585] Screenshot: 009-09-epg-filter-toggle-1920x1080.png
-[17:58:34.585] === NAV: VODS ===
-[17:58:34.823] [console.error] Access to image at 'http://look4k.com:8080/images/4namANWEykRNdAT1rwN94laNXg4_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:34.824] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:34.824] [console.error] Access to image at 'http://look4k.com:8080/images/b8OqiO1LuBFAwlpWXG0f3y0x8e9_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:34.824] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:34.824] [console.error] Access to image at 'http://look4k.com:8080/images/9kG2UE6vmf5ZYcqkZuZxD1Bv392_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:34.824] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:34.824] [console.error] Access to image at 'http://look4k.com:8080/images/uS0NrRZ4EeoKW0sBloyc8NnVn4k_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:34.824] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:34.824] [console.error] Access to image at 'http://look4k.com:8080/images/z0zDBvwtKA34DKFu4TAaeOt5fWS_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:34.824] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:34.825] [console.error] Access to image at 'http://look4k.com:8080/images/lRULKJHjahvr2a7Krtjxtib0Yw2_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:34.825] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:34.881] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:34.908] [console.error] Access to image at 'http://look4k.com:8080/images/jrnCkZnktMTNYOEN5uo63nKKKHN_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:34.908] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:34.908] [console.error] Access to image at 'http://look4k.com:8080/images/2EKt3ui4zpMojy4LJlUxLJIiCnj_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:34.909] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:34.992] [console.error] Access to image at 'http://look4k.com:8080/images/bXyz4zRt3lFVoJOW4cs2IIxGRIB_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:34.992] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:35.023] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:35.056] [console.error] Access to image at 'http://look4k.com:8080/images/7gKg3LcgcsrfLgYtKOqGBIoFq1j_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:35.056] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:35.190] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:35.304] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:35.411] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:35.512] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:35.612] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:35.715] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:35.815] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:35.913] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:36.016] [console.error] Access to image at 'http://look4k.com:8080/images/7NVm7hFjrY7y1ncNmw7d1JxckR3_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:36.016] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:36.016] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:36.240] [console.log] WsBackend _onMessage: [Large Payload of length 6905612]
-[17:58:36.241] [console.log] WsBackend _onMessage completed command: sortChannels (id: req-60) with payload length: 6905612
-[17:58:36.252] [console.log] PlaylistSync: fetching EPG from http://look4k.com/xmltv.php?username=4917676477361&password=3278818818
-[17:58:36.252] [console.error] Access to image at 'http://look4k.com:8080/images/80kf72crZ4HJInHmp1MfQXUzNg9_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:36.252] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:36.252] [console.error] Access to image at 'http://look4k.com:8080/images/r1gdFxHgcA49sXpSReq7GS18JeT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:36.252] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:36.252] [console.error] Access to image at 'http://look4k.com:8080/images/eS6cWaq6mlPHfG1T0ouevZb5dn7_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:36.252] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:36.273] [console.log] WsBackend _onMessage: {"data":null,"id":"req-61"}
-[17:58:36.273] [console.log] WsBackend _onMessage completed command: getSetting (id: req-61) with payload length: 27
-[17:58:36.273] [console.log] WsBackend _onMessage: [Large Payload of length 1564]
-[17:58:36.273] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-62) with payload length: 1564
-[17:58:36.273] [console.log] WsBackend _onMessage: {"data":[],"id":"req-63"}
-[17:58:36.273] [console.log] WsBackend _onMessage completed command: getFavoriteCategories (id: req-63) with payload length: 25
-[17:58:36.273] [console.log] WsBackend _onMessage: {"data":{"vod_1001014":"https://image.tmdb.org/t/p/w500/nvK6gYa4diCnQkDVN42uoYXPrdT.jpg","vod_582538":"https://image.tmdb.org/t/p/w500/q3xxECv3n5lP7TlBQZtLhwtyspd.jpg","vod_582553":"https://image.tmdb.org/t/p/w500/w67lQSdz4ULkaMiyIgKmQQBcO00.jpg","vod_994828":"https://image.tmdb.org/t/p/w500/p8qKskzxLhAgqbcDgxaaCDUcXhw.jpg","vod_999354":"https://image.tmdb.org/t/p/w500/f9NOLejYqlbiAUFs6gvEads79OK.jpg"},"id":"req-64"}
-[17:58:36.274] [console.log] WsBackend _onMessage completed command: getAllCachedImageUrls (id: req-64) with payload length: 420
-[17:58:36.319] [console.log] WsBackend _onMessage: {"data":[],"id":"req-65"}
-[17:58:36.319] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-65) with payload length: 25
-[17:58:36.338] [console.log] WsBackend _onMessage: {"data":[],"id":"req-66"}
-[17:58:36.338] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-66) with payload length: 25
-[17:58:37.801] [console.error] Access to image at 'http://look4k.com:8080/images/2T8wf39inK5YY1j8bLO5dRI0lz3_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:37.801] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:37.801] [console.error] Access to image at 'http://look4k.com:8080/images/hgmkq4IY2y0LljpbmUP5407AhjM_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:37.801] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:37.801] [console.error] Access to image at 'http://look4k.com:8080/images/ollPAAAgZ7euU8VisfqU3cuXhZ6_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:37.801] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:37.802] [console.error] Access to image at 'http://look4k.com:8080/images/_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:37.802] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:37.802] [console.error] Access to image at 'http://look4k.com:8080/images/hzXSE66v6KthZ8nPoLZmsi2G05j_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:37.802] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:37.802] [console.error] Access to image at 'http://look4k.com:8080/images/oHTNil93kpVQ6TOE4pzypgxPKLb_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:37.802] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:37.802] [console.error] Access to image at 'http://look4k.com:8080/images/dJX06UwlLIwbLLt9UQ6DlkHF4jz_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:37.802] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:37.802] [console.error] Access to image at 'http://look4k.com:8080/images/oq1pGVQ2t3Cy4v7sA4LRhNjtZuJ_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:37.802] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:37.802] [console.error] Access to image at 'http://look4k.com:8080/images/rODFJOFiPk1UVCe4pmBza8T6feO_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:37.802] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:37.802] [console.error] Access to image at 'http://look4k.com:8080/images/vqzNJRH4YyquRiWxCCOH0aXggHI_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:37.802] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:37.802] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:37.866] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:38.109] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:38.111] Screenshot: 010-10-vods-screen-1920x1080.png
-[17:58:38.460] [console.error] Access to image at 'http://var8k.com:8080/images/41s42CRXafa3OuRGvCtfYPEBmse_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:38.460] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:38.496] [console.error] Access to image at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:38.496] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:39.946] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:40.467] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:40.467] [console.error] Failed to load resource: net::ERR_CONNECTION_REFUSED
-[17:58:40.473] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:40.475] Screenshot: 011-11-vods-movies-1920x1080.png
-[17:58:40.706] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:40.896] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:41.079] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:41.250] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:41.417] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:41.593] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:41.746] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:41.943] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:42.129] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:42.716] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:42.739] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:42.741] Screenshot: 012-12-vods-series-1920x1080.png
-[17:58:42.741] === NAV: SETTINGS ===
-[17:58:42.951] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:43.107] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:43.270] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:43.419] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:43.596] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:43.774] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:43.949] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:44.119] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:44.295] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:44.470] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:44.641] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:44.805] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:44.879] [console.log] WsBackend _onMessage: [Large Payload of length 7919]
-[17:58:44.879] [console.log] WsBackend _onMessage completed command: computeRecommendations (id: req-67) with payload length: 7919
-[17:58:44.984] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:45.392] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:45.394] Screenshot: 013-13-settings-screen-1920x1080.png
-[17:58:45.556] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:45.713] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:45.875] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:46.029] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:46.188] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:46.345] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:46.496] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:46.667] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:47.127] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:47.129] Screenshot: 014-14-settings-scrolled-1920x1080.png
-[17:58:47.347] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:47.527] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:47.691] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:47.864] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:48.006] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:48.175] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:48.345] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:48.729] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:48.731] Screenshot: 015-15-settings-item-y200-1920x1080.png
-[17:58:49.001] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:49.193] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:49.477] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:49.706] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:49.919] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:50.125] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:50.306] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:50.477] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:51.041] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:51.043] Screenshot: 016-15-settings-item-y280-1920x1080.png
-[17:58:51.287] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:51.448] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:51.621] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:51.831] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:51.996] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:52.185] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:52.358] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:52.513] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:52.675] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:52.860] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:53.373] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:53.375] Screenshot: 017-15-settings-item-y360-1920x1080.png
-[17:58:53.628] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:53.794] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:54.007] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:54.088] [console.error] Failed to load resource: net::ERR_CONNECTION_RESET
-[17:58:54.088] [console.error] Failed to load resource: net::ERR_CONNECTION_RESET
-[17:58:54.088] [console.error] Failed to load resource: net::ERR_CONNECTION_RESET
-[17:58:54.088] [console.error] Failed to load resource: net::ERR_CONNECTION_RESET
-[17:58:54.132] [console.error] Access to image at 'http://look4k.com:8080/images/vvevzdYIrk2636maNW4qeWmlPFG_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:54.132] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:54.168] [console.error] Access to image at 'http://look4k.com:8080/images/3my9l7h3PJYQLoVo6zn2jgvgURX_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:54.168] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:54.168] [console.error] Access to image at 'http://look4k.com:8080/images/k3mW4qfJo6SKqe6laRyNGnbB9n5_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:54.168] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:54.168] [console.error] Access to image at 'http://look4k.com:8080/images/A6cyOt9mhmvWA2uHcVsGkcCaHCz_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:54.169] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:54.203] [console.error] Access to image at 'http://look4k.com:8080/images/msaHYavXvc3EfoT6QusSHFSUYyI_small.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:54.203] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:54.204] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:54.242] [console.error] Access to image at 'http://look4k.com:8080/images/9iFMG4zyAkLnvfEwNqIiiEEQ342_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:54.242] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:54.243] [console.error] Access to image at 'http://look4k.com:8080/images/tweRvn1nnpq24eOIiGJBPFZB8RU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:54.243] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:54.243] [console.error] Access to image at 'http://look4k.com:8080/images/15eRWcN3yyW9AZIDcAReenpCwXo_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:54.243] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:54.282] [console.error] Access to image at 'http://look4k.com:8080/images/xzZaU0MN6L9oc1pl0RUXSB7hWwD_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:54.282] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:54.323] [console.error] Access to image at 'http://look4k.com:8080/images/dKYp9uUlDufvL0gWHve8nuzePdk_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:54.323] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:54.323] [console.error] Failed to load resource: net::ERR_CONNECTION_RESET
-[17:58:54.324] [console.error] Access to image at 'http://look4k.com:8080/images/jfCW2V8bOlBxhrOA59gxXjp30qT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:54.324] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:54.405] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:54.608] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:54.732] [console.log] WsBackend _onMessage: [Large Payload of length 35337]
-[17:58:54.733] [console.log] WsBackend _onMessage completed command: extractEpgChannelNames (id: req-68) with payload length: 35337
-[17:58:56.130] [console.log] WsBackend _onMessage: [Large Payload of length 8530]
-[17:58:56.130] [console.log] WsBackend _onMessage completed command: deserializeRecommendationSections (id: req-69) with payload length: 8530
-[17:58:56.130] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:56.237] [console.error] Access to image at 'http://look4k.com:8080/images/tweRvn1nnpq24eOIiGJBPFZB8RU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:56.237] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:56.238] [console.error] Access to image at 'http://look4k.com:8080/images/dKYp9uUlDufvL0gWHve8nuzePdk_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:56.238] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:56.238] [console.error] Access to image at 'http://look4k.com:8080/images/xzZaU0MN6L9oc1pl0RUXSB7hWwD_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:56.238] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:56.238] [console.error] Access to image at 'http://look4k.com:8080/images/jfCW2V8bOlBxhrOA59gxXjp30qT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:56.238] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:56.238] [console.error] Access to image at 'http://look4k.com:8080/images/wjWX2IAZphVJydldUZBTwzDIFHb_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:56.238] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:56.277] [console.error] Access to image at 'http://look4k.com:8080/images/pFuYqNiNOSACxg6d8yTmnIeu6hS_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:56.278] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:56.315] [console.error] Access to image at 'http://look4k.com:8080/images/ctU9S47MoJDN9CB7SCaitcfyyIu_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:56.315] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:56.315] [console.error] Access to image at 'http://look4k.com:8080/images/sSlGFy0MOrvoOEiUbQztiVyf5AF_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:56.315] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:56.315] [console.error] Access to image at 'http://look4k.com:8080/images/iiXW7L30x4U89VEyTRmxkIM0lrN_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:56.315] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:56.316] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:56.353] [console.error] Access to image at 'http://look4k.com:8080/images/tCZZFxQdneZ2z9ajfrKKp92Pvei_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:56.353] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:56.915] [console.error] Access to image at 'http://look4k.com:8080/images/6zURFypawtxSLTZ5zOyUJxqQ4z4_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:56.915] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:56.915] [console.error] Failed to load resource: net::ERR_CONNECTION_RESET
-[17:58:56.919] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:56.921] Screenshot: 018-15-settings-item-y440-1920x1080.png
-[17:58:57.182] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:57.370] [console.error] Access to image at 'http://look4k.com:8080/images/hnqGHps3mm2f216aNLtdmsGxUUU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:58:57.370] [console.error] Failed to load resource: net::ERR_FAILED
-[17:58:57.371] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:57.597] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:57.784] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:58.019] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:58.224] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:58.407] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:58.637] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:58.975] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:59.003] Screenshot: 019-15-settings-item-y520-1920x1080.png
-[17:58:59.127] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:59.328] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:59.530] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:59.772] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:58:59.979] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:00.159] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:00.344] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:00.537] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:00.722] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:01.294] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:01.322] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:01.325] Screenshot: 020-15-settings-item-y600-1920x1080.png
-[17:59:01.588] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:01.755] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:01.954] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:02.117] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:02.287] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:02.509] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:02.701] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:02.911] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:03.102] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:03.641] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:03.643] Screenshot: 021-15-settings-item-y680-1920x1080.png
-[17:59:03.902] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:04.099] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:04.225] === NAV: HOME (return) ===
-[17:59:04.329] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:04.524] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:04.682] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:04.841] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:04.995] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:05.150] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:05.302] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:05.456] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:05.597] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:05.749] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:05.900] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:06.053] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:06.182] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:06.342] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:06.853] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:06.858] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:06.859] Screenshot: 022-20-home-return-1920x1080.png
-[17:59:06.859] === KEYBOARD NAV ===
-[17:59:07.089] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:07.306] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:07.547] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:07.672] [console.error] Failed to load resource: net::ERR_NAME_NOT_RESOLVED
-[17:59:07.695] [console.log] ImageFetch: found 0 logos for 50 channels
-[17:59:11.642] [console.log] WsBackend _onMessage: [Large Payload of length 24863837]
-[17:59:11.642] [console.log] WsBackend _onMessage completed command: parseEpg (id: req-70) with payload length: 24863837
-[17:59:11.871] [console.log] PlaylistSync: parsed 91950 EPG entries from http://look4k.com/xmltv.php?username=4917676477361&password=3278818818
-[17:59:14.290] [console.log] WsBackend _onMessage: {"data":{"vod_1001014":"https://image.tmdb.org/t/p/w500/nvK6gYa4diCnQkDVN42uoYXPrdT.jpg","vod_582538":"https://image.tmdb.org/t/p/w500/q3xxECv3n5lP7TlBQZtLhwtyspd.jpg","vod_582553":"https://image.tmdb.org/t/p/w500/w67lQSdz4ULkaMiyIgKmQQBcO00.jpg","vod_994828":"https://image.tmdb.org/t/p/w500/p8qKskzxLhAgqbcDgxaaCDUcXhw.jpg","vod_999354":"https://image.tmdb.org/t/p/w500/f9NOLejYqlbiAUFs6gvEads79OK.jpg"},"id":"req-71"}
-[17:59:14.290] [console.log] WsBackend _onMessage completed command: getAllCachedImageUrls (id: req-71) with payload length: 420
-[17:59:14.292] Screenshot: 023-21-tab-nav-1920x1080.png
-[17:59:15.470] [console.error] Failed to load resource: net::ERR_CONNECTION_RESET
-[17:59:15.740] Screenshot: 024-22-arrow-nav-1920x1080.png
-[17:59:15.944] [console.error] Access to image at 'http://look4k.com:8080/images/wjWX2IAZphVJydldUZBTwzDIFHb_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:15.944] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:15.944] [console.error] Access to image at 'http://look4k.com:8080/images/8FHOtUpNIk5ZPEay2N2EY5lrxkv_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:15.944] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:15.944] [console.error] Access to image at 'http://look4k.com:8080/images/uwB0yTkLEM8gENuXxHtkYaG3HEx_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:15.944] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:15.944] [console.error] Access to image at 'http://look4k.com:8080/images/gKnhEsjNefpKnUdAkn7INzIFLSu_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:15.944] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.271] [console.error] Access to image at 'http://look4k.com:8080/images/hnqGHps3mm2f216aNLtdmsGxUUU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.271] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.271] [console.error] Access to image at 'http://look4k.com:8080/images/jfCW2V8bOlBxhrOA59gxXjp30qT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.271] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.350] [console.error] Access to image at 'http://var8k.com:8080/images/41s42CRXafa3OuRGvCtfYPEBmse_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.350] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.351] [console.error] Access to image at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.351] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.351] [console.error] Access to image at 'http://look4k.com:8080/images/tweRvn1nnpq24eOIiGJBPFZB8RU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.351] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.377] [console.error] Access to image at 'http://look4k.com:8080/images/9iFMG4zyAkLnvfEwNqIiiEEQ342_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.377] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.377] [console.error] Access to image at 'http://look4k.com:8080/images/dKYp9uUlDufvL0gWHve8nuzePdk_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.377] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.377] [console.error] Access to image at 'http://look4k.com:8080/images/15eRWcN3yyW9AZIDcAReenpCwXo_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.377] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.378] [console.error] Access to image at 'http://look4k.com:8080/images/xzZaU0MN6L9oc1pl0RUXSB7hWwD_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.378] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.378] [console.error] Access to image at 'http://look4k.com:8080/images/tCZZFxQdneZ2z9ajfrKKp92Pvei_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.378] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.431] [console.error] Access to image at 'http://look4k.com:8080/images/msaHYavXvc3EfoT6QusSHFSUYyI_small.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.431] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.456] [console.error] Access to image at 'http://look4k.com:8080/images/iiXW7L30x4U89VEyTRmxkIM0lrN_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.457] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.457] [console.error] Access to image at 'http://look4k.com:8080/images/ctU9S47MoJDN9CB7SCaitcfyyIu_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.457] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:16.510] [console.error] Access to image at 'http://look4k.com:8080/images/pFuYqNiNOSACxg6d8yTmnIeu6hS_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:16.510] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:17.531] [console.error] Access to image at 'http://look4k.com:8080/images/wjWX2IAZphVJydldUZBTwzDIFHb_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:17.531] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:17.928] Screenshot: 025-23-enter-press-1920x1080.png
-[17:59:18.710] [console.log] WsBackend _onMessage: [Large Payload of length 24880712]
-[17:59:18.710] [console.log] WsBackend _onMessage completed command: matchEpgToChannels (id: req-72) with payload length: 24880712
-[17:59:18.710] [console.log] PlaylistSync: EPG match stats — direct_id: 0, name_as_id: 0, norm_name: 0, tvg_id_exact: 91950, tvg_id_lower: 0, unmatched: 0, xmltv_name: 0 → 0 channels
-[17:59:18.710] [console.log] PlaylistSync: fetching short EPG for 200 channels via Xtream API
-[17:59:18.710] [console.error] Failed to load resource: net::ERR_CONNECTION_REFUSED
-[17:59:19.122] Screenshot: 026-24-after-escape-1920x1080.png
-[17:59:19.122] === CONTEXT MENU ===
-[17:59:22.809] Screenshot: 027-25-right-click-tv-1920x1080.png
-[17:59:23.964] [console.log] ImageFetch: found 0 posters for 50 VOD items
-[17:59:25.494] Screenshot: 028-26-long-press-tv-1920x1080.png
-[17:59:25.494] === RESPONSIVE ===
-[17:59:25.645] [console.error] Access to image at 'http://look4k.com:8080/images/msaHYavXvc3EfoT6QusSHFSUYyI_small.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.645] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.647] [console.error] Access to image at 'http://var8k.com:8080/images/41s42CRXafa3OuRGvCtfYPEBmse_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.647] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.656] [console.error] Access to image at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.656] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.658] [console.error] Access to image at 'http://look4k.com:8080/images/dKYp9uUlDufvL0gWHve8nuzePdk_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.658] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.660] [console.error] Access to image at 'http://look4k.com:8080/images/tweRvn1nnpq24eOIiGJBPFZB8RU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.661] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.718] [console.error] Access to image at 'http://look4k.com:8080/images/xzZaU0MN6L9oc1pl0RUXSB7hWwD_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.718] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.728] [console.error] Access to image at 'http://look4k.com:8080/images/jfCW2V8bOlBxhrOA59gxXjp30qT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.728] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.741] [console.error] Access to image at 'http://look4k.com:8080/images/wjWX2IAZphVJydldUZBTwzDIFHb_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.741] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.789] [console.error] Access to image at 'http://look4k.com:8080/images/pFuYqNiNOSACxg6d8yTmnIeu6hS_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.789] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.797] [console.error] Access to image at 'http://look4k.com:8080/images/ctU9S47MoJDN9CB7SCaitcfyyIu_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.797] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.812] [console.error] Access to image at 'http://look4k.com:8080/images/iiXW7L30x4U89VEyTRmxkIM0lrN_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.813] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.860] [console.error] Access to image at 'http://look4k.com:8080/images/tCZZFxQdneZ2z9ajfrKKp92Pvei_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.861] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.864] [console.error] Access to image at 'http://look4k.com:8080/images/hnqGHps3mm2f216aNLtdmsGxUUU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.864] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.893] [console.error] Access to image at 'http://look4k.com:8080/images/9iFMG4zyAkLnvfEwNqIiiEEQ342_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.893] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.933] [console.error] Access to image at 'http://look4k.com:8080/images/15eRWcN3yyW9AZIDcAReenpCwXo_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.933] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.938] [console.error] Access to image at 'http://look4k.com:8080/images/tPExtAM958Gx07itJ7nWqSddBQ9_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.938] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:25.964] [console.error] Access to image at 'http://look4k.com:8080/images/ffnBY54B4Etmu0UCpMXiJNNTlRV_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:25.964] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:26.007] [console.error] Access to image at 'http://look4k.com:8080/images/ynT06XivgBDkg7AtbDbX1dJeBGY_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:26.007] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:26.014] [console.error] Access to image at 'http://look4k.com:8080/images/AmXGX7y4GaDqBoOouPpMDWjKgLP_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:26.014] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:27.546] Screenshot: 029-30-mobile-viewport-360x800.png
-[17:59:27.681] [console.error] Access to image at 'http://look4k.com:8080/images/msaHYavXvc3EfoT6QusSHFSUYyI_small.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:27.681] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:27.682] [console.error] Access to image at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:27.683] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:27.691] [console.error] Access to image at 'http://look4k.com:8080/images/tweRvn1nnpq24eOIiGJBPFZB8RU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:27.691] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:27.691] [console.error] Access to image at 'http://var8k.com:8080/images/41s42CRXafa3OuRGvCtfYPEBmse_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:27.691] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:27.691] [console.error] Access to image at 'http://look4k.com:8080/images/dKYp9uUlDufvL0gWHve8nuzePdk_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:27.691] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:27.758] [console.error] Access to image at 'http://look4k.com:8080/images/xzZaU0MN6L9oc1pl0RUXSB7hWwD_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:27.758] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:27.758] [console.error] Access to image at 'http://look4k.com:8080/images/jfCW2V8bOlBxhrOA59gxXjp30qT_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:27.758] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:27.763] [console.error] Failed to load resource: net::ERR_CONNECTION_REFUSED
-[17:59:27.826] [console.error] Access to image at 'http://look4k.com:8080/images/pFuYqNiNOSACxg6d8yTmnIeu6hS_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:27.826] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:27.830] [console.error] Access to image at 'http://look4k.com:8080/images/ctU9S47MoJDN9CB7SCaitcfyyIu_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:27.830] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:27.925] [console.error] Access to image at 'http://look4k.com:8080/images/iiXW7L30x4U89VEyTRmxkIM0lrN_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:27.926] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:27.926] [console.error] Access to image at 'http://look4k.com:8080/images/tCZZFxQdneZ2z9ajfrKKp92Pvei_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:27.926] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:27.992] [console.error] Access to image at 'http://look4k.com:8080/images/hnqGHps3mm2f216aNLtdmsGxUUU_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:27.992] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:27.995] [console.error] Access to image at 'http://look4k.com:8080/images/tPExtAM958Gx07itJ7nWqSddBQ9_big.jpg' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-[17:59:27.995] [console.error] Failed to load resource: net::ERR_FAILED
-[17:59:29.631] Screenshot: 030-31-tablet-viewport-840x600.png
-[17:59:31.968] Screenshot: 031-32-tv-viewport-1920x1080.png
-[17:59:34.139] Screenshot: 032-33-back-to-desktop-1280x900.png
-[17:59:34.139] === FINAL ===
-[17:59:34.139] Total errors: 397
-[17:59:34.139] Total warnings: 4
+[09:56:03.251] === LOAD ===
+[09:56:03.397] [console.debug] Injecting <script> tag. Using callback.
+[09:56:03.411] [console.info] DDC is about to load 1/2 scripts with pool size = 1000
+[09:56:03.867] [console.info] DDC is about to load 1693/1693 scripts with pool size = 1000
+[09:56:08.425] [console.log] Starting application from main method in: org-dartlang-app:/web_entrypoint.dart.
+[09:56:08.590] [console.debug] TrustedTypes available. Creating policy: gis-dart
+[09:56:08.842] [console.debug] dart.developer.log {message: Full paths for routes:
+├─ (ShellRoute)
+│ ├─/home 
+…n)
+├─/onboarding 
+└─/multiview (MultiViewScreen)
+, name: GoRouter, level: 800, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 0}
+[09:56:08.848] [console.debug] dart.developer.log {message: setting initial location /profiles, name: GoRouter, level: 800, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 1}
+[09:56:09.110] [console.log] WsBackend _onMessage: {"data":[{"avatar_index":0,"dvr_permission":2,"dvr_quota_mb":null,"id":"default","is_child":false,"max_allowed_rating":4,"name":"Default","pin":null,"pin_version":1,"role":0}],"id":"req-1"}
+[09:56:09.110] [console.log] WsBackend _onMessage completed command: loadProfiles (id: req-1) with payload length: 189
+[09:56:09.308] [console.log] WsBackend _onMessage: {"data":null,"id":"req-2"}
+[09:56:09.308] [console.log] WsBackend _onMessage completed command: getSetting (id: req-2) with payload length: 26
+[09:56:09.333] [console.log] PlaylistSync: loading from cache…
+[09:56:09.335] [console.log] WsBackend _onMessage: {"data":"[{\"id\":\"look4k_xtream\",\"name\":\"look4k\",\"url\":\"http://look4k.com\",\"type\":\"xtream\",\"username\":\"4917676477361\",\"password\":\"3278818818\",\"epgUrl\":\"\",\"refreshIntervalMinutes\":60}]","id":"req-3"}
+[09:56:09.335] [console.log] WsBackend _onMessage completed command: getSetting (id: req-3) with payload length: 227
+[09:56:09.640] [console.log] WsBackend _onMessage: [Large Payload of length 6183287]
+[09:56:09.640] [console.log] WsBackend _onMessage completed command: loadChannels (id: req-4) with payload length: 6183287
+[09:56:09.677] [console.log] CacheService: loaded 12913 channels in 342ms
+[09:56:10.356] [console.log] WsBackend _onMessage: [Large Payload of length 12585336]
+[09:56:10.356] [console.log] WsBackend _onMessage completed command: loadVodItems (id: req-5) with payload length: 12585336
+[09:56:10.368] [console.log] CacheService: loaded 21770 VOD items in 1033ms
+[09:56:10.368] [console.log] PlaylistSync: cache read complete in 1037ms — 12913 channels (343ms), 21770 VODs (1033ms)
+[09:56:11.109] [console.log] WsBackend _onMessage: {"data":null,"id":"req-6"}
+[09:56:11.109] [console.log] WsBackend _onMessage completed command: getSetting (id: req-6) with payload length: 26
+[09:56:11.480] [console.log] WsBackend _onMessage: [Large Payload of length 6575809]
+[09:56:11.480] [console.log] WsBackend _onMessage completed command: filterChannelsBySource (id: req-7) with payload length: 6575809
+[09:56:11.556] [console.log] PlaylistSync: cache → UI complete in 2223ms
+[09:56:11.556] [console.log] WsBackend _onMessage: {"data":null,"id":"req-8"}
+[09:56:11.556] [console.log] WsBackend _onMessage completed command: getSetting (id: req-8) with payload length: 26
+[09:56:11.565] [console.log] WsBackend _onMessage: {"data":[],"id":"req-9"}
+[09:56:11.565] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-9) with payload length: 24
+[09:56:12.175] [console.log] WsBackend _onMessage: [Large Payload of length 8271966]
+[09:56:12.175] [console.log] WsBackend _onMessage completed command: getEpgsForChannels (id: req-10) with payload length: 8271966
+[09:56:12.467] [console.log] CacheService: loaded 32669 EPG entries for 1197 viewed channels in 917ms
+[09:56:13.319] [console.log] WsBackend _onMessage: {"data":null,"id":"req-11"}
+[09:56:13.320] [console.log] WsBackend _onMessage completed command: getSetting (id: req-11) with payload length: 27
+[09:56:13.334] [console.log] WsBackend _onMessage: {"data":null,"id":"req-12"}
+[09:56:13.334] [console.log] WsBackend _onMessage completed command: getSetting (id: req-12) with payload length: 27
+[09:56:13.346] [console.log] WsBackend _onMessage: {"data":null,"id":"req-13"}
+[09:56:13.346] [console.log] WsBackend _onMessage completed command: getSetting (id: req-13) with payload length: 27
+[09:56:13.359] [console.log] WsBackend _onMessage: {"data":null,"id":"req-14"}
+[09:56:13.359] [console.log] WsBackend _onMessage completed command: getSetting (id: req-14) with payload length: 27
+[09:56:13.371] [console.log] WsBackend _onMessage: {"data":null,"id":"req-15"}
+[09:56:13.372] [console.log] WsBackend _onMessage completed command: getSetting (id: req-15) with payload length: 27
+[09:56:13.383] [console.log] WsBackend _onMessage: {"data":null,"id":"req-16"}
+[09:56:13.383] [console.log] WsBackend _onMessage completed command: getSetting (id: req-16) with payload length: 27
+[09:56:13.384] [console.log] WsBackend _onMessage: {"data":null,"id":"req-17"}
+[09:56:13.384] [console.log] WsBackend _onMessage completed command: getSetting (id: req-17) with payload length: 27
+[09:56:13.386] [console.log] WsBackend _onMessage: {"data":null,"id":"req-18"}
+[09:56:13.386] [console.log] WsBackend _onMessage completed command: getSetting (id: req-18) with payload length: 27
+[09:56:13.386] [console.log] WsBackend _onMessage: {"data":null,"id":"req-19"}
+[09:56:13.386] [console.log] WsBackend _onMessage completed command: getSetting (id: req-19) with payload length: 27
+[09:56:13.398] [console.log] WsBackend _onMessage: {"data":null,"id":"req-20"}
+[09:56:13.398] [console.log] WsBackend _onMessage completed command: getSetting (id: req-20) with payload length: 27
+[09:56:13.400] [console.log] WsBackend _onMessage: {"data":null,"id":"req-21"}
+[09:56:13.400] [console.log] WsBackend _onMessage completed command: getSetting (id: req-21) with payload length: 27
+[09:56:13.400] [console.log] WsBackend _onMessage: {"data":null,"id":"req-22"}
+[09:56:13.400] [console.log] WsBackend _onMessage completed command: getSetting (id: req-22) with payload length: 27
+[09:56:13.401] [console.log] WsBackend _onMessage: {"data":null,"id":"req-23"}
+[09:56:13.401] [console.log] WsBackend _onMessage completed command: getSetting (id: req-23) with payload length: 27
+[09:56:13.402] [console.log] WsBackend _onMessage: {"data":null,"id":"req-24"}
+[09:56:13.402] [console.log] WsBackend _onMessage completed command: getSetting (id: req-24) with payload length: 27
+[09:56:13.402] [console.log] WsBackend _onMessage: {"data":null,"id":"req-25"}
+[09:56:13.402] [console.log] WsBackend _onMessage completed command: getSetting (id: req-25) with payload length: 27
+[09:56:13.403] [console.log] WsBackend _onMessage: {"data":null,"id":"req-26"}
+[09:56:13.403] [console.log] WsBackend _onMessage completed command: getSetting (id: req-26) with payload length: 27
+[09:56:13.404] [console.log] WsBackend _onMessage: {"data":null,"id":"req-27"}
+[09:56:13.404] [console.log] WsBackend _onMessage completed command: getSetting (id: req-27) with payload length: 27
+[09:56:13.416] [console.log] WsBackend _onMessage: {"data":null,"id":"req-28"}
+[09:56:13.416] [console.log] WsBackend _onMessage completed command: getSetting (id: req-28) with payload length: 27
+[09:56:13.417] [console.log] WsBackend _onMessage: {"data":null,"id":"req-29"}
+[09:56:13.417] [console.log] WsBackend _onMessage completed command: getSetting (id: req-29) with payload length: 27
+[09:56:13.538] [console.debug] dart.developer.log {message: redirecting to RouteMatchList#f9699(uri: /home, ma…Key: [LabeledGlobalKey<NavigatorState>#9c0c6]))]), name: GoRouter, level: 800, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 2}
+[09:56:13.544] [console.debug] dart.developer.log {message: Using MaterialApp configuration, name: GoRouter, level: 800, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 3}
+[09:56:14.217] [console.log] WsBackend _onMessage: {"data":1772702959,"id":"req-30"}
+[09:56:14.217] [console.log] WsBackend _onMessage completed command: getLastSyncTime (id: req-30) with payload length: 33
+[09:56:14.218] [console.log] PlaylistSync: all sources synced within 24h — next sync in 1413m
+[09:56:14.257] [console.log] WsBackend _onMessage: {"data":[],"id":"req-31"}
+[09:56:14.257] [console.log] WsBackend _onMessage completed command: loadRecordings (id: req-31) with payload length: 25
+[09:56:14.259] [console.log] WsBackend _onMessage: {"data":[],"id":"req-32"}
+[09:56:14.259] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-32) with payload length: 25
+[09:56:14.260] [console.log] WsBackend _onMessage: {"data":[],"id":"req-33"}
+[09:56:14.260] [console.log] WsBackend _onMessage completed command: loadReminders (id: req-33) with payload length: 25
+[09:56:14.261] [console.log] WsBackend _onMessage: {"data":[],"id":"req-34"}
+[09:56:14.261] [console.log] WsBackend _onMessage completed command: getWatchlistItems (id: req-34) with payload length: 25
+[09:56:14.261] [console.log] WsBackend _onMessage: {"data":[],"id":"req-35"}
+[09:56:14.261] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-35) with payload length: 25
+[09:56:14.263] [console.log] WsBackend _onMessage: {"data":[],"id":"req-36"}
+[09:56:14.263] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-36) with payload length: 25
+[09:56:14.263] [console.log] WsBackend _onMessage: {"data":"f4d03705-4b7a-4652-a04e-30b97bdf781e","id":"req-37"}
+[09:56:14.263] [console.log] WsBackend _onMessage completed command: getSetting (id: req-37) with payload length: 61
+[09:56:14.976] [console.log] WsBackend _onMessage: [Large Payload of length 6183288]
+[09:56:14.976] [console.log] WsBackend _onMessage completed command: loadChannels (id: req-38) with payload length: 6183288
+[09:56:14.998] [console.log] CacheService: loaded 12913 channels in 1267ms
+[09:56:15.010] [console.log] WsBackend _onMessage: {"data":[],"id":"req-39"}
+[09:56:15.010] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-39) with payload length: 25
+[09:56:15.010] [console.log] WsBackend _onMessage: {"data":[],"id":"req-40"}
+[09:56:15.010] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-40) with payload length: 25
+[09:56:15.011] Screenshot: 001-01-app-loaded-840x600.png
+[09:56:15.011] === PROFILE SELECTION ===
+[09:56:15.012] [console.log] WsBackend _onMessage: {"data":[],"id":"req-41"}
+[09:56:15.012] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-41) with payload length: 25
+[09:56:15.593] [console.log] WsBackend _onMessage: [Large Payload of length 12585337]
+[09:56:15.593] [console.log] WsBackend _onMessage completed command: loadVodItems (id: req-42) with payload length: 12585337
+[09:56:15.609] [console.log] CacheService: loaded 21770 VOD items in 1479ms
+[09:56:15.670] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-43"}
+[09:56:15.670] [console.log] WsBackend _onMessage completed command: filterContinueWatching (id: req-43) with payload length: 27
+[09:56:15.670] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-44"}
+[09:56:15.670] [console.log] WsBackend _onMessage completed command: filterContinueWatching (id: req-44) with payload length: 27
+[09:56:15.671] [console.log] WsBackend _onMessage: {"data":[],"id":"req-45"}
+[09:56:15.671] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-45) with payload length: 25
+[09:56:16.120] [console.log] WsBackend _onMessage: {"data":[],"id":"req-46"}
+[09:56:16.120] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-46) with payload length: 25
+[09:56:16.120] [console.log] WsBackend _onMessage: {"data":[],"id":"req-47"}
+[09:56:16.120] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-47) with payload length: 25
+[09:56:16.121] Screenshot: 002-02-profile-screen-840x600.png
+[09:56:16.181] [console.debug] dart.developer.log {message: pushing /vods/details, name: GoRouter, level: 800, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 4}
+[09:56:16.185] [console.debug] dart.developer.log {message: An extra with complex data type IdentityMap<String…prevent extra being dropped during serialization., name: GoRouter, level: 900, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 5}
+[09:56:16.186] [console.debug] dart.developer.log {message: An extra with complex data type IdentityMap<String…prevent extra being dropped during serialization., name: GoRouter, level: 900, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 6}
+[09:56:16.186] Clicked Default profile at coords
+[09:56:16.510] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-48"}
+[09:56:16.510] [console.log] WsBackend _onMessage completed command: filterCrossDevice (id: req-48) with payload length: 27
+[09:56:16.510] [console.log] WsBackend _onMessage: {"data":[],"id":"req-49"}
+[09:56:16.510] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-49) with payload length: 25
+[09:56:16.511] [console.log] WsBackend _onMessage: {"data":[],"id":"req-50"}
+[09:56:16.511] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-50) with payload length: 25
+[09:56:16.512] [console.log] WsBackend _onMessage: {"data":[],"id":"req-51"}
+[09:56:16.513] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-51) with payload length: 25
+[09:56:16.513] [console.log] WsBackend _onMessage: {"data":[],"id":"req-52"}
+[09:56:16.514] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-52) with payload length: 25
+[09:56:16.514] [console.log] WsBackend _onMessage: {"data":[],"id":"req-53"}
+[09:56:16.514] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-53) with payload length: 25
+[09:56:16.514] [console.log] WsBackend _onMessage: {"data":[],"id":"req-54"}
+[09:56:16.514] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-54) with payload length: 25
+[09:56:16.514] [console.log] WsBackend _onMessage: {"data":[],"id":"req-55"}
+[09:56:16.514] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-55) with payload length: 25
+[09:56:16.514] [console.log] WsBackend _onMessage: {"data":[],"id":"req-56"}
+[09:56:16.514] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-56) with payload length: 25
+[09:56:16.515] [console.log] WsBackend _onMessage: {"data":[],"id":"req-57"}
+[09:56:16.515] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-57) with payload length: 25
+[09:56:16.515] [console.log] WsBackend _onMessage: {"data":[],"id":"req-58"}
+[09:56:16.515] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-58) with payload length: 25
+[09:56:16.516] [console.log] WsBackend _onMessage: {"data":[],"id":"req-59"}
+[09:56:16.517] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-59) with payload length: 25
+[09:56:16.517] [console.log] WsBackend _onMessage: {"data":[],"id":"req-60"}
+[09:56:16.517] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-60) with payload length: 25
+[09:56:16.517] [console.log] WsBackend _onMessage: {"data":[],"id":"req-61"}
+[09:56:16.517] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-61) with payload length: 25
+[09:56:16.517] [console.log] WsBackend _onMessage: {"data":[],"id":"req-62"}
+[09:56:16.517] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-62) with payload length: 25
+[09:56:16.518] [console.log] WsBackend _onMessage: {"data":[],"id":"req-63"}
+[09:56:16.518] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-63) with payload length: 25
+[09:56:16.518] [console.error] Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[09:56:16.519] [console.error] Failed to load resource: net::ERR_FAILED
+[09:56:16.676] [console.log] WsBackend _onMessage: {"data":[],"id":"req-64"}
+[09:56:16.676] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-64) with payload length: 25
+[09:56:16.676] [console.log] WsBackend _onMessage: {"data":[],"id":"req-65"}
+[09:56:16.676] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-65) with payload length: 25
+[09:56:16.677] [console.log] WsBackend _onMessage: {"data":[],"id":"req-66"}
+[09:56:16.678] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-66) with payload length: 25
+[09:56:16.678] [console.log] WsBackend _onMessage: {"data":null,"id":"req-67"}
+[09:56:16.678] [console.log] WsBackend _onMessage completed command: getSetting (id: req-67) with payload length: 27
+[09:56:16.678] [console.log] WsBackend _onMessage: {"data":[],"id":"req-68"}
+[09:56:16.679] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-68) with payload length: 25
+[09:56:16.682] [console.log] WsBackend _onMessage: {"data":[],"id":"req-69"}
+[09:56:16.682] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-69) with payload length: 25
+[09:56:17.782] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-70"}
+[09:56:17.782] [console.log] WsBackend _onMessage completed command: computeRecommendations (id: req-70) with payload length: 27
+[09:56:17.786] [console.log] WsBackend _onMessage: {"data":[],"id":"req-71"}
+[09:56:17.786] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-71) with payload length: 25
+[09:56:21.248] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[09:56:21.248] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[09:56:21.248] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[09:56:21.248] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[09:56:21.460] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-72"}
+[09:56:21.461] [console.log] WsBackend _onMessage completed command: computeRecommendations (id: req-72) with payload length: 27
+[09:56:21.461] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-73"}
+[09:56:21.461] [console.log] WsBackend _onMessage completed command: deserializeRecommendationSections (id: req-73) with payload length: 27
+[09:56:21.462] Screenshot: 003-03-after-profile-click-840x600.png
+[09:56:21.597] [console.log] WsBackend _onMessage: [Large Payload of length 6042]
+[09:56:21.597] [console.log] WsBackend _onMessage completed command: computeRecommendations (id: req-74) with payload length: 6042
+[09:56:21.597] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-75"}
+[09:56:21.598] [console.log] WsBackend _onMessage completed command: deserializeRecommendationSections (id: req-75) with payload length: 27
+[09:56:21.598] [console.log] WsBackend _onMessage: [Large Payload of length 6399]
+[09:56:21.598] [console.log] WsBackend _onMessage completed command: deserializeRecommendationSections (id: req-76) with payload length: 6399
+[09:56:27.053] Screenshot: 004-04-post-profile-state-840x600.png
+[09:56:27.053] === HOME SCREEN ===
+[09:56:27.198] Screenshot: 005-05-home-screen-840x600.png
+[09:56:27.198] === NAV: TV ===
+[09:56:29.355] Screenshot: 006-06-tv-screen-840x600.png
+[09:56:30.507] Screenshot: 007-07-tv-scrolled-840x600.png
+[09:56:30.507] === NAV: GUIDE ===
+[09:56:33.139] [console.log] WsBackend _onMessage: {"data":[],"id":"req-77"}
+[09:56:33.140] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-77) with payload length: 25
+[09:56:33.701] [console.log] WsBackend _onMessage: {"data":[],"id":"req-78"}
+[09:56:33.701] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-78) with payload length: 25
+[09:56:33.701] [console.log] WsBackend _onMessage: {"data":[],"id":"req-79"}
+[09:56:33.702] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-79) with payload length: 25
+[09:56:33.702] [console.log] WsBackend _onMessage: {"data":[],"id":"req-80"}
+[09:56:33.702] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-80) with payload length: 25
+[09:56:33.702] [console.log] WsBackend _onMessage: {"data":[],"id":"req-81"}
+[09:56:33.702] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-81) with payload length: 25
+[09:56:33.703] [console.log] WsBackend _onMessage: {"data":[],"id":"req-82"}
+[09:56:33.703] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-82) with payload length: 25
+[09:56:33.703] [console.log] WsBackend _onMessage: {"data":[],"id":"req-83"}
+[09:56:33.703] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-83) with payload length: 25
+[09:56:33.704] [console.log] WsBackend _onMessage: {"data":[],"id":"req-84"}
+[09:56:33.704] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-84) with payload length: 25
+[09:56:33.704] [console.log] WsBackend _onMessage: {"data":[],"id":"req-85"}
+[09:56:33.704] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-85) with payload length: 25
+[09:56:33.704] [console.log] WsBackend _onMessage: {"data":[],"id":"req-86"}
+[09:56:33.704] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-86) with payload length: 25
+[09:56:33.730] [console.log] WsBackend _onMessage: {"pong":true}
+[09:56:33.839] Screenshot: 008-08-epg-screen-840x600.png
+[09:56:35.928] [PAGE_ERROR] Unexpected null value.
+[09:56:35.935] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[09:56:36.606] Screenshot: 009-09-epg-filter-toggle-840x600.png
+[09:56:36.606] === NAV: VODS ===
+[09:56:39.845] Screenshot: 010-10-vods-screen-840x600.png
+[09:56:42.606] Screenshot: 011-11-vods-movies-840x600.png
+[09:56:45.257] Screenshot: 012-12-vods-series-840x600.png
+[09:56:45.257] === NAV: SETTINGS ===
+[09:56:48.209] Screenshot: 013-13-settings-screen-840x600.png
+[09:56:49.362] Screenshot: 014-14-settings-scrolled-840x600.png
+[09:56:51.374] Screenshot: 015-15-settings-item-y200-840x600.png
+[09:56:51.380] [console.debug] dart.developer.log {message: popping /home, name: GoRouter, level: 800, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 7}
+[09:56:51.387] [console.debug] dart.developer.log {message: restoring /home, name: GoRouter, level: 800, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 8}
+[09:56:52.111] [console.debug] dart.developer.log {message: pushing /vods/details, name: GoRouter, level: 800, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 9}
+[09:56:52.116] [console.debug] dart.developer.log {message: An extra with complex data type IdentityMap<String…prevent extra being dropped during serialization., name: GoRouter, level: 900, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 10}
+[09:56:52.116] [console.debug] dart.developer.log {message: An extra with complex data type IdentityMap<String…prevent extra being dropped during serialization., name: GoRouter, level: 900, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 11}
+[09:56:52.298] [console.log] WsBackend _onMessage: {"data":[],"id":"req-87"}
+[09:56:52.298] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-87) with payload length: 25
+[09:56:53.278] Screenshot: 016-15-settings-item-y280-840x600.png
+[09:56:54.969] Screenshot: 017-15-settings-item-y360-840x600.png
+[09:56:56.697] Screenshot: 018-15-settings-item-y440-840x600.png
+[09:56:57.354] [console.log] WsBackend _onMessage: {"data":[],"id":"req-88"}
+[09:56:57.355] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-88) with payload length: 25
+[09:56:57.360] [console.log] PlayerService: play [VOD] http://look4k.com/movie/4917676477361/3278818818/1004868.mkv
+[09:56:58.365] Screenshot: 019-15-settings-item-y520-840x600.png
+[09:56:58.733] [console.log] WsBackend _onMessage: {"pong":true}
+[09:57:00.102] Screenshot: 020-15-settings-item-y600-840x600.png
+[09:57:01.762] Screenshot: 021-15-settings-item-y680-840x600.png
+[09:57:02.270] === NAV: HOME (return) ===
+[09:57:02.275] [PAGE_ERROR] Unexpected null value.
+[09:57:04.422] Screenshot: 022-20-home-return-840x600.png
+[09:57:04.422] === KEYBOARD NAV ===
+[09:57:04.861] [PAGE_ERROR] Unexpected null value.
+[09:57:05.518] [PAGE_ERROR] Unexpected null value.
+[09:57:06.159] [PAGE_ERROR] Unexpected null value.
+[09:57:06.799] [PAGE_ERROR] Unexpected null value.
+[09:57:07.446] [PAGE_ERROR] Unexpected null value.
+[09:57:07.805] Screenshot: 023-21-tab-nav-840x600.png
+[09:57:09.030] Screenshot: 024-22-arrow-nav-840x600.png
+[09:57:11.183] Screenshot: 025-23-enter-press-840x600.png
+[09:57:12.324] Screenshot: 026-24-after-escape-840x600.png
+[09:57:12.324] === CONTEXT MENU ===
+[09:57:15.993] Screenshot: 027-25-right-click-tv-840x600.png
+[09:57:18.657] Screenshot: 028-26-long-press-tv-840x600.png
+[09:57:18.657] === RESPONSIVE ===
+[09:57:18.823] [console.log] PlayerService: hwdec mode set to auto
+[09:57:18.827] [console.log] PlayerService: audio output set to auto
+[09:57:18.828] [console.log] PlayerService: audio passthrough disabled, codecs: ac3, dts
+[09:57:18.832] [console.log] PlayerUpscale: config updated — mode=off, quality=balanced, gpu=Unknown
+[09:57:19.299] [console.log] ══╡ EXCEPTION CAUGHT BY RENDERING LIBRARY ╞═════════════════════════════════════════════════════════
+[09:57:19.300] [console.log] The following assertion was thrown during layout:
+[09:57:19.300] [console.log] A RenderFlex overflowed by 13 pixels on the right.
+[09:57:19.300] [console.log] 
+[09:57:19.300] [console.log] The relevant error-causing widget was:
+[09:57:19.300] [console.log]   Row Row:file:///F:/work/crispy-tivi/lib/features/vod/presentation/widgets/vod_detail_body.dart:166:9
+[09:57:19.301] [console.log] 
+[09:57:19.301] [console.log] The overflowing RenderFlex has an orientation of Axis.horizontal.
+[09:57:19.301] [console.log] The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and
+[09:57:19.301] [console.log] black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+[09:57:19.301] [console.log] Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the
+[09:57:19.301] [console.log] RenderFlex to fit within the available space instead of being sized to their natural size.
+[09:57:19.302] [console.log] This is considered an error condition because it indicates that there is content that cannot be
+[09:57:19.302] [console.log] seen. If the content is legitimately bigger than the available space, consider clipping it with a
+[09:57:19.302] [console.log] ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex,
+[09:57:19.302] [console.log] like a ListView.
+[09:57:19.302] [console.log] The specific RenderFlex in question is: RenderFlex#ec649 relayoutBoundary=up5 OVERFLOWING:
+[09:57:19.303] [console.log]   creator: Row ← Column ← Column ← Padding ← BodyContent ← SliverToBoxAdapter ← Viewport ←
+[09:57:19.303] [console.log]     IgnorePointer-[GlobalKey#36660] ← Semantics ← Listener ← _GestureSemantics ←
+[09:57:19.303] [console.log]     RawGestureDetector-[LabeledGlobalKey<RawGestureDetectorState>#b61bd] ← ⋯
+[09:57:19.303] [console.log]   parentData: offset=Offset(0.0, 56.0); flex=null; fit=null (can use size)
+[09:57:19.303] [console.log]   constraints: BoxConstraints(0.0<=w<=312.0, 0.0<=h<=Infinity)
+[09:57:19.303] [console.log]   size: Size(312.0, 68.0)
+[09:57:19.303] [console.log]   direction: horizontal
+[09:57:19.303] [console.log]   mainAxisAlignment: center
+[09:57:19.304] [console.log]   mainAxisSize: max
+[09:57:19.304] [console.log]   crossAxisAlignment: center
+[09:57:19.304] [console.log]   textDirection: ltr
+[09:57:19.304] [console.log]   verticalDirection: down
+[09:57:19.304] [console.log]   spacing: 0.0
+[09:57:19.304] [console.log] ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
+[09:57:19.304] [console.log] ════════════════════════════════════════════════════════════════════════════════════════════════════
+[09:57:19.326] [console.log] PlayerUpscale: web — off
+[09:57:19.376] [console.log] WsBackend _onMessage: {"data":"{\"vendor\":\"Nvidia\",\"name\":\"NVIDIA GeForce RTX 4080 SUPER\",\"vram_mb\":16045,\"supports_hw_vsr\":true,\"vsr_method\":\"D3d11Nvidia\"}","id":"req-89"}
+[09:57:19.376] [console.log] WsBackend _onMessage completed command: detectGpu (id: req-89) with payload length: 165
+[09:57:19.401] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 1
+[09:57:19.402] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:19.402] [console.log] PlayerService: attached web video #web-hls-video-1
+[09:57:19.402] [console.log] PlayerService: play [LIVE] http://look4k.com/movie/4917676477361/3278818818/1004868.mkv
+[09:57:19.402] [console.log] PlayerService: web bridge active, skipping media_kit open
+[09:57:19.654] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:19.913] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 2
+[09:57:19.913] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:20.158] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:20.418] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:20.418] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 3
+[09:57:20.662] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:20.730] Screenshot: 029-30-mobile-viewport-360x800.png
+[09:57:21.250] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:21.251] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 4
+[09:57:21.413] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:21.659] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:21.766] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 5
+[09:57:21.903] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:22.163] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:22.270] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 6
+[09:57:22.407] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:22.654] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:22.917] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 7
+[09:57:22.917] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:22.919] Screenshot: 030-31-tablet-viewport-840x600.png
+[09:57:23.617] [console.error] Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[09:57:23.618] [console.error] Failed to load resource: net::ERR_FAILED
+[09:57:23.750] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:23.750] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 8
+[09:57:23.752] [console.log] WsBackend _onMessage: {"pong":true}
+[09:57:23.910] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:24.156] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:24.264] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 9
+[09:57:24.402] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:24.664] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:24.771] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 10
+[09:57:24.908] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:25.919] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[09:57:25.919] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[09:57:25.919] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[09:57:25.919] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[09:57:27.113] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:27.113] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 11
+[09:57:27.115] [console.error] Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[09:57:27.116] [console.error] Failed to load resource: net::ERR_FAILED
+[09:57:27.320] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:27.795] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:27.795] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 12
+[09:57:27.795] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:27.797] Screenshot: 031-32-tv-viewport-1920x1080.png
+[09:57:28.024] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:28.126] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 13
+[09:57:28.155] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:28.417] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:28.632] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 14
+[09:57:28.662] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:28.908] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:29.137] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 15
+[09:57:29.153] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:29.257] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[09:57:29.298] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[09:57:29.298] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[09:57:29.298] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[09:57:29.403] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:29.645] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 16
+[09:57:29.660] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:31.960] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:31.961] [console.log] WebHlsVideo: #web-hls-video-1 not found, retry 17
+[09:57:31.961] [console.error] Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[09:57:31.961] [console.error] Failed to load resource: net::ERR_FAILED
+[09:57:32.161] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:32.404] [console.warning] WebVideoBridge: <video> #web-hls-video-1 not found in DOM
+[09:57:32.405] Screenshot: 032-33-back-to-desktop-1280x900.png
+[09:57:32.405] === FINAL ===
+[09:57:32.405] Total errors: 28
+[09:57:32.405] Total warnings: 35

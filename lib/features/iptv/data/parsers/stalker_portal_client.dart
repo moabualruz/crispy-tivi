@@ -237,4 +237,58 @@ class StalkerPortalClient with StalkerPortalParser, StalkerPortalApi {
       );
     }
   }
+
+  /// Verifies a Stalker Portal is reachable and
+  /// responds to the handshake protocol.
+  ///
+  /// Returns `null` on success, or an error message
+  /// string on failure. Does not require a
+  /// [CrispyBackend] instance.
+  static Future<String?> verifyPortal({
+    required Dio dio,
+    required String serverUrl,
+    required String macAddress,
+  }) async {
+    final base = serverUrl.replaceAll(RegExp(r'/+$'), '');
+    final paths = [
+      '/stalker_portal/server/load.php',
+      '/portal.php',
+      '/server/load.php',
+      '/c/',
+    ];
+    final cookies = 'mac=$macAddress; stb_lang=en; timezone=UTC';
+    final options = Options(
+      headers: {
+        'User-Agent': 'MAG250/1.0 (CrispyTivi)',
+        'Cookie': cookies,
+        'X-User-Agent': 'Model: MAG250; Link: WiFi',
+      },
+      receiveTimeout: const Duration(seconds: 15),
+    );
+
+    for (final path in paths) {
+      try {
+        final response = await dio.get<dynamic>(
+          '$base$path',
+          queryParameters: {
+            'type': 'stb',
+            'action': 'handshake',
+            'token': '',
+            'JsHttpRequest': '1-xml',
+          },
+          options: options,
+        );
+        if (response.data is Map<String, dynamic>) {
+          final js = (response.data as Map<String, dynamic>)['js'];
+          if (js is Map<String, dynamic> && js['token'] != null) {
+            return null; // Success
+          }
+        }
+      } on DioException {
+        continue;
+      }
+    }
+    return 'Could not connect to Stalker portal. '
+        'Check the URL and MAC address.';
+  }
 }

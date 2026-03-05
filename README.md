@@ -11,6 +11,29 @@ with full keyboard, gamepad, and remote control navigation.
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/moabualruz/crispy-tivi/main/docs/screenshots/desktop-home.png" alt="Home — Desktop" width="800" />
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/moabualruz/crispy-tivi/main/docs/screenshots/desktop-movies.png" alt="Movies — Desktop" width="395" />
+  <img src="https://raw.githubusercontent.com/moabualruz/crispy-tivi/main/docs/screenshots/desktop-guide.png" alt="EPG Guide — Desktop" width="395" />
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/moabualruz/crispy-tivi/main/docs/screenshots/tv-home.png" alt="Home — TV" width="800" />
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/moabualruz/crispy-tivi/main/docs/screenshots/mobile-home.png" alt="Home — Mobile" width="200" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="https://raw.githubusercontent.com/moabualruz/crispy-tivi/main/docs/screenshots/mobile-movies.png" alt="Movies — Mobile" width="200" />
+</p>
+
+---
+
 ## About This Project
 
 CrispyTivi is a **passion project** — built for the love of learning,

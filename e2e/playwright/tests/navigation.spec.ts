@@ -5,6 +5,7 @@ import {
   takeNamedScreenshot,
   selectDefaultProfile,
   NAV_TABS,
+  BOTTOM_NAV_TABS,
   BREAKPOINTS,
 } from '../helpers/selectors';
 
@@ -59,7 +60,16 @@ test.describe('Navigation', () => {
         pageErrors.push(err.message);
       });
 
-      for (const tabName of NAV_TABS) {
+      // Use the correct tab list for the current viewport.
+      // Compact/medium (< 840dp) shows only 5 bottom nav tabs.
+      // Expanded/large (>= 840dp) shows all 9 side nav tabs.
+      const viewport = page.viewportSize();
+      const tabs =
+        viewport != null && viewport.width < BREAKPOINTS.expanded
+          ? BOTTOM_NAV_TABS
+          : NAV_TABS;
+
+      for (const tabName of tabs) {
         try {
           await clickByText(page, tabName, { timeout: 5000 });
           await page.waitForTimeout(1000);

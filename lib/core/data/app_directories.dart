@@ -46,10 +46,14 @@ abstract final class AppDirectories {
   ///
   /// Call once during app startup, before database init.
   /// No-op on web (uses IndexedDB).
+  /// If [testRoot] was set beforehand, respects that path
+  /// instead of resolving the production home directory.
   static Future<void> ensureCreated() async {
     if (kIsWeb) return;
-    final home = await _resolveHomeDir();
-    _resolvedRoot = '$home/$_appFolder';
+    if (_resolvedRoot == null) {
+      final home = await _resolveHomeDir();
+      _resolvedRoot = '$home/$_appFolder';
+    }
     for (final dir in [data, recordings, backups, cache]) {
       await Directory(dir).create(recursive: true);
     }

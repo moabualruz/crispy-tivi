@@ -76,6 +76,17 @@ export const NAV_TABS = [
   'Settings',
 ] as const;
 
+/** Bottom bar tabs for compact/medium viewports (< 840dp).
+ * Source: `lib/core/navigation/nav_destinations.dart` — `bottomDestinations`.
+ */
+export const BOTTOM_NAV_TABS = [
+  'Home',
+  'Live TV',
+  'Search',
+  'Movies',
+  'Settings',
+] as const;
+
 /** Profile selection screen text. */
 export const PROFILE_SCREEN = {
   title: "Who's watching?",

@@ -33,6 +33,10 @@ import 'package:window_manager/window_manager.dart';
 /// Port for single-instance detection on desktop.
 const int _kSingleInstancePort = 45678;
 
+/// Set to `true` before calling [main] in integration tests
+/// to skip the single-instance socket check (port 45678).
+bool skipSingleInstanceCheck = false;
+
 /// SharedPreferences keys for window state persistence.
 const String _kWinX = 'win_x';
 const String _kWinY = 'win_y';
@@ -120,7 +124,7 @@ Future<void> main() async {
   }
 
   // Single-instance guard (desktop only).
-  if (!await _ensureSingleInstance()) {
+  if (!skipSingleInstanceCheck && !await _ensureSingleInstance()) {
     // Another instance is already running and has been signalled to focus.
     exitCode = 0;
     return;

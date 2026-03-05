@@ -1,110 +1,256 @@
 # Settings Crawl Logs
-## Errors (0)
+## Errors (8)
+- Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+- Failed to load resource: net::ERR_FAILED
+- Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+- Failed to load resource: net::ERR_FAILED
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+- Failed to load resource: the server responded with a status of 502 (Bad Gateway)
 
 ## Full Log
-[18:07:44.338] Starting Settings E2E Test
-[18:07:44.584] [console.debug] Injecting <script> tag. Using callback.
-[18:07:45.193] [console.debug] TrustedTypes available. Creating policy: gis-dart
-[18:07:45.425] [console.log] WsBackend _onMessage: {"data":"{\"player\":{\"upscaleEnabled\":false,\"upscaleQuality\":\"maximum\"}}","id":"req-1"}
-[18:07:45.425] [console.log] WsBackend _onMessage completed command: getSetting (id: req-1) with payload length: 94
-[18:07:45.425] [console.warning] [.WebGL-0x695403398000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-[18:07:45.447] [console.log] WsBackend _onMessage: {"data":"[{\"id\":\"src_1771567852776\",\"name\":\"look4k\",\"url\":\"http://look4k.com\",\"type\":\"xtream\",\"epgUrl\":\"http://look4k.com/xmltv.php?username=4917676477361&password=3278818818\",\"userAgent\":null,\"refreshIntervalMinutes\":60,\"username\":\"4917676477361\",\"password\":\"3278818818\",\"accessToken\":null,\"deviceId\":null,\"userid\":null,\"macAddress\":null}]","id":"req-2"}
-[18:07:45.447] [console.log] WsBackend _onMessage completed command: getSetting (id: req-2) with payload length: 395
-[18:07:45.447] [console.warning] [.WebGL-0x695403398000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-[18:07:45.468] [console.log] WsBackend _onMessage: {"data":null,"id":"req-3"}
-[18:07:45.469] [console.log] WsBackend _onMessage completed command: getSetting (id: req-3) with payload length: 26
-[18:07:45.469] [console.warning] [.WebGL-0x695403398000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-[18:07:45.492] [console.log] WsBackend _onMessage: {"data":null,"id":"req-4"}
-[18:07:45.492] [console.log] WsBackend _onMessage completed command: getSetting (id: req-4) with payload length: 26
-[18:07:45.492] [console.warning] [.WebGL-0x695403398000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
-[18:07:45.518] [console.log] WsBackend _onMessage: {"data":null,"id":"req-5"}
-[18:07:45.519] [console.log] WsBackend _onMessage completed command: getSetting (id: req-5) with payload length: 26
-[18:07:45.547] [console.log] WsBackend _onMessage: {"data":null,"id":"req-6"}
-[18:07:45.547] [console.log] WsBackend _onMessage completed command: getSetting (id: req-6) with payload length: 26
-[18:07:45.572] [console.log] WsBackend _onMessage: {"data":null,"id":"req-7"}
-[18:07:45.572] [console.log] WsBackend _onMessage completed command: getSetting (id: req-7) with payload length: 26
-[18:07:45.599] [console.log] WsBackend _onMessage: {"data":null,"id":"req-8"}
-[18:07:45.599] [console.log] WsBackend _onMessage completed command: getSetting (id: req-8) with payload length: 26
-[18:07:45.622] [console.log] WsBackend _onMessage: {"data":null,"id":"req-9"}
-[18:07:45.622] [console.log] WsBackend _onMessage completed command: getSetting (id: req-9) with payload length: 26
-[18:07:45.669] [console.log] WsBackend _onMessage: {"data":[{"avatar_index":0,"dvr_permission":2,"dvr_quota_mb":null,"id":"default","is_child":false,"max_allowed_rating":4,"name":"Default","pin":null,"pin_version":1,"role":0}],"id":"req-10"}
-[18:07:45.669] [console.log] WsBackend _onMessage completed command: loadProfiles (id: req-10) with payload length: 190
-[18:07:45.833] [console.log] PlaylistSync: loading from cache…
-[18:07:46.651] [console.log] WsBackend _onMessage: [Large Payload of length 6252686]
-[18:07:46.651] [console.log] WsBackend _onMessage completed command: loadChannels (id: req-11) with payload length: 6252686
-[18:07:46.668] [console.log] CacheService: loaded 12697 channels in 835ms
-[18:07:47.363] [console.log] WsBackend _onMessage: [Large Payload of length 12679905]
-[18:07:47.363] [console.log] WsBackend _onMessage completed command: loadVodItems (id: req-12) with payload length: 12679905
-[18:07:47.363] [console.log] CacheService: loaded 21782 VOD items in 1526ms
-[18:07:47.811] [console.log] WsBackend _onMessage: [Large Payload of length 14358817]
-[18:07:47.811] [console.log] WsBackend _onMessage completed command: loadEpgEntries (id: req-13) with payload length: 14358817
-[18:07:47.962] [console.log] CacheService: loaded 57591 EPG entries across 1232 channels in 2127ms
-[18:07:47.962] [console.log] PlaylistSync: cache read complete in 2131ms — 12697 channels (835ms), 21782 VODs (1526ms), 1232 EPG channels / 57591 entries (2128ms)
-[18:07:48.393] [console.log] WsBackend _onMessage: {"count":0,"id":"req-14","ok":true}
-[18:07:48.393] [console.log] WsBackend _onMessage completed command: evictStaleEpg (id: req-14) with payload length: 35
-[18:07:48.607] [console.log] WsBackend _onMessage: [Large Payload of length 6397732]
-[18:07:48.607] [console.log] WsBackend _onMessage completed command: filterChannelsBySource (id: req-15) with payload length: 6397732
-[18:07:48.635] [console.log] PlaylistSync: cache → UI complete in 2803ms
-[18:07:48.670] [console.log] WsBackend _onMessage: {"data":[],"id":"req-16"}
-[18:07:48.670] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-16) with payload length: 25
-[18:07:48.673] [console.log] WsBackend _onMessage: {"data":[],"id":"req-17"}
-[18:07:48.673] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-17) with payload length: 25
-[18:07:48.684] [console.log] WsBackend _onMessage: {"data":1771869711,"id":"req-18"}
-[18:07:48.684] [console.log] WsBackend _onMessage completed command: getLastSyncTime (id: req-18) with payload length: 33
-[18:07:48.684] [console.log] PlaylistSync: all sources synced within 24h — BUT IGNORING IT FOR DEBUGGING
-[18:07:48.793] [console.log] WsBackend _onMessage: [Large Payload of length 3845]
-[18:07:48.793] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-19) with payload length: 3845
-[18:07:48.794] [console.log] WsBackend _onMessage: [Large Payload of length 3549]
-[18:07:48.794] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-20) with payload length: 3549
-[18:07:48.796] [console.log] WsBackend _onMessage: [Large Payload of length 3068]
-[18:07:48.796] [console.log] WsBackend _onMessage completed command: buildCategoryMap (id: req-21) with payload length: 3068
-[18:07:48.796] [console.log] RefreshPlaylist: categories loaded — Live: 165, VOD: 133, Series: 94
-[18:07:49.636] [console.log] WsBackend _onMessage: [Large Payload of length 6605053]
-[18:07:49.636] [console.log] WsBackend _onMessage completed command: parseXtreamLiveStreams (id: req-22) with payload length: 6605053
-[18:07:50.101] Screenshot: 001-01-initial-load-1280x900.png
-[18:07:50.101] Clicking Settings Tab
-[18:07:50.342] [console.log] WsBackend _onMessage: [Large Payload of length 6689763]
-[18:07:50.342] [console.log] WsBackend _onMessage completed command: resolveChannelCategories (id: req-23) with payload length: 6689763
-[18:07:50.768] [console.log] WsBackend _onMessage: [Large Payload of length 2281]
-[18:07:50.768] [console.log] WsBackend _onMessage completed command: extractSortedGroups (id: req-24) with payload length: 2281
-[18:07:51.067] [console.log] RefreshPlaylist: fetched 12391 VOD JSON items from HTTP
-[18:07:51.130] [console.log] WsBackend _send: parseVodStreams sending ${json.length} characters to Rust
-[18:07:51.711] [console.log] WsBackend _onMessage: [Large Payload of length 5867657]
-[18:07:51.711] [console.log] WsBackend _onMessage completed command: parseVodStreams (id: req-25) with payload length: 5867657
-[18:07:51.712] [console.log] WsBackend parseVodStreams received ${resultList.length} items from Rust
-[18:07:51.712] [console.log] RefreshPlaylist: Resolving categories for 12391 items using map size 133
-[18:07:52.181] Screenshot: 002-02-settings-loaded-1280x900.png
-[18:07:52.181] Clicking Player Settings Category
-[18:07:52.426] [console.log] WsBackend _onMessage: [Large Payload of length 6693342]
-[18:07:52.426] [console.log] WsBackend _onMessage completed command: resolveVodCategories (id: req-26) with payload length: 6693342
-[18:07:52.426] [console.log] RefreshPlaylist: resolveVodCategories returned JSON string of length 5999401
-[18:07:52.426] [console.log] RefreshPlaylist: resolveVodCategories decoded to List of size 12391
-[18:07:52.443] [console.log] RefreshPlaylist: Successfully mapped 12391 items back to VodItem objects.
-[18:07:52.443] [console.log] RefreshPlaylist: 12391 VOD movies loaded
-[18:07:53.352] [console.log] WsBackend _send: parseSeries sending ${json.length} characters to Rust
-[18:07:53.983] Screenshot: 003-03-player-settings-submenu-1280x900.png
-[18:07:53.983] Toggling a switch in Player settings
-[18:07:54.408] [console.log] WsBackend _onMessage: [Large Payload of length 6515763]
-[18:07:54.409] [console.log] WsBackend _onMessage completed command: parseSeries (id: req-27) with payload length: 6515763
-[18:07:54.409] [console.log] WsBackend parseSeries received ${resultList.length} items from Rust
-[18:07:55.273] [console.log] WsBackend _onMessage: [Large Payload of length 7213791]
-[18:07:55.273] [console.log] WsBackend _onMessage completed command: resolveVodCategories (id: req-28) with payload length: 7213791
-[18:07:55.273] [console.log] RefreshPlaylist: 9358 series loaded
-[18:07:56.409] [console.log] WsBackend _onMessage: [Large Payload of length 4288]
-[18:07:56.409] [console.log] WsBackend _onMessage completed command: extractSortedVodCategories (id: req-29) with payload length: 4288
-[18:07:56.458] Screenshot: 004-04-player-setting-toggled-1280x900.png
-[18:07:56.458] Switching to Stream Settings Category
-[18:07:56.463] [console.log] WsBackend _onMessage: {"count":0,"id":"req-30","ok":true}
-[18:07:56.464] [console.log] WsBackend _onMessage completed command: deleteRemovedChannels (id: req-30) with payload length: 35
-[18:07:56.464] [console.log] CacheService: deleted 0 stale channels for source src_1771567852776 in 36ms
-[18:07:56.538] [console.log] WsBackend _onMessage: {"count":0,"id":"req-31","ok":true}
-[18:07:56.538] [console.log] WsBackend _onMessage completed command: deleteRemovedVodItems (id: req-31) with payload length: 35
-[18:07:56.538] [console.log] CacheService: deleted 0 stale VOD items for source src_1771567852776 in 69ms
-[18:07:56.539] [console.log] WsBackend _onMessage: {"id":"req-32","ok":true}
-[18:07:56.539] [console.log] WsBackend _onMessage completed command: setLastSyncTime (id: req-32) with payload length: 25
-[18:07:56.539] [console.log] PlaylistSync: look4k → 12697 channels, 21749 VOD items
-[18:07:57.304] [console.log] WsBackend _onMessage: [Large Payload of length 6905612]
-[18:07:57.304] [console.log] WsBackend _onMessage completed command: sortChannels (id: req-33) with payload length: 6905612
-[18:07:57.923] [console.log] WsBackend _onMessage: [Large Payload of length 6397732]
-[18:07:57.923] [console.log] WsBackend _onMessage completed command: filterChannelsBySource (id: req-34) with payload length: 6397732
-[18:07:58.362] Screenshot: 005-05-stream-settings-submenu-1280x900.png
+[10:03:24.633] Starting Settings E2E Test
+[10:03:24.803] [console.debug] Injecting <script> tag. Using callback.
+[10:03:24.814] [console.info] DDC is about to load 1/2 scripts with pool size = 1000
+[10:03:25.198] [console.info] DDC is about to load 1693/1693 scripts with pool size = 1000
+[10:03:29.008] [console.log] Starting application from main method in: org-dartlang-app:/web_entrypoint.dart.
+[10:03:29.135] [console.debug] TrustedTypes available. Creating policy: gis-dart
+[10:03:29.306] [console.debug] dart.developer.log {message: Full paths for routes:
+├─ (ShellRoute)
+│ ├─/home 
+…n)
+├─/onboarding 
+└─/multiview (MultiViewScreen)
+, name: GoRouter, level: 800, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 0}
+[10:03:29.311] [console.debug] dart.developer.log {message: setting initial location /profiles, name: GoRouter, level: 800, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 1}
+[10:03:29.511] [console.log] WsBackend _onMessage: {"data":[{"avatar_index":0,"dvr_permission":2,"dvr_quota_mb":null,"id":"default","is_child":false,"max_allowed_rating":4,"name":"Default","pin":null,"pin_version":1,"role":0}],"id":"req-1"}
+[10:03:29.511] [console.log] WsBackend _onMessage completed command: loadProfiles (id: req-1) with payload length: 189
+[10:03:29.659] [console.log] WsBackend _onMessage: {"data":null,"id":"req-2"}
+[10:03:29.659] [console.log] WsBackend _onMessage completed command: getSetting (id: req-2) with payload length: 26
+[10:03:29.678] [console.log] WsBackend _onMessage: {"data":"[{\"id\":\"look4k_xtream\",\"name\":\"look4k\",\"url\":\"http://look4k.com\",\"type\":\"xtream\",\"username\":\"4917676477361\",\"password\":\"3278818818\",\"epgUrl\":\"\",\"refreshIntervalMinutes\":60}]","id":"req-3"}
+[10:03:29.678] [console.log] WsBackend _onMessage completed command: getSetting (id: req-3) with payload length: 227
+[10:03:29.691] [console.log] WsBackend _onMessage: {"data":null,"id":"req-4"}
+[10:03:29.691] [console.log] WsBackend _onMessage completed command: getSetting (id: req-4) with payload length: 26
+[10:03:29.703] [console.log] WsBackend _onMessage: {"data":null,"id":"req-5"}
+[10:03:29.703] [console.log] WsBackend _onMessage completed command: getSetting (id: req-5) with payload length: 26
+[10:03:29.714] [console.log] WsBackend _onMessage: {"data":null,"id":"req-6"}
+[10:03:29.715] [console.log] WsBackend _onMessage completed command: getSetting (id: req-6) with payload length: 26
+[10:03:29.715] [console.log] WsBackend _onMessage: {"data":null,"id":"req-7"}
+[10:03:29.715] [console.log] WsBackend _onMessage completed command: getSetting (id: req-7) with payload length: 26
+[10:03:29.716] [console.log] WsBackend _onMessage: {"data":null,"id":"req-8"}
+[10:03:29.716] [console.log] WsBackend _onMessage completed command: getSetting (id: req-8) with payload length: 26
+[10:03:29.717] [console.log] WsBackend _onMessage: {"data":null,"id":"req-9"}
+[10:03:29.717] [console.log] WsBackend _onMessage completed command: getSetting (id: req-9) with payload length: 26
+[10:03:29.718] [console.log] WsBackend _onMessage: {"data":null,"id":"req-10"}
+[10:03:29.718] [console.log] WsBackend _onMessage completed command: getSetting (id: req-10) with payload length: 27
+[10:03:29.718] [console.log] WsBackend _onMessage: {"data":null,"id":"req-11"}
+[10:03:29.718] [console.log] WsBackend _onMessage completed command: getSetting (id: req-11) with payload length: 27
+[10:03:29.719] [console.log] WsBackend _onMessage: {"data":null,"id":"req-12"}
+[10:03:29.719] [console.log] WsBackend _onMessage completed command: getSetting (id: req-12) with payload length: 27
+[10:03:29.719] [console.log] WsBackend _onMessage: {"data":null,"id":"req-13"}
+[10:03:29.719] [console.log] WsBackend _onMessage completed command: getSetting (id: req-13) with payload length: 27
+[10:03:29.720] [console.log] WsBackend _onMessage: {"data":null,"id":"req-14"}
+[10:03:29.720] [console.log] WsBackend _onMessage completed command: getSetting (id: req-14) with payload length: 27
+[10:03:29.731] [console.log] WsBackend _onMessage: {"data":null,"id":"req-15"}
+[10:03:29.731] [console.log] WsBackend _onMessage completed command: getSetting (id: req-15) with payload length: 27
+[10:03:29.732] [console.log] WsBackend _onMessage: {"data":null,"id":"req-16"}
+[10:03:29.732] [console.log] WsBackend _onMessage completed command: getSetting (id: req-16) with payload length: 27
+[10:03:29.732] [console.log] WsBackend _onMessage: {"data":null,"id":"req-17"}
+[10:03:29.733] [console.log] WsBackend _onMessage completed command: getSetting (id: req-17) with payload length: 27
+[10:03:29.733] [console.log] WsBackend _onMessage: {"data":null,"id":"req-18"}
+[10:03:29.733] [console.log] WsBackend _onMessage completed command: getSetting (id: req-18) with payload length: 27
+[10:03:29.734] [console.log] WsBackend _onMessage: {"data":null,"id":"req-19"}
+[10:03:29.734] [console.log] WsBackend _onMessage completed command: getSetting (id: req-19) with payload length: 27
+[10:03:29.734] [console.log] WsBackend _onMessage: {"data":null,"id":"req-20"}
+[10:03:29.734] [console.log] WsBackend _onMessage completed command: getSetting (id: req-20) with payload length: 27
+[10:03:29.735] [console.log] WsBackend _onMessage: {"data":null,"id":"req-21"}
+[10:03:29.735] [console.log] WsBackend _onMessage completed command: getSetting (id: req-21) with payload length: 27
+[10:03:29.735] [console.log] WsBackend _onMessage: {"data":null,"id":"req-22"}
+[10:03:29.735] [console.log] WsBackend _onMessage completed command: getSetting (id: req-22) with payload length: 27
+[10:03:29.736] [console.log] WsBackend _onMessage: {"data":null,"id":"req-23"}
+[10:03:29.736] [console.log] WsBackend _onMessage completed command: getSetting (id: req-23) with payload length: 27
+[10:03:29.736] [console.log] WsBackend _onMessage: {"data":null,"id":"req-24"}
+[10:03:29.736] [console.log] WsBackend _onMessage completed command: getSetting (id: req-24) with payload length: 27
+[10:03:29.806] [console.debug] dart.developer.log {message: redirecting to RouteMatchList#753ba(uri: /home, ma…Key: [LabeledGlobalKey<NavigatorState>#f9b2f]))]), name: GoRouter, level: 800, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 2}
+[10:03:29.810] [console.debug] dart.developer.log {message: Using MaterialApp configuration, name: GoRouter, level: 800, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 3}
+[10:03:30.292] [console.log] WsBackend _onMessage: {"data":[],"id":"req-25"}
+[10:03:30.292] [console.log] WsBackend _onMessage completed command: loadRecordings (id: req-25) with payload length: 25
+[10:03:30.368] [console.log] PlaylistSync: loading from cache…
+[10:03:30.370] [console.log] WsBackend _onMessage: {"data":[],"id":"req-26"}
+[10:03:30.370] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-26) with payload length: 25
+[10:03:30.371] [console.log] WsBackend _onMessage: {"data":[],"id":"req-27"}
+[10:03:30.371] [console.log] WsBackend _onMessage completed command: loadReminders (id: req-27) with payload length: 25
+[10:03:30.371] [console.log] WsBackend _onMessage: {"data":[],"id":"req-28"}
+[10:03:30.371] [console.log] WsBackend _onMessage completed command: getWatchlistItems (id: req-28) with payload length: 25
+[10:03:30.372] [console.log] WsBackend _onMessage: {"data":[],"id":"req-29"}
+[10:03:30.372] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-29) with payload length: 25
+[10:03:30.372] [console.log] WsBackend _onMessage: {"data":[],"id":"req-30"}
+[10:03:30.373] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-30) with payload length: 25
+[10:03:30.373] [console.log] WsBackend _onMessage: {"data":"f4d03705-4b7a-4652-a04e-30b97bdf781e","id":"req-31"}
+[10:03:30.373] [console.log] WsBackend _onMessage completed command: getSetting (id: req-31) with payload length: 61
+[10:03:30.941] [console.log] WsBackend _onMessage: [Large Payload of length 6183288]
+[10:03:30.941] [console.log] WsBackend _onMessage completed command: loadChannels (id: req-32) with payload length: 6183288
+[10:03:30.959] [console.log] CacheService: loaded 12913 channels in 991ms
+[10:03:30.972] [console.log] WsBackend _onMessage: {"data":[],"id":"req-33"}
+[10:03:30.972] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-33) with payload length: 25
+[10:03:30.973] [console.log] WsBackend _onMessage: {"data":[],"id":"req-34"}
+[10:03:30.973] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-34) with payload length: 25
+[10:03:30.973] [console.log] WsBackend _onMessage: {"data":[],"id":"req-35"}
+[10:03:30.973] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-35) with payload length: 25
+[10:03:31.426] [console.log] WsBackend _onMessage: [Large Payload of length 12585337]
+[10:03:31.426] [console.log] WsBackend _onMessage completed command: loadVodItems (id: req-36) with payload length: 12585337
+[10:03:31.437] [console.log] CacheService: loaded 21770 VOD items in 1212ms
+[10:03:31.871] [console.error] Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[10:03:31.873] [console.error] Failed to load resource: net::ERR_FAILED
+[10:03:32.027] [console.log] WsBackend _onMessage: [Large Payload of length 6183288]
+[10:03:32.027] [console.log] WsBackend _onMessage completed command: loadChannels (id: req-37) with payload length: 6183288
+[10:03:32.037] [console.log] CacheService: loaded 12913 channels in 1668ms
+[10:03:32.585] [console.log] WsBackend _onMessage: [Large Payload of length 12585337]
+[10:03:32.585] [console.log] WsBackend _onMessage completed command: loadVodItems (id: req-38) with payload length: 12585337
+[10:03:32.601] [console.log] CacheService: loaded 21770 VOD items in 2232ms
+[10:03:32.602] [console.log] PlaylistSync: cache read complete in 2235ms — 12913 channels (1668ms), 21770 VODs (2232ms)
+[10:03:33.194] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-39"}
+[10:03:33.194] [console.log] WsBackend _onMessage completed command: filterContinueWatching (id: req-39) with payload length: 27
+[10:03:33.194] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-40"}
+[10:03:33.194] [console.log] WsBackend _onMessage completed command: filterContinueWatching (id: req-40) with payload length: 27
+[10:03:33.194] [console.log] WsBackend _onMessage: {"data":[],"id":"req-41"}
+[10:03:33.194] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-41) with payload length: 25
+[10:03:33.194] [console.log] WsBackend _onMessage: {"data":[],"id":"req-42"}
+[10:03:33.194] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-42) with payload length: 25
+[10:03:33.194] [console.log] WsBackend _onMessage: {"data":[],"id":"req-43"}
+[10:03:33.194] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-43) with payload length: 25
+[10:03:33.194] [console.log] WsBackend _onMessage: {"data":[],"id":"req-44"}
+[10:03:33.194] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-44) with payload length: 25
+[10:03:33.195] [console.log] WsBackend _onMessage: {"data":[],"id":"req-45"}
+[10:03:33.195] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-45) with payload length: 25
+[10:03:33.195] [console.log] WsBackend _onMessage: {"data":[],"id":"req-46"}
+[10:03:33.195] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-46) with payload length: 25
+[10:03:33.196] [console.log] WsBackend _onMessage: {"data":[],"id":"req-47"}
+[10:03:33.196] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-47) with payload length: 25
+[10:03:33.196] [console.log] WsBackend _onMessage: {"data":[],"id":"req-48"}
+[10:03:33.196] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-48) with payload length: 25
+[10:03:33.197] [console.log] WsBackend _onMessage: {"data":[],"id":"req-49"}
+[10:03:33.197] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-49) with payload length: 25
+[10:03:33.198] [console.log] WsBackend _onMessage: {"data":[],"id":"req-50"}
+[10:03:33.198] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-50) with payload length: 25
+[10:03:33.198] [console.log] WsBackend _onMessage: {"data":[],"id":"req-51"}
+[10:03:33.198] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-51) with payload length: 25
+[10:03:33.198] [console.log] WsBackend _onMessage: {"data":[],"id":"req-52"}
+[10:03:33.198] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-52) with payload length: 25
+[10:03:33.199] [console.log] WsBackend _onMessage: {"data":[],"id":"req-53"}
+[10:03:33.199] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-53) with payload length: 25
+[10:03:33.199] [console.log] WsBackend _onMessage: {"data":[],"id":"req-54"}
+[10:03:33.199] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-54) with payload length: 25
+[10:03:33.199] [console.log] WsBackend _onMessage: {"data":[],"id":"req-55"}
+[10:03:33.199] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-55) with payload length: 25
+[10:03:33.199] [console.log] WsBackend _onMessage: {"data":[],"id":"req-56"}
+[10:03:33.199] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-56) with payload length: 25
+[10:03:33.200] [console.log] WsBackend _onMessage: {"data":[],"id":"req-57"}
+[10:03:33.200] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-57) with payload length: 25
+[10:03:33.200] [console.log] WsBackend _onMessage: {"data":[],"id":"req-58"}
+[10:03:33.200] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-58) with payload length: 25
+[10:03:33.202] [console.log] WsBackend _onMessage: {"data":[],"id":"req-59"}
+[10:03:33.202] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-59) with payload length: 25
+[10:03:33.202] [console.log] WsBackend _onMessage: {"data":[],"id":"req-60"}
+[10:03:33.202] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-60) with payload length: 25
+[10:03:33.202] [console.log] WsBackend _onMessage: {"data":[],"id":"req-61"}
+[10:03:33.202] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-61) with payload length: 25
+[10:03:33.202] [console.log] WsBackend _onMessage: {"data":[],"id":"req-62"}
+[10:03:33.202] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-62) with payload length: 25
+[10:03:33.449] [console.log] WsBackend _onMessage: [Large Payload of length 6575810]
+[10:03:33.449] [console.log] WsBackend _onMessage completed command: filterChannelsBySource (id: req-63) with payload length: 6575810
+[10:03:33.529] [console.log] PlaylistSync: cache → UI complete in 3159ms
+[10:03:33.529] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-64"}
+[10:03:33.529] [console.log] WsBackend _onMessage completed command: filterCrossDevice (id: req-64) with payload length: 27
+[10:03:33.529] [console.log] WsBackend _onMessage: {"data":[],"id":"req-65"}
+[10:03:33.530] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-65) with payload length: 25
+[10:03:33.654] [console.log] WsBackend _onMessage: {"data":[],"id":"req-66"}
+[10:03:33.654] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-66) with payload length: 25
+[10:03:33.655] [console.log] WsBackend _onMessage: {"data":[],"id":"req-67"}
+[10:03:33.655] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-67) with payload length: 25
+[10:03:33.655] [console.log] WsBackend _onMessage: {"data":[],"id":"req-68"}
+[10:03:33.655] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-68) with payload length: 25
+[10:03:33.664] [console.error] Access to XMLHttpRequest at 'http://imageoo.blog:8880/photo/EW.Collision.Grand.Slam.Australia.February.2026.png' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[10:03:33.665] [console.error] Failed to load resource: net::ERR_FAILED
+[10:03:34.012] [console.log] WsBackend _onMessage: [Large Payload of length 8271966]
+[10:03:34.012] [console.log] WsBackend _onMessage completed command: getEpgsForChannels (id: req-69) with payload length: 8271966
+[10:03:34.127] [console.log] CacheService: loaded 32669 EPG entries for 1197 viewed channels in 604ms
+[10:03:34.639] [console.log] WsBackend _onMessage: {"data":1772702959,"id":"req-70"}
+[10:03:34.639] [console.log] WsBackend _onMessage completed command: getLastSyncTime (id: req-70) with payload length: 33
+[10:03:34.640] [console.log] PlaylistSync: all sources synced within 24h — next sync in 1405m
+[10:03:34.640] [console.log] WsBackend _onMessage: {"data":[],"id":"req-71"}
+[10:03:34.640] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-71) with payload length: 25
+[10:03:35.323] [console.log] WsBackend _onMessage: {"data":[],"id":"req-72"}
+[10:03:35.323] [console.log] WsBackend _onMessage completed command: loadWatchHistory (id: req-72) with payload length: 25
+[10:03:35.323] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-73"}
+[10:03:35.323] [console.log] WsBackend _onMessage completed command: computeRecommendations (id: req-73) with payload length: 27
+[10:03:35.323] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[10:03:35.323] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[10:03:35.323] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[10:03:35.323] [console.error] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[10:03:35.323] [console.log] WsBackend _onMessage: {"data":[],"id":"req-74"}
+[10:03:35.323] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-74) with payload length: 25
+[10:03:37.873] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-75"}
+[10:03:37.873] [console.log] WsBackend _onMessage completed command: computeRecommendations (id: req-75) with payload length: 27
+[10:03:37.873] [console.log] WsBackend _onMessage: {"data":[],"id":"req-76"}
+[10:03:37.873] [console.log] WsBackend _onMessage completed command: getFavorites (id: req-76) with payload length: 25
+[10:03:37.873] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-77"}
+[10:03:37.873] [console.log] WsBackend _onMessage completed command: deserializeRecommendationSections (id: req-77) with payload length: 27
+[10:03:38.051] [console.log] WsBackend _onMessage: [Large Payload of length 6042]
+[10:03:38.051] [console.log] WsBackend _onMessage completed command: computeRecommendations (id: req-78) with payload length: 6042
+[10:03:38.051] [console.log] WsBackend _onMessage: {"data":"[]","id":"req-79"}
+[10:03:38.052] [console.log] WsBackend _onMessage completed command: deserializeRecommendationSections (id: req-79) with payload length: 27
+[10:03:38.052] [console.log] WsBackend _onMessage: {"data":[],"id":"req-80"}
+[10:03:38.052] [console.log] WsBackend _onMessage completed command: getVodFavorites (id: req-80) with payload length: 25
+[10:03:40.488] [console.log] WsBackend _onMessage: [Large Payload of length 6399]
+[10:03:40.488] [console.log] WsBackend _onMessage completed command: deserializeRecommendationSections (id: req-81) with payload length: 6399
+[10:03:40.490] Screenshot: 001-01-initial-load-1280x900.png
+[10:03:40.490] Clicking Settings Tab
+[10:03:40.515] [console.debug] dart.developer.log {message: going to /favorites, name: GoRouter, level: 800, time: dartDevEmbedder.defineLibrary.core.DateTime.now, sequenceNumber: 4}
+[10:03:40.663] [console.log] ══╡ EXCEPTION CAUGHT BY RENDERING LIBRARY ╞═════════════════════════════════════════════════════════
+[10:03:40.663] [console.log] The following assertion was thrown during layout:
+[10:03:40.663] [console.log] A RenderFlex overflowed by 27 pixels on the right.
+[10:03:40.664] [console.log] 
+[10:03:40.664] [console.log] The relevant error-causing widget was:
+[10:03:40.664] [console.log]   Row Row:file:///F:/work/crispy-tivi/lib/core/navigation/side_nav.dart:191:18
+[10:03:40.664] [console.log] 
+[10:03:40.664] [console.log] The overflowing RenderFlex has an orientation of Axis.horizontal.
+[10:03:40.664] [console.log] The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and
+[10:03:40.664] [console.log] black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+[10:03:40.665] [console.log] Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the
+[10:03:40.665] [console.log] RenderFlex to fit within the available space instead of being sized to their natural size.
+[10:03:40.665] [console.log] This is considered an error condition because it indicates that there is content that cannot be
+[10:03:40.665] [console.log] seen. If the content is legitimately bigger than the available space, consider clipping it with a
+[10:03:40.665] [console.log] ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex,
+[10:03:40.665] [console.log] like a ListView.
+[10:03:40.666] [console.log] The specific RenderFlex in question is: RenderFlex#7f24b OVERFLOWING:
+[10:03:40.666] [console.log]   creator: Row ← Padding ← ConstrainedBox ← Container ← MouseRegion ←
+[10:03:40.666] [console.log]     RawTooltip-[LabeledGlobalKey<RawTooltipState>#afc85] ← Tooltip ← Padding ← ClipPath ← DecoratedBox
+[10:03:40.666] [console.log]     ← Container ← AnimatedContainer ← ⋯
+[10:03:40.666] [console.log]   parentData: offset=Offset(16.0, 0.0) (can use size)
+[10:03:40.666] [console.log]   constraints: BoxConstraints(w=36.0, h=56.0)
+[10:03:40.667] [console.log]   size: Size(36.0, 56.0)
+[10:03:40.667] [console.log]   direction: horizontal
+[10:03:40.667] [console.log]   mainAxisAlignment: start
+[10:03:40.667] [console.log]   mainAxisSize: max
+[10:03:40.667] [console.log]   crossAxisAlignment: center
+[10:03:40.667] [console.log]   textDirection: ltr
+[10:03:40.668] [console.log]   verticalDirection: down
+[10:03:40.668] [console.log]   spacing: 0.0
+[10:03:40.668] [console.log] ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
+[10:03:40.668] [console.log] ════════════════════════════════════════════════════════════════════════════════════════════════════
+[10:03:40.670] [console.log] Another exception was thrown: A RenderFlex overflowed by 27 pixels on the right.
+[10:03:40.680] [console.log] Another exception was thrown: A RenderFlex overflowed by 57 pixels on the right.
+[10:03:40.683] [console.log] Another exception was thrown: A RenderFlex overflowed by 28 pixels on the right.
+[10:03:40.784] [console.log] WsBackend _onMessage: [Large Payload of length 6042]
+[10:03:40.784] [console.log] WsBackend _onMessage completed command: computeRecommendations (id: req-82) with payload length: 6042
+[10:03:40.864] [console.log] WsBackend _onMessage: [Large Payload of length 6399]
+[10:03:40.864] [console.log] WsBackend _onMessage completed command: deserializeRecommendationSections (id: req-83) with payload length: 6399
+[10:03:42.557] Screenshot: 002-02-settings-loaded-1280x900.png
+[10:03:42.557] Clicking Player Settings Category
+[10:03:43.618] Screenshot: 003-03-player-settings-submenu-1280x900.png
+[10:03:43.618] Toggling a switch in Player settings
+[10:03:44.669] Screenshot: 004-04-player-setting-toggled-1280x900.png
+[10:03:44.669] Switching to Stream Settings Category
+[10:03:45.724] Screenshot: 005-05-stream-settings-submenu-1280x900.png

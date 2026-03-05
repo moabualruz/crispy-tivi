@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/domain/entities/playlist_source.dart';
+import '../../../../core/network/http_service.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
+import '../../../iptv/data/parsers/stalker_portal_client.dart';
+import '../../../iptv/data/parsers/xtream_client.dart';
 import '../../../settings/presentation/widgets/source_form_fields.dart';
 import '../providers/onboarding_notifier.dart';
 
@@ -28,6 +31,7 @@ class _OnboardingFormStepState extends ConsumerState<OnboardingFormStep> {
   final _macCtrl = TextEditingController();
 
   String? _validationError;
+  bool _isVerifying = false;
 
   @override
   void initState() {
@@ -81,7 +85,7 @@ class _OnboardingFormStepState extends ConsumerState<OnboardingFormStep> {
     };
   }
 
-  void _submit(PlaylistSourceType sourceType) {
+  Future<void> _submit(PlaylistSourceType sourceType) async {
     final url = _urlCtrl.text.trim();
     final name = _nameCtrl.text.trim();
 
@@ -118,10 +122,48 @@ class _OnboardingFormStepState extends ConsumerState<OnboardingFormStep> {
       }
     }
 
-    setState(() => _validationError = null);
+    setState(() {
+      _validationError = null;
+      _isVerifying = true;
+    });
 
     final user = _userCtrl.text.trim();
     final pass = _passCtrl.text.trim();
+
+    // Verify server connectivity before saving.
+    final http = ref.read(httpServiceProvider);
+    String? verifyError;
+
+    switch (sourceType) {
+      case PlaylistSourceType.xtream:
+        verifyError = await XtreamClient.verifyCredentials(
+          http: http,
+          serverUrl: url,
+          username: user,
+          password: pass,
+        );
+      case PlaylistSourceType.m3u:
+        verifyError = await HttpService.verifyM3uUrl(http: http, url: url);
+      case PlaylistSourceType.stalkerPortal:
+        verifyError = await StalkerPortalClient.verifyPortal(
+          dio: http.dio,
+          serverUrl: url,
+          macAddress: _macCtrl.text.trim().toUpperCase(),
+        );
+      default:
+        break;
+    }
+
+    if (!mounted) return;
+    if (verifyError != null) {
+      setState(() {
+        _isVerifying = false;
+        _validationError = verifyError;
+      });
+      return;
+    }
+
+    setState(() => _isVerifying = false);
 
     final source = PlaylistSource(
       id: PlaylistSource.generateId(),
@@ -189,20 +231,35 @@ class _OnboardingFormStepState extends ConsumerState<OnboardingFormStep> {
             ),
           ],
           const SizedBox(height: CrispySpacing.lg),
-          FocusWrapper(
-            autofocus: false,
-            onSelect: () => _submit(sourceType),
-            child: FilledButton(
-              onPressed: () => _submit(sourceType),
-              child: const Text('Connect'),
+          Semantics(
+            button: true,
+            label: 'Connect to server',
+            child: FocusWrapper(
+              autofocus: false,
+              onSelect: _isVerifying ? null : () => _submit(sourceType),
+              child: FilledButton(
+                onPressed: _isVerifying ? null : () => _submit(sourceType),
+                child:
+                    _isVerifying
+                        ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : const Text('Connect'),
+              ),
             ),
           ),
           const SizedBox(height: CrispySpacing.sm),
           Center(
-            child: TextButton.icon(
-              onPressed: () => ref.read(onboardingProvider.notifier).goBack(),
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Back'),
+            child: Semantics(
+              button: true,
+              label: 'Go back to previous step',
+              child: TextButton.icon(
+                onPressed: () => ref.read(onboardingProvider.notifier).goBack(),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Back'),
+              ),
             ),
           ),
         ],

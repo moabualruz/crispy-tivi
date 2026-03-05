@@ -12,7 +12,7 @@ void main() {
     test('creates Dio instance with correct defaults', () {
       final dio = service.dio;
       expect(dio.options.connectTimeout, const Duration(seconds: 15));
-      expect(dio.options.receiveTimeout, const Duration(seconds: 60));
+      expect(dio.options.receiveTimeout, const Duration(seconds: 120));
       expect(dio.options.headers['User-Agent'], 'CrispyTivi/1.0');
     });
   });

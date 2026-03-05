@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/data/crispy_backend.dart';
+import '../../../../core/network/http_service.dart';
 import '../../domain/entities/channel.dart';
 
 /// Xtream Codes API client — delegates URL building and
@@ -181,4 +182,39 @@ class XtreamClient {
     receiveTimeout: const Duration(seconds: 60),
     sendTimeout: const Duration(seconds: 30),
   );
+
+  /// Verifies Xtream Codes credentials by calling the
+  /// server info endpoint (no action parameter).
+  ///
+  /// Returns `null` on success, or an error message string
+  /// on failure. Works without a [CrispyBackend] instance.
+  static Future<String?> verifyCredentials({
+    required HttpService http,
+    required String serverUrl,
+    required String username,
+    required String password,
+  }) async {
+    final base = serverUrl.replaceAll(RegExp(r'/+$'), '');
+    final url = '$base/player_api.php?username=$username&password=$password';
+    try {
+      final data = await http.getJson(url);
+      if (data is! Map) return 'Invalid server response.';
+      final userInfo = data['user_info'];
+      if (userInfo is! Map) return 'Invalid server response.';
+      final auth = userInfo['auth'];
+      if (auth == 1 || auth == '1') return null; // Success
+      final status = userInfo['status']?.toString() ?? 'unknown';
+      return 'Authentication failed (status: $status).';
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout) {
+        return 'Connection timed out. Check the server URL.';
+      }
+      if (e.type == DioExceptionType.connectionError) {
+        return 'Could not connect to server. Check the URL.';
+      }
+      return 'Connection error: ${e.message}';
+    } catch (e) {
+      return 'Verification failed: $e';
+    }
+  }
 }
