@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/utils/platform_capabilities.dart';
 import '../../../favorites/data/favorites_history_service.dart';
 import '../../../iptv/domain/entities/channel.dart';
@@ -599,7 +600,7 @@ class _ZoomIndicatorOverlay extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
             color: cs.surface.withValues(alpha: 0.75),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(CrispyRadius.sm),
             border: Border.all(color: cs.onSurface.withValues(alpha: 0.15)),
           ),
           child: Text(

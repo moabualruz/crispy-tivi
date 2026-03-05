@@ -4,15 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
-import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/utils/url_utils.dart';
 import 'package:crispy_tivi/core/widgets/or_divider_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';
-import 'package:crispy_tivi/features/media_servers/shared/presentation/providers/public_users_provider.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
-import '../providers/emby_providers.dart';
+import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/user_avatar_tile.dart';
 import '../widgets/emby_pin_login_dialog.dart';
 
 // ── Shared helpers (same authenticate / testConnection as before) ─────────
@@ -184,206 +182,15 @@ class _EmbyLoginScreenState extends ConsumerState<EmbyLoginScreen> {
             children: [
               // FE-EB-02: public user avatar grid (shown when URL is valid)
               if (_resolvedUrl.isNotEmpty)
-                _EmbyPublicUserPicker(
+                MediaServerUserPickerRow(
                   serverUrl: _resolvedUrl,
                   onUserSelected: _onPublicUserSelected,
+                  showPinBadge: true,
                 ),
               // FE-EB-03: PIN login row
               _PinLoginRow(onLoginWithPin: _loginWithPin),
             ],
           ),
-    );
-  }
-}
-
-// ── FE-EB-02: Public user picker ──────────────────────────────────────────
-
-/// FE-EB-02: Horizontal avatar grid of public Emby users.
-///
-/// Appears below the login form when a valid server URL is entered.
-/// Tapping a tile auto-fills the username field (and optionally opens
-/// the PIN dialog when the user has a configured password).
-class _EmbyPublicUserPicker extends ConsumerWidget {
-  const _EmbyPublicUserPicker({
-    required this.serverUrl,
-    required this.onUserSelected,
-  });
-
-  final String serverUrl;
-  final Future<void> Function(MediaServerUser user) onUserSelected;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // FE-EB-02
-    final usersAsync = ref.watch(mediaServerPublicUsersProvider(serverUrl));
-
-    return usersAsync.when(
-      data: (users) {
-        if (users.isEmpty) return const SizedBox.shrink();
-        return _PublicUserRow(
-          users: users,
-          serverUrl: serverUrl,
-          onUserSelected: onUserSelected,
-        );
-      },
-      loading:
-          () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: CrispySpacing.sm),
-            child: Center(
-              child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          ),
-      error: (_, _) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _PublicUserRow extends StatelessWidget {
-  const _PublicUserRow({
-    required this.users,
-    required this.serverUrl,
-    required this.onUserSelected,
-  });
-
-  final List<MediaServerUser> users;
-  final String serverUrl;
-  final Future<void> Function(MediaServerUser user) onUserSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        CrispySpacing.lg,
-        0,
-        CrispySpacing.lg,
-        CrispySpacing.sm,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Select user',
-            style: Theme.of(
-              context,
-            ).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant),
-          ),
-          const SizedBox(height: CrispySpacing.sm),
-          SizedBox(
-            height: 96,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: users.length,
-              separatorBuilder:
-                  (_, _) => const SizedBox(width: CrispySpacing.sm),
-              itemBuilder: (context, index) {
-                final user = users[index];
-                return _UserAvatarTile(
-                  user: user,
-                  serverUrl: serverUrl,
-                  onTap: () => onUserSelected(user),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UserAvatarTile extends StatelessWidget {
-  const _UserAvatarTile({
-    required this.user,
-    required this.serverUrl,
-    required this.onTap,
-  });
-
-  final MediaServerUser user;
-  final String serverUrl;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    // FE-EB-02
-    final cs = Theme.of(context).colorScheme;
-
-    final imageUrl =
-        user.primaryImageTag != null
-            ? '$serverUrl/Users/${user.id}/Images/Primary'
-                '?tag=${user.primaryImageTag}&height=80'
-            : null;
-
-    return Semantics(
-      button: true,
-      label: 'Select user',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(CrispyRadius.tv),
-        child: SizedBox(
-          width: 72,
-          child: Padding(
-            padding: const EdgeInsets.all(CrispySpacing.xs),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Stack(
-                  alignment: Alignment.bottomRight,
-                  children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: cs.primaryContainer,
-                      backgroundImage:
-                          imageUrl != null ? NetworkImage(imageUrl) : null,
-                      child:
-                          imageUrl == null
-                              ? Text(
-                                user.name.isNotEmpty
-                                    ? user.name[0].toUpperCase()
-                                    : '?',
-                                style: TextStyle(
-                                  color: cs.onPrimaryContainer,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                              : null,
-                    ),
-                    // PIN indicator badge when user has a password.
-                    if (user.hasConfiguredPassword)
-                      Container(
-                        padding: const EdgeInsets.all(CrispySpacing.xxs),
-                        decoration: BoxDecoration(
-                          color: cs.surfaceContainerHigh,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: cs.outline, width: 1),
-                        ),
-                        child: Icon(
-                          Icons.lock_outline,
-                          size: 10,
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: CrispySpacing.xs),
-                Text(
-                  user.name,
-                  style: Theme.of(context).textTheme.labelSmall,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

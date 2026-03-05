@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/theme/crispy_radius.dart';
 
 /// A pill-style step indicator for the onboarding wizard.
 ///
@@ -44,7 +45,7 @@ class OnboardingStepIndicator extends StatelessWidget {
                   isActive
                       ? colorScheme.primary
                       : colorScheme.onSurface.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(CrispyRadius.xs),
             ),
           );
         }),

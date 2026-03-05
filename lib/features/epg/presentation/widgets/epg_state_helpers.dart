@@ -1,5 +1,9 @@
 import '../../../iptv/domain/entities/epg_entry.dart';
+import '../../domain/utils/epg_date_utils.dart';
 import '../providers/epg_providers.dart';
+
+export '../../domain/utils/epg_date_utils.dart'
+    show getEpgWeekStart, isSameDay, epgTodayLabel;
 
 /// Pixels per minute in day view.
 const double epgPixelsPerMinuteDay = 4.0;
@@ -24,15 +28,6 @@ double getEpgPixelsPerMinute(EpgViewMode viewMode) {
       : epgPixelsPerMinuteWeek;
 }
 
-/// Returns the Monday of the week containing [date].
-DateTime getEpgWeekStart(DateTime date) {
-  return DateTime(
-    date.year,
-    date.month,
-    date.day,
-  ).subtract(Duration(days: date.weekday - 1));
-}
-
 /// Returns (start, end) for the visible date range.
 (DateTime, DateTime) getEpgDateRange(
   EpgViewMode viewMode,
@@ -49,31 +44,6 @@ DateTime getEpgWeekStart(DateTime date) {
     final weekStart = getEpgWeekStart(selectedDate);
     return (weekStart, weekStart.add(const Duration(days: 7)));
   }
-}
-
-/// Returns true if [a] and [b] are the same calendar day.
-bool isSameDay(DateTime a, DateTime b) {
-  return a.year == b.year && a.month == b.month && a.day == b.day;
-}
-
-/// Abbreviated month + day label, e.g. "Feb 22".
-String epgTodayLabel(DateTime date) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${months[date.month - 1]}'
-      ' ${date.day}';
 }
 
 /// Returns the currently-live EPG entry for [channelId],

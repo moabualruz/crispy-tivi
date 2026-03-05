@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_colors.dart';
+import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/live_badge.dart';
 import '../../../../core/utils/timezone_utils.dart';
@@ -378,7 +379,7 @@ class _ProgrammeMetadataRow extends StatelessWidget {
         // ── Poster thumbnail (if available) ──
         if (hasPoster) ...[
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(CrispyRadius.xs),
             child: Image.network(
               entry.iconUrl!,
               height: 100,

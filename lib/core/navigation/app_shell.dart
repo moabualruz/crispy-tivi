@@ -665,7 +665,7 @@ class _CompactProfileAvatar extends ConsumerWidget {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(CrispyRadius.xl),
               onTap:
                   hasMultipleProfiles
                       ? () => ProfileSwitcherSheet.show(context)

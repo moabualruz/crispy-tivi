@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../domain/entities/recording.dart';
 
@@ -133,7 +134,7 @@ class _PolicyOption extends StatelessWidget {
       label: 'Select policy',
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(CrispyRadius.xs),
         child: Padding(
           padding: const EdgeInsets.symmetric(
             vertical: CrispySpacing.xs,

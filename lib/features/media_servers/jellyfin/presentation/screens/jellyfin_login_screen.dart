@@ -9,10 +9,8 @@ import 'package:crispy_tivi/core/utils/url_utils.dart';
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
 import 'package:crispy_tivi/core/widgets/or_divider_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
-import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';
-import 'package:crispy_tivi/features/media_servers/shared/presentation/providers/public_users_provider.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
-import '../providers/jellyfin_providers.dart';
+import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/user_avatar_tile.dart';
 import 'jellyfin_quick_connect_screen.dart';
 
 // ── Server info probe (FE-JF-03) ─────────────────────────────────────────
@@ -163,9 +161,9 @@ class _JellyfinBodyFooter extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _JellyfinServerInfoPanel(serverUrl: serverUrl),
-        _JellyfinUserPicker(
+        MediaServerUserPickerRow(
           serverUrl: serverUrl,
-          onUserSelected: onUserSelected,
+          onUserSelected: (user) => onUserSelected(user.name),
         ),
         _QuickConnectRow(serverUrl: serverUrl),
       ],
@@ -290,170 +288,6 @@ class _ServerInfoCard extends StatelessWidget {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Public-user picker (FE-JF-02) ────────────────────────────────────────
-
-/// Horizontal row of Jellyfin public-user avatar tiles.
-///
-/// Appears on the login screen after a valid server URL is entered.
-/// Tapping a tile auto-fills the username field.
-class _JellyfinUserPicker extends ConsumerWidget {
-  const _JellyfinUserPicker({
-    required this.serverUrl,
-    required this.onUserSelected,
-  });
-
-  final String serverUrl;
-  final ValueChanged<String> onUserSelected;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final usersAsync = ref.watch(mediaServerPublicUsersProvider(serverUrl));
-
-    return usersAsync.when(
-      data: (users) {
-        if (users.isEmpty) return const SizedBox.shrink();
-        return _UserPickerRow(
-          users: users,
-          serverUrl: serverUrl,
-          onUserSelected: onUserSelected,
-        );
-      },
-      loading:
-          () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: CrispySpacing.sm),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-      error: (_, _) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _UserPickerRow extends StatelessWidget {
-  const _UserPickerRow({
-    required this.users,
-    required this.serverUrl,
-    required this.onUserSelected,
-  });
-
-  final List<MediaServerUser> users;
-  final String serverUrl;
-  final ValueChanged<String> onUserSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        CrispySpacing.lg,
-        0,
-        CrispySpacing.lg,
-        CrispySpacing.md,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Select user',
-            style: Theme.of(
-              context,
-            ).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant),
-          ),
-          const SizedBox(height: CrispySpacing.sm),
-          SizedBox(
-            height: 96,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: users.length,
-              separatorBuilder:
-                  (_, _) => const SizedBox(width: CrispySpacing.sm),
-              itemBuilder: (context, index) {
-                final user = users[index];
-                return _UserAvatarTile(
-                  user: user,
-                  serverUrl: serverUrl,
-                  onTap: () => onUserSelected(user.name),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UserAvatarTile extends StatelessWidget {
-  const _UserAvatarTile({
-    required this.user,
-    required this.serverUrl,
-    required this.onTap,
-  });
-
-  final MediaServerUser user;
-  final String serverUrl;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    // Build avatar image URL if a primaryImageTag is present.
-    final imageUrl =
-        user.primaryImageTag != null
-            ? '$serverUrl/Users/${user.id}/Images/Primary'
-                '?tag=${user.primaryImageTag}&height=80'
-            : null;
-
-    return Semantics(
-      button: true,
-      label: 'Select user',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(CrispyRadius.tv),
-        child: SizedBox(
-          width: 72,
-          child: Padding(
-            padding: const EdgeInsets.all(CrispySpacing.xs),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: cs.primaryContainer,
-                  backgroundImage:
-                      imageUrl != null ? NetworkImage(imageUrl) : null,
-                  child:
-                      imageUrl == null
-                          ? Text(
-                            user.name.isNotEmpty
-                                ? user.name[0].toUpperCase()
-                                : '?',
-                            style: TextStyle(
-                              color: cs.onPrimaryContainer,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                          : null,
-                ),
-                const SizedBox(height: CrispySpacing.xs),
-                Text(
-                  user.name,
-                  style: Theme.of(context).textTheme.labelSmall,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );

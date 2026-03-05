@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../cloud_sync/presentation/widgets/cloud_sync_section.dart';
@@ -640,7 +641,7 @@ class _ShimmerSection extends StatelessWidget {
           height: 14,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(CrispyRadius.xs),
           ),
         ),
         const SizedBox(height: CrispySpacing.sm),
@@ -650,7 +651,7 @@ class _ShimmerSection extends StatelessWidget {
             height: 48,
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(CrispyRadius.xs),
             ),
           ),
           if (j == 0) const SizedBox(height: CrispySpacing.xs),

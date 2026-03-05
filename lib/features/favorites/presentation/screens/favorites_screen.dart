@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../providers/favorites_history_provider.dart';
@@ -114,7 +115,7 @@ class _HistoryPausedBadge extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: cs.errorContainer,
-        borderRadius: BorderRadius.circular(100),
+        borderRadius: BorderRadius.circular(CrispyRadius.full),
       ),
       child: Text(
         'PAUSED',

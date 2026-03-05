@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/theme/crispy_colors.dart';
+import '../../../../../core/theme/crispy_radius.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
 import '../../../../../core/utils/date_format_utils.dart';
 import '../../../../../core/widgets/live_badge.dart';
@@ -253,7 +254,7 @@ class CurrentProgramLabel extends ConsumerWidget {
                     width: constraints.maxWidth,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(1),
+                      borderRadius: BorderRadius.circular(CrispyRadius.tvSm),
                     ),
                   ),
                   FractionallySizedBox(
@@ -262,7 +263,7 @@ class CurrentProgramLabel extends ConsumerWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         color: CrispyColors.netflixRed,
-                        borderRadius: BorderRadius.circular(1),
+                        borderRadius: BorderRadius.circular(CrispyRadius.tvSm),
                       ),
                     ),
                   ),
