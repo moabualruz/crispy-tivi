@@ -34,6 +34,24 @@ mixin _CacheVodMixin on _CacheServiceBase {
   Future<void> updateVodFavorite(String itemId, bool isFavorite) async {
     await _backend.updateVodFavorite(itemId, isFavorite);
   }
+
+  /// Sort [items] using the Rust backend.
+  ///
+  /// [sortByKey] must be one of: `"added_desc"`, `"name_asc"`,
+  /// `"name_desc"`, `"year_desc"`, `"rating_desc"`.
+  ///
+  /// Returns a new sorted list. On backend error, returns
+  /// [items] unchanged.
+  Future<List<VodItem>> sortVodItems(
+    List<VodItem> items,
+    String sortByKey,
+  ) async {
+    if (items.isEmpty) return items;
+    final inputJson = jsonEncode(items.map(vodItemToMap).toList());
+    final resultJson = await _backend.sortVodItems(inputJson, sortByKey);
+    final raw = jsonDecode(resultJson) as List<dynamic>;
+    return raw.cast<Map<String, dynamic>>().map(mapToVodItem).toList();
+  }
 }
 
 // ── VOD converters (top-level) ────────────────────

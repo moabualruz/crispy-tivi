@@ -89,19 +89,57 @@ pub fn resolve_vod_categories(
         .collect()
 }
 
+/// Returns `true` when the first non-whitespace, non-digit
+/// character of `s` falls in the Basic Latin (A-Z / a-z) or
+/// Latin Extended (U+00C0–U+024F) ranges.
+///
+/// Non-Latin scripts (Arabic, Cyrillic, CJK, etc.) return
+/// `false`. An empty or all-digit/whitespace string returns
+/// `true` (treated as Latin for sorting purposes).
+fn is_latin(s: &str) -> bool {
+    let first = s
+        .chars()
+        .find(|c| !c.is_ascii_whitespace() && !c.is_ascii_digit());
+    match first {
+        None => true,
+        Some(c) => {
+            let cp = c as u32;
+            (0x0041..=0x007A).contains(&cp) || (0x00C0..=0x024F).contains(&cp)
+        }
+    }
+}
+
 /// Extract unique, sorted group names from channels.
 ///
 /// Filters out `None` and empty groups, deduplicates,
-/// and returns an alphabetically sorted `Vec`.
+/// and returns a sorted `Vec` where non-Latin groups
+/// (Arabic, Cyrillic, CJK, etc.) come first, followed
+/// by Latin groups. Each bucket is sorted
+/// case-insensitively. This matches the Dart reference
+/// implementation in `channel_utils.dart`.
 pub fn extract_sorted_groups(channels: &[Channel]) -> Vec<String> {
     let set: HashSet<&str> = channels
         .iter()
         .filter_map(|ch| ch.channel_group.as_deref())
         .filter(|g| !g.is_empty())
         .collect();
-    let mut sorted: Vec<String> = set.into_iter().map(String::from).collect();
-    sorted.sort();
-    sorted
+
+    let mut non_latin: Vec<String> = set
+        .iter()
+        .filter(|g| !is_latin(g))
+        .map(|g| g.to_string())
+        .collect();
+    let mut latin: Vec<String> = set
+        .iter()
+        .filter(|g| is_latin(g))
+        .map(|g| g.to_string())
+        .collect();
+
+    non_latin.sort_by_key(|a: &String| a.to_lowercase());
+    latin.sort_by_key(|a: &String| a.to_lowercase());
+
+    non_latin.extend(latin);
+    non_latin
 }
 
 /// Extract unique, sorted category names from VOD items.
@@ -340,6 +378,44 @@ mod tests {
         ];
         let groups = extract_sorted_groups(&channels);
         assert_eq!(groups, vec!["News", "Sports"]);
+    }
+
+    #[test]
+    fn extract_sorted_groups_arabic_before_latin() {
+        let channels = vec![
+            make_channel("a", Some("Sports")),
+            make_channel("b", Some("أخبار")),
+            make_channel("c", Some("News")),
+            make_channel("d", Some("ترفيه")),
+        ];
+        let groups = extract_sorted_groups(&channels);
+        // Non-Latin (Arabic) groups first, then Latin groups.
+        assert_eq!(groups.len(), 4);
+        // First two must be Arabic groups.
+        assert!(
+            !is_latin(&groups[0]),
+            "expected non-Latin first, got: {}",
+            groups[0]
+        );
+        assert!(
+            !is_latin(&groups[1]),
+            "expected non-Latin second, got: {}",
+            groups[1]
+        );
+        // Last two must be Latin groups.
+        assert!(
+            is_latin(&groups[2]),
+            "expected Latin third, got: {}",
+            groups[2]
+        );
+        assert!(
+            is_latin(&groups[3]),
+            "expected Latin fourth, got: {}",
+            groups[3]
+        );
+        // Verify specific ordering within each bucket.
+        assert_eq!(groups[2], "News");
+        assert_eq!(groups[3], "Sports");
     }
 
     // ── extract_sorted_vod_categories ────────────

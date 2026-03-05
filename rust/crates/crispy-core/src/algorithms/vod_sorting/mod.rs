@@ -395,6 +395,42 @@ mod tests {
         assert_eq!(sorted[1].name, "Bravo");
     }
 
+    #[test]
+    fn year_none_sorts_last_in_desc() {
+        let items = vec![
+            vod_json(
+                "a",
+                "Recent",
+                "movie",
+                None,
+                Some(2024),
+                None,
+                None,
+                None,
+                None,
+            ),
+            vod_json("b", "NoYear", "movie", None, None, None, None, None, None),
+            vod_json(
+                "c",
+                "Older",
+                "movie",
+                None,
+                Some(2020),
+                None,
+                None,
+                None,
+                None,
+            ),
+        ];
+        let json = to_json_array(&items);
+        let result = sort_vod_items(&json, "year_desc");
+        let sorted = parse_vod_array(&result);
+        // [2024, 2020, None] — null-year item sorts LAST.
+        assert_eq!(sorted[0].name, "Recent");
+        assert_eq!(sorted[1].name, "Older");
+        assert_eq!(sorted[2].name, "NoYear");
+    }
+
     // ── build_vod_category_map ──────────────────────
 
     #[test]

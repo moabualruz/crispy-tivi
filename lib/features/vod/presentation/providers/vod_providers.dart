@@ -218,57 +218,16 @@ enum VodSortOption {
 
   const VodSortOption(this.label);
   final String label;
-}
 
-/// Sorts a list of VodItems based on [option].
-///
-/// Matches Rust backend sort behavior:
-/// - nulls-last for dates and years (not DateTime(2000) sentinel)
-/// - case-insensitive name sort
-/// - NaN-safe rating sort (invalid/null ratings sort last)
-List<VodItem> sortVodItems(List<VodItem> items, VodSortOption option) {
-  final sorted = [...items];
-  switch (option) {
-    case VodSortOption.recentlyAdded:
-      // Nulls-last: items without addedAt sort after dated items.
-      sorted.sort((a, b) {
-        final aDate = a.addedAt;
-        final bDate = b.addedAt;
-        if (aDate == null && bDate == null) return 0;
-        if (aDate == null) return 1; // null sorts last
-        if (bDate == null) return -1;
-        return bDate.compareTo(aDate);
-      });
-    case VodSortOption.nameAsc:
-      sorted.sort(
-        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-      );
-    case VodSortOption.nameDesc:
-      sorted.sort(
-        (a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()),
-      );
-    case VodSortOption.yearDesc:
-      // Nulls-last: items without a year sort after dated items.
-      sorted.sort((a, b) {
-        final aYear = a.year;
-        final bYear = b.year;
-        if (aYear == null && bYear == null) return 0;
-        if (aYear == null) return 1;
-        if (bYear == null) return -1;
-        return bYear.compareTo(aYear);
-      });
-    case VodSortOption.ratingDesc:
-      // NaN-safe: unparseable / null ratings sort last (treated as -∞).
-      sorted.sort((a, b) {
-        final aRating = double.tryParse(a.rating ?? '');
-        final bRating = double.tryParse(b.rating ?? '');
-        if (aRating == null && bRating == null) return 0;
-        if (aRating == null) return 1;
-        if (bRating == null) return -1;
-        return bRating.compareTo(aRating);
-      });
-  }
-  return sorted;
+  /// Sort key string expected by the Rust backend's
+  /// `sortVodItems` function.
+  String get sortByKey => switch (this) {
+    VodSortOption.recentlyAdded => 'added_desc',
+    VodSortOption.nameAsc => 'name_asc',
+    VodSortOption.nameDesc => 'name_desc',
+    VodSortOption.yearDesc => 'year_desc',
+    VodSortOption.ratingDesc => 'rating_desc',
+  };
 }
 
 /// Episode progress lookup by series ID.

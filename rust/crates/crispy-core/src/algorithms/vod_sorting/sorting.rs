@@ -43,9 +43,14 @@ pub fn sort_vod_items(items_json: &str, sort_by: &str) -> String {
         }
         SORT_YEAR_DESC => {
             items.sort_by(|a, b| {
-                let ay = a.year.unwrap_or(0);
-                let by = b.year.unwrap_or(0);
-                by.cmp(&ay)
+                // Nulls-last: items without a year sort after
+                // those with a year.
+                match (a.year, b.year) {
+                    (None, None) => std::cmp::Ordering::Equal,
+                    (None, _) => std::cmp::Ordering::Greater,
+                    (_, None) => std::cmp::Ordering::Less,
+                    (Some(ay), Some(by)) => by.cmp(&ay),
+                }
             });
         }
         SORT_RATING_DESC => {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/data/cache_service.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -53,19 +54,35 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
     initSortOption();
   }
 
-  List<VodItem> get _allFilteredSeries => ref.watch(filteredSeriesProvider);
+  /// Cached sorted+filtered series list (async, from Rust backend).
+  List<VodItem> _sortedSeries = const [];
 
-  List<VodItem> get _series {
-    var all = _allFilteredSeries;
+  /// Inputs used for the last sort — compared each build to decide
+  /// whether to re-trigger.
+  List<VodItem> _lastAll = const [];
+  VodSortOption _lastSortOption = VodSortOption.recentlyAdded;
+  String? _lastCategory;
+  String _lastQuery = '';
+
+  /// Applies category/search filters, then delegates sorting to
+  /// the Rust backend via [CacheService.sortVodItems].
+  Future<void> _refreshSortedSeries(List<VodItem> all) async {
+    var filtered = all;
     if (selectedCategory != null) {
-      all = all.where((s) => s.category == selectedCategory).toList();
+      filtered = filtered.where((s) => s.category == selectedCategory).toList();
     }
     if (searchQuery.isNotEmpty) {
       final q = searchQuery.toLowerCase();
-      all = all.where((s) => s.name.toLowerCase().contains(q)).toList();
+      filtered =
+          filtered.where((s) => s.name.toLowerCase().contains(q)).toList();
     }
-    return sortVodItems(all, sortOption);
+    final cache = ref.read(cacheServiceProvider);
+    final sorted = await cache.sortVodItems(filtered, sortOption.sortByKey);
+    if (!mounted) return;
+    setState(() => _sortedSeries = sorted);
   }
+
+  List<VodItem> get _allFilteredSeries => ref.watch(filteredSeriesProvider);
 
   List<VodItem> get _favorites =>
       _allFilteredSeries.where((s) => s.isFavorite).toList();
@@ -98,6 +115,18 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
 
     if (allSeries.isEmpty) return _buildEmpty();
 
+    // Re-sort whenever items, sort option, category, or query change.
+    if (!identical(allSeries, _lastAll) ||
+        sortOption != _lastSortOption ||
+        selectedCategory != _lastCategory ||
+        searchQuery != _lastQuery) {
+      _lastAll = allSeries;
+      _lastSortOption = sortOption;
+      _lastCategory = selectedCategory;
+      _lastQuery = searchQuery;
+      Future.microtask(() => _refreshSortedSeries(allSeries));
+    }
+
     return Scaffold(
       key: TestKeys.seriesBrowserScreen,
       appBar: AppBar(
@@ -121,7 +150,7 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
 
   Widget _buildBody(BuildContext context, List<VodItem> allSeries) {
     final seriesCategories = _seriesCategories;
-    final series = _series;
+    final series = _sortedSeries;
     final isSearchOrCategory =
         selectedCategory != null || searchQuery.isNotEmpty;
     final cw = ref.watch(continueWatchingSeriesProvider);

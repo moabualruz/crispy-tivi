@@ -22,9 +22,15 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
           ),
         );
       case 'year_desc':
-        list.sort(
-          (a, b) => (b['year'] as int? ?? 0).compareTo(a['year'] as int? ?? 0),
-        );
+        // Nulls-last: items without a year sort after those with one.
+        list.sort((a, b) {
+          final ay = a['year'] as int?;
+          final by = b['year'] as int?;
+          if (ay == null && by == null) return 0;
+          if (ay == null) return 1;
+          if (by == null) return -1;
+          return by.compareTo(ay);
+        });
       case 'rating_desc':
         list.sort((a, b) {
           final ra = double.tryParse('${a['rating'] ?? ''}') ?? double.nan;

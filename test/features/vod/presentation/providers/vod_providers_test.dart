@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:crispy_tivi/core/data/cache_service.dart';
+import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/vod_providers.dart';
 import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
 
@@ -81,7 +83,9 @@ void main() {
     });
   });
 
-  group('sortVodItems', () {
+  group('CacheService.sortVodItems (via VodSortOption.sortByKey)', () {
+    late CacheService cache;
+
     final t1 = DateTime(2024);
     final t2 = DateTime(2023);
 
@@ -113,28 +117,47 @@ void main() {
       ), // no year/addedAt
     ];
 
-    test('nameAsc', () {
-      final sorted = sortVodItems(items, VodSortOption.nameAsc);
+    setUp(() {
+      cache = CacheService(MemoryBackend());
+    });
+
+    test('nameAsc', () async {
+      final sorted = await cache.sortVodItems(
+        items,
+        VodSortOption.nameAsc.sortByKey,
+      );
       expect(sorted.map((e) => e.name), ['A', 'B', 'C']);
     });
 
-    test('nameDesc', () {
-      final sorted = sortVodItems(items, VodSortOption.nameDesc);
+    test('nameDesc', () async {
+      final sorted = await cache.sortVodItems(
+        items,
+        VodSortOption.nameDesc.sortByKey,
+      );
       expect(sorted.map((e) => e.name), ['C', 'B', 'A']);
     });
 
-    test('recentlyAdded - newest first, nulls last', () {
-      final sorted = sortVodItems(items, VodSortOption.recentlyAdded);
+    test('recentlyAdded - newest first, nulls last', () async {
+      final sorted = await cache.sortVodItems(
+        items,
+        VodSortOption.recentlyAdded.sortByKey,
+      );
       expect(sorted.map((e) => e.id), ['2', '1', '3']);
     });
 
-    test('yearDesc - newest first, nulls last', () {
-      final sorted = sortVodItems(items, VodSortOption.yearDesc);
+    test('yearDesc - newest first, nulls last', () async {
+      final sorted = await cache.sortVodItems(
+        items,
+        VodSortOption.yearDesc.sortByKey,
+      );
       expect(sorted.map((e) => e.id), ['2', '1', '3']);
     });
 
-    test('ratingDesc - highest first, NaNs last', () {
-      final sorted = sortVodItems(items, VodSortOption.ratingDesc);
+    test('ratingDesc - highest first, NaNs last', () async {
+      final sorted = await cache.sortVodItems(
+        items,
+        VodSortOption.ratingDesc.sortByKey,
+      );
       expect(sorted.map((e) => e.id), ['2', '1', '3']);
     });
   });
