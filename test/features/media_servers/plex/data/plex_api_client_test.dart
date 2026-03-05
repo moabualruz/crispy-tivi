@@ -359,6 +359,14 @@ void main() {
     });
 
     test('hasMore is false when at end', () async {
+      final fiveItems = List.generate(
+        5,
+        (i) => {
+          'ratingKey': '${100 + i}',
+          'title': 'Movie $i',
+          'type': 'movie',
+        },
+      );
       when(
         () => mockDio.get(
           any(),
@@ -366,7 +374,9 @@ void main() {
           options: any(named: 'options'),
         ),
       ).thenAnswer(
-        (_) async => _ok(_itemsResponse(size: 5, totalSize: 5, offset: 0)),
+        (_) async => _ok(
+          _itemsResponse(metadata: fiveItems, size: 5, totalSize: 5, offset: 0),
+        ),
       );
 
       final result = await client.getItemsPaginated(_server, libraryId: '1');
