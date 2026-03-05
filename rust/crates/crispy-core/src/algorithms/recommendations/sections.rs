@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 use chrono::NaiveDateTime;
 
 use crate::algorithms::normalize::normalize_category;
+use crate::algorithms::watch_progress::NEXT_EPISODE_THRESHOLD;
 use crate::models::{Channel, VodItem};
 
 use super::helpers::{naive_from_epoch_ms, title_case, top_n_by_score, vod_to_recommendation};
@@ -41,7 +42,7 @@ pub(super) fn build_genre_affinity(
         let days = (now - entry_time).num_days() as f64;
         let decay = (-days / 30.0).exp();
 
-        let signal = if entry.watched_percent > 0.9 {
+        let signal = if entry.watched_percent > NEXT_EPISODE_THRESHOLD {
             1.0
         } else if entry.watched_percent > 0.1 {
             0.5

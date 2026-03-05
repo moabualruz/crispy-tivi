@@ -240,6 +240,12 @@ mixin _FfiParsersMixin on _FfiBackendBase {
     vodItemsJson: vodItemsJson,
   );
 
+  // ── Watch Thresholds ─────────────────────────
+
+  double completionThreshold() => rust_api.completionThreshold();
+
+  double nextEpisodeThreshold() => rust_api.nextEpisodeThreshold();
+
   // ── Watch Progress ───────────────────────────
 
   double calculateWatchProgress(int positionMs, int durationMs) =>

@@ -14,6 +14,7 @@ pub mod dedup;
 pub mod dvr;
 pub mod epg_matching;
 pub mod group_icon;
+pub mod json_utils;
 pub mod normalize;
 pub mod permission;
 pub mod pin;

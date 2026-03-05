@@ -1,3 +1,4 @@
+use crate::algorithms::json_utils::parse_json_vec;
 use crate::models::VodItem;
 
 use super::{
@@ -15,9 +16,8 @@ use super::{
 ///
 /// Input/output: JSON arrays of `VodItem`.
 pub fn sort_vod_items(items_json: &str, sort_by: &str) -> String {
-    let mut items: Vec<VodItem> = match serde_json::from_str(items_json) {
-        Ok(v) => v,
-        Err(_) => return "[]".to_string(),
+    let Some(mut items) = parse_json_vec::<VodItem>(items_json) else {
+        return "[]".to_string();
     };
 
     match sort_by {

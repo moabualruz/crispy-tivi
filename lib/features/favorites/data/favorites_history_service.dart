@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/constants.dart';
 import '../../iptv/domain/entities/channel.dart';
 
 /// Watch history and favorites service.
@@ -111,7 +112,7 @@ class WatchPosition {
     return (position.inSeconds / total.inSeconds).clamp(0.0, 1.0);
   }
 
-  bool get isCompleted => progress > 0.9;
+  bool get isCompleted => progress >= kCompletionThreshold;
 }
 
 class FavoritesHistoryState {

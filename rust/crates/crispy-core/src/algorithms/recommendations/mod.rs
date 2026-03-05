@@ -113,6 +113,7 @@ mod tests {
     use chrono::NaiveDate;
     use std::collections::{HashMap, HashSet};
 
+    use crate::algorithms::watch_progress::COMPLETION_THRESHOLD;
     use helpers::{title_case, vod_to_recommendation};
     use sections::{
         build_because_you_watched, build_genre_affinity, build_new_for_you, build_popular_in_genre,
@@ -256,7 +257,7 @@ mod tests {
         let history = vec![WatchSignal {
             item_id: "v1".to_string(),
             media_type: "movie".to_string(),
-            watched_percent: 0.95,
+            watched_percent: COMPLETION_THRESHOLD,
             last_watched_ms: now.and_utc().timestamp_millis(),
         }];
 
@@ -276,7 +277,7 @@ mod tests {
         let old_history = vec![WatchSignal {
             item_id: "v1".to_string(),
             media_type: "movie".to_string(),
-            watched_percent: 0.95,
+            watched_percent: COMPLETION_THRESHOLD,
             last_watched_ms: (now - chrono::Duration::days(60))
                 .and_utc()
                 .timestamp_millis(),
@@ -298,13 +299,13 @@ mod tests {
             WatchSignal {
                 item_id: "v1".to_string(),
                 media_type: "movie".to_string(),
-                watched_percent: 0.95,
+                watched_percent: COMPLETION_THRESHOLD,
                 last_watched_ms: now.and_utc().timestamp_millis(),
             },
             WatchSignal {
                 item_id: "v2".to_string(),
                 media_type: "movie".to_string(),
-                watched_percent: 0.95,
+                watched_percent: COMPLETION_THRESHOLD,
                 last_watched_ms: (now - chrono::Duration::days(60))
                     .and_utc()
                     .timestamp_millis(),
@@ -551,7 +552,7 @@ mod tests {
             WatchSignal {
                 item_id: "v1".to_string(),
                 media_type: "movie".to_string(),
-                watched_percent: 0.95,
+                watched_percent: COMPLETION_THRESHOLD,
                 last_watched_ms: (now - chrono::Duration::days(1))
                     .and_utc()
                     .timestamp_millis(),

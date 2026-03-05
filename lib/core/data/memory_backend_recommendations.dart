@@ -225,7 +225,7 @@ class _MemoryRecommendations {
       final decay = exp(-days / 30.0);
       final pct = (entry['watched_percent'] as num).toDouble();
       double signal;
-      if (pct > 0.9) {
+      if (pct >= kCompletionThreshold) {
         signal = 1.0;
       } else if (pct > 0.1) {
         signal = 0.5;

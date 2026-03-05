@@ -238,6 +238,20 @@ abstract class _BackendAlgorithmMethods {
   /// Extract unique sorted category names from VOD.
   Future<List<String>> extractSortedVodCategories(String itemsJson);
 
+  // ── Watch Thresholds ────────────────────────────────
+
+  /// Completion threshold (0.95): items at or above
+  /// this progress ratio are considered finished.
+  ///
+  /// Canonical value owned by Rust `watch_progress.rs`.
+  double completionThreshold();
+
+  /// Next-episode threshold (0.90): items at or above
+  /// this progress ratio trigger next-episode suggestions.
+  ///
+  /// Canonical value owned by Rust `watch_progress.rs`.
+  double nextEpisodeThreshold();
+
   // ── Watch Progress ──────────────────────────────────
 
   /// Calculate progress ratio from position/duration.

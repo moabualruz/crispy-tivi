@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
@@ -100,7 +101,8 @@ class UpNextItem extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    final isPartial = entry.progress > 0 && entry.progress < 0.95;
+    final isPartial =
+        entry.progress > 0 && entry.progress < kCompletionThreshold;
     final buttonLabel = isPartial ? 'Resume' : 'Play';
     final hasPoster = entry.posterUrl != null && entry.posterUrl!.isNotEmpty;
 

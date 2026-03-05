@@ -18,6 +18,14 @@ mixin _MemoryAlgoTimeMixin on _MemoryStorage {
     int cutoffUtcMs,
   ) async => '[]';
 
+  // ── Watch Thresholds ──────────────────────────
+
+  /// Returns canonical completion threshold (0.95).
+  double completionThreshold() => kCompletionThreshold;
+
+  /// Returns canonical next-episode threshold (0.90).
+  double nextEpisodeThreshold() => 0.90;
+
   // ── Watch Progress ─────────────────────────────
 
   /// Delegates to shared [dartCalculateWatchProgress].

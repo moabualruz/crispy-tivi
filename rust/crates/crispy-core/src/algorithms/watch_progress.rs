@@ -7,11 +7,17 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::json_utils::parse_json_vec;
+
 /// Completion threshold: items >= 95% are finished.
 ///
 /// Canonical definition shared with `watch_history`.
 /// Matches Dart `kCompletionThreshold` in `lib/core/constants.dart`.
-pub(crate) const COMPLETION_THRESHOLD: f64 = 0.95;
+pub const COMPLETION_THRESHOLD: f64 = 0.95;
+
+/// Next-episode threshold: items >= 90% trigger
+/// "next episode" suggestions.
+pub const NEXT_EPISODE_THRESHOLD: f64 = 0.90;
 
 /// A watch position entry for filtering.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,9 +52,8 @@ pub fn calculate_progress(position_ms: i64, duration_ms: i64) -> f64 {
 ///
 /// Input/output: JSON arrays of `WatchPositionEntry`.
 pub fn filter_continue_watching_positions(json: &str, limit: usize) -> String {
-    let entries: Vec<WatchPositionEntry> = match serde_json::from_str(json) {
-        Ok(v) => v,
-        Err(_) => return "[]".to_string(),
+    let Some(entries) = parse_json_vec::<WatchPositionEntry>(json) else {
+        return "[]".to_string();
     };
 
     let mut filtered: Vec<&WatchPositionEntry> = entries

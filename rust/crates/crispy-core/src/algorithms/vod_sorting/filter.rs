@@ -1,3 +1,4 @@
+use crate::algorithms::json_utils::parse_json_vec;
 use crate::models::VodItem;
 
 use super::parse_rating;
@@ -13,9 +14,8 @@ use super::parse_rating;
 ///
 /// Input/output: JSON arrays of `VodItem`.
 pub fn filter_top_vod(items_json: &str, limit: usize) -> String {
-    let items: Vec<VodItem> = match serde_json::from_str(items_json) {
-        Ok(v) => v,
-        Err(_) => return "[]".to_string(),
+    let Some(items) = parse_json_vec::<VodItem>(items_json) else {
+        return "[]".to_string();
     };
 
     // Primary: items with rating + image.
@@ -118,9 +118,8 @@ pub fn parse_content_rating(rating: Option<&str>) -> i32 {
 /// Rating levels: 0=G, 1=PG, 2=PG-13, 3=R, 4=NC-17,
 /// 5=Unrated
 pub fn filter_vod_by_content_rating(items_json: &str, max_rating_value: i32) -> String {
-    let items: Vec<VodItem> = match serde_json::from_str(items_json) {
-        Ok(v) => v,
-        Err(_) => return "[]".to_string(),
+    let Some(items) = parse_json_vec::<VodItem>(items_json) else {
+        return "[]".to_string();
     };
 
     let filtered: Vec<&VodItem> = items

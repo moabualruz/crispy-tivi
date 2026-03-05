@@ -7,6 +7,8 @@
 use serde_json::Value;
 use std::collections::HashSet;
 
+use super::json_utils::parse_json_vec;
+
 /// Filter channels to those accessible by the current
 /// profile.
 ///
@@ -30,16 +32,14 @@ pub fn filter_channels_by_source(
     }
 
     // Parse accessible source IDs into a set.
-    let accessible: HashSet<String> =
-        match serde_json::from_str::<Vec<String>>(accessible_source_ids_json) {
-            Ok(ids) => ids.into_iter().collect(),
-            Err(_) => return "[]".to_string(),
-        };
+    let Some(ids) = parse_json_vec::<String>(accessible_source_ids_json) else {
+        return "[]".to_string();
+    };
+    let accessible: HashSet<String> = ids.into_iter().collect();
 
     // Parse channels array.
-    let channels: Vec<Value> = match serde_json::from_str(channels_json) {
-        Ok(v) => v,
-        Err(_) => return "[]".to_string(),
+    let Some(channels) = parse_json_vec::<Value>(channels_json) else {
+        return "[]".to_string();
     };
 
     // Filter.

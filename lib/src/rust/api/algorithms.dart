@@ -155,6 +155,16 @@ bool verifyPin({required String inputPin, required String storedHash}) =>
 bool isHashedPin({required String value}) =>
     RustLib.instance.api.crateApiAlgorithmsIsHashedPin(value: value);
 
+/// Completion threshold (0.95): items at or above
+/// this progress ratio are considered finished.
+double completionThreshold() =>
+    RustLib.instance.api.crateApiAlgorithmsCompletionThreshold();
+
+/// Next-episode threshold (0.90): items at or above
+/// this progress ratio trigger next-episode suggestions.
+double nextEpisodeThreshold() =>
+    RustLib.instance.api.crateApiAlgorithmsNextEpisodeThreshold();
+
 /// Sign an S3 request using AWS Signature V4.
 /// Returns JSON map of headers to add.
 Future<String> signS3Request({

@@ -104,6 +104,14 @@ mixin _WsAlgorithmsMixin on _WsBackendBase {
     return data as String;
   }
 
+  // ── Watch Thresholds ─────────────────────────
+
+  /// Sync fallback — returns canonical value (WS cannot call FFI sync).
+  double completionThreshold() => 0.95;
+
+  /// Sync fallback — returns canonical value (WS cannot call FFI sync).
+  double nextEpisodeThreshold() => 0.90;
+
   // ── Watch Progress ───────────────────────────
 
   /// Sync — delegates to shared [dartCalculateWatchProgress].

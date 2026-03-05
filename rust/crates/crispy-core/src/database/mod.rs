@@ -27,6 +27,14 @@ use r2d2_sqlite::SqliteConnectionManager;
 /// Current schema version.
 const SCHEMA_VERSION: u32 = 28;
 
+// ── Table name constants ──────────────────────────────────
+
+/// SQLite table name for live channels.
+pub const TABLE_CHANNELS: &str = "db_channels";
+
+/// SQLite table name for VOD items.
+pub const TABLE_VOD_ITEMS: &str = "db_vod_items";
+
 // ── Error type ───────────────────────────────────────────
 
 /// Database error variants.

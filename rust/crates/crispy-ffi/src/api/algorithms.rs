@@ -1,5 +1,6 @@
 use super::ms_to_naive;
 use anyhow::{Context, Result, anyhow};
+use crispy_core::algorithms::watch_progress::{COMPLETION_THRESHOLD, NEXT_EPISODE_THRESHOLD};
 use crispy_core::models::{Channel, EpgEntry, VodItem};
 use std::collections::HashMap;
 
@@ -223,6 +224,22 @@ pub fn verify_pin(input_pin: String, stored_hash: String) -> bool {
 #[flutter_rust_bridge::frb(sync)]
 pub fn is_hashed_pin(value: String) -> bool {
     crispy_core::algorithms::pin::is_hashed_pin(&value)
+}
+
+// ── Watch Progress Thresholds ────────────────────────
+
+/// Completion threshold (0.95): items at or above
+/// this progress ratio are considered finished.
+#[flutter_rust_bridge::frb(sync)]
+pub fn completion_threshold() -> f64 {
+    COMPLETION_THRESHOLD
+}
+
+/// Next-episode threshold (0.90): items at or above
+/// this progress ratio trigger next-episode suggestions.
+#[flutter_rust_bridge::frb(sync)]
+pub fn next_episode_threshold() -> f64 {
+    NEXT_EPISODE_THRESHOLD
 }
 
 // ── S3 Crypto ───────────────────────────────────────

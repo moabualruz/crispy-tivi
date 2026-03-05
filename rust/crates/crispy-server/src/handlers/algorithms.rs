@@ -672,6 +672,14 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             Ok(json!({"data": s}))
         })(),
 
+        // ── Watch Progress Thresholds ─────────────
+        "completionThreshold" => Ok(json!({
+            "data": crispy_core::algorithms::watch_progress::COMPLETION_THRESHOLD
+        })),
+        "nextEpisodeThreshold" => Ok(json!({
+            "data": crispy_core::algorithms::watch_progress::NEXT_EPISODE_THRESHOLD
+        })),
+
         _ => return None,
     };
     Some(r)

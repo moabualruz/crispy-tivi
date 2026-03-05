@@ -1,7 +1,7 @@
 use rusqlite::params;
 
 use super::{CrispyService, bool_to_int, int_to_bool, opt_dt_to_ts, opt_ts_to_dt};
-use crate::database::DbError;
+use crate::database::{DbError, TABLE_VOD_ITEMS};
 use crate::events::DataChangeEvent;
 use crate::models::VodItem;
 
@@ -122,7 +122,7 @@ impl CrispyService {
     ) -> Result<usize, DbError> {
         let conn = self.db.get()?;
         let tx = conn.unchecked_transaction()?;
-        let deleted = super::delete_removed_by_source(&tx, "db_vod_items", source_id, keep_ids)?;
+        let deleted = super::delete_removed_by_source(&tx, TABLE_VOD_ITEMS, source_id, keep_ids)?;
         tx.commit()?;
         self.emit(DataChangeEvent::VodUpdated {
             source_id: source_id.to_string(),
