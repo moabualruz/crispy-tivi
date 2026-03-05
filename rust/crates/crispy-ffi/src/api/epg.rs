@@ -117,6 +117,7 @@ pub fn build_catchup_url(
         description: None,
         category: None,
         icon_url: None,
+        source_id: None,
     };
 
     // Try M3U catchup (flussonic, shift, template).

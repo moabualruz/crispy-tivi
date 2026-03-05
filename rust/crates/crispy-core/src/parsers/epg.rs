@@ -159,6 +159,7 @@ fn parse_programme(
         description,
         category,
         icon_url,
+        source_id: None,
     })
 }
 

@@ -24,6 +24,7 @@ import '../../features/profiles/domain/enums/user_role.dart';
 import '../../features/search/domain/entities/'
     'search_history_entry.dart';
 import '../../features/vod/domain/entities/vod_item.dart';
+import '../domain/entities/playlist_source.dart';
 import '../utils/date_format_utils.dart';
 import 'crispy_backend.dart';
 
@@ -111,8 +112,52 @@ class CacheService extends _CacheServiceBase
     await _backend.removeSetting(key);
   }
 
-  // ── Image Cache ───────────────────────────────
-  // (Removed in Phase 10 serverless image loading)
+  // ── Sources ──────────────────────────────────
+
+  /// Load all content sources sorted by sort_order.
+  Future<List<PlaylistSource>> getSources() async {
+    final maps = await _backend.getSources();
+    return maps.map(mapToSource).toList();
+  }
+
+  /// Get a single source by ID.
+  Future<PlaylistSource?> getSource(String id) async {
+    final m = await _backend.getSource(id);
+    if (m == null) return null;
+    return mapToSource(m);
+  }
+
+  /// Create or update a content source.
+  Future<void> saveSource(PlaylistSource source) async {
+    await _backend.saveSource(sourceToMap(source));
+  }
+
+  /// Delete a source and cascade-delete all its
+  /// channels, VOD, EPG, categories, sync metadata.
+  Future<void> deleteSource(String id) async {
+    await _backend.deleteSource(id);
+  }
+
+  /// Reorder sources by providing the full ordered
+  /// list of source IDs.
+  Future<void> reorderSources(List<String> ids) async {
+    await _backend.reorderSources(ids);
+  }
+
+  /// Update sync status fields on a source.
+  Future<void> updateSourceSyncStatus(
+    String id,
+    String status, {
+    String? error,
+    int? syncTimeMs,
+  }) async {
+    await _backend.updateSourceSyncStatus(
+      id,
+      status,
+      error: error,
+      syncTimeMs: syncTimeMs,
+    );
+  }
 
   // ── Clear ─────────────────────────────────────
 
@@ -161,6 +206,52 @@ DateTime? parseMapDateTime(dynamic value) {
         );
   }
   return null;
+}
+
+// ── Source converters ────────────────────────────
+
+/// Converts a [PlaylistSource] entity to a backend
+/// map matching the Rust `Source` struct fields.
+Map<String, dynamic> sourceToMap(PlaylistSource s) => {
+  'id': s.id,
+  'name': s.name,
+  'source_type': s.type.name,
+  'url': s.url,
+  'username': s.username,
+  'password': s.password,
+  'access_token': s.accessToken,
+  'device_id': s.deviceId,
+  'user_id': s.userId,
+  'mac_address': s.macAddress,
+  'epg_url': s.epgUrl,
+  'user_agent': s.userAgent,
+  'refresh_interval_minutes': s.refreshIntervalMinutes,
+  'accept_self_signed': s.acceptSelfSigned,
+  'enabled': true,
+  'sort_order': 0,
+};
+
+/// Converts a backend map to a [PlaylistSource].
+PlaylistSource mapToSource(Map<String, dynamic> m) {
+  return PlaylistSource(
+    id: m['id'] as String,
+    name: m['name'] as String,
+    url: m['url'] as String,
+    type: PlaylistSourceType.values.firstWhere(
+      (e) => e.name == m['source_type'],
+      orElse: () => PlaylistSourceType.m3u,
+    ),
+    epgUrl: m['epg_url'] as String?,
+    userAgent: m['user_agent'] as String?,
+    refreshIntervalMinutes: (m['refresh_interval_minutes'] as int?) ?? 60,
+    username: m['username'] as String?,
+    password: m['password'] as String?,
+    accessToken: m['access_token'] as String?,
+    deviceId: m['device_id'] as String?,
+    userId: m['user_id'] as String?,
+    macAddress: m['mac_address'] as String?,
+    acceptSelfSigned: m['accept_self_signed'] as bool? ?? false,
+  );
 }
 
 /// Backend provider — platform-selected.

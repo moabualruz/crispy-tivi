@@ -550,6 +550,7 @@ mod tests {
             description: desc.map(String::from),
             category: None,
             icon_url: None,
+            source_id: None,
         }
     }
 

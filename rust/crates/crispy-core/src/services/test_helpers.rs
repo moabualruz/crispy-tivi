@@ -1,5 +1,5 @@
 use crate::algorithms::normalize::EPG_FORMAT;
-use crate::models::{Channel, UserProfile, VodItem, WatchHistory};
+use crate::models::{Channel, Source, UserProfile, VodItem, WatchHistory};
 use crate::services::CrispyService;
 
 /// Open a fresh in-memory service for testing.
@@ -71,6 +71,32 @@ pub fn make_vod_item(id: &str, name: &str) -> VodItem {
         added_at: None,
         updated_at: None,
         source_id: Some("src1".to_string()),
+    }
+}
+
+pub fn make_source(id: &str, name: &str, source_type: &str) -> Source {
+    Source {
+        id: id.to_string(),
+        name: name.to_string(),
+        source_type: source_type.to_string(),
+        url: format!("http://example.com/{id}"),
+        username: None,
+        password: None,
+        access_token: None,
+        device_id: None,
+        user_id: None,
+        mac_address: None,
+        epg_url: None,
+        user_agent: None,
+        refresh_interval_minutes: 60,
+        accept_self_signed: false,
+        enabled: true,
+        sort_order: 0,
+        last_sync_time: None,
+        last_sync_status: None,
+        last_sync_error: None,
+        created_at: None,
+        updated_at: None,
     }
 }
 

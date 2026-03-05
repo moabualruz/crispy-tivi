@@ -82,6 +82,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                 description: None,
                 category: None,
                 icon_url: None,
+                source_id: None,
             };
 
             // Try M3U catchup first.

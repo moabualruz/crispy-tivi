@@ -27,6 +27,7 @@ mod misc;
 mod profiles;
 mod reminders;
 mod settings;
+mod sources;
 mod vod;
 mod watchlist;
 

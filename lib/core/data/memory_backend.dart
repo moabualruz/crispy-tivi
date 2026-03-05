@@ -114,6 +114,7 @@ class MemoryBackend extends _MemoryStorage
     savedLayouts.clear();
     searchHistory.clear();
     reminders.clear();
+    sources.clear();
   }
 }
 
@@ -143,4 +144,5 @@ class _MemoryStorage {
   final savedLayouts = <String, Map<String, dynamic>>{};
   final searchHistory = <String, Map<String, dynamic>>{};
   final reminders = <String, Map<String, dynamic>>{};
+  final sources = <String, Map<String, dynamic>>{};
 }

@@ -211,6 +211,7 @@ mod tests {
             description: None,
             category: None,
             icon_url: None,
+            source_id: None,
         }
     }
 
@@ -226,6 +227,7 @@ mod tests {
             description: None,
             category: None,
             icon_url: None,
+            source_id: None,
         }
     }
 

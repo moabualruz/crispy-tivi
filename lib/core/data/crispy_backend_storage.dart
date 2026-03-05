@@ -17,6 +17,35 @@ abstract class _BackendStorageMethods {
   /// Remove a setting.
   Future<void> removeSetting(String key);
 
+  // ── Sources ──────────────────────────────────────
+
+  /// Get all content sources (IPTV providers, media
+  /// servers) sorted by sort_order.
+  Future<List<Map<String, dynamic>>> getSources();
+
+  /// Get a single source by ID. Returns null if
+  /// not found.
+  Future<Map<String, dynamic>?> getSource(String id);
+
+  /// Create or update a content source.
+  Future<void> saveSource(Map<String, dynamic> source);
+
+  /// Delete a source and cascade-delete all its
+  /// channels, VOD, EPG, categories, and sync metadata.
+  Future<void> deleteSource(String id);
+
+  /// Reorder sources by providing the full list of
+  /// source IDs in the desired order.
+  Future<void> reorderSources(List<String> ids);
+
+  /// Update sync status fields on a source.
+  Future<void> updateSourceSyncStatus(
+    String id,
+    String status, {
+    String? error,
+    int? syncTimeMs,
+  });
+
   // ── Sync Metadata ────────────────────────────────────
 
   /// Get last sync time for a source (Unix seconds).

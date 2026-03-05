@@ -4,6 +4,62 @@ part of 'memory_backend.dart';
 /// layouts, search history, and reminder methods
 /// for [MemoryBackend].
 mixin _MemorySettingsMixin on _MemoryStorage {
+  // ── Sources ───────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> getSources() async {
+    final list = sources.values.toList();
+    list.sort(
+      (a, b) => ((a['sort_order'] as int?) ?? 0).compareTo(
+        (b['sort_order'] as int?) ?? 0,
+      ),
+    );
+    return list;
+  }
+
+  Future<Map<String, dynamic>?> getSource(String id) async => sources[id];
+
+  Future<void> saveSource(Map<String, dynamic> source) async {
+    sources[source['id'] as String] = source;
+  }
+
+  Future<void> deleteSource(String id) async {
+    sources.remove(id);
+    // Cascade-delete content belonging to this source.
+    channels.removeWhere((_, c) => c['source_id'] == id);
+    vodItems.removeWhere((_, v) => v['source_id'] == id);
+    epg.removeWhere((_, entries) {
+      entries.removeWhere((e) => e['source_id'] == id);
+      return entries.isEmpty;
+    });
+    categories.removeWhere((key, _) => key.startsWith('$id:'));
+    syncTimes.remove(id);
+  }
+
+  Future<void> reorderSources(List<String> ids) async {
+    for (var i = 0; i < ids.length; i++) {
+      final src = sources[ids[i]];
+      if (src != null) {
+        src['sort_order'] = i;
+      }
+    }
+  }
+
+  Future<void> updateSourceSyncStatus(
+    String id,
+    String status, {
+    String? error,
+    int? syncTimeMs,
+  }) async {
+    final src = sources[id];
+    if (src == null) return;
+    src['last_sync_status'] = status;
+    src['last_sync_error'] = error;
+    if (syncTimeMs != null) {
+      src['last_sync_time'] =
+          DateTime.fromMillisecondsSinceEpoch(syncTimeMs).toIso8601String();
+    }
+  }
+
   // ── Settings ───────────────────────────────────
 
   Future<String?> getSetting(String key) async => settings[key];

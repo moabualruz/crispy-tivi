@@ -25,7 +25,7 @@ use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
 /// Current schema version.
-const SCHEMA_VERSION: u32 = 28;
+const SCHEMA_VERSION: u32 = 29;
 
 // ── Table name constants ──────────────────────────────────
 
@@ -34,6 +34,9 @@ pub const TABLE_CHANNELS: &str = "db_channels";
 
 /// SQLite table name for VOD items.
 pub const TABLE_VOD_ITEMS: &str = "db_vod_items";
+
+/// SQLite table name for content sources.
+pub const TABLE_SOURCES: &str = "db_sources";
 
 // ── Error type ───────────────────────────────────────────
 
@@ -147,6 +150,7 @@ impl Database {
         tx.execute_batch(CREATE_DB_CHANNEL_ORDER)?;
         tx.execute_batch(CREATE_DB_REMINDERS)?;
         tx.execute_batch(CREATE_DB_WATCHLIST)?;
+        tx.execute_batch(CREATE_DB_SOURCES)?;
         tx.execute_batch(CREATE_INDEXES)?;
 
         tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
@@ -244,6 +248,19 @@ impl Database {
             tx.execute_batch(CREATE_DB_WATCHLIST)?;
         }
 
+        // v29: Add db_sources table, source_id to epg_entries and categories.
+        if from_version < 29 {
+            tx.execute_batch(CREATE_DB_SOURCES)?;
+            let _ = tx.execute("ALTER TABLE db_epg_entries ADD COLUMN source_id TEXT", []);
+            let _ = tx.execute("ALTER TABLE db_categories ADD COLUMN source_id TEXT", []);
+            tx.execute_batch(
+                "CREATE INDEX IF NOT EXISTS idx_epg_source \
+                    ON db_epg_entries (source_id); \
+                 CREATE INDEX IF NOT EXISTS idx_categories_source \
+                    ON db_categories (source_id);",
+            )?;
+        }
+
         tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
         tx.commit()?;
         Ok(())
@@ -309,6 +326,7 @@ const CREATE_DB_CATEGORIES: &str = "\
 CREATE TABLE IF NOT EXISTS db_categories (
     category_type TEXT NOT NULL,
     name TEXT NOT NULL,
+    source_id TEXT,
     PRIMARY KEY (category_type, name)
 );";
 
@@ -333,6 +351,7 @@ CREATE TABLE IF NOT EXISTS db_epg_entries (
     description TEXT,
     category TEXT,
     icon_url TEXT,
+    source_id TEXT,
     PRIMARY KEY (channel_id, start_time)
 );";
 
@@ -506,6 +525,31 @@ CREATE TABLE IF NOT EXISTS db_watchlist (
     PRIMARY KEY (profile_id, vod_item_id)
 );";
 
+const CREATE_DB_SOURCES: &str = "\
+CREATE TABLE IF NOT EXISTS db_sources (
+    id TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    source_type TEXT NOT NULL,
+    url TEXT NOT NULL,
+    username TEXT,
+    password TEXT,
+    access_token TEXT,
+    device_id TEXT,
+    user_id TEXT,
+    mac_address TEXT,
+    epg_url TEXT,
+    user_agent TEXT,
+    refresh_interval_minutes INTEGER NOT NULL DEFAULT 60,
+    accept_self_signed INTEGER NOT NULL DEFAULT 0,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    last_sync_time INTEGER,
+    last_sync_status TEXT,
+    last_sync_error TEXT,
+    created_at INTEGER,
+    updated_at INTEGER
+);";
+
 // ── Indexes ──────────────────────────────────────────────
 
 const CREATE_INDEXES: &str = "\
@@ -527,6 +571,10 @@ CREATE INDEX IF NOT EXISTS idx_reminders_notify
     ON db_reminders (notify_at);
 CREATE INDEX IF NOT EXISTS idx_channel_order_profile
     ON db_channel_order (profile_id);
+CREATE INDEX IF NOT EXISTS idx_epg_source
+    ON db_epg_entries (source_id);
+CREATE INDEX IF NOT EXISTS idx_categories_source
+    ON db_categories (source_id);
 ";
 
 // ── Tests ────────────────────────────────────────────────
@@ -578,6 +626,7 @@ mod tests {
             "db_saved_layouts",
             "db_search_history",
             "db_settings",
+            "db_sources",
             "db_storage_backends",
             "db_sync_meta",
             "db_transfer_tasks",
@@ -588,7 +637,7 @@ mod tests {
             "db_watchlist",
         ];
 
-        assert_eq!(tables.len(), 20, "expected 20 tables");
+        assert_eq!(tables.len(), 21, "expected 21 tables");
         for name in &expected {
             assert!(tables.contains(&name.to_string()), "missing table: {name}",);
         }
@@ -614,10 +663,12 @@ mod tests {
             .collect();
 
         let expected = vec![
+            "idx_categories_source",
             "idx_channel_order_profile",
             "idx_channels_source",
             "idx_channels_tvg",
             "idx_epg_channel",
+            "idx_epg_source",
             "idx_reminders_notify",
             "idx_source_access",
             "idx_vod_items_series",
@@ -625,7 +676,7 @@ mod tests {
             "idx_watch_history_profile",
         ];
 
-        assert_eq!(indexes.len(), 9, "expected 9 indexes",);
+        assert_eq!(indexes.len(), 11, "expected 11 indexes",);
         for name in &expected {
             assert!(indexes.contains(&name.to_string()), "missing index: {name}",);
         }

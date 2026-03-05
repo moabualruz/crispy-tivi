@@ -74,6 +74,14 @@ pub enum DataChangeEvent {
         profile_id: String,
     },
 
+    // ── Sources ──────────────────────────────────
+    SourceChanged {
+        source_id: String,
+    },
+    SourceDeleted {
+        source_id: String,
+    },
+
     // ── Settings ──────────────────────────────────
     SettingsUpdated {
         key: String,

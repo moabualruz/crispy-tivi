@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::algorithms::cloud_sync::SYNC_META_KEYS;
-use crate::models::{Recording, StorageBackend, UserProfile, WatchHistory};
+use crate::models::{Recording, Source, StorageBackend, UserProfile, WatchHistory};
 use crate::services::CrispyService;
 
 /// Current backup format version.
@@ -74,6 +74,9 @@ pub struct BackupData {
     pub sources: Vec<Value>,
     /// Configured storage backends.
     pub storage_backends: Vec<Value>,
+    /// Content sources from db_sources table.
+    #[serde(default)]
+    pub db_sources: Vec<Value>,
 }
 
 /// Counts of imported entities.
@@ -98,6 +101,8 @@ pub struct BackupSummary {
     pub sources: i32,
     /// Number of storage backends imported.
     pub storage_backends: i32,
+    /// Number of db_sources imported.
+    pub db_sources: i32,
 }
 
 // ── Export ───────────────────────────────────────────
@@ -171,6 +176,13 @@ pub fn export_backup(svc: &CrispyService) -> Result<String, String> {
         })
         .collect();
 
+    // 10. db_sources table entries
+    let db_sources_list = svc.get_sources().map_err(|e| e.to_string())?;
+    let db_sources_values: Vec<Value> = db_sources_list
+        .iter()
+        .filter_map(|s| serde_json::to_value(s).ok())
+        .collect();
+
     let backup = BackupData {
         version: BACKUP_VERSION,
         exported_at: chrono::Utc::now().to_rfc3339(),
@@ -183,6 +195,7 @@ pub fn export_backup(svc: &CrispyService) -> Result<String, String> {
         recordings: rec_values,
         sources,
         storage_backends: backend_values,
+        db_sources: db_sources_values,
     };
 
     let formatter = serde_json::ser::PrettyFormatter::with_indent(b"  ");
@@ -283,6 +296,15 @@ pub fn import_backup(svc: &CrispyService, json: &str) -> Result<BackupSummary, S
 
     // 9. Channel orders
     import_channel_orders(svc, &data, &mut summary);
+
+    // 10. db_sources
+    for sv in &data.db_sources {
+        if let Ok(source) = serde_json::from_value::<Source>(sv.clone())
+            && svc.save_source(&source).is_ok()
+        {
+            summary.db_sources += 1;
+        }
+    }
 
     Ok(summary)
 }

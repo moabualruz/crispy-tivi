@@ -69,6 +69,7 @@ pub fn parse_short_epg(listings: &[Value], channel_id: &str) -> Vec<EpgEntry> {
             description,
             category: None,
             icon_url: None,
+            source_id: None,
         });
     }
 

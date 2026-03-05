@@ -27,9 +27,9 @@ impl CrispyService {
                          channel_id, title,
                          start_time, end_time,
                          description, category,
-                         icon_url
+                         icon_url, source_id
                      ) VALUES (
-                         ?1, ?2, ?3, ?4, ?5, ?6, ?7
+                         ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
                      )",
                     params![
                         matched_channel_id,
@@ -39,6 +39,7 @@ impl CrispyService {
                         e.description,
                         e.category,
                         e.icon_url,
+                        e.source_id,
                     ],
                 )?;
                 count += 1;
@@ -72,7 +73,7 @@ impl CrispyService {
             "SELECT
                 channel_id, title, start_time,
                 end_time, description, category,
-                icon_url
+                icon_url, source_id
             FROM db_epg_entries
             ORDER BY channel_id, start_time",
         )?;
@@ -85,6 +86,7 @@ impl CrispyService {
                 description: row.get(4)?,
                 category: row.get(5)?,
                 icon_url: row.get(6)?,
+                source_id: row.get(7)?,
             })
         })?;
         let mut map: HashMap<String, Vec<EpgEntry>> = HashMap::new();
@@ -112,7 +114,7 @@ impl CrispyService {
             "SELECT
                 channel_id, title, start_time,
                 end_time, description, category,
-                icon_url
+                icon_url, source_id
             FROM db_epg_entries
             WHERE channel_id IN ({})
               AND end_time > ?{}
@@ -142,6 +144,7 @@ impl CrispyService {
                 description: row.get(4)?,
                 category: row.get(5)?,
                 icon_url: row.get(6)?,
+                source_id: row.get(7)?,
             })
         })?;
 
@@ -193,6 +196,7 @@ mod tests {
             description: None,
             category: None,
             icon_url: None,
+            source_id: None,
         };
         let mut map = HashMap::new();
         map.insert("ch1".to_string(), vec![entry]);
@@ -217,6 +221,7 @@ mod tests {
             description: None,
             category: None,
             icon_url: None,
+            source_id: None,
         };
         let mut map = HashMap::new();
         map.insert("ch1".to_string(), vec![entry]);
@@ -253,6 +258,7 @@ mod tests {
             description: None,
             category: None,
             icon_url: None,
+            source_id: None,
         };
         let mut map = HashMap::new();
         map.insert("ch1".to_string(), vec![entry]);
@@ -279,6 +285,7 @@ mod tests {
             description: None,
             category: None,
             icon_url: None,
+            source_id: None,
         };
         let mut map = HashMap::new();
         map.insert("ch1".to_string(), vec![entry]);
@@ -310,6 +317,7 @@ mod tests {
             description: None,
             category: None,
             icon_url: None,
+            source_id: None,
         };
         let mut map = HashMap::new();
         map.insert("ch1".to_string(), vec![make_entry("ch1")]);

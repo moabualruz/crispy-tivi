@@ -33,7 +33,20 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
     _persistence = SettingsPersistence(_cache);
     _config = ConfigOverrideHelper(configService);
     final config = await configService.load();
-    final sources = await _persistence.loadSources();
+    var sources = await _cache.getSources();
+
+    // ── One-time migration: JSON blob → db_sources ──
+    if (sources.isEmpty) {
+      final legacySources = await _persistence.loadSources();
+      if (legacySources.isNotEmpty) {
+        for (final s in legacySources) {
+          await _cache.saveSource(s);
+        }
+        // Remove the old JSON blob.
+        await _cache.removeSetting(kSourcesKey);
+        sources = legacySources;
+      }
+    }
     final syncIntervalStr = await _cache.getSetting(kSyncIntervalKey);
     final syncInterval =
         syncIntervalStr != null ? int.tryParse(syncIntervalStr) ?? 24 : 24;
@@ -278,16 +291,16 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
   Future<void> addSource(PlaylistSource source) async {
     final current = state.value;
     if (current == null) return;
+    await _cache.saveSource(source);
     final upd = [...current.sources, source];
-    await _persistence.saveSources(upd);
     state = AsyncData(current.copyWith(sources: upd));
   }
 
   Future<void> removeSource(String id) async {
     final current = state.value;
     if (current == null) return;
+    await _cache.deleteSource(id);
     final upd = current.sources.where((s) => s.id != id).toList();
-    await _persistence.saveSources(upd);
     state = AsyncData(current.copyWith(sources: upd));
   }
 
@@ -295,9 +308,9 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
   Future<void> updateSource(PlaylistSource updated) async {
     final current = state.value;
     if (current == null) return;
+    await _cache.saveSource(updated);
     final upd =
         current.sources.map((s) => s.id == updated.id ? updated : s).toList();
-    await _persistence.saveSources(upd);
     state = AsyncData(current.copyWith(sources: upd));
   }
 
@@ -308,26 +321,13 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
     final updated =
         current.sources.map((s) {
           if (s.id == sourceId) {
-            return PlaylistSource(
-              id: s.id,
-              name: s.name,
-              url: s.url,
-              type: s.type,
-              epgUrl: s.epgUrl,
-              userAgent: userAgent,
-              refreshIntervalMinutes: s.refreshIntervalMinutes,
-              username: s.username,
-              password: s.password,
-              accessToken: s.accessToken,
-              deviceId: s.deviceId,
-              userId: s.userId,
-              macAddress: s.macAddress,
-              acceptSelfSigned: s.acceptSelfSigned,
-            );
+            return s.copyWith(userAgent: userAgent);
           }
           return s;
         }).toList();
-    await _persistence.saveSources(updated);
+    // Persist the updated source.
+    final src = updated.firstWhere((s) => s.id == sourceId);
+    await _cache.saveSource(src);
     state = AsyncData(current.copyWith(sources: updated));
   }
 

@@ -2,6 +2,39 @@ part of 'ws_backend.dart';
 
 /// Settings-related WebSocket commands.
 mixin _WsSettingsMixin on _WsBackendBase {
+  // ── Sources ──────────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> getSources() async {
+    final data = await _send('getSources');
+    return (data as List).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>?> getSource(String id) async {
+    final result = await _send('getSource', {'id': id});
+    if (result == null) return null;
+    return result as Map<String, dynamic>;
+  }
+
+  Future<void> saveSource(Map<String, dynamic> source) =>
+      _send('saveSource', source);
+
+  Future<void> deleteSource(String id) => _send('deleteSource', {'id': id});
+
+  Future<void> reorderSources(List<String> ids) =>
+      _send('reorderSources', {'sourceIds': ids});
+
+  Future<void> updateSourceSyncStatus(
+    String id,
+    String status, {
+    String? error,
+    int? syncTimeMs,
+  }) => _send('updateSourceSyncStatus', {
+    'id': id,
+    'status': status,
+    if (error != null) 'error': error,
+    if (syncTimeMs != null) 'syncTime': syncTimeMs ~/ 1000,
+  });
+
   // ── Settings ─────────────────────────────────────
 
   Future<String?> getSetting(String key) async {

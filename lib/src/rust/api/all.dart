@@ -7,6 +7,7 @@ export 'lifecycle.dart';
 export 'parsers.dart';
 export 'profiles.dart';
 export 'settings.dart';
+export 'sources.dart';
 export 'sync.dart';
 export 'vod.dart';
 export 'watchlist.dart';

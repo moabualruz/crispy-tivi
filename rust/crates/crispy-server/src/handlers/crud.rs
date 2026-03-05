@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 use crispy_core::models::*;
 use crispy_core::services::CrispyService;
 
-use super::{get_i64, get_str, get_str_vec, ts_to_dt};
+use super::{get_i64, get_str, get_str_opt, get_str_vec, ts_to_dt};
 
 /// Handle CRUD commands. Returns `Some(result)` if the
 /// command matched, `None` otherwise.
@@ -706,6 +706,47 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let summary =
                 crispy_core::backup::import_backup(svc, &json_str).map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"data": summary}))
+        })(),
+
+        // ── Sources ──────────────────────────
+        "getSources" => {
+            let sources = svc.get_sources().map_err(|e| anyhow!("{e}"));
+            sources.map(|d| json!({"data": d}))
+        }
+        "getSource" => (|| {
+            let id = get_str(args, "id")?;
+            let source = svc.get_source(&id).map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": source}))
+        })(),
+        "saveSource" => (|| {
+            let json_str = serde_json::to_string(args)?;
+            let source: crispy_core::models::Source =
+                serde_json::from_str(&json_str).context("Invalid source JSON")?;
+            svc.save_source(&source).map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"ok": true}))
+        })(),
+        "deleteSource" => (|| {
+            let id = get_str(args, "id")?;
+            svc.delete_source(&id).map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"ok": true}))
+        })(),
+        "reorderSources" => (|| {
+            let ids = get_str_vec(args, "sourceIds")?;
+            svc.reorder_sources(&ids).map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"ok": true}))
+        })(),
+        "updateSourceSyncStatus" => (|| {
+            let id = get_str(args, "id")?;
+            let status = get_str(args, "status")?;
+            let error = get_str_opt(args, "error")?;
+            let sync_time = args
+                .get("syncTime")
+                .and_then(|v| v.as_i64())
+                .and_then(|ts| chrono::DateTime::from_timestamp(ts, 0))
+                .map(|dt| dt.naive_utc());
+            svc.update_source_sync_status(&id, &status, error.as_deref(), sync_time)
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"ok": true}))
         })(),
 
         _ => return None,

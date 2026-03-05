@@ -2,6 +2,40 @@ part of 'ffi_backend.dart';
 
 /// Settings-related FFI calls.
 mixin _FfiSettingsMixin on _FfiBackendBase {
+  // ── Sources ──────────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> getSources() async {
+    final json = await rust_api.getSources();
+    return _decodeJsonList(json);
+  }
+
+  Future<Map<String, dynamic>?> getSource(String id) async {
+    final json = await rust_api.getSource(id: id);
+    final decoded = jsonDecode(json);
+    if (decoded == null) return null;
+    return decoded as Map<String, dynamic>;
+  }
+
+  Future<void> saveSource(Map<String, dynamic> source) =>
+      rust_api.saveSource(json: jsonEncode(source));
+
+  Future<void> deleteSource(String id) => rust_api.deleteSource(id: id);
+
+  Future<void> reorderSources(List<String> ids) =>
+      rust_api.reorderSources(idsJson: jsonEncode(ids));
+
+  Future<void> updateSourceSyncStatus(
+    String id,
+    String status, {
+    String? error,
+    int? syncTimeMs,
+  }) => rust_api.updateSourceSyncStatus(
+    id: id,
+    status: status,
+    error: error,
+    syncTimeMs: syncTimeMs,
+  );
+
   // ── Settings ─────────────────────────────────────
 
   Future<String?> getSetting(String key) => rust_api.getSetting(key: key);

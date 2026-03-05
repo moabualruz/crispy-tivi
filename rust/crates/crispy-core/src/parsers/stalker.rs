@@ -381,6 +381,7 @@ fn parse_single_epg_entry(item: &Value, channel_id: &str) -> Option<EpgEntry> {
         description,
         category,
         icon_url: None,
+        source_id: None,
     })
 }
 

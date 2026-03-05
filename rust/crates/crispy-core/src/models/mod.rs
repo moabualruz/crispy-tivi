@@ -148,6 +148,9 @@ pub struct Category {
     pub category_type: String,
     /// Human-readable category name.
     pub name: String,
+    /// Source this category belongs to.
+    #[serde(default)]
+    pub source_id: Option<String>,
 }
 
 // ── SyncReport ─────────────────────────────────────
@@ -242,6 +245,9 @@ pub struct EpgEntry {
     /// URL of the programme icon/thumbnail.
     #[serde(default)]
     pub icon_url: Option<String>,
+    /// Source this EPG entry came from.
+    #[serde(default)]
+    pub source_id: Option<String>,
 }
 
 // ── WatchHistory ────────────────────────────────────
@@ -411,6 +417,84 @@ pub struct ProfileSourceAccess {
     pub source_id: String,
     /// When access was granted.
     pub granted_at: NaiveDateTime,
+}
+
+// ── Source ─────────────────────────────────────────
+
+/// A content source (IPTV provider or media server).
+///
+/// Maps to the `db_sources` table. Replaces the old
+/// JSON blob in `db_settings`. All content (channels,
+/// VOD, EPG) references its source via `source_id`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Source {
+    /// Unique source identifier (e.g. "src_1709834567890").
+    pub id: String,
+    /// Human-readable source name.
+    pub name: String,
+    /// Source type discriminator.
+    pub source_type: String,
+    /// Server/playlist URL.
+    pub url: String,
+    /// Username (Xtream).
+    #[serde(default)]
+    pub username: Option<String>,
+    /// Password (Xtream).
+    #[serde(default)]
+    pub password: Option<String>,
+    /// Access token (Plex/Emby/Jellyfin).
+    #[serde(default)]
+    pub access_token: Option<String>,
+    /// Device identifier (Emby/Jellyfin).
+    #[serde(default)]
+    pub device_id: Option<String>,
+    /// User ID on the server (Emby/Jellyfin).
+    #[serde(default)]
+    pub user_id: Option<String>,
+    /// MAC address (Stalker).
+    #[serde(default)]
+    pub mac_address: Option<String>,
+    /// EPG source URL.
+    #[serde(default)]
+    pub epg_url: Option<String>,
+    /// Custom HTTP user-agent.
+    #[serde(default)]
+    pub user_agent: Option<String>,
+    /// Auto-refresh interval in minutes.
+    #[serde(default = "default_refresh_interval")]
+    pub refresh_interval_minutes: i32,
+    /// Accept self-signed TLS certs.
+    #[serde(default)]
+    pub accept_self_signed: bool,
+    /// Whether this source is enabled.
+    #[serde(default = "default_true_for_source")]
+    pub enabled: bool,
+    /// Sort/priority order (lower = higher priority).
+    #[serde(default)]
+    pub sort_order: i32,
+    /// Last sync timestamp.
+    #[serde(default)]
+    pub last_sync_time: Option<NaiveDateTime>,
+    /// Last sync status: "success", "error", "syncing".
+    #[serde(default)]
+    pub last_sync_status: Option<String>,
+    /// Last sync error message.
+    #[serde(default)]
+    pub last_sync_error: Option<String>,
+    /// When the source was created.
+    #[serde(default)]
+    pub created_at: Option<NaiveDateTime>,
+    /// When the source was last updated.
+    #[serde(default)]
+    pub updated_at: Option<NaiveDateTime>,
+}
+
+fn default_refresh_interval() -> i32 {
+    60
+}
+
+fn default_true_for_source() -> bool {
+    true
 }
 
 // ── Recording ───────────────────────────────────────
