@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/cache_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../../core/network/http_service.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
-import '../../../iptv/data/parsers/stalker_portal_client.dart';
-import '../../../iptv/data/parsers/xtream_client.dart';
 import '../../../settings/presentation/widgets/source_form_fields.dart';
 import '../providers/onboarding_notifier.dart';
 
@@ -131,27 +130,34 @@ class _OnboardingFormStepState extends ConsumerState<OnboardingFormStep> {
     final pass = _passCtrl.text.trim();
 
     // Verify server connectivity before saving.
-    final http = ref.read(httpServiceProvider);
     String? verifyError;
 
-    switch (sourceType) {
-      case PlaylistSourceType.xtream:
-        verifyError = await XtreamClient.verifyCredentials(
-          http: http,
-          serverUrl: url,
-          username: user,
-          password: pass,
-        );
-      case PlaylistSourceType.m3u:
-        verifyError = await HttpService.verifyM3uUrl(http: http, url: url);
-      case PlaylistSourceType.stalkerPortal:
-        verifyError = await StalkerPortalClient.verifyPortal(
-          dio: http.dio,
-          serverUrl: url,
-          macAddress: _macCtrl.text.trim().toUpperCase(),
-        );
-      default:
-        break;
+    try {
+      final backend = ref.read(crispyBackendProvider);
+      switch (sourceType) {
+        case PlaylistSourceType.xtream:
+          final ok = await backend.verifyXtreamCredentials(
+            baseUrl: url,
+            username: user,
+            password: pass,
+          );
+          if (!ok) verifyError = 'Authentication failed. Check credentials.';
+        case PlaylistSourceType.m3u:
+          final http = ref.read(httpServiceProvider);
+          verifyError = await HttpService.verifyM3uUrl(http: http, url: url);
+        case PlaylistSourceType.stalkerPortal:
+          final ok = await backend.verifyStalkerPortal(
+            baseUrl: url,
+            macAddress: _macCtrl.text.trim().toUpperCase(),
+          );
+          if (!ok) {
+            verifyError = 'Portal authentication failed. Check URL and MAC.';
+          }
+        default:
+          break;
+      }
+    } catch (e) {
+      verifyError = 'Connection error: $e';
     }
 
     if (!mounted) return;

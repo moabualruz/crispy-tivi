@@ -13,6 +13,9 @@ use crate::database::{Database, DbError};
 use crate::events::{DataChangeEvent, EventCallback};
 
 pub mod epg_sync;
+pub mod m3u_sync;
+pub mod stalker_sync;
+pub mod xtream_sync;
 
 mod bulk;
 mod categories;

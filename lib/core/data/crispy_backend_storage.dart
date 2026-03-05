@@ -25,6 +25,51 @@ abstract class _BackendStorageMethods {
   /// Set last sync time for a source (Unix seconds).
   Future<void> setLastSyncTime(String sourceId, int timestamp);
 
+  // ── Source Sync ────────────────────────────────────────
+
+  /// Verify Xtream credentials. Returns `true` if authenticated.
+  Future<bool> verifyXtreamCredentials({
+    required String baseUrl,
+    required String username,
+    required String password,
+    bool acceptInvalidCerts = false,
+  });
+
+  /// Full Xtream source sync. Returns JSON `SyncReport`.
+  Future<String> syncXtreamSource({
+    required String baseUrl,
+    required String username,
+    required String password,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  });
+
+  /// Full M3U source sync. Returns JSON `SyncReport`.
+  Future<String> syncM3uSource({
+    required String url,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  });
+
+  /// Verify Stalker portal MAC authentication.
+  Future<bool> verifyStalkerPortal({
+    required String baseUrl,
+    required String macAddress,
+    bool acceptInvalidCerts = false,
+  });
+
+  /// Full Stalker portal sync. Returns JSON `SyncReport`.
+  Future<String> syncStalkerSource({
+    required String baseUrl,
+    required String macAddress,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  });
+
+  /// Subscribe to sync progress events from Rust.
+  /// Returns a stream of JSON-encoded `SyncProgress` objects.
+  Stream<String> subscribeSyncProgress();
+
   // ── Recordings ───────────────────────────────────────
 
   /// Load all recordings.

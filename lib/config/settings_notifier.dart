@@ -322,6 +322,7 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
               deviceId: s.deviceId,
               userId: s.userId,
               macAddress: s.macAddress,
+              acceptSelfSigned: s.acceptSelfSigned,
             );
           }
           return s;

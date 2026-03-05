@@ -188,7 +188,7 @@ void showAddXtreamDialogFromScreen(BuildContext context, WidgetRef ref) {
                   ),
                 );
 
-                final count = await ref
+                final report = await ref
                     .read(playlistSyncServiceProvider)
                     .syncSource(source);
 
@@ -196,7 +196,7 @@ void showAddXtreamDialogFromScreen(BuildContext context, WidgetRef ref) {
                   messenger.showSnackBar(
                     SnackBar(
                       content: Text(
-                        'Loaded $count channels '
+                        'Loaded ${report.totalChannels} channels '
                         'from "$name"',
                       ),
                     ),

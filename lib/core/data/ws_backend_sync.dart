@@ -13,6 +13,84 @@ mixin _WsSyncMixin on _WsBackendBase {
   Future<void> setLastSyncTime(String sourceId, int timestamp) =>
       _send('setLastSyncTime', {'sourceId': sourceId, 'timestamp': timestamp});
 
+  // ── Source Sync ─────────────────────────────────
+
+  Future<bool> verifyXtreamCredentials({
+    required String baseUrl,
+    required String username,
+    required String password,
+    bool acceptInvalidCerts = false,
+  }) async {
+    final data = await _send('verifyXtreamCredentials', {
+      'baseUrl': baseUrl,
+      'username': username,
+      'password': password,
+      'acceptInvalidCerts': acceptInvalidCerts,
+    });
+    return data as bool;
+  }
+
+  Future<String> syncXtreamSource({
+    required String baseUrl,
+    required String username,
+    required String password,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) async {
+    final data = await _send('syncXtreamSource', {
+      'baseUrl': baseUrl,
+      'username': username,
+      'password': password,
+      'sourceId': sourceId,
+      'acceptInvalidCerts': acceptInvalidCerts,
+    });
+    return jsonEncode(data);
+  }
+
+  Future<String> syncM3uSource({
+    required String url,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) async {
+    final data = await _send('syncM3uSource', {
+      'url': url,
+      'sourceId': sourceId,
+      'acceptInvalidCerts': acceptInvalidCerts,
+    });
+    return jsonEncode(data);
+  }
+
+  Future<bool> verifyStalkerPortal({
+    required String baseUrl,
+    required String macAddress,
+    bool acceptInvalidCerts = false,
+  }) async {
+    final data = await _send('verifyStalkerPortal', {
+      'baseUrl': baseUrl,
+      'macAddress': macAddress,
+      'acceptInvalidCerts': acceptInvalidCerts,
+    });
+    return data as bool;
+  }
+
+  Future<String> syncStalkerSource({
+    required String baseUrl,
+    required String macAddress,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) async {
+    final data = await _send('syncStalkerSource', {
+      'baseUrl': baseUrl,
+      'macAddress': macAddress,
+      'sourceId': sourceId,
+      'acceptInvalidCerts': acceptInvalidCerts,
+    });
+    return jsonEncode(data);
+  }
+
+  // Web target: progress events are not streamed via WS yet.
+  Stream<String> subscribeSyncProgress() => const Stream.empty();
+
   // ── Backup ───────────────────────────────────────
 
   Future<String> exportBackup() async {

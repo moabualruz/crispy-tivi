@@ -97,6 +97,7 @@ class SettingsPersistence {
     'deviceId': s.deviceId,
     'userid': s.userId,
     'macAddress': s.macAddress,
+    'acceptSelfSigned': s.acceptSelfSigned,
   };
 
   /// Parses a [PlaylistSource] from a JSON map.
@@ -114,5 +115,6 @@ class SettingsPersistence {
     deviceId: j['deviceId'] as String?,
     userId: j['userid'] as String?,
     macAddress: j['macAddress'] as String?,
+    acceptSelfSigned: j['acceptSelfSigned'] as bool? ?? false,
   );
 }

@@ -16,6 +16,68 @@ mixin _FfiSyncMixin on _FfiBackendBase {
         timestamp: PlatformInt64Util.from(timestamp),
       );
 
+  // ── Source Sync ─────────────────────────────────
+
+  Future<bool> verifyXtreamCredentials({
+    required String baseUrl,
+    required String username,
+    required String password,
+    bool acceptInvalidCerts = false,
+  }) => rust_api.verifyXtreamCredentials(
+    baseUrl: baseUrl,
+    username: username,
+    password: password,
+    acceptInvalidCerts: acceptInvalidCerts,
+  );
+
+  Future<String> syncXtreamSource({
+    required String baseUrl,
+    required String username,
+    required String password,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) => rust_api.syncXtreamSource(
+    baseUrl: baseUrl,
+    username: username,
+    password: password,
+    sourceId: sourceId,
+    acceptInvalidCerts: acceptInvalidCerts,
+  );
+
+  Future<String> syncM3uSource({
+    required String url,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) => rust_api.syncM3USource(
+    url: url,
+    sourceId: sourceId,
+    acceptInvalidCerts: acceptInvalidCerts,
+  );
+
+  Future<bool> verifyStalkerPortal({
+    required String baseUrl,
+    required String macAddress,
+    bool acceptInvalidCerts = false,
+  }) => rust_api.verifyStalkerPortal(
+    baseUrl: baseUrl,
+    macAddress: macAddress,
+    acceptInvalidCerts: acceptInvalidCerts,
+  );
+
+  Future<String> syncStalkerSource({
+    required String baseUrl,
+    required String macAddress,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) => rust_api.syncStalkerSource(
+    baseUrl: baseUrl,
+    macAddress: macAddress,
+    sourceId: sourceId,
+    acceptInvalidCerts: acceptInvalidCerts,
+  );
+
+  Stream<String> subscribeSyncProgress() => rust_api.subscribeSyncProgress();
+
   // ── Backup ───────────────────────────────────────
 
   Future<String> exportBackup() => rust_api.exportBackup();

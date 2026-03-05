@@ -12,6 +12,7 @@ import 'api/lifecycle.dart';
 import 'api/parsers.dart';
 import 'api/profiles.dart';
 import 'api/settings.dart';
+import 'api/sync.dart';
 import 'api/vod.dart';
 import 'api/watchlist.dart';
 import 'dart:async';
@@ -74,7 +75,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -664766035;
+  int get rustContentHash => -75054270;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -715,9 +716,24 @@ abstract class RustLibApi extends BaseApi {
 
   Stream<String> crateApiLifecycleSubscribeDataEvents();
 
+  Stream<String> crateApiSyncSubscribeSyncProgress();
+
+  Future<String> crateApiSyncSyncM3USource({
+    required String url,
+    required String sourceId,
+    required bool acceptInvalidCerts,
+  });
+
   Future<BigInt> crateApiEpgSyncStalkerEpg({
     required String baseUrl,
     required String channelsJson,
+  });
+
+  Future<String> crateApiSyncSyncStalkerSource({
+    required String baseUrl,
+    required String macAddress,
+    required String sourceId,
+    required bool acceptInvalidCerts,
   });
 
   Future<BigInt> crateApiEpgSyncXmltvEpg({required String url});
@@ -727,6 +743,14 @@ abstract class RustLibApi extends BaseApi {
     required String username,
     required String password,
     required String channelsJson,
+  });
+
+  Future<String> crateApiSyncSyncXtreamSource({
+    required String baseUrl,
+    required String username,
+    required String password,
+    required String sourceId,
+    required bool acceptInvalidCerts,
   });
 
   String crateApiAlgorithmsTryBase64Decode({required String input});
@@ -745,6 +769,19 @@ abstract class RustLibApi extends BaseApi {
   bool crateApiAlgorithmsVerifyPin({
     required String inputPin,
     required String storedHash,
+  });
+
+  Future<bool> crateApiSyncVerifyStalkerPortal({
+    required String baseUrl,
+    required String macAddress,
+    required bool acceptInvalidCerts,
+  });
+
+  Future<bool> crateApiSyncVerifyXtreamCredentials({
+    required String baseUrl,
+    required String username,
+    required String password,
+    required bool acceptInvalidCerts,
   });
 }
 
@@ -5960,6 +5997,77 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Stream<String> crateApiSyncSubscribeSyncProgress() {
+    final sink = RustStreamSink<String>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_StreamSink_String_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 161,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: null,
+          ),
+          constMeta: kCrateApiSyncSubscribeSyncProgressConstMeta,
+          argValues: [sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiSyncSubscribeSyncProgressConstMeta =>
+      const TaskConstMeta(
+        debugName: "subscribe_sync_progress",
+        argNames: ["sink"],
+      );
+
+  @override
+  Future<String> crateApiSyncSyncM3USource({
+    required String url,
+    required String sourceId,
+    required bool acceptInvalidCerts,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(url, serializer);
+          sse_encode_String(sourceId, serializer);
+          sse_encode_bool(acceptInvalidCerts, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 162,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiSyncSyncM3USourceConstMeta,
+        argValues: [url, sourceId, acceptInvalidCerts],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSyncSyncM3USourceConstMeta => const TaskConstMeta(
+    debugName: "sync_m3u_source",
+    argNames: ["url", "sourceId", "acceptInvalidCerts"],
+  );
+
+  @override
   Future<BigInt> crateApiEpgSyncStalkerEpg({
     required String baseUrl,
     required String channelsJson,
@@ -5973,7 +6081,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 161,
+            funcId: 163,
             port: port_,
           );
         },
@@ -5994,6 +6102,45 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<String> crateApiSyncSyncStalkerSource({
+    required String baseUrl,
+    required String macAddress,
+    required String sourceId,
+    required bool acceptInvalidCerts,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(baseUrl, serializer);
+          sse_encode_String(macAddress, serializer);
+          sse_encode_String(sourceId, serializer);
+          sse_encode_bool(acceptInvalidCerts, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 164,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiSyncSyncStalkerSourceConstMeta,
+        argValues: [baseUrl, macAddress, sourceId, acceptInvalidCerts],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSyncSyncStalkerSourceConstMeta =>
+      const TaskConstMeta(
+        debugName: "sync_stalker_source",
+        argNames: ["baseUrl", "macAddress", "sourceId", "acceptInvalidCerts"],
+      );
+
+  @override
   Future<BigInt> crateApiEpgSyncXmltvEpg({required String url}) {
     return handler.executeNormal(
       NormalTask(
@@ -6003,7 +6150,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 162,
+            funcId: 165,
             port: port_,
           );
         },
@@ -6039,7 +6186,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 163,
+            funcId: 166,
             port: port_,
           );
         },
@@ -6060,6 +6207,53 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<String> crateApiSyncSyncXtreamSource({
+    required String baseUrl,
+    required String username,
+    required String password,
+    required String sourceId,
+    required bool acceptInvalidCerts,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(baseUrl, serializer);
+          sse_encode_String(username, serializer);
+          sse_encode_String(password, serializer);
+          sse_encode_String(sourceId, serializer);
+          sse_encode_bool(acceptInvalidCerts, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 167,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiSyncSyncXtreamSourceConstMeta,
+        argValues: [baseUrl, username, password, sourceId, acceptInvalidCerts],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSyncSyncXtreamSourceConstMeta =>
+      const TaskConstMeta(
+        debugName: "sync_xtream_source",
+        argNames: [
+          "baseUrl",
+          "username",
+          "password",
+          "sourceId",
+          "acceptInvalidCerts",
+        ],
+      );
+
+  @override
   String crateApiAlgorithmsTryBase64Decode({required String input}) {
     return handler.executeSync(
       SyncTask(
@@ -6069,7 +6263,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 164,
+            funcId: 168,
           )!;
         },
         codec: SseCodec(
@@ -6096,7 +6290,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 165,
+            funcId: 169,
             port: port_,
           );
         },
@@ -6124,7 +6318,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 166,
+            funcId: 170,
             port: port_,
           );
         },
@@ -6159,7 +6353,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 167,
+            funcId: 171,
             port: port_,
           );
         },
@@ -6190,7 +6384,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 168,
+            funcId: 172,
           )!;
         },
         codec: SseCodec(
@@ -6221,7 +6415,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 169,
+            funcId: 173,
           )!;
         },
         codec: SseCodec(
@@ -6239,6 +6433,82 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(
         debugName: "verify_pin",
         argNames: ["inputPin", "storedHash"],
+      );
+
+  @override
+  Future<bool> crateApiSyncVerifyStalkerPortal({
+    required String baseUrl,
+    required String macAddress,
+    required bool acceptInvalidCerts,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(baseUrl, serializer);
+          sse_encode_String(macAddress, serializer);
+          sse_encode_bool(acceptInvalidCerts, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 174,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiSyncVerifyStalkerPortalConstMeta,
+        argValues: [baseUrl, macAddress, acceptInvalidCerts],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSyncVerifyStalkerPortalConstMeta =>
+      const TaskConstMeta(
+        debugName: "verify_stalker_portal",
+        argNames: ["baseUrl", "macAddress", "acceptInvalidCerts"],
+      );
+
+  @override
+  Future<bool> crateApiSyncVerifyXtreamCredentials({
+    required String baseUrl,
+    required String username,
+    required String password,
+    required bool acceptInvalidCerts,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(baseUrl, serializer);
+          sse_encode_String(username, serializer);
+          sse_encode_String(password, serializer);
+          sse_encode_bool(acceptInvalidCerts, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 175,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiSyncVerifyXtreamCredentialsConstMeta,
+        argValues: [baseUrl, username, password, acceptInvalidCerts],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSyncVerifyXtreamCredentialsConstMeta =>
+      const TaskConstMeta(
+        debugName: "verify_xtream_credentials",
+        argNames: ["baseUrl", "username", "password", "acceptInvalidCerts"],
       );
 
   @protected

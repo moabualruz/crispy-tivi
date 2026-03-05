@@ -222,48 +222,6 @@ mixin PlaylistSyncHelpers {
     ref.read(channelListProvider.notifier).setDuplicateIds(duplicateIds);
   }
 
-  /// Removes items from DB and in-memory store that
-  /// existed for [source] but are no longer in the
-  /// fresh response.
-  Future<void> cleanupStaleItems({
-    required PlaylistSource source,
-    required Set<String> freshChannelIds,
-    required Set<String> freshVodIds,
-  }) async {
-    try {
-      final cache = ref.read(cacheServiceProvider);
-
-      // 1. Clean channels from DB.
-      final deletedChannels = await cache.deleteRemovedChannels(
-        source.id,
-        freshChannelIds,
-      );
-
-      // 2. Clean channels from in-memory store.
-      final datasource = ref.read(channelDatasourceProvider);
-      datasource.removeStaleBySource(source.id, freshChannelIds);
-
-      // 3. Clean VOD items from DB.
-      final deletedVod = await cache.deleteRemovedVodItems(
-        source.id,
-        freshVodIds,
-      );
-
-      if (deletedChannels > 0 || deletedVod > 0) {
-        debugPrint(
-          'PlaylistSync: cleanup ${source.name} '
-          '— removed $deletedChannels channels, '
-          '$deletedVod VOD items',
-        );
-      }
-    } catch (e) {
-      debugPrint(
-        'PlaylistSync: cleanup error for '
-        '${source.name}: $e',
-      );
-    }
-  }
-
   /// Auto-populates a source's EPG URL from
   /// discovered M3U header or Xtream convention.
   Future<void> autoSaveEpgUrl(PlaylistSource source, String epgUrl) async {

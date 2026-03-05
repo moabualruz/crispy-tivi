@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/data/cache_service.dart';
 import '../../../../core/network/http_service.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
-import '../../../iptv/data/parsers/xtream_client.dart';
 import 'source_form_fields.dart';
 
 /// Shows a dialog to add an M3U playlist source.
@@ -230,18 +230,27 @@ class _XtreamAddDialogState extends ConsumerState<_XtreamAddDialog> {
       _error = null;
     });
 
-    // Verify credentials before saving.
-    final verifyError = await XtreamClient.verifyCredentials(
-      http: widget.parentRef.read(httpServiceProvider),
-      serverUrl: url,
-      username: user,
-      password: pass,
-    );
-    if (!mounted) return;
-    if (verifyError != null) {
+    // Verify credentials via Rust backend.
+    try {
+      final backend = widget.parentRef.read(crispyBackendProvider);
+      final ok = await backend.verifyXtreamCredentials(
+        baseUrl: url,
+        username: user,
+        password: pass,
+      );
+      if (!mounted) return;
+      if (!ok) {
+        setState(() {
+          _isVerifying = false;
+          _error = 'Authentication failed. Check credentials.';
+        });
+        return;
+      }
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isVerifying = false;
-        _error = verifyError;
+        _error = 'Connection error: $e';
       });
       return;
     }

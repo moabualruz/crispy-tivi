@@ -4,8 +4,6 @@ import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
-import 'package:crispy_tivi/features/iptv/application/refresh_playlist.dart';
-import 'package:crispy_tivi/features/iptv/domain/entities/channel.dart';
 import 'package:crispy_tivi/features/onboarding/presentation/providers/onboarding_notifier.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -102,13 +100,9 @@ PlaylistSource _makeSource({
   );
 }
 
-/// Creates a [SyncResult] with [count] real channels.
-SyncResult _syncResult(int count) {
-  final channels = List<Channel>.generate(
-    count,
-    (i) => Channel(id: 'ch_$i', name: 'Channel $i', streamUrl: 'http://ch/$i'),
-  );
-  return SyncResult(channels: channels);
+/// Creates a [SyncReport] with [count] channels.
+SyncReport _syncReport(int count) {
+  return SyncReport(channelsCount: count);
 }
 
 // ── Container factory ──────────────────────────────────────────────────────
@@ -239,7 +233,7 @@ void main() {
       final source = _makeSource();
       when(
         () => mockSync.syncSource(any()),
-      ).thenAnswer((_) async => _syncResult(3));
+      ).thenAnswer((_) async => _syncReport(3));
 
       await notifier().submitSource(source);
 
@@ -255,7 +249,7 @@ void main() {
       final source = _makeSource();
       when(
         () => mockSync.syncSource(any()),
-      ).thenAnswer((_) async => _syncResult(5));
+      ).thenAnswer((_) async => _syncReport(5));
 
       await notifier().submitSource(source);
 
@@ -266,7 +260,7 @@ void main() {
       final source = _makeSource(id: 'src_42');
       when(
         () => mockSync.syncSource(any()),
-      ).thenAnswer((_) async => _syncResult(10));
+      ).thenAnswer((_) async => _syncReport(10));
 
       await notifier().submitSource(source);
 
@@ -277,7 +271,7 @@ void main() {
       final source = _makeSource();
       when(
         () => mockSync.syncSource(any()),
-      ).thenAnswer((_) async => _syncResult(99));
+      ).thenAnswer((_) async => _syncReport(99));
 
       await notifier().submitSource(source);
 
@@ -348,7 +342,7 @@ void main() {
 
       when(
         () => mockSync.syncSource(any()),
-      ).thenAnswer((_) async => _syncResult(7));
+      ).thenAnswer((_) async => _syncReport(7));
       await notifier().retrySync();
 
       final s = state();

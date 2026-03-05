@@ -15,6 +15,7 @@ import 'api/lifecycle.dart';
 import 'api/parsers.dart';
 import 'api/profiles.dart';
 import 'api/settings.dart';
+import 'api/sync.dart';
 import 'api/vod.dart';
 import 'api/watchlist.dart';
 import 'dart:async';

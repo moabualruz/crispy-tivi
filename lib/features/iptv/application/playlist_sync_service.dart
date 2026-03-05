@@ -1,18 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../config/settings_notifier.dart';
 import '../../../core/data/cache_service.dart';
-import '../../../core/network/http_service.dart';
+import '../../../core/data/crispy_backend.dart';
+import '../../../core/domain/entities/playlist_source.dart';
 import '../../vod/presentation/providers/vod_providers.dart';
 import '../data/datasources/channel_local_datasource.dart';
 import '../data/repositories/channel_repository_impl.dart';
-import '../../../core/domain/entities/playlist_source.dart';
 import 'playlist_epg_helper.dart';
 import 'playlist_sync_helpers.dart';
-import 'refresh_playlist.dart';
 
 /// Default sync interval in hours.
 const kDefaultSyncIntervalHours = 24;
@@ -23,6 +23,39 @@ const kDefaultSyncIntervalHours = 24;
 /// [nextSync] — time until the freshest source expires, or
 /// `null` when all sources are stale.
 typedef PartitionResult = ({List<PlaylistSource> stale, Duration? nextSync});
+
+/// Result of a Rust source sync operation.
+class SyncReport {
+  const SyncReport({
+    this.channelsCount = 0,
+    this.channelGroups = const [],
+    this.vodCount = 0,
+    this.vodCategories = const [],
+    this.epgUrl,
+  });
+
+  factory SyncReport.fromJson(String json) {
+    final map = jsonDecode(json) as Map<String, dynamic>;
+    return SyncReport(
+      channelsCount: map['channels_count'] as int? ?? 0,
+      channelGroups:
+          (map['channel_groups'] as List?)?.cast<String>() ?? const [],
+      vodCount: map['vod_count'] as int? ?? 0,
+      vodCategories:
+          (map['vod_categories'] as List?)?.cast<String>() ?? const [],
+      epgUrl: map['epg_url'] as String?,
+    );
+  }
+
+  final int channelsCount;
+  final List<String> channelGroups;
+  final int vodCount;
+  final List<String> vodCategories;
+  final String? epgUrl;
+
+  /// Alias for [channelsCount] — kept for call-site compatibility.
+  int get totalChannels => channelsCount;
+}
 
 /// Partitions [sources] into those that need syncing and
 /// those that are still fresh.
@@ -83,9 +116,9 @@ final channelRepositoryProvider = Provider<ChannelRepositoryImpl>(
 /// + VODs.
 ///
 /// Bridges [SettingsNotifier] (user's configured
-/// sources) with [RefreshPlaylist] (fetch/parse) and
-/// UI notifiers. Persists results to [CacheService]
-/// for cross-session continuity.
+/// sources) with the Rust backend sync methods and
+/// UI notifiers. Rust performs all HTTP fetching,
+/// parsing, saving to DB, and cleanup of stale items.
 class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
   PlaylistSyncService(this._ref);
   final Ref _ref;
@@ -162,78 +195,45 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
         staleSources = List<PlaylistSource>.of(sources);
       }
 
-      // 4. Sync stale sources from network.
-      final http = _ref.read(httpServiceProvider);
-      final repo = _ref.read(channelRepositoryProvider);
+      // 4. Sync stale sources via Rust backend.
       final backend = _ref.read(crispyBackendProvider);
-      final refresh = RefreshPlaylist(repo, http, backend);
 
       var totalChannels = 0;
-      var allVodItems = <dynamic>[];
+      var totalVod = 0;
       final allChannelGroups = <String>{};
       final allVodCategories = <String>{};
 
-      for (final source in staleSources) {
-        final result = await refresh.call(source);
-        totalChannels += result.totalChannels;
-        allChannelGroups.addAll(result.channelGroups);
-        allVodItems.addAll(result.vodItems);
-        allVodCategories.addAll(result.vodCategories);
-
-        // Cleanup stale items for this source.
-        await cleanupStaleItems(
-          source: source,
-          freshChannelIds: result.channels.map((c) => c.id).toSet(),
-          freshVodIds: result.vodItems.map((v) => v.id).toSet(),
+      // Sync stale sources concurrently (max 3 at a time).
+      const maxConcurrent = 3;
+      for (var i = 0; i < staleSources.length; i += maxConcurrent) {
+        final chunk = staleSources.sublist(
+          i,
+          (i + maxConcurrent).clamp(0, staleSources.length),
         );
-
-        // Auto-save discovered EPG URL.
-        if (result.discoveredEpgUrl != null &&
-            (source.epgUrl == null || source.epgUrl!.isEmpty)) {
-          await autoSaveEpgUrl(source, result.discoveredEpgUrl!);
+        final reports = await Future.wait(
+          chunk.map((s) => _syncAndRecord(backend, cache, s)),
+        );
+        for (final report in reports) {
+          totalChannels += report.channelsCount;
+          allChannelGroups.addAll(report.channelGroups);
+          totalVod += report.vodCount;
+          allVodCategories.addAll(report.vodCategories);
         }
-
-        // Record sync time.
-        await cache.setLastSyncTime(source.id, DateTime.now());
-
-        debugPrint(
-          'PlaylistSync: ${source.name} → '
-          '${result.totalChannels} channels, '
-          '${result.totalVod} VOD items',
-        );
       }
 
       // Schedule next deferred sync.
       _scheduleDeferredSync(interval);
 
-      // 5. Push to UI notifiers.
+      // 5. Reload from cache (Rust already saved to DB).
       if (totalChannels > 0) {
         await reloadChannelList();
       }
-      if (allVodItems.isNotEmpty && _ref.exists(vodProvider)) {
-        _ref.read(vodProvider.notifier).loadData(allVodItems.cast());
+      if (totalVod > 0 && _ref.exists(vodProvider)) {
+        final cachedVods = await _ref.read(cacheServiceProvider).loadVodItems();
+        _ref.read(vodProvider.notifier).loadData(cachedVods);
       }
 
-      // 6. Persist to cache for next startup.
-      final repo2 = _ref.read(channelRepositoryProvider);
-      final channels = await repo2.getChannels();
-      await cache.saveChannels(channels);
-      await cache.saveVodItems(allVodItems.cast());
-      await cache.saveCategories({
-        'live': allChannelGroups.toList()..sort(),
-        'vod': allVodCategories.toList()..sort(),
-      });
-      debugPrint(
-        'PlaylistSync: persisted '
-        '${channels.length} '
-        'channels + ${allVodItems.length} '
-        'VODs to DB',
-      );
-
-      // 7. Auto-fetch missing images in background.
-      // (Removed in Phase 10)
-
-      // 8. Fetch EPG after successful sync.
+      // 6. Fetch EPG after successful sync.
       await fetchEpg();
 
       return totalChannels;
@@ -247,60 +247,40 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
 
   /// Syncs a single source and reloads the channel
   /// + VOD lists.
-  Future<SyncResult> syncSource(PlaylistSource source) async {
+  Future<SyncReport> syncSource(PlaylistSource source) async {
     try {
-      final http = _ref.read(httpServiceProvider);
-      final repo = _ref.read(channelRepositoryProvider);
       final backend = _ref.read(crispyBackendProvider);
-      final refresh = RefreshPlaylist(repo, http, backend);
       final cache = _ref.read(cacheServiceProvider);
 
-      final result = await refresh.call(source);
+      final report = await _syncSourceViaRust(backend, source);
       debugPrint(
         'PlaylistSync: ${source.name} → '
-        '${result.totalChannels} channels, '
-        '${result.totalVod} VOD items',
+        '${report.channelsCount} channels, '
+        '${report.vodCount} VOD items',
       );
 
-      // Push to UI.
-      if (result.totalChannels > 0) {
+      // Push to UI from cache.
+      if (report.channelsCount > 0) {
         await reloadChannelList();
       }
-      if (result.vodItems.isNotEmpty && _ref.exists(vodProvider)) {
-        // Merge with existing VOD items.
-        final existing = _ref.read(vodProvider).items;
-        final merged = [...existing, ...result.vodItems];
-        _ref.read(vodProvider.notifier).loadData(merged);
+      if (report.vodCount > 0 && _ref.exists(vodProvider)) {
+        final cachedVods = await cache.loadVodItems();
+        _ref.read(vodProvider.notifier).loadData(cachedVods);
       }
 
-      // Update cache.
+      // Update cache sync time.
       await cache.setLastSyncTime(source.id, DateTime.now());
-      final channels = await repo.getChannels();
-      await cache.saveChannels(channels);
-
-      // Wait, we need to save everything. But if the provider isn't mounted,
-      // we can't reliably read its items (and they aren't merged anyway).
-      // If we didn't merge because the UI isn't mounted, we should read
-      // the existing VOD items from DB and merge before saving, OR
-      // perhaps the cache save handles it?
-      // Actually, cache.saveVodItems(allVod) does an UPSERT based on ID.
-      // But if we only pass `result.vodItems`, it will just upsert those.
-      // The previous code did:
-      // final allVod = _ref.read(vodProvider).items;
-      // await cache.saveVodItems(allVod);
-      // Let's just save the new models, they will upsert!
-      await cache.saveVodItems(result.vodItems);
 
       // Auto-save discovered EPG URL (e.g. from M3U header).
-      if (result.discoveredEpgUrl != null &&
+      if (report.epgUrl != null &&
           (source.epgUrl == null || source.epgUrl!.isEmpty)) {
-        await autoSaveEpgUrl(source, result.discoveredEpgUrl!);
+        await autoSaveEpgUrl(source, report.epgUrl!);
       }
 
       // Fetch EPG after single source sync.
       await fetchEpg();
 
-      return result;
+      return report;
     } catch (e) {
       debugPrint('PlaylistSync syncSource error: $e');
       rethrow;
@@ -309,6 +289,71 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
 
   /// Public method to manually refresh EPG data.
   Future<void> refreshEpg() => fetchEpg();
+
+  /// Syncs a single source and records its completion
+  /// metadata (EPG auto-save + last-sync timestamp).
+  ///
+  /// Extracted so it can be passed to [Future.wait]
+  /// during concurrent multi-source sync.
+  Future<SyncReport> _syncAndRecord(
+    CrispyBackend backend,
+    CacheService cache,
+    PlaylistSource source,
+  ) async {
+    final report = await _syncSourceViaRust(backend, source);
+
+    // Auto-save discovered EPG URL.
+    if (report.epgUrl != null &&
+        (source.epgUrl == null || source.epgUrl!.isEmpty)) {
+      await autoSaveEpgUrl(source, report.epgUrl!);
+    }
+
+    // Record sync time.
+    await cache.setLastSyncTime(source.id, DateTime.now());
+
+    debugPrint(
+      'PlaylistSync: ${source.name} → '
+      '${report.channelsCount} channels, '
+      '${report.vodCount} VOD items',
+    );
+
+    return report;
+  }
+
+  /// Dispatches a sync call to the appropriate Rust
+  /// backend method based on [source.type].
+  ///
+  /// Returns a [SyncReport] decoded from the JSON
+  /// string that Rust returns.
+  Future<SyncReport> _syncSourceViaRust(
+    CrispyBackend backend,
+    PlaylistSource source,
+  ) async {
+    final json = switch (source.type) {
+      PlaylistSourceType.m3u => await backend.syncM3uSource(
+        url: source.url,
+        sourceId: source.id,
+        acceptInvalidCerts: source.acceptSelfSigned,
+      ),
+      PlaylistSourceType.xtream => await backend.syncXtreamSource(
+        baseUrl: source.url,
+        username: source.username ?? '',
+        password: source.password ?? '',
+        sourceId: source.id,
+        acceptInvalidCerts: source.acceptSelfSigned,
+      ),
+      PlaylistSourceType.stalkerPortal => await backend.syncStalkerSource(
+        baseUrl: source.url,
+        macAddress: source.macAddress ?? '',
+        sourceId: source.id,
+        acceptInvalidCerts: source.acceptSelfSigned,
+      ),
+      _ =>
+        '{"channels_count":0,"channel_groups":[],'
+            '"vod_count":0,"vod_categories":[],"epg_url":null}',
+    };
+    return SyncReport.fromJson(json);
+  }
 
   /// Schedules a one-shot timer to call [syncAll]
   /// after [delay]. Cancels any previously scheduled

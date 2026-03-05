@@ -3,10 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
-import '../../../../core/network/http_service.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
-import '../../../iptv/data/parsers/stalker_portal_client.dart';
 import 'source_form_fields.dart';
 
 /// Shows a dialog to add a Stalker Portal source.
@@ -81,17 +79,26 @@ class _StalkerAddDialogState extends ConsumerState<_StalkerAddDialog> {
       _error = null;
     });
 
-    // Verify portal is reachable before saving.
-    final verifyError = await StalkerPortalClient.verifyPortal(
-      dio: widget.parentRef.read(httpServiceProvider).dio,
-      serverUrl: url,
-      macAddress: mac,
-    );
-    if (!mounted) return;
-    if (verifyError != null) {
+    // Verify portal via Rust backend.
+    try {
+      final backend = widget.parentRef.read(crispyBackendProvider);
+      final ok = await backend.verifyStalkerPortal(
+        baseUrl: url,
+        macAddress: mac,
+      );
+      if (!mounted) return;
+      if (!ok) {
+        setState(() {
+          _isVerifying = false;
+          _error = 'Portal authentication failed. Check URL and MAC.';
+        });
+        return;
+      }
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isVerifying = false;
-        _error = verifyError;
+        _error = 'Connection error: $e';
       });
       return;
     }

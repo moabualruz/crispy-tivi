@@ -41,6 +41,7 @@ class PlaylistSource {
     this.deviceId,
     this.userId,
     this.macAddress,
+    this.acceptSelfSigned = false,
   });
 
   /// Unique identifier.
@@ -85,6 +86,12 @@ class PlaylistSource {
   /// Only used for [PlaylistSourceType.stalkerPortal].
   final String? macAddress;
 
+  /// Whether to accept self-signed TLS certificates for this source.
+  ///
+  /// When `true`, Rust will use `danger_accept_invalid_certs(true)` for
+  /// HTTP requests to this source. Only enable for trusted local servers.
+  final bool acceptSelfSigned;
+
   PlaylistSource copyWith({
     String? id,
     String? name,
@@ -99,6 +106,7 @@ class PlaylistSource {
     String? deviceId,
     String? userId,
     String? macAddress,
+    bool? acceptSelfSigned,
   }) {
     return PlaylistSource(
       id: id ?? this.id,
@@ -115,6 +123,7 @@ class PlaylistSource {
       deviceId: deviceId ?? this.deviceId,
       userId: userId ?? this.userId,
       macAddress: macAddress ?? this.macAddress,
+      acceptSelfSigned: acceptSelfSigned ?? this.acceptSelfSigned,
     );
   }
 

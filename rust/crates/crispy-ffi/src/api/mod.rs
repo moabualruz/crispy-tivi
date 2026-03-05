@@ -20,6 +20,7 @@ pub mod lifecycle;
 pub mod parsers;
 pub mod profiles;
 pub mod settings;
+pub mod sync;
 pub mod vod;
 pub mod watchlist;
 
@@ -32,6 +33,7 @@ pub use lifecycle::*;
 pub use parsers::*;
 pub use profiles::*;
 pub use settings::*;
+pub use sync::*;
 pub use vod::*;
 pub use watchlist::*;
 

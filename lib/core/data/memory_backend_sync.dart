@@ -3,6 +3,47 @@ part of 'memory_backend.dart';
 /// Backup, cloud merge, S3 crypto, Xtream URL
 /// builders, and PIN hashing for [MemoryBackend].
 mixin _MemorySyncMixin on _MemoryStorage {
+  // ── Source Sync ──────────────────────────────────
+
+  Future<bool> verifyXtreamCredentials({
+    required String baseUrl,
+    required String username,
+    required String password,
+    bool acceptInvalidCerts = false,
+  }) async => true;
+
+  Future<String> syncXtreamSource({
+    required String baseUrl,
+    required String username,
+    required String password,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) async =>
+      '{"channels_count":0,"channel_groups":[],"vod_count":0,"vod_categories":[],"epg_url":null}';
+
+  Future<String> syncM3uSource({
+    required String url,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) async =>
+      '{"channels_count":0,"channel_groups":[],"vod_count":0,"vod_categories":[],"epg_url":null}';
+
+  Future<bool> verifyStalkerPortal({
+    required String baseUrl,
+    required String macAddress,
+    bool acceptInvalidCerts = false,
+  }) async => true;
+
+  Future<String> syncStalkerSource({
+    required String baseUrl,
+    required String macAddress,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) async =>
+      '{"channels_count":0,"channel_groups":[],"vod_count":0,"vod_categories":[],"epg_url":null}';
+
+  Stream<String> subscribeSyncProgress() => const Stream.empty();
+
   // ── Backup ─────────────────────────────────────
 
   Future<String> exportBackup() async => '{}';

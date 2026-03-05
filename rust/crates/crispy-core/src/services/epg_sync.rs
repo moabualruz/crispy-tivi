@@ -7,9 +7,9 @@
 use std::collections::HashMap;
 
 use anyhow::{Context, Result};
-use reqwest::Client;
 
 use crate::algorithms;
+use crate::http_client::shared_client;
 use crate::models::{Channel, EpgEntry};
 use crate::parsers;
 use crate::services::CrispyService;
@@ -17,8 +17,7 @@ use crate::services::CrispyService;
 /// Downloads and fully processes an XMLTV EPG URL in the background.
 pub async fn fetch_and_save_xmltv_epg(service: &CrispyService, url: &str) -> Result<usize> {
     // 1. Download XML payload
-    let client = Client::new();
-    let bytes = client
+    let bytes = shared_client()
         .get(url)
         .send()
         .await
@@ -79,7 +78,7 @@ pub async fn fetch_and_save_stalker_epg(
     base_url: &str,
     channels: &[Channel],
 ) -> Result<usize> {
-    let client = Client::new();
+    let client = shared_client();
     let mut all_entries: HashMap<String, Vec<EpgEntry>> = HashMap::new();
     let mut total_saved = 0;
 

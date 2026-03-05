@@ -559,6 +559,101 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             Ok(json!({"ok": true}))
         })(),
 
+        // ── Source Sync ──────────────────────────
+        "verifyXtreamCredentials" => (|| {
+            let base_url = get_str(args, "baseUrl")?;
+            let username = get_str(args, "username")?;
+            let password = get_str(args, "password")?;
+            let accept_invalid_certs = args
+                .get("acceptInvalidCerts")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            let ok = tokio::runtime::Handle::current()
+                .block_on(
+                    crispy_core::services::xtream_sync::verify_xtream_credentials(
+                        &base_url,
+                        &username,
+                        &password,
+                        accept_invalid_certs,
+                    ),
+                )
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": ok}))
+        })(),
+        "syncXtreamSource" => (|| {
+            let base_url = get_str(args, "baseUrl")?;
+            let username = get_str(args, "username")?;
+            let password = get_str(args, "password")?;
+            let source_id = get_str(args, "sourceId")?;
+            let accept_invalid_certs = args
+                .get("acceptInvalidCerts")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            let report = tokio::runtime::Handle::current()
+                .block_on(crispy_core::services::xtream_sync::sync_xtream_source(
+                    svc,
+                    &base_url,
+                    &username,
+                    &password,
+                    &source_id,
+                    accept_invalid_certs,
+                ))
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": report}))
+        })(),
+        "syncM3uSource" => (|| {
+            let url = get_str(args, "url")?;
+            let source_id = get_str(args, "sourceId")?;
+            let accept_invalid_certs = args
+                .get("acceptInvalidCerts")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            let report = tokio::runtime::Handle::current()
+                .block_on(crispy_core::services::m3u_sync::sync_m3u_source(
+                    svc,
+                    &url,
+                    &source_id,
+                    accept_invalid_certs,
+                ))
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": report}))
+        })(),
+        "verifyStalkerPortal" => (|| {
+            let base_url = get_str(args, "baseUrl")?;
+            let mac_address = get_str(args, "macAddress")?;
+            let accept_invalid_certs = args
+                .get("acceptInvalidCerts")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            let ok = tokio::runtime::Handle::current()
+                .block_on(crispy_core::services::stalker_sync::verify_stalker_portal(
+                    &base_url,
+                    &mac_address,
+                    accept_invalid_certs,
+                ))
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": ok}))
+        })(),
+        "syncStalkerSource" => (|| {
+            let base_url = get_str(args, "baseUrl")?;
+            let mac_address = get_str(args, "macAddress")?;
+            let source_id = get_str(args, "sourceId")?;
+            let accept_invalid_certs = args
+                .get("acceptInvalidCerts")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            let report = tokio::runtime::Handle::current()
+                .block_on(crispy_core::services::stalker_sync::sync_stalker_source(
+                    svc,
+                    &base_url,
+                    &mac_address,
+                    &source_id,
+                    accept_invalid_certs,
+                ))
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": report}))
+        })(),
+
         // ── Bulk ───────────────────────────────
         "clearAll" => svc
             .clear_all()

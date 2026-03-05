@@ -150,6 +150,45 @@ pub struct Category {
     pub name: String,
 }
 
+// ── SyncReport ─────────────────────────────────────
+
+/// Result of a source synchronisation operation.
+///
+/// Returned by `xtream_sync`, `m3u_sync`, and `stalker_sync`
+/// functions. Serialised to JSON for the FFI boundary.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SyncReport {
+    /// Number of live channels saved.
+    pub channels_count: usize,
+    /// Sorted unique channel group names.
+    pub channel_groups: Vec<String>,
+    /// Number of VOD items saved (movies + series).
+    pub vod_count: usize,
+    /// Sorted unique VOD category names.
+    pub vod_categories: Vec<String>,
+    /// EPG URL discovered from M3U header (if any).
+    #[serde(default)]
+    pub epg_url: Option<String>,
+}
+
+// ── SyncProgress ──────────────────────────────────
+
+/// Progress event emitted during source synchronisation.
+///
+/// Serialised to JSON and pushed to Flutter via FRB
+/// `StreamSink` for real-time UI progress updates.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncProgress {
+    /// The source being synced.
+    pub source_id: String,
+    /// Current sync phase.
+    pub phase: String,
+    /// Progress within the current phase (0.0–1.0).
+    pub progress: f64,
+    /// Human-readable status message.
+    pub message: String,
+}
+
 // ── SyncMeta ────────────────────────────────────────
 
 /// Tracks the last synchronisation time per source.
