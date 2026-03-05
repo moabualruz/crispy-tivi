@@ -3,6 +3,12 @@ import '../entities/vod_item.dart';
 /// Number of days to consider an item "recently added".
 const kRecentlyAddedDays = 7;
 
+/// Parse a rating string to a double, returning 0.0 on failure.
+///
+/// Handles null, empty, and non-numeric strings gracefully.
+/// Used by VOD sorting, recommendations, and MemoryBackend mirrors.
+double parseRating(String? rating) => double.tryParse(rating ?? '') ?? 0.0;
+
 /// Pure function: filters [items] to those added after the cutoff derived
 /// from [now] minus [kRecentlyAddedDays] days, then sorts newest-first.
 ///
@@ -92,8 +98,8 @@ List<VodItem> top10Vod(
           )
           .toList()
         ..sort((a, b) {
-          final ra = double.tryParse(a.rating!) ?? 0;
-          final rb = double.tryParse(b.rating!) ?? 0;
+          final ra = parseRating(a.rating);
+          final rb = parseRating(b.rating);
           return rb.compareTo(ra);
         });
 

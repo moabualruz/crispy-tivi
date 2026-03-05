@@ -86,7 +86,9 @@ pub struct EpisodeProgressResult {
 // ── Re-exports ──────────────────────────────────────
 
 pub use categorize::build_vod_category_map;
-pub use filter::{filter_top_vod, filter_vod_by_content_rating, parse_content_rating};
+pub use filter::{
+    filter_recently_added, filter_top_vod, filter_vod_by_content_rating, parse_content_rating,
+};
 pub use progress::compute_episode_progress;
 pub use sorting::sort_vod_items;
 
@@ -970,5 +972,295 @@ mod tests {
     fn filter_vod_by_content_rating_empty() {
         let result = filter_vod_by_content_rating("[]", 3);
         assert_eq!(result, "[]");
+    }
+
+    // ── filter_recently_added ───────────────────────
+
+    /// Epoch ms for a fixed reference point: 2024-03-15 12:00:00 UTC
+    /// = 1710504000000 ms.
+    const NOW_MS: i64 = 1_710_504_000_000;
+
+    /// 2024-03-14 12:00:00 UTC (1 day before NOW_MS)
+    const ONE_DAY_AGO: &str = "2024-03-14T12:00:00";
+    /// 2024-03-10 12:00:00 UTC (5 days before NOW_MS)
+    const FIVE_DAYS_AGO: &str = "2024-03-10T12:00:00";
+    /// 2024-03-01 12:00:00 UTC (14 days before NOW_MS)
+    const FOURTEEN_DAYS_AGO: &str = "2024-03-01T12:00:00";
+
+    #[test]
+    fn recently_added_items_within_cutoff_returned() {
+        // Default cutoff = 7 days.  Items 1 day and 5 days ago pass;
+        // item 14 days ago is excluded.
+        let items = vec![
+            vod_json(
+                "a",
+                "Recent",
+                "movie",
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(ONE_DAY_AGO),
+            ),
+            vod_json(
+                "b",
+                "AlsoRecent",
+                "movie",
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(FIVE_DAYS_AGO),
+            ),
+            vod_json(
+                "c",
+                "TooOld",
+                "movie",
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(FOURTEEN_DAYS_AGO),
+            ),
+        ];
+        let json = to_json_array(&items);
+        let result = filter_recently_added(&json, 7, NOW_MS);
+        let filtered = parse_vod_array(&result);
+        assert_eq!(filtered.len(), 2);
+        // Newest first: ONE_DAY_AGO > FIVE_DAYS_AGO.
+        assert_eq!(filtered[0].name, "Recent");
+        assert_eq!(filtered[1].name, "AlsoRecent");
+    }
+
+    #[test]
+    fn recently_added_empty_input() {
+        let result = filter_recently_added("[]", 7, NOW_MS);
+        assert_eq!(result, "[]");
+    }
+
+    #[test]
+    fn recently_added_items_without_added_at_excluded() {
+        let items = vec![
+            vod_json("a", "NoDate", "movie", None, None, None, None, None, None),
+            vod_json(
+                "b",
+                "HasDate",
+                "movie",
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(ONE_DAY_AGO),
+            ),
+        ];
+        let json = to_json_array(&items);
+        let result = filter_recently_added(&json, 7, NOW_MS);
+        let filtered = parse_vod_array(&result);
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].name, "HasDate");
+    }
+
+    #[test]
+    fn recently_added_sort_order_newest_first() {
+        let items = vec![
+            vod_json(
+                "a",
+                "Oldest",
+                "movie",
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(FIVE_DAYS_AGO),
+            ),
+            vod_json(
+                "b",
+                "Newest",
+                "movie",
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(ONE_DAY_AGO),
+            ),
+        ];
+        let json = to_json_array(&items);
+        let result = filter_recently_added(&json, 7, NOW_MS);
+        let filtered = parse_vod_array(&result);
+        assert_eq!(filtered.len(), 2);
+        assert_eq!(filtered[0].name, "Newest");
+        assert_eq!(filtered[1].name, "Oldest");
+    }
+
+    #[test]
+    fn recently_added_cutoff_boundary_excluded() {
+        // An item added EXACTLY at the cutoff (not after) must be excluded.
+        // cutoff_ms = NOW_MS - 7 * 86_400_000 = 1_710_504_000_000 - 604_800_000
+        //           = 1_709_899_200_000 ms → 2024-03-08T12:00:00 UTC.
+        let exactly_at_cutoff = "2024-03-08T12:00:00";
+        let items = vec![
+            vod_json(
+                "a",
+                "AtCutoff",
+                "movie",
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(exactly_at_cutoff),
+            ),
+            vod_json(
+                "b",
+                "JustAfter",
+                "movie",
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(ONE_DAY_AGO),
+            ),
+        ];
+        let json = to_json_array(&items);
+        let result = filter_recently_added(&json, 7, NOW_MS);
+        let filtered = parse_vod_array(&result);
+        // Only the item strictly AFTER the cutoff passes.
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].name, "JustAfter");
+    }
+
+    #[test]
+    fn recently_added_zero_cutoff_days_nothing_passes() {
+        // cutoff = now, so nothing is strictly after now.
+        let items = vec![vod_json(
+            "a",
+            "Recent",
+            "movie",
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(ONE_DAY_AGO),
+        )];
+        let json = to_json_array(&items);
+        // With 0 cutoff days, cutoff == now → item (1 day ago) is before now,
+        // so it is NOT strictly after the cutoff.
+        let result = filter_recently_added(&json, 0, NOW_MS);
+        let filtered = parse_vod_array(&result);
+        assert_eq!(filtered.len(), 0);
+    }
+
+    // ── filter_top_vod poster URL alignment ─────────
+
+    #[test]
+    fn top_vod_non_http_poster_excluded_from_primary() {
+        // poster_url without "http" prefix must not appear
+        // in the rated primary bucket.
+        let items = vec![
+            vod_json(
+                "a",
+                "NoHTTP",
+                "movie",
+                Some("9.5"),
+                Some(2024),
+                None,
+                Some("/local/poster.jpg"),
+                None,
+                None,
+            ),
+            vod_json(
+                "b",
+                "WithHTTP",
+                "movie",
+                Some("8.0"),
+                Some(2023),
+                None,
+                Some("http://cdn/poster.jpg"),
+                None,
+                None,
+            ),
+        ];
+        let json = to_json_array(&items);
+        let result = filter_top_vod(&json, 10);
+        let top = parse_vod_array(&result);
+        // Only "WithHTTP" has a valid HTTP poster.
+        assert_eq!(top.len(), 1);
+        assert_eq!(top[0].name, "WithHTTP");
+    }
+
+    #[test]
+    fn top_vod_https_poster_accepted() {
+        // "https://" also starts with "http" (case-insensitive).
+        let items = vec![vod_json(
+            "a",
+            "HTTPS",
+            "movie",
+            Some("7.0"),
+            Some(2022),
+            None,
+            Some("https://cdn/poster.jpg"),
+            None,
+            None,
+        )];
+        let json = to_json_array(&items);
+        let result = filter_top_vod(&json, 10);
+        let top = parse_vod_array(&result);
+        assert_eq!(top.len(), 1);
+        assert_eq!(top[0].name, "HTTPS");
+    }
+
+    #[test]
+    fn top_vod_fallback_non_http_poster_excluded() {
+        // In fallback mode (no rated items), items without
+        // HTTP poster are excluded even when they have a year.
+        let items = vec![
+            vod_json(
+                "a",
+                "NoPoster",
+                "movie",
+                None,
+                Some(2024),
+                None,
+                None,
+                None,
+                None,
+            ),
+            vod_json(
+                "b",
+                "LocalPoster",
+                "movie",
+                None,
+                Some(2023),
+                None,
+                Some("/local/img.jpg"),
+                None,
+                None,
+            ),
+            vod_json(
+                "c",
+                "GoodPoster",
+                "movie",
+                None,
+                Some(2022),
+                None,
+                Some("http://cdn/img.jpg"),
+                None,
+                None,
+            ),
+        ];
+        let json = to_json_array(&items);
+        let result = filter_top_vod(&json, 10);
+        let top = parse_vod_array(&result);
+        // Only "GoodPoster" passes the fallback HTTP poster check.
+        assert_eq!(top.len(), 1);
+        assert_eq!(top[0].name, "GoodPoster");
     }
 }

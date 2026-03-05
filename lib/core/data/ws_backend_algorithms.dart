@@ -167,4 +167,99 @@ mixin _WsAlgorithmsMixin on _WsBackendBase {
     String recordingOwnerId,
     String currentProfileId,
   ) => dartCanDeleteRecording(role, recordingOwnerId, currentProfileId);
+
+  // ── Channel Sorting ───────────────────────────
+
+  Future<String> filterAndSortChannels(
+    String channelsJson,
+    String paramsJson,
+  ) async {
+    final data = await _send('filterAndSortChannels', {
+      'channelsJson': channelsJson,
+      'paramsJson': paramsJson,
+    });
+    return data as String;
+  }
+
+  /// Sync — delegates to shared [dartSortFavorites].
+  String sortFavorites(String channelsJson, String sortMode) =>
+      dartSortFavorites(channelsJson, sortMode);
+
+  // ── Category Sorting ──────────────────────────
+
+  /// Sync — delegates to shared [dartSortCategoriesWithFavorites].
+  String sortCategoriesWithFavorites(
+    String categoriesJson,
+    String favoritesJson,
+  ) => dartSortCategoriesWithFavorites(categoriesJson, favoritesJson);
+
+  Future<String> buildTypeCategories(String itemsJson, String vodType) async {
+    final data = await _send('buildTypeCategories', {
+      'itemsJson': itemsJson,
+      'vodType': vodType,
+    });
+    return data as String;
+  }
+
+  // ── VOD Filtering ─────────────────────────────
+
+  Future<String> filterRecentlyAdded(
+    String itemsJson,
+    int cutoffDays,
+    int nowMs,
+  ) async {
+    final data = await _send('filterRecentlyAdded', {
+      'itemsJson': itemsJson,
+      'cutoffDays': cutoffDays,
+      'nowMs': nowMs,
+    });
+    return data as String;
+  }
+
+  // ── Watch History ─────────────────────────────
+
+  /// Sync — delegates to shared [dartComputeWatchStreak].
+  int computeWatchStreak(String timestampsJson, int nowMs) =>
+      dartComputeWatchStreak(timestampsJson, nowMs);
+
+  Future<String> computeProfileStats(String historyJson, int nowMs) async {
+    final data = await _send('computeProfileStats', {
+      'historyJson': historyJson,
+      'nowMs': nowMs,
+    });
+    return data as String;
+  }
+
+  Future<String> mergeDedupSortHistory(String aJson, String bJson) async {
+    final data = await _send('mergeDedupSortHistory', {
+      'aJson': aJson,
+      'bJson': bJson,
+    });
+    return data as String;
+  }
+
+  Future<String> filterByCwStatus(String historyJson, String filter) async {
+    final data = await _send('filterByCwStatus', {
+      'historyJson': historyJson,
+      'filter': filter,
+    });
+    return data as String;
+  }
+
+  Future<String> seriesIdsWithNewEpisodes(
+    String seriesJson,
+    int days,
+    int nowMs,
+  ) async {
+    final data = await _send('seriesIdsWithNewEpisodes', {
+      'seriesJson': seriesJson,
+      'days': days,
+      'nowMs': nowMs,
+    });
+    return data as String;
+  }
+
+  /// Sync — delegates to shared [dartCountInProgressEpisodes].
+  int countInProgressEpisodes(String historyJson, String seriesId) =>
+      dartCountInProgressEpisodes(historyJson, seriesId);
 }

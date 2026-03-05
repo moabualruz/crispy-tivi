@@ -308,4 +308,318 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
   /// Delegates to shared [dartMergeEpgWindow].
   Future<String> mergeEpgWindow(String existingJson, String newJson) =>
       dartMergeEpgWindow(existingJson, newJson);
+
+  // ── Channel Sorting ────────────────────────────
+
+  Future<String> filterAndSortChannels(
+    String channelsJson,
+    String paramsJson,
+  ) async {
+    final channels =
+        (jsonDecode(channelsJson) as List).cast<Map<String, dynamic>>();
+    final params = jsonDecode(paramsJson) as Map<String, dynamic>;
+
+    final hiddenGroups =
+        ((params['hidden_groups'] as List?) ?? []).cast<String>().toSet();
+    final hiddenIds =
+        ((params['hidden_ids'] as List?) ?? []).cast<String>().toSet();
+    final selectedGroup = params['selected_group'] as String?;
+    final searchQuery = (params['search_query'] as String? ?? '').toLowerCase();
+    final sortMode = params['sort_mode'] as String? ?? 'defaultOrder';
+    final duplicatePolicy = params['duplicate_policy'] as String? ?? 'show';
+    final duplicatesJson = params['duplicates_json'] as String? ?? '[]';
+    final favoritesGroup =
+        params['favorites_group'] as String? ?? '\u2B50 Favorites';
+    final favoriteIds =
+        ((params['favorite_ids'] as List?) ?? []).cast<String>().toSet();
+    final lastWatchedRaw =
+        (params['last_watched_map'] as Map<String, dynamic>?) ?? {};
+
+    // Parse duplicate IDs.
+    final duplicateIds = <String>{};
+    if (duplicatePolicy == 'hide') {
+      try {
+        final groups =
+            (jsonDecode(duplicatesJson) as List).cast<Map<String, dynamic>>();
+        for (final g in groups) {
+          final ids = (g['channel_ids'] as List?)?.cast<String>() ?? [];
+          if (ids.isNotEmpty) {
+            // Keep first, hide the rest.
+            for (var i = 1; i < ids.length; i++) {
+              duplicateIds.add(ids[i]);
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    var result = channels.toList();
+
+    // 1. Exclude hidden groups.
+    if (hiddenGroups.isNotEmpty) {
+      result =
+          result
+              .where((c) => !hiddenGroups.contains(c['channel_group']))
+              .toList();
+    }
+
+    // 2. Exclude individually hidden channels.
+    if (hiddenIds.isNotEmpty) {
+      result =
+          result.where((c) => !hiddenIds.contains(c['id'] as String?)).toList();
+    }
+
+    // 3. Exclude duplicates.
+    if (duplicateIds.isNotEmpty) {
+      result =
+          result
+              .where((c) => !duplicateIds.contains(c['id'] as String?))
+              .toList();
+    }
+
+    // 4. Group filter.
+    if (selectedGroup == favoritesGroup) {
+      result =
+          result
+              .where((c) => favoriteIds.contains(c['id'] as String?))
+              .toList();
+    } else if (selectedGroup != null) {
+      result =
+          result.where((c) => c['channel_group'] == selectedGroup).toList();
+    }
+
+    // 5. Search.
+    if (searchQuery.isNotEmpty) {
+      result =
+          result.where((c) {
+            final name = (c['name'] as String? ?? '').toLowerCase();
+            final group = (c['channel_group'] as String? ?? '').toLowerCase();
+            return name.contains(searchQuery) || group.contains(searchQuery);
+          }).toList();
+    }
+
+    // Sort.
+    int defaultSort(Map<String, dynamic> a, Map<String, dynamic> b) {
+      final na = a['channel_number'] as int?;
+      final nb = b['channel_number'] as int?;
+      if (na != null && nb != null) return na.compareTo(nb);
+      if (na != null) return -1;
+      if (nb != null) return 1;
+      return (a['name'] as String? ?? '').toLowerCase().compareTo(
+        (b['name'] as String? ?? '').toLowerCase(),
+      );
+    }
+
+    switch (sortMode) {
+      case 'byName':
+        result.sort(
+          (a, b) => (a['name'] as String? ?? '').toLowerCase().compareTo(
+            (b['name'] as String? ?? '').toLowerCase(),
+          ),
+        );
+      case 'byDateAdded':
+        result.sort((a, b) {
+          final at = a['added_at'] as String?;
+          final bt = b['added_at'] as String?;
+          if (at != null && bt != null) return bt.compareTo(at);
+          if (at != null) return -1;
+          if (bt != null) return 1;
+          return defaultSort(a, b);
+        });
+      case 'byWatchTime':
+        result.sort((a, b) {
+          final aid = a['id'] as String? ?? '';
+          final bid = b['id'] as String? ?? '';
+          final at = lastWatchedRaw[aid];
+          final bt = lastWatchedRaw[bid];
+          if (at != null && bt != null) {
+            return (bt as String).compareTo(at as String);
+          }
+          if (at != null) return -1;
+          if (bt != null) return 1;
+          return defaultSort(a, b);
+        });
+      default:
+        result.sort(defaultSort);
+    }
+
+    return jsonEncode(result);
+  }
+
+  /// Delegates to shared [dartSortFavorites].
+  String sortFavorites(String channelsJson, String sortMode) =>
+      dartSortFavorites(channelsJson, sortMode);
+
+  // ── Category Sorting ────────────────────────────
+
+  /// Delegates to shared [dartSortCategoriesWithFavorites].
+  String sortCategoriesWithFavorites(
+    String categoriesJson,
+    String favoritesJson,
+  ) => dartSortCategoriesWithFavorites(categoriesJson, favoritesJson);
+
+  // ── Watch History ───────────────────────────────
+
+  /// Delegates to shared [dartComputeWatchStreak].
+  int computeWatchStreak(String timestampsJson, int nowMs) =>
+      dartComputeWatchStreak(timestampsJson, nowMs);
+
+  Future<String> computeProfileStats(String historyJson, int nowMs) async {
+    List<Map<String, dynamic>> entries;
+    try {
+      entries = (jsonDecode(historyJson) as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      entries = [];
+    }
+    if (entries.isEmpty) {
+      return jsonEncode({
+        'total_hours_watched': 0.0,
+        'top_genres': <String>[],
+        'top_channels': <String>[],
+        'watch_streak_days': 0,
+      });
+    }
+
+    // Total watch time.
+    final totalMs = entries.fold<int>(
+      0,
+      (sum, e) => sum + ((e['position_ms'] as num?)?.toInt() ?? 0),
+    );
+    final totalHours = totalMs / 3600000.0;
+
+    // Top channels — by frequency.
+    final channelCounts = <String, int>{};
+    for (final e in entries) {
+      final sid = e['series_id'] as String?;
+      final name = e['name'] as String? ?? '';
+      final key = sid != null ? name.split(' - ').first : name;
+      channelCounts[key] = (channelCounts[key] ?? 0) + 1;
+    }
+    final topChannels =
+        (channelCounts.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value)))
+            .take(3)
+            .map((e) => e.key)
+            .toList();
+
+    // Top genres — from mediaType.
+    final genreCounts = <String, int>{};
+    for (final e in entries) {
+      final mediaType = e['media_type'] as String? ?? '';
+      final genre = _mediaTypeToGenreLabel(mediaType);
+      genreCounts[genre] = (genreCounts[genre] ?? 0) + 1;
+    }
+    final topGenres =
+        (genreCounts.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value)))
+            .take(3)
+            .map((e) => e.key)
+            .toList();
+
+    // Watch streak.
+    final timestamps =
+        entries
+            .map((e) {
+              final lw = e['last_watched'];
+              if (lw is int) return lw;
+              if (lw is String) {
+                return DateTime.tryParse(lw)?.millisecondsSinceEpoch;
+              }
+              return null;
+            })
+            .whereType<int>()
+            .toList();
+    final tsJson = jsonEncode(timestamps);
+    final streak = dartComputeWatchStreak(tsJson, nowMs);
+
+    return jsonEncode({
+      'total_hours_watched': totalHours,
+      'top_genres': topGenres,
+      'top_channels': topChannels,
+      'watch_streak_days': streak,
+    });
+  }
+
+  static String _mediaTypeToGenreLabel(String mediaType) {
+    switch (mediaType) {
+      case 'movie':
+        return 'Movies';
+      case 'episode':
+        return 'Series';
+      case 'channel':
+        return 'Live TV';
+      default:
+        return 'Other';
+    }
+  }
+
+  Future<String> mergeDedupSortHistory(String aJson, String bJson) async {
+    List<Map<String, dynamic>> a;
+    List<Map<String, dynamic>> b;
+    try {
+      a = (jsonDecode(aJson) as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      a = [];
+    }
+    try {
+      b = (jsonDecode(bJson) as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      b = [];
+    }
+    final combined = [...a, ...b];
+    final seen = <String>{};
+    final deduped =
+        combined.where((e) => seen.add(e['id'] as String? ?? '')).toList();
+    deduped.sort((x, y) {
+      final xLw = x['last_watched'] as String? ?? '';
+      final yLw = y['last_watched'] as String? ?? '';
+      return yLw.compareTo(xLw);
+    });
+    return jsonEncode(deduped);
+  }
+
+  Future<String> filterByCwStatus(String historyJson, String filter) async {
+    List<Map<String, dynamic>> entries;
+    try {
+      entries = (jsonDecode(historyJson) as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      return '[]';
+    }
+    return jsonEncode(dartFilterByCwStatus(entries, filter));
+  }
+
+  Future<String> seriesIdsWithNewEpisodes(
+    String seriesJson,
+    int days,
+    int nowMs,
+  ) async {
+    List<Map<String, dynamic>> series;
+    try {
+      series = (jsonDecode(seriesJson) as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      return '[]';
+    }
+    final cutoffMs = nowMs - Duration(days: days).inMilliseconds;
+    final ids =
+        series
+            .where((s) {
+              final updatedAt = s['updated_at'];
+              if (updatedAt == null) return false;
+              int? ms;
+              if (updatedAt is int) {
+                ms = updatedAt;
+              } else if (updatedAt is String) {
+                ms = DateTime.tryParse(updatedAt)?.millisecondsSinceEpoch;
+              }
+              return ms != null && ms > cutoffMs;
+            })
+            .map((s) => s['id'] as String? ?? '')
+            .where((id) => id.isNotEmpty)
+            .toList();
+    return jsonEncode(ids);
+  }
+
+  /// Delegates to shared [dartCountInProgressEpisodes].
+  int countInProgressEpisodes(String historyJson, String seriesId) =>
+      dartCountInProgressEpisodes(historyJson, seriesId);
 }

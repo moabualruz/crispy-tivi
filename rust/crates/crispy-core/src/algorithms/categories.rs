@@ -157,6 +157,90 @@ pub fn extract_sorted_vod_categories(items: &[VodItem]) -> Vec<String> {
     sorted
 }
 
+// ── sort_categories_with_favorites ───────────────
+
+/// Sort categories with favourites first.
+///
+/// Ports `sortCategoriesWithFavorites()` from
+/// `favorite_categories_provider.dart`.
+///
+/// Favourite categories (those present in
+/// `favorites_json`) are sorted alphabetically and
+/// placed before non-favourites, which are also
+/// sorted alphabetically.
+///
+/// # Arguments
+/// * `categories_json` – JSON array of `String`.
+/// * `favorites_json`  – JSON array of favourite
+///   category name strings.
+///
+/// # Returns
+/// JSON array of `String`.  Returns `"[]"` on parse
+/// error.
+pub fn sort_categories_with_favorites(categories_json: &str, favorites_json: &str) -> String {
+    let categories: Vec<String> = match serde_json::from_str(categories_json) {
+        Ok(v) => v,
+        Err(_) => return "[]".to_string(),
+    };
+    let favorites: HashSet<String> = match serde_json::from_str::<Vec<String>>(favorites_json) {
+        Ok(v) => v.into_iter().collect(),
+        Err(_) => return "[]".to_string(),
+    };
+
+    let mut favs: Vec<&String> = categories
+        .iter()
+        .filter(|c| favorites.contains(*c))
+        .collect();
+    let mut rest: Vec<&String> = categories
+        .iter()
+        .filter(|c| !favorites.contains(*c))
+        .collect();
+
+    favs.sort();
+    rest.sort();
+
+    let mut result: Vec<&String> = favs;
+    result.extend(rest);
+
+    serde_json::to_string(&result).unwrap_or_else(|_| "[]".to_string())
+}
+
+// ── build_type_categories ─────────────────────────
+
+/// Extract unique categories from VOD items
+/// filtered by type.
+///
+/// Filters `items_json` by `item_type == vod_type`,
+/// collects unique non-empty categories, sorts them
+/// alphabetically, and returns a JSON array.
+///
+/// # Arguments
+/// * `items_json` – JSON array of [`VodItem`].
+/// * `vod_type`   – Type to filter by (e.g.
+///   `"movie"`, `"series"`).
+///
+/// # Returns
+/// JSON array of `String`.  Returns `"[]"` on parse
+/// error.
+pub fn build_type_categories(items_json: &str, vod_type: &str) -> String {
+    let items: Vec<VodItem> = match serde_json::from_str(items_json) {
+        Ok(v) => v,
+        Err(_) => return "[]".to_string(),
+    };
+
+    let set: HashSet<&str> = items
+        .iter()
+        .filter(|v| v.item_type == vod_type)
+        .filter_map(|v| v.category.as_deref())
+        .filter(|c| !c.is_empty())
+        .collect();
+
+    let mut sorted: Vec<String> = set.into_iter().map(String::from).collect();
+    sorted.sort();
+
+    serde_json::to_string(&sorted).unwrap_or_else(|_| "[]".to_string())
+}
+
 // ── Tests ────────────────────────────────────────
 
 #[cfg(test)]
@@ -438,5 +522,126 @@ mod tests {
         ];
         let cats = extract_sorted_vod_categories(&items);
         assert_eq!(cats, vec!["Action", "Comedy"]);
+    }
+
+    // ── sort_categories_with_favorites ───────────
+
+    fn run_sort_cats(categories: Vec<&str>, favorites: Vec<&str>) -> Vec<String> {
+        let cats_json =
+            serde_json::to_string(&categories.iter().map(|s| s.to_string()).collect::<Vec<_>>())
+                .unwrap();
+        let favs_json =
+            serde_json::to_string(&favorites.iter().map(|s| s.to_string()).collect::<Vec<_>>())
+                .unwrap();
+        let result = sort_categories_with_favorites(&cats_json, &favs_json);
+        serde_json::from_str(&result).unwrap()
+    }
+
+    #[test]
+    fn scwf_favorites_first_alphabetically() {
+        let result = run_sort_cats(
+            vec!["Zoning", "Action", "Comedy", "Drama"],
+            vec!["Zoning", "Comedy"],
+        );
+        assert_eq!(result, vec!["Comedy", "Zoning", "Action", "Drama"]);
+    }
+
+    #[test]
+    fn scwf_no_favorites() {
+        let result = run_sort_cats(vec!["Zoning", "Action", "Comedy"], vec![]);
+        // All non-favorites sorted alphabetically.
+        assert_eq!(result, vec!["Action", "Comedy", "Zoning"]);
+    }
+
+    #[test]
+    fn scwf_all_favorites() {
+        let result = run_sort_cats(
+            vec!["Zoning", "Action", "Comedy"],
+            vec!["Zoning", "Action", "Comedy"],
+        );
+        assert_eq!(result, vec!["Action", "Comedy", "Zoning"]);
+    }
+
+    #[test]
+    fn scwf_empty_input() {
+        let result = run_sort_cats(vec![], vec![]);
+        assert!(result.is_empty());
+    }
+
+    // ── build_type_categories ─────────────────────
+
+    fn make_typed_vod(id: &str, cat: Option<&str>, vod_type: &str) -> VodItem {
+        VodItem {
+            id: id.to_string(),
+            name: format!("Item {id}"),
+            stream_url: String::new(),
+            item_type: vod_type.to_string(),
+            poster_url: None,
+            backdrop_url: None,
+            description: None,
+            rating: None,
+            year: None,
+            duration: None,
+            category: cat.map(String::from),
+            series_id: None,
+            season_number: None,
+            episode_number: None,
+            ext: None,
+            is_favorite: false,
+            added_at: None,
+            updated_at: None,
+            source_id: None,
+        }
+    }
+
+    fn run_build_type_cats(items: Vec<VodItem>, vod_type: &str) -> Vec<String> {
+        let json = serde_json::to_string(&items).unwrap();
+        let result = build_type_categories(&json, vod_type);
+        serde_json::from_str(&result).unwrap()
+    }
+
+    #[test]
+    fn btc_filters_by_type_and_sorts() {
+        let items = vec![
+            make_typed_vod("a", Some("Comedy"), "movie"),
+            make_typed_vod("b", Some("Action"), "series"),
+            make_typed_vod("c", Some("Drama"), "movie"),
+            make_typed_vod("d", Some("Comedy"), "movie"),
+        ];
+        let cats = run_build_type_cats(items, "movie");
+        assert_eq!(cats, vec!["Comedy", "Drama"]);
+    }
+
+    #[test]
+    fn btc_no_match_returns_empty() {
+        let items = vec![
+            make_typed_vod("a", Some("Comedy"), "movie"),
+            make_typed_vod("b", Some("Action"), "movie"),
+        ];
+        let cats = run_build_type_cats(items, "series");
+        assert!(cats.is_empty());
+    }
+
+    #[test]
+    fn btc_deduplicates_categories() {
+        let items = vec![
+            make_typed_vod("a", Some("Action"), "movie"),
+            make_typed_vod("b", Some("Action"), "movie"),
+            make_typed_vod("c", Some("action"), "movie"),
+        ];
+        let cats = run_build_type_cats(items, "movie");
+        // Exact string dedup — "Action" and "action" are distinct.
+        assert_eq!(cats, vec!["Action", "action"]);
+    }
+
+    #[test]
+    fn btc_skips_none_and_empty_categories() {
+        let items = vec![
+            make_typed_vod("a", None, "movie"),
+            make_typed_vod("b", Some(""), "movie"),
+            make_typed_vod("c", Some("Drama"), "movie"),
+        ];
+        let cats = run_build_type_cats(items, "movie");
+        assert_eq!(cats, vec!["Drama"]);
     }
 }

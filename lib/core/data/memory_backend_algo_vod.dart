@@ -171,6 +171,51 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
     return jsonEncode(filtered);
   }
 
+  Future<String> buildTypeCategories(String itemsJson, String vodType) async {
+    final list = (jsonDecode(itemsJson) as List).cast<Map<String, dynamic>>();
+    final cats = <String>{};
+    for (final item in list) {
+      final type = item['type'] as String? ?? '';
+      if (type != vodType) continue;
+      final cat = item['category'] as String?;
+      if (cat != null && cat.isNotEmpty) {
+        cats.add(cat);
+      }
+    }
+    return jsonEncode(cats.toList()..sort());
+  }
+
+  Future<String> filterRecentlyAdded(
+    String itemsJson,
+    int cutoffDays,
+    int nowMs,
+  ) async {
+    final list = (jsonDecode(itemsJson) as List).cast<Map<String, dynamic>>();
+    final cutoffMs = nowMs - Duration(days: cutoffDays).inMilliseconds;
+    final filtered =
+        list.where((item) {
+          final addedAt = item['added_at'];
+          if (addedAt == null) return false;
+          int? ms;
+          if (addedAt is int) {
+            ms = addedAt;
+          } else if (addedAt is String) {
+            ms = DateTime.tryParse(addedAt)?.millisecondsSinceEpoch;
+          }
+          return ms != null && ms > cutoffMs;
+        }).toList();
+    // Sort newest first.
+    filtered.sort((a, b) {
+      String? at = a['added_at'] is String ? a['added_at'] as String : null;
+      String? bt = b['added_at'] is String ? b['added_at'] as String : null;
+      if (at != null && bt != null) return bt.compareTo(at);
+      if (at != null) return -1;
+      if (bt != null) return 1;
+      return 0;
+    });
+    return jsonEncode(filtered);
+  }
+
   static int _parseContentRating(String? rating) {
     if (rating == null || rating.isEmpty) {
       return 5;

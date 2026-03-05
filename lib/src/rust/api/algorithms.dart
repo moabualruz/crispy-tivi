@@ -54,6 +54,62 @@ Future<List<String>> getAllDuplicateIds({required String groupsJson}) => RustLib
     .api
     .crateApiAlgorithmsGetAllDuplicateIds(groupsJson: groupsJson);
 
+/// Filter and sort a JSON-encoded channel list.
+///
+/// `channels_json` — JSON array of Channel objects.
+/// `params_json`   — JSON-encoded FilterSortParams.
+/// Returns JSON array of Channel after filtering and
+/// sorting.
+Future<String> filterAndSortChannels({
+  required String channelsJson,
+  required String paramsJson,
+}) => RustLib.instance.api.crateApiAlgorithmsFilterAndSortChannels(
+  channelsJson: channelsJson,
+  paramsJson: paramsJson,
+);
+
+/// Sort a JSON-encoded list of favourite channels.
+///
+/// `channels_json` — JSON array of Channel objects.
+/// `sort_mode`     — One of `"recentlyAdded"`,
+///   `"nameAsc"`, `"nameDesc"`, `"contentType"`.
+String sortFavorites({
+  required String channelsJson,
+  required String sortMode,
+}) => RustLib.instance.api.crateApiAlgorithmsSortFavorites(
+  channelsJson: channelsJson,
+  sortMode: sortMode,
+);
+
+/// Sort categories with favourites first.
+///
+/// `categories_json` — JSON array of category name strings.
+/// `favorites_json`  — JSON array of favourite category
+///   name strings.
+/// Returns JSON array of sorted String.
+String sortCategoriesWithFavorites({
+  required String categoriesJson,
+  required String favoritesJson,
+}) => RustLib.instance.api.crateApiAlgorithmsSortCategoriesWithFavorites(
+  categoriesJson: categoriesJson,
+  favoritesJson: favoritesJson,
+);
+
+/// Extract unique categories from VOD items filtered by
+/// type.
+///
+/// `items_json` — JSON array of VodItem.
+/// `vod_type`   — Type to filter by (e.g. `"movie"`,
+///   `"series"`).
+/// Returns JSON array of sorted String.
+Future<String> buildTypeCategories({
+  required String itemsJson,
+  required String vodType,
+}) => RustLib.instance.api.crateApiAlgorithmsBuildTypeCategories(
+  itemsJson: itemsJson,
+  vodType: vodType,
+);
+
 /// Build a category ID-to-name map from raw JSON.
 /// Returns JSON object {id: name}.
 Future<String> buildCategoryMap({required String categoriesJson}) => RustLib
@@ -304,6 +360,110 @@ Future<String> filterContinueWatchingPositions({
 }) => RustLib.instance.api.crateApiAlgorithmsFilterContinueWatchingPositions(
   json: json,
   limit: limit,
+);
+
+/// Filter VOD items to those added within the last
+/// `cutoff_days` days, sorted newest-first.
+///
+/// `items_json`   — JSON array of VodItem.
+/// `cutoff_days`  — number of days to look back.
+/// `now_ms`       — current Unix time in milliseconds.
+/// Returns JSON array of VodItem.
+Future<String> filterRecentlyAdded({
+  required String itemsJson,
+  required int cutoffDays,
+  required PlatformInt64 nowMs,
+}) => RustLib.instance.api.crateApiAlgorithmsFilterRecentlyAdded(
+  itemsJson: itemsJson,
+  cutoffDays: cutoffDays,
+  nowMs: nowMs,
+);
+
+/// Computes the current watch streak in consecutive
+/// calendar days.
+///
+/// `timestamps_json` — JSON array of epoch-ms i64 values.
+/// `now_ms`          — current time as epoch-ms.
+/// Returns streak count as u32.
+int computeWatchStreak({
+  required String timestampsJson,
+  required PlatformInt64 nowMs,
+}) => RustLib.instance.api.crateApiAlgorithmsComputeWatchStreak(
+  timestampsJson: timestampsJson,
+  nowMs: nowMs,
+);
+
+/// Computes aggregated viewing statistics for a profile.
+///
+/// `history_json` — JSON array of watch-history objects.
+/// `now_ms`       — current time as epoch-ms.
+/// Returns JSON-serialised ProfileStats.
+Future<String> computeProfileStats({
+  required String historyJson,
+  required PlatformInt64 nowMs,
+}) => RustLib.instance.api.crateApiAlgorithmsComputeProfileStats(
+  historyJson: historyJson,
+  nowMs: nowMs,
+);
+
+/// Merges two WatchHistory JSON arrays, deduplicates by
+/// `id` (first occurrence wins), and sorts by
+/// `last_watched` descending.
+///
+/// Returns a JSON array.
+Future<String> mergeDedupSortHistory({
+  required String aJson,
+  required String bJson,
+}) => RustLib.instance.api.crateApiAlgorithmsMergeDedupSortHistory(
+  aJson: aJson,
+  bJson: bJson,
+);
+
+/// Filters a WatchHistory JSON array by
+/// continue-watching status.
+///
+/// `history_json` — JSON array of WatchHistory.
+/// `filter`       — `"all"`, `"watching"`, or
+///   `"completed"`.
+/// Returns a JSON array.
+Future<String> filterByCwStatus({
+  required String historyJson,
+  required String filter,
+}) => RustLib.instance.api.crateApiAlgorithmsFilterByCwStatus(
+  historyJson: historyJson,
+  filter: filter,
+);
+
+/// Returns a JSON array of series IDs whose `updated_at`
+/// is within the last `days` days relative to `now_ms`.
+///
+/// `series_json` — JSON array of objects with `id` and
+///   optional `updated_at` epoch-ms.
+/// `days`        — look-back window in days.
+/// `now_ms`      — current time as epoch-ms.
+Future<String> seriesIdsWithNewEpisodes({
+  required String seriesJson,
+  required int days,
+  required PlatformInt64 nowMs,
+}) => RustLib.instance.api.crateApiAlgorithmsSeriesIdsWithNewEpisodes(
+  seriesJson: seriesJson,
+  days: days,
+  nowMs: nowMs,
+);
+
+/// Counts in-progress episodes for a given `series_id`.
+///
+/// `history_json` — JSON array of watch-history-like
+///   objects with series_id, media_type, duration_ms,
+///   position_ms.
+/// `series_id`    — the series to count for.
+/// Returns count as usize.
+BigInt countInProgressEpisodes({
+  required String historyJson,
+  required String seriesId,
+}) => RustLib.instance.api.crateApiAlgorithmsCountInProgressEpisodes(
+  historyJson: historyJson,
+  seriesId: seriesId,
 );
 
 /// Match a group name to a Material icon identifier.

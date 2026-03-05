@@ -323,6 +323,79 @@ mixin _FfiParsersMixin on _FfiBackendBase {
     maxRatingValue: maxRatingValue,
   );
 
+  // ── Channel Sorting ───────────────────────────
+
+  Future<String> filterAndSortChannels(
+    String channelsJson,
+    String paramsJson,
+  ) => rust_api.filterAndSortChannels(
+    channelsJson: channelsJson,
+    paramsJson: paramsJson,
+  );
+
+  String sortFavorites(String channelsJson, String sortMode) =>
+      rust_api.sortFavorites(channelsJson: channelsJson, sortMode: sortMode);
+
+  // ── Category Sorting ──────────────────────────
+
+  String sortCategoriesWithFavorites(
+    String categoriesJson,
+    String favoritesJson,
+  ) => rust_api.sortCategoriesWithFavorites(
+    categoriesJson: categoriesJson,
+    favoritesJson: favoritesJson,
+  );
+
+  Future<String> buildTypeCategories(String itemsJson, String vodType) =>
+      rust_api.buildTypeCategories(itemsJson: itemsJson, vodType: vodType);
+
+  // ── VOD Filtering ─────────────────────────────
+
+  Future<String> filterRecentlyAdded(
+    String itemsJson,
+    int cutoffDays,
+    int nowMs,
+  ) => rust_api.filterRecentlyAdded(
+    itemsJson: itemsJson,
+    cutoffDays: cutoffDays,
+    nowMs: PlatformInt64Util.from(nowMs),
+  );
+
+  // ── Watch History ─────────────────────────────
+
+  int computeWatchStreak(String timestampsJson, int nowMs) =>
+      rust_api.computeWatchStreak(
+        timestampsJson: timestampsJson,
+        nowMs: PlatformInt64Util.from(nowMs),
+      );
+
+  Future<String> computeProfileStats(String historyJson, int nowMs) =>
+      rust_api.computeProfileStats(
+        historyJson: historyJson,
+        nowMs: PlatformInt64Util.from(nowMs),
+      );
+
+  Future<String> mergeDedupSortHistory(String aJson, String bJson) =>
+      rust_api.mergeDedupSortHistory(aJson: aJson, bJson: bJson);
+
+  Future<String> filterByCwStatus(String historyJson, String filter) =>
+      rust_api.filterByCwStatus(historyJson: historyJson, filter: filter);
+
+  Future<String> seriesIdsWithNewEpisodes(
+    String seriesJson,
+    int days,
+    int nowMs,
+  ) => rust_api.seriesIdsWithNewEpisodes(
+    seriesJson: seriesJson,
+    days: days,
+    nowMs: PlatformInt64Util.from(nowMs),
+  );
+
+  int countInProgressEpisodes(String historyJson, String seriesId) =>
+      rust_api
+          .countInProgressEpisodes(historyJson: historyJson, seriesId: seriesId)
+          .toInt();
+
   // ── URL Normalization ─────────────────────────
 
   String normalizeApiBaseUrl(String url) =>

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math' show exp;
 
 import '../constants.dart';
+import '../../features/vod/domain/utils/vod_utils.dart' show parseRating;
 import 'crispy_backend.dart';
 import 'dart_algorithm_fallbacks.dart';
 import 'epg_time_utils.dart';

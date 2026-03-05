@@ -1,16 +1,29 @@
+use chrono::{DateTime, Utc};
+
 use crate::algorithms::json_utils::parse_json_vec;
 use crate::models::VodItem;
 
 use super::parse_rating;
 
+/// Returns `true` if `url` is non-empty and starts with
+/// "http" (case-insensitive), matching the Dart
+/// `hasValidPoster` predicate in `top10Vod`.
+fn has_http_poster(url: Option<&str>) -> bool {
+    url.is_some_and(|u| {
+        let trimmed = u.trim();
+        !trimmed.is_empty() && trimmed.to_ascii_lowercase().starts_with("http")
+    })
+}
+
 /// Filter and rank top VOD items by rating.
 ///
-/// Keeps items with a non-empty rating AND at least one
-/// image (poster_url or backdrop_url). Sorts by rating
-/// descending and caps at `limit`.
+/// Keeps items with a non-empty rating AND a valid HTTP
+/// poster URL (starts with "http", case-insensitive).
+/// Sorts by rating descending and caps at `limit`.
 ///
 /// Falls back to newest items by year descending if
-/// fewer than `limit` rated items exist.
+/// fewer than `limit` rated items exist. Fallback items
+/// must also have a valid HTTP poster URL.
 ///
 /// Input/output: JSON arrays of `VodItem`.
 pub fn filter_top_vod(items_json: &str, limit: usize) -> String {
@@ -18,14 +31,13 @@ pub fn filter_top_vod(items_json: &str, limit: usize) -> String {
         return "[]".to_string();
     };
 
-    // Primary: items with rating + image.
+    // Primary: items with rating + HTTP poster URL.
     let mut with_rating: Vec<&VodItem> = items
         .iter()
         .filter(|i| {
             let has_rating = i.rating.as_deref().is_some_and(|r| !r.is_empty());
-            let has_image = i.poster_url.as_deref().is_some_and(|u| !u.is_empty())
-                || i.backdrop_url.as_deref().is_some_and(|u| !u.is_empty());
-            has_rating && has_image
+            let has_poster = has_http_poster(i.poster_url.as_deref());
+            has_rating && has_poster
         })
         .collect();
 
@@ -42,12 +54,17 @@ pub fn filter_top_vod(items_json: &str, limit: usize) -> String {
     }
 
     // Fallback: newest items by year descending,
-    // excluding items already in with_rating.
+    // excluding items already in with_rating, and
+    // requiring a valid HTTP poster URL.
     let rated_ids: std::collections::HashSet<&str> =
         with_rating.iter().map(|i| i.id.as_str()).collect();
     let mut by_year: Vec<&VodItem> = items
         .iter()
-        .filter(|i| i.year.is_some() && !rated_ids.contains(i.id.as_str()))
+        .filter(|i| {
+            i.year.is_some()
+                && !rated_ids.contains(i.id.as_str())
+                && has_http_poster(i.poster_url.as_deref())
+        })
         .collect();
     by_year.sort_by(|a, b| b.year.unwrap_or(0).cmp(&a.year.unwrap_or(0)));
     let remaining = limit.saturating_sub(with_rating.len());
@@ -55,6 +72,44 @@ pub fn filter_top_vod(items_json: &str, limit: usize) -> String {
     combined.extend(by_year.into_iter().take(remaining));
 
     serde_json::to_string(&combined).unwrap_or_else(|_| "[]".to_string())
+}
+
+/// Filter VOD items to those added within the last
+/// `cutoff_days` days, then sort newest-first.
+///
+/// - `items_json`: JSON array of `VodItem`.
+/// - `cutoff_days`: number of days to look back.
+/// - `now_ms`: current Unix time in milliseconds (UTC).
+///
+/// Items without `added_at` are excluded. Items whose
+/// `added_at` is on or before the cutoff are excluded.
+/// Returns a JSON array sorted by `added_at` descending
+/// (newest first).
+pub fn filter_recently_added(items_json: &str, cutoff_days: u32, now_ms: i64) -> String {
+    let Some(items) = parse_json_vec::<VodItem>(items_json) else {
+        return "[]".to_string();
+    };
+
+    // Cutoff = now - cutoff_days * 86_400_000 ms.
+    let cutoff_ms = now_ms.saturating_sub(cutoff_days as i64 * 86_400_000);
+    // Convert cutoff ms to NaiveDateTime for comparison.
+    let cutoff_secs = cutoff_ms / 1000;
+    let cutoff_nanos = ((cutoff_ms % 1000) * 1_000_000) as u32;
+    let Some(cutoff_dt) =
+        DateTime::from_timestamp(cutoff_secs, cutoff_nanos).map(|dt: DateTime<Utc>| dt.naive_utc())
+    else {
+        return "[]".to_string();
+    };
+
+    let mut recent: Vec<&VodItem> = items
+        .iter()
+        .filter(|i| i.added_at.as_ref().is_some_and(|dt| dt > &cutoff_dt))
+        .collect();
+
+    // Sort newest-first.
+    recent.sort_by(|a, b| b.added_at.cmp(&a.added_at));
+
+    serde_json::to_string(&recent).unwrap_or_else(|_| "[]".to_string())
 }
 
 /// MPAA/TV content rating levels.

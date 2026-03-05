@@ -215,6 +215,85 @@ abstract class _BackendAlgorithmMethods {
     String vodItemsJson,
   );
 
+  // ── Channel Sorting ──────────────────────────────────
+
+  /// Filter and sort a JSON array of channels.
+  /// [channelsJson] — JSON array of Channel objects.
+  /// [paramsJson]   — JSON-encoded FilterSortParams.
+  /// Returns JSON array of Channel after filtering and sorting.
+  Future<String> filterAndSortChannels(String channelsJson, String paramsJson);
+
+  /// Sort a JSON-encoded list of favourite channels.
+  /// [channelsJson] — JSON array of Channel objects.
+  /// [sortMode]     — one of `"recentlyAdded"`, `"nameAsc"`,
+  ///   `"nameDesc"`, `"contentType"`.
+  /// Returns sorted JSON array of Channel.
+  String sortFavorites(String channelsJson, String sortMode);
+
+  // ── Category Sorting ─────────────────────────────────
+
+  /// Sort categories with favourites first.
+  /// [categoriesJson] — JSON array of category name strings.
+  /// [favoritesJson]  — JSON array of favourite category names.
+  /// Returns JSON array of sorted String.
+  String sortCategoriesWithFavorites(
+    String categoriesJson,
+    String favoritesJson,
+  );
+
+  /// Extract unique categories from VOD items filtered by type.
+  /// [itemsJson] — JSON array of VodItem.
+  /// [vodType]   — type to filter by (e.g. `"movie"`, `"series"`).
+  /// Returns JSON array of sorted String.
+  Future<String> buildTypeCategories(String itemsJson, String vodType);
+
+  // ── VOD Filtering ────────────────────────────────────
+
+  /// Filter VOD items added within [cutoffDays] days of [nowMs].
+  /// Returns JSON array of VodItem sorted newest-first.
+  Future<String> filterRecentlyAdded(
+    String itemsJson,
+    int cutoffDays,
+    int nowMs,
+  );
+
+  // ── Watch History ────────────────────────────────────
+
+  /// Compute the current watch streak in consecutive calendar days.
+  /// [timestampsJson] — JSON array of epoch-ms integers.
+  /// [nowMs]          — current time as epoch-ms.
+  /// Returns streak count.
+  int computeWatchStreak(String timestampsJson, int nowMs);
+
+  /// Compute aggregated viewing statistics for a profile.
+  /// [historyJson] — JSON array of watch-history objects.
+  /// [nowMs]       — current time as epoch-ms.
+  /// Returns JSON-serialised ProfileStats.
+  Future<String> computeProfileStats(String historyJson, int nowMs);
+
+  /// Merge two WatchHistory JSON arrays, deduplicate by `id`
+  /// (first occurrence wins), and sort by `last_watched` desc.
+  /// Returns a JSON array.
+  Future<String> mergeDedupSortHistory(String aJson, String bJson);
+
+  /// Filter a WatchHistory JSON array by continue-watching status.
+  /// [filter] — `"all"`, `"watching"`, or `"completed"`.
+  /// Returns a JSON array.
+  Future<String> filterByCwStatus(String historyJson, String filter);
+
+  /// Returns a JSON array of series IDs whose `updated_at` is
+  /// within the last [days] days relative to [nowMs].
+  Future<String> seriesIdsWithNewEpisodes(
+    String seriesJson,
+    int days,
+    int nowMs,
+  );
+
+  /// Count in-progress episodes for [seriesId].
+  /// [historyJson] — JSON array of watch-history-like objects.
+  /// Returns count.
+  int countInProgressEpisodes(String historyJson, String seriesId);
+
   // ── Sorting ──────────────────────────────────────────
 
   /// Sort channels by number then name.

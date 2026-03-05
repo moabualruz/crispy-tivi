@@ -217,6 +217,50 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         })(),
 
         // ── Watch History Algorithms ────────
+        "computeWatchStreak" => (|| {
+            let timestamps = get_str(args, "timestampsJson")?;
+            let now_ms = get_i64(args, "nowMs")?;
+            let result =
+                crispy_core::algorithms::watch_history::compute_watch_streak(&timestamps, now_ms);
+            Ok(json!({"data": result}))
+        })(),
+        "computeProfileStats" => (|| {
+            let history = get_str(args, "historyJson")?;
+            let now_ms = get_i64(args, "nowMs")?;
+            let result =
+                crispy_core::algorithms::watch_history::compute_profile_stats(&history, now_ms);
+            Ok(json!({"data": result}))
+        })(),
+        "mergeDedupSortHistory" => (|| {
+            let a = get_str(args, "aJson")?;
+            let b = get_str(args, "bJson")?;
+            let result = crispy_core::algorithms::watch_history::merge_dedup_sort_history(&a, &b);
+            Ok(json!({"data": result}))
+        })(),
+        "filterByCwStatus" => (|| {
+            let history = get_str(args, "historyJson")?;
+            let filter = get_str(args, "filter")?;
+            let result =
+                crispy_core::algorithms::watch_history::filter_by_cw_status(&history, &filter);
+            Ok(json!({"data": result}))
+        })(),
+        "seriesIdsWithNewEpisodes" => (|| {
+            let series = get_str(args, "seriesJson")?;
+            let days = get_i64(args, "days")? as u32;
+            let now_ms = get_i64(args, "nowMs")?;
+            let result = crispy_core::algorithms::watch_history::series_ids_with_new_episodes(
+                &series, days, now_ms,
+            );
+            Ok(json!({"data": result}))
+        })(),
+        "countInProgressEpisodes" => (|| {
+            let history = get_str(args, "historyJson")?;
+            let series_id = get_str(args, "seriesId")?;
+            let result = crispy_core::algorithms::watch_history::count_in_progress_episodes(
+                &history, &series_id,
+            );
+            Ok(json!({"data": result}))
+        })(),
         "filterContinueWatching" => (|| {
             let json_str = get_str(args, "historyJson")?;
             let media_type = get_str_opt(args, "mediaType")?;
@@ -255,6 +299,22 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let map = crispy_core::algorithms::categories::build_category_map(&data);
             let s = serde_json::to_string(&map)?;
             Ok(json!({"data": s}))
+        })(),
+        "sortCategoriesWithFavorites" => (|| {
+            let categories = get_str(args, "categoriesJson")?;
+            let favorites = get_str(args, "favoritesJson")?;
+            let result = crispy_core::algorithms::categories::sort_categories_with_favorites(
+                &categories,
+                &favorites,
+            );
+            Ok(json!({"data": result}))
+        })(),
+        "buildTypeCategories" => (|| {
+            let items = get_str(args, "itemsJson")?;
+            let vod_type = get_str(args, "vodType")?;
+            let result =
+                crispy_core::algorithms::categories::build_type_categories(&items, &vod_type);
+            Ok(json!({"data": result}))
         })(),
 
         // ── Recommendations ────────────────────
@@ -448,6 +508,19 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let s = serde_json::to_string(&channels)?;
             Ok(json!({"data": s}))
         })(),
+        "filterAndSortChannels" => (|| {
+            let channels = get_str(args, "channelsJson")?;
+            let params = get_str(args, "paramsJson")?;
+            let result =
+                crispy_core::algorithms::sorting::filter_and_sort_channels(&channels, &params);
+            Ok(json!({"data": result}))
+        })(),
+        "sortFavorites" => (|| {
+            let channels = get_str(args, "channelsJson")?;
+            let sort_mode = get_str(args, "sortMode")?;
+            let result = crispy_core::algorithms::sorting::sort_favorites(&channels, &sort_mode);
+            Ok(json!({"data": result}))
+        })(),
 
         // ── Categories resolution ──────────────
         "resolveChannelCategories" => (|| {
@@ -584,6 +657,17 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let items = get_str(args, "itemsJson")?;
             let limit = get_i64(args, "limit")? as usize;
             let result = crispy_core::algorithms::vod_sorting::filter_top_vod(&items, limit);
+            Ok(json!({"data": result}))
+        })(),
+        "filterRecentlyAdded" => (|| {
+            let items = get_str(args, "itemsJson")?;
+            let cutoff_days = get_i64(args, "cutoffDays")? as u32;
+            let now_ms = get_i64(args, "nowMs")?;
+            let result = crispy_core::algorithms::vod_sorting::filter_recently_added(
+                &items,
+                cutoff_days,
+                now_ms,
+            );
             Ok(json!({"data": result}))
         })(),
         "computeEpisodeProgress" => (|| {

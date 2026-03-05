@@ -75,8 +75,7 @@ class _MemoryRecoTrending {
             final cat =
                 (item['category'] as String?)?.toLowerCase().trim() ?? '';
             final affinity = genreAffinity[cat] ?? 0.0;
-            final ratingStr = item['rating'] as String? ?? '0';
-            final numRating = double.tryParse(ratingStr) ?? 0.0;
+            final numRating = parseRating(item['rating'] as String?);
             final score = affinity * 0.7 + (numRating / 10.0) * 0.3;
             return _recoToItem(item, 'newForYou', score.clamp(0.0, 1.0));
           }).toList()

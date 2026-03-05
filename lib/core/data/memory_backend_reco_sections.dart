@@ -42,8 +42,7 @@ class _MemoryRecoSections {
         final addedAt = DateTime.parse(addedAtStr);
         fresh = exp(-now.difference(addedAt).inDays.toDouble() / 14.0);
       }
-      final ratingStr = item['rating'] as String? ?? '0';
-      final numRating = double.tryParse(ratingStr) ?? 0.0;
+      final numRating = parseRating(item['rating'] as String?);
       final ratingScore = numRating.clamp(0.0, 10.0) / 10.0;
       final trend = (watchCounts[id] ?? 0) / maxWatches.toDouble();
       final isFav = item['is_favorite'] == true;
@@ -183,8 +182,7 @@ class _MemoryRecoSections {
           candidates.map((item) {
               final id = item['id'] as String;
               final watches = (watchCounts[id] ?? 0).toDouble();
-              final ratingStr = item['rating'] as String? ?? '0';
-              final numRating = double.tryParse(ratingStr) ?? 0.0;
+              final numRating = parseRating(item['rating'] as String?);
               final hasAdded = item['added_at'] != null;
               final score =
                   watches * 0.4 +

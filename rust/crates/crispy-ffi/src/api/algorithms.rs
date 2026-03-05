@@ -80,7 +80,54 @@ pub fn get_all_duplicate_ids(groups_json: String) -> Result<Vec<String>> {
     ))
 }
 
+// ── Sorting ──────────────────────────────────────────
+
+/// Filter and sort a JSON-encoded channel list.
+///
+/// `channels_json` — JSON array of Channel objects.
+/// `params_json`   — JSON-encoded FilterSortParams.
+/// Returns JSON array of Channel after filtering and
+/// sorting.
+pub fn filter_and_sort_channels(channels_json: String, params_json: String) -> String {
+    crispy_core::algorithms::sorting::filter_and_sort_channels(&channels_json, &params_json)
+}
+
+/// Sort a JSON-encoded list of favourite channels.
+///
+/// `channels_json` — JSON array of Channel objects.
+/// `sort_mode`     — One of `"recentlyAdded"`,
+///   `"nameAsc"`, `"nameDesc"`, `"contentType"`.
+#[flutter_rust_bridge::frb(sync)]
+pub fn sort_favorites(channels_json: String, sort_mode: String) -> String {
+    crispy_core::algorithms::sorting::sort_favorites(&channels_json, &sort_mode)
+}
+
 // ── Categories ───────────────────────────────────────
+
+/// Sort categories with favourites first.
+///
+/// `categories_json` — JSON array of category name strings.
+/// `favorites_json`  — JSON array of favourite category
+///   name strings.
+/// Returns JSON array of sorted String.
+#[flutter_rust_bridge::frb(sync)]
+pub fn sort_categories_with_favorites(categories_json: String, favorites_json: String) -> String {
+    crispy_core::algorithms::categories::sort_categories_with_favorites(
+        &categories_json,
+        &favorites_json,
+    )
+}
+
+/// Extract unique categories from VOD items filtered by
+/// type.
+///
+/// `items_json` — JSON array of VodItem.
+/// `vod_type`   — Type to filter by (e.g. `"movie"`,
+///   `"series"`).
+/// Returns JSON array of sorted String.
+pub fn build_type_categories(items_json: String, vod_type: String) -> String {
+    crispy_core::algorithms::categories::build_type_categories(&items_json, &vod_type)
+}
 
 /// Build a category ID-to-name map from raw JSON.
 /// Returns JSON object {id: name}.
@@ -374,6 +421,84 @@ pub fn calculate_watch_progress(position_ms: i64, duration_ms: i64) -> f64 {
 /// Returns JSON array of WatchPositionEntry.
 pub fn filter_continue_watching_positions(json: String, limit: usize) -> String {
     crispy_core::algorithms::watch_progress::filter_continue_watching_positions(&json, limit)
+}
+
+// ── VOD Sorting / Filter ────────────────────────────
+
+/// Filter VOD items to those added within the last
+/// `cutoff_days` days, sorted newest-first.
+///
+/// `items_json`   — JSON array of VodItem.
+/// `cutoff_days`  — number of days to look back.
+/// `now_ms`       — current Unix time in milliseconds.
+/// Returns JSON array of VodItem.
+pub fn filter_recently_added(items_json: String, cutoff_days: u32, now_ms: i64) -> String {
+    crispy_core::algorithms::vod_sorting::filter_recently_added(&items_json, cutoff_days, now_ms)
+}
+
+// ── Watch History ───────────────────────────────────
+
+/// Computes the current watch streak in consecutive
+/// calendar days.
+///
+/// `timestamps_json` — JSON array of epoch-ms i64 values.
+/// `now_ms`          — current time as epoch-ms.
+/// Returns streak count as u32.
+#[flutter_rust_bridge::frb(sync)]
+pub fn compute_watch_streak(timestamps_json: String, now_ms: i64) -> u32 {
+    crispy_core::algorithms::watch_history::compute_watch_streak(&timestamps_json, now_ms)
+}
+
+/// Computes aggregated viewing statistics for a profile.
+///
+/// `history_json` — JSON array of watch-history objects.
+/// `now_ms`       — current time as epoch-ms.
+/// Returns JSON-serialised ProfileStats.
+pub fn compute_profile_stats(history_json: String, now_ms: i64) -> String {
+    crispy_core::algorithms::watch_history::compute_profile_stats(&history_json, now_ms)
+}
+
+/// Merges two WatchHistory JSON arrays, deduplicates by
+/// `id` (first occurrence wins), and sorts by
+/// `last_watched` descending.
+///
+/// Returns a JSON array.
+pub fn merge_dedup_sort_history(a_json: String, b_json: String) -> String {
+    crispy_core::algorithms::watch_history::merge_dedup_sort_history(&a_json, &b_json)
+}
+
+/// Filters a WatchHistory JSON array by
+/// continue-watching status.
+///
+/// `history_json` — JSON array of WatchHistory.
+/// `filter`       — `"all"`, `"watching"`, or
+///   `"completed"`.
+/// Returns a JSON array.
+pub fn filter_by_cw_status(history_json: String, filter: String) -> String {
+    crispy_core::algorithms::watch_history::filter_by_cw_status(&history_json, &filter)
+}
+
+/// Returns a JSON array of series IDs whose `updated_at`
+/// is within the last `days` days relative to `now_ms`.
+///
+/// `series_json` — JSON array of objects with `id` and
+///   optional `updated_at` epoch-ms.
+/// `days`        — look-back window in days.
+/// `now_ms`      — current time as epoch-ms.
+pub fn series_ids_with_new_episodes(series_json: String, days: u32, now_ms: i64) -> String {
+    crispy_core::algorithms::watch_history::series_ids_with_new_episodes(&series_json, days, now_ms)
+}
+
+/// Counts in-progress episodes for a given `series_id`.
+///
+/// `history_json` — JSON array of watch-history-like
+///   objects with series_id, media_type, duration_ms,
+///   position_ms.
+/// `series_id`    — the series to count for.
+/// Returns count as usize.
+#[flutter_rust_bridge::frb(sync)]
+pub fn count_in_progress_episodes(history_json: String, series_id: String) -> usize {
+    crispy_core::algorithms::watch_history::count_in_progress_episodes(&history_json, &series_id)
 }
 
 // ── Group Icon ──────────────────────────────────────

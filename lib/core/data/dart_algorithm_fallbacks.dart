@@ -250,6 +250,156 @@ List<String> dartGuessLogoDomains(String name) {
   return [word, '$word.com', '$word.tv', '$word.org'];
 }
 
+// ── Favorites Sort ────────────────────────────────────────────────
+
+/// Sort a JSON-encoded list of favourite channels by [sortMode].
+///
+/// Modes: `"recentlyAdded"` (no-op), `"nameAsc"`, `"nameDesc"`,
+/// `"contentType"` (group then name).
+///
+/// Mirrors `crispy-core::algorithms::sorting::sort_favorites`.
+String dartSortFavorites(String channelsJson, String sortMode) {
+  final list = (jsonDecode(channelsJson) as List).cast<Map<String, dynamic>>();
+  switch (sortMode) {
+    case 'nameAsc':
+      list.sort(
+        (a, b) => (a['name'] as String? ?? '').toLowerCase().compareTo(
+          (b['name'] as String? ?? '').toLowerCase(),
+        ),
+      );
+    case 'nameDesc':
+      list.sort(
+        (a, b) => (b['name'] as String? ?? '').toLowerCase().compareTo(
+          (a['name'] as String? ?? '').toLowerCase(),
+        ),
+      );
+    case 'contentType':
+      list.sort((a, b) {
+        final ga = (a['channel_group'] as String? ?? '');
+        final gb = (b['channel_group'] as String? ?? '');
+        final cmp = ga.compareTo(gb);
+        if (cmp != 0) return cmp;
+        return (a['name'] as String? ?? '').toLowerCase().compareTo(
+          (b['name'] as String? ?? '').toLowerCase(),
+        );
+      });
+    // 'recentlyAdded' — preserve order.
+  }
+  return jsonEncode(list);
+}
+
+// ── Category Sort ─────────────────────────────────────────────────
+
+/// Sort [categoriesJson] with [favoritesJson] items first (both groups
+/// sorted alphabetically within themselves).
+///
+/// Mirrors `crispy-core::algorithms::sorting::sort_categories_with_favorites`.
+String dartSortCategoriesWithFavorites(
+  String categoriesJson,
+  String favoritesJson,
+) {
+  final categories = (jsonDecode(categoriesJson) as List).cast<String>();
+  final favorites = (jsonDecode(favoritesJson) as List).cast<String>();
+  final favSet = favorites.toSet();
+  final favs = categories.where((c) => favSet.contains(c)).toList()..sort();
+  final rest = categories.where((c) => !favSet.contains(c)).toList()..sort();
+  return jsonEncode([...favs, ...rest]);
+}
+
+// ── Watch Streak ──────────────────────────────────────────────────
+
+/// Compute the current watch streak from a JSON array of epoch-ms
+/// timestamps and a [nowMs] reference time.
+///
+/// Mirrors `crispy-core::algorithms::watch_history::compute_watch_streak`.
+int dartComputeWatchStreak(String timestampsJson, int nowMs) {
+  List<dynamic> raw;
+  try {
+    raw = jsonDecode(timestampsJson) as List;
+  } catch (_) {
+    return 0;
+  }
+  if (raw.isEmpty) return 0;
+
+  // Collect distinct calendar days.
+  final days = <DateTime>{};
+  for (final ts in raw) {
+    final ms = ts is int ? ts : (ts as num).toInt();
+    final d = DateTime.fromMillisecondsSinceEpoch(ms);
+    days.add(DateTime(d.year, d.month, d.day));
+  }
+
+  final now = DateTime.fromMillisecondsSinceEpoch(nowMs);
+  final todayNorm = DateTime(now.year, now.month, now.day);
+
+  var current =
+      days.contains(todayNorm)
+          ? todayNorm
+          : todayNorm.subtract(const Duration(days: 1));
+
+  if (!days.contains(current)) return 0;
+
+  var streak = 0;
+  while (days.contains(current)) {
+    streak++;
+    current = current.subtract(const Duration(days: 1));
+  }
+  return streak;
+}
+
+// ── Continue-Watching Filter ──────────────────────────────────────
+
+/// Filter a WatchHistory JSON array by [filter] status.
+///
+/// Mirrors `crispy-core::algorithms::watch_history::filter_by_cw_status`.
+List<Map<String, dynamic>> dartFilterByCwStatus(
+  List<Map<String, dynamic>> entries,
+  String filter,
+) {
+  if (filter == 'all') return entries;
+  const completionThreshold = 0.95;
+  return entries.where((e) {
+    final pos = (e['position_ms'] as num?)?.toInt() ?? 0;
+    final dur = (e['duration_ms'] as num?)?.toInt() ?? 0;
+    final progress = dur > 0 ? pos / dur : 0.0;
+    final nearlyComplete = progress >= completionThreshold;
+    if (filter == 'watching') return progress > 0 && !nearlyComplete;
+    if (filter == 'completed') return nearlyComplete;
+    return true;
+  }).toList();
+}
+
+// ── Count In-Progress Episodes ────────────────────────────────────
+
+/// Count in-progress episodes for [seriesId] from a watch-history
+/// JSON array.
+///
+/// Mirrors `crispy-core::algorithms::watch_history::count_in_progress_episodes`.
+int dartCountInProgressEpisodes(String historyJson, String seriesId) {
+  List<dynamic> raw;
+  try {
+    raw = jsonDecode(historyJson) as List;
+  } catch (_) {
+    return 0;
+  }
+  const completionThreshold = 0.95;
+  var count = 0;
+  for (final item in raw) {
+    final e = item as Map<String, dynamic>;
+    final sid = e['series_id'] as String?;
+    final mediaType = e['media_type'] as String? ?? '';
+    final dur = (e['duration_ms'] as num?)?.toInt() ?? 0;
+    final pos = (e['position_ms'] as num?)?.toInt() ?? 0;
+    if (sid != seriesId) continue;
+    if (mediaType != 'episode') continue;
+    if (dur <= 0) continue;
+    final progress = pos / dur;
+    if (progress >= completionThreshold) continue;
+    count++;
+  }
+  return count;
+}
+
 // ── Dedup ─────────────────────────────────────────────────────────
 
 /// Returns true if [channelId] appears in the `channel_ids` list
