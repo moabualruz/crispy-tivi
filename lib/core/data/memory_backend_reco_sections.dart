@@ -119,9 +119,8 @@ class _MemoryRecoSections {
                 if (diff < 3) score += 0.3;
                 if (diff < 1) score += 0.1;
               }
-              final ratingStr = item['rating'] as String?;
-              final numRating = double.tryParse(ratingStr ?? '');
-              if (numRating != null) {
+              final numRating = parseRating(item['rating'] as String?);
+              if (numRating > 0) {
                 score += (numRating / 10.0) * 0.1;
               }
               final m = _recoToItem(

@@ -9,6 +9,11 @@ const kRecentlyAddedDays = 7;
 /// Used by VOD sorting, recommendations, and MemoryBackend mirrors.
 double parseRating(String? rating) => double.tryParse(rating ?? '') ?? 0.0;
 
+/// Like [parseRating] but returns [double.nan] on failure — NaN-sort-last
+/// sentinel for sort comparators where unrated items must sort after rated.
+double parseRatingForSort(String? rating) =>
+    double.tryParse(rating ?? '') ?? double.nan;
+
 /// Pure function: filters [items] to those added after the cutoff derived
 /// from [now] minus [kRecentlyAddedDays] days, then sorts newest-first.
 ///

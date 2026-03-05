@@ -100,11 +100,11 @@ class _MemoryRecoTrending {
             if (watchedIds.contains(id)) return false;
             final t = item['type'] as String? ?? '';
             if (t == 'episode') return false;
-            return double.tryParse(item['rating'] as String? ?? '') != null;
+            return parseRating(item['rating'] as String?) > 0;
           }).toList()
           ..sort((a, b) {
-            final ra = double.parse(a['rating'] as String);
-            final rb = double.parse(b['rating'] as String);
+            final ra = parseRating(a['rating'] as String?);
+            final rb = parseRating(b['rating'] as String?);
             return rb.compareTo(ra);
           });
     if (rated.isNotEmpty) {

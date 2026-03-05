@@ -33,8 +33,8 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
         });
       case 'rating_desc':
         list.sort((a, b) {
-          final ra = double.tryParse('${a['rating'] ?? ''}') ?? double.nan;
-          final rb = double.tryParse('${b['rating'] ?? ''}') ?? double.nan;
+          final ra = parseRatingForSort(a['rating'] as String?);
+          final rb = parseRatingForSort(b['rating'] as String?);
           if (ra.isNaN && rb.isNaN) return 0;
           if (ra.isNaN) return 1;
           if (rb.isNaN) return -1;
@@ -84,8 +84,8 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
           return hasRating && (hasPoster || hasBackdrop);
         }).toList();
     rated.sort((a, b) {
-      final ra = double.tryParse('${a['rating'] ?? ''}') ?? double.nan;
-      final rb = double.tryParse('${b['rating'] ?? ''}') ?? double.nan;
+      final ra = parseRatingForSort(a['rating'] as String?);
+      final rb = parseRatingForSort(b['rating'] as String?);
       if (ra.isNaN && rb.isNaN) return 0;
       if (ra.isNaN) return 1;
       if (rb.isNaN) return -1;
