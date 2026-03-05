@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants.dart';
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/responsive_layout.dart';
@@ -167,7 +168,7 @@ class _SeriesEpisodesTabState extends ConsumerState<SeriesEpisodesTab> {
     );
     _scrollController.animateTo(
       clampedOffset,
-      duration: const Duration(milliseconds: 500),
+      duration: CrispyAnimation.slow,
       curve: Curves.easeInOut,
     );
   }

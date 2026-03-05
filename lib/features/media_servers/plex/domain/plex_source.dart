@@ -5,6 +5,7 @@ import 'package:crispy_tivi/core/domain/entities/media_type.dart';
 import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/core/exceptions/media_source_exception.dart';
 import 'package:crispy_tivi/core/failures/failure.dart';
+import 'package:crispy_tivi/features/media_servers/shared/utils/dio_error_utils.dart';
 
 import '../data/datasources/plex_api_client.dart';
 import '../data/models/plex_metadata.dart';
@@ -77,7 +78,7 @@ class PlexSource implements MediaSource {
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
       throw MediaSourceException.server(
         message: 'Plex library fetch failed: $e',
@@ -123,8 +124,8 @@ class PlexSource implements MediaSource {
         );
         return PaginatedResult(
           items: result.items.map(_mapToMediaItem).toList(),
-          totalCount: result.totalSize,
-          startIndex: result.offset,
+          totalCount: result.totalCount,
+          startIndex: result.startIndex,
           limit: limit,
         );
       }
@@ -133,7 +134,7 @@ class PlexSource implements MediaSource {
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
       throw MediaSourceException.server(
         message: 'Plex library fetch failed: $e',
@@ -159,8 +160,8 @@ class PlexSource implements MediaSource {
       );
       return PaginatedResult(
         items: result.items.map(_mapToMediaItem).toList(),
-        totalCount: result.totalSize,
-        startIndex: result.offset,
+        totalCount: result.totalCount,
+        startIndex: result.startIndex,
         limit: limit,
       );
     } on AuthFailure catch (e) {
@@ -168,7 +169,7 @@ class PlexSource implements MediaSource {
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
       throw MediaSourceException.server(
         message: 'Plex children fetch failed: $e',
@@ -263,7 +264,7 @@ class PlexSource implements MediaSource {
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
       throw MediaSourceException.server(
         message: 'Plex filtered library fetch failed: $e',
@@ -282,7 +283,7 @@ class PlexSource implements MediaSource {
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
       throw MediaSourceException.server(
         message: 'Plex children fetch failed: $e',
@@ -306,7 +307,7 @@ class PlexSource implements MediaSource {
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
       throw MediaSourceException.server(
         message: 'Plex search failed: $e',
@@ -324,7 +325,7 @@ class PlexSource implements MediaSource {
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
       throw MediaSourceException.server(
         message: 'Plex stream URL fetch failed: $e',
@@ -381,48 +382,6 @@ class PlexSource implements MediaSource {
         return MediaType.unknown;
       default:
         return MediaType.unknown;
-    }
-  }
-
-  /// Converts DioException to MediaSourceException.
-  MediaSourceException _handleDioError(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-      case DioExceptionType.connectionError:
-        return MediaSourceException.network(
-          message: 'Cannot connect to Plex server: ${e.message}',
-          cause: e,
-        );
-      case DioExceptionType.badResponse:
-        final statusCode = e.response?.statusCode;
-        if (statusCode == 401 || statusCode == 403) {
-          return MediaSourceException.auth(
-            message: 'Plex authentication failed',
-            cause: e,
-          );
-        }
-        return MediaSourceException.server(
-          message: 'Plex server error: ${e.message}',
-          statusCode: statusCode,
-          cause: e,
-        );
-      case DioExceptionType.cancel:
-        return MediaSourceException.server(
-          message: 'Request cancelled',
-          cause: e,
-        );
-      case DioExceptionType.badCertificate:
-        return MediaSourceException.network(
-          message: 'SSL certificate error',
-          cause: e,
-        );
-      case DioExceptionType.unknown:
-        return MediaSourceException.network(
-          message: 'Network error: ${e.message}',
-          cause: e,
-        );
     }
   }
 }

@@ -111,7 +111,7 @@ class _OnboardingFormStepState extends ConsumerState<OnboardingFormStep> {
         setState(() => _validationError = 'MAC address is required.');
         return;
       }
-      if (!kMacAddressPattern.hasMatch(mac)) {
+      if (!kMacAddressRegExp.hasMatch(mac)) {
         setState(
           () =>
               _validationError =

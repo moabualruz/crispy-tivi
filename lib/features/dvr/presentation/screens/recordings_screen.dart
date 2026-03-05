@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../data/dvr_service.dart';
 import '../widgets/keyword_rule_dialog.dart';
@@ -182,10 +183,7 @@ class _DvrSpeedDialState extends ConsumerState<_DvrSpeedDial>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
+    _ctrl = AnimationController(vsync: this, duration: CrispyAnimation.osdShow);
     _rotate = Tween<double>(
       begin: 0,
       end: 0.125,

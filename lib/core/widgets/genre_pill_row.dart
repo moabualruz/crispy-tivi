@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/crispy_animation.dart';
 import '../theme/crispy_radius.dart';
 import '../theme/crispy_spacing.dart';
 
@@ -119,7 +120,7 @@ class _GenreChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(CrispyRadius.tv),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+          duration: CrispyAnimation.fast,
           padding: const EdgeInsets.symmetric(
             horizontal: CrispySpacing.md,
             vertical: CrispySpacing.xs,

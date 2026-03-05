@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/duration_formatter.dart';
 import '../providers/osd_providers.dart';
 import '../providers/player_providers.dart';
 
@@ -322,19 +323,11 @@ class _QueueItemTile extends StatelessWidget {
   final ColorScheme colorScheme;
   final VoidCallback? onTap;
 
-  String? _formatDuration(Duration? d) {
-    if (d == null) return null;
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    if (h > 0) return '$h:$m:$s';
-    return '$m:$s';
-  }
-
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final durationLabel = _formatDuration(item.duration);
+    final durationLabel =
+        item.duration != null ? DurationFormatter.clock(item.duration!) : null;
 
     return InkWell(
       onTap: onTap,

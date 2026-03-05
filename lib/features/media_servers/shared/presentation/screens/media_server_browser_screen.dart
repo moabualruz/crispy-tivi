@@ -1185,7 +1185,7 @@ class _EmptyServerStateState extends State<_EmptyServerState>
                     children: List.generate(
                       _steps.length,
                       (i) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
+                        duration: CrispyAnimation.normal,
                         margin: const EdgeInsets.symmetric(
                           horizontal: CrispySpacing.xxs,
                         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/theme/crispy_colors.dart';
+import '../../../../../core/utils/date_format_utils.dart';
 import '../../../../../core/theme/crispy_radius.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
 import '../../../../epg/presentation/providers/epg_providers.dart';
@@ -158,20 +159,6 @@ class _NextProgrammeCell extends StatelessWidget {
   final EpgEntry entry;
   final TextTheme textTheme;
 
-  String _formatTime(DateTime dt) {
-    final local = dt.toLocal();
-    final h = local.hour;
-    final m = local.minute.toString().padLeft(2, '0');
-    final period = h >= 12 ? 'PM' : 'AM';
-    final h12 =
-        h == 0
-            ? 12
-            : h > 12
-            ? h - 12
-            : h;
-    return '$h12:$m $period';
-  }
-
   @override
   Widget build(BuildContext context) {
     final dimColor = Colors.white.withValues(alpha: 0.5);
@@ -193,7 +180,7 @@ class _NextProgrammeCell extends StatelessWidget {
             ),
             const SizedBox(width: CrispySpacing.xs),
             Text(
-              _formatTime(entry.startTime),
+              formatH12mm(entry.startTime),
               style: textTheme.labelSmall?.copyWith(color: dimColor),
             ),
           ],

@@ -24,3 +24,11 @@ const String kSyncLastTimeKey = 'crispy_tivi_last_sync_time';
 /// Settings key storing the timestamp of the most recent local
 /// data modification (used for conflict detection).
 const String kSyncLocalModifiedTimeKey = 'crispy_tivi_local_modified_time';
+
+// ── Validation patterns ──────────────────────────────────────────────────
+
+/// Canonical MAC address validation pattern.
+///
+/// Accepts both upper and lowercase hex digits (e.g. `00:1a:2b:3c:4d:5e`
+/// and `00:1A:2B:3C:4D:5E`). Format: `XX:XX:XX:XX:XX:XX`.
+const String kMacAddressPattern = r'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$';

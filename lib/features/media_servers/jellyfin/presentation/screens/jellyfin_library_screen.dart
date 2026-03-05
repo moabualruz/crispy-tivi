@@ -9,7 +9,7 @@ import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/core/navigation/app_routes.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
-import 'package:crispy_tivi/core/utils/format_utils.dart';
+import 'package:crispy_tivi/core/utils/duration_formatter.dart';
 import 'package:crispy_tivi/core/widgets/context_menu_builders.dart';
 import 'package:crispy_tivi/core/widgets/context_menu_panel.dart';
 import '../../../shared/presentation/screens/paginated_library_screen.dart';
@@ -502,7 +502,7 @@ class _JellyfinListRow extends StatelessWidget {
 
     final year = item.year;
     final durationMs = item.durationMs;
-    final durationText = formatDurationMs(durationMs);
+    final durationText = DurationFormatter.humanShortMs(durationMs);
 
     return Card(
       margin: EdgeInsets.zero,

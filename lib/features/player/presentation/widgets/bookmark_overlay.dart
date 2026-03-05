@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/duration_formatter.dart';
 import '../providers/player_providers.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -235,7 +236,8 @@ class _BookmarkPin extends StatelessWidget {
           child: Align(
             alignment: Alignment.center,
             child: Tooltip(
-              message: bookmark.label ?? _formatDuration(bookmark.position),
+              message:
+                  bookmark.label ?? DurationFormatter.clock(bookmark.position),
               child: Transform.rotate(
                 angle: 0.785398, // 45 degrees in radians
                 child: Container(
@@ -258,14 +260,6 @@ class _BookmarkPin extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatDuration(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    if (h > 0) return '$h:$m:$s';
-    return '$m:$s';
   }
 }
 
@@ -467,10 +461,7 @@ class OsdBookmarkButton extends ConsumerWidget {
     ref.read(bookmarkProvider.notifier).add(position);
     ref.read(osdStateProvider.notifier).show();
 
-    final h = position.inHours;
-    final m = position.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = position.inSeconds.remainder(60).toString().padLeft(2, '0');
-    final label = h > 0 ? '$h:$m:$s' : '$m:$s';
+    final label = DurationFormatter.clock(position);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

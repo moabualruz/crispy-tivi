@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 
-/// MAC address validation pattern (uppercase hex with colons).
-final kMacAddressPattern = RegExp(r'^([0-9A-F]{2}:){5}[0-9A-F]{2}$');
+/// MAC address validation pattern (case-insensitive hex with colons).
+///
+/// See [kMacAddressPattern] in `lib/core/constants.dart`.
+final kMacAddressRegExp = RegExp(kMacAddressPattern);
 
 /// Form fields for adding an M3U playlist source.
 class M3uFormFields extends StatelessWidget {

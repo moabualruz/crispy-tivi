@@ -1,12 +1,15 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/core/domain/entities/media_item.dart';
-import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
+import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_source.dart';
-import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/providers/media_server_providers.dart';
+
+// Re-export the shared public-users provider under the legacy Emby alias so
+// existing callers that import this file keep working without changes.
+export 'package:crispy_tivi/features/media_servers/shared/presentation/providers/public_users_provider.dart'
+    show mediaServerPublicUsersProvider;
 
 // ── Thin wrappers delegating to the shared media-server factory ───────
 
@@ -65,31 +68,6 @@ final embyPaginatedItemsProvider = FutureProvider.autoDispose
           ),
         ).future,
       );
-    });
-
-// ── FE-EB-02: Pre-auth Public User List ──────────────────────────────
-
-/// Fetches the public user list from an Emby server before login.
-///
-/// Requires a server [url] (already normalized). Returns
-/// [MediaServerUser] objects exposed by `/Users/Public` without auth.
-/// Used by [EmbyLoginScreen] to render the user-picker avatar grid.
-final embyPublicUsersProvider = FutureProvider.autoDispose
-    .family<List<MediaServerUser>, String>((ref, url) async {
-      // FE-EB-02
-      if (url.isEmpty) return [];
-      try {
-        final dio = Dio(BaseOptions(baseUrl: url));
-        final response = await dio.get<List<dynamic>>('/Users/Public');
-        final data = response.data;
-        if (data == null) return [];
-        return data
-            .cast<Map<String, dynamic>>()
-            .map(MediaServerUser.fromJson)
-            .toList();
-      } catch (_) {
-        return [];
-      }
     });
 
 // ── FE-EB-04: Continue Watching ───────────────────────────────────────

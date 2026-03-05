@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
-import '../../../../core/widgets/nav_arrow.dart';
+import '../../../../core/widgets/horizontal_scroll_row.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../favorites/data/favorites_history_service.dart';
 import '../../domain/entities/channel.dart';
@@ -17,7 +16,7 @@ import '../../domain/entities/channel.dart';
 /// is empty, and when the channel list is in search or filtered mode.
 ///
 /// Spec: FE-TV-01.
-class RecentChannelsStrip extends ConsumerStatefulWidget {
+class RecentChannelsStrip extends ConsumerWidget {
   const RecentChannelsStrip({
     super.key,
     required this.onChannelTap,
@@ -31,34 +30,7 @@ class RecentChannelsStrip extends ConsumerStatefulWidget {
   final int maxItems;
 
   @override
-  ConsumerState<RecentChannelsStrip> createState() =>
-      _RecentChannelsStripState();
-}
-
-class _RecentChannelsStripState extends ConsumerState<RecentChannelsStrip> {
-  final _scrollController = ScrollController();
-  bool _isHovered = false;
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _scrollBy(double delta) {
-    final target = (_scrollController.offset + delta).clamp(
-      0.0,
-      _scrollController.position.maxScrollExtent,
-    );
-    _scrollController.animateTo(
-      target,
-      duration: CrispyAnimation.normal,
-      curve: CrispyAnimation.enterCurve,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final recent = ref.watch(
       favoritesHistoryProvider.select((s) => s.recentlyWatched),
     );
@@ -66,7 +38,7 @@ class _RecentChannelsStripState extends ConsumerState<RecentChannelsStrip> {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
-    final items = recent.take(widget.maxItems).toList();
+    final items = recent.take(maxItems).toList();
     final theme = Theme.of(context);
     final tt = theme.textTheme;
     final cs = theme.colorScheme;
@@ -89,58 +61,19 @@ class _RecentChannelsStripState extends ConsumerState<RecentChannelsStrip> {
               ),
             ),
           ),
-          MouseRegion(
-            onEnter: (_) => setState(() => _isHovered = true),
-            onExit: (_) => setState(() => _isHovered = false),
-            child: SizedBox(
-              height: 88,
-              child: Stack(
-                children: [
-                  ListView.builder(
-                    controller: _scrollController,
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: CrispySpacing.md,
-                    ),
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      final ch = items[index];
-                      return _RecentChannelTile(
-                        channel: ch,
-                        onTap: () => widget.onChannelTap(ch),
-                        autofocus: index == 0,
-                      );
-                    },
-                  ),
-                  if (_isHovered)
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 36,
-                      child: NavArrow(
-                        icon: Icons.chevron_left,
-                        onTap: () => _scrollBy(-200),
-                        isLeft: true,
-                        iconSize: 20,
-                      ),
-                    ),
-                  if (_isHovered)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 36,
-                      child: NavArrow(
-                        icon: Icons.chevron_right,
-                        onTap: () => _scrollBy(200),
-                        isLeft: false,
-                        iconSize: 20,
-                      ),
-                    ),
-                ],
-              ),
-            ),
+          HorizontalScrollRow<Channel>(
+            items: items,
+            itemWidth: 64,
+            sectionHeight: 88,
+            itemSpacing: 0,
+            arrowWidth: 36,
+            arrowIconSize: 20,
+            itemBuilder:
+                (ctx, ch, index) => _RecentChannelTile(
+                  channel: ch,
+                  onTap: () => onChannelTap(ch),
+                  autofocus: index == 0,
+                ),
           ),
           Divider(
             height: CrispySpacing.sm,

@@ -9,6 +9,7 @@ import 'package:universal_io/io.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/utils/platform_capabilities.dart';
 import '../../../favorites/data/favorites_history_service.dart';
 import '../../../iptv/domain/entities/channel.dart';
@@ -593,7 +594,7 @@ class _ZoomIndicatorOverlay extends StatelessWidget {
       alignment: Alignment.center,
       child: AnimatedOpacity(
         opacity: visible ? 1.0 : 0.6,
-        duration: const Duration(milliseconds: 200),
+        duration: CrispyAnimation.osdShow,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/date_format_utils.dart';
 import '../../../../core/utils/input_mode_notifier.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
@@ -69,7 +71,7 @@ class LiveEpgStrip extends ConsumerWidget {
       bottom: kOsdBottomBarHeight,
       child: AnimatedOpacity(
         opacity: opacity,
-        duration: const Duration(milliseconds: 300),
+        duration: CrispyAnimation.normal,
         child: _EpgStripContent(channelEpgId: channelEpgId),
       ),
     );
@@ -83,20 +85,6 @@ class _EpgStripContent extends ConsumerWidget {
 
   final String channelEpgId;
 
-  String _formatTime(DateTime dt) {
-    final local = dt.toLocal();
-    final h = local.hour;
-    final m = local.minute.toString().padLeft(2, '0');
-    final period = h >= 12 ? 'PM' : 'AM';
-    final h12 =
-        h == 0
-            ? 12
-            : h > 12
-            ? h - 12
-            : h;
-    return '$h12:$m $period';
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final epgState = ref.watch(epgProvider);
@@ -107,9 +95,9 @@ class _EpgStripContent extends ConsumerWidget {
 
     final next = epgState.getNextProgram(channelEpgId);
     final timeRange =
-        '${_formatTime(current.startTime)}'
+        '${formatH12mm(current.startTime)}'
         ' – '
-        '${_formatTime(current.endTime)}';
+        '${formatH12mm(current.endTime)}';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
@@ -149,9 +137,9 @@ class _EpgStripContent extends ConsumerWidget {
             _ProgrammeRow(
               entry: next,
               timeRange:
-                  '${_formatTime(next.startTime)}'
+                  '${formatH12mm(next.startTime)}'
                   ' – '
-                  '${_formatTime(next.endTime)}',
+                  '${formatH12mm(next.endTime)}',
               textTheme: textTheme,
               isCurrent: false,
             ),

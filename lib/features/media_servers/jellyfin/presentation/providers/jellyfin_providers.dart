@@ -1,12 +1,15 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/core/domain/entities/media_item.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_source.dart';
-import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/providers/media_server_providers.dart';
+
+// Re-export the shared public-users provider so existing callers that
+// import this file keep working without changes.
+export 'package:crispy_tivi/features/media_servers/shared/presentation/providers/public_users_provider.dart'
+    show mediaServerPublicUsersProvider;
 
 // ── Thin wrappers delegating to the shared media-server factory ───────
 
@@ -67,32 +70,6 @@ final jellyfinPaginatedItemsProvider = FutureProvider.autoDispose
           ),
         ).future,
       );
-    });
-
-// ── Pre-auth Public User List (FE-JF-02) ──────────────────────────────
-
-/// Fetches the public user list from a Jellyfin server before login.
-///
-/// Requires a server [url] (already normalized). Returns the list of
-/// [MediaServerUser] objects that have `HasPassword == false` or are
-/// configured as public. Jellyfin exposes `/Users/Public` without auth.
-///
-/// Used by [JellyfinLoginScreen] to render the user-picker row.
-final jellyfinPublicUsersProvider = FutureProvider.autoDispose
-    .family<List<MediaServerUser>, String>((ref, url) async {
-      if (url.isEmpty) return [];
-      try {
-        final dio = Dio(BaseOptions(baseUrl: url));
-        final response = await dio.get<List<dynamic>>('/Users/Public');
-        final data = response.data;
-        if (data == null) return [];
-        return data
-            .cast<Map<String, dynamic>>()
-            .map(MediaServerUser.fromJson)
-            .toList();
-      } catch (_) {
-        return [];
-      }
     });
 
 // ── Personalized Sections ─────────────────────────────────────────────

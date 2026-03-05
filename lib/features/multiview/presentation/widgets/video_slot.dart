@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
@@ -93,7 +94,7 @@ class _VideoSlotState extends ConsumerState<VideoSlot> {
             right: 8,
             child: AnimatedOpacity(
               opacity: _hovered ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 150),
+              duration: CrispyAnimation.fast,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

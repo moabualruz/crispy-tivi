@@ -15,18 +15,3 @@ String formatBytes(int bytes) {
   }
   return '${(bytes / kBytesPerKb).toStringAsFixed(1)} KB';
 }
-
-/// Formats a duration given in milliseconds as a compact human-readable string.
-///
-/// Returns strings like "42m" for durations under an hour, or "1h 2m"
-/// for longer durations. Returns `null` when [ms] is `null`.
-///
-/// Used by media-server screens (Jellyfin, Emby, Plex) to display
-/// episode / movie runtime.
-String? formatDurationMs(int? ms) {
-  if (ms == null) return null;
-  final h = ms ~/ 3600000;
-  final m = (ms % 3600000) ~/ 60000;
-  if (h > 0) return '${h}h ${m}m';
-  return '${m}m';
-}

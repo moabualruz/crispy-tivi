@@ -12,6 +12,7 @@ import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
+import 'package:crispy_tivi/core/widgets/or_divider_row.dart';
 import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_auth_service.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
@@ -26,8 +27,6 @@ import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/m
 /// the OAuth PIN flow (PX-FE-01).
 class PlexLoginScreen extends ConsumerStatefulWidget {
   const PlexLoginScreen({super.key});
-
-  static const _clientIdentifier = 'crispy-tivi';
 
   @override
   ConsumerState<PlexLoginScreen> createState() => _PlexLoginScreenState();
@@ -50,7 +49,7 @@ class _PlexLoginScreenState extends ConsumerState<PlexLoginScreen> {
     final serverInfo = await client.validateServer(
       url: url,
       token: token,
-      clientIdentifier: PlexLoginScreen._clientIdentifier,
+      clientIdentifier: PlexAuthService.clientIdentifier,
     );
 
     return PlaylistSource(
@@ -59,7 +58,7 @@ class _PlexLoginScreenState extends ConsumerState<PlexLoginScreen> {
       url: url,
       type: PlaylistSourceType.plex,
       accessToken: token,
-      deviceId: PlexLoginScreen._clientIdentifier,
+      deviceId: PlexAuthService.clientIdentifier,
     );
   }
 
@@ -117,8 +116,6 @@ class _PlexOAuthRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         CrispySpacing.lg,
@@ -129,27 +126,7 @@ class _PlexOAuthRow extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Divider(color: cs.outline.withValues(alpha: 0.5)),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: CrispySpacing.sm,
-                ),
-                child: Text(
-                  'or',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
-                ),
-              ),
-              Expanded(
-                child: Divider(color: cs.outline.withValues(alpha: 0.5)),
-              ),
-            ],
-          ),
+          const OrDividerRow(),
           const SizedBox(height: CrispySpacing.sm),
           FilledButton.icon(
             onPressed: onSignIn,

@@ -13,6 +13,7 @@ import '../../../shared/presentation/screens/media_server_home_screen.dart';
 import '../../../shared/presentation/screens/paginated_library_screen.dart'
     show kPosterGridDelegate;
 import '../../../shared/presentation/widgets/media_server_library_card.dart';
+import '../../../shared/presentation/widgets/poster_card.dart';
 import '../../../shared/presentation/widgets/watched_indicator.dart';
 import '../../presentation/providers/jellyfin_providers.dart';
 
@@ -232,79 +233,16 @@ class _JellyfinResumeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
-    return Semantics(
-      button: true,
-      label: 'Resume watching',
-      child: GestureDetector(
-        onTap: () => _navigateTo(context),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(CrispyRadius.tv),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Thumbnail.
-              if (item.logoUrl != null)
-                Image.network(
-                  item.logoUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder:
-                      (_, _, _) =>
-                          ColoredBox(color: cs.surfaceContainerHighest),
-                )
-              else
-                ColoredBox(
-                  color: cs.surfaceContainerHighest,
-                  child: Icon(
-                    Icons.movie,
-                    color: cs.onSurfaceVariant,
-                    size: 32,
-                  ),
-                ),
-              // Bottom gradient + title.
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        cs.surface.withValues(alpha: 0.85),
-                        cs.surface.withValues(alpha: 0.0),
-                      ],
-                    ),
-                  ),
-                  padding: const EdgeInsets.fromLTRB(
-                    CrispySpacing.xs,
-                    CrispySpacing.lg,
-                    CrispySpacing.xs,
-                    CrispySpacing.xxs,
-                  ),
-                  child: Text(
-                    item.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: tt.labelSmall?.copyWith(
-                      color: cs.onSurface,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              // FE-JF-04: progress bar showing resume position.
-              WatchedIndicator(
-                isWatched: item.isWatched,
-                isInProgress: item.isInProgress,
-                watchProgress: item.watchProgress,
-              ),
-            ],
-          ),
-        ),
+    return MediaServerPosterCard(
+      imageUrl: item.logoUrl,
+      title: item.name,
+      semanticLabel: 'Resume watching',
+      onTap: () => _navigateTo(context),
+      // FE-JF-04: progress bar showing resume position.
+      overlay: WatchedIndicator(
+        isWatched: item.isWatched,
+        isInProgress: item.isInProgress,
+        watchProgress: item.watchProgress,
       ),
     );
   }

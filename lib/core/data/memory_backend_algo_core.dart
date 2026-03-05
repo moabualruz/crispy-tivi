@@ -188,10 +188,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
   // ── Normalize ──────────────────────────────────
 
   bool validateMacAddress(String mac) {
-    return RegExp(
-      r'^([0-9A-Fa-f]{2}:){5}'
-      r'[0-9A-Fa-f]{2}$',
-    ).hasMatch(mac);
+    return RegExp(kMacAddressPattern).hasMatch(mac);
   }
 
   String macToDeviceId(String mac) => mac.replaceAll(':', '');

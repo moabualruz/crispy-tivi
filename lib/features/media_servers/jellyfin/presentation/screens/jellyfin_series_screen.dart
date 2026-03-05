@@ -9,7 +9,7 @@ import 'package:crispy_tivi/core/navigation/app_routes.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
-import 'package:crispy_tivi/core/utils/format_utils.dart';
+import 'package:crispy_tivi/core/utils/duration_formatter.dart';
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
 import '../../../shared/presentation/widgets/watched_indicator.dart';
 import '../providers/jellyfin_providers.dart';
@@ -222,7 +222,7 @@ class _EpisodeRow extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
 
     final badge = _episodeBadge();
-    final duration = formatDurationMs(episode.durationMs);
+    final duration = DurationFormatter.humanShortMs(episode.durationMs);
     final releaseDate = episode.releaseDate;
 
     return FocusWrapper(

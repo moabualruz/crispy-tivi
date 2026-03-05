@@ -9,7 +9,7 @@ import 'package:crispy_tivi/core/navigation/app_routes.dart';
 import 'package:crispy_tivi/core/theme/crispy_animation.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
-import 'package:crispy_tivi/core/utils/format_utils.dart';
+import 'package:crispy_tivi/core/utils/duration_formatter.dart';
 import 'package:crispy_tivi/core/widgets/context_menu_builders.dart';
 import 'package:crispy_tivi/core/widgets/context_menu_panel.dart';
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
@@ -625,7 +625,7 @@ class _PlexEpisodeCard extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
 
     final badge = _episodeBadge();
-    final duration = formatDurationMs(item.durationMs);
+    final duration = DurationFormatter.humanShortMs(item.durationMs);
     final airDate = item.releaseDate;
 
     return Column(

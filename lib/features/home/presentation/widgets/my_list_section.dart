@@ -6,7 +6,7 @@ import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../../core/widgets/nav_arrow.dart';
+import '../../../../core/widgets/horizontal_scroll_row.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../vod/domain/entities/vod_item.dart';
 import '../providers/watchlist_provider.dart';
@@ -18,121 +18,28 @@ import '../providers/watchlist_provider.dart';
 /// Hidden entirely when the watchlist is empty.
 /// Each card shows the poster thumbnail and title.
 /// Long-press reveals a remove-from-watchlist action.
-class MyListSection extends ConsumerStatefulWidget {
+class MyListSection extends ConsumerWidget {
   const MyListSection({super.key});
 
   @override
-  ConsumerState<MyListSection> createState() => _MyListSectionState();
-}
-
-class _MyListSectionState extends ConsumerState<MyListSection> {
-  final _scrollController = ScrollController();
-  bool _isHovered = false;
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _scrollBy(double delta) {
-    final target = (_scrollController.offset + delta).clamp(
-      0.0,
-      _scrollController.position.maxScrollExtent,
-    );
-    _scrollController.animateTo(
-      target,
-      duration: CrispyAnimation.normal,
-      curve: CrispyAnimation.enterCurve,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(watchlistProvider).value?.items ?? [];
     if (items.isEmpty) return const SizedBox.shrink();
 
-    final cs = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            CrispySpacing.md,
-            CrispySpacing.xl,
-            CrispySpacing.md,
-            CrispySpacing.xs,
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.playlist_play_rounded, size: 20, color: cs.primary),
-              const SizedBox(width: CrispySpacing.sm),
-              Expanded(
-                child: Text(
-                  'My List',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        MouseRegion(
-          onEnter: (_) => setState(() => _isHovered = true),
-          onExit: (_) => setState(() => _isHovered = false),
-          child: SizedBox(
-            height: _kCardHeight + CrispySpacing.md * 2 + 32,
-            child: Stack(
-              children: [
-                ListView.builder(
-                  controller: _scrollController,
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: CrispySpacing.md,
-                    vertical: CrispySpacing.sm,
-                  ),
-                  itemCount: items.length,
-                  itemBuilder: (ctx, i) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: CrispySpacing.sm),
-                      child: _WatchlistCard(item: items[i]),
-                    );
-                  },
-                ),
-                if (_isHovered)
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 36,
-                    child: NavArrow(
-                      icon: Icons.chevron_left,
-                      onTap: () => _scrollBy(-200),
-                      isLeft: true,
-                      iconSize: 20,
-                    ),
-                  ),
-                if (_isHovered)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 36,
-                    child: NavArrow(
-                      icon: Icons.chevron_right,
-                      onTap: () => _scrollBy(200),
-                      isLeft: false,
-                      iconSize: 20,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
+    return HorizontalScrollRow<VodItem>(
+      headerIcon: Icons.playlist_play_rounded,
+      headerTitle: 'My List',
+      items: items,
+      itemWidth: _kCardWidth,
+      sectionHeight: _kCardHeight + CrispySpacing.md * 2 + 32,
+      padding: const EdgeInsets.symmetric(
+        horizontal: CrispySpacing.md,
+        vertical: CrispySpacing.sm,
+      ),
+      itemSpacing: CrispySpacing.sm,
+      arrowWidth: 36,
+      arrowIconSize: 20,
+      itemBuilder: (ctx, item, _) => _WatchlistCard(item: item),
     );
   }
 }

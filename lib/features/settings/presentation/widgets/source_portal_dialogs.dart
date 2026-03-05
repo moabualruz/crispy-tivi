@@ -64,7 +64,7 @@ class _StalkerAddDialogState extends ConsumerState<_StalkerAddDialog> {
       return;
     }
 
-    if (!kMacAddressPattern.hasMatch(mac)) {
+    if (!kMacAddressRegExp.hasMatch(mac)) {
       setState(
         () =>
             _error =

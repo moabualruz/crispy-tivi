@@ -158,7 +158,7 @@ class OsdStateNotifier extends Notifier<OsdState> {
   void updateTimeout(InputMode mode) {
     final next = switch (mode) {
       InputMode.keyboard || InputMode.gamepad => const Duration(seconds: 6),
-      InputMode.mouse || InputMode.touch => const Duration(seconds: 4),
+      InputMode.mouse || InputMode.touch => CrispyAnimation.osdAutoHide,
     };
     _timeout = next;
   }

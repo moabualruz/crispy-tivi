@@ -5,6 +5,7 @@ import 'package:crispy_tivi/core/domain/entities/media_item.dart';
 import 'package:crispy_tivi/core/domain/entities/media_type.dart';
 import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/core/exceptions/media_source_exception.dart';
+import '../utils/dio_error_utils.dart';
 import 'media_server_api_client.dart';
 import 'models/media_server_item.dart';
 
@@ -78,7 +79,7 @@ class MediaServerSource implements MediaSource {
         return response.items.map(_mapToMediaItem).toList();
       }
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, type.name);
     } catch (e) {
       throw MediaSourceException.server(
         message: '${type.name} library fetch failed: $e',
@@ -121,7 +122,7 @@ class MediaServerSource implements MediaSource {
         );
       }
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, type.name);
     } catch (e) {
       throw MediaSourceException.server(
         message: '${type.name} library fetch failed: $e',
@@ -169,7 +170,7 @@ class MediaServerSource implements MediaSource {
           .map(_mapToMediaItem)
           .toList();
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, type.name);
     } catch (e) {
       throw MediaSourceException.server(
         message: '${type.name} favorites fetch failed: $e',
@@ -195,7 +196,7 @@ class MediaServerSource implements MediaSource {
       );
       return response.items.map(_mapToMediaItem).toList();
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, type.name);
     } catch (e) {
       throw MediaSourceException.server(
         message: '${type.name} recently added fetch failed: $e',
@@ -220,7 +221,7 @@ class MediaServerSource implements MediaSource {
       );
       return response.items.map(_mapToMediaItem).toList();
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, type.name);
     } catch (e) {
       throw MediaSourceException.server(
         message: '${type.name} resume items fetch failed: $e',
@@ -244,7 +245,7 @@ class MediaServerSource implements MediaSource {
       );
       return response.items.map(_mapToMediaItem).toList();
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, type.name);
     } catch (e) {
       throw MediaSourceException.server(
         message: '${type.name} next-up fetch failed: $e',
@@ -274,7 +275,7 @@ class MediaServerSource implements MediaSource {
       // getLatestItems returns a raw list, not an ItemsResult.
       return response.map(_mapToMediaItem).toList();
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, type.name);
     } catch (e) {
       throw MediaSourceException.server(
         message: '${type.name} latest-by-library fetch failed: $e',
@@ -301,7 +302,7 @@ class MediaServerSource implements MediaSource {
       );
       return response.items.map(_mapToMediaItem).toList();
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, type.name);
     } catch (e) {
       throw MediaSourceException.server(
         message: '${type.name} collections fetch failed: $e',
@@ -352,7 +353,7 @@ class MediaServerSource implements MediaSource {
         limit: limit,
       );
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw dioToMediaSourceException(e, type.name);
     } catch (e) {
       throw MediaSourceException.server(
         message: '${type.name} filtered library fetch failed: $e',
@@ -425,46 +426,5 @@ class MediaServerSource implements MediaSource {
       'TvChannel' => MediaType.channel,
       _ => MediaType.unknown,
     };
-  }
-
-  /// Converts [DioException] to [MediaSourceException].
-  MediaSourceException _handleDioError(DioException e) {
-    return switch (e.type) {
-      DioExceptionType.connectionTimeout ||
-      DioExceptionType.sendTimeout ||
-      DioExceptionType.receiveTimeout ||
-      DioExceptionType.connectionError => MediaSourceException.network(
-        message: 'Cannot connect to ${type.name} server: ${e.message}',
-        cause: e,
-      ),
-      DioExceptionType.badResponse => _handleBadResponse(e),
-      DioExceptionType.cancel => MediaSourceException.server(
-        message: 'Request cancelled',
-        cause: e,
-      ),
-      DioExceptionType.badCertificate => MediaSourceException.network(
-        message: 'SSL certificate error',
-        cause: e,
-      ),
-      DioExceptionType.unknown => MediaSourceException.network(
-        message: 'Network error: ${e.message}',
-        cause: e,
-      ),
-    };
-  }
-
-  MediaSourceException _handleBadResponse(DioException e) {
-    final statusCode = e.response?.statusCode;
-    if (statusCode == 401 || statusCode == 403) {
-      return MediaSourceException.auth(
-        message: '${type.name} authentication failed',
-        cause: e,
-      );
-    }
-    return MediaSourceException.server(
-      message: '${type.name} server error: ${e.message}',
-      statusCode: statusCode,
-      cause: e,
-    );
   }
 }

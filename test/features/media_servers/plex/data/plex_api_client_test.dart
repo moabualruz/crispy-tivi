@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:crispy_tivi/core/domain/media_source.dart';
 import 'package:crispy_tivi/core/failures/failure.dart';
 import 'package:crispy_tivi/features/media_servers/'
     'plex/data/datasources/plex_api_client.dart';
@@ -351,9 +352,9 @@ void main() {
       );
 
       expect(result.items, hasLength(1));
-      expect(result.totalSize, 50);
-      expect(result.offset, 0);
-      expect(result.size, 2);
+      expect(result.totalCount, 50);
+      expect(result.startIndex, 0);
+      expect(result.count, 1);
       expect(result.hasMore, isTrue);
     });
 
@@ -475,7 +476,7 @@ void main() {
       );
 
       expect(result.items, hasLength(3));
-      expect(result.totalSize, 10);
+      expect(result.totalCount, 10);
       expect(result.hasMore, isTrue);
     });
 
@@ -734,35 +735,32 @@ void main() {
     });
   });
 
-  // ── PlexPaginatedResult ──────────────────────────
+  // ── PaginatedResult<PlexMetadata> ────────────────
 
-  group('PlexPaginatedResult', () {
+  group('PaginatedResult<PlexMetadata>', () {
     test('hasMore true when more items exist', () {
-      const result = PlexPaginatedResult(
+      const result = PaginatedResult<PlexMetadata>(
         items: [],
-        totalSize: 100,
-        offset: 0,
-        size: 50,
+        totalCount: 100,
+        startIndex: 0,
       );
       expect(result.hasMore, isTrue);
     });
 
     test('hasMore false when at end', () {
-      const result = PlexPaginatedResult(
+      const result = PaginatedResult<PlexMetadata>(
         items: [],
-        totalSize: 50,
-        offset: 0,
-        size: 50,
+        totalCount: 0,
+        startIndex: 0,
       );
       expect(result.hasMore, isFalse);
     });
 
     test('hasMore false when past end', () {
-      const result = PlexPaginatedResult(
+      const result = PaginatedResult<PlexMetadata>(
         items: [],
-        totalSize: 10,
-        offset: 10,
-        size: 5,
+        totalCount: 10,
+        startIndex: 10,
       );
       expect(result.hasMore, isFalse);
     });

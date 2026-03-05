@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../../core/theme/crispy_colors.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
+import '../../../../../core/utils/date_format_utils.dart';
 import '../../../../../core/widgets/live_badge.dart';
 import '../../../../epg/presentation/providers/epg_providers.dart';
 import '../../../domain/entities/playback_state.dart';
@@ -188,20 +189,6 @@ class CurrentProgramLabel extends ConsumerWidget {
   /// Text theme for styling labels.
   final TextTheme textTheme;
 
-  String _formatTime(DateTime dt) {
-    final local = dt.toLocal();
-    final h = local.hour;
-    final m = local.minute.toString().padLeft(2, '0');
-    final period = h >= 12 ? 'PM' : 'AM';
-    final h12 =
-        h == 0
-            ? 12
-            : h > 12
-            ? h - 12
-            : h;
-    return '$h12:$m $period';
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final current = ref.watch(
@@ -226,9 +213,9 @@ class CurrentProgramLabel extends ConsumerWidget {
     }
 
     final timeRange =
-        '${_formatTime(current.startTime)}'
+        '${formatH12mm(current.startTime)}'
         ' - '
-        '${_formatTime(current.endTime)}';
+        '${formatH12mm(current.endTime)}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,

@@ -6,6 +6,7 @@ import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/date_format_utils.dart';
 import '../../../../core/utils/stream_url_actions.dart';
 import '../../../../core/widgets/context_menu_builders.dart';
 import '../../../../core/widgets/context_menu_panel.dart';
@@ -586,20 +587,12 @@ class _UpcomingProgramCard extends ConsumerWidget {
 
   final UpcomingProgram program;
 
-  /// Format [DateTime] as HH:MM using local time.
-  String _formatTime(DateTime dt) {
-    final local = dt.toLocal();
-    final h = local.hour.toString().padLeft(2, '0');
-    final m = local.minute.toString().padLeft(2, '0');
-    return '$h:$m';
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final channel = program.channel;
     final entry = program.entry;
-    final startLabel = _formatTime(entry.startTime);
+    final startLabel = formatHHmmLocal(entry.startTime);
 
     return Semantics(
       button: true,

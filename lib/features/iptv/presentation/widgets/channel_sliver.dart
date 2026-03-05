@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/date_format_utils.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../application/duplicate_detection_service.dart';
@@ -91,7 +92,7 @@ class ChannelSliver extends ConsumerWidget {
         final nextLabel =
             nextEntry != null
                 ? 'Next: ${nextEntry.title} · '
-                    '${_fmtTime(nextEntry.startTime)}'
+                    '${formatHHmmLocal(nextEntry.startTime)}'
                 : null;
         final item = ClipRect(
           child: Padding(
@@ -146,12 +147,4 @@ class ChannelSliver extends ConsumerWidget {
       }, childCount: channels.length),
     );
   }
-}
-
-/// Formats [dt] as "HH:MM" in local time.
-String _fmtTime(DateTime dt) {
-  final local = dt.toLocal();
-  final h = local.hour.toString().padLeft(2, '0');
-  final m = local.minute.toString().padLeft(2, '0');
-  return '$h:$m';
 }

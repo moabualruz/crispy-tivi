@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/date_format_utils.dart';
 import '../../domain/entities/channel.dart';
 import '../../domain/entities/epg_entry.dart';
 
@@ -108,8 +109,8 @@ class ChannelEpgOverlay extends StatelessWidget {
             const SizedBox(height: CrispySpacing.xxs),
             // Time range
             Text(
-              '${_fmtTime(entry!.startTime)}'
-              ' – ${_fmtTime(entry!.endTime)}',
+              '${formatHHmmLocal(entry!.startTime)}'
+              ' – ${formatHHmmLocal(entry!.endTime)}',
               style: textTheme.labelSmall?.copyWith(
                 color: Colors.white.withValues(alpha: 0.6),
               ),
@@ -148,7 +149,7 @@ class ChannelEpgOverlay extends StatelessWidget {
                 child: Row(
                   children: [
                     Text(
-                      _fmtTime(up.startTime),
+                      formatHHmmLocal(up.startTime),
                       style: textTheme.labelSmall?.copyWith(
                         color: Colors.white.withValues(alpha: 0.5),
                       ),
@@ -171,12 +172,5 @@ class ChannelEpgOverlay extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _fmtTime(DateTime dt) {
-    final local = dt.toLocal();
-    final h = local.hour.toString().padLeft(2, '0');
-    final m = local.minute.toString().padLeft(2, '0');
-    return '$h:$m';
   }
 }

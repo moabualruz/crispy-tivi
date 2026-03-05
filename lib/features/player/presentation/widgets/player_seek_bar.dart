@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/duration_formatter.dart';
 import 'seek_bar_with_preview.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -438,14 +439,6 @@ class _ChapterListTile extends StatelessWidget {
   final int index;
   final VoidCallback onTap;
 
-  String _formatDuration(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    if (h > 0) return '$h:$m:$s';
-    return '$m:$s';
-  }
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -476,7 +469,7 @@ class _ChapterListTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
-        _formatDuration(chapter.start),
+        DurationFormatter.clock(chapter.start),
         style: textTheme.labelSmall?.copyWith(
           color: colorScheme.onSurface.withValues(alpha: 0.6),
         ),

@@ -7,8 +7,10 @@ import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/utils/url_utils.dart';
+import 'package:crispy_tivi/core/widgets/or_divider_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';
+import 'package:crispy_tivi/features/media_servers/shared/presentation/providers/public_users_provider.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
 import '../providers/emby_providers.dart';
 import '../widgets/emby_pin_login_dialog.dart';
@@ -213,7 +215,7 @@ class _EmbyPublicUserPicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // FE-EB-02
-    final usersAsync = ref.watch(embyPublicUsersProvider(serverUrl));
+    final usersAsync = ref.watch(mediaServerPublicUsersProvider(serverUrl));
 
     return usersAsync.when(
       data: (users) {
@@ -396,8 +398,6 @@ class _PinLoginRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         CrispySpacing.lg,
@@ -408,27 +408,7 @@ class _PinLoginRow extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Divider(color: cs.outline.withValues(alpha: 0.5)),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: CrispySpacing.sm,
-                ),
-                child: Text(
-                  'or',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
-                ),
-              ),
-              Expanded(
-                child: Divider(color: cs.outline.withValues(alpha: 0.5)),
-              ),
-            ],
-          ),
+          const OrDividerRow(),
           const SizedBox(height: CrispySpacing.sm),
           TextButton.icon(
             onPressed: onLoginWithPin,

@@ -9,7 +9,6 @@ import '../../../../../core/theme/crispy_radius.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
 import '../../../../../core/utils/date_format_utils.dart';
 import '../../../../../core/utils/duration_formatter.dart';
-import '../../../../../core/utils/format_utils.dart';
 import '../../../../../core/widgets/cinematic_hero_banner.dart';
 import '../../../../../core/widgets/focus_wrapper.dart';
 import '../../../../../core/widgets/meta_chip.dart';
@@ -395,7 +394,7 @@ class _PlexExtrasSection extends ConsumerWidget {
                   final extra = extras[index];
                   return _PlexExtraCard(
                     extra: extra,
-                    duration: formatDurationMs(extra.durationMs),
+                    duration: DurationFormatter.humanShortMs(extra.durationMs),
                     onTap: () {
                       // Stub: play extra via its itemId.
                       // Full implementation resolves stream URL via

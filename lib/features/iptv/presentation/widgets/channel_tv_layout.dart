@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -148,7 +149,7 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
       );
       _channelScrollController.animateTo(
         offset,
-        duration: const Duration(milliseconds: 300),
+        duration: CrispyAnimation.normal,
         curve: Curves.easeOut,
       );
     }

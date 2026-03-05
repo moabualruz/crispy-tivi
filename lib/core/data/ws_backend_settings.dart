@@ -106,7 +106,7 @@ mixin _WsSettingsMixin on _WsBackendBase {
 
   bool validateMacAddress(String mac) {
     // Sync — local Dart fallback.
-    return RegExp(r'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$').hasMatch(mac);
+    return RegExp(kMacAddressPattern).hasMatch(mac);
   }
 
   String macToDeviceId(String mac) {

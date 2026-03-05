@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../domain/entities/recording.dart';
@@ -246,7 +247,7 @@ class _GroupHeader extends StatelessWidget {
               // Animated chevron
               AnimatedRotation(
                 turns: isCollapsed ? -0.25 : 0,
-                duration: const Duration(milliseconds: 200),
+                duration: CrispyAnimation.osdShow,
                 child: Icon(
                   Icons.expand_more,
                   color: cs.onSurfaceVariant,

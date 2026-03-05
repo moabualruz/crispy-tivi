@@ -60,8 +60,7 @@ class _GestureRingOverlayState extends State<GestureRingOverlay>
     super.initState();
     _fade = AnimationController(
       vsync: this,
-      // 1.5 s total: CrispyAnimation.slow (500 ms) × 3 ≈ 1500 ms
-      duration: const Duration(milliseconds: 1500),
+      duration: CrispyAnimation.skeletonPulse,
       value: widget.isSwiping ? 1.0 : 0.0,
     );
     _opacity = CurvedAnimation(parent: _fade, curve: Curves.easeOut);

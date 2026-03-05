@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../../domain/entities/plex_server.dart';
 import '../../../../../core/constants.dart';
+import '../../../../../core/domain/media_source.dart';
 import '../../../../../core/failures/failure.dart';
 import '../models/plex_media_container.dart';
 import '../models/plex_directory.dart';
@@ -125,8 +126,8 @@ class PlexApiClient {
   /// [size] - Number of items to fetch. Defaults to [kMediaServerPageSize]
   ///   (shared with Emby/Jellyfin pagination).
   ///
-  /// Returns a [PlexPaginatedResult] containing items and pagination metadata.
-  Future<PlexPaginatedResult> getItemsPaginated(
+  /// Returns a [PaginatedResult] containing items and pagination metadata.
+  Future<PaginatedResult<PlexMetadata>> getItemsPaginated(
     PlexServer server, {
     required String libraryId,
     int start = 0,
@@ -155,11 +156,12 @@ class PlexApiClient {
       final container = PlexMediaContainer.fromJson(
         response.data['MediaContainer'],
       );
-      return PlexPaginatedResult(
-        items: container.metadata ?? [],
-        totalSize: container.totalSize ?? container.size ?? 0,
-        offset: container.offset ?? start,
-        size: container.size ?? 0,
+      final items = container.metadata ?? [];
+      return PaginatedResult<PlexMetadata>(
+        items: items,
+        totalCount: container.totalSize ?? container.size ?? 0,
+        startIndex: container.offset ?? start,
+        limit: size,
       );
     } on DioException catch (e) {
       throw ServerFailure(message: e.message ?? 'Failed to fetch items');
@@ -172,7 +174,7 @@ class PlexApiClient {
   ///
   /// Returns seasons of a show or episodes of a season.
   /// [size] defaults to [kMediaServerPageSize] (shared with Emby/Jellyfin).
-  Future<PlexPaginatedResult> getChildrenPaginated(
+  Future<PaginatedResult<PlexMetadata>> getChildrenPaginated(
     PlexServer server, {
     required String itemId,
     int start = 0,
@@ -201,11 +203,12 @@ class PlexApiClient {
       final container = PlexMediaContainer.fromJson(
         response.data['MediaContainer'],
       );
-      return PlexPaginatedResult(
-        items: container.metadata ?? [],
-        totalSize: container.totalSize ?? container.size ?? 0,
-        offset: container.offset ?? start,
-        size: container.size ?? 0,
+      final items = container.metadata ?? [];
+      return PaginatedResult<PlexMetadata>(
+        items: items,
+        totalCount: container.totalSize ?? container.size ?? 0,
+        startIndex: container.offset ?? start,
+        limit: size,
       );
     } on DioException catch (e) {
       throw ServerFailure(message: e.message ?? 'Failed to fetch children');
@@ -388,29 +391,4 @@ class PlexApiClient {
       throw ServerFailure(message: e.toString());
     }
   }
-}
-
-/// Result of a paginated Plex API call.
-class PlexPaginatedResult {
-  const PlexPaginatedResult({
-    required this.items,
-    required this.totalSize,
-    required this.offset,
-    required this.size,
-  });
-
-  /// The items in this page of results.
-  final List<PlexMetadata> items;
-
-  /// Total number of items available (across all pages).
-  final int totalSize;
-
-  /// The starting index of this result set (0-based).
-  final int offset;
-
-  /// The number of items in this result.
-  final int size;
-
-  /// Whether there are more items available after this page.
-  bool get hasMore => offset + size < totalSize;
 }
