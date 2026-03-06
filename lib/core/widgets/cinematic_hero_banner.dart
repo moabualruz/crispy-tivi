@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
-import '../theme/crispy_colors.dart';
 import '../theme/crispy_spacing.dart';
+import 'sliver_back_button.dart';
 import 'vignette_gradient.dart';
 
 /// A cinematic [SliverAppBar] with a hero-animated backdrop image,
@@ -52,17 +51,7 @@ class CinematicHeroBanner extends StatelessWidget {
     return SliverAppBar(
       expandedHeight: expandedHeight,
       pinned: true,
-      leading: Padding(
-        padding: const EdgeInsets.all(CrispySpacing.sm),
-        child: Container(
-          color: Colors.black54,
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: CrispyColors.textHigh),
-            tooltip: 'Back',
-            onPressed: () => context.pop(),
-          ),
-        ),
-      ),
+      leading: const SliverBackButton(),
       actions: actions,
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(

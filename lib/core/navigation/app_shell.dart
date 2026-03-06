@@ -12,6 +12,7 @@ import '../../features/profiles/data/profile_service.dart';
 import '../../features/profiles/presentation/profile_constants.dart';
 import '../../features/profiles/presentation/providers/profile_theme_provider.dart';
 import '../theme/crispy_animation.dart';
+import '../widgets/async_value_ui.dart';
 import '../theme/crispy_radius.dart';
 import '../widgets/crispy_title_bar.dart';
 import '../widgets/offline_banner.dart';
@@ -646,9 +647,7 @@ class _CompactProfileAvatar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileServiceProvider);
 
-    return profileAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, stack) => const SizedBox.shrink(),
+    return profileAsync.whenShrink(
       data: (state) {
         final profile = state.activeProfile;
         if (profile == null) return const SizedBox.shrink();

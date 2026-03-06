@@ -4,9 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
-import 'source_add_dialogs.dart' show sourceDialogActions;
+import 'source_add_dialogs.dart' show sourceDialogActions, syncSourceAndNotify;
 import 'source_form_fields.dart';
 
 /// Shows a dialog to add a Stalker Portal source.
@@ -123,30 +122,14 @@ class _StalkerAddDialogState extends ConsumerState<_StalkerAddDialog> {
     widget.parentRef.read(settingsNotifierProvider.notifier).addSource(source);
     if (mounted) Navigator.pop(context);
 
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Source added \u2014 syncing\u2026')),
-    );
-
     // Trigger channel sync.
-    try {
-      final result = await widget.parentRef
-          .read(playlistSyncServiceProvider)
-          .syncSource(source);
-      if (!widget.isMounted()) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Loaded ${result.totalChannels} channels '
-            'from "$name"',
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!widget.isMounted()) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text('Sync failed for "$name": $e')),
-      );
-    }
+    await syncSourceAndNotify(
+      ref: widget.parentRef,
+      messenger: messenger,
+      source: source,
+      name: name,
+      isMounted: widget.isMounted,
+    );
   }
 
   @override

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/theme/crispy_animation.dart';
+import '../../../../../core/widgets/async_value_ui.dart';
 import '../../../../../core/theme/crispy_radius.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
 import '../../../../../core/widgets/pin_input_dialog.dart';
@@ -27,9 +28,7 @@ class OsdProfileSwitcher extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileServiceProvider);
 
-    return profileAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+    return profileAsync.whenShrink(
       data: (state) {
         final active = state.activeProfile;
         // Only show when multiple profiles exist.

@@ -51,26 +51,24 @@ const double _kRecordingDotCatchupOffset = 14.0;
 /// Minimum block width (px) at which a programme thumbnail is shown.
 const double _kThumbnailMinWidth = 120.0;
 
-/// Alpha (0–255) for the genre tint overlay (≈12% opacity).
-const int _kGenreTintAlpha = 30;
-
 /// Returns a subtle genre tint colour for [category], or null if
 /// the category is unrecognised.
 ///
+/// Colors are sourced from [CrispyColors] genre tint tokens (≈12% opacity).
 /// Matching is case-insensitive.
 Color? _genreTint(String? category) {
   if (category == null || category.isEmpty) return null;
   final lower = category.toLowerCase();
-  if (lower.contains('sport')) return Colors.green.withAlpha(_kGenreTintAlpha);
-  if (lower.contains('news')) return Colors.blue.withAlpha(_kGenreTintAlpha);
+  if (lower.contains('sport')) return CrispyColors.genreSports;
+  if (lower.contains('news')) return CrispyColors.genreNews;
   if (lower.contains('movie') || lower.contains('film')) {
-    return Colors.purple.withAlpha(_kGenreTintAlpha);
+    return CrispyColors.genreMovie;
   }
   if (lower.contains('kid') || lower.contains('child')) {
-    return Colors.orange.withAlpha(_kGenreTintAlpha);
+    return CrispyColors.genreKids;
   }
-  if (lower.contains('music')) return Colors.pink.withAlpha(_kGenreTintAlpha);
-  if (lower.contains('doc')) return Colors.teal.withAlpha(_kGenreTintAlpha);
+  if (lower.contains('music')) return CrispyColors.genreMusic;
+  if (lower.contains('doc')) return CrispyColors.genreDocumentary;
   return null;
 }
 

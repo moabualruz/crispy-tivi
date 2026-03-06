@@ -7,6 +7,7 @@ import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/format_utils.dart';
+import '../../../../core/widgets/async_value_ui.dart';
 import '../../../../core/widgets/error_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../data/dvr_service.dart';
@@ -107,9 +108,7 @@ class StorageBreakdownSheet extends ConsumerWidget {
               const Divider(height: 1),
               // Body
               Expanded(
-                child: stateAsync.when(
-                  loading: () => const LoadingStateWidget(),
-                  error: (err, _) => ErrorStateWidget(message: 'Error: $err'),
+                child: stateAsync.whenUi(
                   data: (state) {
                     return FutureBuilder<StorageBreakdownData>(
                       future: _computeBreakdown(ref, state.recordings),

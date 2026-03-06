@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/widgets/async_value_ui.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/timezone_utils.dart';
 import '../../../dvr/domain/entities/recording_profile.dart';
@@ -27,9 +28,7 @@ class PlaybackSettingsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settingsAsync = ref.watch(settingsNotifierProvider);
 
-    return settingsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (e, _) => const SizedBox.shrink(),
+    return settingsAsync.whenShrink(
       data: (settings) => _buildContent(context, ref, settings),
     );
   }

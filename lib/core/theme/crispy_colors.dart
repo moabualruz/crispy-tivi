@@ -113,6 +113,26 @@ class CrispyColors extends ThemeExtension<CrispyColors> {
   /// Scrim overlay — full (90% black). Used for immersive overlays.
   static const Color scrimFull = Color(0xE6000000);
 
+  // ── EPG genre tint overlay tokens ───────────────────────────
+
+  /// EPG genre tint overlay — sports (≈12% opacity green, #4CAF50).
+  static const Color genreSports = Color(0x1E4CAF50);
+
+  /// EPG genre tint overlay — news (≈12% opacity blue, #2196F3).
+  static const Color genreNews = Color(0x1E2196F3);
+
+  /// EPG genre tint overlay — movie/film (≈12% opacity purple, #9C27B0).
+  static const Color genreMovie = Color(0x1E9C27B0);
+
+  /// EPG genre tint overlay — kids/children (≈12% opacity orange, #FF9800).
+  static const Color genreKids = Color(0x1EFF9800);
+
+  /// EPG genre tint overlay — music (≈12% opacity pink, #E91E63).
+  static const Color genreMusic = Color(0x1EE91E63);
+
+  /// EPG genre tint overlay — documentary (≈12% opacity teal, #009688).
+  static const Color genreDocumentary = Color(0x1E009688);
+
   // ── Shared hex-parse utility ──────────────────────────────
 
   /// Parses a hex color string (with or without `#` prefix, 6 or 8 digits)

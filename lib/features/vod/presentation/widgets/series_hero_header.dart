@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/widgets/meta_chip.dart';
-import '../../../../core/widgets/smart_image.dart';
-import '../../../../core/widgets/vignette_gradient.dart';
-
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/meta_chip.dart';
+import '../../../../core/widgets/sliver_back_button.dart';
+import '../../../../core/widgets/smart_image.dart';
+import '../../../../core/widgets/vignette_gradient.dart';
 import '../../domain/entities/vod_item.dart';
 
 const double _kHeroExpandedHeight = 400.0;
@@ -39,16 +39,10 @@ class SeriesHeroHeader extends StatelessWidget {
       expandedHeight: _kHeroExpandedHeight,
       pinned: true,
       backgroundColor: colorScheme.surface,
-      leading: Padding(
-        padding: const EdgeInsets.all(CrispySpacing.sm),
-        child: Container(
-          color: colorScheme.surface.withValues(alpha: 0.54),
-          child: IconButton(
-            icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
-            tooltip: 'Back',
-            onPressed: onBack,
-          ),
-        ),
+      leading: SliverBackButton(
+        onPressed: onBack,
+        backgroundColor: colorScheme.surface.withValues(alpha: 0.54),
+        iconColor: colorScheme.onSurface,
       ),
       actions: [
         IconButton(

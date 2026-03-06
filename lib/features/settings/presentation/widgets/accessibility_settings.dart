@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/widgets/async_value_ui.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
 import 'settings_shared_widgets.dart' show SettingsBadge, SettingsCard;
@@ -166,9 +167,7 @@ class AccessibilitySettingsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settingsAsync = ref.watch(accessibilitySettingsProvider);
 
-    return settingsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (e, _) => const SizedBox.shrink(),
+    return settingsAsync.whenShrink(
       data: (settings) => _buildContent(context, ref, settings),
     );
   }

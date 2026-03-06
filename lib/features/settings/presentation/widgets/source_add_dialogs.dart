@@ -10,6 +10,41 @@ import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import 'source_form_fields.dart';
 
+/// Triggers a channel sync for [source] and shows snackbar feedback.
+///
+/// Shows an initial "syncing…" snackbar, then either a success message with
+/// the channel count or an error message if the sync fails.
+///
+/// [isMounted] guards against showing snackbars after the parent widget
+/// has been disposed (e.g. the settings screen was popped).
+Future<void> syncSourceAndNotify({
+  required WidgetRef ref,
+  required ScaffoldMessengerState messenger,
+  required PlaylistSource source,
+  required String name,
+  required bool Function() isMounted,
+}) async {
+  messenger.showSnackBar(
+    const SnackBar(content: Text('Source added \u2014 syncing\u2026')),
+  );
+  try {
+    final result = await ref
+        .read(playlistSyncServiceProvider)
+        .syncSource(source);
+    if (!isMounted()) return;
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Loaded ${result.totalChannels} channels from "$name"'),
+      ),
+    );
+  } catch (e) {
+    if (!isMounted()) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text('Sync failed for "$name": $e')),
+    );
+  }
+}
+
 /// Returns the standard [Cancel | Add] action list for source-add dialogs.
 ///
 /// Shared by [_M3uAddDialog], [_XtreamAddDialog], and [_StalkerAddDialog].
@@ -123,30 +158,14 @@ class _M3uAddDialogState extends ConsumerState<_M3uAddDialog> {
     widget.parentRef.read(settingsNotifierProvider.notifier).addSource(source);
     if (mounted) Navigator.pop(context);
 
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Source added \u2014 syncing\u2026')),
-    );
-
     // Trigger channel sync.
-    try {
-      final result = await widget.parentRef
-          .read(playlistSyncServiceProvider)
-          .syncSource(source);
-      if (!widget.isMounted()) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Loaded ${result.totalChannels} channels '
-            'from "$name"',
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!widget.isMounted()) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text('Sync failed for "$name": $e')),
-      );
-    }
+    await syncSourceAndNotify(
+      ref: widget.parentRef,
+      messenger: messenger,
+      source: source,
+      name: name,
+      isMounted: widget.isMounted,
+    );
   }
 
   @override
@@ -290,27 +309,14 @@ class _XtreamAddDialogState extends ConsumerState<_XtreamAddDialog> {
     widget.parentRef.read(settingsNotifierProvider.notifier).addSource(source);
     if (mounted) Navigator.pop(context);
 
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Source added \u2014 syncing\u2026')),
-    );
-
     // Trigger channel sync.
-    try {
-      final result = await widget.parentRef
-          .read(playlistSyncServiceProvider)
-          .syncSource(source);
-      if (!widget.isMounted()) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Loaded ${result.totalChannels} channels from "$name"'),
-        ),
-      );
-    } catch (e) {
-      if (!widget.isMounted()) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text('Sync failed for "$name": $e')),
-      );
-    }
+    await syncSourceAndNotify(
+      ref: widget.parentRef,
+      messenger: messenger,
+      source: source,
+      name: name,
+      isMounted: widget.isMounted,
+    );
   }
 
   @override
