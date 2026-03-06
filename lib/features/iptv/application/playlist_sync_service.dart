@@ -9,6 +9,7 @@ import '../../../core/data/cache_service.dart';
 import '../../../core/data/crispy_backend.dart';
 import '../../../core/domain/entities/playlist_source.dart';
 import '../../vod/presentation/providers/vod_providers.dart';
+import 'media_server_sync.dart';
 import 'playlist_epg_helper.dart';
 import 'playlist_sync_helpers.dart';
 
@@ -109,6 +110,8 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
 
   @override
   Ref get ref => _ref;
+
+  late final _mediaServerSync = MediaServerSyncService(_ref);
 
   bool _syncing = false;
   Timer? _deferredSync;
@@ -304,15 +307,24 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
     return report;
   }
 
-  /// Dispatches a sync call to the appropriate Rust
-  /// backend method based on [source.type].
+  /// Dispatches a sync call to the appropriate backend
+  /// method based on [source.type].
   ///
-  /// Returns a [SyncReport] decoded from the JSON
-  /// string that Rust returns.
+  /// IPTV sources (M3U, Xtream, Stalker) sync via Rust.
+  /// Media server sources (Plex, Emby, Jellyfin) sync
+  /// via Dart HTTP clients into the same Rust DB.
   Future<SyncReport> _syncSourceViaRust(
     CrispyBackend backend,
     PlaylistSource source,
   ) async {
+    // Media server sources sync via Dart HTTP clients.
+    if (source.type == PlaylistSourceType.plex ||
+        source.type == PlaylistSourceType.emby ||
+        source.type == PlaylistSourceType.jellyfin) {
+      return _mediaServerSync.syncSource(source);
+    }
+
+    // IPTV sources sync via Rust.
     final json = switch (source.type) {
       PlaylistSourceType.m3u => await backend.syncM3uSource(
         url: source.url,
