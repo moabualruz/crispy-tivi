@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/data/cache_service.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
@@ -24,6 +27,78 @@ String parentPath(String path) {
   final parts = path.split('/');
   parts.removeLast();
   return parts.join('/');
+}
+
+/// Maps [SortOrder] to the order string expected by the
+/// Rust `sort_remote_files` algorithm.
+String _sortOrderToString(SortOrder order) {
+  switch (order) {
+    case SortOrder.nameAsc:
+      return 'name_asc';
+    case SortOrder.nameDesc:
+      return 'name_desc';
+    case SortOrder.dateNewest:
+      return 'date_newest';
+    case SortOrder.dateOldest:
+      return 'date_oldest';
+    case SortOrder.sizeLargest:
+      return 'size_largest';
+    case SortOrder.sizeSmallest:
+      return 'size_smallest';
+  }
+}
+
+/// Maps a [classifyFileType] result string to whether the
+/// file passes [filter].
+bool _classifiedMatchesFilter(String fileType, FileTypeFilter filter) {
+  if (filter == FileTypeFilter.all) return true;
+  switch (filter) {
+    case FileTypeFilter.all:
+      return true;
+    case FileTypeFilter.video:
+      return fileType == 'video';
+    case FileTypeFilter.audio:
+      return fileType == 'audio';
+    case FileTypeFilter.subtitle:
+      return fileType == 'subtitle';
+    case FileTypeFilter.other:
+      return fileType == 'other';
+  }
+}
+
+/// Serialises a [RemoteFile] to the JSON map expected by
+/// the Rust `sort_remote_files` algorithm:
+/// `name`, `is_directory`, `modified_at` (epoch ms),
+/// `size_bytes`.
+Map<String, dynamic> _remoteFileToJson(RemoteFile f) => {
+  'name': f.name,
+  'is_directory': f.isDirectory,
+  'modified_at': f.modifiedAt.millisecondsSinceEpoch,
+  'size_bytes': f.sizeBytes,
+};
+
+/// Reconstructs a [RemoteFile] from the map returned by
+/// the Rust `sort_remote_files` algorithm.
+///
+/// The Rust function preserves the original JSON fields,
+/// so we look up the corresponding [RemoteFile] from the
+/// source list by matching `name` + `is_directory`
+/// instead of re-parsing dates.
+RemoteFile _remoteFileFromJson(
+  Map<String, dynamic> m,
+  Map<String, RemoteFile> byName,
+) {
+  final name = m['name'] as String;
+  return byName[name] ??
+      RemoteFile(
+        name: name,
+        path: name,
+        sizeBytes: (m['size_bytes'] as num?)?.toInt() ?? 0,
+        modifiedAt: DateTime.fromMillisecondsSinceEpoch(
+          (m['modified_at'] as num?)?.toInt() ?? 0,
+        ),
+        isDirectory: m['is_directory'] as bool? ?? false,
+      );
 }
 
 /// Browse files on configured cloud storage backends.
@@ -48,7 +123,9 @@ class CloudBrowserScreen extends ConsumerStatefulWidget {
 class _CloudBrowserScreenState extends ConsumerState<CloudBrowserScreen> {
   StorageBackend? _selectedBackend;
   List<RemoteFile>? _files;
+  List<RemoteFile>? _sortedFiles;
   bool _loading = false;
+  bool _sorting = false;
   String? _error;
   String _currentPath = '';
 
@@ -75,6 +152,7 @@ class _CloudBrowserScreenState extends ConsumerState<CloudBrowserScreen> {
       _loading = true;
       _error = null;
       _files = null;
+      _sortedFiles = null;
     });
     await _loadFiles('');
   }
@@ -94,11 +172,63 @@ class _CloudBrowserScreenState extends ConsumerState<CloudBrowserScreen> {
         _files = files;
         _loading = false;
       });
+      await _applyFilterAndSort(
+        files: files,
+        filter: ref.read(fileTypeFilterProvider),
+        order: ref.read(sortOrderProvider),
+      );
     } catch (e) {
       setState(() {
         _error = e.toString();
         _loading = false;
       });
+    }
+  }
+
+  // ── Filter + Sort (via backend) ──────────────────────────────
+
+  Future<void> _applyFilterAndSort({
+    required List<RemoteFile> files,
+    required FileTypeFilter filter,
+    required SortOrder order,
+  }) async {
+    if (!mounted) return;
+    setState(() => _sorting = true);
+
+    try {
+      final backend = ref.read(crispyBackendProvider);
+
+      // 1. Filter using sync classifyFileType.
+      final filtered =
+          files.where((f) {
+            if (f.isDirectory) return true;
+            final fileType = backend.classifyFileType(f.name);
+            return _classifiedMatchesFilter(fileType, filter);
+          }).toList();
+
+      // 2. Serialize for Rust sort.
+      final filesJson = jsonEncode(filtered.map(_remoteFileToJson).toList());
+      final orderStr = _sortOrderToString(order);
+
+      // 3. Sort via backend.
+      final resultJson = await backend.sortRemoteFiles(filesJson, orderStr);
+
+      if (!mounted) return;
+
+      // 4. Deserialize — preserve original RemoteFile instances by name.
+      final byName = {for (final f in filtered) f.name: f};
+      final sortedMaps =
+          (jsonDecode(resultJson) as List).cast<Map<String, dynamic>>();
+      final sorted =
+          sortedMaps.map((m) => _remoteFileFromJson(m, byName)).toList();
+
+      setState(() {
+        _sortedFiles = sorted;
+        _sorting = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _sorting = false);
     }
   }
 
@@ -312,6 +442,27 @@ class _CloudBrowserScreenState extends ConsumerState<CloudBrowserScreen> {
     final isMultiSelect = ref.watch(multiSelectActiveProvider);
     final selectedPaths = ref.watch(selectedPathsProvider);
     final sortOrder = ref.watch(sortOrderProvider);
+    final activeFilter = ref.watch(fileTypeFilterProvider);
+
+    // Re-apply filter+sort whenever sortOrder or activeFilter changes.
+    ref.listen<SortOrder>(sortOrderProvider, (_, next) {
+      if (_files != null) {
+        _applyFilterAndSort(
+          files: _files!,
+          filter: ref.read(fileTypeFilterProvider),
+          order: next,
+        );
+      }
+    });
+    ref.listen<FileTypeFilter>(fileTypeFilterProvider, (_, next) {
+      if (_files != null) {
+        _applyFilterAndSort(
+          files: _files!,
+          filter: next,
+          order: ref.read(sortOrderProvider),
+        );
+      }
+    });
 
     return Scaffold(
       key: TestKeys.cloudBrowserScreen,
@@ -364,7 +515,11 @@ class _CloudBrowserScreenState extends ConsumerState<CloudBrowserScreen> {
                         },
                       ),
                     Expanded(
-                      child: _buildContent(isMultiSelect, selectedPaths),
+                      child: _buildContent(
+                        isMultiSelect,
+                        selectedPaths,
+                        activeFilter,
+                      ),
                     ),
                   ],
                 ),
@@ -484,7 +639,11 @@ class _CloudBrowserScreenState extends ConsumerState<CloudBrowserScreen> {
     ];
   }
 
-  Widget _buildContent(bool isMultiSelect, Set<String> selectedPaths) {
+  Widget _buildContent(
+    bool isMultiSelect,
+    Set<String> selectedPaths,
+    FileTypeFilter activeFilter,
+  ) {
     if (_loading) {
       return const LoadingStateWidget();
     }
@@ -529,15 +688,12 @@ class _CloudBrowserScreenState extends ConsumerState<CloudBrowserScreen> {
       );
     }
 
-    final activeFilter = ref.watch(fileTypeFilterProvider);
-    final sortOrder = ref.watch(sortOrderProvider);
+    // Show spinner while the async filter+sort is in progress.
+    if (_sorting || _sortedFiles == null) {
+      return const LoadingStateWidget();
+    }
 
-    final filtered =
-        _files!
-            .where((f) => f.isDirectory || matchesFilter(f.name, activeFilter))
-            .toList();
-
-    final sorted = sortFiles(filtered, sortOrder);
+    final sorted = _sortedFiles!;
 
     final transferState = ref.watch(transferServiceProvider).value;
     final activeTasks = transferState?.tasks ?? [];

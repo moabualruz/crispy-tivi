@@ -54,13 +54,3 @@ Future<void> toggleFavoriteCategory(
     await cache.addFavoriteCategory(pid, categoryType, categoryName);
   }
 }
-
-/// Returns categories sorted with favorites first.
-List<String> sortCategoriesWithFavorites(
-  List<String> categories,
-  Set<String> favorites,
-) {
-  final favs = categories.where((c) => favorites.contains(c)).toList()..sort();
-  final rest = categories.where((c) => !favorites.contains(c)).toList()..sort();
-  return [...favs, ...rest];
-}

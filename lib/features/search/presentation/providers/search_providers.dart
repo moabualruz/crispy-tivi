@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,7 +17,6 @@ import '../../domain/entities/search_history_entry.dart';
 import '../../domain/entities/search_state.dart';
 import '../../domain/repositories/search_history_repository.dart';
 import '../../domain/repositories/search_repository.dart';
-import '../../domain/utils/search_categories.dart';
 
 // ── Repository Providers ─────────────────────────────────────────────────────
 
@@ -97,10 +97,24 @@ class SearchNotifier extends Notifier<SearchState> {
     try {
       final vodItems = ref.read(vodProvider).items;
       final channelState = ref.read(channelListProvider);
-      final categories = buildSearchCategories(
-        vodItems.map((i) => i.category),
-        channelState.groups,
+      final backend = ref.read(crispyBackendProvider);
+
+      final vodCategoriesJson = jsonEncode(
+        vodItems
+            .map((i) => i.category)
+            .whereType<String>()
+            .where((c) => c.isNotEmpty)
+            .toList(),
       );
+      final channelGroupsJson = jsonEncode(
+        channelState.groups.where((g) => g.isNotEmpty).toList(),
+      );
+
+      final result = backend.buildSearchCategories(
+        vodCategoriesJson,
+        channelGroupsJson,
+      );
+      final categories = (jsonDecode(result) as List).cast<String>();
       state = state.copyWith(availableCategories: categories);
     } catch (_) {
       // Ignore category load errors

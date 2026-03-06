@@ -1,6 +1,9 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
-import '../../features/vod/presentation/providers/favorite_categories_provider.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../data/cache_service.dart';
 import '../theme/crispy_colors.dart';
 import '../theme/crispy_spacing.dart';
 
@@ -119,7 +122,7 @@ class CategoryDropdown extends StatelessWidget {
   }
 }
 
-class _CategorySearchSheet extends StatefulWidget {
+class _CategorySearchSheet extends ConsumerStatefulWidget {
   const _CategorySearchSheet({
     required this.categories,
     required this.selectedCategory,
@@ -137,10 +140,11 @@ class _CategorySearchSheet extends StatefulWidget {
   final ValueChanged<String>? onToggleFavoriteCategory;
 
   @override
-  State<_CategorySearchSheet> createState() => _CategorySearchSheetState();
+  ConsumerState<_CategorySearchSheet> createState() =>
+      _CategorySearchSheetState();
 }
 
-class _CategorySearchSheetState extends State<_CategorySearchSheet> {
+class _CategorySearchSheetState extends ConsumerState<_CategorySearchSheet> {
   final _searchController = TextEditingController();
   late List<String> _filtered;
   late Set<String> _localFavs;
@@ -149,7 +153,7 @@ class _CategorySearchSheetState extends State<_CategorySearchSheet> {
   void initState() {
     super.initState();
     _localFavs = {...widget.favoriteCategories};
-    _filtered = sortCategoriesWithFavorites(widget.categories, _localFavs);
+    _filtered = _sortWithFavorites(widget.categories, _localFavs);
     _searchController.addListener(_onSearch);
   }
 
@@ -157,6 +161,22 @@ class _CategorySearchSheetState extends State<_CategorySearchSheet> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// Calls the backend's sync [sortCategoriesWithFavorites] algorithm.
+  ///
+  /// Serialises [categories] and [favorites] to JSON, invokes the
+  /// Rust implementation, and deserialises the result.
+  List<String> _sortWithFavorites(
+    List<String> categories,
+    Set<String> favorites,
+  ) {
+    final backend = ref.read(crispyBackendProvider);
+    final result = backend.sortCategoriesWithFavorites(
+      jsonEncode(categories),
+      jsonEncode(favorites.toList()),
+    );
+    return (jsonDecode(result) as List).cast<String>();
   }
 
   void _onSearch() {
@@ -168,7 +188,7 @@ class _CategorySearchSheetState extends State<_CategorySearchSheet> {
               : widget.categories
                   .where((c) => c.toLowerCase().contains(query))
                   .toList();
-      _filtered = sortCategoriesWithFavorites(base, _localFavs);
+      _filtered = _sortWithFavorites(base, _localFavs);
     });
   }
 
@@ -179,7 +199,7 @@ class _CategorySearchSheetState extends State<_CategorySearchSheet> {
       } else {
         _localFavs.add(cat);
       }
-      _filtered = sortCategoriesWithFavorites(
+      _filtered = _sortWithFavorites(
         _searchController.text.isEmpty
             ? widget.categories
             : widget.categories

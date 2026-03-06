@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,7 +7,6 @@ import '../../../../core/data/cache_service.dart';
 import '../../../../core/providers/source_filter_provider.dart';
 import '../../data/parsers/m3u_parser.dart';
 import '../../domain/entities/channel.dart';
-import '../../domain/utils/epg_search.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../favorites/presentation/providers/favorites_controller.dart';
 import '../../../profiles/data/profile_service.dart';
@@ -320,6 +321,63 @@ final channelSearchQueryProvider = Provider<String>((ref) {
   return ref.watch(channelListProvider).searchQuery;
 });
 
+/// Private async provider that calls the backend for
+/// EPG-aware channel search (FE-TV-05).
+///
+/// Chains [searchChannelsByLiveProgram] → [mergeEpgMatchedChannels].
+/// Returns null when no search is active (caller falls back to
+/// [ChannelListState.filteredChannels]).
+final _epgAwareChannelListAsyncProvider =
+    FutureProvider.autoDispose<List<Channel>?>((ref) async {
+      final channelState = ref.watch(channelListProvider);
+      final query = channelState.searchQuery;
+
+      // No search active — no async work needed.
+      if (query.isEmpty) return null;
+
+      final epgState = ref.watch(epgProvider);
+      final backend = ref.read(crispyBackendProvider);
+      final now = DateTime.now();
+
+      // Serialize EPG entries map: {"channelId": [{entry}, ...], ...}
+      final epgMapJson = jsonEncode(
+        epgState.entries.map(
+          (k, v) => MapEntry(k, v.map(epgEntryToMap).toList()),
+        ),
+      );
+
+      // Step 1: find channel IDs whose live program matches query.
+      final matchedIdsJson = await backend.searchChannelsByLiveProgram(
+        epgMapJson,
+        query,
+        now.millisecondsSinceEpoch,
+      );
+
+      final matchedIds = (jsonDecode(matchedIdsJson) as List).cast<String>();
+      if (matchedIds.isEmpty) return channelState.filteredChannels;
+
+      // Step 2: merge matched channels into base filtered list.
+      final baseJson = jsonEncode(
+        channelState.filteredChannels.map(channelToMap).toList(),
+      );
+      final allChannelsJson = jsonEncode(
+        channelState.channels.map(channelToMap).toList(),
+      );
+      final epgOverridesJson = jsonEncode(epgState.epgOverrides);
+
+      final resultJson = await backend.mergeEpgMatchedChannels(
+        baseJson,
+        allChannelsJson,
+        matchedIdsJson,
+        epgOverridesJson,
+      );
+
+      return (jsonDecode(resultJson) as List)
+          .cast<Map<String, dynamic>>()
+          .map(mapToChannel)
+          .toList();
+    });
+
 /// EPG-aware channel list provider (FE-TV-05).
 ///
 /// When a search query is active, extends the standard
@@ -334,29 +392,16 @@ final channelSearchQueryProvider = Provider<String>((ref) {
 ///
 /// When the query is empty, returns the same list as
 /// [ChannelListState.filteredChannels] with no overhead.
-final epgAwareChannelListProvider = Provider<List<Channel>>((ref) {
+/// Falls back to [ChannelListState.filteredChannels] while
+/// the async backend call is pending.
+final epgAwareChannelListProvider = Provider.autoDispose<List<Channel>>((ref) {
   final channelState = ref.watch(channelListProvider);
   final query = channelState.searchQuery;
 
-  // No search active — return the standard filtered list.
+  // No search active — return standard filtered list immediately.
   if (query.isEmpty) return channelState.filteredChannels;
 
-  final epgState = ref.watch(epgProvider);
-  final now = DateTime.now();
-
-  // Build set of channel IDs that are currently airing a matching program.
-  final epgMatchIds = channelIdsWithMatchingLiveProgram(
-    epgState.entries,
-    query,
-    now: now,
-  );
-
-  if (epgMatchIds.isEmpty) return channelState.filteredChannels;
-
-  return mergeEpgMatchedChannels(
-    channelState.filteredChannels,
-    channelState.channels,
-    epgMatchIds,
-    epgState.epgOverrides,
-  );
+  // Use backend result when ready; fall back to filtered list while pending.
+  return ref.watch(_epgAwareChannelListAsyncProvider).value ??
+      channelState.filteredChannels;
 });

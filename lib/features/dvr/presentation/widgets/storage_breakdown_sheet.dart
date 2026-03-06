@@ -1,12 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../../../core/widgets/error_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../data/dvr_service.dart';
+import '../../domain/entities/recording.dart';
+import '../../domain/utils/dvr_payload.dart';
 import '../../domain/utils/storage_breakdown.dart';
 import 'storage_bar.dart';
 
@@ -106,63 +111,109 @@ class StorageBreakdownSheet extends ConsumerWidget {
                   loading: () => const LoadingStateWidget(),
                   error: (err, _) => ErrorStateWidget(message: 'Error: $err'),
                   data: (state) {
-                    final data = computeStorageBreakdown(state.recordings);
-                    return ListView(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: CrispySpacing.sm,
-                      ),
-                      children: [
-                        _TotalTile(data: data),
-                        const SizedBox(height: CrispySpacing.xs),
-                        // Storage bar
-                        if (data.totalBytes > 0)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: CrispySpacing.md,
-                            ),
-                            child: StorageBar(totalBytes: data.totalBytes),
-                          ),
-                        const SizedBox(height: CrispySpacing.md),
-
-                        // By Status
-                        _SectionHeader(
-                          icon: Icons.bar_chart,
-                          label: 'BY STATUS',
-                        ),
-                        for (final cat in data.categories)
-                          _CategoryTile(
-                            category: cat,
-                            totalBytes: data.totalBytes,
-                          ),
-
-                        // By Channel
-                        if (data.channelBytes.isNotEmpty) ...[
-                          const SizedBox(height: CrispySpacing.md),
-                          _SectionHeader(icon: Icons.tv, label: 'BY CHANNEL'),
-                          ..._buildChannelRows(data),
-                        ],
-
-                        // Clean up
-                        if (data.cleanUpCandidates.isNotEmpty) ...[
-                          const SizedBox(height: CrispySpacing.md),
-                          _SectionHeader(
-                            icon: Icons.cleaning_services_outlined,
-                            label: 'CLEAN UP',
-                          ),
-                          _CleanUpSection(
-                            candidates: data.cleanUpCandidates,
-                            ref: ref,
-                          ),
-                        ],
-                        const SizedBox(height: CrispySpacing.xl),
-                      ],
+                    return FutureBuilder<StorageBreakdownData>(
+                      future: _computeBreakdown(ref, state.recordings),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const LoadingStateWidget();
+                        }
+                        if (snapshot.hasError) {
+                          return ErrorStateWidget(
+                            message: 'Error: ${snapshot.error}',
+                          );
+                        }
+                        final data = snapshot.data;
+                        if (data == null) {
+                          return const LoadingStateWidget();
+                        }
+                        return _BreakdownBody(
+                          data: data,
+                          scrollController: scrollController,
+                          ref: ref,
+                        );
+                      },
                     );
                   },
                 ),
               ),
             ],
           ),
+    );
+  }
+
+  /// Calls [CrispyBackend.computeStorageBreakdown] and deserialises
+  /// the result into [StorageBreakdownData].
+  Future<StorageBreakdownData> _computeBreakdown(
+    WidgetRef ref,
+    List<Recording> recordings,
+  ) async {
+    final backend = ref.read(crispyBackendProvider);
+    final recordingsJson = jsonEncode(recordings.map(recordingToMap).toList());
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final resultJson = await backend.computeStorageBreakdown(
+      recordingsJson,
+      nowMs,
+    );
+    final map = jsonDecode(resultJson) as Map<String, dynamic>;
+    return StorageBreakdownData.fromJson(map);
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  Breakdown body (extracted for cleaner FutureBuilder)
+// ─────────────────────────────────────────────────────────
+
+class _BreakdownBody extends StatelessWidget {
+  const _BreakdownBody({
+    required this.data,
+    required this.scrollController,
+    required this.ref,
+  });
+
+  final StorageBreakdownData data;
+  final ScrollController scrollController;
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      controller: scrollController,
+      padding: const EdgeInsets.symmetric(vertical: CrispySpacing.sm),
+      children: [
+        _TotalTile(data: data),
+        const SizedBox(height: CrispySpacing.xs),
+        // Storage bar
+        if (data.totalBytes > 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),
+            child: StorageBar(totalBytes: data.totalBytes),
+          ),
+        const SizedBox(height: CrispySpacing.md),
+
+        // By Status
+        _SectionHeader(icon: Icons.bar_chart, label: 'BY STATUS'),
+        for (final cat in data.categories)
+          _CategoryTile(category: cat, totalBytes: data.totalBytes),
+
+        // By Channel
+        if (data.channelBytes.isNotEmpty) ...[
+          const SizedBox(height: CrispySpacing.md),
+          _SectionHeader(icon: Icons.tv, label: 'BY CHANNEL'),
+          ..._buildChannelRows(data),
+        ],
+
+        // Clean up
+        if (data.cleanUpCandidates.isNotEmpty) ...[
+          const SizedBox(height: CrispySpacing.md),
+          _SectionHeader(
+            icon: Icons.cleaning_services_outlined,
+            label: 'CLEAN UP',
+          ),
+          _CleanUpSection(candidates: data.cleanUpCandidates, ref: ref),
+        ],
+        const SizedBox(height: CrispySpacing.xl),
+      ],
     );
   }
 

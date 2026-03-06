@@ -1,13 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/error_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../data/dvr_service.dart';
 import '../../domain/entities/recording.dart';
-import '../../domain/utils/recording_search.dart';
+import '../../domain/entities/recording_profile.dart';
+import '../../domain/utils/dvr_payload.dart';
 
 /// Opens the [RecordingSearchDelegate] for DVR-internal search.
 void showRecordingSearch(BuildContext context, WidgetRef ref) {
@@ -77,24 +81,108 @@ class RecordingSearchDelegate extends SearchDelegate<void> {
           ...state.inProgress,
           ...state.completed,
         ];
-        final results = _filter(all, query.trim());
+        final q = query.trim();
 
-        if (query.trim().isEmpty) {
+        if (q.isEmpty) {
           return _EmptyQueryHint(totalCount: all.length);
         }
 
-        if (results.isEmpty) {
-          return _NoResultsView(query: query.trim());
-        }
-
-        return _ResultList(recordings: results);
+        return FutureBuilder<List<Recording>>(
+          future: _filter(all, q),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const LoadingStateWidget();
+            }
+            if (snapshot.hasError) {
+              return ErrorStateWidget(message: 'Error: ${snapshot.error}');
+            }
+            final results = snapshot.data ?? [];
+            if (results.isEmpty) {
+              return _NoResultsView(query: q);
+            }
+            return _ResultList(recordings: results);
+          },
+        );
       },
     );
   }
 
   /// Case-insensitive match against title, channel name, and date.
-  List<Recording> _filter(List<Recording> recordings, String q) =>
-      filterRecordings(recordings, q);
+  /// Delegates to [CrispyBackend.filterDvrRecordings].
+  Future<List<Recording>> _filter(List<Recording> recordings, String q) async {
+    if (q.isEmpty) return recordings;
+    final backend = ref.read(crispyBackendProvider);
+    final recordingsJson = jsonEncode(recordings.map(recordingToMap).toList());
+    final resultJson = await backend.filterDvrRecordings(recordingsJson, q);
+    final List<dynamic> maps = jsonDecode(resultJson);
+    return maps
+        .cast<Map<String, dynamic>>()
+        .map(_mapToRecordingFromJson)
+        .toList();
+  }
+}
+
+/// Deserialises a recording map returned by the Rust
+/// [filterDvrRecordings] algorithm into a [Recording].
+///
+/// Mirrors [_mapToRecording] in `cache_service_dvr.dart` but
+/// is scoped to this file to avoid leaking the private helper.
+Recording _mapToRecordingFromJson(Map<String, dynamic> m) {
+  final profileName = m['profile'] as String?;
+  final profile =
+      profileName != null
+          ? RecordingProfile.values.firstWhere(
+            (p) => p.name == profileName,
+            orElse: () => RecordingProfile.original,
+          )
+          : RecordingProfile.original;
+
+  AutoDeletePolicy parseAutoDeletePolicy(String? name) {
+    if (name == null) return AutoDeletePolicy.keepAll;
+    return AutoDeletePolicy.values.firstWhere(
+      (p) => p.name == name,
+      orElse: () => AutoDeletePolicy.keepAll,
+    );
+  }
+
+  DateTime parseNaive(String s) {
+    final dt = DateTime.parse(s);
+    return dt.isUtc
+        ? dt
+        : DateTime.utc(
+          dt.year,
+          dt.month,
+          dt.day,
+          dt.hour,
+          dt.minute,
+          dt.second,
+          dt.millisecond,
+          dt.microsecond,
+        );
+  }
+
+  return Recording(
+    id: m['id'] as String,
+    channelId: m['channel_id'] as String?,
+    channelName: m['channel_name'] as String,
+    channelLogoUrl: m['channel_logo_url'] as String?,
+    programName: m['program_name'] as String,
+    streamUrl: m['stream_url'] as String?,
+    startTime: parseNaive(m['start_time'] as String),
+    endTime: parseNaive(m['end_time'] as String),
+    status: RecordingStatus.values.byName(m['status'] as String),
+    filePath: m['file_path'] as String?,
+    fileSizeBytes: m['file_size_bytes'] as int?,
+    isRecurring: m['is_recurring'] as bool? ?? false,
+    recurDays: m['recur_days'] as int? ?? 0,
+    profile: profile,
+    ownerProfileId: m['owner_profile_id'] as String?,
+    isShared: m['is_shared'] as bool? ?? true,
+    remoteBackendId: m['remote_backend_id'] as String?,
+    remotePath: m['remote_path'] as String?,
+    autoDeletePolicy: parseAutoDeletePolicy(m['auto_delete_policy'] as String?),
+    keepEpisodeCount: m['keep_episode_count'] as int? ?? 5,
+  );
 }
 
 // ─────────────────────────────────────────────────────────
