@@ -1,12 +1,11 @@
-use super::svc;
+use super::{json_result, svc};
 use anyhow::{Context, Result};
 use crispy_core::models::Channel;
 use std::collections::HashMap;
 
 /// Load all channels as JSON array.
 pub fn load_channels() -> Result<String> {
-    let channels = svc()?.load_channels()?;
-    Ok(serde_json::to_string(&channels)?)
+    json_result(svc()?.load_channels()?)
 }
 
 /// Save channels from JSON array. Returns count.
@@ -22,14 +21,12 @@ pub fn save_channels(json: String) -> Result<usize> {
 pub fn get_channels_by_sources(source_ids_json: String) -> Result<String> {
     let ids: Vec<String> =
         serde_json::from_str(&source_ids_json).context("Invalid source_ids JSON")?;
-    let channels = svc()?.get_channels_by_sources(&ids)?;
-    Ok(serde_json::to_string(&channels)?)
+    json_result(svc()?.get_channels_by_sources(&ids)?)
 }
 
 /// Load channels by IDs. Returns JSON array.
 pub fn get_channels_by_ids(ids: Vec<String>) -> Result<String> {
-    let channels = svc()?.get_channels_by_ids(&ids)?;
-    Ok(serde_json::to_string(&channels)?)
+    json_result(svc()?.get_channels_by_ids(&ids)?)
 }
 
 /// Delete channels not in keep_ids for a source.
@@ -64,14 +61,12 @@ pub fn remove_favorite(profile_id: String, channel_id: String) -> Result<()> {
 pub fn get_categories_by_sources(source_ids_json: String) -> Result<String> {
     let ids: Vec<String> =
         serde_json::from_str(&source_ids_json).context("Invalid source_ids JSON")?;
-    let cats = svc()?.get_categories_by_sources(&ids)?;
-    Ok(serde_json::to_string(&cats)?)
+    json_result(svc()?.get_categories_by_sources(&ids)?)
 }
 
 /// Load categories as JSON object {type: [names]}.
 pub fn load_categories() -> Result<String> {
-    let cats = svc()?.load_categories()?;
-    Ok(serde_json::to_string(&cats)?)
+    json_result(svc()?.load_categories()?)
 }
 
 /// Save categories from JSON object {type: [names]}.
@@ -140,7 +135,7 @@ pub fn sort_channels_json(json: String) -> Result<String> {
     let mut channels: Vec<Channel> =
         serde_json::from_str(&json).context("Invalid channels JSON")?;
     crispy_core::algorithms::sorting::sort_channels(&mut channels);
-    Ok(serde_json::to_string(&channels)?)
+    json_result(channels)
 }
 
 /// Resolve category IDs to names in channels.
@@ -152,7 +147,7 @@ pub fn resolve_channel_categories(channels_json: String, cat_map_json: String) -
         serde_json::from_str(&cat_map_json).context("Invalid cat map JSON")?;
     let resolved =
         crispy_core::algorithms::categories::resolve_channel_categories(&channels, &cat_map);
-    Ok(serde_json::to_string(&resolved)?)
+    json_result(resolved)
 }
 
 /// Extract unique sorted group names from channels.

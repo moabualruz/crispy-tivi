@@ -10,7 +10,6 @@ use anyhow::{Context, Result, anyhow};
 
 use crate::algorithms::categories;
 use crate::algorithms::normalize::{mac_to_device_id, validate_mac_address};
-use crate::database::DbError;
 use crate::http_client::{get_fast_client, get_shared_client};
 use crate::models::SyncReport;
 use crate::parsers::stalker;
@@ -398,14 +397,9 @@ pub async fn sync_stalker_source(
     emit_progress(source_id, "saving", 0.9, "Saving to database");
 
     // ── 9. Persist in a single batch ─────────────────
-    let db_result: Result<(), DbError> = service.batch_events(|svc| {
-        svc.save_channels(&channels)?;
-        svc.delete_removed_channels(source_id, &channel_ids)?;
-        svc.save_vod_items(&vod_items)?;
-        svc.delete_removed_vod_items(source_id, &vod_ids)?;
-        Ok(())
-    });
-    db_result.context("Failed to persist Stalker sync data")?;
+    service
+        .save_sync_data(source_id, &channels, &channel_ids, &vod_items, &vod_ids)
+        .context("Failed to persist Stalker sync data")?;
 
     emit_progress(source_id, "complete", 1.0, "Sync complete");
 

@@ -95,6 +95,18 @@ pub struct CrispyService {
     pub(super) batching: Arc<Mutex<bool>>,
 }
 
+/// Build a comma-separated SQL IN-clause placeholder string
+/// for `count` parameters, e.g. `?1, ?2, ?3`.
+///
+/// Used by any method that constructs a `WHERE x IN (...)` query
+/// with a runtime-sized list of bind parameters.
+pub(crate) fn build_in_placeholders(count: usize) -> String {
+    (1..=count)
+        .map(|i| format!("?{i}"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 /// Delete rows from `table` belonging to `source_id` whose `id`
 /// is not in `keep_ids`. Runs inside the provided transaction.
 /// Returns the number of rows deleted.
@@ -163,6 +175,55 @@ impl CrispyService {
         {
             cb(&event);
         }
+    }
+
+    /// Emit one event per distinct source_id found in `items`.
+    ///
+    /// Iterates `items`, extracts the source id via `get_source_id`,
+    /// and calls `make_event` exactly once per unique non-empty id.
+    /// If `items` is empty, calls `make_event` with an empty string
+    /// so that callers always get at least one notification.
+    pub(super) fn emit_per_source<T, F>(
+        &self,
+        items: &[T],
+        get_source_id: F,
+        make_event: impl Fn(String) -> DataChangeEvent,
+    ) where
+        F: Fn(&T) -> Option<&str>,
+    {
+        let mut seen = std::collections::HashSet::new();
+        for item in items {
+            let sid = get_source_id(item).unwrap_or("").to_string();
+            if seen.insert(sid.clone()) {
+                self.emit(make_event(sid));
+            }
+        }
+        if items.is_empty() {
+            self.emit(make_event(String::new()));
+        }
+    }
+
+    /// Persist a full sync batch (channels + VOD) inside a single
+    /// `batch_events` scope so Flutter receives one `BulkDataRefresh`.
+    ///
+    /// Called by every sync backend (M3U, Xtream, Stalker) after
+    /// fetching and parsing content. Saves channels, prunes removed
+    /// channels, saves VOD items, and prunes removed VOD items.
+    pub fn save_sync_data(
+        &self,
+        source_id: &str,
+        channels: &[crate::models::Channel],
+        channel_ids: &[String],
+        vod_items: &[crate::models::VodItem],
+        vod_ids: &[String],
+    ) -> Result<(), crate::database::DbError> {
+        self.batch_events(|svc| {
+            svc.save_channels(channels)?;
+            svc.delete_removed_channels(source_id, channel_ids)?;
+            svc.save_vod_items(vod_items)?;
+            svc.delete_removed_vod_items(source_id, vod_ids)?;
+            Ok(())
+        })
     }
 
     /// Suppresses individual event emission during the

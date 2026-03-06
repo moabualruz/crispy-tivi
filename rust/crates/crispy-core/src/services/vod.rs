@@ -1,9 +1,42 @@
-use rusqlite::params;
+use rusqlite::{Row, params};
 
-use super::{CrispyService, bool_to_int, int_to_bool, opt_dt_to_ts, opt_ts_to_dt};
+use super::{
+    CrispyService, bool_to_int, build_in_placeholders, int_to_bool, opt_dt_to_ts, opt_ts_to_dt,
+};
 use crate::database::{DbError, TABLE_VOD_ITEMS};
 use crate::events::DataChangeEvent;
 use crate::models::VodItem;
+
+/// Map a single SQLite row to a `VodItem`.
+///
+/// Column order must match the SELECT used in every VOD query:
+/// `id, name, stream_url, type, poster_url, backdrop_url,
+///  description, rating, year, duration, category, series_id,
+///  season_number, episode_number, ext, is_favorite,
+///  added_at, updated_at, source_id`
+fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
+    Ok(VodItem {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        stream_url: row.get(2)?,
+        item_type: row.get(3)?,
+        poster_url: row.get(4)?,
+        backdrop_url: row.get(5)?,
+        description: row.get(6)?,
+        rating: row.get(7)?,
+        year: row.get(8)?,
+        duration: row.get(9)?,
+        category: row.get(10)?,
+        series_id: row.get(11)?,
+        season_number: row.get(12)?,
+        episode_number: row.get(13)?,
+        ext: row.get(14)?,
+        is_favorite: int_to_bool(row.get(15)?),
+        added_at: opt_ts_to_dt(row.get(16)?),
+        updated_at: opt_ts_to_dt(row.get(17)?),
+        source_id: row.get(18)?,
+    })
+}
 
 impl CrispyService {
     // ── VOD Items ───────────────────────────────────
@@ -55,19 +88,11 @@ impl CrispyService {
         tx.commit()?;
         // Emit one event per distinct source_id so each
         // source's subscribers are notified independently.
-        let mut seen = std::collections::HashSet::new();
-        for v in items {
-            let sid = v.source_id.clone().unwrap_or_default();
-            if seen.insert(sid.clone()) {
-                self.emit(DataChangeEvent::VodUpdated { source_id: sid });
-            }
-        }
-        if items.is_empty() {
-            // Preserve existing behaviour: always emit at least once.
-            self.emit(DataChangeEvent::VodUpdated {
-                source_id: String::new(),
-            });
-        }
+        self.emit_per_source(
+            items,
+            |v| v.source_id.as_deref(),
+            |sid| DataChangeEvent::VodUpdated { source_id: sid },
+        );
         #[cfg(debug_assertions)]
         eprintln!("[debug] Inserted {} VOD items", count);
         Ok(count)
@@ -87,29 +112,7 @@ impl CrispyService {
                 updated_at, source_id
             FROM db_vod_items",
         )?;
-        let rows = stmt.query_map([], |row| {
-            Ok(VodItem {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                stream_url: row.get(2)?,
-                item_type: row.get(3)?,
-                poster_url: row.get(4)?,
-                backdrop_url: row.get(5)?,
-                description: row.get(6)?,
-                rating: row.get(7)?,
-                year: row.get(8)?,
-                duration: row.get(9)?,
-                category: row.get(10)?,
-                series_id: row.get(11)?,
-                season_number: row.get(12)?,
-                episode_number: row.get(13)?,
-                ext: row.get(14)?,
-                is_favorite: int_to_bool(row.get(15)?),
-                added_at: opt_ts_to_dt(row.get(16)?),
-                updated_at: opt_ts_to_dt(row.get(17)?),
-                source_id: row.get(18)?,
-            })
-        })?;
+        let rows = stmt.query_map([], vod_item_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
@@ -123,7 +126,6 @@ impl CrispyService {
             return self.load_vod_items();
         }
         let conn = self.db.get()?;
-        let placeholders: Vec<String> = (1..=source_ids.len()).map(|i| format!("?{i}")).collect();
         let sql = format!(
             "SELECT
                 id, name, stream_url, type,
@@ -135,36 +137,14 @@ impl CrispyService {
                 updated_at, source_id
             FROM db_vod_items
             WHERE source_id IN ({})",
-            placeholders.join(", ")
+            build_in_placeholders(source_ids.len())
         );
         let mut stmt = conn.prepare(&sql)?;
         let params: Vec<&dyn rusqlite::types::ToSql> = source_ids
             .iter()
             .map(|s| s as &dyn rusqlite::types::ToSql)
             .collect();
-        let rows = stmt.query_map(params.as_slice(), |row| {
-            Ok(VodItem {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                stream_url: row.get(2)?,
-                item_type: row.get(3)?,
-                poster_url: row.get(4)?,
-                backdrop_url: row.get(5)?,
-                description: row.get(6)?,
-                rating: row.get(7)?,
-                year: row.get(8)?,
-                duration: row.get(9)?,
-                category: row.get(10)?,
-                series_id: row.get(11)?,
-                season_number: row.get(12)?,
-                episode_number: row.get(13)?,
-                ext: row.get(14)?,
-                is_favorite: int_to_bool(row.get(15)?),
-                added_at: opt_ts_to_dt(row.get(16)?),
-                updated_at: opt_ts_to_dt(row.get(17)?),
-                source_id: row.get(18)?,
-            })
-        })?;
+        let rows = stmt.query_map(params.as_slice(), vod_item_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
@@ -199,29 +179,10 @@ impl CrispyService {
             ORDER BY COALESCE(s.sort_order, 999), v.name
             LIMIT ?4",
         )?;
-        let rows = stmt.query_map(params![name_lower, year, exclude_id, limit as i64], |row| {
-            Ok(VodItem {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                stream_url: row.get(2)?,
-                item_type: row.get(3)?,
-                poster_url: row.get(4)?,
-                backdrop_url: row.get(5)?,
-                description: row.get(6)?,
-                rating: row.get(7)?,
-                year: row.get(8)?,
-                duration: row.get(9)?,
-                category: row.get(10)?,
-                series_id: row.get(11)?,
-                season_number: row.get(12)?,
-                episode_number: row.get(13)?,
-                ext: row.get(14)?,
-                is_favorite: int_to_bool(row.get(15)?),
-                added_at: opt_ts_to_dt(row.get(16)?),
-                updated_at: opt_ts_to_dt(row.get(17)?),
-                source_id: row.get(18)?,
-            })
-        })?;
+        let rows = stmt.query_map(
+            params![name_lower, year, exclude_id, limit as i64],
+            vod_item_from_row,
+        )?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 

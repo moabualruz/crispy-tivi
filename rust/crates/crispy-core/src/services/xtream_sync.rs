@@ -7,7 +7,6 @@
 use anyhow::{Context, Result};
 
 use crate::algorithms::categories;
-use crate::database::DbError;
 use crate::http_client::get_fast_client;
 use crate::http_resilience::fetch_json_list;
 use crate::models::SyncReport;
@@ -150,14 +149,9 @@ pub async fn sync_xtream_source(
     emit_progress(source_id, "saving", 0.9, "Saving to database");
 
     // 7. Save to DB — single batch so the UI gets one BulkDataRefresh.
-    let db_result: Result<(), DbError> = service.batch_events(|svc| {
-        svc.save_channels(&channels)?;
-        svc.delete_removed_channels(source_id, &channel_ids)?;
-        svc.save_vod_items(&vod_items)?;
-        svc.delete_removed_vod_items(source_id, &vod_ids)?;
-        Ok(())
-    });
-    db_result.context("Failed to persist Xtream sync data")?;
+    service
+        .save_sync_data(source_id, &channels, &channel_ids, &vod_items, &vod_ids)
+        .context("Failed to persist Xtream sync data")?;
 
     emit_progress(source_id, "complete", 1.0, "Sync complete");
 

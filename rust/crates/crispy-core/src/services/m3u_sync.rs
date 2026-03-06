@@ -77,17 +77,9 @@ pub async fn sync_m3u_source(
 
     // 6. Persist all data inside a single batch so Flutter gets one
     //    BulkDataRefresh event instead of four separate events.
-    service.batch_events(|svc| -> Result<()> {
-        svc.save_channels(&channels)
-            .context("Failed to save channels")?;
-        svc.delete_removed_channels(source_id, &channel_ids)
-            .context("Failed to delete removed channels")?;
-        svc.save_vod_items(&vod_items)
-            .context("Failed to save VOD items")?;
-        svc.delete_removed_vod_items(source_id, &vod_ids)
-            .context("Failed to delete removed VOD items")?;
-        Ok(())
-    })?;
+    service
+        .save_sync_data(source_id, &channels, &channel_ids, &vod_items, &vod_ids)
+        .context("Failed to persist M3U sync data")?;
 
     emit_progress(source_id, "complete", 1.0, "Sync complete");
 

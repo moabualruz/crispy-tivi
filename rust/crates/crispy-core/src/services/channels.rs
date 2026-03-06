@@ -1,9 +1,40 @@
-use rusqlite::params;
+use rusqlite::{Row, params};
 
-use super::{CrispyService, bool_to_int, int_to_bool, opt_dt_to_ts, opt_ts_to_dt};
+use super::{
+    CrispyService, bool_to_int, build_in_placeholders, int_to_bool, opt_dt_to_ts, opt_ts_to_dt,
+};
 use crate::database::{DbError, TABLE_CHANNELS};
 use crate::events::DataChangeEvent;
 use crate::models::Channel;
+
+/// Map a single SQLite row to a `Channel`.
+///
+/// Column order must match the SELECT used in every channel query:
+/// `id, name, stream_url, number, channel_group, logo_url, tvg_id,
+///  tvg_name, is_favorite, user_agent, has_catchup, catchup_days,
+///  catchup_type, catchup_source, source_id, added_at, updated_at`
+fn channel_from_row(row: &Row) -> rusqlite::Result<Channel> {
+    Ok(Channel {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        stream_url: row.get(2)?,
+        number: row.get(3)?,
+        channel_group: row.get(4)?,
+        logo_url: row.get(5)?,
+        tvg_id: row.get(6)?,
+        tvg_name: row.get(7)?,
+        is_favorite: int_to_bool(row.get(8)?),
+        user_agent: row.get(9)?,
+        has_catchup: int_to_bool(row.get(10)?),
+        catchup_days: row.get(11)?,
+        catchup_type: row.get(12)?,
+        catchup_source: row.get(13)?,
+        resolution: None,
+        source_id: row.get(14)?,
+        added_at: opt_ts_to_dt(row.get(15)?),
+        updated_at: opt_ts_to_dt(row.get(16)?),
+    })
+}
 
 impl CrispyService {
     // ── Channels ────────────────────────────────────
@@ -52,19 +83,11 @@ impl CrispyService {
         tx.commit()?;
         // Emit one event per distinct source_id so each
         // source's subscribers are notified independently.
-        let mut seen = std::collections::HashSet::new();
-        for ch in channels {
-            let sid = ch.source_id.clone().unwrap_or_default();
-            if seen.insert(sid.clone()) {
-                self.emit(DataChangeEvent::ChannelsUpdated { source_id: sid });
-            }
-        }
-        if channels.is_empty() {
-            // Preserve existing behaviour: always emit at least once.
-            self.emit(DataChangeEvent::ChannelsUpdated {
-                source_id: String::new(),
-            });
-        }
+        self.emit_per_source(
+            channels,
+            |ch| ch.source_id.as_deref(),
+            |sid| DataChangeEvent::ChannelsUpdated { source_id: sid },
+        );
         #[cfg(debug_assertions)]
         eprintln!("[debug] Inserted {} channels", count);
         Ok(count)
@@ -83,28 +106,7 @@ impl CrispyService {
                 source_id, added_at, updated_at
             FROM db_channels",
         )?;
-        let rows = stmt.query_map([], |row| {
-            Ok(Channel {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                stream_url: row.get(2)?,
-                number: row.get(3)?,
-                channel_group: row.get(4)?,
-                logo_url: row.get(5)?,
-                tvg_id: row.get(6)?,
-                tvg_name: row.get(7)?,
-                is_favorite: int_to_bool(row.get(8)?),
-                user_agent: row.get(9)?,
-                has_catchup: int_to_bool(row.get(10)?),
-                catchup_days: row.get(11)?,
-                catchup_type: row.get(12)?,
-                catchup_source: row.get(13)?,
-                resolution: None,
-                source_id: row.get(14)?,
-                added_at: opt_ts_to_dt(row.get(15)?),
-                updated_at: opt_ts_to_dt(row.get(16)?),
-            })
-        })?;
+        let rows = stmt.query_map([], channel_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
@@ -118,7 +120,6 @@ impl CrispyService {
             return self.load_channels();
         }
         let conn = self.db.get()?;
-        let placeholders: Vec<String> = (1..=source_ids.len()).map(|i| format!("?{i}")).collect();
         let sql = format!(
             "SELECT
                 id, name, stream_url, number,
@@ -129,35 +130,14 @@ impl CrispyService {
                 source_id, added_at, updated_at
             FROM db_channels
             WHERE source_id IN ({})",
-            placeholders.join(", ")
+            build_in_placeholders(source_ids.len())
         );
         let mut stmt = conn.prepare(&sql)?;
         let params: Vec<&dyn rusqlite::types::ToSql> = source_ids
             .iter()
             .map(|s| s as &dyn rusqlite::types::ToSql)
             .collect();
-        let rows = stmt.query_map(params.as_slice(), |row| {
-            Ok(Channel {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                stream_url: row.get(2)?,
-                number: row.get(3)?,
-                channel_group: row.get(4)?,
-                logo_url: row.get(5)?,
-                tvg_id: row.get(6)?,
-                tvg_name: row.get(7)?,
-                is_favorite: int_to_bool(row.get(8)?),
-                user_agent: row.get(9)?,
-                has_catchup: int_to_bool(row.get(10)?),
-                catchup_days: row.get(11)?,
-                catchup_type: row.get(12)?,
-                catchup_source: row.get(13)?,
-                resolution: None,
-                source_id: row.get(14)?,
-                added_at: opt_ts_to_dt(row.get(15)?),
-                updated_at: opt_ts_to_dt(row.get(16)?),
-            })
-        })?;
+        let rows = stmt.query_map(params.as_slice(), channel_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
@@ -167,7 +147,6 @@ impl CrispyService {
         if ids.is_empty() {
             return Ok(Vec::new());
         }
-        let placeholders: Vec<String> = (1..=ids.len()).map(|i| format!("?{i}")).collect();
         let sql = format!(
             "SELECT
                 id, name, stream_url, number,
@@ -178,35 +157,14 @@ impl CrispyService {
                 source_id, added_at, updated_at
             FROM db_channels
             WHERE id IN ({})",
-            placeholders.join(", ")
+            build_in_placeholders(ids.len())
         );
         let mut stmt = conn.prepare(&sql)?;
         let params: Vec<&dyn rusqlite::types::ToSql> = ids
             .iter()
             .map(|s| s as &dyn rusqlite::types::ToSql)
             .collect();
-        let rows = stmt.query_map(params.as_slice(), |row| {
-            Ok(Channel {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                stream_url: row.get(2)?,
-                number: row.get(3)?,
-                channel_group: row.get(4)?,
-                logo_url: row.get(5)?,
-                tvg_id: row.get(6)?,
-                tvg_name: row.get(7)?,
-                is_favorite: int_to_bool(row.get(8)?),
-                user_agent: row.get(9)?,
-                has_catchup: int_to_bool(row.get(10)?),
-                catchup_days: row.get(11)?,
-                catchup_type: row.get(12)?,
-                catchup_source: row.get(13)?,
-                resolution: None,
-                source_id: row.get(14)?,
-                added_at: opt_ts_to_dt(row.get(15)?),
-                updated_at: opt_ts_to_dt(row.get(16)?),
-            })
-        })?;
+        let rows = stmt.query_map(params.as_slice(), channel_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 

@@ -386,6 +386,7 @@ dependencies = [
  "chrono",
  "crispy-core",
  "flutter_rust_bridge",
+ "serde",
  "serde_json",
  "windows-sys 0.59.0",
 ]

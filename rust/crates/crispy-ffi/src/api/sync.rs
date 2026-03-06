@@ -5,9 +5,9 @@
 
 use std::sync::Arc;
 
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 
-use super::svc;
+use super::{into_anyhow, json_result, svc};
 use crate::frb_generated::StreamSink;
 
 /// Subscribe to sync progress events from Rust.
@@ -31,14 +31,15 @@ pub async fn verify_xtream_credentials(
     password: String,
     accept_invalid_certs: bool,
 ) -> Result<bool> {
-    crispy_core::services::xtream_sync::verify_xtream_credentials(
-        &base_url,
-        &username,
-        &password,
-        accept_invalid_certs,
+    into_anyhow(
+        crispy_core::services::xtream_sync::verify_xtream_credentials(
+            &base_url,
+            &username,
+            &password,
+            accept_invalid_certs,
+        )
+        .await,
     )
-    .await
-    .map_err(|e| anyhow!("{e}"))
 }
 
 /// Full Xtream source sync. Returns JSON `SyncReport`.
@@ -50,17 +51,18 @@ pub async fn sync_xtream_source(
     accept_invalid_certs: bool,
 ) -> Result<String> {
     let service = svc()?;
-    let report = crispy_core::services::xtream_sync::sync_xtream_source(
-        &service,
-        &base_url,
-        &username,
-        &password,
-        &source_id,
-        accept_invalid_certs,
-    )
-    .await
-    .map_err(|e| anyhow!("{e}"))?;
-    Ok(serde_json::to_string(&report)?)
+    let report = into_anyhow(
+        crispy_core::services::xtream_sync::sync_xtream_source(
+            &service,
+            &base_url,
+            &username,
+            &password,
+            &source_id,
+            accept_invalid_certs,
+        )
+        .await,
+    )?;
+    json_result(report)
 }
 
 /// Full M3U source sync. Returns JSON `SyncReport`.
@@ -70,15 +72,16 @@ pub async fn sync_m3u_source(
     accept_invalid_certs: bool,
 ) -> Result<String> {
     let service = svc()?;
-    let report = crispy_core::services::m3u_sync::sync_m3u_source(
-        &service,
-        &url,
-        &source_id,
-        accept_invalid_certs,
-    )
-    .await
-    .map_err(|e| anyhow!("{e}"))?;
-    Ok(serde_json::to_string(&report)?)
+    let report = into_anyhow(
+        crispy_core::services::m3u_sync::sync_m3u_source(
+            &service,
+            &url,
+            &source_id,
+            accept_invalid_certs,
+        )
+        .await,
+    )?;
+    json_result(report)
 }
 
 /// Verify Stalker portal MAC authentication. Returns `true` if accepted.
@@ -87,13 +90,14 @@ pub async fn verify_stalker_portal(
     mac_address: String,
     accept_invalid_certs: bool,
 ) -> Result<bool> {
-    crispy_core::services::stalker_sync::verify_stalker_portal(
-        &base_url,
-        &mac_address,
-        accept_invalid_certs,
+    into_anyhow(
+        crispy_core::services::stalker_sync::verify_stalker_portal(
+            &base_url,
+            &mac_address,
+            accept_invalid_certs,
+        )
+        .await,
     )
-    .await
-    .map_err(|e| anyhow!("{e}"))
 }
 
 /// Full Stalker portal sync. Returns JSON `SyncReport`.
@@ -104,14 +108,15 @@ pub async fn sync_stalker_source(
     accept_invalid_certs: bool,
 ) -> Result<String> {
     let service = svc()?;
-    let report = crispy_core::services::stalker_sync::sync_stalker_source(
-        &service,
-        &base_url,
-        &mac_address,
-        &source_id,
-        accept_invalid_certs,
-    )
-    .await
-    .map_err(|e| anyhow!("{e}"))?;
-    Ok(serde_json::to_string(&report)?)
+    let report = into_anyhow(
+        crispy_core::services::stalker_sync::sync_stalker_source(
+            &service,
+            &base_url,
+            &mac_address,
+            &source_id,
+            accept_invalid_certs,
+        )
+        .await,
+    )?;
+    json_result(report)
 }

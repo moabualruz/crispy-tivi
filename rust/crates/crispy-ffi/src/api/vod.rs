@@ -1,12 +1,11 @@
-use super::svc;
+use super::{json_result, svc};
 use anyhow::{Context, Result};
 use crispy_core::models::VodItem;
 use std::collections::HashMap;
 
 /// Load all VOD items as JSON array.
 pub fn load_vod_items() -> Result<String> {
-    let items = svc()?.load_vod_items()?;
-    Ok(serde_json::to_string(&items)?)
+    json_result(svc()?.load_vod_items()?)
 }
 
 /// Save VOD items from JSON array. Returns count.
@@ -22,8 +21,7 @@ pub fn save_vod_items(json: String) -> Result<usize> {
 pub fn get_vod_by_sources(source_ids_json: String) -> Result<String> {
     let ids: Vec<String> =
         serde_json::from_str(&source_ids_json).context("Invalid source_ids JSON")?;
-    let items = svc()?.get_vod_by_sources(&ids)?;
-    Ok(serde_json::to_string(&items)?)
+    json_result(svc()?.get_vod_by_sources(&ids)?)
 }
 
 /// Delete VOD items not in keep_ids for a source.
@@ -41,8 +39,7 @@ pub fn find_vod_alternatives(
     limit: usize,
 ) -> Result<String> {
     let year_opt = if year > 0 { Some(year) } else { None };
-    let items = svc()?.find_vod_alternatives(&name, year_opt, &exclude_id, limit)?;
-    Ok(serde_json::to_string(&items)?)
+    json_result(svc()?.find_vod_alternatives(&name, year_opt, &exclude_id, limit)?)
 }
 
 // ── VOD Favorites ────────────────────────────────────
@@ -76,8 +73,9 @@ pub fn resolve_vod_categories(items_json: String, cat_map_json: String) -> Resul
         serde_json::from_str(&items_json).context("Invalid VOD items JSON")?;
     let cat_map: HashMap<String, String> =
         serde_json::from_str(&cat_map_json).context("Invalid cat map JSON")?;
-    let resolved = crispy_core::algorithms::categories::resolve_vod_categories(&items, &cat_map);
-    Ok(serde_json::to_string(&resolved)?)
+    json_result(crispy_core::algorithms::categories::resolve_vod_categories(
+        &items, &cat_map,
+    ))
 }
 
 /// Extract unique sorted category names from VOD.

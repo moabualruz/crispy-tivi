@@ -55,6 +55,23 @@ pub(super) fn svc() -> Result<CrispyService> {
         .ok_or_else(|| anyhow!("Not initialized"))
 }
 
+/// Serialize a value to a JSON string.
+///
+/// Used by FFI functions that return complex structs as `String`.
+/// Centralises the `Ok(serde_json::to_string(&val)?)` boilerplate.
+pub(crate) fn json_result<T: serde::Serialize>(val: T) -> anyhow::Result<String> {
+    Ok(serde_json::to_string(&val)?)
+}
+
+/// Convert any `Display` error into `anyhow::Error`.
+///
+/// Used in async FFI wrappers that call `crispy_core` functions
+/// returning non-anyhow error types (e.g. `anyhow::Error` from
+/// the core crate after `.map_err(|e| anyhow!("{e}"))`).
+pub(crate) fn into_anyhow<T, E: std::fmt::Display>(r: Result<T, E>) -> anyhow::Result<T> {
+    r.map_err(|e| anyhow::anyhow!("{e}"))
+}
+
 /// Convert millisecond epoch to `NaiveDateTime`.
 pub(super) fn ms_to_naive(ms: i64) -> anyhow::Result<chrono::NaiveDateTime> {
     chrono::DateTime::from_timestamp(ms / 1000, 0)
