@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants.dart';
 import '../../../core/data/cache_service.dart';
 import '../../../core/data/crispy_backend.dart';
+import '../../../core/data/dart_algorithm_fallbacks.dart';
 import '../../../core/data/device_service.dart';
 import '../../profiles/data/profile_service.dart';
 import '../domain/entities/watch_history_entry.dart';
@@ -12,9 +13,15 @@ import '../domain/entities/watch_history_entry.dart';
 /// Manages watch history for continue-watching
 /// and resume.
 class WatchHistoryService {
-  /// Derives a watch-history ID from a stream URL.
+  /// Derives a stable, platform-independent watch-history ID from
+  /// a stream URL.
+  ///
+  /// Returns the first 16 hex characters of the SHA-256 hash of
+  /// the URL. This is deterministic across platforms, isolates,
+  /// and SDK versions — unlike the previous
+  /// `hashCode.toRadixString(36)` which varied per-platform.
   static String deriveId(String streamUrl) =>
-      streamUrl.hashCode.toRadixString(36);
+      dartDeriveWatchHistoryId(streamUrl);
 
   WatchHistoryService(
     this._cache,
@@ -210,6 +217,31 @@ class WatchHistoryService {
   Future<void> clearAll() async {
     await _cache.clearAllWatchHistory();
   }
+
+  /// Migrate existing watch history entries to stable SHA-256 IDs.
+  ///
+  /// Old entries used `hashCode.toRadixString(36)` which is
+  /// platform-unstable. This one-shot migration re-derives each
+  /// entry's ID from its `streamUrl` using the stable SHA-256
+  /// algorithm and saves the updated entries.
+  ///
+  /// Entries whose current ID already matches the SHA-256 derivation
+  /// are skipped (idempotent). Entries without a `streamUrl` are
+  /// skipped (cannot re-derive).
+  ///
+  /// Should be called once on app startup via
+  /// [watchHistoryMigrationProvider].
+  Future<void> migrateWatchHistoryIds() async {
+    final entries = await _cache.loadWatchHistory();
+    for (final entry in entries) {
+      if (entry.streamUrl.isEmpty) continue;
+      final stableId = deriveId(entry.streamUrl);
+      if (entry.id == stableId) continue;
+      // Delete the old entry and save with the new stable ID.
+      await _cache.deleteWatchHistory(entry.id);
+      await _cache.saveWatchHistory(entry.copyWith(id: stableId));
+    }
+  }
 }
 
 /// Riverpod provider for [WatchHistoryService].
@@ -293,4 +325,21 @@ final vodItemIsCompletedProvider = FutureProvider.family<bool, String>((
   if (history == null || history.durationMs == 0) return false;
   final progress = history.progress.clamp(0.0, 1.0);
   return progress >= kCompletionThreshold;
+});
+
+/// One-shot migration provider that re-derives all watch history
+/// entry IDs to use stable SHA-256 hashes.
+///
+/// Reads [watchHistoryServiceProvider] and runs
+/// [WatchHistoryService.migrateWatchHistoryIds] once on app
+/// startup. Idempotent — already-migrated entries are skipped.
+///
+/// Wire this into the app root (e.g. in `main()` or the root
+/// widget's `initState`) by reading it once:
+/// ```dart
+/// ref.read(watchHistoryMigrationProvider.future);
+/// ```
+final watchHistoryMigrationProvider = FutureProvider<void>((ref) async {
+  final service = ref.watch(watchHistoryServiceProvider);
+  await service.migrateWatchHistoryIds();
 });

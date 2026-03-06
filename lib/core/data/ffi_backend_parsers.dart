@@ -587,4 +587,10 @@ mixin _FfiParsersMixin on _FfiBackendBase {
             nowMs: PlatformInt64Util.from(nowMs),
           )
           .toInt();
+
+  // ── Watch History ID ─────────────────────────────
+
+  /// Delegates to the sync Rust FFI function.
+  String deriveWatchHistoryId(String url) =>
+      rust_api.deriveWatchHistoryId(url: url);
 }

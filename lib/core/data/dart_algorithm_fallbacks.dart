@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:crispy_tivi/core/constants.dart';
 import 'package:crispy_tivi/core/utils/file_extensions.dart';
+import 'package:crypto/crypto.dart';
 
 /// Pure-Dart fallback implementations for algorithms that have
 /// canonical Rust counterparts in crispy-core.
@@ -536,4 +537,19 @@ int dartLockRemainingMs(int lockedUntilMs, int nowMs) {
   if (lockedUntilMs <= 0) return 0;
   final remaining = lockedUntilMs - nowMs;
   return remaining > 0 ? remaining : 0;
+}
+
+// ── Watch History ID ─────────────────────────────────────────────────
+
+/// Derives a stable, platform-independent watch-history ID from
+/// a stream URL.
+///
+/// Returns the first 16 hex characters of the SHA-256 hash of
+/// the URL — identical output to the Rust
+/// `crispy-core::algorithms::watch_history::derive_watch_history_id`.
+///
+/// Used as a sync fallback in [WsBackend] and [MemoryBackend].
+String dartDeriveWatchHistoryId(String url) {
+  final bytes = sha256.convert(utf8.encode(url)).bytes;
+  return bytes.take(8).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
 }

@@ -563,6 +563,14 @@ String vodBadgeKind({
   nowMs: nowMs,
 );
 
+/// Derive a stable, platform-independent watch-history ID from a stream URL.
+///
+/// Returns the first 16 hex characters of the SHA-256 hash of the URL.
+/// This replaces Dart's unstable `hashCode.toRadixString(36)` which varies
+/// across platforms, isolates, and SDK versions.
+String deriveWatchHistoryId({required String url}) =>
+    RustLib.instance.api.crateApiAlgorithmsDeriveWatchHistoryId(url: url);
+
 /// Find similar VOD items by genre/category overlap.
 Future<String> similarVodItems({
   required String itemsJson,

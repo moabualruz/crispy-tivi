@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -607,6 +608,190 @@ void main() {
       ).thenThrow(Exception('DB error'));
 
       expect(() => service.clearAll(), throwsException);
+    });
+  });
+
+  // ── deriveId() ────────────────────────────────────
+
+  group('deriveId()', () {
+    /// Compute expected SHA-256 prefix for test assertions.
+    String sha256Prefix(String url) {
+      final bytes = sha256.convert(utf8.encode(url)).bytes;
+      return bytes
+          .take(8)
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join();
+    }
+
+    test('returns 16 hex characters', () {
+      final id = WatchHistoryService.deriveId('http://example.com/stream.m3u8');
+      expect(id.length, 16);
+      expect(RegExp(r'^[0-9a-f]{16}$').hasMatch(id), isTrue);
+    });
+
+    test('is stable — same URL always returns same ID', () {
+      const url = 'http://iptv.example.com/live/stream/1234.m3u8';
+      expect(
+        WatchHistoryService.deriveId(url),
+        WatchHistoryService.deriveId(url),
+      );
+    });
+
+    test('produces different IDs for different URLs', () {
+      final id1 = WatchHistoryService.deriveId('http://example.com/a');
+      final id2 = WatchHistoryService.deriveId('http://example.com/b');
+      expect(id1, isNot(id2));
+    });
+
+    test('matches expected SHA-256 prefix', () {
+      const url = 'http://example.com/movie.mp4';
+      expect(WatchHistoryService.deriveId(url), sha256Prefix(url));
+    });
+
+    test('handles empty string', () {
+      final id = WatchHistoryService.deriveId('');
+      expect(id.length, 16);
+      expect(RegExp(r'^[0-9a-f]{16}$').hasMatch(id), isTrue);
+    });
+
+    test('handles URL with query params', () {
+      const url = 'http://example.com/stream?token=abc&quality=hd';
+      final id = WatchHistoryService.deriveId(url);
+      expect(id.length, 16);
+      expect(id, sha256Prefix(url));
+    });
+
+    test('is case-sensitive', () {
+      final lower = WatchHistoryService.deriveId('http://example.com/movie');
+      final upper = WatchHistoryService.deriveId('HTTP://EXAMPLE.COM/MOVIE');
+      expect(lower, isNot(upper));
+    });
+  });
+
+  // ── migrateWatchHistoryIds() ──────────────────────
+
+  group('migrateWatchHistoryIds()', () {
+    setUp(() {
+      when(() => mockCache.saveWatchHistory(any())).thenAnswer((_) async {});
+      when(() => mockCache.deleteWatchHistory(any())).thenAnswer((_) async {});
+    });
+
+    test('migrates entry with stale hashCode-style ID to SHA-256 ID', () async {
+      const url = 'http://example.com/stream.m3u8';
+      final staleId = url.hashCode.toRadixString(36);
+      final stableId = WatchHistoryService.deriveId(url);
+      final staleEntry = _entry(id: staleId, streamUrl: url);
+
+      when(
+        () => mockCache.loadWatchHistory(),
+      ).thenAnswer((_) async => [staleEntry]);
+
+      await service.migrateWatchHistoryIds();
+
+      verify(() => mockCache.deleteWatchHistory(staleId)).called(1);
+      final captured =
+          verify(() => mockCache.saveWatchHistory(captureAny())).captured.single
+              as WatchHistoryEntry;
+      expect(captured.id, stableId);
+      expect(captured.streamUrl, url);
+    });
+
+    test('skips entries whose ID already matches SHA-256', () async {
+      const url = 'http://example.com/movie.mp4';
+      final stableId = WatchHistoryService.deriveId(url);
+      final alreadyMigratedEntry = _entry(id: stableId, streamUrl: url);
+
+      when(
+        () => mockCache.loadWatchHistory(),
+      ).thenAnswer((_) async => [alreadyMigratedEntry]);
+
+      await service.migrateWatchHistoryIds();
+
+      verifyNever(() => mockCache.deleteWatchHistory(any()));
+      verifyNever(() => mockCache.saveWatchHistory(any()));
+    });
+
+    test('skips entries with empty streamUrl', () async {
+      final noUrl = _entry(id: 'some-old-id', streamUrl: '');
+      when(() => mockCache.loadWatchHistory()).thenAnswer((_) async => [noUrl]);
+
+      await service.migrateWatchHistoryIds();
+
+      verifyNever(() => mockCache.deleteWatchHistory(any()));
+      verifyNever(() => mockCache.saveWatchHistory(any()));
+    });
+
+    test('migrates multiple entries in one pass', () async {
+      const url1 = 'http://example.com/ep1.mp4';
+      const url2 = 'http://example.com/ep2.mp4';
+      final stale1 = _entry(
+        id: url1.hashCode.toRadixString(36),
+        streamUrl: url1,
+      );
+      final stale2 = _entry(
+        id: url2.hashCode.toRadixString(36),
+        streamUrl: url2,
+      );
+
+      when(
+        () => mockCache.loadWatchHistory(),
+      ).thenAnswer((_) async => [stale1, stale2]);
+
+      await service.migrateWatchHistoryIds();
+
+      verify(() => mockCache.deleteWatchHistory(stale1.id)).called(1);
+      verify(() => mockCache.deleteWatchHistory(stale2.id)).called(1);
+      verify(() => mockCache.saveWatchHistory(any())).called(2);
+    });
+
+    test('no-op when history is empty', () async {
+      when(() => mockCache.loadWatchHistory()).thenAnswer((_) async => []);
+
+      await service.migrateWatchHistoryIds();
+
+      verifyNever(() => mockCache.deleteWatchHistory(any()));
+      verifyNever(() => mockCache.saveWatchHistory(any()));
+    });
+
+    test('preserves all entry fields during migration', () async {
+      const url = 'http://example.com/movie.mp4';
+      final staleId = url.hashCode.toRadixString(36);
+      final original = WatchHistoryEntry(
+        id: staleId,
+        mediaType: 'movie',
+        name: 'Test Film',
+        streamUrl: url,
+        posterUrl: 'http://example.com/poster.jpg',
+        positionMs: 42000,
+        durationMs: 90000,
+        lastWatched: DateTime(2026, 1, 15),
+        deviceId: 'dev-xyz',
+        deviceName: 'Windows PC',
+        profileId: 'profile-1',
+        sourceId: 'src-1',
+      );
+
+      when(
+        () => mockCache.loadWatchHistory(),
+      ).thenAnswer((_) async => [original]);
+
+      await service.migrateWatchHistoryIds();
+
+      final captured =
+          verify(() => mockCache.saveWatchHistory(captureAny())).captured.single
+              as WatchHistoryEntry;
+
+      expect(captured.mediaType, 'movie');
+      expect(captured.name, 'Test Film');
+      expect(captured.streamUrl, url);
+      expect(captured.posterUrl, 'http://example.com/poster.jpg');
+      expect(captured.positionMs, 42000);
+      expect(captured.durationMs, 90000);
+      expect(captured.lastWatched, DateTime(2026, 1, 15));
+      expect(captured.deviceId, 'dev-xyz');
+      expect(captured.deviceName, 'Windows PC');
+      expect(captured.profileId, 'profile-1');
+      expect(captured.sourceId, 'src-1');
     });
   });
 }

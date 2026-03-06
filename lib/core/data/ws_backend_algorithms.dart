@@ -363,4 +363,13 @@ mixin _WsAlgorithmsMixin on _WsBackendBase {
   /// Sync — delegates to shared [dartLockRemainingMs].
   int lockRemainingMs(int lockedUntilMs, int nowMs) =>
       dartLockRemainingMs(lockedUntilMs, nowMs);
+
+  // ── Watch History ID ─────────────────────────────
+
+  /// Sync — delegates to shared [dartDeriveWatchHistoryId].
+  ///
+  /// WS sync methods cannot issue async WebSocket calls, so this
+  /// uses the pure-Dart SHA-256 fallback which produces identical
+  /// output to the Rust `derive_watch_history_id` function.
+  String deriveWatchHistoryId(String url) => dartDeriveWatchHistoryId(url);
 }

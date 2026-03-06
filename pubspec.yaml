@@ -64,6 +64,9 @@ dependencies:
   file_picker: ^9.2.1
   share_plus: ^11.0.0
 
+  # Crypto (SHA-256 for stable watch-history IDs in WsBackend fallback)
+  crypto: ^3.0.0
+
   # Cloud Sync (Google Drive)
   google_sign_in: ^6.2.2
   googleapis: ^13.2.0

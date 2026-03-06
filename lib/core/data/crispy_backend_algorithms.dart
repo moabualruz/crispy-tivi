@@ -586,4 +586,14 @@ abstract class _BackendAlgorithmMethods {
 
   /// Remaining milliseconds in a PIN lockout.
   int lockRemainingMs(int lockedUntilMs, int nowMs);
+
+  // ── Watch History ID ──────────────────────────────
+
+  /// Derives a stable, platform-independent watch-history ID from
+  /// a stream URL.
+  ///
+  /// Returns the first 16 hex characters of the SHA-256 hash of
+  /// the URL. This is stable across platforms, isolates, and SDK
+  /// versions — unlike Dart's `hashCode.toRadixString(36)`.
+  String deriveWatchHistoryId(String url);
 }

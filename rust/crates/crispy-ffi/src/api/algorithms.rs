@@ -601,6 +601,16 @@ pub fn vod_badge_kind(year: Option<i32>, added_at_ms: Option<i64>, now_ms: i64) 
     crispy_core::algorithms::watch_history::vod_badge_kind(year, added_at_ms, now_ms)
 }
 
+/// Derive a stable, platform-independent watch-history ID from a stream URL.
+///
+/// Returns the first 16 hex characters of the SHA-256 hash of the URL.
+/// This replaces Dart's unstable `hashCode.toRadixString(36)` which varies
+/// across platforms, isolates, and SDK versions.
+#[flutter_rust_bridge::frb(sync)]
+pub fn derive_watch_history_id(url: String) -> String {
+    crispy_core::algorithms::watch_history::derive_watch_history_id(&url)
+}
+
 // ── VOD Similarity ──────────────────────────────────
 
 /// Find similar VOD items by genre/category overlap.

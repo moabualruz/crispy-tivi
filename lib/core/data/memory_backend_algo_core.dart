@@ -719,4 +719,9 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
   /// Delegates to shared [dartLockRemainingMs].
   int lockRemainingMs(int lockedUntilMs, int nowMs) =>
       dartLockRemainingMs(lockedUntilMs, nowMs);
+
+  // ── Watch History ID ─────────────────────────────
+
+  /// Delegates to shared [dartDeriveWatchHistoryId].
+  String deriveWatchHistoryId(String url) => dartDeriveWatchHistoryId(url);
 }
