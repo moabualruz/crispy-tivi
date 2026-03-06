@@ -42,6 +42,7 @@ class PlaybackSettingsSection extends ConsumerWidget {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         SectionHeader(
           title: 'Playback',

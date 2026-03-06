@@ -82,7 +82,7 @@ class SettingsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(CrispyRadius.tv),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(children: children),
+      child: Column(mainAxisSize: MainAxisSize.min, children: children),
     );
   }
 }

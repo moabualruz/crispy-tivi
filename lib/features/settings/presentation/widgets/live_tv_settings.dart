@@ -17,6 +17,7 @@ class LiveTvSettingsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         SectionHeader(
           title: 'Live TV',
