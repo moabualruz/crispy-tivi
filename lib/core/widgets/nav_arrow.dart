@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/crispy_animation.dart';
+import '../theme/crispy_colors.dart';
 import '../theme/crispy_radius.dart';
 import 'focus_wrapper.dart';
 
@@ -70,7 +71,11 @@ class _NavArrowState extends State<NavArrow> {
             ),
           ),
           alignment: Alignment.center,
-          child: Icon(widget.icon, color: Colors.white, size: widget.iconSize),
+          child: Icon(
+            widget.icon,
+            color: CrispyColors.textHigh,
+            size: widget.iconSize,
+          ),
         ),
       ),
     );

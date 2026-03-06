@@ -173,7 +173,7 @@ class _PlayerOsdState extends ConsumerState<PlayerOsd> {
                 osdState == OsdState.visible
                     ? CrispyAnimation.osdShow
                     : CrispyAnimation.osdHide,
-            curve: Curves.easeOut,
+            curve: CrispyAnimation.scrollCurve,
             child: IgnorePointer(
               ignoring: osdState != OsdState.visible,
               child: ExcludeFocus(

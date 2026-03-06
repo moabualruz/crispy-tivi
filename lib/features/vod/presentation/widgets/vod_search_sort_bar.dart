@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 import '../../../voice_search/presentation/widgets/voice_search_button.dart';
 import '../providers/vod_providers.dart';
 
@@ -56,21 +57,21 @@ enum VodGridDensity {
   static double _compactExtent(double w) {
     if (w >= 1600) return 140;
     if (w >= 1280) return 130;
-    if (w >= 840) return 120;
+    if (w >= Breakpoints.expanded) return 120;
     return 100;
   }
 
   static double _standardExtent(double w) {
     if (w >= 1600) return 240;
     if (w >= 1280) return 220;
-    if (w >= 840) return 200;
+    if (w >= Breakpoints.expanded) return 200;
     return 170;
   }
 
   static double _largeExtent(double w) {
     if (w >= 1600) return 340;
     if (w >= 1280) return 300;
-    if (w >= 840) return 260;
+    if (w >= Breakpoints.expanded) return 260;
     return 220;
   }
 }

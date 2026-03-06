@@ -151,7 +151,7 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
       _channelScrollController.animateTo(
         offset,
         duration: CrispyAnimation.normal,
-        curve: Curves.easeOut,
+        curve: CrispyAnimation.scrollCurve,
       );
     }
     previewChannel(match);

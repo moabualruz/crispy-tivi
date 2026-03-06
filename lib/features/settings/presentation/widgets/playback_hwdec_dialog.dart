@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/theme/crispy_typography.dart';
 import '../../../../core/utils/gpu_info.dart';
 import '../../../player/domain/entities/hardware_decoder.dart';
 
@@ -171,7 +172,7 @@ class _DecoderOption extends StatelessWidget {
               child: Text(
                 'Best',
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: CrispyTypography.micro,
                   color: Theme.of(context).colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
                 ),

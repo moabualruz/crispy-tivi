@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/glass_surface.dart';
@@ -388,7 +389,7 @@ class CastMiniController extends ConsumerWidget {
                   Text(
                     media.title,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white,
+                      color: CrispyColors.textHigh,
                       fontWeight: FontWeight.bold,
                     ),
                     maxLines: 1,
@@ -417,7 +418,7 @@ class CastMiniController extends ConsumerWidget {
               },
               icon: Icon(
                 isPlaying ? Icons.pause : Icons.play_arrow,
-                color: Colors.white,
+                color: CrispyColors.textHigh,
               ),
               iconSize: 28,
             ),
@@ -428,7 +429,7 @@ class CastMiniController extends ConsumerWidget {
               onPressed: () {
                 ref.read(castServiceProvider.notifier).stopCast();
               },
-              icon: const Icon(Icons.stop, color: Colors.white),
+              icon: const Icon(Icons.stop, color: CrispyColors.textHigh),
               iconSize: 28,
             ),
           ],

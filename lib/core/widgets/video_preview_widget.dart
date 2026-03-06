@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../theme/crispy_colors.dart';
 import '../theme/crispy_radius.dart';
 import 'focus_wrapper.dart';
 import 'ui_auto_scale.dart';
@@ -94,7 +95,7 @@ class _VideoPreviewWidgetState extends ConsumerState<VideoPreviewWidget> {
                   if (isBuffering)
                     const Center(
                       child: CircularProgressIndicator(
-                        color: Colors.white,
+                        color: CrispyColors.textHigh,
                         strokeWidth: 2,
                       ),
                     ),

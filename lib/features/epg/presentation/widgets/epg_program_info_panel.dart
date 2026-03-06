@@ -75,7 +75,7 @@ class EpgProgramInfoPanel extends StatelessWidget {
                   child: Text(
                     'LIVE',
                     style: textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
+                      color: CrispyColors.textHigh,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/ui_auto_scale.dart';
@@ -96,7 +97,7 @@ class _EpgMobileVideoOverlayState extends ConsumerState<EpgMobileVideoOverlay> {
                 if (isBuffering)
                   const Center(
                     child: CircularProgressIndicator(
-                      color: Colors.white,
+                      color: CrispyColors.textHigh,
                       strokeWidth: 2,
                     ),
                   ),

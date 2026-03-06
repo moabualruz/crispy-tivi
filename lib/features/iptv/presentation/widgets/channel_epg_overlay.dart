@@ -68,7 +68,7 @@ class ChannelEpgOverlay extends StatelessWidget {
                 child: Text(
                   channel.name,
                   style: textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
+                    color: CrispyColors.textHigh,
                     fontWeight: FontWeight.bold,
                   ),
                   maxLines: 1,
@@ -86,7 +86,7 @@ class ChannelEpgOverlay extends StatelessWidget {
                   child: Text(
                     'LIVE',
                     style: textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
+                      color: CrispyColors.textHigh,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

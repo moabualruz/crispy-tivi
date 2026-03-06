@@ -40,6 +40,9 @@ abstract final class CrispyAnimation {
   /// Modal open (subtle overshoot).
   static const Curve modalCurve = Curves.easeOutQuint;
 
+  /// Scroll/ease-out animations (list scrollTo, smooth transitions).
+  static const Curve scrollCurve = Curves.easeOut;
+
   // ── OSD-specific ───────────────────────────────────────────
 
   /// OSD slide-up + fade in.

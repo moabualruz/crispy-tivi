@@ -4,6 +4,7 @@ import 'package:media_kit/media_kit.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
 import '../../domain/entities/vod_item.dart';
@@ -65,7 +66,10 @@ class _VodHeroBannerState extends ConsumerState<VodHeroBanner> {
     final w = MediaQuery.sizeOf(context).width;
 
     // Dimensions scaled roughly 2.5x to create ~6.25x larger area
-    final cardW = w >= 840 ? 450.0 : (w >= 600 ? 400.0 : 350.0);
+    final cardW =
+        w >= Breakpoints.expanded
+            ? 450.0
+            : (w >= Breakpoints.medium ? 400.0 : 350.0);
     // Explicit 2:3 portrait aspect ratio matching VodRow default
     final cardH = cardW * 1.5;
 

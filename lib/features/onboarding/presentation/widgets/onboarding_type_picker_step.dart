@@ -8,6 +8,7 @@ import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 import '../providers/onboarding_notifier.dart';
 
 /// Second step of the onboarding wizard — source type selection.
@@ -22,7 +23,7 @@ class OnboardingTypePickerStep extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final width = MediaQuery.sizeOf(context).width;
-    final isExpanded = width >= 840;
+    final isExpanded = width >= Breakpoints.expanded;
     final notifier = ref.read(onboardingProvider.notifier);
 
     final cards = [

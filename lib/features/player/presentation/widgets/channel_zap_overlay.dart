@@ -109,7 +109,7 @@ class _ChannelZapOverlayState extends State<ChannelZapOverlay> {
         _scrollController.position.maxScrollExtent,
       ),
       duration: CrispyAnimation.normal,
-      curve: Curves.easeOut,
+      curve: CrispyAnimation.scrollCurve,
     );
   }
 

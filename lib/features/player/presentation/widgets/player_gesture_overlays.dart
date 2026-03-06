@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 
 /// Direction indicator for double-tap seek.
@@ -63,7 +64,10 @@ class _GestureRingOverlayState extends State<GestureRingOverlay>
       duration: CrispyAnimation.skeletonPulse,
       value: widget.isSwiping ? 1.0 : 0.0,
     );
-    _opacity = CurvedAnimation(parent: _fade, curve: Curves.easeOut);
+    _opacity = CurvedAnimation(
+      parent: _fade,
+      curve: CrispyAnimation.scrollCurve,
+    );
   }
 
   @override
@@ -268,7 +272,7 @@ class BufferingIndicator extends StatelessWidget {
     final hasName = channelName != null && channelName!.isNotEmpty;
 
     return Container(
-      color: Colors.black.withValues(alpha: 0.6),
+      color: CrispyColors.scrimMid,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -356,7 +360,7 @@ class SeekIndicator extends StatelessWidget {
             vertical: CrispySpacing.md,
           ),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.6),
+            color: CrispyColors.scrimMid,
             borderRadius: BorderRadius.zero,
           ),
           child: Row(

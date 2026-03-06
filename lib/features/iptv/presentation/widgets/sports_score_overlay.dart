@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/theme/crispy_typography.dart';
 
 part 'sports_score_overlay.g.dart';
 
@@ -262,7 +264,7 @@ class _ScorePill extends StatelessWidget {
         vertical: CrispySpacing.xxs,
       ),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.75),
+        color: CrispyColors.scrimHeavy,
         borderRadius: BorderRadius.circular(CrispyRadius.tv),
         border: Border.all(color: Colors.white12),
       ),
@@ -273,9 +275,9 @@ class _ScorePill extends StatelessWidget {
           Text(
             score.homeTeam,
             style: tt.labelSmall?.copyWith(
-              color: Colors.white,
+              color: CrispyColors.textHigh,
               fontWeight: FontWeight.bold,
-              fontSize: 10,
+              fontSize: CrispyTypography.micro,
             ),
           ),
           const SizedBox(width: CrispySpacing.xxs),
@@ -293,9 +295,9 @@ class _ScorePill extends StatelessWidget {
           Text(
             score.awayTeam,
             style: tt.labelSmall?.copyWith(
-              color: Colors.white,
+              color: CrispyColors.textHigh,
               fontWeight: FontWeight.bold,
-              fontSize: 10,
+              fontSize: CrispyTypography.micro,
             ),
           ),
           // Divider.
@@ -305,19 +307,25 @@ class _ScorePill extends StatelessWidget {
               '|',
               style: tt.labelSmall?.copyWith(
                 color: Colors.white38,
-                fontSize: 10,
+                fontSize: CrispyTypography.micro,
               ),
             ),
           ),
           // Period + clock.
           Text(
             score.period,
-            style: tt.labelSmall?.copyWith(color: Colors.white70, fontSize: 10),
+            style: tt.labelSmall?.copyWith(
+              color: Colors.white70,
+              fontSize: CrispyTypography.micro,
+            ),
           ),
           const SizedBox(width: CrispySpacing.xxs),
           Text(
             score.clock,
-            style: tt.labelSmall?.copyWith(color: Colors.white54, fontSize: 10),
+            style: tt.labelSmall?.copyWith(
+              color: Colors.white54,
+              fontSize: CrispyTypography.micro,
+            ),
           ),
         ],
       ),
@@ -337,7 +345,7 @@ class _ScoreLoadingPill extends StatelessWidget {
         vertical: CrispySpacing.xxs,
       ),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.6),
+        color: CrispyColors.scrimMid,
         borderRadius: BorderRadius.circular(CrispyRadius.tv),
       ),
       child: Row(
@@ -353,7 +361,7 @@ class _ScoreLoadingPill extends StatelessWidget {
             'Loading score…',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: Colors.white54,
-              fontSize: 10,
+              fontSize: CrispyTypography.micro,
             ),
           ),
         ],

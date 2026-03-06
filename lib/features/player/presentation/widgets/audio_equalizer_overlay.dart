@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/theme/crispy_typography.dart';
 import '../providers/player_providers.dart';
 import 'player_osd/osd_shared.dart';
 
@@ -438,7 +439,7 @@ class _BandSlider extends StatelessWidget {
           style: textTheme.labelSmall?.copyWith(
             color: isEnabled ? accentColor : Colors.white38,
             fontWeight: FontWeight.bold,
-            fontSize: 10,
+            fontSize: CrispyTypography.micro,
           ),
         ),
 

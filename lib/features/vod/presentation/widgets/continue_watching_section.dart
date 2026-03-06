@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/theme/crispy_typography.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
 import '../../../player/data/watch_history_service.dart';
@@ -320,7 +321,7 @@ class _InfoChip extends StatelessWidget {
       child: Text(
         label,
         style: textTheme.labelSmall?.copyWith(
-          fontSize: 10,
+          fontSize: CrispyTypography.micro,
           color: foreground,
           fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
         ),

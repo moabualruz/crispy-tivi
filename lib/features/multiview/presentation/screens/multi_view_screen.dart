@@ -20,8 +20,10 @@ import 'package:media_kit/media_kit.dart';
 
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/theme/crispy_typography.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/glass_surface.dart';
 import '../../../iptv/presentation/providers/channel_providers.dart';
@@ -699,7 +701,7 @@ class _SlotTileState extends State<_SlotTile> {
                         vertical: CrispySpacing.xxs,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.7),
+                        color: CrispyColors.scrimMid,
                         borderRadius: BorderRadius.circular(CrispyRadius.tv),
                       ),
                       child: Row(
@@ -789,7 +791,7 @@ class _StatsPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(CrispySpacing.sm),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.80),
+        color: CrispyColors.scrimHeavy,
         borderRadius: BorderRadius.circular(CrispyRadius.tv),
         border: Border.all(color: Colors.white12),
       ),
@@ -798,13 +800,13 @@ class _StatsPanel extends StatelessWidget {
             textTheme.labelSmall?.copyWith(
               color: Colors.white70,
               fontFamily: 'monospace',
-              fontSize: 10,
+              fontSize: CrispyTypography.micro,
               height: 1.6,
             ) ??
             const TextStyle(
               color: Colors.white70,
               fontFamily: 'monospace',
-              fontSize: 10,
+              fontSize: CrispyTypography.micro,
               height: 1.6,
             ),
         child: Column(
@@ -1080,7 +1082,7 @@ class _EscapeHintState extends State<_EscapeHint>
           vertical: CrispySpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.65),
+          color: CrispyColors.scrimMid,
           borderRadius: BorderRadius.circular(CrispyRadius.tv),
         ),
         child: Row(

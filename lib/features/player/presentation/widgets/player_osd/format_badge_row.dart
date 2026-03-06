@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/theme/crispy_colors.dart';
 import '../../../../../core/theme/crispy_radius.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
+import '../../../../../core/theme/crispy_typography.dart';
 import '../../../domain/entities/playback_state.dart';
 
 /// Displays small pill badges for video/audio format info
@@ -158,8 +160,8 @@ class _Badge extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
+          color: CrispyColors.textHigh,
+          fontSize: CrispyTypography.micro,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.3,
           height: 1.2,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/theme/crispy_typography.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../domain/entities/channel.dart';
@@ -121,7 +122,7 @@ class _ChannelGridItemState extends State<ChannelGridItem> {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: tt.labelSmall?.copyWith(
-                      fontSize: 10,
+                      fontSize: CrispyTypography.micro,
                       color: cs.onSurface.withValues(alpha: 0.55),
                     ),
                   ),

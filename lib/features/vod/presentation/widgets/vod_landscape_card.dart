@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/theme/crispy_typography.dart';
 import '../../../../core/utils/duration_formatter.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/smart_image.dart';
@@ -186,7 +188,7 @@ class _VodLandscapeCardState extends ConsumerState<VodLandscapeCard> {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
+                          color: CrispyColors.scrimMid,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -257,7 +259,7 @@ class _MetaBadge extends StatelessWidget {
       label,
       style: textTheme.labelSmall?.copyWith(
         color: Colors.white70,
-        fontSize: 10,
+        fontSize: CrispyTypography.micro,
       ),
     );
   }
@@ -284,7 +286,7 @@ class _MatchBadge extends StatelessWidget {
         vertical: 2,
       ),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.65),
+        color: CrispyColors.scrimMid,
         borderRadius: BorderRadius.circular(CrispyRadius.tv),
       ),
       child: Text(
@@ -292,7 +294,7 @@ class _MatchBadge extends StatelessWidget {
         style: textTheme.labelSmall?.copyWith(
           color: color,
           fontWeight: FontWeight.bold,
-          fontSize: 10,
+          fontSize: CrispyTypography.micro,
         ),
       ),
     );

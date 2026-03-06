@@ -118,7 +118,7 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
       _horizontalScroll.animateTo(
         target,
         duration: CrispyAnimation.normal,
-        curve: Curves.easeOut,
+        curve: CrispyAnimation.scrollCurve,
       );
     } else {
       // Silent jump used by auto-scroll timer — avoids
@@ -239,7 +239,7 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
     _gridScroll.animateTo(
       (index * rowHeight).clamp(0.0, _gridScroll.position.maxScrollExtent),
       duration: CrispyAnimation.normal,
-      curve: Curves.easeOut,
+      curve: CrispyAnimation.scrollCurve,
     );
     // Also scroll horizontally to now so the live programme is visible.
     _scrollToNow();
@@ -273,7 +273,7 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
     _horizontalScroll.animateTo(
       offset,
       duration: CrispyAnimation.normal,
-      curve: Curves.easeOut,
+      curve: CrispyAnimation.scrollCurve,
     );
   }
 

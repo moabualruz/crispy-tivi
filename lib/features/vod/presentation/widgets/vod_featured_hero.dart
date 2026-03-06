@@ -9,7 +9,9 @@ import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 import '../../../../core/widgets/smart_image.dart';
+import '../../../../core/widgets/vignette_gradient.dart';
 import '../../domain/entities/vod_item.dart';
 
 // FE-VODS-04: Hero banner auto-cycle with trailer.
@@ -136,7 +138,10 @@ class _VodFeaturedHeroState extends ConsumerState<VodFeaturedHero> {
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final w = MediaQuery.sizeOf(context).width;
-    final heroH = w >= 840 ? 480.0 : (w >= 600 ? 380.0 : 280.0);
+    final heroH =
+        w >= Breakpoints.expanded
+            ? 480.0
+            : (w >= Breakpoints.medium ? 380.0 : 280.0);
     final item = items[_current];
 
     return MouseRegion(
@@ -193,21 +198,7 @@ class _VodFeaturedHeroState extends ConsumerState<VodFeaturedHero> {
                       ),
 
                     // Bottom gradient scrim for text legibility.
-                    Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            stops: const [0.4, 1.0],
-                            colors: [
-                              Colors.transparent,
-                              cs.surface.withValues(alpha: 0.92),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                    Positioned.fill(child: VignetteGradient.surfaceScrim()),
 
                     // Title + metadata overlay at the bottom.
                     Positioned(

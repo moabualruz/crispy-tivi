@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/network/http_service.dart';
+import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/async_filled_button.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
@@ -158,7 +159,7 @@ class _M3uAddDialogState extends ConsumerState<_M3uAddDialog> {
           children: [
             M3uFormFields(nameCtrl: _nameCtrl, urlCtrl: _urlCtrl),
             if (_error != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: CrispySpacing.sm),
               Text(
                 _error!,
                 style: TextStyle(
@@ -327,7 +328,7 @@ class _XtreamAddDialogState extends ConsumerState<_XtreamAddDialog> {
               passCtrl: _passCtrl,
             ),
             if (_error != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: CrispySpacing.sm),
               Text(
                 _error!,
                 style: TextStyle(

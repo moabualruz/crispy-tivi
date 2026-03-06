@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/theme/crispy_typography.dart';
 import '../../../../core/utils/timezone_utils.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
@@ -204,7 +205,7 @@ class EpgSearchDelegate extends SearchDelegate<void> {
                         child: const Text(
                           'LIVE',
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: CrispyTypography.micro,
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
@@ -217,7 +218,9 @@ class EpgSearchDelegate extends SearchDelegate<void> {
                         alignment: Alignment.center,
                         child: Text(
                           _formatTime(match.program.startTime),
-                          style: const TextStyle(fontSize: 10),
+                          style: const TextStyle(
+                            fontSize: CrispyTypography.micro,
+                          ),
                         ),
                       ),
               title: Text(match.program.title),

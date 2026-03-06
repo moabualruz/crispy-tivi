@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/theme/crispy_spacing.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import 'source_add_dialogs.dart' show sourceDialogActions;
@@ -162,7 +163,7 @@ class _StalkerAddDialogState extends ConsumerState<_StalkerAddDialog> {
               macCtrl: _macCtrl,
             ),
             if (_error != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: CrispySpacing.sm),
               Text(
                 _error!,
                 style: TextStyle(

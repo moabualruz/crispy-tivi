@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:crispy_tivi/core/theme/crispy_typography.dart';
 import 'package:crispy_tivi/core/utils/timezone_utils.dart';
 import 'package:crispy_tivi/features/epg/presentation/providers/epg_providers.dart';
 
@@ -68,7 +69,7 @@ class TimeHeaderPainter extends CustomPainter {
         text: timeStr,
         style: textStyle.copyWith(
           color: textColor,
-          fontSize: 10,
+          fontSize: CrispyTypography.micro,
           fontWeight: FontWeight.w500,
         ),
       );

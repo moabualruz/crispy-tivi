@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../theme/crispy_colors.dart';
 import '../theme/crispy_spacing.dart';
+import 'vignette_gradient.dart';
 
 /// A cinematic [SliverAppBar] with a hero-animated backdrop image,
 /// a Netflix-style bottom vignette gradient, and a positioned
@@ -56,7 +57,7 @@ class CinematicHeroBanner extends StatelessWidget {
         child: Container(
           color: Colors.black54,
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back, color: CrispyColors.textHigh),
             tooltip: 'Back',
             onPressed: () => context.pop(),
           ),
@@ -71,22 +72,7 @@ class CinematicHeroBanner extends StatelessWidget {
             Hero(tag: heroTag, child: image),
 
             // Netflix-style bottom vignette
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.transparent,
-                    CrispyColors.vignetteStart,
-                    CrispyColors.vignetteEnd,
-                    Colors.black,
-                  ],
-                  stops: [0.0, 0.3, 0.6, 0.85, 1.0],
-                ),
-              ),
-            ),
+            const VignetteGradient(),
 
             // Title / metadata overlay (bottom-left)
             Positioned(

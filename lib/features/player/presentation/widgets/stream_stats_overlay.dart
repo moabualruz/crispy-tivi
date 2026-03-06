@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/theme/crispy_typography.dart';
 import '../providers/player_providers.dart';
 
 /// "Nerd Stats" overlay showing real-time stream
@@ -162,7 +163,7 @@ class _StreamStatsOverlayState extends ConsumerState<StreamStatsOverlay> {
                         e.key,
                         style: textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurface.withValues(alpha: 0.67),
-                          fontSize: 10,
+                          fontSize: CrispyTypography.micro,
                           fontFamily: 'monospace',
                         ),
                       ),
@@ -172,7 +173,7 @@ class _StreamStatsOverlayState extends ConsumerState<StreamStatsOverlay> {
                         e.value,
                         style: textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurface,
-                          fontSize: 10,
+                          fontSize: CrispyTypography.micro,
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.w600,
                         ),

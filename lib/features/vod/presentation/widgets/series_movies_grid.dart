@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/theme/crispy_typography.dart';
 import '../../../../core/widgets/content_badge.dart';
 import '../../../../core/widgets/context_menu_builders.dart';
 import '../../../../core/widgets/context_menu_panel.dart';
@@ -121,7 +122,7 @@ class _UnwatchedCountOverlay extends StatelessWidget {
           style: textTheme.labelSmall?.copyWith(
             color: cs.onSecondaryContainer,
             fontWeight: FontWeight.w700,
-            fontSize: 10,
+            fontSize: CrispyTypography.micro,
           ),
         ),
       ),

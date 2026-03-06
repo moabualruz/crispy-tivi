@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
 import '../../domain/entities/vod_item.dart';
 
@@ -36,7 +37,10 @@ class SeriesFeaturedBanner extends StatelessWidget {
     if (featured.isEmpty) return const SizedBox.shrink();
 
     final w = MediaQuery.sizeOf(context).width;
-    final cardW = w >= 840 ? 260.0 : (w >= 600 ? 220.0 : 180.0);
+    final cardW =
+        w >= Breakpoints.expanded
+            ? 260.0
+            : (w >= Breakpoints.medium ? 220.0 : 180.0);
     final cardH = cardW * 1.5;
     final hoverScale = CrispyAnimation.hoverScale;
     final hoverPadding = (cardH * hoverScale) - cardH;

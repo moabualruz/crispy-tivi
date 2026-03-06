@@ -69,7 +69,7 @@ class ChannelNumberJumpOverlay extends StatelessWidget {
               Text(
                 digits,
                 style: tt.displayLarge?.copyWith(
-                  color: Colors.white,
+                  color: CrispyColors.textHigh,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 8,
                 ),

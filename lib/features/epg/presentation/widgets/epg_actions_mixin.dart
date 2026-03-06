@@ -383,7 +383,7 @@ mixin EpgActionsMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       epgGridScroll.animateTo(
         idx * 60.0,
         duration: CrispyAnimation.normal,
-        curve: Curves.easeOut,
+        curve: CrispyAnimation.scrollCurve,
       );
     }
   }
@@ -403,7 +403,7 @@ mixin EpgActionsMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     hScroll.animateTo(
       offset,
       duration: CrispyAnimation.normal,
-      curve: Curves.easeOut,
+      curve: CrispyAnimation.scrollCurve,
     );
   }
 

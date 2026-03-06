@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/crispy_animation.dart';
+import '../theme/crispy_colors.dart';
 import '../theme/crispy_spacing.dart';
 import 'glass_surface.dart';
 
@@ -97,13 +98,16 @@ class _SidePanelState extends State<SidePanel>
                         Text(
                           widget.title,
                           style: theme.textTheme.headlineSmall?.copyWith(
-                            color: Colors.white,
+                            color: CrispyColors.textHigh,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const Spacer(),
                         IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white),
+                          icon: const Icon(
+                            Icons.close,
+                            color: CrispyColors.textHigh,
+                          ),
                           tooltip: 'Close panel',
                           onPressed: _close,
                         ),
