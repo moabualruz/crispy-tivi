@@ -304,6 +304,26 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
     state = AsyncData(current.copyWith(sources: upd));
   }
 
+  /// Reorders sources by moving the item at [oldIndex] to [newIndex].
+  ///
+  /// Follows the [ReorderableListView] convention where [newIndex]
+  /// is the position *before* the removed item is inserted, so when
+  /// moving an item downward the index is decremented by one.
+  Future<void> reorderSources(int oldIndex, int newIndex) async {
+    final current = state.value;
+    if (current == null) return;
+    final sources = [...current.sources];
+    if (oldIndex < 0 || oldIndex >= sources.length) return;
+    // ReorderableListView convention: adjust newIndex when moving down.
+    final adjustedNew = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    if (adjustedNew < 0 || adjustedNew >= sources.length) return;
+    final item = sources.removeAt(oldIndex);
+    sources.insert(adjustedNew, item);
+    final ids = sources.map((s) => s.id).toList();
+    await _cache.reorderSources(ids);
+    state = AsyncData(current.copyWith(sources: sources));
+  }
+
   /// Replaces a source by ID with updated fields.
   Future<void> updateSource(PlaylistSource updated) async {
     final current = state.value;

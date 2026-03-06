@@ -3,69 +3,116 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
-import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
+import '../../../../core/domain/entities/playlist_source_type_ext.dart';
+import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
 import 'settings_shared_widgets.dart';
 
-/// Tile showing a saved playlist source with delete
-/// action.
+/// Tile showing a saved playlist source with type icon,
+/// type-aware subtitle, optional drag handle, and delete.
 class SourceTile extends StatelessWidget {
-  const SourceTile({super.key, required this.source, required this.onDelete});
+  const SourceTile({
+    super.key,
+    required this.source,
+    required this.onDelete,
+    this.index = 0,
+    this.showDragHandle = false,
+  });
 
   final PlaylistSource source;
   final VoidCallback onDelete;
 
+  /// Position of this tile in the list, required when
+  /// [showDragHandle] is `true` for [ReorderableDragStartListener].
+  final int index;
+
+  /// When `true`, a drag handle is shown on the leading edge so the
+  /// parent [ReorderableListView] can reorder items.
+  final bool showDragHandle;
+
+  /// Builds the type-aware subtitle string.
+  String _subtitle() {
+    final label = source.type.serverLabel;
+    switch (source.type) {
+      case PlaylistSourceType.xtream:
+        return '$label \u2022 ${source.url} \u2022 ${source.username ?? ''}';
+      case PlaylistSourceType.stalkerPortal:
+        return '$label \u2022 ${source.url} \u2022 ${source.macAddress ?? ''}';
+      case PlaylistSourceType.m3u:
+        return '$label \u2022 ${source.url}';
+      case PlaylistSourceType.jellyfin:
+      case PlaylistSourceType.emby:
+      case PlaylistSourceType.plex:
+        return '$label \u2022 ${source.url}';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(
-        source.type == PlaylistSourceType.xtream
-            ? Icons.api
-            : source.type == PlaylistSourceType.stalkerPortal
-            ? Icons.router
-            : Icons.playlist_play,
-      ),
-      title: Text(source.name),
-      subtitle: Text(
-        source.type == PlaylistSourceType.xtream
-            ? '${source.url} \u2022 ${source.username}'
-            : source.type == PlaylistSourceType.stalkerPortal
-            ? '${source.url} \u2022 ${source.macAddress}'
-            : source.url,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: IconButton(
-        icon: const Icon(Icons.delete_outline),
-        tooltip: 'Delete source',
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder:
-                (ctx) => AlertDialog(
-                  title: const Text('Remove Source'),
-                  content: Text('Remove "${source.name}"?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () {
-                        onDelete();
-                        Navigator.pop(ctx);
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                      child: const Text('Remove'),
-                    ),
-                  ],
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final dragHandle =
+        showDragHandle
+            ? ReorderableDragStartListener(
+              index: index,
+              child: Padding(
+                padding: const EdgeInsets.only(right: CrispySpacing.sm),
+                child: Icon(
+                  Icons.drag_handle,
+                  color: colorScheme.onSurfaceVariant,
                 ),
-          );
-        },
-      ),
+              ),
+            )
+            : null;
+
+    final deleteButton = IconButton(
+      icon: const Icon(Icons.delete_outline),
+      tooltip: 'Delete source',
+      onPressed: () {
+        showDialog(
+          context: context,
+          builder:
+              (ctx) => AlertDialog(
+                title: const Text('Remove Source'),
+                content: Text('Remove "${source.name}"?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      onDelete();
+                      Navigator.pop(ctx);
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: colorScheme.error,
+                    ),
+                    child: const Text('Remove'),
+                  ),
+                ],
+              ),
+        );
+      },
+    );
+
+    return Row(
+      children: [
+        if (dragHandle != null) dragHandle,
+        Expanded(
+          child: ListTile(
+            leading: Icon(source.type.icon),
+            title: Text(source.name),
+            subtitle: Text(
+              _subtitle(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: deleteButton,
+          ),
+        ),
+      ],
     );
   }
 }

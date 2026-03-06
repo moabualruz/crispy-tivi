@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../config/settings_notifier.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../vod/domain/entities/vod_item.dart';
+import '../../data/stream_url_resolver.dart';
 import '../../domain/entities/playback_session_params.dart';
 import 'player_providers.dart';
 
@@ -174,13 +177,29 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
     if (_isPending) return;
     _isPending = true;
     try {
+      // Resolve synthetic media server URLs (plex://, emby://, jellyfin://)
+      // to real HTTP(S) playback URLs before passing to PlayerService.
+      // Falls back to the original URL if resolution fails.
+      String effectiveUrl = streamUrl;
+      Map<String, String>? effectiveHeaders = headers;
+      try {
+        final sources = ref.read(settingsNotifierProvider).value?.sources ?? [];
+        final resolved = await StreamUrlResolver(sources).resolve(streamUrl);
+        if (resolved != null) {
+          effectiveUrl = resolved.url;
+          effectiveHeaders = {...?headers, ...?resolved.headers};
+        }
+      } catch (e) {
+        debugPrint('StreamUrlResolver: failed to resolve $streamUrl: $e');
+      }
+
       state = PlaybackSessionState(
-        streamUrl: streamUrl,
+        streamUrl: effectiveUrl,
         isLive: isLive,
         channelName: channelName,
         channelLogoUrl: channelLogoUrl,
         currentProgram: currentProgram,
-        headers: headers,
+        headers: effectiveHeaders,
         channelList: channelList,
         channelIndex: channelIndex,
         startPosition: startPosition,
@@ -196,12 +215,12 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
       await ref
           .read(playerServiceProvider)
           .play(
-            streamUrl,
+            effectiveUrl,
             isLive: isLive,
             channelName: channelName,
             channelLogoUrl: channelLogoUrl,
             currentProgram: currentProgram,
-            headers: headers,
+            headers: effectiveHeaders,
           );
 
       // PS-17: Restore last-used playback speed for VOD.

@@ -81,30 +81,30 @@ const List<_SettingsItem> _kSettingsItems = [
     icon: Icons.content_copy_outlined,
   ),
 
-  // Media Servers
+  // Media Servers (unified into Sources)
   _SettingsItem(
-    section: SettingsSection.mediaServers,
+    section: SettingsSection.sources,
     label: 'Media servers',
     subtitle: 'Connect Jellyfin, Emby, or Plex',
     icon: Icons.dns_outlined,
   ),
   _SettingsItem(
-    section: SettingsSection.mediaServers,
-    label: 'Jellyfin',
+    section: SettingsSection.sources,
+    label: 'Add Jellyfin server',
     subtitle: 'Configure Jellyfin server connection',
     icon: Icons.dns_outlined,
   ),
   _SettingsItem(
-    section: SettingsSection.mediaServers,
-    label: 'Emby',
+    section: SettingsSection.sources,
+    label: 'Add Emby server',
     subtitle: 'Configure Emby server connection',
-    icon: Icons.dns_outlined,
+    icon: Icons.cast_connected_rounded,
   ),
   _SettingsItem(
-    section: SettingsSection.mediaServers,
-    label: 'Plex',
+    section: SettingsSection.sources,
+    label: 'Add Plex server',
     subtitle: 'Configure Plex server connection',
-    icon: Icons.dns_outlined,
+    icon: Icons.play_circle_outline_rounded,
   ),
 
   // DVR

@@ -20,7 +20,6 @@ import '../widgets/device_settings.dart';
 import '../widgets/dvr_settings.dart';
 import '../widgets/experimental_settings.dart';
 import '../widgets/history_settings.dart';
-import '../widgets/media_server_settings.dart';
 import '../widgets/bandwidth_settings.dart';
 import '../widgets/notification_settings.dart';
 import '../widgets/parental_settings.dart';
@@ -134,7 +133,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         return _SettingsTab.general.index;
 
       case SettingsSection.sources:
-      case SettingsSection.mediaServers:
       case SettingsSection.epgUrls:
       case SettingsSection.userAgent:
         return _SettingsTab.sources.index;
@@ -318,14 +316,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           key: _sectionKeys[SettingsSection.sources],
           child: SourcesSettingsSection(settings: settings),
         ),
-        const SizedBox(height: CrispySpacing.lg),
-
-        // ── Media Servers ──
-        SizedBox(
-          key: _sectionKeys[SettingsSection.mediaServers],
-          child: const MediaServerSettingsSection(),
-        ),
-
         // ── EPG URLs ──
         if (settings.sources.isNotEmpty) ...[
           const SizedBox(height: CrispySpacing.lg),
@@ -532,7 +522,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
 enum SettingsSection {
   profiles,
   sources,
-  mediaServers,
   dvr,
   sync,
   appearance,

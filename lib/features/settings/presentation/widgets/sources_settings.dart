@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
 import 'duplicate_channels_tile.dart';
@@ -20,8 +23,8 @@ export 'source_extra_sections.dart'
         EpgUrlSettingsSection;
 
 /// Sources settings section: add/remove playlists,
-/// Xtream, Stalker, EPG, duplicates, user agent,
-/// and hidden categories.
+/// Xtream, Stalker, EPG, media servers, duplicates,
+/// user agent, and hidden categories.
 class SourcesSettingsSection extends ConsumerStatefulWidget {
   const SourcesSettingsSection({super.key, required this.settings});
 
@@ -107,29 +110,102 @@ class _SourcesSettingsSectionState
                     isMounted: () => mounted,
                   ),
             ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.play_circle_outline_rounded),
+              title: const Text('Add Plex Server'),
+              subtitle: const Text('Connect to your Plex Media Server'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(AppRoutes.plexLogin),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.cast_connected_rounded),
+              title: const Text('Add Emby Server'),
+              subtitle: const Text('Connect to your Emby server'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(AppRoutes.embyLogin),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.dns_rounded),
+              title: const Text('Add Jellyfin Server'),
+              subtitle: const Text('Connect to your Jellyfin server'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(AppRoutes.jellyfinLogin),
+            ),
           ],
         ),
-        // -- Saved sources list --
+        // -- Saved sources list (reorderable) --
         if (settings.sources.isNotEmpty) ...[
           const SizedBox(height: CrispySpacing.sm),
           SettingsCard(
+            // SettingsCard wraps children in a Column. We use a
+            // ReorderableListView here, so we wrap in a SizedBox with a
+            // computed height: each SourceTile is ~72 dp, clamped to 360 dp.
             children: [
-              for (var i = 0; i < settings.sources.length; i++) ...[
-                if (i > 0) const Divider(height: 1),
-                SourceTile(
-                  source: settings.sources[i],
-                  onDelete:
-                      () => ref
-                          .read(settingsNotifierProvider.notifier)
-                          .removeSource(settings.sources[i].id),
+              SizedBox(
+                height: (settings.sources.length * 72.0).clamp(0.0, 360.0),
+                child: ReorderableListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: settings.sources.length,
+                  onReorder: (oldIndex, newIndex) {
+                    if (newIndex > oldIndex) newIndex--;
+                    ref
+                        .read(settingsNotifierProvider.notifier)
+                        .reorderSources(oldIndex, newIndex);
+                  },
+                  proxyDecorator: _proxyDecorator,
+                  itemBuilder: (context, i) {
+                    final source = settings.sources[i];
+                    return KeyedSubtree(
+                      key: ValueKey(source.id),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (i > 0) const Divider(height: 1),
+                          SourceTile(
+                            source: source,
+                            index: i,
+                            showDragHandle: true,
+                            onDelete:
+                                () => ref
+                                    .read(settingsNotifierProvider.notifier)
+                                    .removeSource(source.id),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-              ],
+              ),
             ],
           ),
         ],
         // S-11: Extracted to DuplicateChannelsTile.
         const DuplicateChannelsTile(),
       ],
+    );
+  }
+
+  Widget _proxyDecorator(Widget child, int index, Animation<double> animation) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final scale = Tween<double>(begin: 1.0, end: 1.05).animate(
+          CurvedAnimation(parent: animation, curve: CrispyAnimation.focusCurve),
+        );
+        return Transform.scale(
+          scale: scale.value,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.zero,
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }
