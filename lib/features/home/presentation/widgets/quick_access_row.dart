@@ -22,7 +22,7 @@ const double _kBadgePaddingV = CrispySpacing.xxs;
 
 /// Horizontal row of quick-access tiles linking to
 /// features that are not primary nav destinations:
-/// Media Servers, DVR, Multiview, and Cloud Storage.
+/// DVR, Multiview, Cloud Storage, and Search.
 class QuickAccessRow extends StatelessWidget {
   /// Creates the quick-access row.
   const QuickAccessRow({super.key});
@@ -65,16 +65,10 @@ class QuickAccessRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),
             children: [
               _QuickAccessTile(
-                icon: Icons.dns_outlined,
-                label: 'Media\nServers',
-                autofocus: true,
-                onTap: () => context.push(AppRoutes.mediaServers),
-              ),
-              const SizedBox(width: CrispySpacing.sm),
-              _QuickAccessTile(
                 icon: Icons.grid_view_rounded,
                 label: 'Multi\nView',
                 badge: 'Beta',
+                autofocus: true,
                 onTap: () => context.push(AppRoutes.multiview),
               ),
               const SizedBox(width: CrispySpacing.sm),

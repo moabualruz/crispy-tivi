@@ -179,59 +179,6 @@ List<ContextMenuSection> buildCategoryContextMenu({
   ];
 }
 
-/// Builds context menu sections for a media server library item.
-///
-/// Used in Plex, Emby, and Jellyfin library grids on long-press.
-/// Actions: Play, Add to Queue, Mark as Watched/Unwatched, Favorite,
-/// View Details.  Optional callbacks are omitted when null.
-List<ContextMenuSection> buildMediaServerItemContextMenu({
-  required String itemName,
-  required ColorScheme colorScheme,
-  required VoidCallback onPlay,
-  required VoidCallback onViewDetails,
-  bool isWatched = false,
-  bool isFavorite = false,
-  VoidCallback? onAddToQueue,
-  VoidCallback? onToggleWatched,
-  VoidCallback? onToggleFavorite,
-}) {
-  return [
-    ContextMenuSection(
-      header: itemName,
-      headerColor: colorScheme.primary,
-      items: [
-        ContextMenuItem(icon: Icons.play_arrow, label: 'Play', onTap: onPlay),
-        if (onAddToQueue != null)
-          ContextMenuItem(
-            icon: Icons.queue,
-            label: 'Add to Queue',
-            onTap: onAddToQueue,
-          ),
-        if (onToggleWatched != null)
-          ContextMenuItem(
-            icon:
-                isWatched
-                    ? Icons.visibility_off_outlined
-                    : Icons.check_circle_outline,
-            label: isWatched ? 'Mark as Unwatched' : 'Mark as Watched',
-            onTap: onToggleWatched,
-          ),
-        if (onToggleFavorite != null)
-          ContextMenuItem(
-            icon: isFavorite ? Icons.star : Icons.star_outline,
-            label: isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
-            onTap: onToggleFavorite,
-          ),
-        ContextMenuItem(
-          icon: Icons.info_outline,
-          label: 'View Details',
-          onTap: onViewDetails,
-        ),
-      ],
-    ),
-  ];
-}
-
 /// Builds context menu for a series Episode.
 List<ContextMenuSection> buildEpisodeContextMenu({
   required String episodeName,

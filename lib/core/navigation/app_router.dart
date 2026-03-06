@@ -16,17 +16,8 @@ import '../../features/favorites/presentation/screens/history_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/vod/presentation/screens/series_browser_screen.dart';
 import '../../features/iptv/presentation/screens/channel_list_screen.dart';
-import '../../features/media_servers/shared/presentation/screens/media_server_browser_screen.dart';
-import '../../features/media_servers/jellyfin/presentation/screens/jellyfin_home_screen.dart';
-import '../../features/media_servers/jellyfin/presentation/screens/jellyfin_library_screen.dart';
 import '../../features/media_servers/jellyfin/presentation/screens/jellyfin_login_screen.dart';
-import '../../features/media_servers/jellyfin/presentation/screens/jellyfin_series_screen.dart';
-import '../../features/media_servers/emby/presentation/screens/emby_home_screen.dart';
-import '../../features/media_servers/emby/presentation/screens/emby_library_screen.dart';
 import '../../features/media_servers/emby/presentation/screens/emby_login_screen.dart';
-import '../../features/media_servers/emby/presentation/screens/emby_series_screen.dart';
-import '../../features/media_servers/plex/presentation/screens/plex_home_screen.dart';
-import '../../features/media_servers/plex/presentation/screens/plex_library_screen.dart';
 import '../../features/media_servers/plex/presentation/screens/plex_login_screen.dart';
 import '../../features/multiview/presentation/screens/multi_view_screen.dart';
 import '../../features/profiles/presentation/screens/profile_management_screen.dart';
@@ -37,9 +28,6 @@ import '../../features/vod/domain/entities/vod_item.dart';
 import '../../features/vod/presentation/screens/series_detail_screen.dart';
 import '../../features/vod/presentation/screens/vod_browser_screen.dart';
 import '../../features/vod/presentation/screens/vod_details_screen.dart';
-import '../../features/media_servers/shared/presentation/screens/media_item_details_screen.dart';
-import '../domain/entities/media_item.dart';
-import '../domain/media_source.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/player/presentation/providers/player_providers.dart';
 import 'app_shell.dart';
@@ -79,40 +67,6 @@ class _FallbackScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-// ── Media-server route builder helpers (AS-13) ───────────────────────────────
-//
-// Jellyfin and Emby share the same three-route pattern:
-//   - /server/login  → LoginScreen
-//   - /server/home   → HomeScreen
-//   - /server/library/:parentId → LibraryScreen(parentId, title)
-//
-// The widget types differ per server so a generic parameterization
-// would require a factory abstraction with more complexity than the
-// duplication itself. Instead the shared pattern is documented here
-// and the library-route builder is extracted as a typed helper below.
-// Plex has extra sub-routes (/children/:itemId) and a different ID
-// parameter name, so it stays separate.
-
-/// Builds a `/server/library/:parentId` [GoRoute] with a title query parameter.
-///
-/// [path] — the full route path (e.g., `/jellyfin/library/:parentId`).
-/// [paramName] — the path parameter name (`parentId` or `libraryId`).
-/// [builder] — factory that constructs the screen from id and title.
-GoRoute _buildLibraryRoute(
-  String path, {
-  required String paramName,
-  required Widget Function(String id, String title) builder,
-}) {
-  return GoRoute(
-    path: path,
-    builder: (context, state) {
-      final id = state.pathParameters[paramName] ?? '';
-      final title = state.uri.queryParameters['title'] ?? 'Library';
-      return builder(id, title);
-    },
-  );
 }
 
 /// Builds an adaptive page based on screen layout class.
@@ -308,54 +262,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           // These routes keep the nav rail visible so
           // users can navigate away and the Escape key
           // handler in AppShell stays active (BUG-004).
-          GoRoute(
-            path: AppRoutes.mediaServers,
-            builder: (context, state) => const MediaServerBrowserScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.mediaServerDetails,
-            builder: (context, state) {
-              final extra = state.extra as Map<String, dynamic>?;
-              if (extra == null ||
-                  extra['item'] is! MediaItem ||
-                  extra['serverType'] is! MediaServerType) {
-                return const _FallbackScreen('Media Server Details');
-              }
-              final item = extra['item'] as MediaItem;
-              final serverType = extra['serverType'] as MediaServerType;
-              final heroTag = extra['heroTag'] as String?;
-              final getStreamUrl =
-                  extra['getStreamUrl'] as Future<String> Function(String)?;
-              return MediaItemDetailsScreen(
-                item: item,
-                serverType: serverType,
-                getStreamUrl: getStreamUrl,
-                heroTag: heroTag,
-              );
-            },
-          ),
+
           // ── Jellyfin ──────────────────────────────────────────
           GoRoute(
             path: AppRoutes.jellyfinLogin,
             builder: (context, state) => const JellyfinLoginScreen(),
-          ),
-          GoRoute(
-            path: '/jellyfin/home',
-            builder: (context, state) => const JellyfinHomeScreen(),
-          ),
-          _buildLibraryRoute(
-            '/jellyfin/library/:parentId',
-            paramName: 'parentId',
-            builder:
-                (id, title) =>
-                    JellyfinLibraryScreen(parentId: id, title: title),
-          ),
-          // JF-FE-12: Series navigation (seasons + episodes).
-          _buildLibraryRoute(
-            '${AppRoutes.jellyfinSeriesBase}/:seriesId',
-            paramName: 'seriesId',
-            builder:
-                (id, title) => JellyfinSeriesScreen(seriesId: id, title: title),
           ),
 
           // ── Emby ──────────────────────────────────────────────
@@ -363,50 +274,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.embyLogin,
             builder: (context, state) => const EmbyLoginScreen(),
           ),
-          GoRoute(
-            path: '/emby/home',
-            builder: (context, state) => const EmbyHomeScreen(),
-          ),
-          _buildLibraryRoute(
-            '/emby/library/:parentId',
-            paramName: 'parentId',
-            builder:
-                (id, title) => EmbyLibraryScreen(parentId: id, title: title),
-          ),
-          // EB-FE-11: Series navigation (seasons + episodes).
-          _buildLibraryRoute(
-            '${AppRoutes.embySeriesBase}/:seriesId',
-            paramName: 'seriesId',
-            builder:
-                (id, title) => EmbySeriesScreen(seriesId: id, title: title),
-          ),
 
-          // ── Plex (extra sub-routes: /library/:libraryId and /children/:itemId) ──
+          // ── Plex ──────────────────────────────────────────────
           GoRoute(
             path: AppRoutes.plexLogin,
             builder: (context, state) => const PlexLoginScreen(),
-          ),
-          GoRoute(
-            path: '/plex/home',
-            builder: (context, state) => const PlexHomeScreen(),
-          ),
-          _buildLibraryRoute(
-            '${AppRoutes.plexLibraryBase}/:libraryId',
-            paramName: 'libraryId',
-            builder:
-                (id, title) => PlexLibraryScreen(libraryId: id, title: title),
-          ),
-          GoRoute(
-            path: '${AppRoutes.plexChildrenBase}/:itemId',
-            builder: (context, state) {
-              final itemId = state.pathParameters['itemId'] ?? '';
-              final title = state.uri.queryParameters['title'] ?? 'Browse';
-              return PlexLibraryScreen(
-                libraryId: itemId,
-                title: title,
-                isChildren: true,
-              );
-            },
           ),
           GoRoute(
             path: AppRoutes.seriesDetail,

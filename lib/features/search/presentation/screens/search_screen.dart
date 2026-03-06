@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/domain/entities/media_item.dart';
 import '../../../../core/domain/entities/media_type.dart';
-import '../../../../core/domain/media_source.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
@@ -148,19 +147,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
   }
 
-  // S-08: routing logic extracted to a dedicated navigation helper method
-  // rather than mixed directly into the tap handler.
-  void _navigateToMediaServerFolder(BuildContext ctx, MediaItem item) {
-    final sourceKey = item.metadata['source'] as String? ?? '';
-    if (sourceKey == SearchSourceKey.jellyfin) {
-      ctx.push(AppRoutes.jellyfinLibrary(item.id, title: item.name));
-    } else if (sourceKey == SearchSourceKey.emby) {
-      ctx.push(AppRoutes.embyLibrary(item.id, title: item.name));
-    } else if (sourceKey == SearchSourceKey.plex) {
-      ctx.push(AppRoutes.plexLibrary(item.id, title: item.name));
-    }
-  }
-
   /// FE-SR-09: navigate to the EPG timeline, select the matched
   /// channel and scroll to the programme's airing time slot.
   void _navigateToEpgEntry(MediaItem item) {
@@ -194,7 +180,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       return;
     }
 
-    // 1. IPTV / Local VOD
+    // IPTV / Local VOD — play directly
     if (sourceKey.startsWith(SearchSourceKey.iptv)) {
       ref
           .read(playbackSessionProvider.notifier)
@@ -204,37 +190,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             channelLogoUrl: item.logoUrl,
             isLive: item.type == MediaType.channel,
           );
-      return;
-    }
-
-    // 2. Media Servers — folder navigation
-    if (item.type == MediaType.folder) {
-      _navigateToMediaServerFolder(context, item);
-      return;
-    }
-
-    // 3. Media Server — playable content
-    final source = item.metadata['mediaSource'];
-    if (source is MediaSource) {
-      try {
-        final streamUrl = await source.getStreamUrl(item.id);
-        if (mounted) {
-          ref
-              .read(playbackSessionProvider.notifier)
-              .startPlayback(
-                streamUrl: streamUrl,
-                channelName: item.name,
-                channelLogoUrl: item.logoUrl,
-                isLive: false,
-              );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Failed to play: $e')));
-        }
-      }
     }
   }
 

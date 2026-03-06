@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
-import 'package:crispy_tivi/core/navigation/app_router.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
@@ -77,7 +76,7 @@ class _PlexLoginScreenState extends ConsumerState<PlexLoginScreen> {
   void _onOAuthSuccess(PlaylistSource source) {
     setState(() => _showOAuth = false);
     ref.read(settingsNotifierProvider.notifier).addSource(source);
-    context.go(AppRoutes.plexHome);
+    context.pop();
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text('Connected to ${source.name}')));

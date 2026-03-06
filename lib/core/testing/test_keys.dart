@@ -42,17 +42,7 @@ abstract final class TestKeys {
 
   // Media server screens
   static const mediaServerLoginScreen = ValueKey('media_server_login_screen');
-  static const mediaServerHomeScreen = ValueKey('media_server_home_screen');
-  static const mediaServerBrowserScreen = ValueKey(
-    'media_server_browser_screen',
-  );
-  static const mediaItemDetailsScreen = ValueKey('media_item_details_screen');
-  static const paginatedLibraryScreen = ValueKey('paginated_library_screen');
-  static const plexHomeScreen = ValueKey('plex_home_screen');
-  static const plexUserSwitcherScreen = ValueKey('plex_user_switcher_screen');
   static const plexLoginScreen = ValueKey('plex_login_screen');
-  static const embySeriesScreen = ValueKey('emby_series_screen');
-  static const jellyfinSeriesScreen = ValueKey('jellyfin_series_screen');
   static const jellyfinQuickConnectScreen = ValueKey(
     'jellyfin_quick_connect_screen',
   );

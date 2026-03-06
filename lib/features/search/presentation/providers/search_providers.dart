@@ -5,12 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_animation.dart';
 
 import '../../../../core/data/cache_service.dart';
-import '../../../../core/domain/media_source.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../iptv/presentation/providers/channel_providers.dart';
-import '../../../media_servers/emby/presentation/providers/emby_providers.dart';
-import '../../../media_servers/jellyfin/presentation/providers/jellyfin_providers.dart';
-import '../../../media_servers/plex/presentation/providers/plex_providers.dart';
 import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../data/repositories/search_history_repository_impl.dart';
 import '../../data/repositories/search_repository_impl.dart';
@@ -140,19 +136,8 @@ class SearchNotifier extends Notifier<SearchState> {
   /// [generation] is compared against [_searchGeneration] before writing
   /// state. If a newer search has started, this result is discarded (S-18).
   Future<void> _executeSearch(String query, int generation) async {
-    // Gather active media server connections
-    final sources = <MediaSource>[];
-
-    final jellyfin = ref.read(jellyfinSourceProvider);
-    if (jellyfin != null) sources.add(jellyfin);
-
-    final emby = ref.read(embySourceProvider);
-    if (emby != null) sources.add(emby);
-
-    final plex = ref.read(plexSourceProvider);
-    if (plex != null) sources.add(plex);
-
     // Read local content state
+    const sources = <Never>[];
     final vodItems = ref.read(vodProvider).items;
     final epgEntries = ref.read(epgProvider).entries;
     final channels = ref.read(channelListProvider).channels;
@@ -160,8 +145,7 @@ class SearchNotifier extends Notifier<SearchState> {
     // Track whether we started with no local data — used below to
     // detect the race condition where data loaded while this search
     // was in-flight.
-    final startedWithNoLocalData =
-        vodItems.isEmpty && channels.isEmpty && sources.isEmpty;
+    final startedWithNoLocalData = vodItems.isEmpty && channels.isEmpty;
 
     try {
       final results = await ref
