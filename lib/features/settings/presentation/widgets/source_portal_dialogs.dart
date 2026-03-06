@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
-import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
-import 'source_add_dialogs.dart' show sourceDialogActions, syncSourceAndNotify;
+import 'source_add_dialogs.dart'
+    show SourceDialogErrorText, sourceDialogActions, syncSourceAndNotify;
 import 'source_form_fields.dart';
+import 'source_verify_utils.dart';
 
 /// Shows a dialog to add a Stalker Portal source.
 void showAddStalkerDialog({
@@ -81,25 +82,17 @@ class _StalkerAddDialogState extends ConsumerState<_StalkerAddDialog> {
     });
 
     // Verify portal via Rust backend.
-    try {
-      final backend = widget.parentRef.read(crispyBackendProvider);
-      final ok = await backend.verifyStalkerPortal(
-        baseUrl: url,
-        macAddress: mac,
-      );
-      if (!mounted) return;
-      if (!ok) {
-        setState(() {
-          _isVerifying = false;
-          _error = 'Portal authentication failed. Check URL and MAC.';
-        });
-        return;
-      }
-    } catch (e) {
-      if (!mounted) return;
+    final verifyError = await verifySourceConnectivity(
+      widget.parentRef,
+      PlaylistSourceType.stalkerPortal,
+      url,
+      macAddress: mac,
+    );
+    if (!mounted) return;
+    if (verifyError != null) {
       setState(() {
         _isVerifying = false;
-        _error = 'Connection error: $e';
+        _error = verifyError;
       });
       return;
     }
@@ -145,16 +138,7 @@ class _StalkerAddDialogState extends ConsumerState<_StalkerAddDialog> {
               urlCtrl: _urlCtrl,
               macCtrl: _macCtrl,
             ),
-            if (_error != null) ...[
-              const SizedBox(height: CrispySpacing.sm),
-              Text(
-                _error!,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                  fontSize: 13,
-                ),
-              ),
-            ],
+            SourceDialogErrorText(errorMessage: _error),
           ],
         ),
       ),

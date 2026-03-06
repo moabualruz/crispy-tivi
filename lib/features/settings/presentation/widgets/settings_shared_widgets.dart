@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../config/settings_notifier.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 
@@ -65,6 +67,40 @@ class SettingsBadge extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Shows a confirmation dialog and resets a settings section to defaults.
+///
+/// [title] is the dialog heading (e.g. `'Reset Appearance'`).
+/// [sectionKey] is forwarded to [SettingsNotifier.resetSection]
+/// (e.g. `'appearance'`).
+Future<void> showSettingsResetDialog(
+  BuildContext context,
+  WidgetRef ref,
+  String title,
+  String sectionKey,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder:
+        (ctx) => AlertDialog(
+          title: Text(title),
+          content: const Text('Reset all settings to their factory defaults?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Reset'),
+            ),
+          ],
+        ),
+  );
+  if (confirmed == true && context.mounted) {
+    await ref.read(settingsNotifierProvider.notifier).resetSection(sectionKey);
   }
 }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/date_format_utils.dart';
 import '../../domain/entities/sync_conflict.dart';
 
 /// Dialog for resolving sync conflicts between local and cloud data.
@@ -211,10 +212,7 @@ class SyncConflictDialog extends StatelessWidget {
   String _formatDateTime(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-
-    String timeStr =
-        '${dt.hour.toString().padLeft(2, '0')}:'
-        '${dt.minute.toString().padLeft(2, '0')}';
+    final timeStr = formatHHmm(dt);
 
     if (diff.inDays == 0) {
       return 'Today at $timeStr';

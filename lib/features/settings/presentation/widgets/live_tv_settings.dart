@@ -26,7 +26,13 @@ class LiveTvSettingsSection extends ConsumerWidget {
           trailing: IconButton(
             icon: const Icon(Icons.restore, size: 20),
             tooltip: 'Reset to defaults',
-            onPressed: () => _confirmReset(context, ref),
+            onPressed:
+                () => showSettingsResetDialog(
+                  context,
+                  ref,
+                  'Reset Live TV Settings',
+                  'liveTV',
+                ),
           ),
         ),
         const SizedBox(height: CrispySpacing.sm),
@@ -67,33 +73,6 @@ class LiveTvSettingsSection extends ConsumerWidget {
       case 'home':
       default:
         return 'Home';
-    }
-  }
-
-  Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Reset Live TV Settings'),
-            content: const Text(
-              'Reset all Live TV settings to their '
-              'factory defaults?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Reset'),
-              ),
-            ],
-          ),
-    );
-    if (confirmed == true && context.mounted) {
-      await ref.read(settingsNotifierProvider.notifier).resetSection('liveTV');
     }
   }
 

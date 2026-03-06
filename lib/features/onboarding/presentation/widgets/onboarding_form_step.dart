@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
-import '../../../../core/network/http_service.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/async_filled_button.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../settings/presentation/widgets/source_form_fields.dart';
+import '../../../settings/presentation/widgets/source_verify_utils.dart';
 import '../providers/onboarding_notifier.dart';
 
 /// Third step of the onboarding wizard — source configuration form.
@@ -131,35 +130,17 @@ class _OnboardingFormStepState extends ConsumerState<OnboardingFormStep> {
     final pass = _passCtrl.text.trim();
 
     // Verify server connectivity before saving.
-    String? verifyError;
-
-    try {
-      final backend = ref.read(crispyBackendProvider);
-      switch (sourceType) {
-        case PlaylistSourceType.xtream:
-          final ok = await backend.verifyXtreamCredentials(
-            baseUrl: url,
-            username: user,
-            password: pass,
-          );
-          if (!ok) verifyError = 'Authentication failed. Check credentials.';
-        case PlaylistSourceType.m3u:
-          final http = ref.read(httpServiceProvider);
-          verifyError = await HttpService.verifyM3uUrl(http: http, url: url);
-        case PlaylistSourceType.stalkerPortal:
-          final ok = await backend.verifyStalkerPortal(
-            baseUrl: url,
-            macAddress: _macCtrl.text.trim().toUpperCase(),
-          );
-          if (!ok) {
-            verifyError = 'Portal authentication failed. Check URL and MAC.';
-          }
-        default:
-          break;
-      }
-    } catch (e) {
-      verifyError = 'Connection error: $e';
-    }
+    final verifyError = await verifySourceConnectivity(
+      ref,
+      sourceType,
+      url,
+      username: user,
+      password: pass,
+      macAddress:
+          sourceType == PlaylistSourceType.stalkerPortal
+              ? _macCtrl.text.trim().toUpperCase()
+              : null,
+    );
 
     if (!mounted) return;
     if (verifyError != null) {

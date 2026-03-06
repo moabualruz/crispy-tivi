@@ -31,7 +31,13 @@ class NotificationSettingsSection extends ConsumerWidget {
           trailing: IconButton(
             icon: const Icon(Icons.restore, size: 20),
             tooltip: 'Reset to defaults',
-            onPressed: () => _confirmReset(context, ref),
+            onPressed:
+                () => showSettingsResetDialog(
+                  context,
+                  ref,
+                  'Reset Notifications',
+                  'notifications',
+                ),
           ),
         ),
         const SizedBox(height: CrispySpacing.sm),
@@ -130,34 +136,5 @@ class NotificationSettingsSection extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Reset Notifications'),
-            content: const Text(
-              'Reset all notification settings to their '
-              'factory defaults?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Reset'),
-              ),
-            ],
-          ),
-    );
-    if (confirmed == true && context.mounted) {
-      await ref
-          .read(settingsNotifierProvider.notifier)
-          .resetSection('notifications');
-    }
   }
 }

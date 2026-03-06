@@ -1,3 +1,6 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/domain/media_source.dart';
 
@@ -16,6 +19,30 @@ const String kDefaultDeviceId = 'crispy_tivi_web';
 String embyAuthHeader(String? deviceId) =>
     'MediaBrowser Client="CrispyTivi", Device="CrispyTivi Web", '
     'DeviceId="${deviceId ?? kDefaultDeviceId}", Version="0.1.0"';
+
+/// Normalizes a raw server URL using the Rust backend and returns the result.
+///
+/// Returns the normalized URL string, or the empty string if [rawUrl] is blank
+/// or not yet a valid URL (normalization errors are silently swallowed so the
+/// caller can safely call this on every keystroke).
+///
+/// Typical usage from a `_onUrlChanged` callback in a media-server login
+/// screen state:
+/// ```dart
+/// void _onUrlChanged(String rawUrl) {
+///   final normalized = normalizeMediaServerUrl(ref, rawUrl);
+///   if (normalized != _resolvedUrl) setState(() => _resolvedUrl = normalized);
+/// }
+/// ```
+String normalizeMediaServerUrl(WidgetRef ref, String rawUrl) {
+  final trimmed = rawUrl.trim();
+  if (trimmed.isEmpty) return '';
+  try {
+    return ref.read(crispyBackendProvider).normalizeServerUrl(trimmed);
+  } catch (_) {
+    return '';
+  }
+}
 
 /// Maps [PlaylistSourceType] to the corresponding [MediaServerType].
 ///

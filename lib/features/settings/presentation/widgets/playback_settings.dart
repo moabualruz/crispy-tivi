@@ -15,7 +15,7 @@ import 'playback_hwdec_dialog.dart';
 import 'playback_selection_dialogs.dart';
 import '../../../../core/widgets/section_header.dart';
 import 'settings_shared_widgets.dart'
-    show SettingsBadge, SettingsCard, kSettingsIndent;
+    show SettingsBadge, SettingsCard, kSettingsIndent, showSettingsResetDialog;
 
 /// Playback settings section: hardware decoder, aspect
 /// ratio, stream quality, recording quality, AFR, PiP,
@@ -51,7 +51,13 @@ class PlaybackSettingsSection extends ConsumerWidget {
           trailing: IconButton(
             icon: const Icon(Icons.restore, size: 20),
             tooltip: 'Reset to defaults',
-            onPressed: () => _confirmReset(context, ref),
+            onPressed:
+                () => showSettingsResetDialog(
+                  context,
+                  ref,
+                  'Reset Playback Settings',
+                  'playback',
+                ),
           ),
         ),
         const SizedBox(height: CrispySpacing.sm),
@@ -279,37 +285,6 @@ class PlaybackSettingsSection extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  // ── Reset ────────────────────────────────────
-
-  Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Reset Playback Settings'),
-            content: const Text(
-              'Reset all playback settings to their '
-              'factory defaults?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Reset'),
-              ),
-            ],
-          ),
-    );
-    if (confirmed == true && context.mounted) {
-      await ref
-          .read(settingsNotifierProvider.notifier)
-          .resetSection('playback');
-    }
   }
 
   // ── Labels ───────────────────────────────────

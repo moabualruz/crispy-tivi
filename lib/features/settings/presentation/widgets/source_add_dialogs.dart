@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
-import '../../../../core/data/cache_service.dart';
-import '../../../../core/network/http_service.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/async_filled_button.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import 'source_form_fields.dart';
+import 'source_verify_utils.dart';
 
 /// Triggers a channel sync for [source] and shows snackbar feedback.
 ///
@@ -70,6 +69,40 @@ List<Widget> sourceDialogActions({
   ),
 ];
 
+/// Inline error message widget for source-add dialogs.
+///
+/// Renders [errorMessage] in [ColorScheme.error] colour when non-null,
+/// preceded by a small vertical gap. Returns an empty widget when null.
+///
+/// Use inside a [Column] where `_error` state is tracked:
+/// ```dart
+/// SourceDialogErrorText(errorMessage: _error),
+/// ```
+class SourceDialogErrorText extends StatelessWidget {
+  const SourceDialogErrorText({super.key, required this.errorMessage});
+
+  final String? errorMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    if (errorMessage == null) return const SizedBox.shrink();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: CrispySpacing.sm),
+        Text(
+          errorMessage!,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.error,
+            fontSize: 13,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Shows a dialog to add an M3U playlist source.
 void showAddM3uDialog({
   required BuildContext context,
@@ -130,9 +163,10 @@ class _M3uAddDialogState extends ConsumerState<_M3uAddDialog> {
     });
 
     // Verify URL is reachable before saving.
-    final verifyError = await HttpService.verifyM3uUrl(
-      http: widget.parentRef.read(httpServiceProvider),
-      url: url,
+    final verifyError = await verifySourceConnectivity(
+      widget.parentRef,
+      PlaylistSourceType.m3u,
+      url,
     );
     if (!mounted) return;
     if (verifyError != null) {
@@ -177,16 +211,7 @@ class _M3uAddDialogState extends ConsumerState<_M3uAddDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             M3uFormFields(nameCtrl: _nameCtrl, urlCtrl: _urlCtrl),
-            if (_error != null) ...[
-              const SizedBox(height: CrispySpacing.sm),
-              Text(
-                _error!,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                  fontSize: 13,
-                ),
-              ),
-            ],
+            SourceDialogErrorText(errorMessage: _error),
           ],
         ),
       ),
@@ -265,26 +290,18 @@ class _XtreamAddDialogState extends ConsumerState<_XtreamAddDialog> {
     });
 
     // Verify credentials via Rust backend.
-    try {
-      final backend = widget.parentRef.read(crispyBackendProvider);
-      final ok = await backend.verifyXtreamCredentials(
-        baseUrl: url,
-        username: user,
-        password: pass,
-      );
-      if (!mounted) return;
-      if (!ok) {
-        setState(() {
-          _isVerifying = false;
-          _error = 'Authentication failed. Check credentials.';
-        });
-        return;
-      }
-    } catch (e) {
-      if (!mounted) return;
+    final verifyError = await verifySourceConnectivity(
+      widget.parentRef,
+      PlaylistSourceType.xtream,
+      url,
+      username: user,
+      password: pass,
+    );
+    if (!mounted) return;
+    if (verifyError != null) {
       setState(() {
         _isVerifying = false;
-        _error = 'Connection error: $e';
+        _error = verifyError;
       });
       return;
     }
@@ -333,16 +350,7 @@ class _XtreamAddDialogState extends ConsumerState<_XtreamAddDialog> {
               userCtrl: _userCtrl,
               passCtrl: _passCtrl,
             ),
-            if (_error != null) ...[
-              const SizedBox(height: CrispySpacing.sm),
-              Text(
-                _error!,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                  fontSize: 13,
-                ),
-              ),
-            ],
+            SourceDialogErrorText(errorMessage: _error),
           ],
         ),
       ),

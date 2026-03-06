@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/config/settings_notifier.dart';
-import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/widgets/or_divider_row.dart';
@@ -88,18 +87,11 @@ class _EmbyLoginScreenState extends ConsumerState<EmbyLoginScreen> {
   }
 
   void _onUrlChanged(String raw) {
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) {
-      if (_resolvedUrl.isNotEmpty) setState(() => _resolvedUrl = '');
-      return;
-    }
-    try {
-      final normalized = ref
-          .read(crispyBackendProvider)
-          .normalizeServerUrl(trimmed);
-      if (normalized != _resolvedUrl) setState(() => _resolvedUrl = normalized);
-    } catch (_) {
-      // Not yet a valid URL — ignore until the user finishes typing.
+    final normalized = normalizeMediaServerUrl(ref, raw);
+    if (normalized.isEmpty && _resolvedUrl.isNotEmpty) {
+      setState(() => _resolvedUrl = '');
+    } else if (normalized.isNotEmpty && normalized != _resolvedUrl) {
+      setState(() => _resolvedUrl = normalized);
     }
   }
 

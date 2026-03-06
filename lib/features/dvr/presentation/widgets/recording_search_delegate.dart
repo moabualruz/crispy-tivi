@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/date_format_utils.dart';
 import '../../../../core/widgets/async_value_ui.dart';
 import '../../../../core/widgets/error_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
@@ -244,9 +245,7 @@ class _ResultList extends StatelessWidget {
   String _formatShortDate(DateTime dt) {
     final month = dt.month.toString().padLeft(2, '0');
     final day = dt.day.toString().padLeft(2, '0');
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final min = dt.minute.toString().padLeft(2, '0');
-    return '$day/$month  $hour:$min';
+    return '$day/$month  ${formatHHmm(dt)}';
   }
 }
 

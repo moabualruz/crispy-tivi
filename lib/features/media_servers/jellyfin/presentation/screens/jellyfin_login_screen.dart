@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/network/network_timeouts.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
@@ -12,6 +11,7 @@ import 'package:crispy_tivi/core/widgets/or_divider_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/user_avatar_tile.dart';
+import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
 import 'jellyfin_quick_connect_screen.dart';
 
 // ── Server info probe (FE-JF-03) ─────────────────────────────────────────
@@ -111,20 +111,11 @@ class _JellyfinLoginScreenState extends ConsumerState<JellyfinLoginScreen> {
   }
 
   void _onUrlChanged(String rawUrl) {
-    final trimmed = rawUrl.trim();
-    if (trimmed.isEmpty) {
-      if (_resolvedUrl.isNotEmpty) setState(() => _resolvedUrl = '');
-      return;
-    }
-    try {
-      final normalized = ref
-          .read(crispyBackendProvider)
-          .normalizeServerUrl(trimmed);
-      if (normalized != _resolvedUrl) {
-        setState(() => _resolvedUrl = normalized);
-      }
-    } catch (_) {
-      // Not yet a valid URL — ignore until the user finishes typing.
+    final normalized = normalizeMediaServerUrl(ref, rawUrl);
+    if (normalized.isEmpty && _resolvedUrl.isNotEmpty) {
+      setState(() => _resolvedUrl = '');
+    } else if (normalized.isNotEmpty && normalized != _resolvedUrl) {
+      setState(() => _resolvedUrl = normalized);
     }
   }
 

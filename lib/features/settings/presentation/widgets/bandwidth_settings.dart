@@ -32,7 +32,13 @@ class BandwidthSettingsSection extends ConsumerWidget {
           trailing: IconButton(
             icon: const Icon(Icons.restore, size: 20),
             tooltip: 'Reset to defaults',
-            onPressed: () => _confirmReset(context, ref),
+            onPressed:
+                () => showSettingsResetDialog(
+                  context,
+                  ref,
+                  'Reset Data & Bandwidth',
+                  'bandwidth',
+                ),
           ),
         ),
         const SizedBox(height: CrispySpacing.sm),
@@ -105,34 +111,5 @@ class BandwidthSettingsSection extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Reset Data & Bandwidth'),
-            content: const Text(
-              'Reset all bandwidth settings to their '
-              'factory defaults?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Reset'),
-              ),
-            ],
-          ),
-    );
-    if (confirmed == true && context.mounted) {
-      await ref
-          .read(settingsNotifierProvider.notifier)
-          .resetSection('bandwidth');
-    }
   }
 }

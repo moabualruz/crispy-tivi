@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../config/settings_notifier.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
 import 'settings_shared_widgets.dart';
@@ -26,7 +25,13 @@ class AppearanceSettingsSection extends ConsumerWidget {
           trailing: IconButton(
             icon: const Icon(Icons.restore, size: 20),
             tooltip: 'Reset to defaults',
-            onPressed: () => _confirmReset(context, ref),
+            onPressed:
+                () => showSettingsResetDialog(
+                  context,
+                  ref,
+                  'Reset Appearance',
+                  'appearance',
+                ),
           ),
         ),
         const SizedBox(height: CrispySpacing.sm),
@@ -37,34 +42,5 @@ class AppearanceSettingsSection extends ConsumerWidget {
         const SettingsCard(children: [ThemeSettingsSection()]),
       ],
     );
-  }
-
-  Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Reset Appearance'),
-            content: const Text(
-              'Reset all appearance settings to their '
-              'factory defaults?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Reset'),
-              ),
-            ],
-          ),
-    );
-    if (confirmed == true && context.mounted) {
-      await ref
-          .read(settingsNotifierProvider.notifier)
-          .resetSection('appearance');
-    }
   }
 }

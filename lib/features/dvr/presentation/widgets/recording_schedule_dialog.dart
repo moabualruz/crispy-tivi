@@ -7,6 +7,7 @@ import '../../../../core/utils/date_format_utils.dart';
 import '../../data/dvr_service.dart';
 import '../../domain/entities/recording.dart';
 import '../../domain/recording_quality.dart';
+import 'auto_delete_policy_picker.dart';
 import 'conflict_resolver_dialog.dart';
 
 /// Shows the [RecordingScheduleDialog] to create a new DVR recording
@@ -203,9 +204,11 @@ class _RecordingScheduleDialogState
               // ── FE-DVR-04: Auto-delete policy ─────────────
               _SectionLabel('AUTO-DELETE POLICY'),
               const SizedBox(height: CrispySpacing.xs),
-              _AutoDeletePolicyPicker(
+              AutoDeletePolicyPicker(
                 value: _autoDeletePolicy,
                 keepEpisodeCount: _keepEpisodeCount,
+                showLabel: false,
+                maxKeepCount: 10,
                 onChanged:
                     (policy, count) => setState(() {
                       _autoDeletePolicy = policy;
@@ -263,107 +266,6 @@ class _QualitySelector extends StatelessWidget {
               ),
             );
           }).toList(),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────
-//  Auto-delete policy picker (inline)
-// ─────────────────────────────────────────────────────────
-
-/// Compact inline picker for [AutoDeletePolicy] with episode stepper.
-class _AutoDeletePolicyPicker extends StatelessWidget {
-  const _AutoDeletePolicyPicker({
-    required this.value,
-    required this.keepEpisodeCount,
-    required this.onChanged,
-  });
-
-  final AutoDeletePolicy value;
-  final int keepEpisodeCount;
-  final void Function(AutoDeletePolicy policy, int count) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InputDecorator(
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.delete_sweep_outlined),
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(
-              vertical: CrispySpacing.xs,
-              horizontal: CrispySpacing.sm,
-            ),
-          ),
-          child: DropdownButton<AutoDeletePolicy>(
-            value: value,
-            isExpanded: true,
-            underline: const SizedBox.shrink(),
-            isDense: true,
-            items:
-                AutoDeletePolicy.values
-                    .map(
-                      (p) => DropdownMenuItem(
-                        value: p,
-                        child: Row(
-                          children: [
-                            Icon(p.icon, size: 18),
-                            const SizedBox(width: CrispySpacing.sm),
-                            Text(p.label),
-                          ],
-                        ),
-                      ),
-                    )
-                    .toList(),
-            onChanged: (p) {
-              if (p != null) onChanged(p, keepEpisodeCount);
-            },
-          ),
-        ),
-        if (value == AutoDeletePolicy.keepN) ...[
-          const SizedBox(height: CrispySpacing.sm),
-          Row(
-            children: [
-              const SizedBox(width: CrispySpacing.xl),
-              Text('Keep latest', style: tt.bodyMedium),
-              const SizedBox(width: CrispySpacing.sm),
-              IconButton.outlined(
-                iconSize: 16,
-                visualDensity: VisualDensity.compact,
-                onPressed:
-                    keepEpisodeCount > 1
-                        ? () => onChanged(value, keepEpisodeCount - 1)
-                        : null,
-                icon: const Icon(Icons.remove),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: CrispySpacing.sm,
-                ),
-                child: Text(
-                  '$keepEpisodeCount',
-                  style: tt.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-              IconButton.outlined(
-                iconSize: 16,
-                visualDensity: VisualDensity.compact,
-                onPressed:
-                    keepEpisodeCount < 10
-                        ? () => onChanged(value, keepEpisodeCount + 1)
-                        : null,
-                icon: const Icon(Icons.add),
-              ),
-              const SizedBox(width: CrispySpacing.sm),
-              Text('episodes (max 10)', style: tt.bodyMedium),
-            ],
-          ),
-        ],
-      ],
     );
   }
 }
