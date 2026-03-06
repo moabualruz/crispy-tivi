@@ -1,5 +1,8 @@
 import 'dart:convert';
 
+import 'package:crispy_tivi/core/constants.dart';
+import 'package:crispy_tivi/core/utils/file_extensions.dart';
+
 /// Pure-Dart fallback implementations for algorithms that have
 /// canonical Rust counterparts in crispy-core.
 ///
@@ -357,12 +360,11 @@ List<Map<String, dynamic>> dartFilterByCwStatus(
   String filter,
 ) {
   if (filter == 'all') return entries;
-  const completionThreshold = 0.95;
   return entries.where((e) {
     final pos = (e['position_ms'] as num?)?.toInt() ?? 0;
     final dur = (e['duration_ms'] as num?)?.toInt() ?? 0;
     final progress = dur > 0 ? pos / dur : 0.0;
-    final nearlyComplete = progress >= completionThreshold;
+    final nearlyComplete = progress >= kCompletionThreshold;
     if (filter == 'watching') return progress > 0 && !nearlyComplete;
     if (filter == 'completed') return nearlyComplete;
     return true;
@@ -382,7 +384,6 @@ int dartCountInProgressEpisodes(String historyJson, String seriesId) {
   } catch (_) {
     return 0;
   }
-  const completionThreshold = 0.95;
   var count = 0;
   for (final item in raw) {
     final e = item as Map<String, dynamic>;
@@ -394,7 +395,7 @@ int dartCountInProgressEpisodes(String historyJson, String seriesId) {
     if (mediaType != 'episode') continue;
     if (dur <= 0) continue;
     final progress = pos / dur;
-    if (progress >= completionThreshold) continue;
+    if (progress >= kCompletionThreshold) continue;
     count++;
   }
   return count;
@@ -467,46 +468,9 @@ String dartClassifyFileType(String filename) {
   final dot = filename.lastIndexOf('.');
   if (dot < 0 || dot == filename.length - 1) return 'other';
   final ext = filename.substring(dot + 1).toLowerCase();
-  const video = {
-    'mp4',
-    'mkv',
-    'avi',
-    'mov',
-    'ts',
-    'mpg',
-    'mpeg',
-    'm2ts',
-    'wmv',
-    'flv',
-    'webm',
-    'm4v',
-  };
-  const audio = {
-    'mp3',
-    'aac',
-    'flac',
-    'ogg',
-    'wav',
-    'opus',
-    'm4a',
-    'wma',
-    'ac3',
-    'eac3',
-  };
-  const subtitle = {
-    'srt',
-    'ass',
-    'ssa',
-    'vtt',
-    'sub',
-    'idx',
-    'sup',
-    'dfxp',
-    'ttml',
-  };
-  if (video.contains(ext)) return 'video';
-  if (audio.contains(ext)) return 'audio';
-  if (subtitle.contains(ext)) return 'subtitle';
+  if (FileExtensions.video.contains(ext)) return 'video';
+  if (FileExtensions.audio.contains(ext)) return 'audio';
+  if (FileExtensions.subtitle.contains(ext)) return 'subtitle';
   return 'other';
 }
 

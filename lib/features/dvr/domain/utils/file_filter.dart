@@ -1,4 +1,9 @@
+import 'package:crispy_tivi/core/utils/file_extensions.dart';
+
 import '../storage_provider.dart';
+
+export 'package:crispy_tivi/core/utils/file_extensions.dart'
+    show FileExtensions;
 
 // ── File-type filter (FE-CB-02) ────────────────────────────────────────────
 
@@ -24,45 +29,11 @@ bool matchesFilter(String name, FileTypeFilter filter) {
   final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
   switch (filter) {
     case FileTypeFilter.video:
-      return const {
-        'mp4',
-        'mkv',
-        'avi',
-        'mov',
-        'ts',
-        'mpg',
-        'mpeg',
-        'm2ts',
-        'wmv',
-        'flv',
-        'webm',
-        'm4v',
-      }.contains(ext);
+      return FileExtensions.video.contains(ext);
     case FileTypeFilter.audio:
-      return const {
-        'mp3',
-        'aac',
-        'flac',
-        'ogg',
-        'wav',
-        'opus',
-        'm4a',
-        'wma',
-        'ac3',
-        'eac3',
-      }.contains(ext);
+      return FileExtensions.audio.contains(ext);
     case FileTypeFilter.subtitle:
-      return const {
-        'srt',
-        'ass',
-        'ssa',
-        'vtt',
-        'sub',
-        'idx',
-        'sup',
-        'dfxp',
-        'ttml',
-      }.contains(ext);
+      return FileExtensions.subtitle.contains(ext);
     case FileTypeFilter.all:
       return true;
     case FileTypeFilter.other:

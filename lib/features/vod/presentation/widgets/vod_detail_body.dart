@@ -5,7 +5,7 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../../domain/entities/vod_item.dart';
-import '../screens/vod_details_screen.dart' show formatRuntime;
+import '../../../../core/utils/date_format_utils.dart' show formatRuntime;
 import 'vod_detail_actions.dart'
     show CircularAction, ExpandableSynopsis, RateAction;
 

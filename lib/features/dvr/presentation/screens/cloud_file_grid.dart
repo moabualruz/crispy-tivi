@@ -66,27 +66,14 @@ IconData fileTypeIcon(String name) {
 bool isVideoFile(String name) {
   if (!name.contains('.')) return false;
   final ext = name.split('.').last.toLowerCase();
-  return const {
-    'mp4',
-    'mkv',
-    'avi',
-    'mov',
-    'ts',
-    'mpg',
-    'mpeg',
-    'm2ts',
-    'wmv',
-    'flv',
-    'webm',
-    'm4v',
-  }.contains(ext);
+  return FileExtensions.video.contains(ext);
 }
 
 /// Returns true if [name] has an image file extension.
 bool isImageFile(String name) {
   if (!name.contains('.')) return false;
   final ext = name.split('.').last.toLowerCase();
-  return const {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'}.contains(ext);
+  return FileExtensions.image.contains(ext);
 }
 
 // ── FE-CB-06: Sync status badge ────────────────────────────────────

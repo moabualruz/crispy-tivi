@@ -6,6 +6,7 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../domain/entities/vod_item.dart';
+import '../../domain/utils/episode_utils.dart' show formatEpisodeLabel;
 
 // ── Thumbnail dimension constants (T12) ──────────────────────────────────────
 
@@ -71,12 +72,10 @@ class EpisodeTile extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final epNumber = episode.episodeNumber;
-    final subtitle = [
-      if (episode.seasonNumber != null)
-        'S${episode.seasonNumber!.toString().padLeft(2, '0')}',
-      if (epNumber != null) 'E${epNumber.toString().padLeft(2, '0')}',
-    ].join('');
+    final subtitle = formatEpisodeLabel(
+      episode.seasonNumber,
+      episode.episodeNumber,
+    );
 
     final isWatched = progress != null && progress! >= kCompletionThreshold;
     final isInProgress =

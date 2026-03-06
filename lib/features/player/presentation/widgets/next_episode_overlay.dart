@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import 'player_osd/osd_shared.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../vod/domain/entities/vod_item.dart';
+import '../../../vod/domain/utils/episode_utils.dart' show formatEpisodeLabel;
+import 'player_osd/osd_shared.dart';
 
 /// Overlay shown when an episode is near completion.
 /// Auto-advances after countdown unless dismissed.
@@ -171,8 +172,10 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
                               top: CrispySpacing.xs,
                             ),
                             child: Text(
-                              'S${ep.seasonNumber!.toString().padLeft(2, '0')}'
-                              'E${ep.episodeNumber!.toString().padLeft(2, '0')}',
+                              formatEpisodeLabel(
+                                ep.seasonNumber,
+                                ep.episodeNumber,
+                              ),
                               style: Theme.of(
                                 context,
                               ).textTheme.labelSmall?.copyWith(

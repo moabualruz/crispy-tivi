@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/format_utils.dart';
 
 /// Maximum storage quota used for the visual progress bar (10 GB in bytes).
 ///
@@ -35,7 +36,6 @@ class StorageBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mb = totalBytes / (1024 * 1024);
     final fraction = (totalBytes / kMaxStorageBytes).clamp(0.0, 1.0);
     final cs = Theme.of(context).colorScheme;
 
@@ -53,7 +53,7 @@ class StorageBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${mb.toStringAsFixed(1)} MB used',
+                '${formatBytes(totalBytes)} used',
                 style: Theme.of(context).textTheme.labelSmall,
               ),
               if (onTap != null)

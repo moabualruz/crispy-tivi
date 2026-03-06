@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/meta_chip.dart';
 import '../../../../core/widgets/smart_image.dart';
+import '../../../../core/widgets/vignette_gradient.dart';
 
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -67,7 +68,7 @@ class SeriesHeroHeader extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             _heroImage(colorScheme),
-            const _BottomVignette(),
+            VignetteGradient.surfaceAdaptive(),
             _titleOverlay(textTheme, colorScheme),
           ],
         ),
@@ -139,31 +140,6 @@ class SeriesHeroHeader extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _BottomVignette extends StatelessWidget {
-  const _BottomVignette();
-
-  @override
-  Widget build(BuildContext context) {
-    final surface = Theme.of(context).colorScheme.surface;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            surface.withValues(alpha: 0),
-            surface.withValues(alpha: 0),
-            CrispyColors.vignetteStart,
-            CrispyColors.vignetteEnd,
-            surface,
-          ],
-          stops: const [0.0, 0.3, 0.6, 0.85, 1.0],
-        ),
       ),
     );
   }

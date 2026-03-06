@@ -31,12 +31,10 @@ class PlayNextEpisodeButton extends ConsumerWidget {
     if (nextEpisode == null) {
       return const SizedBox.shrink();
     }
-    final epLabel = [
-      if (nextEpisode.seasonNumber != null)
-        'S${nextEpisode.seasonNumber!.toString().padLeft(2, '0')}',
-      if (nextEpisode.episodeNumber != null)
-        'E${nextEpisode.episodeNumber!.toString().padLeft(2, '0')}',
-    ].join('');
+    final epLabel = formatEpisodeLabel(
+      nextEpisode.seasonNumber,
+      nextEpisode.episodeNumber,
+    );
 
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;

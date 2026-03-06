@@ -10,11 +10,13 @@ import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
+import 'package:crispy_tivi/core/utils/date_format_utils.dart' show formatMmss;
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
 import 'package:crispy_tivi/core/widgets/or_divider_row.dart';
 import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_auth_service.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
+import 'package:crispy_tivi/features/media_servers/shared/utils/error_sanitizer.dart';
 
 /// Thin wrapper around [MediaServerLoginScreen] for Plex servers.
 ///
@@ -313,7 +315,7 @@ class _PlexOAuthScreenState extends State<_PlexOAuthScreen> {
       setState(() {
         _state = _PlexOAuthState(
           phase: _PlexOAuthPhase.error,
-          errorMessage: e.toString().replaceFirst(RegExp(r'^[A-Za-z]+: '), ''),
+          errorMessage: sanitizeError(e),
         );
       });
     }
@@ -332,7 +334,7 @@ class _PlexOAuthScreenState extends State<_PlexOAuthScreen> {
       setState(() {
         _state = _PlexOAuthState(
           phase: _PlexOAuthPhase.error,
-          errorMessage: e.toString().replaceFirst(RegExp(r'^[A-Za-z]+: '), ''),
+          errorMessage: sanitizeError(e),
         );
       });
     }
@@ -422,8 +424,7 @@ class _WaitingBody extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
 
     final secondsLeft = oauthState?.secondsRemaining ?? 0;
-    final minutes = (secondsLeft ~/ 60).toString().padLeft(2, '0');
-    final secs = (secondsLeft % 60).toString().padLeft(2, '0');
+    final timerLabel = formatMmss(secondsLeft);
     final isAlmostExpired = secondsLeft <= 30;
     final timerColor = isAlmostExpired ? cs.error : cs.onSurfaceVariant;
 
@@ -483,7 +484,7 @@ class _WaitingBody extends StatelessWidget {
                 Icon(Icons.timer_outlined, size: 18, color: timerColor),
                 const SizedBox(width: CrispySpacing.xs),
                 Text(
-                  'Expires in $minutes:$secs',
+                  'Expires in $timerLabel',
                   style: tt.bodyMedium?.copyWith(color: timerColor),
                 ),
               ],

@@ -107,10 +107,10 @@ mixin _WsAlgorithmsMixin on _WsBackendBase {
   // ── Watch Thresholds ─────────────────────────
 
   /// Sync fallback — returns canonical value (WS cannot call FFI sync).
-  double completionThreshold() => 0.95;
+  double completionThreshold() => kCompletionThreshold;
 
   /// Sync fallback — returns canonical value (WS cannot call FFI sync).
-  double nextEpisodeThreshold() => 0.90;
+  double nextEpisodeThreshold() => kNextEpisodeThreshold;
 
   // ── Watch Progress ───────────────────────────
 

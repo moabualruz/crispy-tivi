@@ -77,6 +77,33 @@ String formatYMD(DateTime dt) =>
 /// Formats a [DateTime] as "D/M/YYYY HH:mm".
 String formatDMYHHmm(DateTime dt) => '${formatDMY(dt)} ${formatHHmm(dt)}';
 
+/// Formats a runtime duration in minutes into a human-readable string.
+///
+/// Examples:
+///   - 45 → "45m"
+///   - 90 → "1h 30m"
+///   - 120 → "2h"
+String formatRuntime(int minutes) {
+  if (minutes < 60) return '${minutes}m';
+  final hours = minutes ~/ 60;
+  final remainder = minutes % 60;
+  if (remainder == 0) return '${hours}h';
+  return '${hours}h ${remainder}m';
+}
+
+/// Formats [totalSeconds] as `MM:SS` (both components zero-padded to 2 digits).
+///
+/// Used for countdown timers (auth expiry, PIN lockout, etc.).
+/// Examples:
+///   - 0 → "00:00"
+///   - 90 → "01:30"
+///   - 3599 → "59:59"
+String formatMmss(int totalSeconds) {
+  final m = (totalSeconds ~/ 60).toString().padLeft(2, '0');
+  final s = (totalSeconds % 60).toString().padLeft(2, '0');
+  return '$m:$s';
+}
+
 /// Formats a [Duration] as a human-readable "time remaining" label.
 ///
 /// Returns:

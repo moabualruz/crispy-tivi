@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/format_utils.dart';
 import '../../../../core/widgets/error_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../data/dvr_service.dart';
@@ -172,13 +173,12 @@ class StorageBreakdownSheet extends ConsumerWidget {
           ..sort((a, b) => b.value.compareTo(a.value));
 
     return entries.map((e) {
-      final mb = e.value / (1024 * 1024);
       final count = data.channelCounts[e.key] ?? 0;
       final fraction = data.totalBytes > 0 ? e.value / data.totalBytes : 0.0;
 
       return _ChannelRow(
         channelName: e.key,
-        mbLabel: '${mb.toStringAsFixed(1)} MB',
+        mbLabel: formatBytes(e.value),
         count: count,
         fraction: fraction,
       );

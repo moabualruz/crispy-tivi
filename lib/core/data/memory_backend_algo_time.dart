@@ -24,7 +24,7 @@ mixin _MemoryAlgoTimeMixin on _MemoryStorage {
   double completionThreshold() => kCompletionThreshold;
 
   /// Returns canonical next-episode threshold (0.90).
-  double nextEpisodeThreshold() => 0.90;
+  double nextEpisodeThreshold() => kNextEpisodeThreshold;
 
   // ── Watch Progress ─────────────────────────────
 

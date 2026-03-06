@@ -8,6 +8,7 @@ import '../../../../core/constants.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/date_format_utils.dart' show formatRuntime;
 import '../../../../core/widgets/cinematic_hero_banner.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../player/data/watch_history_service.dart';
@@ -23,20 +24,6 @@ import '../widgets/episode_playback_helper.dart' show showResumeDialog;
 import '../widgets/vod_detail_body.dart';
 import '../widgets/vod_detail_metadata.dart';
 import '../widgets/vod_source_picker.dart';
-
-/// Formats a runtime duration in minutes into a human-readable string.
-///
-/// Examples:
-/// - 45 → "45m"
-/// - 90 → "1h 30m"
-/// - 120 → "2h"
-String formatRuntime(int minutes) {
-  if (minutes < 60) return '${minutes}m';
-  final hours = minutes ~/ 60;
-  final remainder = minutes % 60;
-  if (remainder == 0) return '${hours}h';
-  return '${hours}h ${remainder}m';
-}
 
 /// Cinematic details screen for VOD (Movies).
 /// Netflix-style layout per .ai/docs/plans/netflix_ui_reference.md.

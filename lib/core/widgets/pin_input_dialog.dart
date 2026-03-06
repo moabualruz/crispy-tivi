@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../theme/crispy_spacing.dart';
+import '../utils/date_format_utils.dart' show formatMmss;
 import '../../features/profiles/presentation/providers/biometric_provider.dart';
 import '../../features/settings/presentation/providers/pin_lockout_provider.dart';
 
@@ -263,12 +264,8 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
     }
   }
 
-  /// Formats [Duration] as `M:SS` for the countdown display.
-  String _formatCountdown(Duration d) {
-    final minutes = d.inMinutes;
-    final seconds = d.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
+  /// Formats [Duration] as `MM:SS` for the countdown display.
+  String _formatCountdown(Duration d) => formatMmss(d.inSeconds);
 
   @override
   Widget build(BuildContext context) {
