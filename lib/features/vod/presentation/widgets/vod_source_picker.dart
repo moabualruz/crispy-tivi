@@ -6,7 +6,6 @@ import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../domain/entities/vod_item.dart';
-import '../../domain/utils/vod_utils.dart';
 
 // FE-VODS-06-DETAILS: Multi-source picker.
 
@@ -38,8 +37,14 @@ class VodSource {
   final SourceHealth health;
 
   /// Build a [VodSource] from a [VodItem].
-  factory VodSource.fromVodItem(VodItem item, {String? sourceName}) {
-    final quality = resolveVodQuality(item);
+  ///
+  /// Pass [quality] from the caller (computed via the backend) to avoid
+  /// needing direct Rust FFI access inside the factory.
+  factory VodSource.fromVodItem(
+    VodItem item, {
+    String? sourceName,
+    String? quality,
+  }) {
     final label =
         sourceName ??
         (item.sourceId != null ? 'Server ${item.sourceId}' : 'Default');

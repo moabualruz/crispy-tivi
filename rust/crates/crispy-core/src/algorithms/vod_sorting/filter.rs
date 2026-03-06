@@ -216,6 +216,44 @@ pub fn similar_vod_items(items_json: &str, item_id: &str, limit: usize) -> Strin
     serde_json::to_string(&similar).unwrap_or_else(|_| "[]".to_string())
 }
 
+/// Resolve a quality label ("4K" or "HD") from a file
+/// extension and stream URL, matching the Dart
+/// `resolveVodQuality` implementation exactly.
+///
+/// - Checks `extension` (if `Some`) and `stream_url`
+///   after lowercasing both.
+/// - Returns `Some("4K")` if either contains "4k" or "uhd".
+/// - Returns `Some("HD")` if either contains "hd", "720",
+///   or "1080".
+/// - Returns `None` otherwise.
+pub fn resolve_vod_quality(extension: Option<&str>, stream_url: &str) -> Option<String> {
+    let ext_lower = extension.map(|e| e.to_ascii_lowercase());
+    let url_lower = stream_url.to_ascii_lowercase();
+
+    let ext = ext_lower.as_deref().unwrap_or("");
+
+    // 4K check takes priority over HD.
+    if ext.contains("4k")
+        || ext.contains("uhd")
+        || url_lower.contains("4k")
+        || url_lower.contains("uhd")
+    {
+        return Some("4K".to_string());
+    }
+
+    if ext.contains("hd")
+        || ext.contains("720")
+        || ext.contains("1080")
+        || url_lower.contains("hd")
+        || url_lower.contains("720")
+        || url_lower.contains("1080")
+    {
+        return Some("HD".to_string());
+    }
+
+    None
+}
+
 /// Filter VOD items by content rating.
 ///
 /// Items with rating level <= `max_rating_value` pass.

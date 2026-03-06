@@ -611,9 +611,27 @@ pub fn derive_watch_history_id(url: String) -> String {
     crispy_core::algorithms::watch_history::derive_watch_history_id(&url)
 }
 
+// ── VOD Quality ─────────────────────────────────────
+
+/// Resolve a VOD item's quality label from its extension and stream URL.
+///
+/// Returns `"4K"`, `"HD"`, or `None`.
+#[flutter_rust_bridge::frb(sync)]
+pub fn resolve_vod_quality(extension: Option<String>, stream_url: String) -> Option<String> {
+    crispy_core::algorithms::vod_sorting::resolve_vod_quality(extension.as_deref(), &stream_url)
+}
+
 // ── VOD Similarity ──────────────────────────────────
 
 /// Find similar VOD items by genre/category overlap.
 pub fn similar_vod_items(items_json: String, item_id: String, limit: usize) -> String {
     crispy_core::algorithms::vod_sorting::similar_vod_items(&items_json, &item_id, limit)
+}
+
+// ── URL Normalization ───────────────────────────────
+
+/// Normalize a server URL: prepend http:// if no scheme, strip trailing slash.
+#[flutter_rust_bridge::frb(sync)]
+pub fn normalize_server_url(raw: String) -> String {
+    crispy_core::algorithms::url_normalize::normalize_server_url(&raw)
 }

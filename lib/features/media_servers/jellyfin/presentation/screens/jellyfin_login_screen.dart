@@ -2,11 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/network/network_timeouts.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
-import 'package:crispy_tivi/core/utils/url_utils.dart';
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
 import 'package:crispy_tivi/core/widgets/or_divider_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
@@ -117,7 +117,9 @@ class _JellyfinLoginScreenState extends ConsumerState<JellyfinLoginScreen> {
       return;
     }
     try {
-      final normalized = normalizeServerUrl(trimmed);
+      final normalized = ref
+          .read(crispyBackendProvider)
+          .normalizeServerUrl(trimmed);
       if (normalized != _resolvedUrl) {
         setState(() => _resolvedUrl = normalized);
       }

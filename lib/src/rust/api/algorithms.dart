@@ -571,6 +571,15 @@ String vodBadgeKind({
 String deriveWatchHistoryId({required String url}) =>
     RustLib.instance.api.crateApiAlgorithmsDeriveWatchHistoryId(url: url);
 
+/// Resolve a VOD item's quality label from its extension and stream URL.
+///
+/// Returns `"4K"`, `"HD"`, or `None`.
+String? resolveVodQuality({String? extension_, required String streamUrl}) =>
+    RustLib.instance.api.crateApiAlgorithmsResolveVodQuality(
+      extension_: extension_,
+      streamUrl: streamUrl,
+    );
+
 /// Find similar VOD items by genre/category overlap.
 Future<String> similarVodItems({
   required String itemsJson,
@@ -581,3 +590,7 @@ Future<String> similarVodItems({
   itemId: itemId,
   limit: limit,
 );
+
+/// Normalize a server URL: prepend http:// if no scheme, strip trailing slash.
+String normalizeServerUrl({required String raw}) =>
+    RustLib.instance.api.crateApiAlgorithmsNormalizeServerUrl(raw: raw);

@@ -539,6 +539,50 @@ int dartLockRemainingMs(int lockedUntilMs, int nowMs) {
   return remaining > 0 ? remaining : 0;
 }
 
+// ── VOD Quality ──────────────────────────────────────────────────────
+
+/// Resolve a VOD item's quality label from its extension and stream URL.
+///
+/// Returns `"4K"`, `"HD"`, or `null`.
+///
+/// Mirrors `crispy-core::algorithms::resolve_vod_quality`.
+String? dartResolveVodQuality(String? extension, String streamUrl) {
+  final ext = (extension ?? '').toLowerCase();
+  final url = streamUrl.toLowerCase();
+  if (ext.contains('4k') ||
+      ext.contains('uhd') ||
+      url.contains('4k') ||
+      url.contains('uhd')) {
+    return '4K';
+  }
+  if (ext.contains('hd') ||
+      ext.contains('720') ||
+      ext.contains('1080') ||
+      url.contains('1080') ||
+      url.contains('720')) {
+    return 'HD';
+  }
+  return null;
+}
+
+// ── Server URL Normalization ──────────────────────────────────────────
+
+/// Normalize a server URL: prepend `http://` if no scheme present,
+/// strip trailing slash.
+///
+/// Mirrors `crispy-core::algorithms::normalize_server_url`.
+String dartNormalizeServerUrl(String raw) {
+  var url = raw.trim();
+  final lower = url.toLowerCase();
+  if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+    url = 'http://$url';
+  }
+  if (url.endsWith('/')) {
+    url = url.substring(0, url.length - 1);
+  }
+  return url;
+}
+
 // ── Watch History ID ─────────────────────────────────────────────────
 
 /// Derives a stable, platform-independent watch-history ID from

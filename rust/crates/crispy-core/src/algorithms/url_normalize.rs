@@ -119,6 +119,45 @@ fn is_default_port(scheme: &str, port: u16) -> bool {
     matches!((scheme, port), ("http", 80) | ("https", 443))
 }
 
+/// Normalize a server URL, preserving the path.
+///
+/// Unlike [`normalize_api_base_url`], this function keeps
+/// the full path — it only:
+/// 1. Trims whitespace.
+/// 2. Prepends `"http://"` when no scheme is present.
+/// 3. Strips exactly one trailing slash.
+///
+/// # Examples
+///
+/// ```
+/// use crispy_core::algorithms::url_normalize::normalize_server_url;
+///
+/// assert_eq!(
+///     normalize_server_url("  example.com:8080/iptv  "),
+///     "http://example.com:8080/iptv",
+/// );
+/// ```
+pub fn normalize_server_url(raw: &str) -> String {
+    let trimmed = raw.trim();
+
+    // Prepend http:// when no scheme is present (case-insensitive check).
+    let with_scheme = {
+        let lower = trimmed.to_ascii_lowercase();
+        if lower.starts_with("http://") || lower.starts_with("https://") {
+            trimmed.to_string()
+        } else {
+            format!("http://{trimmed}")
+        }
+    };
+
+    // Strip exactly one trailing slash.
+    if let Some(stripped) = with_scheme.strip_suffix('/') {
+        stripped.to_string()
+    } else {
+        with_scheme
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -215,6 +254,58 @@ mod tests {
         assert_eq!(
             normalize_api_base_url("http://example.com/path#section",).unwrap(),
             "http://example.com",
+        );
+    }
+
+    // --- normalize_server_url ---
+
+    #[test]
+    fn server_url_adds_http_when_no_scheme() {
+        assert_eq!(
+            normalize_server_url("example.com:8080"),
+            "http://example.com:8080",
+        );
+    }
+
+    #[test]
+    fn server_url_preserves_existing_https() {
+        assert_eq!(
+            normalize_server_url("https://secure.example.com/iptv"),
+            "https://secure.example.com/iptv",
+        );
+    }
+
+    #[test]
+    fn server_url_strips_trailing_slash() {
+        assert_eq!(
+            normalize_server_url("http://example.com:8080/"),
+            "http://example.com:8080",
+        );
+    }
+
+    #[test]
+    fn server_url_trims_whitespace() {
+        assert_eq!(
+            normalize_server_url("  http://example.com:9000  "),
+            "http://example.com:9000",
+        );
+    }
+
+    #[test]
+    fn server_url_already_clean_is_noop() {
+        assert_eq!(
+            normalize_server_url("http://example.com:8080"),
+            "http://example.com:8080",
+        );
+    }
+
+    #[test]
+    fn server_url_preserves_path() {
+        // normalize_api_base_url would strip /stalker_portal, but
+        // normalize_server_url must keep it.
+        assert_eq!(
+            normalize_server_url("http://iptv.example.com/stalker_portal"),
+            "http://iptv.example.com/stalker_portal",
         );
     }
 }

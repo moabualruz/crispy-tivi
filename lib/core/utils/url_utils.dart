@@ -1,15 +1,10 @@
+import 'package:crispy_tivi/core/data/dart_algorithm_fallbacks.dart';
+
 // URL normalization utilities.
 
 /// Normalizes a server URL: trims, adds `http://` if missing, strips
 /// trailing slash.
-String normalizeServerUrl(String raw) {
-  var url = raw.trim();
-  final lower = url.toLowerCase();
-  if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
-    url = 'http://$url';
-  }
-  if (url.endsWith('/')) {
-    url = url.substring(0, url.length - 1);
-  }
-  return url;
-}
+///
+/// Delegates to [dartNormalizeServerUrl] — the canonical Dart fallback
+/// that mirrors `crispy-core::algorithms::normalize_server_url`.
+String normalizeServerUrl(String raw) => dartNormalizeServerUrl(raw);

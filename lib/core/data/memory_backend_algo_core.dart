@@ -724,4 +724,15 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
 
   /// Delegates to shared [dartDeriveWatchHistoryId].
   String deriveWatchHistoryId(String url) => dartDeriveWatchHistoryId(url);
+
+  // ── VOD Quality ──────────────────────────────────────
+
+  /// Delegates to shared [dartResolveVodQuality].
+  String? resolveVodQuality(String? extension, String streamUrl) =>
+      dartResolveVodQuality(extension, streamUrl);
+
+  // ── Server URL Normalization ─────────────────────────
+
+  /// Delegates to shared [dartNormalizeServerUrl].
+  String normalizeServerUrl(String raw) => dartNormalizeServerUrl(raw);
 }

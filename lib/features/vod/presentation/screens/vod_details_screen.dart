@@ -15,7 +15,6 @@ import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../domain/entities/vod_item.dart';
-import '../../domain/utils/vod_utils.dart';
 import '../providers/vod_providers.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/testing/test_keys.dart';
@@ -65,9 +64,10 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
     VodItem item,
     String? sourceName,
     List<VodSource> alternatives,
+    String? quality,
   ) {
     return [
-      VodSource.fromVodItem(item, sourceName: sourceName),
+      VodSource.fromVodItem(item, sourceName: sourceName, quality: quality),
       ...alternatives,
     ];
   }
@@ -88,7 +88,9 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
     );
 
     final recommendations = ref.watch(vodSimilarItemsProvider(liveItem.id));
-    final quality = resolveVodQuality(item);
+    final quality = ref
+        .read(crispyBackendProvider)
+        .resolveVodQuality(item.extension, item.streamUrl);
     final isWatched =
         ref.watch(isWatchedProvider(item.streamUrl)).asData?.value ?? false;
 
@@ -189,7 +191,12 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
               SliverToBoxAdapter(
                 child: VodSourcePicker(
                   itemId: liveItem.id,
-                  sources: _buildSources(liveItem, sourceName, alternatives),
+                  sources: _buildSources(
+                    liveItem,
+                    sourceName,
+                    alternatives,
+                    quality,
+                  ),
                   onSourceSelected: (source) {
                     setState(() => _overrideStreamUrl = source.streamUrl);
                   },

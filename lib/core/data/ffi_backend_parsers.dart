@@ -593,4 +593,14 @@ mixin _FfiParsersMixin on _FfiBackendBase {
   /// Delegates to the sync Rust FFI function.
   String deriveWatchHistoryId(String url) =>
       rust_api.deriveWatchHistoryId(url: url);
+
+  // ── VOD Quality ───────────────────────────────────────
+
+  String? resolveVodQuality(String? extension, String streamUrl) =>
+      rust_api.resolveVodQuality(extension_: extension, streamUrl: streamUrl);
+
+  // ── Server URL Normalization ──────────────────────────
+
+  String normalizeServerUrl(String raw) =>
+      rust_api.normalizeServerUrl(raw: raw);
 }

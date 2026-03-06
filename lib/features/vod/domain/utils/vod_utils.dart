@@ -52,30 +52,6 @@ List<VodItem> newReleasesItems(List<VodItem> items, {int limit = 15}) =>
         .take(limit)
         .toList();
 
-/// Returns the video quality label for a [VodItem] ("4K", "HD", or null).
-///
-/// Inspects the item's [VodItem.extension] field and stream URL for
-/// quality keywords. Pure domain logic — no Flutter dependencies.
-String? resolveVodQuality(VodItem item) {
-  final ext = (item.extension ?? '').toLowerCase();
-  final url = item.streamUrl.toLowerCase();
-
-  if (ext.contains('4k') ||
-      ext.contains('uhd') ||
-      url.contains('4k') ||
-      url.contains('uhd')) {
-    return '4K';
-  }
-  if (ext.contains('hd') ||
-      ext.contains('720') ||
-      ext.contains('1080') ||
-      url.contains('1080') ||
-      url.contains('720')) {
-    return 'HD';
-  }
-  return null;
-}
-
 /// Returns the top-rated [limit] VOD items with poster art from [items].
 ///
 /// Filters for items with a parseable numeric rating and a valid HTTP

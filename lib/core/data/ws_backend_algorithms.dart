@@ -372,4 +372,15 @@ mixin _WsAlgorithmsMixin on _WsBackendBase {
   /// uses the pure-Dart SHA-256 fallback which produces identical
   /// output to the Rust `derive_watch_history_id` function.
   String deriveWatchHistoryId(String url) => dartDeriveWatchHistoryId(url);
+
+  // ── VOD Quality ───────────────────────────────────────
+
+  /// Sync — delegates to shared [dartResolveVodQuality].
+  String? resolveVodQuality(String? extension, String streamUrl) =>
+      dartResolveVodQuality(extension, streamUrl);
+
+  // ── Server URL Normalization ──────────────────────────
+
+  /// Sync — delegates to shared [dartNormalizeServerUrl].
+  String normalizeServerUrl(String raw) => dartNormalizeServerUrl(raw);
 }

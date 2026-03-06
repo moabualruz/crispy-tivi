@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/config/settings_notifier.dart';
+import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
-import 'package:crispy_tivi/core/utils/url_utils.dart';
 import 'package:crispy_tivi/core/widgets/or_divider_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';
@@ -34,14 +34,16 @@ Future<PlaylistSource> _authenticate(
 /// Does not require authentication — Emby exposes this endpoint
 /// publicly so the user can verify they have the right URL before
 /// entering credentials.
+///
+/// [url] is already normalized by [MediaServerLoginScreen] before
+/// this callback is invoked.
 Future<ServerConnectionInfo> _testConnection(String url) async {
-  final normalized = normalizeServerUrl(url);
-  final dio = Dio(BaseOptions(baseUrl: normalized));
+  final dio = Dio(BaseOptions(baseUrl: url));
   dio.options.headers['X-Emby-Authorization'] = embyAuthHeader(
     MediaServerLoginScreen.kDeviceId,
   );
 
-  final client = MediaServerApiClient(dio, baseUrl: normalized);
+  final client = MediaServerApiClient(dio, baseUrl: url);
   final info = await client.getPublicSystemInfo();
   return ServerConnectionInfo(
     serverName: info.serverName,
@@ -92,7 +94,9 @@ class _EmbyLoginScreenState extends ConsumerState<EmbyLoginScreen> {
       return;
     }
     try {
-      final normalized = normalizeServerUrl(trimmed);
+      final normalized = ref
+          .read(crispyBackendProvider)
+          .normalizeServerUrl(trimmed);
       if (normalized != _resolvedUrl) setState(() => _resolvedUrl = normalized);
     } catch (_) {
       // Not yet a valid URL — ignore until the user finishes typing.

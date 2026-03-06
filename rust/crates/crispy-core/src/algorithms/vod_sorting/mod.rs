@@ -88,7 +88,7 @@ pub struct EpisodeProgressResult {
 pub use categorize::build_vod_category_map;
 pub use filter::{
     filter_recently_added, filter_top_vod, filter_vod_by_content_rating, parse_content_rating,
-    similar_vod_items,
+    resolve_vod_quality, similar_vod_items,
 };
 pub use progress::compute_episode_progress;
 pub use sorting::sort_vod_items;
@@ -1216,6 +1216,57 @@ mod tests {
         let top = parse_vod_array(&result);
         assert_eq!(top.len(), 1);
         assert_eq!(top[0].name, "HTTPS");
+    }
+
+    // ── resolve_vod_quality ─────────────────────────
+
+    #[test]
+    fn resolve_vod_quality_4k_from_extension() {
+        assert_eq!(
+            resolve_vod_quality(Some("4k"), "http://example.com/movie"),
+            Some("4K".to_string())
+        );
+    }
+
+    #[test]
+    fn resolve_vod_quality_hd_from_url_1080() {
+        assert_eq!(
+            resolve_vod_quality(None, "http://example.com/movie_1080p.mkv"),
+            Some("HD".to_string())
+        );
+    }
+
+    #[test]
+    fn resolve_vod_quality_4k_from_url_uhd() {
+        assert_eq!(
+            resolve_vod_quality(None, "http://example.com/movie.uhd.mkv"),
+            Some("4K".to_string())
+        );
+    }
+
+    #[test]
+    fn resolve_vod_quality_none_when_no_quality_indicators() {
+        assert_eq!(
+            resolve_vod_quality(None, "http://example.com/movie.mkv"),
+            None
+        );
+    }
+
+    #[test]
+    fn resolve_vod_quality_case_insensitive_4k_in_extension() {
+        // Mixed case "4K" in extension should still return Some("4K").
+        assert_eq!(
+            resolve_vod_quality(Some("4K"), "http://example.com/movie"),
+            Some("4K".to_string())
+        );
+    }
+
+    #[test]
+    fn resolve_vod_quality_hd_from_extension_hd() {
+        assert_eq!(
+            resolve_vod_quality(Some("hd"), "http://example.com/movie"),
+            Some("HD".to_string())
+        );
     }
 
     #[test]

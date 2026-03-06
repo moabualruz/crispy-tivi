@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:crispy_tivi/config/settings_notifier.dart';
+import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
-import 'package:crispy_tivi/core/utils/url_utils.dart';
 import 'package:crispy_tivi/core/widgets/async_filled_button.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/error_sanitizer.dart';
@@ -254,7 +254,9 @@ class _MediaServerLoginScreenState
     });
 
     try {
-      final normalized = normalizeServerUrl(url);
+      final normalized = ref
+          .read(crispyBackendProvider)
+          .normalizeServerUrl(url);
       final info = await widget.testConnection!(normalized);
       if (mounted) {
         setState(() {
@@ -281,7 +283,9 @@ class _MediaServerLoginScreenState
     });
 
     try {
-      final url = normalizeServerUrl(_urlCtrl.text);
+      final url = ref
+          .read(crispyBackendProvider)
+          .normalizeServerUrl(_urlCtrl.text);
 
       final dio = Dio(BaseOptions(baseUrl: url));
       dio.options.headers['X-Emby-Authorization'] = embyAuthHeader(

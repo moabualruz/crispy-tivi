@@ -596,4 +596,17 @@ abstract class _BackendAlgorithmMethods {
   /// the URL. This is stable across platforms, isolates, and SDK
   /// versions — unlike Dart's `hashCode.toRadixString(36)`.
   String deriveWatchHistoryId(String url);
+
+  // ── VOD Quality ──────────────────────────────────────
+
+  /// Resolve a VOD item's quality label from its extension and stream URL.
+  ///
+  /// Returns `"4K"`, `"HD"`, or `null`.
+  String? resolveVodQuality(String? extension, String streamUrl);
+
+  // ── Server URL Normalization ──────────────────────────
+
+  /// Normalize a server URL: prepend `http://` if no scheme present,
+  /// strip trailing slash.
+  String normalizeServerUrl(String raw);
 }
