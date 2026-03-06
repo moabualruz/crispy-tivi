@@ -1,15 +1,19 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../core/constants.dart';
 import '../../../../core/data/cache_service.dart';
+import '../../../epg/data/epg_json_codec.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../iptv/domain/entities/channel.dart';
+import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../../profiles/data/profile_service.dart';
+import '../../../vod/domain/entities/vod_item.dart';
+import '../../../vod/presentation/providers/vod_providers.dart';
 import 'package:crispy_tivi/features/home/domain/utils/upcoming_programs.dart';
-import 'package:crispy_tivi/features/vod/domain/utils/episode_utils.dart';
-import 'package:crispy_tivi/features/vod/domain/utils/vod_utils.dart';
-import 'package:crispy_tivi/features/vod/presentation/providers/vod_providers.dart';
-import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
 
 export 'package:crispy_tivi/features/home/domain/utils/upcoming_programs.dart'
     show UpcomingProgram;
@@ -118,14 +122,35 @@ final latestVodProvider = Provider<List<VodItem>>((ref) {
   return items.reversed.take(10).toList();
 });
 
+// ── Task 5C: top10Vod → backend.filterTopVod ─────────────
+
+/// Async implementation backing [top10VodProvider].
+///
+/// Exposed for test settling — prefer [top10VodProvider] in UI code.
+final top10VodAsyncProvider = FutureProvider<List<VodItem>>((ref) async {
+  final vodState = ref.watch(vodProvider);
+  if (vodState.items.isEmpty) return const [];
+  final backend = ref.read(crispyBackendProvider);
+  final json = jsonEncode(vodState.items.map(vodItemToMap).toList());
+  final result = await backend.filterTopVod(json, 10);
+  return (jsonDecode(result) as List)
+      .cast<Map<String, dynamic>>()
+      .map(mapToVodItem)
+      .toList();
+});
+
 /// Top 10 items: highest-rated VOD items with poster art.
 ///
 /// Sorted by rating descending, capped at 10. Falls back to
 /// newest releases if no ratings are available.
+///
+/// Delegates to [backend.filterTopVod] via Rust FFI.
+/// Returns the last known value while the async call is in flight.
 final top10VodProvider = Provider<List<VodItem>>((ref) {
-  final vodState = ref.watch(vodProvider);
-  return top10Vod(vodState.items, vodState.newReleases);
+  return ref.watch(top10VodAsyncProvider).value ?? const [];
 });
+
+// ── Task 5E: resolveNextEpisodes → backend.resolveNextEpisodes ──
 
 /// Continue-watching series list with next-episode substitution.
 ///
@@ -133,16 +158,100 @@ final top10VodProvider = Provider<List<VodItem>>((ref) {
 /// >= 90% complete are replaced by their next episode so the
 /// home screen row always surfaces the episode the user
 /// should watch next.
+///
+/// Delegates to [backend.resolveNextEpisodes] via Rust FFI.
 final continueWatchingSeriesNextEpisodeProvider =
     FutureProvider<List<WatchHistoryEntry>>((ref) async {
       final seriesEntries = await ref.watch(
         continueWatchingSeriesProvider.future,
       );
+      if (seriesEntries.isEmpty) return const [];
       final vodState = ref.watch(vodProvider);
-      return resolveNextEpisodes(seriesEntries, vodState.items);
+      final backend = ref.read(crispyBackendProvider);
+      final entriesJson = jsonEncode(
+        seriesEntries.map(watchHistoryEntryToMap).toList(),
+      );
+      final vodJson = jsonEncode(vodState.items.map(vodItemToMap).toList());
+      final result = await backend.resolveNextEpisodes(
+        entriesJson,
+        vodJson,
+        kNextEpisodeThreshold,
+      );
+      return (jsonDecode(result) as List)
+          .cast<Map<String, dynamic>>()
+          .map(mapToWatchHistoryEntry)
+          .toList();
     });
 
-// ── Upcoming Programs (FE-H-07) ──────────────────────────
+// ── Task 5D: filterUpcomingPrograms → backend.filterUpcomingPrograms ──
+
+/// Async implementation backing [upcomingProgramsProvider].
+///
+/// The Rust backend returns a flat JSON array — each element contains
+/// both the channel metadata (id, name, stream_url, logo_url) and the
+/// EPG entry data (title, start_time ms, end_time ms, description?,
+/// category?). This provider reconstructs [UpcomingProgram] objects
+/// from those flat elements.
+///
+/// Exposed for test settling — prefer [upcomingProgramsProvider] in UI code.
+final upcomingProgramsAsyncProvider = FutureProvider<List<UpcomingProgram>>((
+  ref,
+) async {
+  final epgState = ref.watch(epgProvider);
+  final favoritesAsync = ref.watch(favoriteChannelsProvider);
+
+  if (epgState.entries.isEmpty) return const [];
+  final favorites = favoritesAsync.asData?.value;
+  if (favorites == null || favorites.isEmpty) return const [];
+
+  final backend = ref.read(crispyBackendProvider);
+
+  // Encode EPG entries in the epoch-ms format expected by Rust.
+  final epgMapJson = EpgJsonCodec.encode(epgState.entries);
+
+  // Encode favorite channels as JSON channel maps.
+  final favoritesJson = jsonEncode(favorites.map(channelToMap).toList());
+
+  final nowMs = DateTime.now().toUtc().millisecondsSinceEpoch;
+
+  final result = await backend.filterUpcomingPrograms(
+    epgMapJson,
+    favoritesJson,
+    nowMs,
+    120, // windowMinutes
+    20, // limit
+  );
+
+  // The Rust result is a flat array with channel + entry info embedded.
+  // Each element has: channel_id, channel_name, stream_url, logo_url?,
+  //   title, start_time (epoch ms), end_time (epoch ms),
+  //   description?, category?
+  final raw = (jsonDecode(result) as List).cast<Map<String, dynamic>>();
+
+  return raw.map((m) {
+    final channel = Channel(
+      id: m['channel_id'] as String,
+      name: m['channel_name'] as String? ?? '',
+      streamUrl: m['stream_url'] as String? ?? '',
+      logoUrl: m['logo_url'] as String?,
+    );
+    final entry = EpgEntry(
+      channelId: m['channel_id'] as String,
+      title: m['title'] as String? ?? '',
+      startTime: DateTime.fromMillisecondsSinceEpoch(
+        (m['start_time'] as num).toInt(),
+        isUtc: true,
+      ),
+      endTime: DateTime.fromMillisecondsSinceEpoch(
+        (m['end_time'] as num).toInt(),
+        isUtc: true,
+      ),
+      description: m['description'] as String?,
+      category: m['category'] as String?,
+    );
+    return UpcomingProgram(channel: channel, entry: entry);
+  }).toList();
+});
 
 /// Upcoming programmes for favorite channels within the
 /// next 120 minutes.
@@ -156,13 +265,9 @@ final continueWatchingSeriesNextEpisodeProvider =
 /// - No favorite channels are loaded.
 /// - EPG data is not loaded.
 /// - No entries fall within the look-ahead window.
+///
+/// Delegates to [backend.filterUpcomingPrograms] via Rust FFI.
+/// Returns the last known value while the async call is in flight.
 final upcomingProgramsProvider = Provider<List<UpcomingProgram>>((ref) {
-  final epgState = ref.watch(epgProvider);
-  final favoritesAsync = ref.watch(favoriteChannelsProvider);
-
-  if (epgState.entries.isEmpty) return const [];
-  final favorites = favoritesAsync.asData?.value;
-  if (favorites == null || favorites.isEmpty) return const [];
-
-  return filterUpcomingPrograms(epgState.entriesForChannel, favorites);
+  return ref.watch(upcomingProgramsAsyncProvider).value ?? const [];
 });

@@ -75,13 +75,18 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
 
   Future<String> filterTopVod(String itemsJson, int limit) async {
     final list = (jsonDecode(itemsJson) as List).cast<Map<String, dynamic>>();
+
+    // Mirrors Rust `filter_top_vod`: requires HTTP poster URL (not backdrop).
+    bool hasHttpPoster(Map<String, dynamic> i) {
+      final url = (i['poster_url'] as String? ?? '').trim();
+      return url.isNotEmpty && url.toLowerCase().startsWith('http');
+    }
+
     final rated =
         list.where((i) {
           final r = i['rating'] as String?;
           final hasRating = r != null && r.isNotEmpty;
-          final hasPoster = (i['poster_url'] as String? ?? '').isNotEmpty;
-          final hasBackdrop = (i['backdrop_url'] as String? ?? '').isNotEmpty;
-          return hasRating && (hasPoster || hasBackdrop);
+          return hasRating && hasHttpPoster(i);
         }).toList();
     rated.sort((a, b) {
       final ra = parseRatingForSort(a['rating'] as String?);
@@ -94,11 +99,22 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
     if (rated.length >= limit) {
       return jsonEncode(rated.take(limit).toList());
     }
-    final byYear = list.where((i) => i['year'] != null).toList();
+    // Fallback: combine rated + byYear (poster-filtered, excluding rated ids).
+    final ratedIds = rated.map((i) => i['id'] as String?).toSet();
+    final byYear =
+        list
+            .where(
+              (i) =>
+                  i['year'] != null &&
+                  !ratedIds.contains(i['id'] as String?) &&
+                  hasHttpPoster(i),
+            )
+            .toList();
     byYear.sort(
       (a, b) => (b['year'] as int? ?? 0).compareTo(a['year'] as int? ?? 0),
     );
-    return jsonEncode(byYear.take(limit).toList());
+    final remaining = limit - rated.length;
+    return jsonEncode([...rated, ...byYear.take(remaining)]);
   }
 
   Future<String> computeEpisodeProgress(

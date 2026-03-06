@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:crispy_tivi/core/data/cache_service.dart';
+import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/features/home/presentation/'
     'providers/home_providers.dart';
 import 'package:crispy_tivi/features/iptv/domain/entities/'
@@ -383,20 +384,24 @@ void main() {
   group('top10VodProvider', () {
     ProviderContainer createVodContainer(VodState state) {
       final c = ProviderContainer(
-        overrides: [vodProvider.overrideWith(() => _MockVodNotifier(state))],
+        overrides: [
+          vodProvider.overrideWith(() => _MockVodNotifier(state)),
+          crispyBackendProvider.overrideWithValue(MemoryBackend()),
+        ],
       );
       addTearDown(c.dispose);
       return c;
     }
 
-    test('returns empty list when no VOD items', () {
+    test('returns empty list when no VOD items', () async {
       final container = createVodContainer(VodState());
+      await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
       expect(result, isEmpty);
     });
 
-    test('returns top rated items sorted descending', () {
+    test('returns top rated items sorted descending', () async {
       final items = [
         _vodItem(id: 'v1', rating: '7.5', posterUrl: 'http://test.com/p1.jpg'),
         _vodItem(id: 'v2', rating: '9.0', posterUrl: 'http://test.com/p2.jpg'),
@@ -406,6 +411,7 @@ void main() {
       ];
 
       final container = createVodContainer(VodState(items: items));
+      await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
       expect(result.length, 5);
@@ -416,8 +422,11 @@ void main() {
       expect(result[4].id, 'v5'); // 5.5
     });
 
-    test('falls back to new releases when fewer '
-        'than 5 rated items', () {
+    test('combines rated items with new releases '
+        'when fewer than limit rated items', () async {
+      // Rust: rated=[v1(8.0),v2(7.0)] (2 items < limit 10)
+      // fallback: byYear=[v3(2026),v4(2025)] (poster-filtered)
+      // result: rated first, then byYear
       final items = [
         _vodItem(id: 'v1', rating: '8.0', posterUrl: 'http://test.com/p1.jpg'),
         _vodItem(id: 'v2', rating: '7.0', posterUrl: 'http://test.com/p2.jpg'),
@@ -426,15 +435,18 @@ void main() {
       ];
 
       final container = createVodContainer(VodState(items: items));
+      await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
       expect(result.isNotEmpty, true);
-      // newReleases sorted by year desc: v3 first
-      expect(result.first.id, 'v3');
+      // Rated items come first: v1(8.0), v2(7.0),
+      // then year-sorted: v3(2026), v4(2025).
+      expect(result.first.id, 'v1');
+      expect(result.any((r) => r.id == 'v3'), true);
     });
 
     test('excludes items without poster from '
-        'rating sort', () {
+        'rating sort', () async {
       final items = [
         _vodItem(id: 'v1', rating: '9.5', posterUrl: null),
         _vodItem(id: 'v2', rating: '8.0', posterUrl: 'http://test.com/p2.jpg'),
@@ -445,6 +457,7 @@ void main() {
       ];
 
       final container = createVodContainer(VodState(items: items));
+      await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
       expect(result.length, 5);
@@ -452,7 +465,7 @@ void main() {
       expect(result.every((r) => r.id != 'v1'), true);
     });
 
-    test('excludes items with empty rating string', () {
+    test('excludes items with empty rating string', () async {
       final items = [
         _vodItem(id: 'v1', rating: '', posterUrl: 'http://test.com/p1.jpg'),
         _vodItem(id: 'v2', rating: '8.0', posterUrl: 'http://test.com/p2.jpg'),
@@ -463,12 +476,13 @@ void main() {
       ];
 
       final container = createVodContainer(VodState(items: items));
+      await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
       expect(result.every((r) => r.id != 'v1'), true);
     });
 
-    test('caps at 10 items from rated list', () {
+    test('caps at 10 items from rated list', () async {
       final items = List.generate(
         20,
         (i) => _vodItem(
@@ -479,12 +493,15 @@ void main() {
       );
 
       final container = createVodContainer(VodState(items: items));
+      await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
       expect(result.length, 10);
     });
 
-    test('handles non-numeric rating gracefully', () {
+    test('handles non-numeric rating gracefully', () async {
+      // Non-numeric ratings are included in rated (non-empty string)
+      // but sort last (parse to NaN/NEG_INFINITY).
       final items = [
         _vodItem(
           id: 'v1',
@@ -498,15 +515,18 @@ void main() {
       ];
 
       final container = createVodContainer(VodState(items: items));
+      await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
       expect(result.length, 5);
-      // v2 (8.0) first, non-numeric parse to 0
+      // v2 (8.0) first; non-numeric values sort last
       expect(result[0].id, 'v2');
     });
 
-    test('new releases fallback excludes items '
-        'without poster', () {
+    test('fallback excludes items without poster', () async {
+      // rated=[v1(8.0,http poster)], byYear: v2(2026,null poster) excluded,
+      // v3(2025,http poster) included.
+      // result=[v1, v3] — all have poster URLs.
       final items = [
         _vodItem(id: 'v1', rating: '8.0', posterUrl: 'http://test.com/p1.jpg'),
         _vodItem(id: 'v2', year: 2026, posterUrl: null),
@@ -514,6 +534,7 @@ void main() {
       ];
 
       final container = createVodContainer(VodState(items: items));
+      await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
       expect(result.every((r) => r.posterUrl != null), true);

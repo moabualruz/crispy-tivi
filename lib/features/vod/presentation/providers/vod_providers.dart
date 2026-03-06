@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
@@ -8,7 +10,6 @@ import '../../../player/data/watch_history_service.dart';
 import '../../../profiles/data/profile_service.dart';
 import '../../domain/entities/vod_item.dart';
 import '../../domain/utils/episode_utils.dart';
-import '../../domain/utils/vod_filter_utils.dart';
 import '../../domain/utils/vod_utils.dart';
 import '../widgets/series_episode_fetcher.dart';
 import '../widgets/vod_source_picker.dart';
@@ -260,13 +261,11 @@ final lastWatchedEpisodeIdProvider = FutureProvider.family<String?, String>((
   return decodeEpisodeProgress(resultJson).lastWatchedUrl;
 });
 
-/// Filters VOD items based on active profile's
-/// content rating restrictions.
-///
-/// Uses `.select()` to only rebuild when the items
-/// list itself changes, ignoring [VodState] fields
-/// like [isLoading] or [selectedCategory].
-final filteredVodProvider = Provider.autoDispose<List<VodItem>>((ref) {
+/// Async backend call for content-rating filtering.
+/// Falls back to unfiltered items while the future is pending.
+final _filteredVodAsyncProvider = FutureProvider.autoDispose<List<VodItem>>((
+  ref,
+) async {
   final items = ref.watch(vodProvider.select((s) => s.items));
   final profileState = ref.watch(profileServiceProvider).value;
 
@@ -277,7 +276,31 @@ final filteredVodProvider = Provider.autoDispose<List<VodItem>>((ref) {
   // No restrictions for unrestricted profiles (or when no profile loaded).
   if (profile == null || !profile.isRestricted) return items;
 
-  return filterByContentRating(items, profile.ratingLevel);
+  final backend = ref.read(crispyBackendProvider);
+  final json = jsonEncode(items.map(vodItemToMap).toList());
+  final result = await backend.filterVodByContentRating(
+    json,
+    profile.ratingLevel.value,
+  );
+  return (jsonDecode(result) as List)
+      .cast<Map<String, dynamic>>()
+      .map(mapToVodItem)
+      .toList();
+});
+
+/// Filters VOD items based on active profile's
+/// content rating restrictions.
+///
+/// Uses `.select()` to only rebuild when the items
+/// list itself changes, ignoring [VodState] fields
+/// like [isLoading] or [selectedCategory].
+///
+/// Stays synchronous for downstream providers by using
+/// [_filteredVodAsyncProvider] internally and falling back
+/// to unfiltered items while the async filter is pending.
+final filteredVodProvider = Provider.autoDispose<List<VodItem>>((ref) {
+  return ref.watch(_filteredVodAsyncProvider).value ??
+      ref.watch(vodProvider.select((s) => s.items));
 });
 
 /// Filtered movies only.
@@ -312,16 +335,50 @@ final favoriteMoviesProvider = Provider.autoDispose<List<VodItem>>((ref) {
 //  Recently Added Providers (Delta Sync Tracking)
 // ══════════════════════════════════════════════════════════════════
 
+/// Async backend call for recently-added movies.
+final _recentlyAddedMoviesAsyncProvider =
+    FutureProvider.autoDispose<List<VodItem>>((ref) async {
+      final items = ref.watch(filteredMoviesProvider);
+      if (items.isEmpty) return [];
+      final backend = ref.read(crispyBackendProvider);
+      final json = jsonEncode(items.map(vodItemToMap).toList());
+      final result = await backend.filterRecentlyAdded(
+        json,
+        kRecentlyAddedDays,
+        DateTime.now().millisecondsSinceEpoch,
+      );
+      return (jsonDecode(result) as List)
+          .cast<Map<String, dynamic>>()
+          .map(mapToVodItem)
+          .toList();
+    });
+
 /// Movies added in the last [kRecentlyAddedDays] days.
 final recentlyAddedMoviesProvider = Provider.autoDispose<List<VodItem>>((ref) {
-  final items = ref.watch(filteredMoviesProvider);
-  return filterRecentlyAdded(items);
+  return ref.watch(_recentlyAddedMoviesAsyncProvider).value ?? [];
 });
+
+/// Async backend call for recently-added series.
+final _recentlyAddedSeriesAsyncProvider =
+    FutureProvider.autoDispose<List<VodItem>>((ref) async {
+      final items = ref.watch(filteredSeriesProvider);
+      if (items.isEmpty) return [];
+      final backend = ref.read(crispyBackendProvider);
+      final json = jsonEncode(items.map(vodItemToMap).toList());
+      final result = await backend.filterRecentlyAdded(
+        json,
+        kRecentlyAddedDays,
+        DateTime.now().millisecondsSinceEpoch,
+      );
+      return (jsonDecode(result) as List)
+          .cast<Map<String, dynamic>>()
+          .map(mapToVodItem)
+          .toList();
+    });
 
 /// Series added in the last [kRecentlyAddedDays] days.
 final recentlyAddedSeriesProvider = Provider.autoDispose<List<VodItem>>((ref) {
-  final items = ref.watch(filteredSeriesProvider);
-  return filterRecentlyAdded(items);
+  return ref.watch(_recentlyAddedSeriesAsyncProvider).value ?? [];
 });
 
 /// All recently added items (movies + series) sorted by addedAt.
@@ -368,21 +425,39 @@ final isWatchedProvider = FutureProvider.family.autoDispose<bool, String>((
 /// Number of days a series update is considered "new" for badge display.
 const kNewEpisodesDays = 14;
 
+/// Async backend call for series with new episodes.
+final _seriesWithNewEpisodesAsyncProvider =
+    FutureProvider.autoDispose<Set<String>>((ref) async {
+      final series = ref.watch(filteredSeriesProvider);
+      if (series.isEmpty) return {};
+      final backend = ref.read(crispyBackendProvider);
+      final seriesJson = jsonEncode(
+        series
+            .map(
+              (s) => {
+                'id': s.id,
+                'updated_at': s.updatedAt?.millisecondsSinceEpoch,
+              },
+            )
+            .toList(),
+      );
+      final result = await backend.seriesIdsWithNewEpisodes(
+        seriesJson,
+        kNewEpisodesDays,
+        DateTime.now().millisecondsSinceEpoch,
+      );
+      return (jsonDecode(result) as List).cast<String>().toSet();
+    });
+
 /// Returns the set of series item IDs that have been updated within
 /// the last [kNewEpisodesDays] days.
 ///
 /// Heuristic: if [VodItem.updatedAt] is more recent than the cutoff, the
 /// series likely has new episodes since the playlist was last synced.
-/// This requires no backend call — it operates purely on the in-memory
-/// [VodState.series] list.
 ///
 /// The set rebuilds only when the series list changes.
 final seriesWithNewEpisodesProvider = Provider.autoDispose<Set<String>>((ref) {
-  final series = ref.watch(filteredSeriesProvider);
-  return seriesIdsWithNewEpisodes(
-    series.map((s) => (id: s.id, updatedAt: s.updatedAt)).toList(),
-    days: kNewEpisodesDays,
-  );
+  return ref.watch(_seriesWithNewEpisodesAsyncProvider).value ?? {};
 });
 
 /// Same-category recommendations for a given VOD item.

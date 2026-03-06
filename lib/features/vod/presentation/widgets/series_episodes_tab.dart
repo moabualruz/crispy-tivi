@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -235,7 +237,12 @@ class _SeriesEpisodesTabState extends ConsumerState<SeriesEpisodesTab> {
 
   Widget _seasonSelector() {
     final allEpisodes = widget.episodesAsync.value?.episodes ?? [];
-    final countBySeason = episodeCountBySeason(allEpisodes);
+    final backend = ref.read(crispyBackendProvider);
+    final episodesJson = jsonEncode(allEpisodes.map(vodItemToMap).toList());
+    final resultJson = backend.episodeCountBySeason(episodesJson);
+    final countBySeason = (jsonDecode(resultJson) as Map<String, dynamic>).map(
+      (k, v) => MapEntry(int.parse(k), v as int),
+    );
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),
