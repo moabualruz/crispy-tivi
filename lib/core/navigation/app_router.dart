@@ -111,16 +111,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: kDebugMode,
     refreshListenable: Listenable.merge([profileRefresh, settingsRefresh]),
     redirect: (context, state) {
-      // Read profile state on-demand (not watch) so the router
-      // is not rebuilt when profile changes.
-      final profileAsync = ref.read(profileServiceProvider);
-      if (profileAsync.isLoading) return null;
-      // BUG-10: errors must redirect to profiles, not pass through
-      if (profileAsync.hasError) return AppRoutes.profiles;
-
-      // Wait for settings to finish loading before redirecting
-      final settingsAsync = ref.read(settingsNotifierProvider);
-      if (settingsAsync.isLoading) return null;
+      // appStartupProvider guarantees settings + profiles are
+      // loaded before the router is first constructed.
+      // On re-invalidation (event bus), providers may briefly
+      // enter loading — return null to keep current route.
+      final profileState = ref.read(profileServiceProvider).value;
+      final settings = ref.read(settingsNotifierProvider).value;
+      if (profileState == null || settings == null) return null;
 
       final path = state.matchedLocation;
 
@@ -134,19 +131,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         final isExplicit =
             state.extra is Map<String, dynamic> &&
             (state.extra as Map<String, dynamic>)['explicit'] == true;
-        final profiles = profileAsync.value?.profiles ?? [];
+        final profiles = profileState.profiles;
         if (!isExplicit && profiles.length == 1 && !profiles.first.hasPIN) {
           // The single profile is already active (ProfileService.build
           // sets activeProfileId to profiles.first.id). Just redirect
           // to the user's preferred default screen — no state mutation
           // inside the redirect to avoid refreshListenable re-entrancy.
-          final defaultScreen = settingsAsync.value?.defaultScreen ?? 'home';
+          final defaultScreen = settings.defaultScreen;
           return defaultScreen == 'live_tv' ? AppRoutes.tv : AppRoutes.home;
         }
       }
 
       // Navigation guards for role-based access
-      final profile = profileAsync.value?.activeProfile;
+      final profile = profileState.activeProfile;
       if (profile != null) {
         // Admin-only routes
         if (path == AppRoutes.profileManagement && !profile.isAdmin) {
@@ -161,17 +158,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
       // ── Onboarding guard ──
       // Block all non-onboarding routes when no sources configured.
-      final hasSources = settingsAsync.value?.sources.isNotEmpty ?? true;
+      final hasSources = settings.sources.isNotEmpty;
       final isOnboarding = path == AppRoutes.onboarding;
       final isProfiles = path == AppRoutes.profiles;
 
       if (!hasSources && !isOnboarding && !isProfiles) {
-        if (profileAsync.value?.activeProfile != null) {
+        if (profile != null) {
           return AppRoutes.onboarding;
         }
       }
       if (hasSources && isOnboarding) {
-        final defaultScreen = settingsAsync.value?.defaultScreen ?? 'home';
+        final defaultScreen = settings.defaultScreen;
         return defaultScreen == 'live_tv' ? AppRoutes.tv : AppRoutes.home;
       }
 

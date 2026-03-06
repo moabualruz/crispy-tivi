@@ -13,8 +13,10 @@ import 'package:media_kit/media_kit.dart';
 import 'config/app_config.dart';
 import 'config/settings_notifier.dart';
 import 'core/data/app_directories.dart';
+import 'core/data/app_startup_provider.dart';
 import 'core/navigation/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/crispy_animation.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/utils/device_form_factor.dart';
 import 'core/utils/input_mode_notifier.dart';
@@ -23,9 +25,9 @@ import 'core/data/event_driven_invalidator.dart';
 import 'core/data/ffi_backend.dart';
 import 'core/data/ws_backend.dart';
 import 'core/utils/timezone_utils.dart';
-import 'core/widgets/loading_state_widget.dart';
 import 'core/widgets/responsive_layout.dart';
 import 'core/widgets/smart_image.dart';
+import 'core/widgets/splash_screen.dart';
 import 'core/widgets/ui_auto_scale.dart';
 import 'features/iptv/application/playlist_sync_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -236,11 +238,11 @@ class _CrispyTiviAppState extends ConsumerState<CrispyTiviApp>
     super.initState();
     windowManager.addListener(this);
 
-    // Restore cached data + sync from network on startup.
-    // Defer 500ms so the first frames render without
-    // competing with sync for CPU.
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
+    // Start sync once the startup provider has resolved.
+    // No artificial delay — the splash screen already
+    // covers the initial frames.
+    ref.listenManual(appStartupProvider, (prev, next) {
+      if (next.hasValue && mounted) {
         ref.read(playlistSyncServiceProvider).syncAll();
       }
     });
@@ -284,97 +286,102 @@ class _CrispyTiviAppState extends ConsumerState<CrispyTiviApp>
     // Activate event-driven provider invalidation.
     ref.watch(eventDrivenInvalidatorProvider);
 
-    final settingsAsync = ref.watch(settingsNotifierProvider);
+    final startupAsync = ref.watch(appStartupProvider);
+
+    return AnimatedSwitcher(
+      duration: CrispyAnimation.normal,
+      switchInCurve: CrispyAnimation.enterCurve,
+      child: startupAsync.when(
+        loading: () => const SplashScreen(),
+        error:
+            (error, stack) => MaterialApp(
+              debugShowCheckedModeBanner: false,
+              home: Scaffold(body: Center(child: Text('Config error: $error'))),
+            ),
+        data: (_) => _buildApp(context),
+      ),
+    );
+  }
+
+  Widget _buildApp(BuildContext context) {
+    final settings = ref.watch(settingsNotifierProvider).requireValue;
     final themeState = ref.watch(themeProvider);
     final router = ref.watch(goRouterProvider);
 
-    return settingsAsync.when(
-      loading:
-          () => const MaterialApp(home: Scaffold(body: LoadingStateWidget())),
-      error:
-          (error, stack) => MaterialApp(
-            home: Scaffold(body: Center(child: Text('Config error: $error'))),
-          ),
-      data: (settings) {
-        final appTheme = AppTheme.fromThemeState(themeState);
+    final appTheme = AppTheme.fromThemeState(themeState);
 
-        // Apply visual density from theme settings.
-        final darkThemeData = appTheme.theme.copyWith(
-          visualDensity: themeState.density.visualDensity,
-        );
+    // Apply visual density from theme settings.
+    final darkThemeData = appTheme.theme.copyWith(
+      visualDensity: themeState.density.visualDensity,
+    );
 
-        // Light theme — standard M3 light palette using the same seed.
-        final lightThemeData = ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: themeState.primaryColor),
-          visualDensity: themeState.density.visualDensity,
-        );
+    // Light theme — standard M3 light palette using the same seed.
+    final lightThemeData = ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(seedColor: themeState.primaryColor),
+      visualDensity: themeState.density.visualDensity,
+    );
 
-        return InputModeDetector(
-          child: MaterialApp.router(
-            title: settings.config.appName,
-            debugShowCheckedModeBanner: false,
-            theme: lightThemeData,
-            darkTheme: darkThemeData,
-            themeMode: ThemeMode.dark,
-            routerConfig: router,
-            builder: (context, child) {
-              // Fallback orientation lock: if PlatformDispatcher
-              // reported 0×0 at startup, lock here on first build.
-              if (!_orientationLocked && context.isPhoneFormFactor) {
-                _orientationLocked = true;
-                SystemChrome.setPreferredOrientations([
-                  DeviceOrientation.landscapeLeft,
-                  DeviceOrientation.landscapeRight,
-                ]);
-              }
+    return InputModeDetector(
+      child: MaterialApp.router(
+        title: settings.config.appName,
+        debugShowCheckedModeBanner: false,
+        theme: lightThemeData,
+        darkTheme: darkThemeData,
+        themeMode: ThemeMode.dark,
+        routerConfig: router,
+        builder: (context, child) {
+          // Fallback orientation lock: if PlatformDispatcher
+          // reported 0×0 at startup, lock here on first build.
+          if (!_orientationLocked && context.isPhoneFormFactor) {
+            _orientationLocked = true;
+            SystemChrome.setPreferredOrientations([
+              DeviceOrientation.landscapeLeft,
+              DeviceOrientation.landscapeRight,
+            ]);
+          }
 
-              // Compute auto-scale for 1440p+ screens, then apply
-              // text scale from theme settings.
-              final mq = MediaQuery.of(context);
-              final autoScale = computeUiAutoScale(
-                mq.size.height,
-                mq.devicePixelRatio,
-              );
-              final scaledSize =
-                  autoScale > 1.0
-                      ? Size(
-                        mq.size.width / autoScale,
-                        mq.size.height / autoScale,
-                      )
-                      : mq.size;
+          // Compute auto-scale for 1440p+ screens, then apply
+          // text scale from theme settings.
+          final mq = MediaQuery.of(context);
+          final autoScale = computeUiAutoScale(
+            mq.size.height,
+            mq.devicePixelRatio,
+          );
+          final scaledSize =
+              autoScale > 1.0
+                  ? Size(mq.size.width / autoScale, mq.size.height / autoScale)
+                  : mq.size;
 
-              final scaledData = mq.copyWith(
-                textScaler: TextScaler.linear(themeState.textScale),
-                size: scaledSize,
-                devicePixelRatio:
-                    autoScale > 1.0 ? mq.devicePixelRatio * autoScale : null,
-              );
+          final scaledData = mq.copyWith(
+            textScaler: TextScaler.linear(themeState.textScale),
+            size: scaledSize,
+            devicePixelRatio:
+                autoScale > 1.0 ? mq.devicePixelRatio * autoScale : null,
+          );
 
-              Widget result = child ?? const SizedBox.shrink();
+          Widget result = child ?? const SizedBox.shrink();
 
-              // Apply true scaling for high-res displays
-              if (autoScale > 1.0) {
-                result = FractionallySizedBox(
-                  widthFactor: 1 / autoScale,
-                  heightFactor: 1 / autoScale,
-                  alignment: Alignment.topLeft,
-                  child: Transform.scale(
-                    scale: autoScale,
-                    alignment: Alignment.topLeft,
-                    child: result,
-                  ),
-                );
-              }
-
-              return UiAutoScale(
+          // Apply true scaling for high-res displays
+          if (autoScale > 1.0) {
+            result = FractionallySizedBox(
+              widthFactor: 1 / autoScale,
+              heightFactor: 1 / autoScale,
+              alignment: Alignment.topLeft,
+              child: Transform.scale(
                 scale: autoScale,
-                child: MediaQuery(data: scaledData, child: result),
-              );
-            },
-          ),
-        );
-      },
+                alignment: Alignment.topLeft,
+                child: result,
+              ),
+            );
+          }
+
+          return UiAutoScale(
+            scale: autoScale,
+            child: MediaQuery(data: scaledData, child: result),
+          );
+        },
+      ),
     );
   }
 }
