@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/providers/source_filter_provider.dart';
 import '../../data/parsers/m3u_parser.dart';
 import '../../domain/entities/channel.dart';
 import '../../domain/utils/epg_search.dart';
@@ -18,6 +19,9 @@ export 'channel_list_state.dart';
 class ChannelListNotifier extends Notifier<ChannelListState> {
   @override
   ChannelListState build() {
+    // Rebuild when source filter changes.
+    ref.watch(effectiveSourceIdsProvider);
+
     // Listen to favorites changes and update
     // local state.
     ref.listen(favoritesControllerProvider, (prev, next) {
@@ -154,7 +158,11 @@ class ChannelListNotifier extends Notifier<ChannelListState> {
   /// channel data changes (e.g. [ChannelsUpdated]).
   Future<void> refreshFromBackend() async {
     final cache = ref.read(cacheServiceProvider);
-    final channels = await cache.loadChannels();
+    final sourceIds = ref.read(effectiveSourceIdsProvider);
+    final channels =
+        sourceIds.isEmpty
+            ? await cache.loadChannels()
+            : await cache.getChannelsBySources(sourceIds);
     final groups = await cache.extractSortedGroups(channels);
     loadChannels(channels, groups);
   }

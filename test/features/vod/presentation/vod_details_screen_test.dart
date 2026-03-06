@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
+import 'package:crispy_tivi/core/providers/source_filter_provider.dart';
 import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/vod_favorites_provider.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/vod_providers.dart';
@@ -68,6 +69,7 @@ void main() {
         overrides: [
           crispyBackendProvider.overrideWithValue(testBackend),
           vodFavoritesProvider.overrideWith(_TestVodFavoritesController.new),
+          effectiveSourceIdsProvider.overrideWithValue(const []),
         ],
         child: MaterialApp.router(routerConfig: router),
       ),

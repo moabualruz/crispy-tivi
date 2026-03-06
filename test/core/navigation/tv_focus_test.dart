@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
+import 'package:crispy_tivi/core/providers/source_filter_provider.dart';
 import 'package:crispy_tivi/config/app_config.dart';
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/features/recommendations/domain/entities/recommendation.dart';
@@ -130,6 +131,7 @@ void main() {
           continueWatchingSeriesProvider.overrideWith(
             (ref) => Future.value([]),
           ),
+          effectiveSourceIdsProvider.overrideWithValue(const []),
         ],
         child: MaterialApp(home: const VodBrowserScreen()),
       ),

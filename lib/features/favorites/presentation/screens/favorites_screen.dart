@@ -6,6 +6,7 @@ import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
+import '../../../../core/widgets/source_selector_bar.dart';
 import '../providers/favorites_history_provider.dart';
 import 'favorites_continue_watching.dart';
 import 'favorites_my_list.dart';
@@ -81,15 +82,22 @@ class HistoryScreen extends ConsumerWidget {
               ),
           ],
         ),
-        body: FocusTraversalGroup(
-          child: TabBarView(
-            children: [
-              const MyFavoritesTab(),
-              RecentlyWatchedTab(state: state),
-              const ContinueWatchingTab(),
-              const UpNextTab(),
-            ],
-          ),
+        body: Column(
+          children: [
+            const SourceSelectorBar(),
+            Expanded(
+              child: FocusTraversalGroup(
+                child: TabBarView(
+                  children: [
+                    const MyFavoritesTab(),
+                    RecentlyWatchedTab(state: state),
+                    const ContinueWatchingTab(),
+                    const UpNextTab(),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

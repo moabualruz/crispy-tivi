@@ -9,6 +9,7 @@ import '../../../../core/data/cache_service.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/genre_pill_row.dart';
+import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../recommendations/presentation/providers/recommendation_providers.dart';
@@ -178,6 +179,8 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
             onShuffle: () => _onShuffle(movies),
           ),
         ),
+        // Source filter bar (hidden when ≤1 source).
+        const SliverToBoxAdapter(child: SourceSelectorBar()),
         if (!isSearchOrCategory)
           ...cw.when(
             data:

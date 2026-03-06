@@ -15,6 +15,7 @@ import '../../../../core/widgets/responsive_layout.dart';
 import '../../application/duplicate_detection_service.dart';
 import '../../domain/entities/channel.dart';
 import '../providers/channel_providers.dart';
+import '../../../../core/widgets/source_selector_bar.dart';
 import '../widgets/channel_genre_chips_sliver.dart';
 import '../widgets/channel_grid_sliver.dart';
 import '../widgets/channel_group_row.dart';
@@ -244,6 +245,8 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
           ],
         ),
         ..._searchAndResume(s),
+        // Source filter bar (hidden when ≤1 source).
+        const SliverToBoxAdapter(child: SourceSelectorBar()),
         // FE-TV-09: genre filter chips — hidden while search bar is open.
         if (!_showSearchBar) const ChannelGenreChipsSliver(),
         // Recent channels strip — only in default (unfiltered) mode.

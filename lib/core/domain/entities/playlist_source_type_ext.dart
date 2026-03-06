@@ -12,7 +12,9 @@ extension PlaylistSourceTypeUi on PlaylistSourceType {
     PlaylistSourceType.jellyfin => Icons.dns_rounded,
     PlaylistSourceType.emby => Icons.cast_connected_rounded,
     PlaylistSourceType.plex => Icons.play_circle_outline_rounded,
-    _ => Icons.storage_rounded,
+    PlaylistSourceType.m3u => Icons.playlist_play_rounded,
+    PlaylistSourceType.xtream => Icons.live_tv_rounded,
+    PlaylistSourceType.stalkerPortal => Icons.router_rounded,
   };
 
   /// Returns the human-readable label for this server type.
@@ -20,6 +22,8 @@ extension PlaylistSourceTypeUi on PlaylistSourceType {
     PlaylistSourceType.jellyfin => 'Jellyfin',
     PlaylistSourceType.emby => 'Emby',
     PlaylistSourceType.plex => 'Plex',
-    _ => 'Server',
+    PlaylistSourceType.m3u => 'M3U',
+    PlaylistSourceType.xtream => 'Xtream',
+    PlaylistSourceType.stalkerPortal => 'Stalker',
   };
 }

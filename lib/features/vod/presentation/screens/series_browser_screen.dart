@@ -10,6 +10,7 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../../core/widgets/content_badge.dart';
 import '../../../../core/widgets/genre_pill_row.dart';
+import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../domain/entities/vod_item.dart';
@@ -173,6 +174,9 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
             onSortChanged: onSortOptionChanged,
           ),
         ),
+
+        // Source filter bar (hidden when ≤1 source).
+        const SliverToBoxAdapter(child: SourceSelectorBar()),
 
         // T10: Featured series hero banner (hidden during search/filter).
         if (!isSearchOrCategory && allSeries.isNotEmpty)

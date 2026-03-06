@@ -11,6 +11,7 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/error_state_widget.dart';
+import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
@@ -384,6 +385,9 @@ class _SearchBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // Source filter bar (hidden when ≤1 source).
+        const SourceSelectorBar(),
+
         // Content type filter chips.
         ContentTypeFilterRow(
           filter: state.filter,

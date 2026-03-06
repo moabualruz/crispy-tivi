@@ -8,6 +8,7 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/error_state_widget.dart';
+import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/group_sidebar.dart';
 import '../../../../core/widgets/responsive_layout.dart';
@@ -331,6 +332,8 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
     return Column(
       children: [
         SizedBox(height: appBar.preferredSize.height, child: appBar),
+        // Source filter bar (hidden when ≤1 source).
+        const SourceSelectorBar(),
         // FE-EPG-10: "What's On Now" summary row (day view only).
         if (state.viewMode == EpgViewMode.day)
           EpgWhatsOnNowRow(onChannelTap: _scrollToChannel),

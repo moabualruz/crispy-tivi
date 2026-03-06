@@ -6,6 +6,7 @@ import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
+import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../../vod/presentation/widgets/vod_hero_banner.dart';
 import '../widgets/home_sections.dart';
@@ -41,6 +42,9 @@ class HomeScreen extends ConsumerWidget {
       body: FocusTraversalGroup(
         child: CustomScrollView(
           slivers: [
+            // 0. Source filter bar (hidden when ≤1 source)
+            const SliverToBoxAdapter(child: SourceSelectorBar()),
+
             // 1. Hero Banner
             if (featuredItems.isNotEmpty)
               SliverToBoxAdapter(

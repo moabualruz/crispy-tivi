@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/providers/source_filter_provider.dart';
 import '../../../dvr/domain/utils/dvr_payload.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../profiles/data/profile_service.dart';
@@ -113,6 +114,9 @@ class VodNotifier extends Notifier<VodState> {
   VodState build() {
     ref.onDispose(() => _disposed = true);
 
+    // Rebuild when source filter changes.
+    ref.watch(effectiveSourceIdsProvider);
+
     // Sync isFavorite flags when profile favorites change.
     ref.listen(vodFavoritesProvider, (_, next) {
       final favIds = next.asData?.value;
@@ -167,7 +171,11 @@ class VodNotifier extends Notifier<VodState> {
   /// VOD data changes (e.g. [VodUpdated]).
   Future<void> refreshFromBackend() async {
     final cache = ref.read(cacheServiceProvider);
-    final items = await cache.loadVodItems();
+    final sourceIds = ref.read(effectiveSourceIdsProvider);
+    final items =
+        sourceIds.isEmpty
+            ? await cache.loadVodItems()
+            : await cache.getVodBySources(sourceIds);
     if (_disposed) return;
     loadData(items);
     // db_vod_items.is_favorite is reset by playlist syncs
