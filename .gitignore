@@ -42,6 +42,9 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Pre-built Rust .so binaries (built by CI / local build scripts)
+/android/app/src/main/jniLibs/
+
 # Playwright
 /e2e/playwright/node_modules
 /e2e/playwright/test-results
@@ -51,8 +54,8 @@ app.*.map.json
 # Test output artifacts (NOT committed, but agents read them)
 # Golden test failure diffs — review with Read tool
 /test/golden/failures/
-# E2E report screenshots — review with Read tool
-/e2e/reports/screenshots/
+# E2E reports — crawl logs, screenshots, QA reports
+/e2e/reports/
 # Analysis output
 /analysis.txt
 logs/
