@@ -168,6 +168,63 @@ impl CrispyService {
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
+    /// Find VOD items from other sources with the same title and year.
+    ///
+    /// Uses case-insensitive exact name match (LOWER + TRIM) to avoid
+    /// false positives. Results are ordered by source priority
+    /// (lower `sort_order` = higher priority).
+    pub fn find_vod_alternatives(
+        &self,
+        name: &str,
+        year: Option<i32>,
+        exclude_id: &str,
+        limit: usize,
+    ) -> Result<Vec<VodItem>, DbError> {
+        let conn = self.db.get()?;
+        let name_lower = name.to_lowercase().trim().to_string();
+        let mut stmt = conn.prepare(
+            "SELECT
+                v.id, v.name, v.stream_url, v.type,
+                v.poster_url, v.backdrop_url,
+                v.description, v.rating, v.year,
+                v.duration, v.category, v.series_id,
+                v.season_number, v.episode_number,
+                v.ext, v.is_favorite, v.added_at,
+                v.updated_at, v.source_id
+            FROM db_vod_items v
+            LEFT JOIN db_sources s ON s.id = v.source_id
+            WHERE LOWER(TRIM(v.name)) = ?1
+              AND (?2 IS NULL OR v.year = ?2)
+              AND v.id != ?3
+            ORDER BY COALESCE(s.sort_order, 999), v.name
+            LIMIT ?4",
+        )?;
+        let rows = stmt.query_map(params![name_lower, year, exclude_id, limit as i64], |row| {
+            Ok(VodItem {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                stream_url: row.get(2)?,
+                item_type: row.get(3)?,
+                poster_url: row.get(4)?,
+                backdrop_url: row.get(5)?,
+                description: row.get(6)?,
+                rating: row.get(7)?,
+                year: row.get(8)?,
+                duration: row.get(9)?,
+                category: row.get(10)?,
+                series_id: row.get(11)?,
+                season_number: row.get(12)?,
+                episode_number: row.get(13)?,
+                ext: row.get(14)?,
+                is_favorite: int_to_bool(row.get(15)?),
+                added_at: opt_ts_to_dt(row.get(16)?),
+                updated_at: opt_ts_to_dt(row.get(17)?),
+                source_id: row.get(18)?,
+            })
+        })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
     /// Delete VOD items from `source_id` not in
     /// `keep_ids`. Returns count deleted.
     pub fn delete_removed_vod_items(
@@ -352,6 +409,139 @@ mod tests {
         let last = recorded.last().unwrap();
         assert!(last.contains("VodFavoriteToggled"), "{last}");
         assert!(last.contains("\"is_favorite\":true"), "{last}");
+    }
+
+    #[test]
+    fn find_vod_alternatives_returns_matches() {
+        let svc = make_service();
+        let mut src_a = make_source("src_a", "Source A", "m3u");
+        src_a.sort_order = 0;
+        let mut src_b = make_source("src_b", "Source B", "m3u");
+        src_b.sort_order = 1;
+        svc.save_source(&src_a).unwrap();
+        svc.save_source(&src_b).unwrap();
+
+        let mut v1 = make_vod_item("v1", "Dune");
+        v1.year = Some(2021);
+        v1.source_id = Some("src_a".to_string());
+        let mut v2 = make_vod_item("v2", "Dune");
+        v2.year = Some(2021);
+        v2.source_id = Some("src_b".to_string());
+        svc.save_vod_items(&[v1, v2]).unwrap();
+
+        let result = svc
+            .find_vod_alternatives("Dune", Some(2021), "v1", 10)
+            .unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id, "v2");
+    }
+
+    #[test]
+    fn find_vod_alternatives_excludes_self() {
+        let svc = make_service();
+        let src = make_source("src_a", "Source A", "m3u");
+        svc.save_source(&src).unwrap();
+
+        let mut v1 = make_vod_item("v1", "Dune");
+        v1.year = Some(2021);
+        v1.source_id = Some("src_a".to_string());
+        svc.save_vod_items(&[v1]).unwrap();
+
+        let result = svc
+            .find_vod_alternatives("Dune", Some(2021), "v1", 10)
+            .unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn find_vod_alternatives_year_mismatch() {
+        let svc = make_service();
+        let mut src_a = make_source("src_a", "Source A", "m3u");
+        src_a.sort_order = 0;
+        let mut src_b = make_source("src_b", "Source B", "m3u");
+        src_b.sort_order = 1;
+        svc.save_source(&src_a).unwrap();
+        svc.save_source(&src_b).unwrap();
+
+        let mut v1 = make_vod_item("v1", "Dune");
+        v1.year = Some(2021);
+        v1.source_id = Some("src_a".to_string());
+        let mut v2 = make_vod_item("v2", "Dune");
+        v2.year = Some(2024);
+        v2.source_id = Some("src_b".to_string());
+        svc.save_vod_items(&[v1, v2]).unwrap();
+
+        // Filtering by 2021 should not include the 2024 item.
+        let result = svc
+            .find_vod_alternatives("Dune", Some(2021), "v1", 10)
+            .unwrap();
+        assert!(result.is_empty(), "expected no results, got: {result:?}");
+    }
+
+    #[test]
+    fn find_vod_alternatives_nil_year_matches_any() {
+        let svc = make_service();
+        let mut src_a = make_source("src_a", "Source A", "m3u");
+        src_a.sort_order = 0;
+        let mut src_b = make_source("src_b", "Source B", "m3u");
+        src_b.sort_order = 1;
+        let mut src_c = make_source("src_c", "Source C", "m3u");
+        src_c.sort_order = 2;
+        svc.save_source(&src_a).unwrap();
+        svc.save_source(&src_b).unwrap();
+        svc.save_source(&src_c).unwrap();
+
+        let mut v1 = make_vod_item("v1", "Dune");
+        v1.year = None;
+        v1.source_id = Some("src_a".to_string());
+        let mut v2 = make_vod_item("v2", "Dune");
+        v2.year = Some(2021);
+        v2.source_id = Some("src_b".to_string());
+        let mut v3 = make_vod_item("v3", "Dune");
+        v3.year = Some(2024);
+        v3.source_id = Some("src_c".to_string());
+        svc.save_vod_items(&[v1, v2, v3]).unwrap();
+
+        // None year filter => all same-name items except v1 itself.
+        let result = svc.find_vod_alternatives("Dune", None, "v1", 10).unwrap();
+        assert_eq!(result.len(), 2);
+        let ids: Vec<&str> = result.iter().map(|v| v.id.as_str()).collect();
+        assert!(ids.contains(&"v2"));
+        assert!(ids.contains(&"v3"));
+    }
+
+    #[test]
+    fn find_vod_alternatives_ordered_by_priority() {
+        let svc = make_service();
+        let mut src_a = make_source("src_a", "Source A", "m3u");
+        src_a.sort_order = 5;
+        let mut src_b = make_source("src_b", "Source B", "m3u");
+        src_b.sort_order = 0;
+        let mut src_c = make_source("src_c", "Source C", "m3u");
+        src_c.sort_order = 10;
+        svc.save_source(&src_a).unwrap();
+        svc.save_source(&src_b).unwrap();
+        svc.save_source(&src_c).unwrap();
+
+        let mut v1 = make_vod_item("v1", "Inception");
+        v1.year = Some(2010);
+        v1.source_id = Some("src_a".to_string());
+        let mut v2 = make_vod_item("v2", "Inception");
+        v2.year = Some(2010);
+        v2.source_id = Some("src_b".to_string());
+        let mut v3 = make_vod_item("v3", "Inception");
+        v3.year = Some(2010);
+        v3.source_id = Some("src_c".to_string());
+        svc.save_vod_items(&[v1, v2, v3]).unwrap();
+
+        // Exclude v1 (sort_order=5). Remaining: v2 (sort_order=0), v3 (sort_order=10).
+        // Expected order: v2 first (sort_order=0), v3 last (sort_order=10).
+        let result = svc
+            .find_vod_alternatives("Inception", Some(2010), "v1", 10)
+            .unwrap();
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].id, "v2", "v2 (sort_order=0) should be first");
+        assert_eq!(result[1].id, "v3", "v3 (sort_order=10) should be second");
     }
 
     #[test]

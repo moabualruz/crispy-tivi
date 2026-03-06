@@ -80,4 +80,23 @@ mixin _MemoryVodMixin on _MemoryStorage {
       item['is_favorite'] = isFavorite;
     }
   }
+
+  Future<List<Map<String, dynamic>>> findVodAlternatives(
+    String name,
+    int year,
+    String excludeId,
+    int limit,
+  ) async {
+    final lowerName = name.toLowerCase().trim();
+    return vodItems.values
+        .where((v) {
+          if (v['id'] == excludeId) return false;
+          final vName = (v['name'] as String?)?.toLowerCase().trim() ?? '';
+          if (vName != lowerName) return false;
+          if (year > 0 && v['year'] != year) return false;
+          return true;
+        })
+        .take(limit)
+        .toList();
+  }
 }

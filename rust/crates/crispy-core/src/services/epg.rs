@@ -11,16 +11,71 @@ impl CrispyService {
     // ── EPG ─────────────────────────────────────────
 
     /// Batch upsert EPG entries grouped by channel.
-    /// Returns total count inserted.
+    ///
+    /// Entries from higher-priority sources (lower `sort_order` in
+    /// `db_sources`) take precedence over lower-priority ones for
+    /// the same `(channel_id, start_time)` slot. Sources with no
+    /// matching row in `db_sources` are treated as lowest priority
+    /// (effective `sort_order` = 999).
+    ///
+    /// Returns total count actually inserted/replaced.
     pub fn save_epg_entries(
         &self,
         entries: &HashMap<String, Vec<EpgEntry>>,
     ) -> Result<usize, DbError> {
         let conn = self.db.get()?;
         let tx = conn.unchecked_transaction()?;
+
+        // Pass 1: Build source_id → sort_order lookup.
+        let source_priority: std::collections::HashMap<String, i32> = {
+            let mut stmt = tx.prepare("SELECT id, sort_order FROM db_sources")?;
+            stmt.query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?))
+            })?
+            .filter_map(|r| r.ok())
+            .collect()
+        };
+
+        // Pass 2: Load existing (channel_id, start_time) → priority
+        // for conflict check.
+        let mut existing: std::collections::HashMap<(String, i64), i32> = {
+            let mut stmt = tx.prepare(
+                "SELECT e.channel_id, e.start_time,
+                        COALESCE(s.sort_order, 999) AS prio
+                 FROM db_epg_entries e
+                 LEFT JOIN db_sources s ON s.id = e.source_id",
+            )?;
+            stmt.query_map([], |row| {
+                Ok((
+                    (row.get::<_, String>(0)?, row.get::<_, i64>(1)?),
+                    row.get::<_, i32>(2)?,
+                ))
+            })?
+            .filter_map(|r| r.ok())
+            .collect()
+        };
+
         let mut count = 0usize;
         for (matched_channel_id, epgs) in entries.iter() {
             for e in epgs {
+                let start_ts = dt_to_ts(&e.start_time);
+                let incoming_prio = e
+                    .source_id
+                    .as_deref()
+                    .and_then(|sid| source_priority.get(sid))
+                    .copied()
+                    .unwrap_or(999);
+
+                let key = (matched_channel_id.clone(), start_ts);
+
+                // Skip if existing entry is from a higher-priority source
+                // (lower sort_order = higher priority).
+                if let Some(&existing_prio) = existing.get(&key)
+                    && incoming_prio > existing_prio
+                {
+                    continue; // existing has higher priority, skip
+                }
+
                 tx.execute(
                     "INSERT OR REPLACE INTO
                      db_epg_entries (
@@ -34,7 +89,7 @@ impl CrispyService {
                     params![
                         matched_channel_id,
                         e.title,
-                        dt_to_ts(&e.start_time),
+                        start_ts,
                         dt_to_ts(&e.end_time),
                         e.description,
                         e.category,
@@ -42,6 +97,8 @@ impl CrispyService {
                         e.source_id,
                     ],
                 )?;
+                // Update in-memory map for subsequent iterations.
+                existing.insert(key, incoming_prio);
                 count += 1;
             }
         }
@@ -439,5 +496,191 @@ mod tests {
             .collect();
         assert!(sources.contains("ch1"), "{sources:?}");
         assert!(sources.contains("ch2"), "{sources:?}");
+    }
+
+    // ── Priority tests ────────────────────────────────
+
+    fn make_epg_entry_with_source(
+        channel_id: &str,
+        source_id: Option<&str>,
+        title: &str,
+    ) -> EpgEntry {
+        EpgEntry {
+            channel_id: channel_id.to_string(),
+            title: title.to_string(),
+            start_time: parse_dt("2025-06-01 10:00:00"),
+            end_time: parse_dt("2025-06-01 11:00:00"),
+            description: None,
+            category: None,
+            icon_url: None,
+            source_id: source_id.map(|s| s.to_string()),
+        }
+    }
+
+    /// Save source A (sort_order=0, high priority) and source B
+    /// (sort_order=5, low priority). Insert EPG for ch1/10:00 from B
+    /// first, then from A. Final entry must have source A's title.
+    #[test]
+    fn epg_priority_high_wins() {
+        let svc = make_service();
+        let mut src_a = make_source("src_a", "Source A", "m3u");
+        src_a.sort_order = 0;
+        let mut src_b = make_source("src_b", "Source B", "m3u");
+        src_b.sort_order = 5;
+        svc.save_source(&src_a).unwrap();
+        svc.save_source(&src_b).unwrap();
+
+        // Insert from low-priority source B first.
+        let mut map_b = HashMap::new();
+        map_b.insert(
+            "ch1".to_string(),
+            vec![make_epg_entry_with_source("ch1", Some("src_b"), "From B")],
+        );
+        svc.save_epg_entries(&map_b).unwrap();
+
+        // Insert from high-priority source A second.
+        let mut map_a = HashMap::new();
+        map_a.insert(
+            "ch1".to_string(),
+            vec![make_epg_entry_with_source("ch1", Some("src_a"), "From A")],
+        );
+        svc.save_epg_entries(&map_a).unwrap();
+
+        let loaded = svc.load_epg_entries().unwrap();
+        assert_eq!(loaded["ch1"].len(), 1);
+        assert_eq!(
+            loaded["ch1"][0].title, "From A",
+            "high-priority source A must win"
+        );
+    }
+
+    /// Insert from high-priority source A first, then try to
+    /// overwrite with lower-priority source B. A's entry must
+    /// be preserved and the second save must return count=0.
+    #[test]
+    fn epg_priority_low_skipped() {
+        let svc = make_service();
+        let mut src_a = make_source("src_a", "Source A", "m3u");
+        src_a.sort_order = 0;
+        let mut src_b = make_source("src_b", "Source B", "m3u");
+        src_b.sort_order = 5;
+        svc.save_source(&src_a).unwrap();
+        svc.save_source(&src_b).unwrap();
+
+        // Insert high-priority A first.
+        let mut map_a = HashMap::new();
+        map_a.insert(
+            "ch1".to_string(),
+            vec![make_epg_entry_with_source("ch1", Some("src_a"), "From A")],
+        );
+        svc.save_epg_entries(&map_a).unwrap();
+
+        // Try to overwrite with lower-priority B — must be skipped.
+        let mut map_b = HashMap::new();
+        map_b.insert(
+            "ch1".to_string(),
+            vec![make_epg_entry_with_source("ch1", Some("src_b"), "From B")],
+        );
+        let count_b = svc.save_epg_entries(&map_b).unwrap();
+        assert_eq!(count_b, 0, "lower-priority entry must be skipped");
+
+        let loaded = svc.load_epg_entries().unwrap();
+        assert_eq!(
+            loaded["ch1"][0].title, "From A",
+            "A's entry must remain unchanged"
+        );
+    }
+
+    /// Two sources with the same sort_order. The second write should
+    /// overwrite (INSERT OR REPLACE — equal priority = last writer wins).
+    #[test]
+    fn epg_priority_equal_last_writer() {
+        let svc = make_service();
+        let mut src_a = make_source("src_a", "Source A", "m3u");
+        src_a.sort_order = 3;
+        let mut src_b = make_source("src_b", "Source B", "m3u");
+        src_b.sort_order = 3;
+        svc.save_source(&src_a).unwrap();
+        svc.save_source(&src_b).unwrap();
+
+        let mut map_a = HashMap::new();
+        map_a.insert(
+            "ch1".to_string(),
+            vec![make_epg_entry_with_source("ch1", Some("src_a"), "From A")],
+        );
+        svc.save_epg_entries(&map_a).unwrap();
+
+        let mut map_b = HashMap::new();
+        map_b.insert(
+            "ch1".to_string(),
+            vec![make_epg_entry_with_source("ch1", Some("src_b"), "From B")],
+        );
+        let count_b = svc.save_epg_entries(&map_b).unwrap();
+        assert_eq!(count_b, 1, "equal priority allows overwrite");
+
+        let loaded = svc.load_epg_entries().unwrap();
+        assert_eq!(
+            loaded["ch1"][0].title, "From B",
+            "last writer wins on equal priority"
+        );
+    }
+
+    /// An entry with source_id=None has effective priority 999 (lowest).
+    /// A subsequent entry from any registered source must overwrite it.
+    #[test]
+    fn epg_priority_no_source_id_lowest() {
+        let svc = make_service();
+        let mut src_a = make_source("src_a", "Source A", "m3u");
+        src_a.sort_order = 10;
+        svc.save_source(&src_a).unwrap();
+
+        // Insert entry with no source_id (priority 999).
+        let mut map_none = HashMap::new();
+        map_none.insert(
+            "ch1".to_string(),
+            vec![make_epg_entry_with_source("ch1", None, "No Source")],
+        );
+        svc.save_epg_entries(&map_none).unwrap();
+
+        // Overwrite with registered source (sort_order=10 < 999).
+        let mut map_a = HashMap::new();
+        map_a.insert(
+            "ch1".to_string(),
+            vec![make_epg_entry_with_source("ch1", Some("src_a"), "From A")],
+        );
+        let count = svc.save_epg_entries(&map_a).unwrap();
+        assert_eq!(count, 1, "registered source must overwrite no-source entry");
+
+        let loaded = svc.load_epg_entries().unwrap();
+        assert_eq!(
+            loaded["ch1"][0].title, "From A",
+            "registered source entry must replace no-source entry"
+        );
+    }
+
+    /// When no existing entry exists for a (channel_id, start_time)
+    /// slot, insertion must always succeed regardless of source priority.
+    #[test]
+    fn epg_priority_new_entry_always_inserted() {
+        let svc = make_service();
+        let mut src_a = make_source("src_a", "Source A", "m3u");
+        src_a.sort_order = 0;
+        svc.save_source(&src_a).unwrap();
+
+        let mut map = HashMap::new();
+        map.insert(
+            "ch1".to_string(),
+            vec![make_epg_entry_with_source(
+                "ch1",
+                Some("src_a"),
+                "New Entry",
+            )],
+        );
+        let count = svc.save_epg_entries(&map).unwrap();
+        assert_eq!(count, 1, "new entry must always be inserted");
+
+        let loaded = svc.load_epg_entries().unwrap();
+        assert_eq!(loaded["ch1"].len(), 1);
+        assert_eq!(loaded["ch1"][0].title, "New Entry");
     }
 }

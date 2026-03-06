@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/providers/source_filter_provider.dart';
 import '../../../dvr/domain/utils/dvr_payload.dart';
@@ -10,6 +11,7 @@ import '../../domain/utils/episode_utils.dart';
 import '../../domain/utils/vod_filter_utils.dart';
 import '../../domain/utils/vod_utils.dart';
 import '../widgets/series_episode_fetcher.dart';
+import '../widgets/vod_source_picker.dart';
 import 'vod_favorites_provider.dart';
 
 /// VOD browsing state.
@@ -453,3 +455,58 @@ final seriesUnwatchedCountProvider = FutureProvider.family
         seriesId,
       );
     });
+
+// ══════════════════════════════════════════════════════════════════
+//  VOD Alternative Sources (FE-VODS-06-ALT)
+// ══════════════════════════════════════════════════════════════════
+
+/// Alternative sources for a VOD item (same title from different sources).
+///
+/// Returns [VodSource] objects for the VodSourcePicker widget.
+/// Includes any alternatives beyond the primary item; callers should
+/// prepend the item itself as the first source.
+/// Returns an empty list when no cross-source duplicates are found.
+final vodAlternativeSourcesProvider = FutureProvider.family
+    .autoDispose<List<VodSource>, VodItem>((ref, item) async {
+      final cache = ref.read(cacheServiceProvider);
+      final altMaps = await cache.findVodAlternatives(
+        item.name,
+        item.year ?? 0,
+        item.id,
+        10,
+      );
+      if (altMaps.isEmpty) return [];
+      // Resolve source names from settings.
+      final settings = ref.read(settingsNotifierProvider).value;
+      final sourceMap = <String, String>{};
+      if (settings != null) {
+        for (final s in settings.sources) {
+          sourceMap[s.id] = s.name;
+        }
+      }
+      return altMaps.map((m) {
+        final sourceId = m['source_id'] as String?;
+        final sourceName = sourceId != null ? sourceMap[sourceId] : null;
+        final label =
+            sourceName ?? (sourceId != null ? 'Server $sourceId' : 'Default');
+        final quality = _resolveQualityFromMap(m);
+        return VodSource(
+          label: label,
+          streamUrl: m['stream_url'] as String? ?? '',
+          quality: quality,
+        );
+      }).toList();
+    });
+
+/// Extracts quality badge from a raw VOD map based on URL patterns.
+String? _resolveQualityFromMap(Map<String, dynamic> m) {
+  final url = m['stream_url'] as String? ?? '';
+  if (url.contains('/4k/') || url.contains('4K')) return '4K';
+  if (url.contains('/fhd/') || url.contains('FHD') || url.contains('1080')) {
+    return 'FHD';
+  }
+  if (url.contains('/hd/') || url.contains('HD') || url.contains('720')) {
+    return 'HD';
+  }
+  return null;
+}

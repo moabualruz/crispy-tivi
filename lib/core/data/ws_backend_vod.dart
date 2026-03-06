@@ -89,6 +89,21 @@ mixin _WsVodMixin on _WsBackendBase {
     return (data as List).cast<String>();
   }
 
+  Future<List<Map<String, dynamic>>> findVodAlternatives(
+    String name,
+    int year,
+    String excludeId,
+    int limit,
+  ) async {
+    final data = await _send('findVodAlternatives', {
+      'name': name,
+      'year': year,
+      'excludeId': excludeId,
+      'limit': limit,
+    });
+    return (data as List).cast<Map<String, dynamic>>();
+  }
+
   // ── VOD Parsers ────────────────────────────────
 
   Future<List<Map<String, dynamic>>> parseVodStreams(

@@ -73,4 +73,19 @@ mixin _FfiVodMixin on _FfiBackendBase {
 
   Future<List<String>> extractSortedVodCategories(String itemsJson) =>
       rust_api.extractSortedVodCategories(itemsJson: itemsJson);
+
+  Future<List<Map<String, dynamic>>> findVodAlternatives(
+    String name,
+    int year,
+    String excludeId,
+    int limit,
+  ) async {
+    final json = await rust_api.findVodAlternatives(
+      name: name,
+      year: year,
+      excludeId: excludeId,
+      limit: BigInt.from(limit),
+    );
+    return _decodeJsonList(json);
+  }
 }

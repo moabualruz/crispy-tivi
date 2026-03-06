@@ -299,6 +299,9 @@ pub struct WatchHistory {
     /// Profile ID this history belongs to.
     #[serde(default)]
     pub profile_id: Option<String>,
+    /// Which source/playlist this stream belongs to.
+    #[serde(default)]
+    pub source_id: Option<String>,
 }
 
 // ── UserProfile ─────────────────────────────────────

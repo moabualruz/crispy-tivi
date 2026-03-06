@@ -71,11 +71,18 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
 
   /// Builds the multi-source list for this item.
   ///
-  /// Currently returns one source per item (the item itself).
-  /// When the data layer provides multiple streams per title (one per
-  /// Xtream server / playlist), expand this list accordingly.
-  List<VodSource> _buildSources(VodItem item, String? sourceName) {
-    return [VodSource.fromVodItem(item, sourceName: sourceName)];
+  /// Prepends the item itself as the primary source, then appends any
+  /// [alternatives] returned by [vodAlternativeSourcesProvider] so that
+  /// [VodSourcePicker] reveals the section when cross-source duplicates exist.
+  List<VodSource> _buildSources(
+    VodItem item,
+    String? sourceName,
+    List<VodSource> alternatives,
+  ) {
+    return [
+      VodSource.fromVodItem(item, sourceName: sourceName),
+      ...alternatives,
+    ];
   }
 
   @override
@@ -104,6 +111,9 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
             .where((s) => s.id == liveItem.sourceId)
             .firstOrNull
             ?.name;
+
+    final alternatives =
+        ref.watch(vodAlternativeSourcesProvider(liveItem)).asData?.value ?? [];
 
     return Semantics(
       label: item.name,
@@ -192,7 +202,7 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
               SliverToBoxAdapter(
                 child: VodSourcePicker(
                   itemId: liveItem.id,
-                  sources: _buildSources(liveItem, sourceName),
+                  sources: _buildSources(liveItem, sourceName, alternatives),
                   onSourceSelected: (source) {
                     setState(() => _overrideStreamUrl = source.streamUrl);
                   },
@@ -250,6 +260,7 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
               mediaType: item.type.mediaType,
               startPosition:
                   resume ? Duration(milliseconds: history.positionMs) : null,
+              sourceId: widget.item.sourceId,
             );
         return;
       }
@@ -265,6 +276,7 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
           channelLogoUrl: item.posterUrl,
           posterUrl: item.posterUrl,
           mediaType: item.type == VodType.movie ? 'movie' : 'episode',
+          sourceId: widget.item.sourceId,
         );
   }
 

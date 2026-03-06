@@ -35,6 +35,7 @@ class PlaybackSessionState {
     this.episodeList,
     this.posterUrl,
     this.seriesPosterUrl,
+    this.sourceId,
   });
 
   /// The HLS / RTSP / RTMP stream URL to play.
@@ -85,6 +86,9 @@ class PlaybackSessionState {
   /// Series-level poster URL (different from episode poster).
   final String? seriesPosterUrl;
 
+  /// Source ID for multi-source tracking in watch history.
+  final String? sourceId;
+
   /// Returns a copy of this state with the given fields
   /// replaced.
   PlaybackSessionState copyWith({
@@ -104,6 +108,7 @@ class PlaybackSessionState {
     List<VodItem>? episodeList,
     String? posterUrl,
     String? seriesPosterUrl,
+    String? sourceId,
   }) {
     return PlaybackSessionState(
       streamUrl: streamUrl ?? this.streamUrl,
@@ -122,6 +127,7 @@ class PlaybackSessionState {
       episodeList: episodeList ?? this.episodeList,
       posterUrl: posterUrl ?? this.posterUrl,
       seriesPosterUrl: seriesPosterUrl ?? this.seriesPosterUrl,
+      sourceId: sourceId ?? this.sourceId,
     );
   }
 }
@@ -173,6 +179,7 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
     List<VodItem>? episodeList,
     String? posterUrl,
     String? seriesPosterUrl,
+    String? sourceId,
   }) async {
     if (_isPending) return;
     _isPending = true;
@@ -210,6 +217,7 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
         episodeList: episodeList,
         posterUrl: posterUrl,
         seriesPosterUrl: seriesPosterUrl,
+        sourceId: sourceId,
       );
 
       await ref
@@ -268,6 +276,7 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
     List<VodItem>? episodeList,
     String? posterUrl,
     String? seriesPosterUrl,
+    String? sourceId,
   }) {
     state = PlaybackSessionState(
       streamUrl: streamUrl,
@@ -286,6 +295,7 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
       episodeList: episodeList,
       posterUrl: posterUrl,
       seriesPosterUrl: seriesPosterUrl,
+      sourceId: sourceId,
     );
   }
 
@@ -312,6 +322,7 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
         episodeList: params.episodeList,
         posterUrl: params.posterUrl,
         seriesPosterUrl: params.seriesPosterUrl,
+        sourceId: params.sourceId,
       );
 
   /// Updates session metadata for a preview from a
@@ -335,6 +346,7 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
     episodeList: params.episodeList,
     posterUrl: params.posterUrl,
     seriesPosterUrl: params.seriesPosterUrl,
+    sourceId: params.sourceId,
   );
 
   /// Updates the active channel index during zapping.

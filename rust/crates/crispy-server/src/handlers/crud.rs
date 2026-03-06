@@ -86,6 +86,17 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                 .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true, "count": count}))
         })(),
+        "findVodAlternatives" => (|| {
+            let name = get_str(args, "name")?;
+            let year = get_i64(args, "year")? as i32;
+            let year_opt = if year > 0 { Some(year) } else { None };
+            let exclude_id = get_str(args, "excludeId")?;
+            let limit = get_i64(args, "limit")? as usize;
+            let items = svc
+                .find_vod_alternatives(&name, year_opt, &exclude_id, limit)
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": items}))
+        })(),
 
         // ── VOD Favorites ──────────────────────
         "getVodFavorites" => (|| {

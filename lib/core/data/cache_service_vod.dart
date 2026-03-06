@@ -42,6 +42,16 @@ mixin _CacheVodMixin on _CacheServiceBase {
     await _backend.updateVodFavorite(itemId, isFavorite);
   }
 
+  /// Find VOD alternatives from other sources matching by name + year.
+  Future<List<Map<String, dynamic>>> findVodAlternatives(
+    String name,
+    int year,
+    String excludeId,
+    int limit,
+  ) async {
+    return _backend.findVodAlternatives(name, year, excludeId, limit);
+  }
+
   /// Sort [items] using the Rust backend.
   ///
   /// [sortByKey] must be one of: `"added_desc"`, `"name_asc"`,

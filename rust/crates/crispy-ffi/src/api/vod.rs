@@ -31,6 +31,20 @@ pub fn delete_removed_vod_items(source_id: String, keep_ids: Vec<String>) -> Res
     Ok(svc()?.delete_removed_vod_items(&source_id, &keep_ids)?)
 }
 
+/// Find VOD alternatives from other sources matching by name + year.
+/// Returns JSON array of VodItem.
+/// `year` = 0 means "no year filter".
+pub fn find_vod_alternatives(
+    name: String,
+    year: i32,
+    exclude_id: String,
+    limit: usize,
+) -> Result<String> {
+    let year_opt = if year > 0 { Some(year) } else { None };
+    let items = svc()?.find_vod_alternatives(&name, year_opt, &exclude_id, limit)?;
+    Ok(serde_json::to_string(&items)?)
+}
+
 // ── VOD Favorites ────────────────────────────────────
 
 /// Get favourite VOD item IDs for a profile.

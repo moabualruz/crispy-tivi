@@ -247,6 +247,7 @@ class PlaybackProgressNotifier extends Notifier<PlaybackProgressState> {
           seriesId: session.seriesId,
           seasonNumber: session.seasonNumber,
           episodeNumber: session.episodeNumber,
+          sourceId: session.sourceId,
         );
   }
 

@@ -17,10 +17,11 @@ impl CrispyService {
                 poster_url, position_ms, duration_ms,
                 last_watched, series_id,
                 season_number, episode_number,
-                device_id, device_name, series_poster_url, profile_id
+                device_id, device_name, series_poster_url,
+                profile_id, source_id
             ) VALUES (
                 ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
-                ?9, ?10, ?11, ?12, ?13, ?14, ?15
+                ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16
             )",
             params![
                 entry.id,
@@ -38,6 +39,7 @@ impl CrispyService {
                 entry.device_name,
                 entry.series_poster_url,
                 entry.profile_id,
+                entry.source_id,
             ],
         )?;
         self.emit(DataChangeEvent::WatchHistoryUpdated {
@@ -56,7 +58,8 @@ impl CrispyService {
                 poster_url, position_ms, duration_ms,
                 last_watched, series_id,
                 season_number, episode_number,
-                device_id, device_name, series_poster_url, profile_id
+                device_id, device_name, series_poster_url,
+                profile_id, source_id
             FROM db_watch_history
             ORDER BY last_watched DESC",
         )?;
@@ -77,6 +80,7 @@ impl CrispyService {
                 device_name: row.get(12)?,
                 series_poster_url: row.get(13)?,
                 profile_id: row.get(14)?,
+                source_id: row.get(15)?,
             })
         })?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -300,5 +304,21 @@ mod tests {
         let recorded = log.lock().unwrap();
         let last = recorded.last().unwrap();
         assert!(last.contains("WatchHistoryCleared"), "{last}");
+    }
+
+    #[test]
+    fn save_and_load_watch_history_with_source_id() {
+        let svc = make_service();
+        let mut entry = make_watch_entry("w1", "Movie With Source");
+        entry.source_id = Some("src_a".to_string());
+        svc.save_watch_history(&entry).unwrap();
+
+        let loaded = svc.load_watch_history().unwrap();
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(
+            loaded[0].source_id,
+            Some("src_a".to_string()),
+            "source_id must be preserved after save/load round-trip"
+        );
     }
 }

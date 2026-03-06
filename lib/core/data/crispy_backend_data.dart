@@ -53,6 +53,15 @@ abstract class _BackendDataMethods {
   /// Empty [sourceIds] returns all VOD items.
   Future<List<Map<String, dynamic>>> getVodBySources(List<String> sourceIds);
 
+  /// Find VOD alternatives from other sources matching by name + year.
+  /// [year] = 0 means "no year filter".
+  Future<List<Map<String, dynamic>>> findVodAlternatives(
+    String name,
+    int year,
+    String excludeId,
+    int limit,
+  );
+
   // ── VOD Favorites ────────────────────────────────────
 
   /// Get favourite VOD item IDs for a profile.

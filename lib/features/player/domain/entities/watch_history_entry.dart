@@ -24,6 +24,7 @@ class WatchHistoryEntry {
     this.deviceId,
     this.deviceName,
     this.profileId,
+    this.sourceId,
   });
 
   /// Unique history entry identifier.
@@ -71,6 +72,9 @@ class WatchHistoryEntry {
   /// Profile ID that watched this content.
   final String? profileId;
 
+  /// Source ID that provided this content (for multi-source tracking).
+  final String? sourceId;
+
   /// Playback progress as a fraction (0.0 – 1.0).
   double get progress => durationMs > 0 ? positionMs / durationMs : 0.0;
 
@@ -114,6 +118,7 @@ class WatchHistoryEntry {
     String? deviceId,
     String? deviceName,
     String? profileId,
+    String? sourceId,
   }) {
     return WatchHistoryEntry(
       id: id ?? this.id,
@@ -131,6 +136,7 @@ class WatchHistoryEntry {
       deviceId: deviceId ?? this.deviceId,
       deviceName: deviceName ?? this.deviceName,
       profileId: profileId ?? this.profileId,
+      sourceId: sourceId ?? this.sourceId,
     );
   }
 

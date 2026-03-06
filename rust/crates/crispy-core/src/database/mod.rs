@@ -25,7 +25,7 @@ use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
 /// Current schema version.
-const SCHEMA_VERSION: u32 = 29;
+const SCHEMA_VERSION: u32 = 30;
 
 // ── Table name constants ──────────────────────────────────
 
@@ -261,6 +261,16 @@ impl Database {
             )?;
         }
 
+        // v30: Add source_id column to db_watch_history.
+        // See v21 note — ADD COLUMN is non-idempotent in SQLite.
+        if from_version < 30 {
+            let _ = tx.execute("ALTER TABLE db_watch_history ADD COLUMN source_id TEXT", []);
+            tx.execute_batch(
+                "CREATE INDEX IF NOT EXISTS idx_watch_history_source \
+                    ON db_watch_history (source_id);",
+            )?;
+        }
+
         tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
         tx.commit()?;
         Ok(())
@@ -371,7 +381,8 @@ CREATE TABLE IF NOT EXISTS db_watch_history (
     device_id TEXT,
     device_name TEXT,
     series_poster_url TEXT,
-    profile_id TEXT
+    profile_id TEXT,
+    source_id TEXT
 );";
 
 const CREATE_DB_PROFILES: &str = "\
@@ -565,6 +576,8 @@ CREATE INDEX IF NOT EXISTS idx_source_access
     ON db_profile_source_access (source_id);
 CREATE INDEX IF NOT EXISTS idx_watch_history_profile
     ON db_watch_history (profile_id);
+CREATE INDEX IF NOT EXISTS idx_watch_history_source
+    ON db_watch_history (source_id);
 CREATE INDEX IF NOT EXISTS idx_vod_items_series
     ON db_vod_items (series_id);
 CREATE INDEX IF NOT EXISTS idx_reminders_notify
@@ -674,9 +687,10 @@ mod tests {
             "idx_vod_items_series",
             "idx_vod_source",
             "idx_watch_history_profile",
+            "idx_watch_history_source",
         ];
 
-        assert_eq!(indexes.len(), 11, "expected 11 indexes",);
+        assert_eq!(indexes.len(), 12, "expected 12 indexes",);
         for name in &expected {
             assert!(indexes.contains(&name.to_string()), "missing index: {name}",);
         }

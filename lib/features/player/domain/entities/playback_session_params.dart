@@ -41,6 +41,7 @@ class PlaybackSessionParams {
     this.episodeList,
     this.posterUrl,
     this.seriesPosterUrl,
+    this.sourceId,
   });
 
   /// The HLS / RTSP / RTMP stream URL to play.
@@ -91,6 +92,9 @@ class PlaybackSessionParams {
   /// Series-level poster URL (different from episode poster).
   final String? seriesPosterUrl;
 
+  /// Source ID for multi-source tracking in watch history.
+  final String? sourceId;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -107,7 +111,8 @@ class PlaybackSessionParams {
           seasonNumber == other.seasonNumber &&
           episodeNumber == other.episodeNumber &&
           posterUrl == other.posterUrl &&
-          seriesPosterUrl == other.seriesPosterUrl;
+          seriesPosterUrl == other.seriesPosterUrl &&
+          sourceId == other.sourceId;
 
   @override
   int get hashCode => Object.hash(
@@ -124,5 +129,6 @@ class PlaybackSessionParams {
     episodeNumber,
     posterUrl,
     seriesPosterUrl,
+    sourceId,
   );
 }

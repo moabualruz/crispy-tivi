@@ -31,6 +31,21 @@ Future<BigInt> deleteRemovedVodItems({
   keepIds: keepIds,
 );
 
+/// Find VOD alternatives from other sources matching by name + year.
+/// Returns JSON array of VodItem.
+/// `year` = 0 means "no year filter".
+Future<String> findVodAlternatives({
+  required String name,
+  required int year,
+  required String excludeId,
+  required BigInt limit,
+}) => RustLib.instance.api.crateApiVodFindVodAlternatives(
+  name: name,
+  year: year,
+  excludeId: excludeId,
+  limit: limit,
+);
+
 /// Get favourite VOD item IDs for a profile.
 Future<List<String>> getVodFavorites({required String profileId}) =>
     RustLib.instance.api.crateApiVodGetVodFavorites(profileId: profileId);

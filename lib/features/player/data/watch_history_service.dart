@@ -50,6 +50,7 @@ class WatchHistoryService {
     String? seriesId,
     int? seasonNumber,
     int? episodeNumber,
+    String? sourceId,
   }) async {
     // FE-PM-10: guest profiles never persist watch history.
     if (_isGuestProfile) return;
@@ -81,6 +82,7 @@ class WatchHistoryService {
       deviceId: deviceId,
       deviceName: deviceName,
       profileId: _activeProfileId,
+      sourceId: sourceId,
     );
     await _cache.saveWatchHistory(entry);
   }

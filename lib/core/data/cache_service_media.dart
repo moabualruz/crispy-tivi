@@ -124,6 +124,7 @@ WatchHistoryEntry mapToWatchHistoryEntry(Map<String, dynamic> m) {
     deviceId: m['device_id'] as String?,
     deviceName: m['device_name'] as String?,
     profileId: m['profile_id'] as String?,
+    sourceId: m['source_id'] as String?,
   );
 }
 
@@ -146,6 +147,7 @@ Map<String, dynamic> watchHistoryEntryToMap(WatchHistoryEntry e) {
     'device_id': e.deviceId,
     'device_name': e.deviceName,
     'profile_id': e.profileId,
+    'source_id': e.sourceId,
   };
 }
 

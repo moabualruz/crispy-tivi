@@ -117,6 +117,7 @@ pub fn make_watch_entry(id: &str, name: &str) -> WatchHistory {
         device_id: None,
         device_name: None,
         profile_id: None,
+        source_id: None,
     }
 }
 
@@ -144,5 +145,6 @@ pub fn make_episode_entry(
         device_name: None,
         series_poster_url: None,
         profile_id: None,
+        source_id: None,
     }
 }

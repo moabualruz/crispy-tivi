@@ -526,6 +526,7 @@ mod tests {
             device_id: Some("dev1".to_string()),
             device_name: Some("Living Room".to_string()),
             profile_id: None,
+            source_id: None,
         }
     }
 

@@ -695,6 +695,7 @@ mod tests {
             device_id: device_id.map(String::from),
             device_name: None,
             profile_id: None,
+            source_id: None,
         }
     }
 
