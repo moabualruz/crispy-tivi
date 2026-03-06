@@ -1,6 +1,40 @@
 import 'dart:convert';
 
+import '../../../../core/utils/date_format_utils.dart';
 import '../entities/recording.dart';
+
+/// Canonical serialiser for a [Recording] to the snake_case map
+/// expected by all Rust handlers.
+///
+/// This is the **single source of truth** for Recording → Map
+/// conversion. Every field on [Recording] is included so that
+/// both the persistence layer ([CacheService]) and the algorithm
+/// layer (conflict detection, recurring expansion) use an
+/// identical representation.
+Map<String, dynamic> recordingToMap(Recording r) {
+  return {
+    'id': r.id,
+    'channel_id': r.channelId,
+    'channel_name': r.channelName,
+    'channel_logo_url': r.channelLogoUrl,
+    'program_name': r.programName,
+    'stream_url': r.streamUrl,
+    'start_time': toNaiveDateTime(r.startTime),
+    'end_time': toNaiveDateTime(r.endTime),
+    'status': r.status.name,
+    'file_path': r.filePath,
+    'file_size_bytes': r.fileSizeBytes,
+    'is_recurring': r.isRecurring,
+    'recur_days': r.recurDays,
+    'profile': r.profile.name,
+    'owner_profile_id': r.ownerProfileId,
+    'is_shared': r.isShared,
+    'remote_backend_id': r.remoteBackendId,
+    'remote_path': r.remotePath,
+    'auto_delete_policy': r.autoDeletePolicy.name,
+    'keep_episode_count': r.keepEpisodeCount,
+  };
+}
 
 /// Serialises [recordings] into the JSON string expected by the
 /// Rust `get_recordings_to_start` handler.

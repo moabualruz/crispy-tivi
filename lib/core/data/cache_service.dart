@@ -8,6 +8,7 @@ import '../../features/dvr/domain/entities/recording_profile.dart';
 import '../../features/dvr/domain/entities/storage_backend.dart';
 import '../../features/dvr/domain/entities/transfer_task.dart';
 import '../../features/dvr/domain/entities/commercial_marker.dart';
+import '../../features/dvr/domain/utils/dvr_payload.dart';
 import '../../features/iptv/domain/entities/channel.dart';
 import '../../features/iptv/domain/entities/epg_entry.dart';
 import '../../features/multiview/domain/entities/'

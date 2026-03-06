@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 
@@ -37,7 +38,7 @@ class PlayerShortcutsHelpOverlay extends StatelessWidget {
       child: GestureDetector(
         onTap: onDismiss,
         child: ColoredBox(
-          color: Colors.black.withValues(alpha: 0.65),
+          color: CrispyColors.scrimMid,
           child: Center(
             child: GestureDetector(
               // Prevent taps inside the panel from dismissing.
@@ -50,7 +51,7 @@ class PlayerShortcutsHelpOverlay extends StatelessWidget {
                     constraints: const BoxConstraints(maxWidth: 560),
                     margin: const EdgeInsets.all(CrispySpacing.xl),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.72),
+                      color: CrispyColors.scrimHeavy,
                       borderRadius: BorderRadius.circular(CrispyRadius.tv),
                       border: Border.all(
                         color: Colors.white.withValues(alpha: 0.12),

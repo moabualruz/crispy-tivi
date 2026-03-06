@@ -5,6 +5,19 @@ import 'package:crispy_tivi/core/constants.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../entities/vod_item.dart';
 
+/// Formats [season] and [episode] numbers as a zero-padded `SxxExx` label.
+///
+/// Either argument may be null — only non-null values are included:
+///   - `(2, 5)` → `"S02E05"`
+///   - `(2, null)` → `"S02"`
+///   - `(null, 5)` → `"E05"`
+///   - `(null, null)` → `""`
+String formatEpisodeLabel(int? season, int? episode) {
+  final s = season != null ? 'S${season.toString().padLeft(2, '0')}' : '';
+  final e = episode != null ? 'E${episode.toString().padLeft(2, '0')}' : '';
+  return '$s$e';
+}
+
 /// Finds the next unwatched episode and whether all episodes are completed.
 ///
 /// Returns a record with the next episode to play and whether the user
@@ -30,16 +43,6 @@ import '../entities/vod_item.dart';
 
   return (next: next, isReplay: isReplay);
 }
-
-// ── Next-episode auto-queue threshold ───────────────────
-//
-// When an episode's progress meets or exceeds this value,
-// the Continue Watching row shows the NEXT episode instead
-// of the nearly-completed one. Set lower than
-// [kCompletionThreshold] (0.95) so the card switches before
-// the backend removes the entry from the continue-watching
-// list.
-const double kNextEpisodeThreshold = 0.90;
 
 /// Resolves the next unplayed episode for series entries that
 /// are >= 90% complete.

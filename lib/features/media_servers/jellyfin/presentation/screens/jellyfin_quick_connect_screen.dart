@@ -7,9 +7,11 @@ import 'package:go_router/go_router.dart';
 
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
+import 'package:crispy_tivi/core/network/network_timeouts.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
+import 'package:crispy_tivi/core/utils/date_format_utils.dart' show formatMmss;
 import 'package:crispy_tivi/core/widgets/loading_state_widget.dart';
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
@@ -298,8 +300,8 @@ class _JellyfinQcNotifier extends AsyncNotifier<_QcState> {
   Dio _buildDio() {
     return Dio(
       BaseOptions(
-        connectTimeout: const Duration(seconds: 5),
-        receiveTimeout: const Duration(seconds: 5),
+        connectTimeout: NetworkTimeouts.fastConnectTimeout,
+        receiveTimeout: NetworkTimeouts.fastReceiveTimeout,
       ),
     );
   }
@@ -418,10 +420,7 @@ class _CodeDisplay extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    final minutes = (secondsRemaining ~/ 60).toString().padLeft(2, '0');
-    final seconds = (secondsRemaining % 60).toString().padLeft(2, '0');
-    final timeString = '$minutes:$seconds';
-
+    final timeString = formatMmss(secondsRemaining);
     final isAlmostExpired = secondsRemaining <= 30;
     final timerColor = isAlmostExpired ? cs.error : cs.onSurfaceVariant;
 

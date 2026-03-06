@@ -11,6 +11,7 @@ import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_
 import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/user_avatar_tile.dart';
+import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
 import '../widgets/emby_pin_login_dialog.dart';
 
 // ── Shared helpers (same authenticate / testConnection as before) ─────────
@@ -36,9 +37,9 @@ Future<PlaylistSource> _authenticate(
 Future<ServerConnectionInfo> _testConnection(String url) async {
   final normalized = normalizeServerUrl(url);
   final dio = Dio(BaseOptions(baseUrl: normalized));
-  dio.options.headers['X-Emby-Authorization'] =
-      'MediaBrowser Client="CrispyTivi", Device="CrispyTivi", '
-      'DeviceId="${MediaServerLoginScreen.kDeviceId}", Version="0.1.0"';
+  dio.options.headers['X-Emby-Authorization'] = embyAuthHeader(
+    MediaServerLoginScreen.kDeviceId,
+  );
 
   final client = MediaServerApiClient(dio, baseUrl: normalized);
   final info = await client.getPublicSystemInfo();
@@ -126,9 +127,9 @@ class _EmbyLoginScreenState extends ConsumerState<EmbyLoginScreen> {
 
     try {
       final dio = Dio(BaseOptions(baseUrl: _resolvedUrl));
-      dio.options.headers['X-Emby-Authorization'] =
-          'MediaBrowser Client="CrispyTivi", Device="CrispyTivi", '
-          'DeviceId="${MediaServerLoginScreen.kDeviceId}", Version="0.1.0"';
+      dio.options.headers['X-Emby-Authorization'] = embyAuthHeader(
+        MediaServerLoginScreen.kDeviceId,
+      );
 
       final source = await _authenticate(dio, _resolvedUrl, username, pin);
 

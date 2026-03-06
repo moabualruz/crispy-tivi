@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/network/network_timeouts.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/format_utils.dart';
@@ -238,7 +239,7 @@ class _NetworkDiagnosticsSheetState
       final sw = Stopwatch()..start();
       final addresses = await InternetAddress.lookup(
         host,
-      ).timeout(const Duration(seconds: 5));
+      ).timeout(NetworkTimeouts.diagCheckTimeout);
       sw.stop();
       if (addresses.isEmpty) {
         return const _DiagResult(
@@ -279,7 +280,7 @@ class _NetworkDiagnosticsSheetState
       final socket = await Socket.connect(
         host,
         port,
-        timeout: const Duration(seconds: 5),
+        timeout: NetworkTimeouts.diagCheckTimeout,
       );
       sw.stop();
       socket.destroy();
@@ -323,9 +324,9 @@ class _NetworkDiagnosticsSheetState
       final sw = Stopwatch()..start();
       final request = await client
           .getUrl(Uri.parse(url))
-          .timeout(const Duration(seconds: 15));
+          .timeout(NetworkTimeouts.diagDownloadTimeout);
       final response = await request.close().timeout(
-        const Duration(seconds: 15),
+        NetworkTimeouts.diagDownloadTimeout,
       );
 
       var bytes = 0;

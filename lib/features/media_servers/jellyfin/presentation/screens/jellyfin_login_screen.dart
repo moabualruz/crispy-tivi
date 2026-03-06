@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
+import 'package:crispy_tivi/core/network/network_timeouts.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/utils/url_utils.dart';
@@ -48,7 +49,10 @@ final _jellyfinServerProbeProvider = FutureProvider.autoDispose
 
       final connectionType = url.startsWith('https') ? 'HTTPS' : 'HTTP';
       final dio = Dio(
-        BaseOptions(baseUrl: url, connectTimeout: const Duration(seconds: 5)),
+        BaseOptions(
+          baseUrl: url,
+          connectTimeout: NetworkTimeouts.fastConnectTimeout,
+        ),
       );
 
       final sw = Stopwatch()..start();

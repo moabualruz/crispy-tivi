@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/duration_formatter.dart';
@@ -290,7 +291,7 @@ class _ChapterHoverTooltip extends StatelessWidget {
             vertical: CrispySpacing.xs,
           ),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.85),
+            color: CrispyColors.scrimFull,
             borderRadius: BorderRadius.circular(CrispyRadius.tv),
           ),
           child: Text(

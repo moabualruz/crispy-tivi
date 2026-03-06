@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'http_client_native.dart'
     if (dart.library.js_interop) 'http_client_web.dart';
+import 'network_timeouts.dart';
 
 /// Centralized HTTP client for all network requests.
 ///
@@ -29,8 +30,8 @@ class HttpService {
   final Dio _dio;
 
   static final _defaultOptions = BaseOptions(
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 120),
+    connectTimeout: NetworkTimeouts.connectTimeout,
+    receiveTimeout: NetworkTimeouts.receiveTimeout,
     headers:
         kIsWeb
             ? null
@@ -177,7 +178,7 @@ class HttpService {
     try {
       await http._dio.head<void>(
         url,
-        options: Options(receiveTimeout: const Duration(seconds: 10)),
+        options: Options(receiveTimeout: NetworkTimeouts.verifyReceiveTimeout),
       );
       return null; // Server reachable
     } on DioException catch (e) {

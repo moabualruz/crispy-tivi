@@ -99,6 +99,20 @@ class CrispyColors extends ThemeExtension<CrispyColors> {
   /// near-black step before full black.
   static const Color vignetteEnd = Color(0xE6000000);
 
+  // ── Scrim overlay tokens ────────────────────────────────────
+
+  /// Scrim overlay — light (25% black). Used for subtle overlays.
+  static const Color scrimLight = Color(0x40000000);
+
+  /// Scrim overlay — medium (50% black). Used for standard overlays.
+  static const Color scrimMid = Color(0x80000000);
+
+  /// Scrim overlay — heavy (75% black). Used for modal backdrops.
+  static const Color scrimHeavy = Color(0xBF000000);
+
+  /// Scrim overlay — full (90% black). Used for immersive overlays.
+  static const Color scrimFull = Color(0xE6000000);
+
   // ── Shared hex-parse utility ──────────────────────────────
 
   /// Parses a hex color string (with or without `#` prefix, 6 or 8 digits)

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import 'player_gesture_overlays.dart' show SwipeType;
 
@@ -38,7 +39,7 @@ class SwipeIndicator extends StatelessWidget {
             vertical: CrispySpacing.sm,
           ),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.7),
+            color: CrispyColors.scrimMid,
             borderRadius: BorderRadius.zero,
           ),
           child: Row(
@@ -99,7 +100,7 @@ class ZapNameOverlay extends StatelessWidget {
             vertical: CrispySpacing.md,
           ),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.75),
+            color: CrispyColors.scrimHeavy,
             borderRadius: BorderRadius.zero,
           ),
           child: Text(

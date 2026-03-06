@@ -13,6 +13,7 @@ import 'package:crispy_tivi/core/utils/url_utils.dart';
 import 'package:crispy_tivi/core/widgets/async_filled_button.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/error_sanitizer.dart';
+import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
 
 /// Result of a server connectivity test.
 ///
@@ -283,9 +284,9 @@ class _MediaServerLoginScreenState
       final url = normalizeServerUrl(_urlCtrl.text);
 
       final dio = Dio(BaseOptions(baseUrl: url));
-      dio.options.headers['X-Emby-Authorization'] =
-          'MediaBrowser Client="CrispyTivi", Device="CrispyTivi Web", '
-          'DeviceId="${MediaServerLoginScreen.kDeviceId}", Version="0.1.0"';
+      dio.options.headers['X-Emby-Authorization'] = embyAuthHeader(
+        MediaServerLoginScreen.kDeviceId,
+      );
 
       final source = await widget.authenticate(
         dio,

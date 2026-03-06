@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 
@@ -63,7 +64,7 @@ class _LockIndicatorState extends State<LockIndicator>
       onTap: () {},
       onLongPressEnd: _onLongPressEnd,
       child: Container(
-        color: Colors.black.withValues(alpha: 0.35),
+        color: CrispyColors.scrimLight,
         alignment: Alignment.center,
         child: _LockIcon(pulseAnim: _pulseAnim),
       ),
@@ -89,7 +90,7 @@ class _LockIcon extends AnimatedWidget {
           child: Container(
             padding: const EdgeInsets.all(CrispySpacing.md),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.6),
+              color: CrispyColors.scrimMid,
               borderRadius: BorderRadius.circular(CrispyRadius.md),
             ),
             child: const Icon(

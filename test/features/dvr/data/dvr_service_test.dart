@@ -8,6 +8,7 @@ import 'package:crispy_tivi/core/data/crispy_backend.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/features/dvr/data/dvr_service.dart';
 import 'package:crispy_tivi/features/dvr/domain/entities/recording.dart';
+import 'package:crispy_tivi/features/dvr/domain/utils/dvr_payload.dart';
 import 'package:crispy_tivi/features/dvr/domain/entities/recording_profile.dart';
 import 'package:crispy_tivi/features/profiles/domain/enums/dvr_permission.dart';
 import 'package:crispy_tivi/features/profiles/domain/enums/user_role.dart';

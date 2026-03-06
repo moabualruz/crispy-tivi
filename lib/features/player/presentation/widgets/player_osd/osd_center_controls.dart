@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/theme/crispy_colors.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
 
 /// Center controls -- Netflix style.
@@ -84,7 +85,7 @@ class OsdCenterButton extends StatelessWidget {
       height: size + 20,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.black.withValues(alpha: 0.35),
+        color: CrispyColors.scrimLight,
         boxShadow: const [
           BoxShadow(
             color: Colors.black26,

@@ -6,6 +6,14 @@ library;
 /// Matches Rust `COMPLETION_THRESHOLD` in watch_progress.rs.
 const double kCompletionThreshold = 0.95;
 
+/// Next-episode auto-queue threshold.
+///
+/// When an episode's progress meets or exceeds this value the Continue
+/// Watching row shows the NEXT episode instead of the nearly-completed
+/// one. Set lower than [kCompletionThreshold] (0.95) so the card
+/// switches before the backend removes the entry from the list.
+const double kNextEpisodeThreshold = 0.90;
+
 /// Default page size for paginated media server library requests
 /// (Jellyfin, Emby, Plex). Applies to both startIndex-based and
 /// cursor-based pagination.

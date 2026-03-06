@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/utils/date_format_utils.dart';
 import '../../../core/utils/format_utils.dart';
 import '../../profiles/domain/permission_guard.dart';
 import '../domain/entities/recording.dart';
@@ -18,30 +17,6 @@ enum ScheduleResult {
   /// The current profile does not have permission
   /// to schedule recordings.
   permissionDenied,
-}
-
-/// Serialize a [Recording] to a map matching the
-/// Rust `Recording` struct field names.
-Map<String, dynamic> recordingToMap(Recording r) {
-  return {
-    'id': r.id,
-    'channel_id': r.channelId,
-    'channel_name': r.channelName,
-    'channel_logo_url': r.channelLogoUrl,
-    'program_name': r.programName,
-    'stream_url': r.streamUrl,
-    'start_time': toNaiveDateTime(r.startTime),
-    'end_time': toNaiveDateTime(r.endTime),
-    'status': r.status.name,
-    'file_path': r.filePath,
-    'file_size_bytes': r.fileSizeBytes,
-    'is_recurring': r.isRecurring,
-    'recur_days': r.recurDays,
-    'owner_profile_id': r.ownerProfileId,
-    'is_shared': r.isShared,
-    'auto_delete_policy': r.autoDeletePolicy.name,
-    'keep_episode_count': r.keepEpisodeCount,
-  };
 }
 
 /// DVR state.

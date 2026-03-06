@@ -13,12 +13,12 @@ mixin _CacheDvrMixin on _CacheServiceBase {
 
   /// Save (insert or replace) a recording.
   Future<void> saveRecording(Recording rec) async {
-    await _backend.saveRecording(_recordingToMap(rec));
+    await _backend.saveRecording(recordingToMap(rec));
   }
 
   /// Update a recording's status and file info.
   Future<void> updateRecording(Recording rec) async {
-    await _backend.updateRecording(_recordingToMap(rec));
+    await _backend.updateRecording(recordingToMap(rec));
   }
 
   /// Delete a recording by ID.
@@ -113,30 +113,19 @@ Recording _mapToRecording(Map<String, dynamic> m) {
     isShared: m['is_shared'] as bool? ?? true,
     remoteBackendId: m['remote_backend_id'] as String?,
     remotePath: m['remote_path'] as String?,
+    autoDeletePolicy: _parseAutoDeletePolicy(
+      m['auto_delete_policy'] as String?,
+    ),
+    keepEpisodeCount: m['keep_episode_count'] as int? ?? 5,
   );
 }
 
-Map<String, dynamic> _recordingToMap(Recording r) {
-  return {
-    'id': r.id,
-    'channel_id': r.channelId,
-    'channel_name': r.channelName,
-    'channel_logo_url': r.channelLogoUrl,
-    'program_name': r.programName,
-    'stream_url': r.streamUrl,
-    'start_time': _toNaiveDateTime(r.startTime),
-    'end_time': _toNaiveDateTime(r.endTime),
-    'status': r.status.name,
-    'file_path': r.filePath,
-    'file_size_bytes': r.fileSizeBytes,
-    'is_recurring': r.isRecurring,
-    'recur_days': r.recurDays,
-    'profile': r.profile.name,
-    'owner_profile_id': r.ownerProfileId,
-    'is_shared': r.isShared,
-    'remote_backend_id': r.remoteBackendId,
-    'remote_path': r.remotePath,
-  };
+AutoDeletePolicy _parseAutoDeletePolicy(String? name) {
+  if (name == null) return AutoDeletePolicy.keepAll;
+  return AutoDeletePolicy.values.firstWhere(
+    (p) => p.name == name,
+    orElse: () => AutoDeletePolicy.keepAll,
+  );
 }
 
 StorageBackend _mapToStorageBackend(Map<String, dynamic> m) {
