@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
@@ -184,7 +185,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       if (ctx == null) return;
       Scrollable.ensureVisible(
         ctx,
-        duration: const Duration(milliseconds: 400),
+        duration: CrispyAnimation.emphasis,
         curve: Curves.easeInOut,
         alignment: 0,
       );
@@ -568,10 +569,8 @@ class _SettingsShimmerState extends State<_SettingsShimmer>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
+    _ctrl = AnimationController(vsync: this, duration: CrispyAnimation.dramatic)
+      ..repeat(reverse: true);
     _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
   }
 

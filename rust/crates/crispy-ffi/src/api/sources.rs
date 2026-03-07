@@ -1,7 +1,7 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use crispy_core::models::Source;
 
-use super::svc;
+use super::{from_json, svc};
 
 /// Get per-source channel and VOD counts. Returns JSON array of SourceStats.
 pub fn get_source_stats() -> Result<String> {
@@ -23,7 +23,7 @@ pub fn get_source(id: String) -> Result<String> {
 
 /// Save a source from JSON.
 pub fn save_source(json: String) -> Result<()> {
-    let source: Source = serde_json::from_str(&json).context("Invalid source JSON")?;
+    let source: Source = from_json(&json)?;
     Ok(svc()?.save_source(&source)?)
 }
 
@@ -34,7 +34,7 @@ pub fn delete_source(id: String) -> Result<()> {
 
 /// Reorder sources. Takes JSON array of source IDs.
 pub fn reorder_sources(ids_json: String) -> Result<()> {
-    let ids: Vec<String> = serde_json::from_str(&ids_json).context("Invalid source IDs JSON")?;
+    let ids: Vec<String> = from_json(&ids_json)?;
     Ok(svc()?.reorder_sources(&ids)?)
 }
 

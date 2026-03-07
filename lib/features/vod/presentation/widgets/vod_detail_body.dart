@@ -5,7 +5,7 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../../domain/entities/vod_item.dart';
-import '../../../../core/utils/date_format_utils.dart' show formatRuntime;
+import '../../../../core/utils/duration_formatter.dart';
 import 'vod_detail_actions.dart'
     show CircularAction, ExpandableSynopsis, RateAction;
 
@@ -214,7 +214,9 @@ class BodyContent extends StatelessWidget {
         if (item.duration != null) ...[
           MetaRow(
             label: 'Duration',
-            value: formatRuntime(item.duration!),
+            value: DurationFormatter.humanShort(
+              Duration(minutes: item.duration!),
+            ),
             textTheme: textTheme,
           ),
           const SizedBox(height: CrispySpacing.md),

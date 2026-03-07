@@ -12,10 +12,10 @@ import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/utils/date_format_utils.dart' show formatMmss;
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
-import 'package:crispy_tivi/core/widgets/or_divider_row.dart';
 import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_auth_service.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
+import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/media_server_action_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/error_sanitizer.dart';
 
 /// Thin wrapper around [MediaServerLoginScreen] for Plex servers.
@@ -117,24 +117,11 @@ class _PlexOAuthRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        CrispySpacing.lg,
-        0,
-        CrispySpacing.lg,
-        CrispySpacing.md,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const OrDividerRow(),
-          const SizedBox(height: CrispySpacing.sm),
-          FilledButton.icon(
-            onPressed: onSignIn,
-            icon: const Icon(Icons.open_in_browser, size: 18),
-            label: const Text('Sign in with Plex'),
-          ),
-        ],
+    return MediaServerActionRow(
+      child: FilledButton.icon(
+        onPressed: onSignIn,
+        icon: const Icon(Icons.open_in_browser, size: 18),
+        label: const Text('Sign in with Plex'),
       ),
     );
   }

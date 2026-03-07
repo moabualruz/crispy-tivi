@@ -8,7 +8,7 @@ import '../../../../core/constants.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../../core/utils/date_format_utils.dart' show formatRuntime;
+import '../../../../core/utils/duration_formatter.dart';
 import '../../../../core/widgets/cinematic_hero_banner.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../player/data/watch_history_service.dart';
@@ -158,7 +158,11 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
                           _RatingChip(rating: item.rating!),
                         // FE-VD-03: Runtime formatted as "Xh Ym"
                         if (item.duration != null)
-                          MetaChip(label: formatRuntime(item.duration!)),
+                          MetaChip(
+                            label: DurationFormatter.humanShort(
+                              Duration(minutes: item.duration!),
+                            ),
+                          ),
                         if (item.category != null)
                           MetaChip(label: item.category!),
                         if (quality != null) QualityBadge(label: quality),

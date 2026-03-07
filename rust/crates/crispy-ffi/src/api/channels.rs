@@ -1,5 +1,5 @@
-use super::{json_result, svc};
-use anyhow::{Context, Result};
+use super::{from_json, json_result, svc};
+use anyhow::Result;
 use crispy_core::models::Channel;
 use std::collections::HashMap;
 
@@ -10,7 +10,7 @@ pub fn load_channels() -> Result<String> {
 
 /// Save channels from JSON array. Returns count.
 pub fn save_channels(json: String) -> Result<usize> {
-    let channels: Vec<Channel> = serde_json::from_str(&json).context("Invalid channel JSON")?;
+    let channels: Vec<Channel> = from_json(&json)?;
     Ok(svc()?.save_channels(&channels)?)
 }
 
@@ -19,8 +19,7 @@ pub fn save_channels(json: String) -> Result<usize> {
 /// Deserialises `source_ids_json` as `Vec<String>`. An empty
 /// array returns ALL channels (same as `load_channels`).
 pub fn get_channels_by_sources(source_ids_json: String) -> Result<String> {
-    let ids: Vec<String> =
-        serde_json::from_str(&source_ids_json).context("Invalid source_ids JSON")?;
+    let ids: Vec<String> = from_json(&source_ids_json)?;
     json_result(svc()?.get_channels_by_sources(&ids)?)
 }
 
@@ -59,8 +58,7 @@ pub fn remove_favorite(profile_id: String, channel_id: String) -> Result<()> {
 /// Deserialises `source_ids_json` as `Vec<String>`. An empty
 /// array returns ALL categories (same as `load_categories`).
 pub fn get_categories_by_sources(source_ids_json: String) -> Result<String> {
-    let ids: Vec<String> =
-        serde_json::from_str(&source_ids_json).context("Invalid source_ids JSON")?;
+    let ids: Vec<String> = from_json(&source_ids_json)?;
     json_result(svc()?.get_categories_by_sources(&ids)?)
 }
 
@@ -71,8 +69,7 @@ pub fn load_categories() -> Result<String> {
 
 /// Save categories from JSON object {type: [names]}.
 pub fn save_categories(json: String) -> Result<()> {
-    let cats: HashMap<String, Vec<String>> =
-        serde_json::from_str(&json).context("Invalid categories JSON")?;
+    let cats: HashMap<String, Vec<String>> = from_json(&json)?;
     Ok(svc()?.save_categories(&cats)?)
 }
 
@@ -132,8 +129,7 @@ pub fn reset_channel_order(profile_id: String, group_name: String) -> Result<()>
 /// Sort channels by number then name (in-place).
 /// Input/output: JSON array of Channel.
 pub fn sort_channels_json(json: String) -> Result<String> {
-    let mut channels: Vec<Channel> =
-        serde_json::from_str(&json).context("Invalid channels JSON")?;
+    let mut channels: Vec<Channel> = from_json(&json)?;
     crispy_core::algorithms::sorting::sort_channels(&mut channels);
     json_result(channels)
 }
@@ -141,10 +137,8 @@ pub fn sort_channels_json(json: String) -> Result<String> {
 /// Resolve category IDs to names in channels.
 /// Returns JSON array of Channel.
 pub fn resolve_channel_categories(channels_json: String, cat_map_json: String) -> Result<String> {
-    let channels: Vec<Channel> =
-        serde_json::from_str(&channels_json).context("Invalid channels JSON")?;
-    let cat_map: HashMap<String, String> =
-        serde_json::from_str(&cat_map_json).context("Invalid cat map JSON")?;
+    let channels: Vec<Channel> = from_json(&channels_json)?;
+    let cat_map: HashMap<String, String> = from_json(&cat_map_json)?;
     let resolved =
         crispy_core::algorithms::categories::resolve_channel_categories(&channels, &cat_map);
     json_result(resolved)
@@ -152,8 +146,7 @@ pub fn resolve_channel_categories(channels_json: String, cat_map_json: String) -
 
 /// Extract unique sorted group names from channels.
 pub fn extract_sorted_groups(channels_json: String) -> Result<Vec<String>> {
-    let channels: Vec<Channel> =
-        serde_json::from_str(&channels_json).context("Invalid channels JSON")?;
+    let channels: Vec<Channel> = from_json(&channels_json)?;
     Ok(crispy_core::algorithms::categories::extract_sorted_groups(
         &channels,
     ))
@@ -162,8 +155,7 @@ pub fn extract_sorted_groups(channels_json: String) -> Result<Vec<String>> {
 /// Find the duplicate group containing a channel.
 /// Returns JSON of DuplicateGroup or null.
 pub fn find_group_for_channel(groups_json: String, channel_id: String) -> Result<Option<String>> {
-    let groups: Vec<crispy_core::algorithms::dedup::DuplicateGroup> =
-        serde_json::from_str(&groups_json).context("Invalid groups JSON")?;
+    let groups: Vec<crispy_core::algorithms::dedup::DuplicateGroup> = from_json(&groups_json)?;
     match crispy_core::algorithms::dedup::find_group_for_channel(&groups, &channel_id) {
         Some(g) => Ok(Some(serde_json::to_string(g)?)),
         None => Ok(None),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:crispy_tivi/core/theme/crispy_animation.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 
@@ -118,7 +119,7 @@ class _PinDisplay extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.xs),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 100),
+              duration: CrispyAnimation.quick,
               width: 12,
               height: 12,
               decoration: BoxDecoration(

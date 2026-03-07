@@ -7,9 +7,9 @@ import 'package:crispy_tivi/core/network/network_timeouts.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
-import 'package:crispy_tivi/core/widgets/or_divider_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
+import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/media_server_action_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/user_avatar_tile.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
 import 'jellyfin_quick_connect_screen.dart';
@@ -111,12 +111,12 @@ class _JellyfinLoginScreenState extends ConsumerState<JellyfinLoginScreen> {
   }
 
   void _onUrlChanged(String rawUrl) {
-    final normalized = normalizeMediaServerUrl(ref, rawUrl);
-    if (normalized.isEmpty && _resolvedUrl.isNotEmpty) {
-      setState(() => _resolvedUrl = '');
-    } else if (normalized.isNotEmpty && normalized != _resolvedUrl) {
-      setState(() => _resolvedUrl = normalized);
-    }
+    handleMediaServerUrlChanged(
+      ref: ref,
+      rawUrl: rawUrl,
+      currentResolved: _resolvedUrl,
+      onChanged: (v) => setState(() => _resolvedUrl = v),
+    );
   }
 
   @override
@@ -304,27 +304,14 @@ class _QuickConnectRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        CrispySpacing.lg,
-        0,
-        CrispySpacing.lg,
-        CrispySpacing.md,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const OrDividerRow(),
-          const SizedBox(height: CrispySpacing.sm),
-          FocusWrapper(
-            onSelect: () => _goToQuickConnect(context),
-            child: OutlinedButton.icon(
-              onPressed: () => _goToQuickConnect(context),
-              icon: const Icon(Icons.cast_connected, size: 18),
-              label: const Text('Use Quick Connect'),
-            ),
-          ),
-        ],
+    return MediaServerActionRow(
+      child: FocusWrapper(
+        onSelect: () => _goToQuickConnect(context),
+        child: OutlinedButton.icon(
+          onPressed: () => _goToQuickConnect(context),
+          icon: const Icon(Icons.cast_connected, size: 18),
+          label: const Text('Use Quick Connect'),
+        ),
       ),
     );
   }

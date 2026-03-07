@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math' show exp;
 
 import '../constants.dart';
+import '../utils/duration_formatter.dart';
 import '../../features/vod/domain/utils/vod_utils.dart'
     show parseRating, parseRatingForSort;
 import 'crispy_backend.dart';
@@ -117,6 +118,14 @@ class MemoryBackend extends _MemoryStorage
     sources.clear();
   }
 }
+
+/// Decodes a JSON string into a typed list of maps.
+///
+/// Convenience helper used throughout memory-backend part files
+/// to replace the verbose inline pattern
+/// `(jsonDecode(x) as List).cast<Map<String, dynamic>>()`.
+List<Map<String, dynamic>> _decodeMapList(String json) =>
+    (jsonDecode(json) as List).cast<Map<String, dynamic>>();
 
 /// Internal storage maps shared by all mixins.
 ///

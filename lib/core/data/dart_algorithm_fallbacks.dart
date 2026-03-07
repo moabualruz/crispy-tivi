@@ -543,11 +543,11 @@ int dartLockRemainingMs(int lockedUntilMs, int nowMs) {
 
 /// Resolve a VOD item's quality label from its extension and stream URL.
 ///
-/// Returns `"4K"`, `"HD"`, or `null`.
+/// Returns `"4K"`, `"FHD"`, `"HD"`, or `null`.
 ///
 /// Mirrors `crispy-core::algorithms::resolve_vod_quality`.
-String? dartResolveVodQuality(String? extension, String streamUrl) {
-  final ext = (extension ?? '').toLowerCase();
+String? dartResolveVodQuality(String? extension_, String streamUrl) {
+  final ext = (extension_ ?? '').toLowerCase();
   final url = streamUrl.toLowerCase();
   if (ext.contains('4k') ||
       ext.contains('uhd') ||
@@ -555,10 +555,15 @@ String? dartResolveVodQuality(String? extension, String streamUrl) {
       url.contains('uhd')) {
     return '4K';
   }
+  if (ext.contains('fhd') ||
+      ext.contains('1080') ||
+      url.contains('fhd') ||
+      url.contains('1080')) {
+    return 'FHD';
+  }
   if (ext.contains('hd') ||
       ext.contains('720') ||
-      ext.contains('1080') ||
-      url.contains('1080') ||
+      url.contains('hd') ||
       url.contains('720')) {
     return 'HD';
   }

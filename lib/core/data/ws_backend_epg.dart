@@ -183,9 +183,9 @@ mixin _WsEpgMixin on _WsBackendBase {
   String formatEpgDatetime(int timestampMs, double offsetHours) =>
       dartFormatEpgDatetime(timestampMs, offsetHours);
 
-  /// Sync — delegates to shared [dartFormatDurationMinutes].
+  /// Sync — delegates to [DurationFormatter.humanShort].
   String formatDurationMinutes(int minutes) =>
-      dartFormatDurationMinutes(minutes);
+      DurationFormatter.humanShort(Duration(minutes: minutes));
 
   /// Sync — delegates to shared [dartDurationBetweenMs].
   int durationBetweenMs(int startMs, int endMs) =>

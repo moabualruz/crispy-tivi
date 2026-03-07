@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 
@@ -35,7 +36,7 @@ class SettingsBadge extends StatelessWidget {
   /// Orange "Experimental" badge — feature works but backend is incomplete.
   const SettingsBadge.experimental({super.key})
     : _label = 'Experimental',
-      _color = const Color(0xFFFF9800);
+      _color = CrispyColors.statusWarning;
 
   /// Grey "Coming Soon" badge — feature is placeholder only.
   const SettingsBadge.comingSoon({super.key})

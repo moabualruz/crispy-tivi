@@ -83,8 +83,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
   // ── Sorting ────────────────────────────────────
 
   Future<String> sortChannelsJson(String channelsJson) async {
-    final list =
-        (jsonDecode(channelsJson) as List).cast<Map<String, dynamic>>();
+    final list = _decodeMapList(channelsJson);
     list.sort((a, b) {
       final na = a['channel_number'] as int? ?? 0;
       final nb = b['channel_number'] as int? ?? 0;
@@ -102,7 +101,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
     String channelsJson,
     String catMapJson,
   ) async {
-    final chs = (jsonDecode(channelsJson) as List).cast<Map<String, dynamic>>();
+    final chs = _decodeMapList(channelsJson);
     final catMap =
         (jsonDecode(catMapJson) as Map<String, dynamic>).cast<String, String>();
     for (final c in chs) {
@@ -118,7 +117,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
     String itemsJson,
     String catMapJson,
   ) async {
-    final items = (jsonDecode(itemsJson) as List).cast<Map<String, dynamic>>();
+    final items = _decodeMapList(itemsJson);
     final catMap =
         (jsonDecode(catMapJson) as Map<String, dynamic>).cast<String, String>();
     for (final v in items) {
@@ -131,7 +130,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
   }
 
   Future<List<String>> extractSortedGroups(String channelsJson) async {
-    final chs = (jsonDecode(channelsJson) as List).cast<Map<String, dynamic>>();
+    final chs = _decodeMapList(channelsJson);
     final groups = <String>{};
     for (final c in chs) {
       final g = c['channel_group'] as String?;
@@ -143,7 +142,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
   }
 
   Future<List<String>> extractSortedVodCategories(String itemsJson) async {
-    final items = (jsonDecode(itemsJson) as List).cast<Map<String, dynamic>>();
+    final items = _decodeMapList(itemsJson);
     final cats = <String>{};
     for (final v in items) {
       final c = v['category'] as String?;
@@ -160,8 +159,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
     String groupsJson,
     String channelId,
   ) async {
-    final groups =
-        (jsonDecode(groupsJson) as List).cast<Map<String, dynamic>>();
+    final groups = _decodeMapList(groupsJson);
     for (final g in groups) {
       final ids = (g['channel_ids'] as List).cast<String>();
       if (ids.contains(channelId)) {
@@ -176,8 +174,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
       dartIsDuplicate(groupsJson, channelId);
 
   Future<List<String>> getAllDuplicateIds(String groupsJson) async {
-    final groups =
-        (jsonDecode(groupsJson) as List).cast<Map<String, dynamic>>();
+    final groups = _decodeMapList(groupsJson);
     final ids = <String>{};
     for (final g in groups) {
       ids.addAll((g['channel_ids'] as List).cast<String>());
@@ -243,8 +240,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
     }
     List<Map<String, dynamic>> channels;
     try {
-      channels =
-          (jsonDecode(channelsJson) as List).cast<Map<String, dynamic>>();
+      channels = _decodeMapList(channelsJson);
     } catch (_) {
       return '[]';
     }
@@ -315,8 +311,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
     String channelsJson,
     String paramsJson,
   ) async {
-    final channels =
-        (jsonDecode(channelsJson) as List).cast<Map<String, dynamic>>();
+    final channels = _decodeMapList(channelsJson);
     final params = jsonDecode(paramsJson) as Map<String, dynamic>;
 
     final hiddenGroups =
@@ -339,8 +334,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
     final duplicateIds = <String>{};
     if (duplicatePolicy == 'hide') {
       try {
-        final groups =
-            (jsonDecode(duplicatesJson) as List).cast<Map<String, dynamic>>();
+        final groups = _decodeMapList(duplicatesJson);
         for (final g in groups) {
           final ids = (g['channel_ids'] as List?)?.cast<String>() ?? [];
           if (ids.isNotEmpty) {
@@ -467,7 +461,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
   Future<String> computeProfileStats(String historyJson, int nowMs) async {
     List<Map<String, dynamic>> entries;
     try {
-      entries = (jsonDecode(historyJson) as List).cast<Map<String, dynamic>>();
+      entries = _decodeMapList(historyJson);
     } catch (_) {
       entries = [];
     }
@@ -557,12 +551,12 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
     List<Map<String, dynamic>> a;
     List<Map<String, dynamic>> b;
     try {
-      a = (jsonDecode(aJson) as List).cast<Map<String, dynamic>>();
+      a = _decodeMapList(aJson);
     } catch (_) {
       a = [];
     }
     try {
-      b = (jsonDecode(bJson) as List).cast<Map<String, dynamic>>();
+      b = _decodeMapList(bJson);
     } catch (_) {
       b = [];
     }
@@ -581,7 +575,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
   Future<String> filterByCwStatus(String historyJson, String filter) async {
     List<Map<String, dynamic>> entries;
     try {
-      entries = (jsonDecode(historyJson) as List).cast<Map<String, dynamic>>();
+      entries = _decodeMapList(historyJson);
     } catch (_) {
       return '[]';
     }
@@ -595,7 +589,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
   ) async {
     List<Map<String, dynamic>> series;
     try {
-      series = (jsonDecode(seriesJson) as List).cast<Map<String, dynamic>>();
+      series = _decodeMapList(seriesJson);
     } catch (_) {
       return '[]';
     }

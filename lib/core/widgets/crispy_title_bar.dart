@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:universal_io/io.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../theme/crispy_animation.dart';
 import '../theme/crispy_spacing.dart';
 
 /// Height of the custom title bar in logical pixels.
@@ -187,7 +188,7 @@ class _WindowButtonState extends State<_WindowButton> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
+          duration: CrispyAnimation.quick,
           width: kCrispyTitleBarHeight + CrispySpacing.sm,
           height: kCrispyTitleBarHeight,
           color: _hovered ? resolvedHover : Colors.transparent,

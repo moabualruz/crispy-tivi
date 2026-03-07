@@ -1,7 +1,7 @@
 use rusqlite::params;
 
 use super::{CrispyService, bool_to_int};
-use crate::database::DbError;
+use crate::database::{DbError, TABLE_CHANNELS, TABLE_EPG_ENTRIES, TABLE_VOD_ITEMS};
 use crate::events::DataChangeEvent;
 
 impl CrispyService {
@@ -13,9 +13,11 @@ impl CrispyService {
     pub fn update_vod_favorite(&self, item_id: &str, is_favorite: bool) -> Result<(), DbError> {
         let conn = self.db.get()?;
         let affected = conn.execute(
-            "UPDATE db_vod_items
-             SET is_favorite = ?2
-             WHERE id = ?1",
+            &format!(
+                "UPDATE {TABLE_VOD_ITEMS}
+                 SET is_favorite = ?2
+                 WHERE id = ?1"
+            ),
             params![item_id, bool_to_int(is_favorite)],
         )?;
         if affected == 0 {
@@ -84,15 +86,15 @@ impl CrispyService {
         tx.execute("DELETE FROM db_recordings", [])?;
         tx.execute("DELETE FROM db_storage_backends", [])?;
         tx.execute("DELETE FROM db_watch_history", [])?;
-        tx.execute("DELETE FROM db_epg_entries", [])?;
+        tx.execute(&format!("DELETE FROM {TABLE_EPG_ENTRIES}"), [])?;
         tx.execute("DELETE FROM db_reminders", [])?;
         tx.execute("DELETE FROM db_search_history", [])?;
         tx.execute("DELETE FROM db_saved_layouts", [])?;
         tx.execute("DELETE FROM db_sync_meta", [])?;
         tx.execute("DELETE FROM db_settings", [])?;
         tx.execute("DELETE FROM db_categories", [])?;
-        tx.execute("DELETE FROM db_vod_items", [])?;
-        tx.execute("DELETE FROM db_channels", [])?;
+        tx.execute(&format!("DELETE FROM {TABLE_VOD_ITEMS}"), [])?;
+        tx.execute(&format!("DELETE FROM {TABLE_CHANNELS}"), [])?;
         tx.execute("DELETE FROM db_profiles", [])?;
         tx.commit()?;
         self.emit(DataChangeEvent::BulkDataRefresh);

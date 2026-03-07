@@ -23,6 +23,52 @@ mod parsers;
 use anyhow::{Context, Result, anyhow};
 use serde_json::{Value, json};
 
+// ── Handler macros ───────────────────────────────────
+
+/// Call a service method, mapping its error to `anyhow`.
+///
+/// ```ignore
+/// let data = svc_call!(svc, load_channels)?;
+/// let ok   = svc_call!(svc, add_favorite, &pid, &cid)?;
+/// ```
+macro_rules! svc_call {
+    ($svc:expr, $method:ident $(, $arg:expr)*) => {
+        $svc.$method($($arg),*).map_err(|e| anyhow::anyhow!("{e}"))
+    };
+}
+
+/// Call a service method and return `Ok(json!({"data": result}))`.
+///
+/// Works both as a standalone match arm expression and as the final
+/// expression inside a `(|| { ... })()` closure.
+///
+/// ```ignore
+/// svc_data!(svc, load_channels)
+/// svc_data!(svc, get_favorites, &pid)
+/// ```
+macro_rules! svc_data {
+    ($svc:expr, $method:ident $(, $arg:expr)*) => {
+        svc_call!($svc, $method $(, $arg)*).map(|_r| serde_json::json!({ "data": _r }))
+    };
+}
+
+/// Call a service method and return `Ok(json!({"ok": true}))`.
+///
+/// Works both as a standalone match arm expression and as the final
+/// expression inside a `(|| { ... })()` closure.
+///
+/// ```ignore
+/// svc_ok!(svc, add_favorite, &pid, &cid)
+/// svc_ok!(svc, remove_setting, &key)
+/// ```
+macro_rules! svc_ok {
+    ($svc:expr, $method:ident $(, $arg:expr)*) => {
+        svc_call!($svc, $method $(, $arg)*).map(|_| serde_json::json!({ "ok": true }))
+    };
+}
+
+pub(super) use {svc_call, svc_data, svc_ok};
+
 use crispy_core::services::CrispyService;
 
 // ── Arg extraction helpers ──────────────────────────

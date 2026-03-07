@@ -33,7 +33,7 @@ mixin _MemoryAlgoTimeMixin on _MemoryStorage {
       dartCalculateWatchProgress(positionMs, durationMs);
 
   Future<String> filterContinueWatchingPositions(String json, int limit) async {
-    final list = (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    final list = _decodeMapList(json);
     final filtered =
         list.where((e) {
           final pos = e['position_ms'] as int? ?? 0;
@@ -83,9 +83,9 @@ mixin _MemoryAlgoTimeMixin on _MemoryStorage {
   String formatEpgDatetime(int timestampMs, double offsetHours) =>
       dartFormatEpgDatetime(timestampMs, offsetHours);
 
-  /// Delegates to shared [dartFormatDurationMinutes].
+  /// Delegates to [DurationFormatter.humanShort].
   String formatDurationMinutes(int minutes) =>
-      dartFormatDurationMinutes(minutes);
+      DurationFormatter.humanShort(Duration(minutes: minutes));
 
   /// Delegates to shared [dartDurationBetweenMs].
   int durationBetweenMs(int startMs, int endMs) =>

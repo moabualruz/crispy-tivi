@@ -90,7 +90,7 @@ void main() {
     // body metadata column, so expect at least one.
     expect(find.text('2024'), findsWidgets);
     expect(find.text('8.5'), findsWidgets);
-    expect(find.text('2h'), findsWidgets);
+    expect(find.text('2h 0m'), findsWidgets);
     expect(find.text('Action'), findsWidgets);
     expect(find.text('Play'), findsOneWidget);
     expect(find.text('My List'), findsOneWidget);

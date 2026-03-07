@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use rusqlite::params;
 
-use super::{CrispyService, dt_to_ts, ts_to_dt};
+use super::{CrispyService, dt_to_ts, str_params, ts_to_dt};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::models::EpgEntry;
@@ -238,10 +238,7 @@ impl CrispyService {
             placeholders.join(", ")
         );
         let mut stmt = conn.prepare(&sql)?;
-        let params: Vec<&dyn rusqlite::types::ToSql> = source_ids
-            .iter()
-            .map(|s| s as &dyn rusqlite::types::ToSql)
-            .collect();
+        let params = str_params(source_ids);
         let rows = stmt.query_map(params.as_slice(), |row| {
             Ok(EpgEntry {
                 channel_id: row.get(0)?,

@@ -7,7 +7,7 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
   // ── VOD Sorting & Categorization ──────────────
 
   Future<String> sortVodItems(String itemsJson, String sortBy) async {
-    final list = (jsonDecode(itemsJson) as List).cast<Map<String, dynamic>>();
+    final list = _decodeMapList(itemsJson);
     switch (sortBy) {
       case 'name_asc':
         list.sort(
@@ -54,7 +54,7 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
   }
 
   Future<String> buildVodCategoryMap(String itemsJson) async {
-    final list = (jsonDecode(itemsJson) as List).cast<Map<String, dynamic>>();
+    final list = _decodeMapList(itemsJson);
     final all = <String>{};
     final movies = <String>{};
     final series = <String>{};
@@ -74,7 +74,7 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
   }
 
   Future<String> filterTopVod(String itemsJson, int limit) async {
-    final list = (jsonDecode(itemsJson) as List).cast<Map<String, dynamic>>();
+    final list = _decodeMapList(itemsJson);
 
     // Mirrors Rust `filter_top_vod`: requires HTTP poster URL (not backdrop).
     bool hasHttpPoster(Map<String, dynamic> i) {
@@ -121,8 +121,7 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
     String historyJson,
     String seriesId,
   ) async {
-    final entries =
-        (jsonDecode(historyJson) as List).cast<Map<String, dynamic>>();
+    final entries = _decodeMapList(historyJson);
     final progressMap = <String, double>{};
     String? latestTs;
     String? latestEp;
@@ -178,7 +177,7 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
     String itemsJson,
     int maxRatingValue,
   ) async {
-    final items = (jsonDecode(itemsJson) as List).cast<Map<String, dynamic>>();
+    final items = _decodeMapList(itemsJson);
     final filtered =
         items.where((item) {
           final level = _parseContentRating(item['rating'] as String?);
@@ -188,7 +187,7 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
   }
 
   Future<String> buildTypeCategories(String itemsJson, String vodType) async {
-    final list = (jsonDecode(itemsJson) as List).cast<Map<String, dynamic>>();
+    final list = _decodeMapList(itemsJson);
     final cats = <String>{};
     for (final item in list) {
       final type = item['type'] as String? ?? '';
@@ -206,7 +205,7 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
     int cutoffDays,
     int nowMs,
   ) async {
-    final list = (jsonDecode(itemsJson) as List).cast<Map<String, dynamic>>();
+    final list = _decodeMapList(itemsJson);
     final cutoffMs = nowMs - Duration(days: cutoffDays).inMilliseconds;
     final filtered =
         list.where((item) {

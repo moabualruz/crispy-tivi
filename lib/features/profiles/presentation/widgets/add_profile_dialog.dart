@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
@@ -439,9 +440,9 @@ class MaturityRatingBadge extends StatelessWidget {
   (Color, String) _style(BuildContext context, ContentRatingLevel level) {
     final cs = Theme.of(context).colorScheme;
     return switch (level) {
-      ContentRatingLevel.g => (const Color(0xFF4CAF50), 'G'),
+      ContentRatingLevel.g => (CrispyColors.statusSuccess, 'G'),
       ContentRatingLevel.pg => (cs.primary, 'PG'),
-      ContentRatingLevel.pg13 => (const Color(0xFFFF9800), 'PG-13'),
+      ContentRatingLevel.pg13 => (CrispyColors.statusWarning, 'PG-13'),
       ContentRatingLevel.r => (cs.error, 'R'),
       _ => (cs.onSurfaceVariant, level.code),
     };

@@ -77,20 +77,6 @@ String formatYMD(DateTime dt) =>
 /// Formats a [DateTime] as "D/M/YYYY HH:mm".
 String formatDMYHHmm(DateTime dt) => '${formatDMY(dt)} ${formatHHmm(dt)}';
 
-/// Formats a runtime duration in minutes into a human-readable string.
-///
-/// Examples:
-///   - 45 → "45m"
-///   - 90 → "1h 30m"
-///   - 120 → "2h"
-String formatRuntime(int minutes) {
-  if (minutes < 60) return '${minutes}m';
-  final hours = minutes ~/ 60;
-  final remainder = minutes % 60;
-  if (remainder == 0) return '${hours}h';
-  return '${hours}h ${remainder}m';
-}
-
 /// Formats [totalSeconds] as `MM:SS` (both components zero-padded to 2 digits).
 ///
 /// Used for countdown timers (auth expiry, PIN lockout, etc.).

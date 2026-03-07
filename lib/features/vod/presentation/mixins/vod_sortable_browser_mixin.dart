@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/data/cache_service.dart';
+import '../../domain/entities/vod_item.dart';
 import '../providers/vod_providers.dart';
 
 /// Shared sort/search state for VOD browser screens (movies & series).
@@ -14,6 +16,15 @@ mixin VodSortableBrowserMixin<T extends ConsumerStatefulWidget>
   String? selectedCategory;
   String searchQuery = '';
   VodSortOption sortOption = VodSortOption.recentlyAdded;
+
+  /// Cached sorted+filtered item list (async, from Rust backend).
+  List<VodItem> sortedItems = const [];
+
+  // Snapshot of the inputs used for the last sort run.
+  List<VodItem> _lastAll = const [];
+  VodSortOption _lastSortOption = VodSortOption.recentlyAdded;
+  String? _lastCategory;
+  String _lastQuery = '';
 
   /// Load the persisted sort option from settings.
   /// Implementations call the appropriate `getXxxSortOption()` method.
@@ -50,6 +61,42 @@ mixin VodSortableBrowserMixin<T extends ConsumerStatefulWidget>
             : null;
     if (notifier == null) return;
     await saveSortOption(notifier, option.name);
+  }
+
+  /// Applies category/search filters, then delegates sorting to
+  /// the Rust backend via [CacheService.filterAndSortVodItems].
+  ///
+  /// Stores the result in [sortedItems] and triggers a rebuild.
+  Future<void> refreshSortedItems(List<VodItem> all) async {
+    final cache = ref.read(cacheServiceProvider);
+    final sorted = await cache.filterAndSortVodItems(
+      all,
+      category: selectedCategory,
+      query: searchQuery.isNotEmpty ? searchQuery : null,
+      sortByKey: sortOption.sortByKey,
+    );
+    if (!mounted) return;
+    setState(() => sortedItems = sorted);
+  }
+
+  /// Compares current sort inputs against the last run and, if anything
+  /// changed, schedules [refreshSortedItems] via a microtask so it does
+  /// not block the current build.
+  ///
+  /// Call this inside `build()` after obtaining [allItems].  Subclasses
+  /// may add their own guards (e.g. `!isLoading && error == null`) before
+  /// calling this method.
+  void checkAndRefreshSort(List<VodItem> allItems) {
+    if (!identical(allItems, _lastAll) ||
+        sortOption != _lastSortOption ||
+        selectedCategory != _lastCategory ||
+        searchQuery != _lastQuery) {
+      _lastAll = allItems;
+      _lastSortOption = sortOption;
+      _lastCategory = selectedCategory;
+      _lastQuery = searchQuery;
+      Future.microtask(() => refreshSortedItems(allItems));
+    }
   }
 
   /// Dispose the search controller. Call before [super.dispose()].

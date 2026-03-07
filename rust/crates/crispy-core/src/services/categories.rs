@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use rusqlite::params;
 
-use super::CrispyService;
+use super::{CrispyService, str_params};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
 
@@ -75,10 +75,7 @@ impl CrispyService {
             placeholders.join(", ")
         );
         let mut stmt = conn.prepare(&sql)?;
-        let params: Vec<&dyn rusqlite::types::ToSql> = source_ids
-            .iter()
-            .map(|s| s as &dyn rusqlite::types::ToSql)
-            .collect();
+        let params = str_params(source_ids);
         let rows = stmt.query_map(params.as_slice(), |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
         })?;

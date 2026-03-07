@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/core/data/cache_service.dart';
@@ -41,6 +42,37 @@ String normalizeMediaServerUrl(WidgetRef ref, String rawUrl) {
     return ref.read(crispyBackendProvider).normalizeServerUrl(trimmed);
   } catch (_) {
     return '';
+  }
+}
+
+/// Handles the `_onUrlChanged` callback shared across media-server login
+/// screens that track a resolved URL in local state.
+///
+/// Normalizes [rawUrl] and calls [onChanged] only when the resulting value
+/// differs from [currentResolved]. Callers pass their current `_resolvedUrl`
+/// field and a setter that wraps `setState`:
+///
+/// ```dart
+/// void _onUrlChanged(String raw) {
+///   handleMediaServerUrlChanged(
+///     ref: ref,
+///     rawUrl: raw,
+///     currentResolved: _resolvedUrl,
+///     onChanged: (v) => setState(() => _resolvedUrl = v),
+///   );
+/// }
+/// ```
+void handleMediaServerUrlChanged({
+  required WidgetRef ref,
+  required String rawUrl,
+  required String currentResolved,
+  required ValueChanged<String> onChanged,
+}) {
+  final normalized = normalizeMediaServerUrl(ref, rawUrl);
+  if (normalized.isEmpty && currentResolved.isNotEmpty) {
+    onChanged('');
+  } else if (normalized.isNotEmpty && normalized != currentResolved) {
+    onChanged(normalized);
   }
 }
 

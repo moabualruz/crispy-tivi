@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../../core/navigation/app_routes.dart';
 import '../../../../../core/theme/crispy_colors.dart';
 import '../../../../../core/theme/crispy_radius.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
@@ -81,7 +82,7 @@ class OsdTopBar extends StatelessWidget {
                     if (GoRouter.of(context).canPop()) {
                       context.pop();
                     } else {
-                      context.go('/home');
+                      context.go(AppRoutes.home);
                     }
                   },
             ),

@@ -14,14 +14,26 @@ import 'package:flutter/material.dart';
 abstract final class CrispyAnimation {
   // ── Durations ──────────────────────────────────────────────
 
+  /// 80 ms — instant micro-animations (scale pulses, tap feedback).
+  static const Duration extraFast = Duration(milliseconds: 80);
+
+  /// 100 ms — quick widget transitions (icon swaps, size changes).
+  static const Duration quick = Duration(milliseconds: 100);
+
   /// 150 ms — focus changes, hover effects, micro-interactions.
   static const Duration fast = Duration(milliseconds: 150);
 
   /// 300 ms — page transitions, modal open, standard animations.
   static const Duration normal = Duration(milliseconds: 300);
 
+  /// 400 ms — scroll-to animations, emphasised reveal transitions.
+  static const Duration emphasis = Duration(milliseconds: 400);
+
   /// 500 ms — complex transitions, staggered lists.
   static const Duration slow = Duration(milliseconds: 500);
+
+  /// 1200 ms — slow pulsing loops (shimmer, preview cycling).
+  static const Duration dramatic = Duration(milliseconds: 1200);
 
   // ── Curves ─────────────────────────────────────────────────
 

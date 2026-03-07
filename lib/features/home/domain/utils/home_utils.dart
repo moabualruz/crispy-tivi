@@ -1,4 +1,5 @@
 import '../../../vod/domain/entities/vod_item.dart';
+import '../../../vod/domain/utils/vod_utils.dart' show kRecentlyAddedDays;
 
 // ── FE-H-05: Dynamic personalized row labels ────────────
 
@@ -26,7 +27,9 @@ String dynamicSectionLabel({
 
     case 'recently_added':
       if (items == null || items.isEmpty) return fallback;
-      final cutoff = DateTime.now().subtract(const Duration(days: 7));
+      final cutoff = DateTime.now().subtract(
+        const Duration(days: kRecentlyAddedDays),
+      );
       final recent =
           items
               .where((i) => i.addedAt != null && i.addedAt!.isAfter(cutoff))

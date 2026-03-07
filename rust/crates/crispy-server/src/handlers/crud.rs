@@ -8,17 +8,14 @@ use serde_json::{Value, json};
 use crispy_core::models::*;
 use crispy_core::services::CrispyService;
 
-use super::{get_i64, get_str, get_str_opt, get_str_vec, ts_to_dt};
+use super::{get_i64, get_str, get_str_opt, get_str_vec, svc_call, svc_data, svc_ok, ts_to_dt};
 
 /// Handle CRUD commands. Returns `Some(result)` if the
 /// command matched, `None` otherwise.
 pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Result<Value>> {
     let r = match cmd {
         // ── Channels ────────────────────────────
-        "loadChannels" => {
-            let data = svc.load_channels().map_err(|e| anyhow!("{e}"));
-            data.map(|d| json!({"data": d}))
-        }
+        "loadChannels" => svc_data!(svc, load_channels),
         "saveChannels" => (|| {
             let channels: Vec<Channel> = serde_json::from_value(
                 args.get("channels")
@@ -31,8 +28,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         })(),
         "getChannelsByIds" => (|| {
             let ids = get_str_vec(args, "ids")?;
-            let data = svc.get_channels_by_ids(&ids).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"data": data}))
+            svc_data!(svc, get_channels_by_ids, &ids)
         })(),
         "deleteRemovedChannels" => (|| {
             let source_id = get_str(args, "sourceId")?;
@@ -46,28 +42,21 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         // ── Channel Favorites ───────────────────
         "getFavorites" => (|| {
             let pid = get_str(args, "profileId")?;
-            let data = svc.get_favorites(&pid).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"data": data}))
+            svc_data!(svc, get_favorites, &pid)
         })(),
         "addFavorite" => (|| {
             let pid = get_str(args, "profileId")?;
             let cid = get_str(args, "channelId")?;
-            svc.add_favorite(&pid, &cid).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, add_favorite, &pid, &cid)
         })(),
         "removeFavorite" => (|| {
             let pid = get_str(args, "profileId")?;
             let cid = get_str(args, "channelId")?;
-            svc.remove_favorite(&pid, &cid)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, remove_favorite, &pid, &cid)
         })(),
 
         // ── VOD Items ──────────────────────────
-        "loadVodItems" => {
-            let data = svc.load_vod_items().map_err(|e| anyhow!("{e}"));
-            data.map(|d| json!({"data": d}))
-        }
+        "loadVodItems" => svc_data!(svc, load_vod_items),
         "saveVodItems" => (|| {
             let items: Vec<VodItem> = serde_json::from_value(
                 args.get("items")
@@ -101,50 +90,37 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         // ── VOD Favorites ──────────────────────
         "getVodFavorites" => (|| {
             let pid = get_str(args, "profileId")?;
-            let data = svc.get_vod_favorites(&pid).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"data": data}))
+            svc_data!(svc, get_vod_favorites, &pid)
         })(),
         "addVodFavorite" => (|| {
             let pid = get_str(args, "profileId")?;
             let vid = get_str(args, "vodItemId")?;
-            svc.add_vod_favorite(&pid, &vid)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, add_vod_favorite, &pid, &vid)
         })(),
         "removeVodFavorite" => (|| {
             let pid = get_str(args, "profileId")?;
             let vid = get_str(args, "vodItemId")?;
-            svc.remove_vod_favorite(&pid, &vid)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, remove_vod_favorite, &pid, &vid)
         })(),
 
         // ── Watchlist ──────────────────────────
         "getWatchlistItems" => (|| {
             let pid = get_str(args, "profileId")?;
-            let data = svc.get_watchlist_items(&pid).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"data": data}))
+            svc_data!(svc, get_watchlist_items, &pid)
         })(),
         "addWatchlistItem" => (|| {
             let pid = get_str(args, "profileId")?;
             let vid = get_str(args, "vodItemId")?;
-            svc.add_watchlist_item(&pid, &vid)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, add_watchlist_item, &pid, &vid)
         })(),
         "removeWatchlistItem" => (|| {
             let pid = get_str(args, "profileId")?;
             let vid = get_str(args, "vodItemId")?;
-            svc.remove_watchlist_item(&pid, &vid)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, remove_watchlist_item, &pid, &vid)
         })(),
 
         // ── Categories ─────────────────────────
-        "loadCategories" => {
-            let data = svc.load_categories().map_err(|e| anyhow!("{e}"));
-            data.map(|d| json!({"data": d}))
-        }
+        "loadCategories" => svc_data!(svc, load_categories),
         "saveCategories" => (|| {
             let cats: HashMap<String, Vec<String>> = serde_json::from_value(
                 args.get("categories")
@@ -160,33 +136,23 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         "getFavoriteCategories" => (|| {
             let pid = get_str(args, "profileId")?;
             let ct = get_str(args, "categoryType")?;
-            let data = svc
-                .get_favorite_categories(&pid, &ct)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"data": data}))
+            svc_data!(svc, get_favorite_categories, &pid, &ct)
         })(),
         "addFavoriteCategory" => (|| {
             let pid = get_str(args, "profileId")?;
             let ct = get_str(args, "categoryType")?;
             let cn = get_str(args, "categoryName")?;
-            svc.add_favorite_category(&pid, &ct, &cn)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, add_favorite_category, &pid, &ct, &cn)
         })(),
         "removeFavoriteCategory" => (|| {
             let pid = get_str(args, "profileId")?;
             let ct = get_str(args, "categoryType")?;
             let cn = get_str(args, "categoryName")?;
-            svc.remove_favorite_category(&pid, &ct, &cn)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, remove_favorite_category, &pid, &ct, &cn)
         })(),
 
         // ── Profiles ───────────────────────────
-        "loadProfiles" => {
-            let data = svc.load_profiles().map_err(|e| anyhow!("{e}"));
-            data.map(|d| json!({"data": d}))
-        }
+        "loadProfiles" => svc_data!(svc, load_profiles),
         "saveProfile" => (|| {
             let profile: UserProfile = serde_json::from_value(
                 args.get("profile")
@@ -194,41 +160,32 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                     .ok_or_else(|| anyhow!("Missing profile"))?,
             )
             .context("Invalid profile")?;
-            svc.save_profile(&profile).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, save_profile, &profile)
         })(),
         "deleteProfile" => (|| {
             let id = get_str(args, "id")?;
-            svc.delete_profile(&id).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, delete_profile, &id)
         })(),
 
         // ── Profile Source Access ───────────────
         "getSourceAccess" => (|| {
             let pid = get_str(args, "profileId")?;
-            let data = svc.get_source_access(&pid).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"data": data}))
+            svc_data!(svc, get_source_access, &pid)
         })(),
         "grantSourceAccess" => (|| {
             let pid = get_str(args, "profileId")?;
             let sid = get_str(args, "sourceId")?;
-            svc.grant_source_access(&pid, &sid)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, grant_source_access, &pid, &sid)
         })(),
         "revokeSourceAccess" => (|| {
             let pid = get_str(args, "profileId")?;
             let sid = get_str(args, "sourceId")?;
-            svc.revoke_source_access(&pid, &sid)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, revoke_source_access, &pid, &sid)
         })(),
         "setSourceAccess" => (|| {
             let pid = get_str(args, "profileId")?;
             let sids = get_str_vec(args, "sourceIds")?;
-            svc.set_source_access(&pid, &sids)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, set_source_access, &pid, &sids)
         })(),
 
         // ── Channel Order ──────────────────────
@@ -236,9 +193,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let pid = get_str(args, "profileId")?;
             let gn = get_str(args, "groupName")?;
             let cids = get_str_vec(args, "channelIds")?;
-            svc.save_channel_order(&pid, &gn, &cids)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, save_channel_order, &pid, &gn, &cids)
         })(),
         "loadChannelOrder" => (|| {
             let pid = get_str(args, "profileId")?;
@@ -254,9 +209,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         "resetChannelOrder" => (|| {
             let pid = get_str(args, "profileId")?;
             let gn = get_str(args, "groupName")?;
-            svc.reset_channel_order(&pid, &gn)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, reset_channel_order, &pid, &gn)
         })(),
 
         // ── EPG ────────────────────────────────
@@ -299,10 +252,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                 .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true, "count": count}))
         })(),
-        "loadEpgEntries" => {
-            let data = svc.load_epg_entries().map_err(|e| anyhow!("{e}"));
-            data.map(|d| json!({"data": d}))
-        }
+        "loadEpgEntries" => svc_data!(svc, load_epg_entries),
         "getEpgsForChannels" => (|| {
             let channel_ids = get_str_vec(args, "channelIds")?;
             let start_time_ms = get_i64(args, "startTimeMs")?;
@@ -332,16 +282,10 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let count = svc.evict_stale_epg(days).map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true, "count": count}))
         })(),
-        "clearEpgEntries" => svc
-            .clear_epg_entries()
-            .map_err(|e| anyhow!("{e}"))
-            .map(|_| json!({"ok": true})),
+        "clearEpgEntries" => svc_ok!(svc, clear_epg_entries),
 
         // ── Watch History ──────────────────────
-        "loadWatchHistory" => {
-            let data = svc.load_watch_history().map_err(|e| anyhow!("{e}"));
-            data.map(|d| json!({"data": d}))
-        }
+        "loadWatchHistory" => svc_data!(svc, load_watch_history),
         "saveWatchHistory" => (|| {
             let entry: WatchHistory = serde_json::from_value(
                 args.get("entry")
@@ -349,19 +293,17 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                     .ok_or_else(|| anyhow!("Missing entry"))?,
             )
             .context("Invalid watch history")?;
-            svc.save_watch_history(&entry).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, save_watch_history, &entry)
         })(),
         "deleteWatchHistory" => (|| {
             let id = get_str(args, "id")?;
-            svc.delete_watch_history(&id).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, delete_watch_history, &id)
         })(),
 
         // ── Settings ───────────────────────────
         "getSetting" => (|| {
             let key = get_str(args, "key")?;
-            let val = svc.get_setting(&key).map_err(|e| anyhow!("{e}"))?;
+            let val = svc_call!(svc, get_setting, &key)?;
             match val {
                 Some(v) => Ok(json!({"data": v})),
                 None => Ok(json!({"data": null})),
@@ -370,13 +312,11 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         "setSetting" => (|| {
             let key = get_str(args, "key")?;
             let val = get_str(args, "value")?;
-            svc.set_setting(&key, &val).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, set_setting, &key, &val)
         })(),
         "removeSetting" => (|| {
             let key = get_str(args, "key")?;
-            svc.remove_setting(&key).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, remove_setting, &key)
         })(),
 
         // ── Sync Meta ──────────────────────────
@@ -401,10 +341,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         })(),
 
         // ── Recordings ─────────────────────────
-        "loadRecordings" => {
-            let data = svc.load_recordings().map_err(|e| anyhow!("{e}"));
-            data.map(|d| json!({"data": d}))
-        }
+        "loadRecordings" => svc_data!(svc, load_recordings),
         "saveRecording" => (|| {
             let rec: Recording = serde_json::from_value(
                 args.get("recording")
@@ -412,8 +349,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                     .ok_or_else(|| anyhow!("Missing recording"))?,
             )
             .context("Invalid recording")?;
-            svc.save_recording(&rec).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, save_recording, &rec)
         })(),
         "updateRecording" => (|| {
             let rec: Recording = serde_json::from_value(
@@ -422,20 +358,15 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                     .ok_or_else(|| anyhow!("Missing recording"))?,
             )
             .context("Invalid recording")?;
-            svc.save_recording(&rec).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, save_recording, &rec)
         })(),
         "deleteRecording" => (|| {
             let id = get_str(args, "id")?;
-            svc.delete_recording(&id).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, delete_recording, &id)
         })(),
 
         // ── Storage Backends ───────────────────
-        "loadStorageBackends" => {
-            let data = svc.load_storage_backends().map_err(|e| anyhow!("{e}"));
-            data.map(|d| json!({"data": d}))
-        }
+        "loadStorageBackends" => svc_data!(svc, load_storage_backends),
         "saveStorageBackend" => (|| {
             let backend: StorageBackend = serde_json::from_value(
                 args.get("backend")
@@ -443,22 +374,15 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                     .ok_or_else(|| anyhow!("Missing backend"))?,
             )
             .context("Invalid storage backend")?;
-            svc.save_storage_backend(&backend)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, save_storage_backend, &backend)
         })(),
         "deleteStorageBackend" => (|| {
             let id = get_str(args, "id")?;
-            svc.delete_storage_backend(&id)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, delete_storage_backend, &id)
         })(),
 
         // ── Transfer Tasks ─────────────────────
-        "loadTransferTasks" => {
-            let data = svc.load_transfer_tasks().map_err(|e| anyhow!("{e}"));
-            data.map(|d| json!({"data": d}))
-        }
+        "loadTransferTasks" => svc_data!(svc, load_transfer_tasks),
         "saveTransferTask" => (|| {
             let task: TransferTask = serde_json::from_value(
                 args.get("task")
@@ -466,8 +390,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                     .ok_or_else(|| anyhow!("Missing task"))?,
             )
             .context("Invalid transfer task")?;
-            svc.save_transfer_task(&task).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, save_transfer_task, &task)
         })(),
         "updateTransferTask" => (|| {
             let task: TransferTask = serde_json::from_value(
@@ -476,21 +399,15 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                     .ok_or_else(|| anyhow!("Missing task"))?,
             )
             .context("Invalid transfer task")?;
-            svc.update_transfer_task(&task)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, update_transfer_task, &task)
         })(),
         "deleteTransferTask" => (|| {
             let id = get_str(args, "id")?;
-            svc.delete_transfer_task(&id).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, delete_transfer_task, &id)
         })(),
 
         // ── Saved Layouts ──────────────────────
-        "loadSavedLayouts" => {
-            let data = svc.load_saved_layouts().map_err(|e| anyhow!("{e}"));
-            data.map(|d| json!({"data": d}))
-        }
+        "loadSavedLayouts" => svc_data!(svc, load_saved_layouts),
         "saveSavedLayout" => (|| {
             let layout: SavedLayout = serde_json::from_value(
                 args.get("layout")
@@ -498,13 +415,11 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                     .ok_or_else(|| anyhow!("Missing layout"))?,
             )
             .context("Invalid layout")?;
-            svc.save_saved_layout(&layout).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, save_saved_layout, &layout)
         })(),
         "deleteSavedLayout" => (|| {
             let id = get_str(args, "id")?;
-            svc.delete_saved_layout(&id).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, delete_saved_layout, &id)
         })(),
         "getSavedLayoutById" => (|| {
             let id = get_str(args, "id")?;
@@ -516,10 +431,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         })(),
 
         // ── Search History ────────────────────
-        "loadSearchHistory" => {
-            let data = svc.load_search_history().map_err(|e| anyhow!("{e}"));
-            data.map(|d| json!({"data": d}))
-        }
+        "loadSearchHistory" => svc_data!(svc, load_search_history),
         "saveSearchEntry" => (|| {
             let entry: SearchHistory = serde_json::from_value(
                 args.get("entry")
@@ -527,24 +439,16 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                     .ok_or_else(|| anyhow!("Missing entry"))?,
             )
             .context("Invalid search entry")?;
-            svc.save_search_entry(&entry).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, save_search_entry, &entry)
         })(),
         "deleteSearchEntry" => (|| {
             let id = get_str(args, "id")?;
-            svc.delete_search_entry(&id).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, delete_search_entry, &id)
         })(),
-        "clearSearchHistory" => svc
-            .clear_search_history()
-            .map_err(|e| anyhow!("{e}"))
-            .map(|_| json!({"ok": true})),
+        "clearSearchHistory" => svc_ok!(svc, clear_search_history),
 
         // ── Reminders ─────────────────────────
-        "loadReminders" => {
-            let data = svc.load_reminders().map_err(|e| anyhow!("{e}"));
-            data.map(|d| json!({"data": d}))
-        }
+        "loadReminders" => svc_data!(svc, load_reminders),
         "saveReminder" => (|| {
             let reminder: Reminder = serde_json::from_value(
                 args.get("reminder")
@@ -552,22 +456,16 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                     .ok_or_else(|| anyhow!("Missing reminder"))?,
             )
             .context("Invalid reminder")?;
-            svc.save_reminder(&reminder).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, save_reminder, &reminder)
         })(),
         "deleteReminder" => (|| {
             let id = get_str(args, "id")?;
-            svc.delete_reminder(&id).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, delete_reminder, &id)
         })(),
-        "clearFiredReminders" => svc
-            .clear_fired_reminders()
-            .map_err(|e| anyhow!("{e}"))
-            .map(|_| json!({"ok": true})),
+        "clearFiredReminders" => svc_ok!(svc, clear_fired_reminders),
         "markReminderFired" => (|| {
             let id = get_str(args, "id")?;
-            svc.mark_reminder_fired(&id).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, mark_reminder_fired, &id)
         })(),
 
         // ── Source Sync ──────────────────────────
@@ -668,38 +566,24 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         // ── Source-Filtered Queries ────────────
         "getChannelsBySources" => (|| {
             let ids = get_str_vec(args, "sourceIds")?;
-            let data = svc
-                .get_channels_by_sources(&ids)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"data": data}))
+            svc_data!(svc, get_channels_by_sources, &ids)
         })(),
         "getVodBySources" => (|| {
             let ids = get_str_vec(args, "sourceIds")?;
-            let data = svc.get_vod_by_sources(&ids).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"data": data}))
+            svc_data!(svc, get_vod_by_sources, &ids)
         })(),
         "getEpgBySources" => (|| {
             let ids = get_str_vec(args, "sourceIds")?;
-            let data = svc.get_epg_by_sources(&ids).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"data": data}))
+            svc_data!(svc, get_epg_by_sources, &ids)
         })(),
         "getCategoriesBySources" => (|| {
             let ids = get_str_vec(args, "sourceIds")?;
-            let data = svc
-                .get_categories_by_sources(&ids)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"data": data}))
+            svc_data!(svc, get_categories_by_sources, &ids)
         })(),
-        "getSourceStats" => {
-            let data = svc.get_source_stats().map_err(|e| anyhow!("{e}"));
-            data.map(|d| json!({"data": d}))
-        }
+        "getSourceStats" => svc_data!(svc, get_source_stats),
 
         // ── Bulk ───────────────────────────────
-        "clearAll" => svc
-            .clear_all()
-            .map_err(|e| anyhow!("{e}"))
-            .map(|_| json!({"ok": true})),
+        "clearAll" => svc_ok!(svc, clear_all),
 
         // ── Phase 8: Service methods ────────
         "updateVodFavorite" => (|| {
@@ -708,16 +592,11 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                 .get("isFavorite")
                 .and_then(|v| v.as_bool())
                 .ok_or_else(|| anyhow!("Missing bool: isFavorite"))?;
-            svc.update_vod_favorite(&item_id, is_fav)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, update_vod_favorite, &item_id, is_fav)
         })(),
         "getProfilesForSource" => (|| {
             let sid = get_str(args, "sourceId")?;
-            let data = svc
-                .get_profiles_for_source(&sid)
-                .map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"data": data}))
+            svc_data!(svc, get_profiles_for_source, &sid)
         })(),
         "deleteSearchByQuery" => (|| {
             let query = get_str(args, "query")?;
@@ -750,31 +629,24 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         })(),
 
         // ── Sources ──────────────────────────
-        "getSources" => {
-            let sources = svc.get_sources().map_err(|e| anyhow!("{e}"));
-            sources.map(|d| json!({"data": d}))
-        }
+        "getSources" => svc_data!(svc, get_sources),
         "getSource" => (|| {
             let id = get_str(args, "id")?;
-            let source = svc.get_source(&id).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"data": source}))
+            svc_data!(svc, get_source, &id)
         })(),
         "saveSource" => (|| {
             let json_str = serde_json::to_string(args)?;
             let source: crispy_core::models::Source =
                 serde_json::from_str(&json_str).context("Invalid source JSON")?;
-            svc.save_source(&source).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, save_source, &source)
         })(),
         "deleteSource" => (|| {
             let id = get_str(args, "id")?;
-            svc.delete_source(&id).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, delete_source, &id)
         })(),
         "reorderSources" => (|| {
             let ids = get_str_vec(args, "sourceIds")?;
-            svc.reorder_sources(&ids).map_err(|e| anyhow!("{e}"))?;
-            Ok(json!({"ok": true}))
+            svc_ok!(svc, reorder_sources, &ids)
         })(),
         "updateSourceSyncStatus" => (|| {
             let id = get_str(args, "id")?;

@@ -119,12 +119,9 @@ class _MemoryRecommendations {
     required int maxAllowedRating,
     required int nowUtcMs,
   }) {
-    final vods =
-        (jsonDecode(vodItemsJson) as List).cast<Map<String, dynamic>>();
-    final chans =
-        (jsonDecode(channelsJson) as List).cast<Map<String, dynamic>>();
-    final history =
-        (jsonDecode(historyJson) as List).cast<Map<String, dynamic>>();
+    final vods = _decodeMapList(vodItemsJson);
+    final chans = _decodeMapList(channelsJson);
+    final history = _decodeMapList(historyJson);
     final favChannelSet = favoriteChannelIds.toSet();
     final now = DateTime.fromMillisecondsSinceEpoch(nowUtcMs);
     final watchedIds = history.map((h) => h['item_id']).toSet();

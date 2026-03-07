@@ -72,6 +72,15 @@ pub(crate) fn into_anyhow<T, E: std::fmt::Display>(r: Result<T, E>) -> anyhow::R
     r.map_err(|e| anyhow::anyhow!("{e}"))
 }
 
+/// Deserialize a JSON string into `T`.
+///
+/// Centralises the `serde_json::from_str(&json).context("...")`
+/// boilerplate used across every FFI API file.
+pub(crate) fn from_json<T: serde::de::DeserializeOwned>(json: &str) -> anyhow::Result<T> {
+    serde_json::from_str(json)
+        .map_err(|e| anyhow::anyhow!("Invalid {} JSON: {e}", std::any::type_name::<T>()))
+}
+
 /// Convert millisecond epoch to `NaiveDateTime`.
 pub(super) fn ms_to_naive(ms: i64) -> anyhow::Result<chrono::NaiveDateTime> {
     chrono::DateTime::from_timestamp(ms / 1000, 0)

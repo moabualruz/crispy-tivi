@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/data/dart_algorithm_fallbacks.dart';
 import '../../../../core/providers/source_filter_provider.dart';
 import '../../../dvr/domain/utils/dvr_payload.dart';
 import '../../../player/data/watch_history_service.dart';
@@ -564,7 +565,10 @@ final vodAlternativeSourcesProvider = FutureProvider.family
         final sourceName = sourceId != null ? sourceMap[sourceId] : null;
         final label =
             sourceName ?? (sourceId != null ? 'Server $sourceId' : 'Default');
-        final quality = _resolveQualityFromMap(m);
+        final quality = dartResolveVodQuality(
+          m['extension_'] as String?,
+          m['stream_url'] as String? ?? '',
+        );
         return VodSource(
           label: label,
           streamUrl: m['stream_url'] as String? ?? '',
@@ -572,16 +576,3 @@ final vodAlternativeSourcesProvider = FutureProvider.family
         );
       }).toList();
     });
-
-/// Extracts quality badge from a raw VOD map based on URL patterns.
-String? _resolveQualityFromMap(Map<String, dynamic> m) {
-  final url = m['stream_url'] as String? ?? '';
-  if (url.contains('/4k/') || url.contains('4K')) return '4K';
-  if (url.contains('/fhd/') || url.contains('FHD') || url.contains('1080')) {
-    return 'FHD';
-  }
-  if (url.contains('/hd/') || url.contains('HD') || url.contains('720')) {
-    return 'HD';
-  }
-  return null;
-}

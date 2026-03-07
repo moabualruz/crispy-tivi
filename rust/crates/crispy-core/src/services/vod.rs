@@ -2,19 +2,43 @@ use rusqlite::{Row, params};
 
 use super::{
     CrispyService, bool_to_int, build_in_placeholders, int_to_bool, opt_dt_to_ts, opt_ts_to_dt,
+    str_params,
 };
 use crate::database::{DbError, TABLE_VOD_ITEMS};
 use crate::events::DataChangeEvent;
 use crate::models::VodItem;
 
+/// SELECT column list for `db_vod_items` (19 columns, positional order).
+///
+/// Use with `format!("SELECT {VOD_COLUMNS} FROM db_vod_items ...")`.
+/// Column order matches `vod_item_from_row` index bindings.
+pub(crate) const VOD_COLUMNS: &str = "id, name, stream_url, type, \
+     poster_url, backdrop_url, \
+     description, rating, year, \
+     duration, category, series_id, \
+     season_number, episode_number, \
+     ext, is_favorite, added_at, \
+     updated_at, source_id";
+
+/// Same as `VOD_COLUMNS` but qualified with table alias `v.` for JOIN queries.
+///
+/// Use with `format!("SELECT {VOD_COLUMNS_V} FROM db_vod_items v ...")`.
+pub(crate) const VOD_COLUMNS_V: &str = "v.id, v.name, v.stream_url, v.type, \
+     v.poster_url, v.backdrop_url, \
+     v.description, v.rating, v.year, \
+     v.duration, v.category, v.series_id, \
+     v.season_number, v.episode_number, \
+     v.ext, v.is_favorite, v.added_at, \
+     v.updated_at, v.source_id";
+
 /// Map a single SQLite row to a `VodItem`.
 ///
-/// Column order must match the SELECT used in every VOD query:
+/// Column order must match `VOD_COLUMNS`:
 /// `id, name, stream_url, type, poster_url, backdrop_url,
 ///  description, rating, year, duration, category, series_id,
 ///  season_number, episode_number, ext, is_favorite,
 ///  added_at, updated_at, source_id`
-fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
+pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
     Ok(VodItem {
         id: row.get(0)?,
         name: row.get(1)?,
@@ -101,17 +125,7 @@ impl CrispyService {
     /// Load all VOD items.
     pub fn load_vod_items(&self) -> Result<Vec<VodItem>, DbError> {
         let conn = self.db.get()?;
-        let mut stmt = conn.prepare(
-            "SELECT
-                id, name, stream_url, type,
-                poster_url, backdrop_url,
-                description, rating, year,
-                duration, category, series_id,
-                season_number, episode_number,
-                ext, is_favorite, added_at,
-                updated_at, source_id
-            FROM db_vod_items",
-        )?;
+        let mut stmt = conn.prepare(&format!("SELECT {VOD_COLUMNS} FROM db_vod_items",))?;
         let rows = stmt.query_map([], vod_item_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
@@ -127,23 +141,11 @@ impl CrispyService {
         }
         let conn = self.db.get()?;
         let sql = format!(
-            "SELECT
-                id, name, stream_url, type,
-                poster_url, backdrop_url,
-                description, rating, year,
-                duration, category, series_id,
-                season_number, episode_number,
-                ext, is_favorite, added_at,
-                updated_at, source_id
-            FROM db_vod_items
-            WHERE source_id IN ({})",
+            "SELECT {VOD_COLUMNS} FROM db_vod_items WHERE source_id IN ({})",
             build_in_placeholders(source_ids.len())
         );
         let mut stmt = conn.prepare(&sql)?;
-        let params: Vec<&dyn rusqlite::types::ToSql> = source_ids
-            .iter()
-            .map(|s| s as &dyn rusqlite::types::ToSql)
-            .collect();
+        let params = str_params(source_ids);
         let rows = stmt.query_map(params.as_slice(), vod_item_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
@@ -158,17 +160,7 @@ impl CrispyService {
         sort_by: &str,
     ) -> Result<Vec<VodItem>, DbError> {
         let conn = self.db.get()?;
-        let mut sql = "SELECT
-                id, name, stream_url, type,
-                poster_url, backdrop_url,
-                description, rating, year,
-                duration, category, series_id,
-                season_number, episode_number,
-                ext, is_favorite, added_at,
-                updated_at, source_id
-            FROM db_vod_items
-            WHERE 1=1"
-            .to_string();
+        let mut sql = format!("SELECT {VOD_COLUMNS} FROM db_vod_items WHERE 1=1",);
 
         let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
         let mut param_idx = 1;
@@ -194,13 +186,13 @@ impl CrispyService {
             param_idx += 1;
         }
 
-        if let Some(q) = query {
-            if !q.trim().is_empty() {
-                let lower = format!("%{}%", q.to_lowercase().trim());
-                sql.push_str(&format!(" AND LOWER(name) LIKE ?{}", param_idx));
-                params.push(Box::new(lower));
-                // param_idx += 1;
-            }
+        if let Some(q) = query
+            && !q.trim().is_empty()
+        {
+            let lower = format!("%{}%", q.to_lowercase().trim());
+            sql.push_str(&format!(" AND LOWER(name) LIKE ?{}", param_idx));
+            params.push(Box::new(lower));
+            // param_idx += 1;
         }
 
         let mut stmt = conn.prepare(&sql)?;
@@ -226,23 +218,16 @@ impl CrispyService {
     ) -> Result<Vec<VodItem>, DbError> {
         let conn = self.db.get()?;
         let name_lower = name.to_lowercase().trim().to_string();
-        let mut stmt = conn.prepare(
-            "SELECT
-                v.id, v.name, v.stream_url, v.type,
-                v.poster_url, v.backdrop_url,
-                v.description, v.rating, v.year,
-                v.duration, v.category, v.series_id,
-                v.season_number, v.episode_number,
-                v.ext, v.is_favorite, v.added_at,
-                v.updated_at, v.source_id
-            FROM db_vod_items v
-            LEFT JOIN db_sources s ON s.id = v.source_id
-            WHERE LOWER(TRIM(v.name)) = ?1
-              AND (?2 IS NULL OR v.year = ?2)
-              AND v.id != ?3
-            ORDER BY COALESCE(s.sort_order, 999), v.name
-            LIMIT ?4",
-        )?;
+        let mut stmt = conn.prepare(&format!(
+            "SELECT {VOD_COLUMNS_V}
+             FROM db_vod_items v
+             LEFT JOIN db_sources s ON s.id = v.source_id
+             WHERE LOWER(TRIM(v.name)) = ?1
+               AND (?2 IS NULL OR v.year = ?2)
+               AND v.id != ?3
+             ORDER BY COALESCE(s.sort_order, 999), v.name
+             LIMIT ?4",
+        ))?;
         let rows = stmt.query_map(
             params![name_lower, year, exclude_id, limit as i64],
             vod_item_from_row,

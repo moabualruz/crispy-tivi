@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../player/data/watch_history_service.dart';
@@ -8,13 +11,22 @@ import '../../domain/utils/profile_stats.dart';
 
 /// Riverpod provider that computes [ProfileViewingStats] for a given profile.
 ///
-/// Reads all watch history and filters to the given [profileId].
+/// Reads all watch history, filters to the given [profileId], and delegates
+/// computation to the Rust backend via [CrispyBackend.computeProfileStats].
 final profileViewingStatsProvider =
     FutureProvider.family<ProfileViewingStats, String>((ref, profileId) async {
       final service = ref.watch(watchHistoryServiceProvider);
+      final backend = ref.read(crispyBackendProvider);
       final all = await service.getAll();
       final entries = all.where((e) => e.profileId == profileId).toList();
-      return ProfileViewingStats.compute(entries);
+      final historyJson = jsonEncode(
+        entries.map(watchHistoryEntryToMap).toList(),
+      );
+      final nowMs = DateTime.now().toUtc().millisecondsSinceEpoch;
+      final resultJson = await backend.computeProfileStats(historyJson, nowMs);
+      return ProfileViewingStats.fromJson(
+        jsonDecode(resultJson) as Map<String, dynamic>,
+      );
     });
 
 /// A card tile showing viewing statistics for a profile (FE-PM-09).

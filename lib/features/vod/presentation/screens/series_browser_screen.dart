@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/settings_notifier.dart';
-import '../../../../core/data/cache_service.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -52,30 +51,6 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
     initSortOption();
   }
 
-  /// Cached sorted+filtered series list (async, from Rust backend).
-  List<VodItem> _sortedSeries = const [];
-
-  /// Inputs used for the last sort — compared each build to decide
-  /// whether to re-trigger.
-  List<VodItem> _lastAll = const [];
-  VodSortOption _lastSortOption = VodSortOption.recentlyAdded;
-  String? _lastCategory;
-  String _lastQuery = '';
-
-  /// Applies category/search filters, then delegates sorting to
-  /// the Rust backend via [CacheService.filterAndSortVodItems].
-  Future<void> _refreshSortedSeries(List<VodItem> all) async {
-    final cache = ref.read(cacheServiceProvider);
-    final sorted = await cache.filterAndSortVodItems(
-      all,
-      category: selectedCategory,
-      query: searchQuery.isNotEmpty ? searchQuery : null,
-      sortByKey: sortOption.sortByKey,
-    );
-    if (!mounted) return;
-    setState(() => _sortedSeries = sorted);
-  }
-
   List<VodItem> get _allFilteredSeries => ref.watch(filteredSeriesProvider);
 
   List<VodItem> get _favorites =>
@@ -100,18 +75,9 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
     final allSeries = _allFilteredSeries;
 
     // Re-sort whenever items, sort option, category, or query change.
-    if (!isLoading &&
-        error == null &&
-        allSeries.isNotEmpty &&
-        (!identical(allSeries, _lastAll) ||
-            sortOption != _lastSortOption ||
-            selectedCategory != _lastCategory ||
-            searchQuery != _lastQuery)) {
-      _lastAll = allSeries;
-      _lastSortOption = sortOption;
-      _lastCategory = selectedCategory;
-      _lastQuery = searchQuery;
-      Future.microtask(() => _refreshSortedSeries(allSeries));
+    // Guards (isLoading, error, empty) live here so the mixin stays generic.
+    if (!isLoading && error == null && allSeries.isNotEmpty) {
+      checkAndRefreshSort(allSeries);
     }
 
     return VodBrowserShell(
@@ -146,7 +112,7 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
 
   Widget _buildBody(BuildContext context, List<VodItem> allSeries) {
     final seriesCategories = _seriesCategories;
-    final series = _sortedSeries;
+    final series = sortedItems;
     final isSearchOrCategory =
         selectedCategory != null || searchQuery.isNotEmpty;
     final cw = ref.watch(continueWatchingSeriesProvider);

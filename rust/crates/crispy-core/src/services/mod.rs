@@ -107,6 +107,19 @@ pub(crate) fn build_in_placeholders(count: usize) -> String {
         .join(", ")
 }
 
+/// Convert a string slice into a `Vec<&dyn ToSql>` for use as
+/// rusqlite IN-clause parameters.
+///
+/// ```ignore
+/// let params = str_params(ids);
+/// stmt.query_map(params.as_slice(), row_mapper)?;
+/// ```
+pub(crate) fn str_params(ids: &[String]) -> Vec<&dyn rusqlite::types::ToSql> {
+    ids.iter()
+        .map(|s| s as &dyn rusqlite::types::ToSql)
+        .collect()
+}
+
 /// Delete rows from `table` belonging to `source_id` whose `id`
 /// is not in `keep_ids`. Runs inside the provided transaction.
 /// Returns the number of rows deleted.

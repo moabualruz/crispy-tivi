@@ -1,5 +1,5 @@
-use super::ms_to_naive;
-use anyhow::{Context, Result, anyhow};
+use super::{from_json, json_result, ms_to_naive};
+use anyhow::{Result, anyhow};
 use crispy_core::algorithms::watch_progress::{COMPLETION_THRESHOLD, NEXT_EPISODE_THRESHOLD};
 use crispy_core::models::{Channel, EpgEntry, VodItem};
 use std::collections::HashMap;
@@ -55,16 +55,15 @@ pub fn normalize_api_base_url(url: String) -> String {
 /// Input: JSON array of Channel objects.
 /// Returns JSON array of DuplicateGroup objects.
 pub fn detect_duplicate_channels(json: String) -> Result<String> {
-    let channels: Vec<Channel> = serde_json::from_str(&json).context("Invalid channels JSON")?;
+    let channels: Vec<Channel> = from_json(&json)?;
     let groups = crispy_core::algorithms::dedup::detect_duplicates(&channels);
-    Ok(serde_json::to_string(&groups)?)
+    json_result(groups)
 }
 
 /// Check if a channel ID is a duplicate.
 #[flutter_rust_bridge::frb(sync)]
 pub fn is_duplicate(groups_json: String, channel_id: String) -> Result<bool> {
-    let groups: Vec<crispy_core::algorithms::dedup::DuplicateGroup> =
-        serde_json::from_str(&groups_json).context("Invalid groups JSON")?;
+    let groups: Vec<crispy_core::algorithms::dedup::DuplicateGroup> = from_json(&groups_json)?;
     Ok(crispy_core::algorithms::dedup::is_duplicate(
         &groups,
         &channel_id,
@@ -73,8 +72,7 @@ pub fn is_duplicate(groups_json: String, channel_id: String) -> Result<bool> {
 
 /// Get all duplicate IDs across all groups.
 pub fn get_all_duplicate_ids(groups_json: String) -> Result<Vec<String>> {
-    let groups: Vec<crispy_core::algorithms::dedup::DuplicateGroup> =
-        serde_json::from_str(&groups_json).context("Invalid groups JSON")?;
+    let groups: Vec<crispy_core::algorithms::dedup::DuplicateGroup> = from_json(&groups_json)?;
     Ok(crispy_core::algorithms::dedup::get_all_duplicate_ids(
         &groups,
     ))
@@ -132,10 +130,9 @@ pub fn build_type_categories(items_json: String, vod_type: String) -> String {
 /// Build a category ID-to-name map from raw JSON.
 /// Returns JSON object {id: name}.
 pub fn build_category_map(categories_json: String) -> Result<String> {
-    let data: Vec<serde_json::Value> =
-        serde_json::from_str(&categories_json).context("Invalid categories JSON")?;
+    let data: Vec<serde_json::Value> = from_json(&categories_json)?;
     let map = crispy_core::algorithms::categories::build_category_map(&data);
-    Ok(serde_json::to_string(&map)?)
+    json_result(map)
 }
 
 // ── Search ───────────────────────────────────────────
@@ -149,17 +146,13 @@ pub fn search_content(
     epg_entries_json: String,
     filter_json: String,
 ) -> Result<String> {
-    let channels: Vec<Channel> =
-        serde_json::from_str(&channels_json).context("Invalid channels JSON")?;
-    let vod_items: Vec<VodItem> =
-        serde_json::from_str(&vod_items_json).context("Invalid VOD items JSON")?;
-    let epg: HashMap<String, Vec<EpgEntry>> =
-        serde_json::from_str(&epg_entries_json).context("Invalid EPG entries JSON")?;
-    let filter: crispy_core::algorithms::search::SearchFilter =
-        serde_json::from_str(&filter_json).context("Invalid filter JSON")?;
+    let channels: Vec<Channel> = from_json(&channels_json)?;
+    let vod_items: Vec<VodItem> = from_json(&vod_items_json)?;
+    let epg: HashMap<String, Vec<EpgEntry>> = from_json(&epg_entries_json)?;
+    let filter: crispy_core::algorithms::search::SearchFilter = from_json(&filter_json)?;
     let result =
         crispy_core::algorithms::search::search(&query, &channels, &vod_items, &epg, &filter);
-    Ok(serde_json::to_string(&result)?)
+    json_result(result)
 }
 
 /// Enrich search results with channel/VOD metadata.
@@ -169,15 +162,12 @@ pub fn enrich_search_results(
     channels_json: String,
     vod_items_json: String,
 ) -> Result<String> {
-    let results: crispy_core::algorithms::search::SearchResults =
-        serde_json::from_str(&results_json).context("Invalid search results JSON")?;
-    let channels: Vec<Channel> =
-        serde_json::from_str(&channels_json).context("Invalid channels JSON")?;
-    let vod_items: Vec<VodItem> =
-        serde_json::from_str(&vod_items_json).context("Invalid VOD items JSON")?;
+    let results: crispy_core::algorithms::search::SearchResults = from_json(&results_json)?;
+    let channels: Vec<Channel> = from_json(&channels_json)?;
+    let vod_items: Vec<VodItem> = from_json(&vod_items_json)?;
     let enriched =
         crispy_core::algorithms::search::enrich_search_results(&results, &channels, &vod_items);
-    Ok(serde_json::to_string(&enriched)?)
+    json_result(enriched)
 }
 
 // ── Recommendations ──────────────────────────────────
@@ -194,12 +184,10 @@ pub fn compute_recommendations(
     max_allowed_rating: i32,
     now_utc_ms: i64,
 ) -> Result<String> {
-    let vod_items: Vec<VodItem> =
-        serde_json::from_str(&vod_items_json).context("Invalid VOD items JSON")?;
-    let channels: Vec<Channel> =
-        serde_json::from_str(&channels_json).context("Invalid channels JSON")?;
+    let vod_items: Vec<VodItem> = from_json(&vod_items_json)?;
+    let channels: Vec<Channel> = from_json(&channels_json)?;
     let history: Vec<crispy_core::algorithms::recommendations::WatchSignal> =
-        serde_json::from_str(&history_json).context("Invalid history JSON")?;
+        from_json(&history_json)?;
     let result = crispy_core::algorithms::recommendations::compute_recommendations(
         &vod_items,
         &channels,
@@ -209,17 +197,17 @@ pub fn compute_recommendations(
         max_allowed_rating,
         now_utc_ms,
     );
-    Ok(serde_json::to_string(&result)?)
+    json_result(result)
 }
 
 /// Parse recommendation sections into typed structs.
 /// Returns JSON array of TypedRecommendationSection.
 pub fn parse_recommendation_sections(sections_json: String) -> Result<String> {
     let sections: Vec<crispy_core::algorithms::recommendations::RecommendationSection> =
-        serde_json::from_str(&sections_json).context("Invalid recommendation sections JSON")?;
+        from_json(&sections_json)?;
     let typed = crispy_core::algorithms::recommendations::parse_recommendation_sections(&sections)
         .map_err(|e| anyhow!("{e}"))?;
-    Ok(serde_json::to_string(&typed)?)
+    json_result(typed)
 }
 
 /// Deserialize recommendation sections into
@@ -228,10 +216,10 @@ pub fn parse_recommendation_sections(sections_json: String) -> Result<String> {
 /// Returns JSON array of FullRecommendationSection.
 pub fn deserialize_recommendation_sections(sections_json: String) -> Result<String> {
     let sections: Vec<crispy_core::algorithms::recommendations::RecommendationSection> =
-        serde_json::from_str(&sections_json).context("Invalid recommendation sections JSON")?;
+        from_json(&sections_json)?;
     let full = crispy_core::algorithms::recommendations::deserialize_full_sections(&sections)
         .map_err(|e| anyhow!("{e}"))?;
-    Ok(serde_json::to_string(&full)?)
+    json_result(full)
 }
 
 // ── Cloud Sync ───────────────────────────────────────
@@ -243,13 +231,11 @@ pub fn merge_cloud_backups(
     cloud_json: String,
     current_device_id: String,
 ) -> Result<String> {
-    let local: serde_json::Value =
-        serde_json::from_str(&local_json).context("Invalid local JSON")?;
-    let cloud: serde_json::Value =
-        serde_json::from_str(&cloud_json).context("Invalid cloud JSON")?;
+    let local: serde_json::Value = from_json(&local_json)?;
+    let cloud: serde_json::Value = from_json(&cloud_json)?;
     let result =
         crispy_core::algorithms::cloud_sync::merge_backups(&local, &cloud, &current_device_id);
-    Ok(serde_json::to_string(&result)?)
+    json_result(result)
 }
 
 // ── PIN ──────────────────────────────────────────────
@@ -306,7 +292,7 @@ pub fn sign_s3_request(
 ) -> Result<String> {
     let now = ms_to_naive(now_utc_ms)?;
     let extra: HashMap<String, String> = match extra_headers_json {
-        Some(ref j) => serde_json::from_str(j).context("Invalid extra headers JSON")?,
+        Some(ref j) => from_json(j)?,
         None => HashMap::new(),
     };
     let result = crispy_core::algorithms::crypto::sign_s3_request(
@@ -319,7 +305,7 @@ pub fn sign_s3_request(
         &secret_key,
         &extra,
     );
-    Ok(serde_json::to_string(&result)?)
+    json_result(result)
 }
 
 /// Generate a pre-signed URL for an S3 GET request.

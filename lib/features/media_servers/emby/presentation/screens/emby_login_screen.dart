@@ -4,11 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
-import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
-import 'package:crispy_tivi/core/widgets/or_divider_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
+import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/media_server_action_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/user_avatar_tile.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
 import '../widgets/emby_pin_login_dialog.dart';
@@ -87,12 +86,12 @@ class _EmbyLoginScreenState extends ConsumerState<EmbyLoginScreen> {
   }
 
   void _onUrlChanged(String raw) {
-    final normalized = normalizeMediaServerUrl(ref, raw);
-    if (normalized.isEmpty && _resolvedUrl.isNotEmpty) {
-      setState(() => _resolvedUrl = '');
-    } else if (normalized.isNotEmpty && normalized != _resolvedUrl) {
-      setState(() => _resolvedUrl = normalized);
-    }
+    handleMediaServerUrlChanged(
+      ref: ref,
+      rawUrl: raw,
+      currentResolved: _resolvedUrl,
+      onChanged: (v) => setState(() => _resolvedUrl = v),
+    );
   }
 
   /// Opens the PIN numpad dialog and, on confirmation, authenticates
@@ -202,24 +201,11 @@ class _PinLoginRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        CrispySpacing.lg,
-        0,
-        CrispySpacing.lg,
-        CrispySpacing.md,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const OrDividerRow(),
-          const SizedBox(height: CrispySpacing.sm),
-          TextButton.icon(
-            onPressed: onLoginWithPin,
-            icon: const Icon(Icons.pin_outlined, size: 18),
-            label: const Text('Login with PIN'),
-          ),
-        ],
+    return MediaServerActionRow(
+      child: TextButton.icon(
+        onPressed: onLoginWithPin,
+        icon: const Icon(Icons.pin_outlined, size: 18),
+        label: const Text('Login with PIN'),
       ),
     );
   }

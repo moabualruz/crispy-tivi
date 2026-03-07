@@ -1,5 +1,5 @@
-use super::svc;
-use anyhow::{Context, Result, anyhow};
+use super::{from_json, svc};
+use anyhow::{Result, anyhow};
 use crispy_core::models::{SavedLayout, SearchHistory};
 
 // ── Settings (KV Store) ──────────────────────────────
@@ -119,7 +119,7 @@ pub fn load_saved_layouts() -> Result<String> {
 
 /// Save a layout from JSON.
 pub fn save_saved_layout(json: String) -> Result<()> {
-    let layout: SavedLayout = serde_json::from_str(&json).context("Invalid layout JSON")?;
+    let layout: SavedLayout = from_json(&json)?;
     Ok(svc()?.save_saved_layout(&layout)?)
 }
 
@@ -144,7 +144,7 @@ pub fn load_search_history() -> Result<String> {
 
 /// Save a search entry from JSON.
 pub fn save_search_entry(json: String) -> Result<()> {
-    let entry: SearchHistory = serde_json::from_str(&json).context("Invalid search entry JSON")?;
+    let entry: SearchHistory = from_json(&json)?;
     Ok(svc()?.save_search_entry(&entry)?)
 }
 

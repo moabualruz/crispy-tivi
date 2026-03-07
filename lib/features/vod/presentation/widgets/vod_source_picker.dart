@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
@@ -188,11 +189,11 @@ class _SourceChip extends StatelessWidget {
   Color get _healthColor {
     switch (source.health) {
       case SourceHealth.good:
-        return const Color(0xFF4CAF50); // green
+        return CrispyColors.statusSuccess;
       case SourceHealth.degraded:
-        return const Color(0xFFFF9800); // amber
+        return CrispyColors.statusWarning;
       case SourceHealth.offline:
-        return const Color(0xFFF44336); // red
+        return CrispyColors.statusError;
     }
   }
 

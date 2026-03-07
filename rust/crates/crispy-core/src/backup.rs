@@ -16,14 +16,12 @@ use crate::services::CrispyService;
 /// Current backup format version.
 const BACKUP_VERSION: i32 = 4;
 
-/// Settings keys exported in backups.
+/// Base settings keys exported in backups (non-sync entries).
 ///
-/// The last two entries (`crispy_tivi_last_sync_time` and
-/// `crispy_tivi_local_modified_time`) must stay in sync with
-/// [`SYNC_META_KEYS`] in `algorithms/cloud_sync/merge.rs`,
-/// which is the canonical definition. A `debug_assert` in
-/// `export_backup` verifies this at runtime in debug builds.
-const SETTINGS_KEYS: &[&str] = &[
+/// Sync metadata keys ([`SYNC_META_KEYS`]) are appended at
+/// export time so this list never drifts from the canonical
+/// definition in `algorithms/cloud_sync/merge.rs`.
+const BASE_SETTINGS_KEYS: &[&str] = &[
     "crispy_tivi_playlist_sources",
     "crispy_tivi_device_id",
     "crispy_tivi_device_name",
@@ -35,9 +33,6 @@ const SETTINGS_KEYS: &[&str] = &[
     "crispy_tivi_player_aspect_ratio",
     "crispy_tivi_player_hw_accel",
     "crispy_tivi_player_buffer_ms",
-    // Sync metadata keys — must match SYNC_META_KEYS exactly.
-    "crispy_tivi_last_sync_time",
-    "crispy_tivi_local_modified_time",
 ];
 
 /// Sensitive config keys redacted on export.
@@ -109,12 +104,6 @@ pub struct BackupSummary {
 
 /// Export all data from the database as pretty JSON.
 pub fn export_backup(svc: &CrispyService) -> Result<String, String> {
-    // Verify SETTINGS_KEYS includes every SYNC_META_KEY (debug only).
-    debug_assert!(
-        SYNC_META_KEYS.iter().all(|k| SETTINGS_KEYS.contains(k)),
-        "SETTINGS_KEYS must include all SYNC_META_KEYS entries",
-    );
-
     // 1. Profiles
     let profiles = svc.load_profiles().map_err(|e| e.to_string())?;
     let profile_values: Vec<Value> = profiles.iter().map(profile_to_value).collect();
@@ -140,9 +129,10 @@ pub fn export_backup(svc: &CrispyService) -> Result<String, String> {
     // 4. Channel orders
     let channel_orders = export_channel_orders(svc, &profiles)?;
 
-    // 5. Settings
+    // 5. Settings — base keys first, then sync metadata keys from
+    //    the canonical SYNC_META_KEYS constant.
     let mut settings: HashMap<String, String> = HashMap::new();
-    for &key in SETTINGS_KEYS {
+    for &key in BASE_SETTINGS_KEYS.iter().chain(SYNC_META_KEYS.iter()) {
         if let Some(val) = svc.get_setting(key).map_err(|e| e.to_string())? {
             settings.insert(key.to_string(), val);
         }

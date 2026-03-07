@@ -79,6 +79,28 @@ class CrispyColors extends ThemeExtension<CrispyColors> {
     0xFFE65100,
   ); // Material deep-orange-800
 
+  /// Status indicator: success / healthy state (Material green-500, #4CAF50).
+  ///
+  /// Used for source health dots, rating badges (G), and other inline
+  /// status indicators that need a vivid success green. Distinct from
+  /// [successGreen] which is the darker green-800 used for toast backgrounds.
+  static const Color statusSuccess = Color(0xFF4CAF50);
+
+  /// Status indicator: warning / degraded state (Material orange-500, #FF9800).
+  ///
+  /// Used for source health dots, rating badges (PG-13), and other inline
+  /// status indicators that need a vivid warning orange. Distinct from
+  /// [warningOrange] which is the darker deep-orange-800 used for toast
+  /// backgrounds.
+  static const Color statusWarning = Color(0xFFFF9800);
+
+  /// Status indicator: error / offline state (Material red-400, #F44336).
+  ///
+  /// Used for source health dots and other inline status indicators
+  /// that need a vivid error red. For semantic error colors in the theme
+  /// use `ColorScheme.error` instead.
+  static const Color statusError = Color(0xFFF44336);
+
   /// Highlight / accent amber — used for active-state indicators such as
   /// A-B loop markers, category favorite stars, and lock-screen icons.
   ///

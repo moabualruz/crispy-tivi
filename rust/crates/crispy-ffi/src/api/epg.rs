@@ -1,5 +1,5 @@
-use super::{into_anyhow, json_result, svc};
-use anyhow::{Context, Result, anyhow};
+use super::{from_json, into_anyhow, json_result, svc};
+use anyhow::{Result, anyhow};
 use crispy_core::models::{Channel, EpgEntry};
 use std::collections::HashMap;
 
@@ -22,15 +22,13 @@ pub fn get_epgs_for_channels(
 /// Deserialises `source_ids_json` as `Vec<String>`. An empty
 /// array returns ALL EPG entries (same as `load_epg_entries`).
 pub fn get_epg_by_sources(source_ids_json: String) -> Result<String> {
-    let ids: Vec<String> =
-        serde_json::from_str(&source_ids_json).context("Invalid source_ids JSON")?;
+    let ids: Vec<String> = from_json(&source_ids_json)?;
     json_result(svc()?.get_epg_by_sources(&ids)?)
 }
 
 /// Save EPG entries from JSON {channel_id: [entries]}.
 pub fn save_epg_entries(json: String) -> Result<usize> {
-    let entries: HashMap<String, Vec<EpgEntry>> =
-        serde_json::from_str(&json).context("Invalid EPG JSON")?;
+    let entries: HashMap<String, Vec<EpgEntry>> = from_json(&json)?;
     Ok(svc()?.save_epg_entries(&entries)?)
 }
 
@@ -53,8 +51,7 @@ pub async fn sync_xtream_epg(
     channels_json: String,
 ) -> Result<usize> {
     let service = svc()?;
-    let channels: Vec<Channel> =
-        serde_json::from_str(&channels_json).context("Invalid channel JSON")?;
+    let channels: Vec<Channel> = from_json(&channels_json)?;
     into_anyhow(
         crispy_core::services::epg_sync::fetch_and_save_xtream_epg(
             &service, &base_url, &username, &password, &channels,
@@ -66,8 +63,7 @@ pub async fn sync_xtream_epg(
 /// Download, parse, match, and save Stalker short EPG batches asynchronously.
 pub async fn sync_stalker_epg(base_url: String, channels_json: String) -> Result<usize> {
     let service = svc()?;
-    let channels: Vec<Channel> =
-        serde_json::from_str(&channels_json).context("Invalid channel JSON")?;
+    let channels: Vec<Channel> = from_json(&channels_json)?;
     into_anyhow(
         crispy_core::services::epg_sync::fetch_and_save_stalker_epg(&service, &base_url, &channels)
             .await,
@@ -86,12 +82,9 @@ pub fn match_epg_to_channels(
     channels_json: String,
     display_names_json: String,
 ) -> Result<String> {
-    let entries: Vec<EpgEntry> =
-        serde_json::from_str(&entries_json).context("Invalid entries JSON")?;
-    let channels: Vec<Channel> =
-        serde_json::from_str(&channels_json).context("Invalid channels JSON")?;
-    let display_names: HashMap<String, String> =
-        serde_json::from_str(&display_names_json).context("Invalid display names JSON")?;
+    let entries: Vec<EpgEntry> = from_json(&entries_json)?;
+    let channels: Vec<Channel> = from_json(&channels_json)?;
+    let display_names: HashMap<String, String> = from_json(&display_names_json)?;
     json_result(
         crispy_core::algorithms::epg_matching::match_epg_to_channels(
             &entries,
@@ -109,7 +102,7 @@ pub fn build_catchup_url(
     start_utc: i64,
     end_utc: i64,
 ) -> Result<Option<String>> {
-    let channel: Channel = serde_json::from_str(&channel_json).context("Invalid channel JSON")?;
+    let channel: Channel = from_json(&channel_json)?;
 
     let start_dt = chrono::DateTime::from_timestamp(start_utc, 0)
         .ok_or_else(|| anyhow!("Invalid start"))?
@@ -160,10 +153,9 @@ pub fn build_catchup_url(
 /// Parse Xtream short EPG listings.
 /// Returns JSON array of EpgEntry objects.
 pub fn parse_xtream_short_epg(listings_json: String, channel_id: String) -> Result<String> {
-    let data: Vec<serde_json::Value> =
-        serde_json::from_str(&listings_json).context("Invalid Xtream EPG JSON")?;
+    let data: Vec<serde_json::Value> = from_json(&listings_json)?;
     let entries = crispy_core::parsers::xtream::parse_short_epg(&data, &channel_id);
-    Ok(serde_json::to_string(&entries)?)
+    json_result(entries)
 }
 
 /// Merges new EPG entries into existing entries,

@@ -1,7 +1,7 @@
 use rusqlite::params;
 
 use super::{CrispyService, bool_to_int, dt_to_ts, int_to_bool, opt_dt_to_ts, opt_ts_to_dt};
-use crate::database::DbError;
+use crate::database::{DbError, TABLE_CHANNELS, TABLE_EPG_ENTRIES, TABLE_SOURCES, TABLE_VOD_ITEMS};
 use crate::events::DataChangeEvent;
 use crate::models::{Source, SourceStats};
 
@@ -9,15 +9,15 @@ impl CrispyService {
     /// Get all sources ordered by sort_order.
     pub fn get_sources(&self) -> Result<Vec<Source>, DbError> {
         let conn = self.db.get()?;
-        let mut stmt = conn.prepare(
+        let mut stmt = conn.prepare(&format!(
             "SELECT id, name, source_type, url, username, password,
                     access_token, device_id, user_id, mac_address,
                     epg_url, user_agent, refresh_interval_minutes,
                     accept_self_signed, enabled, sort_order,
                     last_sync_time, last_sync_status, last_sync_error,
                     created_at, updated_at
-             FROM db_sources ORDER BY sort_order, name",
-        )?;
+             FROM {TABLE_SOURCES} ORDER BY sort_order, name"
+        ))?;
         let rows = stmt.query_map([], |row| {
             Ok(Source {
                 id: row.get(0)?,
@@ -50,13 +50,15 @@ impl CrispyService {
     pub fn get_source(&self, id: &str) -> Result<Option<Source>, DbError> {
         let conn = self.db.get()?;
         let result = conn.query_row(
-            "SELECT id, name, source_type, url, username, password,
-                    access_token, device_id, user_id, mac_address,
-                    epg_url, user_agent, refresh_interval_minutes,
-                    accept_self_signed, enabled, sort_order,
-                    last_sync_time, last_sync_status, last_sync_error,
-                    created_at, updated_at
-             FROM db_sources WHERE id = ?1",
+            &format!(
+                "SELECT id, name, source_type, url, username, password,
+                        access_token, device_id, user_id, mac_address,
+                        epg_url, user_agent, refresh_interval_minutes,
+                        accept_self_signed, enabled, sort_order,
+                        last_sync_time, last_sync_status, last_sync_error,
+                        created_at, updated_at
+                 FROM {TABLE_SOURCES} WHERE id = ?1"
+            ),
             params![id],
             |row| {
                 Ok(Source {
@@ -95,15 +97,17 @@ impl CrispyService {
     pub fn save_source(&self, source: &Source) -> Result<(), DbError> {
         let conn = self.db.get()?;
         conn.execute(
-            "INSERT OR REPLACE INTO db_sources
-             (id, name, source_type, url, username, password,
-              access_token, device_id, user_id, mac_address,
-              epg_url, user_agent, refresh_interval_minutes,
-              accept_self_signed, enabled, sort_order,
-              last_sync_time, last_sync_status, last_sync_error,
-              created_at, updated_at)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,
-                     ?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21)",
+            &format!(
+                "INSERT OR REPLACE INTO {TABLE_SOURCES}
+                 (id, name, source_type, url, username, password,
+                  access_token, device_id, user_id, mac_address,
+                  epg_url, user_agent, refresh_interval_minutes,
+                  accept_self_signed, enabled, sort_order,
+                  last_sync_time, last_sync_status, last_sync_error,
+                  created_at, updated_at)
+                 VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,
+                         ?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21)"
+            ),
             params![
                 source.id,
                 source.name,
@@ -141,10 +145,16 @@ impl CrispyService {
     pub fn delete_source(&self, id: &str) -> Result<(), DbError> {
         let mut conn = self.db.get()?;
         let tx = conn.transaction()?;
-        tx.execute("DELETE FROM db_channels WHERE source_id = ?1", params![id])?;
-        tx.execute("DELETE FROM db_vod_items WHERE source_id = ?1", params![id])?;
         tx.execute(
-            "DELETE FROM db_epg_entries WHERE source_id = ?1",
+            &format!("DELETE FROM {TABLE_CHANNELS} WHERE source_id = ?1"),
+            params![id],
+        )?;
+        tx.execute(
+            &format!("DELETE FROM {TABLE_VOD_ITEMS} WHERE source_id = ?1"),
+            params![id],
+        )?;
+        tx.execute(
+            &format!("DELETE FROM {TABLE_EPG_ENTRIES} WHERE source_id = ?1"),
             params![id],
         )?;
         tx.execute(
@@ -156,7 +166,10 @@ impl CrispyService {
             "DELETE FROM db_profile_source_access WHERE source_id = ?1",
             params![id],
         )?;
-        tx.execute("DELETE FROM db_sources WHERE id = ?1", params![id])?;
+        tx.execute(
+            &format!("DELETE FROM {TABLE_SOURCES} WHERE id = ?1"),
+            params![id],
+        )?;
         tx.commit()?;
         self.emit(DataChangeEvent::SourceDeleted {
             source_id: id.to_string(),
@@ -170,7 +183,7 @@ impl CrispyService {
         let tx = conn.transaction()?;
         for (i, id) in source_ids.iter().enumerate() {
             tx.execute(
-                "UPDATE db_sources SET sort_order = ?1 WHERE id = ?2",
+                &format!("UPDATE {TABLE_SOURCES} SET sort_order = ?1 WHERE id = ?2"),
                 params![i as i32, id],
             )?;
         }
@@ -187,12 +200,12 @@ impl CrispyService {
         let conn = self.db.get()?;
 
         // Channel counts per source.
-        let mut ch_stmt = conn.prepare(
+        let mut ch_stmt = conn.prepare(&format!(
             "SELECT source_id, COUNT(*) AS cnt
-             FROM db_channels
+             FROM {TABLE_CHANNELS}
              WHERE source_id IS NOT NULL
-             GROUP BY source_id",
-        )?;
+             GROUP BY source_id"
+        ))?;
         let ch_rows = ch_stmt.query_map([], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
         })?;
@@ -203,12 +216,12 @@ impl CrispyService {
         }
 
         // VOD counts per source.
-        let mut vod_stmt = conn.prepare(
+        let mut vod_stmt = conn.prepare(&format!(
             "SELECT source_id, COUNT(*) AS cnt
-             FROM db_vod_items
+             FROM {TABLE_VOD_ITEMS}
              WHERE source_id IS NOT NULL
-             GROUP BY source_id",
-        )?;
+             GROUP BY source_id"
+        ))?;
         let vod_rows = vod_stmt.query_map([], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
         })?;
@@ -247,11 +260,13 @@ impl CrispyService {
     ) -> Result<(), DbError> {
         let conn = self.db.get()?;
         conn.execute(
-            "UPDATE db_sources
-             SET last_sync_status = ?1,
-                 last_sync_error = ?2,
-                 last_sync_time = ?3
-             WHERE id = ?4",
+            &format!(
+                "UPDATE {TABLE_SOURCES}
+                 SET last_sync_status = ?1,
+                     last_sync_error = ?2,
+                     last_sync_time = ?3
+                 WHERE id = ?4"
+            ),
             params![status, error, sync_time.as_ref().map(dt_to_ts), id,],
         )?;
         Ok(())

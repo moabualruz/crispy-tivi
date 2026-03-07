@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/settings_notifier.dart';
-import '../../../../core/data/cache_service.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/genre_pill_row.dart';
@@ -40,16 +39,6 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
   bool get wantKeepAlive => true;
 
   VodGridDensity _density = VodGridDensity.standard;
-
-  /// Cached sorted+filtered movie list (async, from Rust backend).
-  List<VodItem> _sortedMovies = const [];
-
-  /// Inputs that were used for the last sort — compared each build
-  /// to decide whether to re-trigger a sort.
-  List<VodItem> _lastAll = const [];
-  VodSortOption _lastSortOption = VodSortOption.recentlyAdded;
-  String? _lastCategory;
-  String _lastQuery = '';
 
   @override
   Future<String?> loadSortOption(SettingsNotifier notifier) =>
@@ -96,22 +85,6 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
     context.push(AppRoutes.vodDetails, extra: {'item': item, 'heroTag': tag});
   }
 
-  /// Applies category/search filters, then delegates sorting to
-  /// the Rust backend via [CacheService.filterAndSortVodItems].
-  ///
-  /// Stores the result in [_sortedMovies] and triggers a rebuild.
-  Future<void> _refreshSortedMovies(List<VodItem> all) async {
-    final cache = ref.read(cacheServiceProvider);
-    final sorted = await cache.filterAndSortVodItems(
-      all,
-      category: selectedCategory,
-      query: searchQuery.isNotEmpty ? searchQuery : null,
-      sortByKey: sortOption.sortByKey,
-    );
-    if (!mounted) return;
-    setState(() => _sortedMovies = sorted);
-  }
-
   List<Widget> _buildRecommendations() {
     final sections = ref.watch(vodRecommendationsProvider);
     if (sections.isEmpty) return [];
@@ -136,17 +109,7 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
     final allFiltered = ref.watch(filteredMoviesProvider);
 
     // Re-sort whenever items, sort option, category, or query change.
-    if (!identical(allFiltered, _lastAll) ||
-        sortOption != _lastSortOption ||
-        selectedCategory != _lastCategory ||
-        searchQuery != _lastQuery) {
-      _lastAll = allFiltered;
-      _lastSortOption = sortOption;
-      _lastCategory = selectedCategory;
-      _lastQuery = searchQuery;
-      // Schedule async sort without blocking the build.
-      Future.microtask(() => _refreshSortedMovies(allFiltered));
-    }
+    checkAndRefreshSort(allFiltered);
 
     final cw = ref.watch(continueWatchingMoviesProvider);
     // Categories and new releases come from VodState (pre-computed).
@@ -155,7 +118,7 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
     // Hero banner and favorites are pre-computed by providers (O(1) read).
     final featured = ref.watch(featuredMoviesProvider);
     final favorites = ref.watch(favoriteMoviesProvider);
-    final movies = _sortedMovies;
+    final movies = sortedItems;
     final isSearchOrCategory =
         selectedCategory != null || searchQuery.isNotEmpty;
 

@@ -1,5 +1,5 @@
-use super::svc;
-use anyhow::{Context, Result};
+use super::{from_json, svc};
+use anyhow::Result;
 use crispy_core::models::UserProfile;
 
 /// Load all profiles as JSON array.
@@ -10,7 +10,7 @@ pub fn load_profiles() -> Result<String> {
 
 /// Save a profile from JSON object.
 pub fn save_profile(json: String) -> Result<()> {
-    let profile: UserProfile = serde_json::from_str(&json).context("Invalid profile JSON")?;
+    let profile: UserProfile = from_json(&json)?;
     Ok(svc()?.save_profile(&profile)?)
 }
 

@@ -1,4 +1,5 @@
-use anyhow::{Context, Result};
+use super::from_json;
+use anyhow::Result;
 
 /// Parse M3U/M3U8 playlist content.
 /// Returns JSON `{"channels":[...],"epg_url":...}`
@@ -30,7 +31,7 @@ pub fn parse_vod_streams(
     password: String,
     source_id: Option<String>,
 ) -> Result<String> {
-    let data: Vec<serde_json::Value> = serde_json::from_str(&json).context("Invalid VOD JSON")?;
+    let data: Vec<serde_json::Value> = from_json(&json)?;
     let items = crispy_core::parsers::vod::parse_vod_streams(
         &data,
         &base_url,
@@ -44,8 +45,7 @@ pub fn parse_vod_streams(
 /// Parse Xtream `get_series` JSON response.
 /// Returns JSON array of VodItem.
 pub fn parse_series(json: String, source_id: Option<String>) -> Result<String> {
-    let data: Vec<serde_json::Value> =
-        serde_json::from_str(&json).context("Invalid series JSON")?;
+    let data: Vec<serde_json::Value> = from_json(&json)?;
     let items = crispy_core::parsers::vod::parse_series(&data, source_id.as_deref());
     Ok(serde_json::to_string(&items)?)
 }
@@ -59,7 +59,7 @@ pub fn parse_episodes(
     password: String,
     series_id: String,
 ) -> Result<String> {
-    let data: serde_json::Value = serde_json::from_str(&json).context("Invalid episodes JSON")?;
+    let data: serde_json::Value = from_json(&json)?;
     let items = crispy_core::parsers::vod::parse_episodes(
         &data, &base_url, &username, &password, &series_id,
     );
@@ -69,8 +69,7 @@ pub fn parse_episodes(
 /// Parse VOD entries from M3U channel maps.
 /// Returns JSON array of VodItem.
 pub fn parse_m3u_vod(json: String, source_id: Option<String>) -> Result<String> {
-    let channels: Vec<serde_json::Value> =
-        serde_json::from_str(&json).context("Invalid M3U VOD JSON")?;
+    let channels: Vec<serde_json::Value> = from_json(&json)?;
     let items = crispy_core::parsers::vod::parse_m3u_vod(&channels, source_id.as_deref());
     Ok(serde_json::to_string(&items)?)
 }
@@ -100,8 +99,7 @@ pub fn parse_stalker_vod_items(
     base_url: String,
     vod_type: Option<String>,
 ) -> Result<String> {
-    let data: Vec<serde_json::Value> =
-        serde_json::from_str(&json).context("Invalid Stalker VOD JSON")?;
+    let data: Vec<serde_json::Value> = from_json(&json)?;
     let vt = vod_type.as_deref().unwrap_or("movie");
     let items = crispy_core::parsers::stalker::parse_stalker_vod_items(&data, &base_url, vt);
     Ok(serde_json::to_string(&items)?)
@@ -121,8 +119,7 @@ pub fn parse_stalker_live_streams(
     source_id: String,
     base_url: String,
 ) -> Result<String> {
-    let data: Vec<serde_json::Value> =
-        serde_json::from_str(&json).context("Invalid Stalker streams JSON")?;
+    let data: Vec<serde_json::Value> = from_json(&json)?;
     let channels =
         crispy_core::parsers::stalker::parse_stalker_live_streams(&data, &source_id, &base_url);
     Ok(serde_json::to_string(&channels)?)
@@ -170,8 +167,7 @@ pub fn build_xtream_action_url(
 ) -> Result<String> {
     let params: Vec<(String, String)> = match params_json {
         Some(ref j) if !j.is_empty() => {
-            let map: serde_json::Map<String, serde_json::Value> =
-                serde_json::from_str(j).context("Invalid params JSON")?;
+            let map: serde_json::Map<String, serde_json::Value> = from_json(j)?;
             map.into_iter()
                 .map(|(k, v)| (k, v.as_str().unwrap_or("").to_string()))
                 .collect()
@@ -231,8 +227,7 @@ pub fn parse_xtream_live_streams(
     username: String,
     password: String,
 ) -> Result<String> {
-    let data: Vec<serde_json::Value> =
-        serde_json::from_str(&json).context("Invalid Xtream streams JSON")?;
+    let data: Vec<serde_json::Value> = from_json(&json)?;
     let channels = crispy_core::parsers::xtream::parse_xtream_live_streams(
         &data, &base_url, &username, &password,
     );
@@ -242,8 +237,7 @@ pub fn parse_xtream_live_streams(
 /// Parse Xtream categories into sorted names.
 /// Returns JSON array of strings.
 pub fn parse_xtream_categories(json: String) -> Result<String> {
-    let data: Vec<serde_json::Value> =
-        serde_json::from_str(&json).context("Invalid Xtream categories JSON")?;
+    let data: Vec<serde_json::Value> = from_json(&json)?;
     let names = crispy_core::parsers::xtream::parse_xtream_categories(&data);
     Ok(serde_json::to_string(&names)?)
 }

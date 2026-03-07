@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../constants.dart';
+import '../utils/duration_formatter.dart';
 import 'crispy_backend.dart';
 import 'dart_algorithm_fallbacks.dart';
 import 'epg_time_utils.dart';

@@ -1,5 +1,5 @@
-use super::{json_result, ms_to_naive, svc};
-use anyhow::{Context, Result};
+use super::{from_json, json_result, ms_to_naive, svc};
+use anyhow::Result;
 use crispy_core::models::{Recording, Reminder, StorageBackend, TransferTask, WatchHistory};
 
 // ── Recordings ───────────────────────────────────────
@@ -11,13 +11,13 @@ pub fn load_recordings() -> Result<String> {
 
 /// Save a recording from JSON.
 pub fn save_recording(json: String) -> Result<()> {
-    let rec: Recording = serde_json::from_str(&json).context("Invalid recording JSON")?;
+    let rec: Recording = from_json(&json)?;
     Ok(svc()?.save_recording(&rec)?)
 }
 
 /// Update an existing recording from JSON.
 pub fn update_recording(json: String) -> Result<()> {
-    let rec: Recording = serde_json::from_str(&json).context("Invalid recording JSON")?;
+    let rec: Recording = from_json(&json)?;
     Ok(svc()?.update_recording(&rec)?)
 }
 
@@ -43,8 +43,7 @@ pub fn load_storage_backends() -> Result<String> {
 
 /// Save a storage backend from JSON.
 pub fn save_storage_backend(json: String) -> Result<()> {
-    let backend: StorageBackend =
-        serde_json::from_str(&json).context("Invalid storage backend JSON")?;
+    let backend: StorageBackend = from_json(&json)?;
     Ok(svc()?.save_storage_backend(&backend)?)
 }
 
@@ -62,13 +61,13 @@ pub fn load_transfer_tasks() -> Result<String> {
 
 /// Save a transfer task from JSON.
 pub fn save_transfer_task(json: String) -> Result<()> {
-    let task: TransferTask = serde_json::from_str(&json).context("Invalid transfer task JSON")?;
+    let task: TransferTask = from_json(&json)?;
     Ok(svc()?.save_transfer_task(&task)?)
 }
 
 /// Update a transfer task from JSON.
 pub fn update_transfer_task(json: String) -> Result<()> {
-    let task: TransferTask = serde_json::from_str(&json).context("Invalid transfer task JSON")?;
+    let task: TransferTask = from_json(&json)?;
     Ok(svc()?.update_transfer_task(&task)?)
 }
 
@@ -86,7 +85,7 @@ pub fn load_watch_history() -> Result<String> {
 
 /// Save a watch history entry from JSON.
 pub fn save_watch_history(json: String) -> Result<()> {
-    let entry: WatchHistory = serde_json::from_str(&json).context("Invalid watch history JSON")?;
+    let entry: WatchHistory = from_json(&json)?;
     Ok(svc()?.save_watch_history(&entry)?)
 }
 
@@ -109,7 +108,7 @@ pub fn load_reminders() -> Result<String> {
 
 /// Save a reminder from JSON.
 pub fn save_reminder(json: String) -> Result<()> {
-    let reminder: Reminder = serde_json::from_str(&json).context("Invalid reminder JSON")?;
+    let reminder: Reminder = from_json(&json)?;
     Ok(svc()?.save_reminder(&reminder)?)
 }
 
@@ -133,8 +132,7 @@ pub fn mark_reminder_fired(id: String) -> Result<()> {
 /// Expand recurring recordings into concrete instances.
 /// Returns JSON array of RecordingInstance.
 pub fn expand_recurring_recordings(recordings_json: String, now_utc_ms: i64) -> Result<String> {
-    let recordings: Vec<Recording> =
-        serde_json::from_str(&recordings_json).context("Invalid recordings JSON")?;
+    let recordings: Vec<Recording> = from_json(&recordings_json)?;
     let now = ms_to_naive(now_utc_ms)?;
     json_result(crispy_core::algorithms::dvr::expand_recurring_recordings(
         &recordings,
@@ -151,8 +149,7 @@ pub fn detect_recording_conflict(
     start_utc_ms: i64,
     end_utc_ms: i64,
 ) -> Result<bool> {
-    let recordings: Vec<Recording> =
-        serde_json::from_str(&recordings_json).context("Invalid recordings JSON")?;
+    let recordings: Vec<Recording> = from_json(&recordings_json)?;
     let start = ms_to_naive(start_utc_ms)?;
     let end = ms_to_naive(end_utc_ms)?;
     Ok(crispy_core::algorithms::dvr::detect_recording_conflict(
@@ -177,8 +174,7 @@ pub fn filter_continue_watching(
     media_type: Option<String>,
     profile_id: Option<String>,
 ) -> Result<String> {
-    let entries: Vec<WatchHistory> =
-        serde_json::from_str(&history_json).context("Invalid watch history JSON")?;
+    let entries: Vec<WatchHistory> = from_json(&history_json)?;
     json_result(
         crispy_core::algorithms::watch_history::filter_continue_watching(
             &entries,
@@ -195,8 +191,7 @@ pub fn filter_cross_device(
     current_device_id: String,
     cutoff_utc_ms: i64,
 ) -> Result<String> {
-    let entries: Vec<WatchHistory> =
-        serde_json::from_str(&history_json).context("Invalid watch history JSON")?;
+    let entries: Vec<WatchHistory> = from_json(&history_json)?;
     let cutoff = ms_to_naive(cutoff_utc_ms)?;
     json_result(crispy_core::algorithms::watch_history::filter_cross_device(
         &entries,

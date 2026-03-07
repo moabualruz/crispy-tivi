@@ -163,7 +163,7 @@ class _ZoomedVideoSurface extends ConsumerWidget {
     final scale = ref.watch(videoZoomScaleProvider);
     return AnimatedScale(
       scale: scale,
-      duration: const Duration(milliseconds: 80),
+      duration: CrispyAnimation.extraFast,
       child: child,
     );
   }

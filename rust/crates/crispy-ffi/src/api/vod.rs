@@ -1,4 +1,4 @@
-use super::{json_result, svc};
+use super::{from_json, json_result, svc};
 use anyhow::{Context, Result};
 use crispy_core::models::VodItem;
 use std::collections::HashMap;
@@ -10,7 +10,7 @@ pub fn load_vod_items() -> Result<String> {
 
 /// Save VOD items from JSON array. Returns count.
 pub fn save_vod_items(json: String) -> Result<usize> {
-    let items: Vec<VodItem> = serde_json::from_str(&json).context("Invalid VOD JSON")?;
+    let items: Vec<VodItem> = from_json(&json)?;
     Ok(svc()?.save_vod_items(&items)?)
 }
 
@@ -19,8 +19,7 @@ pub fn save_vod_items(json: String) -> Result<usize> {
 /// Deserialises `source_ids_json` as `Vec<String>`. An empty
 /// array returns ALL VOD items (same as `load_vod_items`).
 pub fn get_vod_by_sources(source_ids_json: String) -> Result<String> {
-    let ids: Vec<String> =
-        serde_json::from_str(&source_ids_json).context("Invalid source_ids JSON")?;
+    let ids: Vec<String> = from_json(&source_ids_json)?;
     json_result(svc()?.get_vod_by_sources(&ids)?)
 }
 
@@ -32,8 +31,7 @@ pub fn get_filtered_vod(
     query: Option<String>,
     sort_by: String,
 ) -> Result<String> {
-    let ids: Vec<String> =
-        serde_json::from_str(&source_ids_json).context("Invalid source_ids JSON")?;
+    let ids: Vec<String> = from_json(&source_ids_json)?;
     json_result(svc()?.get_filtered_vod(
         &ids,
         item_type.as_deref(),
@@ -88,10 +86,8 @@ pub fn update_vod_favorite(item_id: String, is_favorite: bool) -> Result<()> {
 /// Resolve category IDs to names in VOD items.
 /// Returns JSON array of VodItem.
 pub fn resolve_vod_categories(items_json: String, cat_map_json: String) -> Result<String> {
-    let items: Vec<VodItem> =
-        serde_json::from_str(&items_json).context("Invalid VOD items JSON")?;
-    let cat_map: HashMap<String, String> =
-        serde_json::from_str(&cat_map_json).context("Invalid cat map JSON")?;
+    let items: Vec<VodItem> = from_json(&items_json)?;
+    let cat_map: HashMap<String, String> = from_json(&cat_map_json)?;
     json_result(crispy_core::algorithms::categories::resolve_vod_categories(
         &items, &cat_map,
     ))
@@ -99,8 +95,7 @@ pub fn resolve_vod_categories(items_json: String, cat_map_json: String) -> Resul
 
 /// Extract unique sorted category names from VOD.
 pub fn extract_sorted_vod_categories(items_json: String) -> Result<Vec<String>> {
-    let items: Vec<VodItem> =
-        serde_json::from_str(&items_json).context("Invalid VOD items JSON")?;
+    let items: Vec<VodItem> = from_json(&items_json)?;
     Ok(crispy_core::algorithms::categories::extract_sorted_vod_categories(&items))
 }
 
@@ -117,8 +112,7 @@ pub fn filter_and_sort_vod_items(
     query: Option<String>,
     sort_by: String,
 ) -> Result<String> {
-    let mut items: Vec<VodItem> =
-        serde_json::from_str(&items_json).context("Invalid items JSON")?;
+    let mut items: Vec<VodItem> = from_json(&items_json)?;
 
     if let Some(cat) = category.as_deref().filter(|s| !s.is_empty()) {
         items.retain(|i| i.category.as_deref() == Some(cat));
@@ -130,7 +124,7 @@ pub fn filter_and_sort_vod_items(
     }
 
     crispy_core::algorithms::vod_sorting::sort_vod_items_vec(&mut items, &sort_by);
-    Ok(serde_json::to_string(&items)?)
+    json_result(items)
 }
 
 /// Group VOD items by category.

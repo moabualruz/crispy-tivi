@@ -87,17 +87,6 @@ String dartFormatEpgDatetime(int timestampMs, double offsetHours) {
   return '$day $d $mon $h:$m';
 }
 
-/// Format an integer minute count as `Xm` or `Xh Ym`.
-///
-/// 60 min → `"1h 0m"` (always shows minutes when ≥ 1 hour).
-/// Mirrors `crispy-core::algorithms::timezone::format_duration_minutes`.
-String dartFormatDurationMinutes(int minutes) {
-  if (minutes < 60) return '${minutes}m';
-  final h = minutes ~/ 60;
-  final m = minutes % 60;
-  return '${h}h ${m}m';
-}
-
 /// Return the number of whole minutes between [startMs] and [endMs].
 int dartDurationBetweenMs(int startMs, int endMs) =>
     ((endMs - startMs) / 60000).round();

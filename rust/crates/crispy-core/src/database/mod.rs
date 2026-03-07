@@ -38,6 +38,9 @@ pub const TABLE_VOD_ITEMS: &str = "db_vod_items";
 /// SQLite table name for content sources.
 pub const TABLE_SOURCES: &str = "db_sources";
 
+/// SQLite table name for EPG programme entries.
+pub const TABLE_EPG_ENTRIES: &str = "db_epg_entries";
+
 // ── Error type ───────────────────────────────────────────
 
 /// Database error variants.
