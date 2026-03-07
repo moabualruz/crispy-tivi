@@ -111,9 +111,18 @@ endif()
 set(RUST_LIB_PATH
   "${RUST_CRATE_DIR}/target/${CARGO_PROFILE}/${RUST_LIB_NAME}.so")
 
+# Locate cargo — fall back to the standard rustup install path when
+# the build environment (e.g. WSL) does not have it in PATH.
+find_program(CARGO_BIN cargo
+  HINTS "$ENV{HOME}/.cargo/bin"
+)
+if(NOT CARGO_BIN)
+  set(CARGO_BIN "$ENV{HOME}/.cargo/bin/cargo")
+endif()
+
 # Build the Rust crate during CMake build.
 add_custom_target(rust_lib ALL
-  COMMAND cargo build -p crispy-ffi ${CARGO_FLAG}
+  COMMAND ${CARGO_BIN} build -p crispy-ffi ${CARGO_FLAG}
   WORKING_DIRECTORY "${RUST_CRATE_DIR}"
   COMMENT "Building Rust FFI library (crispy-ffi)"
 )

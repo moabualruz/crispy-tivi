@@ -154,7 +154,14 @@ void _handleEvent(Ref ref, DataChangeEvent event) {
 
     // ── Settings ─────────────────────────────────
     case SettingsUpdated():
-      ref.invalidate(settingsNotifierProvider);
+      // SettingsNotifier applies optimistic updates for all
+      // Dart-originated changes (state = AsyncData(…) before
+      // Rust even emits). Calling ref.invalidate() here would
+      // trigger a cold AsyncLoading that destroys TabBarView
+      // widget state (tab selection resets to 0).
+      // External bulk changes use BulkDataRefresh which
+      // invalidates via _invalidateAllDataProviders().
+      break;
 
     // ── Misc UI data ─────────────────────────────
     case SavedLayoutChanged():

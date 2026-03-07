@@ -72,15 +72,34 @@ class NavigationRobot {
   }
 
   Future<void> tapSettings() async {
-    // On landscape phones the side nav is scrollable and Settings
-    // (item 9) may be off-screen. ensureVisible scrolls the
-    // enclosing Scrollable to bring it into view before the tap.
+    // On landscape phones or small test windows, the side nav is
+    // scrollable and Settings (item 9) may be far off-screen.
+    // First wait for it to exist in the widget tree at all.
     await tester.pumpUntilFound(settingsNavItem);
-    await tester.ensureVisible(settingsNavItem);
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(settingsNavItem);
-    await tester.pumpUntilCondition(
-      () => tester.any(find.byType(CircularProgressIndicator)) == false,
-    );
+
+    // Because of asynchronous data loading, the widget might transiently disappear.
+    // We loop to make sure we can both see it and tap it.
+    // NOTE: Do NOT use pumpAndSettle — background syncs (PlaylistSync loading
+    // channels/VOD/EPG) and animations keep scheduling frames indefinitely.
+    for (int i = 0; i < 10; i++) {
+      if (tester.any(settingsNavItem)) {
+        try {
+          await tester.ensureVisible(settingsNavItem.first);
+          for (int j = 0; j < 5; j++) {
+            await tester.pump(const Duration(milliseconds: 100));
+          }
+          await tester.tap(settingsNavItem.first, warnIfMissed: false);
+          break; // success
+        } catch (e) {
+          // ignore StateError from .first or ensureVisible during rebuilds
+        }
+      }
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    // Pump frames to let the navigation transition complete.
+    for (int i = 0; i < 15; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
   }
 }

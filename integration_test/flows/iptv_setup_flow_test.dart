@@ -8,6 +8,22 @@ import 'package:crispy_tivi/core/data/memory_backend.dart';
 
 import '../helpers/test_app.dart';
 
+/// Switches to the Sources tab in Settings.
+///
+/// Source management options (Add M3U, Add Xtream, etc.)
+/// live on the Sources tab, not the default General tab.
+Future<void> _switchToSourcesTab(WidgetTester tester) async {
+  final sourcesTab = find.descendant(
+    of: find.byType(TabBar),
+    matching: find.text('Sources'),
+  );
+  expect(sourcesTab, findsOneWidget);
+  await tester.tap(sourcesTab);
+  for (int i = 0; i < 20; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -23,18 +39,22 @@ void main() {
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       await selectDefaultProfile(tester);
 
       // Navigate to Settings.
       await navigateToTab(tester, 'Settings');
 
-      // Settings should render and show the
-      // Sources section header.
+      // Settings should render.
       expect(tester.takeException(), isNull);
       expect(find.byType(Scaffold), findsWidgets);
+
+      // Sources tab should exist in the TabBar.
       expect(find.text('Sources'), findsOneWidget);
+
+      // Switch to Sources tab for source options.
+      await _switchToSourcesTab(tester);
 
       // Source addition options should be present.
       expect(find.text('Add M3U Playlist'), findsOneWidget);
@@ -48,18 +68,23 @@ void main() {
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       await selectDefaultProfile(tester);
 
       // Navigate to Settings.
       await navigateToTab(tester, 'Settings');
 
+      // Switch to Sources tab.
+      await _switchToSourcesTab(tester);
+
       // Tap "Add Xtream Codes".
       final addXtream = find.text('Add Xtream Codes');
       expect(addXtream, findsOneWidget);
       await tester.tap(addXtream);
-      await tester.pumpAndSettle(const Duration(seconds: 2));
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       // A dialog should appear with the title and
       // form fields.
@@ -80,18 +105,23 @@ void main() {
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       await selectDefaultProfile(tester);
 
       // Navigate to Settings.
       await navigateToTab(tester, 'Settings');
 
+      // Switch to Sources tab.
+      await _switchToSourcesTab(tester);
+
       // Tap "Add M3U Playlist".
       final addM3u = find.text('Add M3U Playlist');
       expect(addM3u, findsOneWidget);
       await tester.tap(addM3u);
-      await tester.pumpAndSettle(const Duration(seconds: 2));
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       // A dialog should appear.
       expect(find.text('Add M3U Playlist'), findsWidgets);
@@ -109,19 +139,24 @@ void main() {
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       await selectDefaultProfile(tester);
 
       // Navigate to Settings.
       await navigateToTab(tester, 'Settings');
 
+      // Switch to Sources tab (EPG URL is there).
+      await _switchToSourcesTab(tester);
+
       // EPG URL option should be visible.
       expect(find.text('EPG URL'), findsOneWidget);
 
       // Tap it to open the dialog.
       await tester.tap(find.text('EPG URL'));
-      await tester.pumpAndSettle(const Duration(seconds: 2));
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       // Dialog should appear with title.
       expect(find.text('EPG URL'), findsWidgets);

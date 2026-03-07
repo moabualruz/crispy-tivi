@@ -16,14 +16,14 @@ void main() {
   });
 
   group('Settings Flow', () {
-    testWidgets('Settings screen shows section headers', (tester) async {
+    testWidgets('Settings screen shows tab headers', (tester) async {
       final testBackend = MemoryBackend();
       final testCache = CacheService(testBackend);
       await seedTestSource(testCache);
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       await selectDefaultProfile(tester);
 
@@ -36,28 +36,25 @@ void main() {
       // No exceptions should occur.
       expect(tester.takeException(), isNull);
 
-      // The "Settings" title should be in the
-      // AppBar.
+      // The "Settings" title should be in the AppBar.
       expect(find.text('Settings'), findsWidgets);
 
-      // Key section headers should be visible.
-      // "Sources" is the first section.
+      // Tab headers should be visible in the TabBar.
+      // "Sources" tab should exist.
       expect(find.text('Sources'), findsOneWidget);
 
-      // "Appearance" and "Playback" sections should
-      // also be present (may need scrolling, but
-      // Sources is first and always visible).
-      final hasAppearance = find.text('Appearance').evaluate().isNotEmpty;
+      // Additional tab headers should be present.
+      final hasGeneral = find.text('General').evaluate().isNotEmpty;
       final hasPlayback = find.text('Playback').evaluate().isNotEmpty;
-      final hasSync = find.text('Sync').evaluate().isNotEmpty;
+      final hasData = find.text('Data').evaluate().isNotEmpty;
 
       expect(
-        hasAppearance || hasPlayback || hasSync,
+        hasGeneral || hasPlayback || hasData,
         isTrue,
         reason:
             'Expected at least one additional '
-            'settings section beyond Sources to '
-            'be visible or scrollable.',
+            'settings tab beyond Sources to '
+            'be visible.',
       );
     });
 
@@ -70,15 +67,25 @@ void main() {
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       await selectDefaultProfile(tester);
 
       // Navigate to Settings tab.
       await navigateToTab(tester, 'Settings');
 
-      // Source addition options should be visible
-      // inside the Sources section.
+      // Switch to Sources tab (source options live there).
+      final sourcesTab = find.descendant(
+        of: find.byType(TabBar),
+        matching: find.text('Sources'),
+      );
+      expect(sourcesTab, findsOneWidget);
+      await tester.tap(sourcesTab);
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      // Source addition options should be visible.
       expect(find.text('Add M3U Playlist'), findsOneWidget);
       expect(find.text('Add Xtream Codes'), findsOneWidget);
       expect(find.text('Add Stalker Portal'), findsOneWidget);
@@ -92,7 +99,7 @@ void main() {
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       await selectDefaultProfile(tester);
 
@@ -100,23 +107,25 @@ void main() {
       await navigateToTab(tester, 'Settings');
 
       // Scroll down through the settings list.
-      // The settings screen uses a ListView, so we
-      // fling down to reveal more sections.
-      await tester.fling(
-        find.byType(ListView).first,
-        const Offset(0, -500),
-        1000,
-      );
-      await tester.pumpAndSettle(const Duration(seconds: 2));
+      // Each tab has its own scrollable content.
+      final listView = find.byType(ListView);
+      if (listView.evaluate().isNotEmpty) {
+        await tester.fling(listView.first, const Offset(0, -500), 1000);
+        for (int i = 0; i < 20; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+      }
 
       // No crash from scrolling.
       expect(tester.takeException(), isNull);
 
       // Scroll more to reach deeper sections.
-      final listView = find.byType(ListView);
-      if (listView.evaluate().isNotEmpty) {
-        await tester.fling(listView.first, const Offset(0, -500), 1000);
-        await tester.pumpAndSettle(const Duration(seconds: 2));
+      final listView2 = find.byType(ListView);
+      if (listView2.evaluate().isNotEmpty) {
+        await tester.fling(listView2.first, const Offset(0, -500), 1000);
+        for (int i = 0; i < 20; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
       }
 
       // Still no crash.

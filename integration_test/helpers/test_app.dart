@@ -16,6 +16,7 @@ import 'package:crispy_tivi/core/theme/theme_provider.dart';
 import 'package:crispy_tivi/features/epg/presentation/providers/epg_providers.dart';
 import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
 import 'package:crispy_tivi/features/iptv/domain/entities/epg_entry.dart';
+import 'package:crispy_tivi/features/profiles/domain/entities/user_profile.dart';
 import 'package:crispy_tivi/features/iptv/presentation/providers/channel_providers.dart';
 import 'package:crispy_tivi/features/player/data/player_service.dart';
 import 'package:crispy_tivi/features/player/domain/entities/playback_state.dart';
@@ -172,6 +173,21 @@ Future<void> seedTestSource(CacheService cache) async {
   await cache.setSetting(sourcesKey, sourceJson);
 }
 
+/// Seeds multiple profiles so the profile selection screen
+/// appears instead of auto-skipping to the app shell.
+///
+/// The router auto-skips profile selection when only one
+/// profile exists with no PIN. Adding a second profile
+/// forces the "Who's watching?" screen to show.
+Future<void> seedMultipleProfiles(CacheService cache) async {
+  await cache.saveProfile(
+    const UserProfile(id: 'default', name: 'Default', avatarIndex: 0),
+  );
+  await cache.saveProfile(
+    const UserProfile(id: 'profile2', name: 'Kids', avatarIndex: 1),
+  );
+}
+
 /// Builds the complete test app wrapped in a [ProviderScope]
 /// with all providers configured for integration testing.
 ///
@@ -217,14 +233,16 @@ Widget createTestApp({CrispyBackend? backend, CacheService? cache}) {
 
 /// Navigates past profile selection in integration tests.
 ///
-/// Finds the "Default" profile text and taps it, then waits
-/// for the app shell to settle. Call after [pumpWidget] and
-/// [pumpAndSettle].
+/// Finds the "Default" profile text and taps it, then pumps
+/// frames for the navigation transition. Call after
+/// [pumpWidget] and initial pump cycle.
 Future<void> selectDefaultProfile(WidgetTester tester) async {
   final defaultProfile = find.text('Default');
   if (defaultProfile.evaluate().isNotEmpty) {
     await tester.tap(defaultProfile.first);
-    await tester.pumpAndSettle(const Duration(seconds: 3));
+    for (int i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
   }
 }
 
@@ -242,16 +260,36 @@ const _tabIcons = <String, IconData>{
 /// Maps legacy tab labels (used in tests) to actual nav destination labels.
 const _labelToNavDest = <String, String>{'TV': 'Live TV', 'VODs': 'Movies'};
 
+/// Pumps frames until the app has loaded past the initial
+/// loading state. Replaces `pumpAndSettle` which hangs on
+/// animations (shimmer, CircularProgressIndicator, etc.).
+Future<void> pumpAppReady(WidgetTester tester) async {
+  // Pump enough frames for async providers to resolve and
+  // route transitions to complete.
+  for (int i = 0; i < 50; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
+/// Pumps frames to let a navigation transition complete.
+Future<void> _pumpTransition(WidgetTester tester) async {
+  for (int i = 0; i < 20; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
 /// Navigates to a navigation tab by [label].
 ///
 /// Tries TestKeys first (most reliable), then text, then icon fallback.
 Future<void> navigateToTab(WidgetTester tester, String label) async {
   // Strategy 1: find by TestKeys nav item key (works on all form factors).
   final navDest = _labelToNavDest[label] ?? label;
-  final keyFinder = find.byKey(TestKeys.navItem(navDest));
+  final keyFinder = find.byKey(TestKeys.navItem(navDest), skipOffstage: false);
   if (keyFinder.evaluate().isNotEmpty) {
-    await tester.tap(keyFinder.first);
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.ensureVisible(keyFinder.first);
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(keyFinder.first, warnIfMissed: false);
+    await _pumpTransition(tester);
     return;
   }
 
@@ -259,7 +297,7 @@ Future<void> navigateToTab(WidgetTester tester, String label) async {
   final textFinder = find.text(label);
   if (textFinder.evaluate().isNotEmpty) {
     await tester.tap(textFinder.first);
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await _pumpTransition(tester);
     return;
   }
 
@@ -269,7 +307,7 @@ Future<void> navigateToTab(WidgetTester tester, String label) async {
     final iconFinder = find.byIcon(icon);
     if (iconFinder.evaluate().isNotEmpty) {
       await tester.tap(iconFinder.first);
-      await tester.pumpAndSettle(const Duration(seconds: 2));
+      await _pumpTransition(tester);
       return;
     }
 
@@ -286,7 +324,7 @@ Future<void> navigateToTab(WidgetTester tester, String label) async {
       final selFinder = find.byIcon(selIcon);
       if (selFinder.evaluate().isNotEmpty) {
         await tester.tap(selFinder.first);
-        await tester.pumpAndSettle(const Duration(seconds: 2));
+        await _pumpTransition(tester);
         return;
       }
     }
@@ -343,9 +381,13 @@ class _IntegrationTestAppState extends ConsumerState<_IntegrationTestApp> {
     final router = ref.watch(goRouterProvider);
 
     return settingsAsync.when(
+      skipLoadingOnReload: true,
+      skipLoadingOnRefresh: true,
       loading:
           () => const MaterialApp(
-            home: Scaffold(body: Center(child: CircularProgressIndicator())),
+            // Use a static widget (not CircularProgressIndicator) so
+            // pumpAndSettle can settle during the brief initial load.
+            home: Scaffold(body: Center(child: Text('Loading…'))),
           ),
       error:
           (error, stack) => MaterialApp(

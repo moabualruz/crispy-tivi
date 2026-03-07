@@ -10,9 +10,6 @@ import '../../data/profile_service.dart';
 import '../../domain/entities/user_profile.dart';
 import '../profile_constants.dart';
 
-// FE-PM-01: number of columns in the icon picker grid.
-const int _kAvatarGridColumns = 6;
-
 /// Dialog for adding a new user profile.
 ///
 /// Shows a name field and an avatar picker grid with D-pad/TV focus support.
@@ -102,91 +99,94 @@ class _AddProfileDialogState extends State<AddProfileDialog> {
 
     return AlertDialog(
       title: const Text('Add Profile'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
-              decoration: const InputDecoration(labelText: 'Profile Name'),
-            ),
-            const SizedBox(height: CrispySpacing.md),
-            const Text('Choose Avatar'),
-            const SizedBox(height: CrispySpacing.sm),
-            _AvatarPickerGrid(
-              selectedIndex: _selectedAvatar,
-              onSelected: (i) => setState(() => _selectedAvatar = i),
-            ),
-            const SizedBox(height: CrispySpacing.md),
-            // FE-PM-04: per-profile maturity rating cap.
-            const Text('Maturity Rating'),
-            const SizedBox(height: CrispySpacing.xs),
-            MaturityRatingDropdown(
-              value: _selectedRating,
-              onChanged: (rating) => setState(() => _selectedRating = rating),
-            ),
-            const SizedBox(height: CrispySpacing.md),
-            // FE-PM-08: per-profile accent color picker.
-            const Text('Accent Color'),
-            const SizedBox(height: CrispySpacing.sm),
-            ProfileAccentColorPicker(
-              selectedColor: _selectedAccentColor,
-              onSelected:
-                  (color) => setState(() => _selectedAccentColor = color),
-            ),
-            const SizedBox(height: CrispySpacing.md),
-            const Divider(height: 1),
-            const SizedBox(height: CrispySpacing.md),
-            // FE-PM-02: Kids profile shortcut.
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _submitKids,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: colorScheme.tertiary,
-                  side: BorderSide(
-                    color: colorScheme.tertiary.withValues(alpha: 0.6),
+      content: SizedBox(
+        width: 400,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: _nameController,
+                autofocus: true,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submit(),
+                decoration: const InputDecoration(labelText: 'Profile Name'),
+              ),
+              const SizedBox(height: CrispySpacing.md),
+              const Text('Choose Avatar'),
+              const SizedBox(height: CrispySpacing.sm),
+              _AvatarPickerGrid(
+                selectedIndex: _selectedAvatar,
+                onSelected: (i) => setState(() => _selectedAvatar = i),
+              ),
+              const SizedBox(height: CrispySpacing.md),
+              // FE-PM-04: per-profile maturity rating cap.
+              const Text('Maturity Rating'),
+              const SizedBox(height: CrispySpacing.xs),
+              MaturityRatingDropdown(
+                value: _selectedRating,
+                onChanged: (rating) => setState(() => _selectedRating = rating),
+              ),
+              const SizedBox(height: CrispySpacing.md),
+              // FE-PM-08: per-profile accent color picker.
+              const Text('Accent Color'),
+              const SizedBox(height: CrispySpacing.sm),
+              ProfileAccentColorPicker(
+                selectedColor: _selectedAccentColor,
+                onSelected:
+                    (color) => setState(() => _selectedAccentColor = color),
+              ),
+              const SizedBox(height: CrispySpacing.md),
+              const Divider(height: 1),
+              const SizedBox(height: CrispySpacing.md),
+              // FE-PM-02: Kids profile shortcut.
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _submitKids,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colorScheme.tertiary,
+                    side: BorderSide(
+                      color: colorScheme.tertiary.withValues(alpha: 0.6),
+                    ),
                   ),
+                  icon: const Icon(Icons.child_care),
+                  label: const Text('Create Kids Profile'),
                 ),
-                icon: const Icon(Icons.child_care),
-                label: const Text('Create Kids Profile'),
               ),
-            ),
-            const SizedBox(height: CrispySpacing.xs),
-            Text(
-              'Kids profiles cap content at PG and require an admin PIN to exit.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
+              const SizedBox(height: CrispySpacing.xs),
+              Text(
+                'Kids profiles cap content at PG and require an admin PIN to exit.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-            const SizedBox(height: CrispySpacing.sm),
-            // FE-PM-10: guest profile shortcut.
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _submitGuest,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: colorScheme.onSurfaceVariant,
-                  side: BorderSide(
-                    color: colorScheme.outline.withValues(alpha: 0.5),
+              const SizedBox(height: CrispySpacing.sm),
+              // FE-PM-10: guest profile shortcut.
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _submitGuest,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colorScheme.onSurfaceVariant,
+                    side: BorderSide(
+                      color: colorScheme.outline.withValues(alpha: 0.5),
+                    ),
                   ),
+                  icon: const Icon(Icons.person_outline),
+                  label: const Text('Create Guest Profile'),
                 ),
-                icon: const Icon(Icons.person_outline),
-                label: const Text('Create Guest Profile'),
               ),
-            ),
-            const SizedBox(height: CrispySpacing.xs),
-            Text(
-              'Guest profiles have no PIN and do not save watch history.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
+              const SizedBox(height: CrispySpacing.xs),
+              Text(
+                'Guest profiles have no PIN and do not save watch history.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       actions: [
@@ -243,26 +243,27 @@ class _AvatarPickerGrid extends StatelessWidget {
         ),
       );
 
-      // Render icons for this category in a GridView.
+      // Render icons for this category in a Wrap.
+      // Wrap avoids the RenderShrinkWrappingViewport intrinsic
+      // dimension issue that GridView.builder(shrinkWrap: true)
+      // triggers inside AlertDialog.
       final categoryIcons = List.generate(count, (j) => start + j);
       children.add(
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: _kAvatarGridColumns,
-            mainAxisSpacing: CrispySpacing.xs,
-            crossAxisSpacing: CrispySpacing.xs,
-          ),
-          itemCount: categoryIcons.length,
-          itemBuilder: (_, j) {
-            final i = categoryIcons[j];
-            return _AvatarItem(
-              index: i,
-              isSelected: selectedIndex == i,
-              onSelected: onSelected,
-            );
-          },
+        Wrap(
+          spacing: CrispySpacing.xs,
+          runSpacing: CrispySpacing.xs,
+          children:
+              categoryIcons.map((i) {
+                return SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: _AvatarItem(
+                    index: i,
+                    isSelected: selectedIndex == i,
+                    onSelected: onSelected,
+                  ),
+                );
+              }).toList(),
         ),
       );
     }

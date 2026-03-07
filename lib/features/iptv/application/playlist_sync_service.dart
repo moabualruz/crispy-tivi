@@ -130,10 +130,12 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       // 1. Immediately load cached data for
       //    instant display.
       await loadFromCache();
+      if (!_ref.mounted) return 0;
 
       // 2. Await settings (may still be loading
       //    on startup).
       final settings = await _ref.read(settingsNotifierProvider.future);
+      if (!_ref.mounted) return 0;
 
       final sources = settings.sources;
       if (sources.isEmpty) {
@@ -212,12 +214,16 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       _scheduleDeferredSync(interval);
 
       // 5. Reload from cache (Rust already saved to DB).
+      if (!_ref.mounted) return 0;
       if (totalChannels > 0) {
         await reloadChannelList();
       }
+      if (!_ref.mounted) return 0;
       if (totalVod > 0 && _ref.exists(vodProvider)) {
         final cachedVods = await _ref.read(cacheServiceProvider).loadVodItems();
-        _ref.read(vodProvider.notifier).loadData(cachedVods);
+        if (_ref.mounted) {
+          _ref.read(vodProvider.notifier).loadData(cachedVods);
+        }
       }
 
       // 6. Fetch EPG after successful sync.
@@ -247,12 +253,16 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       );
 
       // Push to UI from cache.
+      if (!_ref.mounted) return report;
       if (report.channelsCount > 0) {
         await reloadChannelList();
       }
+      if (!_ref.mounted) return report;
       if (report.vodCount > 0 && _ref.exists(vodProvider)) {
         final cachedVods = await cache.loadVodItems();
-        _ref.read(vodProvider.notifier).loadData(cachedVods);
+        if (_ref.mounted) {
+          _ref.read(vodProvider.notifier).loadData(cachedVods);
+        }
       }
 
       // Update cache sync time.

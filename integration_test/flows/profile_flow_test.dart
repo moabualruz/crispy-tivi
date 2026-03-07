@@ -23,10 +23,13 @@ void main() {
       final testBackend = MemoryBackend();
       final testCache = CacheService(testBackend);
       await seedTestSource(testCache);
+      // Seed 2 profiles so profile selection screen shows
+      // (auto-skip triggers when only 1 profile with no PIN).
+      await seedMultipleProfiles(testCache);
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       // The profile selection screen should show
       // the "Who's watching?" header text.
@@ -40,16 +43,17 @@ void main() {
       final testBackend = MemoryBackend();
       final testCache = CacheService(testBackend);
       await seedTestSource(testCache);
+      await seedMultipleProfiles(testCache);
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       // The "Add Profile" tile should be visible.
       expect(find.byKey(TestKeys.addProfileButton), findsOneWidget);
 
-      // An add icon should be present on the tile.
-      expect(find.byIcon(Icons.add), findsOneWidget);
+      // The person-add icon should be present on the tile.
+      expect(find.byIcon(Icons.person_add_outlined), findsOneWidget);
     });
 
     testWidgets('Tapping "Add Profile" opens dialog with title', (
@@ -58,16 +62,19 @@ void main() {
       final testBackend = MemoryBackend();
       final testCache = CacheService(testBackend);
       await seedTestSource(testCache);
+      await seedMultipleProfiles(testCache);
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       // Tap the "Add Profile" tile.
       final addBtn = find.byKey(TestKeys.addProfileButton);
       expect(addBtn, findsOneWidget);
       await tester.tap(addBtn);
-      await tester.pumpAndSettle(const Duration(seconds: 2));
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       // The dialog should appear with title text,
       // a name field label, and avatar picker.
@@ -86,10 +93,11 @@ void main() {
       final testBackend = MemoryBackend();
       final testCache = CacheService(testBackend);
       await seedTestSource(testCache);
+      await seedMultipleProfiles(testCache);
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       // Verify we are on profile selection.
       expect(find.text("Who's watching?"), findsOneWidget);
@@ -98,7 +106,9 @@ void main() {
       final defaultProfile = find.text('Default');
       expect(defaultProfile, findsWidgets);
       await tester.tap(defaultProfile.first);
-      await tester.pumpAndSettle(const Duration(seconds: 3));
+      for (int i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       // Should navigate away from profile selection.
       // The "Who's watching?" header should be gone.

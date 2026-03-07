@@ -224,6 +224,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         ),
       ),
       body: settingsAsync.when(
+        // Keep current UI during background reloads (e.g. BulkDataRefresh)
+        // to avoid destroying TabBarView and resetting the active tab.
+        skipLoadingOnReload: true,
+        skipLoadingOnRefresh: true,
         // S-10: skeleton shimmer replaces spinner while settings load.
         loading: () => const _SettingsShimmer(),
         // S-07: error state includes a retry button.

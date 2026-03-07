@@ -28,7 +28,7 @@ void main() {
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       await selectDefaultProfile(tester);
 
@@ -54,7 +54,7 @@ void main() {
       );
     });
 
-    testWidgets('VOD tab has Movies and Series tabs', (tester) async {
+    testWidgets('VOD screen shows Movies title', (tester) async {
       final testBackend = MemoryBackend();
       final testCache = CacheService(testBackend);
       await seedTestSource(testCache);
@@ -63,17 +63,16 @@ void main() {
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       await selectDefaultProfile(tester);
 
       // Navigate to VODs tab.
       await navigateToTab(tester, 'VODs');
 
-      // Both "Movies" and "Series" sub-tabs should
-      // be visible inside the VOD browser.
+      // The screen title should be "Movies".
+      // Series is now a separate nav destination.
       expect(find.text('Movies'), findsWidgets);
-      expect(find.text('Series'), findsWidgets);
     });
 
     testWidgets('Tapping on a VOD card does not crash', (tester) async {
@@ -85,7 +84,7 @@ void main() {
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       await selectDefaultProfile(tester);
 
@@ -96,7 +95,9 @@ void main() {
       final matrixText = find.text('The Matrix');
       if (matrixText.evaluate().isNotEmpty) {
         await tester.tap(matrixText.first);
-        await tester.pumpAndSettle(const Duration(seconds: 2));
+        for (int i = 0; i < 20; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
       }
 
       // No crash should occur from tapping a VOD.
@@ -104,7 +105,7 @@ void main() {
       expect(find.byType(Scaffold), findsWidgets);
     });
 
-    testWidgets('VOD browser shows "Movies & Series" title', (tester) async {
+    testWidgets('VOD browser shows "Movies" title', (tester) async {
       final testBackend = MemoryBackend();
       final testCache = CacheService(testBackend);
       await seedTestSource(testCache);
@@ -113,7 +114,7 @@ void main() {
       await tester.pumpWidget(
         createTestApp(backend: testBackend, cache: testCache),
       );
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+      await pumpAppReady(tester);
 
       await selectDefaultProfile(tester);
 
@@ -121,7 +122,7 @@ void main() {
       await navigateToTab(tester, 'VODs');
 
       // The screen title should be visible.
-      expect(find.text('Movies & Series'), findsOneWidget);
+      expect(find.text('Movies'), findsWidgets);
     });
   });
 }

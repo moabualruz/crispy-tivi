@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'package:crispy_tivi/core/navigation/side_nav.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/main.dart' as app;
 
@@ -18,6 +19,11 @@ void main() {
 
   group('Navigation & Shell Architecture', () {
     testWidgets('Full Navigation & Shell Lifecycle Validation', (tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       // Boot application sequence once
       app.main();
 
@@ -54,8 +60,13 @@ void main() {
       expect(find.byKey(TestKeys.navItem('Settings')), findsOneWidget);
 
       // Phase 2: Test 3 - Side navigation collapses correctly on constraints
-      final drawerFinder = find.byType(AnimatedContainer).first;
-      final size = tester.getSize(drawerFinder);
+      // Find the AnimatedContainer inside SideNav (not the first one in the
+      // tree, which may be a title-bar button at 40dp).
+      final sideNavContainer = find.descendant(
+        of: find.byType(SideNav),
+        matching: find.byType(AnimatedContainer),
+      );
+      final size = tester.getSize(sideNavContainer.first);
       expect(
         size.width,
         closeTo(72.0, 5.0),
@@ -63,8 +74,13 @@ void main() {
       );
 
       // Phase 2: Test 4 - Clicking a route transitions gracefully without overlapping UI
-      await tester.tap(find.byKey(TestKeys.navItem('Settings')));
-      await tester.pump(const Duration(seconds: 2));
+      final settingsItem = find.byKey(TestKeys.navItem('Settings'));
+      await tester.ensureVisible(settingsItem.first);
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.tap(settingsItem.first, warnIfMissed: false);
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
 
       expect(find.byKey(TestKeys.settingsScreen), findsOneWidget);
     });

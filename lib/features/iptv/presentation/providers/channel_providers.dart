@@ -158,14 +158,19 @@ class ChannelListNotifier extends Notifier<ChannelListState> {
   /// Called by the event-driven invalidator when
   /// channel data changes (e.g. [ChannelsUpdated]).
   Future<void> refreshFromBackend() async {
-    final cache = ref.read(cacheServiceProvider);
-    final sourceIds = ref.read(effectiveSourceIdsProvider);
-    final channels =
-        sourceIds.isEmpty
-            ? await cache.loadChannels()
-            : await cache.getChannelsBySources(sourceIds);
-    final groups = await cache.extractSortedGroups(channels);
-    loadChannels(channels, groups);
+    try {
+      final cache = ref.read(cacheServiceProvider);
+      final sourceIds = ref.read(effectiveSourceIdsProvider);
+      final channels =
+          sourceIds.isEmpty
+              ? await cache.loadChannels()
+              : await cache.getChannelsBySources(sourceIds);
+      final groups = await cache.extractSortedGroups(channels);
+      loadChannels(channels, groups);
+    } on StateError {
+      // The Notifier was disposed while awaiting data loading.
+      return;
+    }
   }
 
   /// Sets the channel grouping mode.

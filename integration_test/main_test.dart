@@ -1,3 +1,5 @@
+
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
@@ -15,6 +17,15 @@ void main() {
   // Global integration test binding to support flutter driver
   // execution locally and on device.
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  // Suppress connectivity_plus errors on Windows integration tests by mocking the event channel listen method
+  final binding = TestDefaultBinaryMessengerBinding.instance;
+  binding.defaultBinaryMessenger.setMockMethodCallHandler(
+    const MethodChannel('dev.fluttercommunity.plus/connectivity_status'),
+    (methodCall) async {
+      return null; // Ignore listen/cancel commands for this channel
+    },
+  );
 
   // Isolate the test database from the production one.
   // Each target (windows, emulator-5554, etc.) gets its own

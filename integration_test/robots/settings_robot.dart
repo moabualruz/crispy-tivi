@@ -12,6 +12,10 @@ class SettingsRobot {
 
   Future<void> waitForSettings() async {
     await tester.pumpUntilFound(settingsScreen);
+    await tester.pumpUntilFound(find.byType(TabBarView));
+    for (int i = 0; i < 25; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
   }
 
   /// Finds a [SwitchListTile] by its title text.
@@ -20,11 +24,26 @@ class SettingsRobot {
     matching: find.byType(SwitchListTile),
   );
 
-  /// Scrolls the settings content area until [finder] becomes
-  /// visible. Uses [dragUntilVisible] which works regardless of
-  /// how many Scrollable widgets exist on-screen (side nav, tabs,
-  /// settings content).
   Future<void> _scrollIntoView(Finder finder) async {
+    // Quick check: already visible?
+    if (tester.any(finder)) {
+      await tester.ensureVisible(finder);
+      await tester.pump(const Duration(milliseconds: 500));
+      return;
+    }
+
+    // Pump frames in case the widget is still loading.
+    for (int i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+      if (tester.any(finder)) {
+        await tester.ensureVisible(finder);
+        await tester.pump(const Duration(milliseconds: 500));
+        return;
+      }
+    }
+
+    // Use dragUntilVisible which handles scrollable
+    // detection automatically.
     await tester.dragUntilVisible(
       finder,
       settingsScreen,
@@ -34,33 +53,131 @@ class SettingsRobot {
   }
 
   /// Returns the current value of a [SwitchListTile].
-  ///
-  /// Scrolls the tile into view first because the settings list is
-  /// lazy and may not build off-screen items on short viewports
-  /// (e.g. landscape phones at 411dp height).
   Future<bool> getSwitchValue(String title) async {
     final finder = switchTile(title);
     await _scrollIntoView(finder);
-    return tester.widget<SwitchListTile>(finder).value;
+
+    for (int i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    final tile = tester.widget<SwitchListTile>(finder);
+    return tile.value;
   }
 
   /// Taps a [SwitchListTile] to toggle it.
-  ///
-  /// Scrolls the tile into view first. An extra pump after
-  /// scrolling lets the scroll animation settle so the tap offset
-  /// is accurate.
   Future<void> toggleSwitch(String title) async {
     final finder = switchTile(title);
     await _scrollIntoView(finder);
-    await tester.tap(finder);
-    await tester.pump(const Duration(milliseconds: 300));
+
+    final switchWidgetFinder = find.descendant(
+      of: finder,
+      matching: find.byType(Switch),
+    );
+    await tester.ensureVisible(switchWidgetFinder.first);
+    await tester.tap(switchWidgetFinder.first);
+
+    for (int i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
   }
 
-  /// Taps a settings category tab by label.
+  /// Switches to a settings category tab by label.
   Future<void> tapTab(String label) async {
-    final tab = find.text(label);
-    await tester.ensureVisible(tab);
-    await tester.tap(tab);
-    await tester.pump(const Duration(milliseconds: 500));
+    for (int attempt = 0; attempt < 3; attempt++) {
+      await tester.pumpUntilFound(find.byType(TabBar));
+
+      final stabilizeFrames = 20 + attempt * 15;
+      for (int i = 0; i < stabilizeFrames; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+
+      if (!tester.any(find.byType(TabBar))) continue;
+
+      final tabBar = tester.widget<TabBar>(find.byType(TabBar).first);
+      int targetIndex = -1;
+      for (int i = 0; i < tabBar.tabs.length; i++) {
+        final tab = tabBar.tabs[i] as Tab;
+        if (tab.text == label) {
+          targetIndex = i;
+          break;
+        }
+      }
+      if (targetIndex == -1) {
+        throw StateError('Tab "$label" not found in TabBar');
+      }
+
+      final ctrl = tabBar.controller;
+      if (ctrl == null) continue;
+
+      // If already at target, verify content is visible.
+      if (ctrl.index == targetIndex) {
+        for (int i = 0; i < 10; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        if (_hasTabContent(label)) return;
+
+        // Force-sync: jump away and back.
+        final temp = targetIndex == 0 ? 1 : 0;
+        ctrl.animateTo(temp);
+        for (int i = 0; i < 15; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        ctrl.animateTo(targetIndex);
+        for (int i = 0; i < 30; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        if (_hasTabContent(label)) return;
+        continue;
+      }
+
+      ctrl.animateTo(targetIndex);
+      for (int i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      final ctrlAfter =
+          tester.widget<TabBar>(find.byType(TabBar).first).controller;
+      final hasContent = _hasTabContent(label);
+
+      if (ctrlAfter?.index == targetIndex && hasContent) return;
+
+      // Force-sync if controller is right but content wrong.
+      if (ctrlAfter?.index == targetIndex && !hasContent) {
+        final temp = targetIndex == 0 ? 1 : 0;
+        ctrlAfter!.animateTo(temp);
+        for (int i = 0; i < 15; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        ctrlAfter.animateTo(targetIndex);
+        for (int i = 0; i < 30; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        if (_hasTabContent(label)) return;
+      }
+    }
+
+    throw StateError('Failed to switch to "$label" tab after 3 attempts');
+  }
+
+  bool _hasTabContent(String label) {
+    switch (label) {
+      case 'General':
+        return tester.any(find.text('Auto-resume last channel')) ||
+            tester.any(find.text('Theme Base'));
+      case 'Playback':
+        return tester.any(find.text('Auto Frame Rate')) ||
+            tester.any(find.text('Hardware Decoding'));
+      case 'Sources':
+        return tester.any(find.text('Add Source'));
+      case 'Data':
+        return tester.any(find.text('Sync'));
+      case 'Advanced':
+        return tester.any(find.text('DVR'));
+      case 'About':
+        return tester.any(find.text('Version'));
+      default:
+        return true;
+    }
   }
 }

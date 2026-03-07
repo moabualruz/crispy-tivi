@@ -289,8 +289,18 @@ class EpgNotifier extends Notifier<EpgState> {
         clearError: true,
       );
     } catch (e) {
+      if (e is StateError ||
+          e.toString().contains('disposed') ||
+          e.toString().contains('UnmountedRefException')) {
+        // The Notifier was disposed or the ref is unmounted.
+        return;
+      }
       debugPrint('EpgNotifier: Failed to fetch EPG window: $e');
-      state = state.copyWith(isLoading: false, error: e.toString());
+      try {
+        state = state.copyWith(isLoading: false, error: e.toString());
+      } catch (_) {
+        // Ignored if completely unmounted
+      }
     }
   }
 

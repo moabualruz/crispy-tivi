@@ -9,23 +9,14 @@ extension PumpUntilFoundExtension on WidgetTester {
     Duration timeout = const Duration(seconds: 30),
     Duration step = const Duration(milliseconds: 50),
   }) async {
-    bool timerDone = false;
-    final timer = Timer(
-      timeout,
-      () =>
-          throw TimeoutException('Pump until found timed out after $timeout.'),
-    );
+    final startTime = DateTime.now();
 
-    try {
-      while (timerDone != true) {
-        await pump(step);
-        final found = any(finder);
-        if (found) {
-          timerDone = true;
-        }
+    while (!any(finder)) {
+      await pump(step);
+
+      if (DateTime.now().difference(startTime) >= timeout) {
+        throw TimeoutException('Pump until found timed out', timeout);
       }
-    } finally {
-      timer.cancel();
     }
   }
 
@@ -35,24 +26,16 @@ extension PumpUntilFoundExtension on WidgetTester {
     Duration timeout = const Duration(seconds: 30),
     Duration step = const Duration(milliseconds: 50),
   }) async {
-    bool timerDone = false;
-    final timer = Timer(
-      timeout,
-      () =>
-          throw TimeoutException(
-            'Pump until condition timed out after $timeout.',
-          ),
-    );
+    final startTime = DateTime.now();
 
-    try {
-      while (timerDone != true) {
-        await pump(step);
-        if (condition()) {
-          timerDone = true;
-        }
+    while (!condition()) {
+      await pump(step);
+
+      if (DateTime.now().difference(startTime) >= timeout) {
+        throw TimeoutException(
+          'Pump until condition timed out after $timeout.',
+        );
       }
-    } finally {
-      timer.cancel();
     }
   }
 }
