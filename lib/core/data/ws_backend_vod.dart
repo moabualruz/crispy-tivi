@@ -32,6 +32,38 @@ mixin _WsVodMixin on _WsBackendBase {
     return (data as List).cast<Map<String, dynamic>>();
   }
 
+  Future<String> getFilteredVod(
+    String sourceIdsJson, {
+    String? itemType,
+    String? category,
+    String? query,
+    required String sortBy,
+  }) async {
+    final data = await _send('getFilteredVod', {
+      'sourceIdsJson': sourceIdsJson,
+      'itemType': itemType,
+      'category': category,
+      'query': query,
+      'sortBy': sortBy,
+    });
+    return data as String;
+  }
+
+  Future<String> filterAndSortVodItems(
+    String itemsJson, {
+    String? category,
+    String? query,
+    required String sortBy,
+  }) async {
+    final data = await _send('filterAndSortVodItems', {
+      'itemsJson': itemsJson,
+      'category': category,
+      'query': query,
+      'sortBy': sortBy,
+    });
+    return data as String;
+  }
+
   // ── VOD Favorites ────────────────────────────────
 
   Future<List<String>> getVodFavorites(String profileId) async {

@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
-import '../../../../core/network/http_service.dart';
 
 /// Verifies connectivity for [type] using the appropriate backend method.
 ///
@@ -32,8 +31,8 @@ Future<String?> verifySourceConnectivity(
         );
         if (!ok) return 'Authentication failed. Check credentials.';
       case PlaylistSourceType.m3u:
-        final http = ref.read(httpServiceProvider);
-        return await HttpService.verifyM3uUrl(http: http, url: url);
+        final ok = await backend.verifyM3uUrl(url: url);
+        if (!ok) return 'Cannot reach M3U URL.';
       case PlaylistSourceType.stalkerPortal:
         final ok = await backend.verifyStalkerPortal(
           baseUrl: url,

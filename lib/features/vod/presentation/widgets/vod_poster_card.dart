@@ -10,6 +10,7 @@ import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/content_badge.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
+import '../../../../core/widgets/hover_builder.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../domain/entities/vod_item.dart';
@@ -23,7 +24,7 @@ import '../providers/vod_favorites_provider.dart';
 /// - Long press to open context menu
 /// - Hover-reveal star to toggle favorites
 /// - Netflix-style hover preview after 300ms delay
-class VodPosterCard extends ConsumerStatefulWidget {
+class VodPosterCard extends ConsumerWidget {
   const VodPosterCard({
     super.key,
     required this.item,
@@ -75,215 +76,198 @@ class VodPosterCard extends ConsumerStatefulWidget {
   final bool autofocus;
 
   @override
-  ConsumerState<VodPosterCard> createState() => _VodPosterCardState();
-}
-
-class _VodPosterCardState extends ConsumerState<VodPosterCard> {
-  bool _isHovered = false;
-
-  void _onHoverEnter() {
-    setState(() => _isHovered = true);
-  }
-
-  void _onHoverExit() {
-    setState(() => _isHovered = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final safeHeroTag = widget.heroTag ?? widget.item.id;
+    final safeHeroTag = heroTag ?? item.id;
     final numberWidth =
-        (widget.showRank && widget.rank != null)
-            ? ((widget.rankFontSize ?? 64.0) * (widget.rank! >= 10 ? 1.0 : 0.7))
+        (showRank && rank != null)
+            ? ((rankFontSize ?? 64.0) * (rank! >= 10 ? 1.0 : 0.7))
             : 0.0;
 
     return Semantics(
-      label: widget.item.name,
+      label: item.name,
       button: true,
-      hint: widget.item.type == VodType.movie ? 'Movie' : 'Series',
-      child: MouseRegion(
-        onEnter: (_) => _onHoverEnter(),
-        onExit: (_) => _onHoverExit(),
-        child: FocusWrapper(
-          autofocus: widget.autofocus,
-          scaleFactor: CrispyAnimation.hoverScale,
-          onSelect:
-              widget.onTap ??
-              () {
-                if (widget.item.type == VodType.movie) {
-                  context.push(
-                    AppRoutes.vodDetails,
-                    extra: {'item': widget.item, 'heroTag': safeHeroTag},
-                  );
-                } else {
-                  context.push(AppRoutes.seriesDetail, extra: widget.item);
-                }
-              },
-          onLongPress: widget.onLongPress,
-          borderRadius: CrispyRadius.tv,
-          padding: EdgeInsets.zero,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned.fill(
-                      left: numberWidth,
-                      child: ClipRect(
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Hero(
-                              tag: safeHeroTag,
-                              child: SmartImage(
-                                itemId: widget.item.id,
-                                title: widget.item.name,
-                                imageUrl: widget.item.posterUrl,
-                                imageKind: 'poster',
-                                icon:
-                                    widget.item.type == VodType.movie
-                                        ? Icons.movie_outlined
-                                        : Icons.tv,
-                                fit: BoxFit.cover,
-                                memCacheWidth: 200,
-                              ),
+      hint: item.type == VodType.movie ? 'Movie' : 'Series',
+      child: HoverBuilder(
+        builder:
+            (context, isHovered) => FocusWrapper(
+              autofocus: autofocus,
+              scaleFactor: CrispyAnimation.hoverScale,
+              onSelect:
+                  onTap ??
+                  () {
+                    if (item.type == VodType.movie) {
+                      context.push(
+                        AppRoutes.vodDetails,
+                        extra: {'item': item, 'heroTag': safeHeroTag},
+                      );
+                    } else {
+                      context.push(AppRoutes.seriesDetail, extra: item);
+                    }
+                  },
+              onLongPress: onLongPress,
+              borderRadius: CrispyRadius.tv,
+              padding: EdgeInsets.zero,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned.fill(
+                          left: numberWidth,
+                          child: ClipRect(
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Hero(
+                                  tag: safeHeroTag,
+                                  child: SmartImage(
+                                    itemId: item.id,
+                                    title: item.name,
+                                    imageUrl: item.posterUrl,
+                                    imageKind: 'poster',
+                                    icon:
+                                        item.type == VodType.movie
+                                            ? Icons.movie_outlined
+                                            : Icons.tv,
+                                    fit: BoxFit.cover,
+                                    memCacheWidth: 200,
+                                  ),
+                                ),
+                                // Rating badge (top-left).
+                                if (item.rating != null &&
+                                    item.rating!.isNotEmpty)
+                                  Positioned(
+                                    top: CrispySpacing.xs,
+                                    left: CrispySpacing.xs,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: CrispySpacing.xs,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.surface.withValues(
+                                          alpha: 0.87,
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          CrispyRadius.tv,
+                                        ),
+                                        border: Border.all(
+                                          color: colorScheme.outline,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        item.rating!,
+                                        style: textTheme.labelSmall?.copyWith(
+                                          color: colorScheme.onSurface,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                if (item.type == VodType.series &&
+                                    item.seasonCount != null)
+                                  Positioned(
+                                    bottom: CrispySpacing.xs,
+                                    left: CrispySpacing.xs,
+                                    child: _SeasonCountBadge(
+                                      seasonCount: item.seasonCount,
+                                      colorScheme: colorScheme,
+                                      textTheme: textTheme,
+                                    ),
+                                  ),
+                                // FE-VOD-08: Watchlist quick-add bookmark
+                                // button (top-right, actionable).
+                                //
+                                // Shows a filled bookmark when favorited,
+                                // an "add" icon when not. On mobile it is
+                                // always visible; on desktop/web it fades
+                                // in on hover.
+                                //
+                                // Uses select() to rebuild only when THIS
+                                // item's favorite status changes.
+                                Positioned(
+                                  top: CrispySpacing.xs,
+                                  right: CrispySpacing.xs,
+                                  child: _WatchlistButton(
+                                    isFavorite: ref.watch(
+                                      vodFavoritesProvider.select(
+                                        (s) =>
+                                            s.value?.contains(item.id) ?? false,
+                                      ),
+                                    ),
+                                    isHovered: isHovered,
+                                    onToggle:
+                                        () => ref
+                                            .read(vodFavoritesProvider.notifier)
+                                            .toggleFavorite(item.id),
+                                  ),
+                                ),
+                                // Content status badge (top-right, below
+                                // the watchlist button which sits at
+                                // top:4/right:4 with ~26px total height).
+                                if (badge != null)
+                                  Positioned(
+                                    top: CrispySpacing.xs + 28,
+                                    right: CrispySpacing.xs,
+                                    child: ContentStatusBadge(badge: badge!),
+                                  ),
+                                if (progress != null && progress! > 0)
+                                  Positioned(
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    child: LinearProgressIndicator(
+                                      value: progress!,
+                                      backgroundColor: colorScheme.surface
+                                          .withValues(alpha: 0.45),
+                                      color: colorScheme.primary,
+                                    ),
+                                  ),
+                                // FE-VOD-02: Completed-content checkmark
+                                // badge (bottom-right).
+                                //
+                                // Shown when watch progress >= 95% threshold.
+                                // Reads from [vodItemIsCompletedProvider] if
+                                // the caller did not supply a [progress] prop,
+                                // or derives it from the prop directly.
+                                _CompletedBadge(
+                                  itemId: item.id,
+                                  progressProp: progress,
+                                ),
+                                if (overlayBuilder != null)
+                                  overlayBuilder!(context, item),
+                              ],
                             ),
-                            // Rating badge (top-left).
-                            if (widget.item.rating != null &&
-                                widget.item.rating!.isNotEmpty)
-                              Positioned(
-                                top: CrispySpacing.xs,
-                                left: CrispySpacing.xs,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: CrispySpacing.xs,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.surface.withValues(
-                                      alpha: 0.87,
-                                    ),
-                                    borderRadius: BorderRadius.circular(
-                                      CrispyRadius.tv,
-                                    ),
-                                    border: Border.all(
-                                      color: colorScheme.outline,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    widget.item.rating!,
-                                    style: textTheme.labelSmall?.copyWith(
-                                      color: colorScheme.onSurface,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            if (widget.item.type == VodType.series &&
-                                widget.item.seasonCount != null)
-                              Positioned(
-                                bottom: CrispySpacing.xs,
-                                left: CrispySpacing.xs,
-                                child: _SeasonCountBadge(
-                                  seasonCount: widget.item.seasonCount,
-                                  colorScheme: colorScheme,
-                                  textTheme: textTheme,
-                                ),
-                              ),
-                            // FE-VOD-08: Watchlist quick-add bookmark
-                            // button (top-right, actionable).
-                            //
-                            // Shows a filled bookmark when favorited,
-                            // an "add" icon when not. On mobile it is
-                            // always visible; on desktop/web it fades
-                            // in on hover.
-                            //
-                            // Uses select() to rebuild only when THIS
-                            // item's favorite status changes.
-                            Positioned(
-                              top: CrispySpacing.xs,
-                              right: CrispySpacing.xs,
-                              child: _WatchlistButton(
-                                isFavorite: ref.watch(
-                                  vodFavoritesProvider.select(
-                                    (s) =>
-                                        s.value?.contains(widget.item.id) ??
-                                        false,
-                                  ),
-                                ),
-                                isHovered: _isHovered,
-                                onToggle:
-                                    () => ref
-                                        .read(vodFavoritesProvider.notifier)
-                                        .toggleFavorite(widget.item.id),
-                              ),
-                            ),
-                            // Content status badge (top-right, below
-                            // the watchlist button which sits at
-                            // top:4/right:4 with ~26px total height).
-                            if (widget.badge != null)
-                              Positioned(
-                                top: CrispySpacing.xs + 28,
-                                right: CrispySpacing.xs,
-                                child: ContentStatusBadge(badge: widget.badge!),
-                              ),
-                            if (widget.progress != null && widget.progress! > 0)
-                              Positioned(
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                child: LinearProgressIndicator(
-                                  value: widget.progress!,
-                                  backgroundColor: colorScheme.surface
-                                      .withValues(alpha: 0.45),
-                                  color: colorScheme.primary,
-                                ),
-                              ),
-                            // FE-VOD-02: Completed-content checkmark
-                            // badge (bottom-right).
-                            //
-                            // Shown when watch progress >= 95% threshold.
-                            // Reads from [vodItemIsCompletedProvider] if
-                            // the caller did not supply a [progress] prop,
-                            // or derives it from the prop directly.
-                            _CompletedBadge(
-                              itemId: widget.item.id,
-                              progressProp: widget.progress,
-                            ),
-                            if (widget.overlayBuilder != null)
-                              widget.overlayBuilder!(context, widget.item),
-                          ],
+                          ),
                         ),
-                      ),
+                        if (showRank && rank != null)
+                          Positioned(
+                            bottom: 5,
+                            left: 0,
+                            child: _RankOverlay(
+                              rank: rank!,
+                              fontSize: rankFontSize ?? 64.0,
+                              fillColor: colorScheme.surface,
+                              strokeColor: Colors.white,
+                            ),
+                          ),
+                      ],
                     ),
-                    if (widget.showRank && widget.rank != null)
-                      Positioned(
-                        bottom: 5,
-                        left: 0,
-                        child: _RankOverlay(
-                          rank: widget.rank!,
-                          fontSize: widget.rankFontSize ?? 64.0,
-                          fillColor: colorScheme.surface,
-                          strokeColor: Colors.white,
-                        ),
-                      ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: CrispySpacing.sm),
+                  Text(
+                    item.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodySmall,
+                  ),
+                ],
               ),
-              const SizedBox(height: CrispySpacing.sm),
-              Text(
-                widget.item.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ),
+            ),
       ),
     );
   }

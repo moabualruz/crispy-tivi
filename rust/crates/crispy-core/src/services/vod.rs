@@ -148,6 +148,70 @@ impl CrispyService {
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
+    /// Load VOD items filtered by multiple criteria and sorted.
+    pub fn get_filtered_vod(
+        &self,
+        source_ids: &[String],
+        item_type: Option<&str>,
+        category: Option<&str>,
+        query: Option<&str>,
+        sort_by: &str,
+    ) -> Result<Vec<VodItem>, DbError> {
+        let conn = self.db.get()?;
+        let mut sql = "SELECT
+                id, name, stream_url, type,
+                poster_url, backdrop_url,
+                description, rating, year,
+                duration, category, series_id,
+                season_number, episode_number,
+                ext, is_favorite, added_at,
+                updated_at, source_id
+            FROM db_vod_items
+            WHERE 1=1"
+            .to_string();
+
+        let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
+        let mut param_idx = 1;
+
+        if let Some(t) = item_type {
+            sql.push_str(&format!(" AND type = ?{}", param_idx));
+            params.push(Box::new(t.to_string()));
+            param_idx += 1;
+        }
+
+        if !source_ids.is_empty() {
+            let placeholders = build_in_placeholders(source_ids.len());
+            sql.push_str(&format!(" AND source_id IN ({})", placeholders));
+            for id in source_ids {
+                params.push(Box::new(id.to_string()));
+            }
+            param_idx += source_ids.len();
+        }
+
+        if let Some(cat) = category {
+            sql.push_str(&format!(" AND category = ?{}", param_idx));
+            params.push(Box::new(cat.to_string()));
+            param_idx += 1;
+        }
+
+        if let Some(q) = query {
+            if !q.trim().is_empty() {
+                let lower = format!("%{}%", q.to_lowercase().trim());
+                sql.push_str(&format!(" AND LOWER(name) LIKE ?{}", param_idx));
+                params.push(Box::new(lower));
+                // param_idx += 1;
+            }
+        }
+
+        let mut stmt = conn.prepare(&sql)?;
+        let refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
+        let rows = stmt.query_map(refs.as_slice(), vod_item_from_row)?;
+        let mut items = rows.collect::<Result<Vec<_>, _>>()?;
+
+        crate::algorithms::vod_sorting::sort_vod_items_vec(&mut items, sort_by);
+        Ok(items)
+    }
+
     /// Find VOD items from other sources with the same title and year.
     ///
     /// Uses case-insensitive exact name match (LOWER + TRIM) to avoid

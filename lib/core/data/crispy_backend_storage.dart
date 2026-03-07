@@ -84,6 +84,12 @@ abstract class _BackendStorageMethods {
     bool acceptInvalidCerts = false,
   });
 
+  /// Verify M3U URL connectivity.
+  Future<bool> verifyM3uUrl({
+    required String url,
+    bool acceptInvalidCerts = false,
+  });
+
   /// Verify Stalker portal MAC authentication.
   Future<bool> verifyStalkerPortal({
     required String baseUrl,

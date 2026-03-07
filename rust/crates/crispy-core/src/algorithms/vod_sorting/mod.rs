@@ -91,7 +91,7 @@ pub use filter::{
     resolve_vod_quality, similar_vod_items,
 };
 pub use progress::compute_episode_progress;
-pub use sorting::sort_vod_items;
+pub use sorting::{sort_vod_items, sort_vod_items_vec};
 
 // ── Tests ───────────────────────────────────────────
 

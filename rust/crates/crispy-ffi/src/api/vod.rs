@@ -24,6 +24,25 @@ pub fn get_vod_by_sources(source_ids_json: String) -> Result<String> {
     json_result(svc()?.get_vod_by_sources(&ids)?)
 }
 
+/// Load VOD items filtered by sources, type, category, query, and sorted by sorting key.
+pub fn get_filtered_vod(
+    source_ids_json: String,
+    item_type: Option<String>,
+    category: Option<String>,
+    query: Option<String>,
+    sort_by: String,
+) -> Result<String> {
+    let ids: Vec<String> =
+        serde_json::from_str(&source_ids_json).context("Invalid source_ids JSON")?;
+    json_result(svc()?.get_filtered_vod(
+        &ids,
+        item_type.as_deref(),
+        category.as_deref(),
+        query.as_deref(),
+        &sort_by,
+    )?)
+}
+
 /// Delete VOD items not in keep_ids for a source.
 pub fn delete_removed_vod_items(source_id: String, keep_ids: Vec<String>) -> Result<usize> {
     Ok(svc()?.delete_removed_vod_items(&source_id, &keep_ids)?)
@@ -89,6 +108,29 @@ pub fn extract_sorted_vod_categories(items_json: String) -> Result<Vec<String>> 
 /// Input/output: JSON arrays of VodItem.
 pub fn sort_vod_items(items_json: String, sort_by: String) -> String {
     crispy_core::algorithms::vod_sorting::sort_vod_items(&items_json, &sort_by)
+}
+
+/// Filter (by category/query) and sort VOD items array in memory.
+pub fn filter_and_sort_vod_items(
+    items_json: String,
+    category: Option<String>,
+    query: Option<String>,
+    sort_by: String,
+) -> Result<String> {
+    let mut items: Vec<VodItem> =
+        serde_json::from_str(&items_json).context("Invalid items JSON")?;
+
+    if let Some(cat) = category.as_deref().filter(|s| !s.is_empty()) {
+        items.retain(|i| i.category.as_deref() == Some(cat));
+    }
+
+    if let Some(q) = query.as_deref().filter(|s| !s.trim().is_empty()) {
+        let current_q = q.trim().to_lowercase();
+        items.retain(|i| i.name.to_lowercase().contains(&current_q));
+    }
+
+    crispy_core::algorithms::vod_sorting::sort_vod_items_vec(&mut items, &sort_by);
+    Ok(serde_json::to_string(&items)?)
 }
 
 /// Group VOD items by category.

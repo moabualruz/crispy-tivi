@@ -21,6 +21,11 @@ mixin _MemorySyncMixin on _MemoryStorage {
   }) async =>
       '{"channels_count":0,"channel_groups":[],"vod_count":0,"vod_categories":[],"epg_url":null}';
 
+  Future<bool> verifyM3uUrl({
+    required String url,
+    bool acceptInvalidCerts = false,
+  }) async => true;
+
   Future<String> syncM3uSource({
     required String url,
     required String sourceId,

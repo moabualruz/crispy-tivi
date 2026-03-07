@@ -22,6 +22,21 @@ Future<String> getVodBySources({required String sourceIdsJson}) => RustLib
     .api
     .crateApiVodGetVodBySources(sourceIdsJson: sourceIdsJson);
 
+/// Load VOD items filtered by sources, type, category, query, and sorted by sorting key.
+Future<String> getFilteredVod({
+  required String sourceIdsJson,
+  String? itemType,
+  String? category,
+  String? query,
+  required String sortBy,
+}) => RustLib.instance.api.crateApiVodGetFilteredVod(
+  sourceIdsJson: sourceIdsJson,
+  itemType: itemType,
+  category: category,
+  query: query,
+  sortBy: sortBy,
+);
+
 /// Delete VOD items not in keep_ids for a source.
 Future<BigInt> deleteRemovedVodItems({
   required String sourceId,
@@ -100,6 +115,19 @@ Future<String> sortVodItems({
   required String sortBy,
 }) => RustLib.instance.api.crateApiVodSortVodItems(
   itemsJson: itemsJson,
+  sortBy: sortBy,
+);
+
+/// Filter (by category/query) and sort VOD items array in memory.
+Future<String> filterAndSortVodItems({
+  required String itemsJson,
+  String? category,
+  String? query,
+  required String sortBy,
+}) => RustLib.instance.api.crateApiVodFilterAndSortVodItems(
+  itemsJson: itemsJson,
+  category: category,
+  query: query,
   sortBy: sortBy,
 );
 

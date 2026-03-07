@@ -65,6 +65,11 @@ pub async fn sync_xtream_source(
     json_result(report)
 }
 
+/// Verify M3U URL connectivity. Returns `true` if reachable.
+pub async fn verify_m3u_url(url: String, accept_invalid_certs: bool) -> Result<bool> {
+    into_anyhow(crispy_core::services::m3u_sync::verify_m3u_url(&url, accept_invalid_certs).await)
+}
+
 /// Full M3U source sync. Returns JSON `SyncReport`.
 pub async fn sync_m3u_source(
     url: String,

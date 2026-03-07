@@ -63,19 +63,15 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
   String _lastQuery = '';
 
   /// Applies category/search filters, then delegates sorting to
-  /// the Rust backend via [CacheService.sortVodItems].
+  /// the Rust backend via [CacheService.filterAndSortVodItems].
   Future<void> _refreshSortedSeries(List<VodItem> all) async {
-    var filtered = all;
-    if (selectedCategory != null) {
-      filtered = filtered.where((s) => s.category == selectedCategory).toList();
-    }
-    if (searchQuery.isNotEmpty) {
-      final q = searchQuery.toLowerCase();
-      filtered =
-          filtered.where((s) => s.name.toLowerCase().contains(q)).toList();
-    }
     final cache = ref.read(cacheServiceProvider);
-    final sorted = await cache.sortVodItems(filtered, sortOption.sortByKey);
+    final sorted = await cache.filterAndSortVodItems(
+      all,
+      category: selectedCategory,
+      query: searchQuery.isNotEmpty ? searchQuery : null,
+      sortByKey: sortOption.sortByKey,
+    );
     if (!mounted) return;
     setState(() => _sortedSeries = sorted);
   }

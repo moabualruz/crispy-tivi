@@ -40,6 +40,15 @@ Future<String> syncXtreamSource({
   acceptInvalidCerts: acceptInvalidCerts,
 );
 
+/// Verify M3U URL connectivity. Returns `true` if reachable.
+Future<bool> verifyM3UUrl({
+  required String url,
+  required bool acceptInvalidCerts,
+}) => RustLib.instance.api.crateApiSyncVerifyM3UUrl(
+  url: url,
+  acceptInvalidCerts: acceptInvalidCerts,
+);
+
 /// Full M3U source sync. Returns JSON `SyncReport`.
 Future<String> syncM3USource({
   required String url,

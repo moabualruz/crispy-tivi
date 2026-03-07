@@ -62,6 +62,23 @@ abstract class _BackendDataMethods {
     int limit,
   );
 
+  /// Load VOD items filtered by source IDs, type, category, query, and sort key.
+  Future<String> getFilteredVod(
+    String sourceIdsJson, {
+    String? itemType,
+    String? category,
+    String? query,
+    required String sortBy,
+  });
+
+  /// Filter and sort an in-memory VOD items array on Rust side.
+  Future<String> filterAndSortVodItems(
+    String itemsJson, {
+    String? category,
+    String? query,
+    required String sortBy,
+  });
+
   // ── VOD Favorites ────────────────────────────────────
 
   /// Get favourite VOD item IDs for a profile.

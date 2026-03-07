@@ -97,21 +97,17 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
   }
 
   /// Applies category/search filters, then delegates sorting to
-  /// the Rust backend via [CacheService.sortVodItems].
+  /// the Rust backend via [CacheService.filterAndSortVodItems].
   ///
   /// Stores the result in [_sortedMovies] and triggers a rebuild.
   Future<void> _refreshSortedMovies(List<VodItem> all) async {
-    var filtered = all;
-    if (selectedCategory != null) {
-      filtered = filtered.where((m) => m.category == selectedCategory).toList();
-    }
-    if (searchQuery.isNotEmpty) {
-      final q = searchQuery.toLowerCase();
-      filtered =
-          filtered.where((m) => m.name.toLowerCase().contains(q)).toList();
-    }
     final cache = ref.read(cacheServiceProvider);
-    final sorted = await cache.sortVodItems(filtered, sortOption.sortByKey);
+    final sorted = await cache.filterAndSortVodItems(
+      all,
+      category: selectedCategory,
+      query: searchQuery.isNotEmpty ? searchQuery : null,
+      sortByKey: sortOption.sortByKey,
+    );
     if (!mounted) return;
     setState(() => _sortedMovies = sorted);
   }

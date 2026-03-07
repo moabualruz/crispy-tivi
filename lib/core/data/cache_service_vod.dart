@@ -69,6 +69,54 @@ mixin _CacheVodMixin on _CacheServiceBase {
     final raw = jsonDecode(resultJson) as List<dynamic>;
     return raw.cast<Map<String, dynamic>>().map(mapToVodItem).toList();
   }
+
+  /// Get VOD filtered by source IDs, type, category, and query, sorting directly in Rust.
+  Future<List<VodItem>> getVodFilteredAndSorted({
+    required List<String> sourceIds,
+    String? itemType,
+    String? category,
+    String? query,
+    required String sortByKey,
+  }) async {
+    final sw = Stopwatch()..start();
+    final sourceIdsJson = jsonEncode(sourceIds);
+    final resultJson = await _backend.getFilteredVod(
+      sourceIdsJson,
+      itemType: itemType,
+      category: category,
+      query: query,
+      sortBy: sortByKey,
+    );
+    final raw = jsonDecode(resultJson) as List<dynamic>;
+    final result = raw.cast<Map<String, dynamic>>().map(mapToVodItem).toList();
+    debugPrint(
+      'CacheService: loaded ${result.length} filtered VOD '
+      'items in ${sw.elapsedMilliseconds}ms',
+    );
+    return result;
+  }
+
+  /// Filter and sort an in-memory list using the Rust backend.
+  Future<List<VodItem>> filterAndSortVodItems(
+    List<VodItem> items, {
+    String? category,
+    String? query,
+    required String sortByKey,
+  }) async {
+    if (items.isEmpty) return items;
+    final sw = Stopwatch()..start();
+    final inputJson = jsonEncode(items.map(vodItemToMap).toList());
+    final resultJson = await _backend.filterAndSortVodItems(
+      inputJson,
+      category: category,
+      query: query,
+      sortBy: sortByKey,
+    );
+    final raw = jsonDecode(resultJson) as List<dynamic>;
+    final result = raw.cast<Map<String, dynamic>>().map(mapToVodItem).toList();
+    debugPrint('CacheService: filterAndSort in ${sw.elapsedMilliseconds}ms');
+    return result;
+  }
 }
 
 // ── VOD converters (top-level) ────────────────────

@@ -8,6 +8,7 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/theme/crispy_typography.dart';
 import '../../../../core/utils/duration_formatter.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
+import '../../../../core/widgets/hover_builder.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../domain/entities/vod_item.dart';
 
@@ -25,7 +26,7 @@ const double _kHighMatchThreshold = 0.75;
 /// - Title (bottom overlay)
 /// - Year and duration badges (bottom overlay)
 /// - Match percentage indicator (top-right, when provided)
-class VodLandscapeCard extends ConsumerStatefulWidget {
+class VodLandscapeCard extends ConsumerWidget {
   const VodLandscapeCard({
     super.key,
     required this.item,
@@ -45,164 +46,154 @@ class VodLandscapeCard extends ConsumerStatefulWidget {
   final double? matchPercent;
 
   @override
-  ConsumerState<VodLandscapeCard> createState() => _VodLandscapeCardState();
-}
-
-class _VodLandscapeCardState extends ConsumerState<VodLandscapeCard> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final safeHeroTag = widget.heroTag ?? '${widget.item.id}_landscape';
+    final safeHeroTag = heroTag ?? '${item.id}_landscape';
     final hasBackdrop =
-        widget.item.backdropUrl != null &&
-        widget.item.backdropUrl!.trim().isNotEmpty;
+        item.backdropUrl != null && item.backdropUrl!.trim().isNotEmpty;
 
     return Semantics(
-      label: widget.item.name,
+      label: item.name,
       button: true,
       hint: 'Movie',
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: FocusWrapper(
-          scaleFactor: CrispyAnimation.hoverScale,
-          onSelect: widget.onTap ?? () {},
-          onLongPress: widget.onLongPress,
-          borderRadius: CrispyRadius.tv,
-          padding: EdgeInsets.zero,
-          child: AspectRatio(
-            aspectRatio: _kLandscapeAspect,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(CrispyRadius.tv),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // ── Background image ──────────────────────
-                  Hero(
-                    tag: safeHeroTag,
-                    child:
-                        hasBackdrop
-                            ? SmartImage(
-                              itemId: widget.item.id,
-                              title: widget.item.name,
-                              imageUrl: widget.item.backdropUrl,
-                              imageKind: 'backdrop',
-                              icon: Icons.movie_outlined,
-                              fit: BoxFit.cover,
-                              memCacheWidth: 480,
-                            )
-                            : _LetterboxedPoster(item: widget.item),
-                  ),
-
-                  // ── Gradient scrim (bottom) ───────────────
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      height: 80,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.85),
-                          ],
-                        ),
+      child: HoverBuilder(
+        builder:
+            (context, isHovered) => FocusWrapper(
+              scaleFactor: CrispyAnimation.hoverScale,
+              onSelect: onTap ?? () {},
+              onLongPress: onLongPress,
+              borderRadius: CrispyRadius.tv,
+              padding: EdgeInsets.zero,
+              child: AspectRatio(
+                aspectRatio: _kLandscapeAspect,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(CrispyRadius.tv),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // ── Background image ──────────────────────
+                      Hero(
+                        tag: safeHeroTag,
+                        child:
+                            hasBackdrop
+                                ? SmartImage(
+                                  itemId: item.id,
+                                  title: item.name,
+                                  imageUrl: item.backdropUrl,
+                                  imageKind: 'backdrop',
+                                  icon: Icons.movie_outlined,
+                                  fit: BoxFit.cover,
+                                  memCacheWidth: 480,
+                                )
+                                : _LetterboxedPoster(item: item),
                       ),
-                    ),
-                  ),
 
-                  // ── Bottom metadata overlay ───────────────
-                  Positioned(
-                    bottom: CrispySpacing.xs,
-                    left: CrispySpacing.sm,
-                    right: CrispySpacing.sm,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Title
-                        Text(
-                          widget.item.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: textTheme.bodySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            shadows: const [
-                              Shadow(
-                                offset: Offset(0, 1),
-                                blurRadius: 3,
-                                color: Colors.black54,
-                              ),
-                            ],
+                      // ── Gradient scrim (bottom) ───────────────
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          height: 80,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.85),
+                              ],
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        // Year + duration badges
-                        Row(
+                      ),
+
+                      // ── Bottom metadata overlay ───────────────
+                      Positioned(
+                        bottom: CrispySpacing.xs,
+                        left: CrispySpacing.sm,
+                        right: CrispySpacing.sm,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (widget.item.year != null)
-                              _MetaBadge(
-                                label: '${widget.item.year}',
-                                cs: cs,
-                                textTheme: textTheme,
+                            // Title
+                            Text(
+                              item.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                shadows: const [
+                                  Shadow(
+                                    offset: Offset(0, 1),
+                                    blurRadius: 3,
+                                    color: Colors.black54,
+                                  ),
+                                ],
                               ),
-                            if (widget.item.year != null &&
-                                widget.item.duration != null)
-                              const SizedBox(width: CrispySpacing.xs),
-                            if (widget.item.duration != null)
-                              _MetaBadge(
-                                label: DurationFormatter.humanShort(
-                                  Duration(minutes: widget.item.duration!),
-                                ),
-                                cs: cs,
-                                textTheme: textTheme,
-                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            // Year + duration badges
+                            Row(
+                              children: [
+                                if (item.year != null)
+                                  _MetaBadge(
+                                    label: '${item.year}',
+                                    cs: cs,
+                                    textTheme: textTheme,
+                                  ),
+                                if (item.year != null && item.duration != null)
+                                  const SizedBox(width: CrispySpacing.xs),
+                                if (item.duration != null)
+                                  _MetaBadge(
+                                    label: DurationFormatter.humanShort(
+                                      Duration(minutes: item.duration!),
+                                    ),
+                                    cs: cs,
+                                    textTheme: textTheme,
+                                  ),
+                              ],
+                            ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+
+                      // ── Match percentage (top-right) ──────────
+                      if (matchPercent != null)
+                        Positioned(
+                          top: CrispySpacing.xs,
+                          right: CrispySpacing.xs,
+                          child: _MatchBadge(
+                            percent: matchPercent!,
+                            textTheme: textTheme,
+                          ),
+                        ),
+
+                      // ── Hover / focus play icon ───────────────
+                      if (isHovered)
+                        Center(
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: CrispyColors.scrimMid,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.play_arrow_rounded,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-
-                  // ── Match percentage (top-right) ──────────
-                  if (widget.matchPercent != null)
-                    Positioned(
-                      top: CrispySpacing.xs,
-                      right: CrispySpacing.xs,
-                      child: _MatchBadge(
-                        percent: widget.matchPercent!,
-                        textTheme: textTheme,
-                      ),
-                    ),
-
-                  // ── Hover / focus play icon ───────────────
-                  if (_isHovered)
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: CrispyColors.scrimMid,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.play_arrow_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                      ),
-                    ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
       ),
     );
   }

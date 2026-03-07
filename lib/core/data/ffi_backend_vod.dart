@@ -34,6 +34,36 @@ mixin _FfiVodMixin on _FfiBackendBase {
     return _decodeJsonList(json);
   }
 
+  Future<String> getFilteredVod(
+    String sourceIdsJson, {
+    String? itemType,
+    String? category,
+    String? query,
+    required String sortBy,
+  }) async {
+    return await rust_api.getFilteredVod(
+      sourceIdsJson: sourceIdsJson,
+      itemType: itemType,
+      category: category,
+      query: query,
+      sortBy: sortBy,
+    );
+  }
+
+  Future<String> filterAndSortVodItems(
+    String itemsJson, {
+    String? category,
+    String? query,
+    required String sortBy,
+  }) async {
+    return rust_api.filterAndSortVodItems(
+      itemsJson: itemsJson,
+      category: category,
+      query: query,
+      sortBy: sortBy,
+    );
+  }
+
   // ── VOD Favorites ────────────────────────────────
 
   Future<List<String>> getVodFavorites(String profileId) =>

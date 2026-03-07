@@ -43,6 +43,27 @@ mixin _MemoryVodMixin on _MemoryStorage {
 
   // ── VOD Favorites ──────────────────────────────
 
+  Future<String> getFilteredVod(
+    String sourceIdsJson, {
+    String? itemType,
+    String? category,
+    String? query,
+    required String sortBy,
+  }) async {
+    // simplified for memory backend
+    return '[]';
+  }
+
+  Future<String> filterAndSortVodItems(
+    String itemsJson, {
+    String? category,
+    String? query,
+    required String sortBy,
+  }) async {
+    // simplified for memory backend
+    return itemsJson;
+  }
+
   Future<List<String>> getVodFavorites(String profileId) async =>
       (vodFavorites[profileId] ?? {}).toList();
 

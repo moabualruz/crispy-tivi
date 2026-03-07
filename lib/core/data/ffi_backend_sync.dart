@@ -48,11 +48,23 @@ mixin _FfiSyncMixin on _FfiBackendBase {
     required String url,
     required String sourceId,
     bool acceptInvalidCerts = false,
-  }) => rust_api.syncM3USource(
-    url: url,
-    sourceId: sourceId,
-    acceptInvalidCerts: acceptInvalidCerts,
-  );
+  }) async {
+    return await rust_api.syncM3USource(
+      url: url,
+      sourceId: sourceId,
+      acceptInvalidCerts: acceptInvalidCerts,
+    );
+  }
+
+  Future<bool> verifyM3uUrl({
+    required String url,
+    bool acceptInvalidCerts = false,
+  }) async {
+    return await rust_api.verifyM3UUrl(
+      url: url,
+      acceptInvalidCerts: acceptInvalidCerts,
+    );
+  }
 
   Future<bool> verifyStalkerPortal({
     required String baseUrl,

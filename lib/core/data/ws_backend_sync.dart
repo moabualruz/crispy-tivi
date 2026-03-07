@@ -60,6 +60,17 @@ mixin _WsSyncMixin on _WsBackendBase {
     return jsonEncode(data);
   }
 
+  Future<bool> verifyM3uUrl({
+    required String url,
+    bool acceptInvalidCerts = false,
+  }) async {
+    final data = await _send('verifyM3uUrl', {
+      'url': url,
+      'acceptInvalidCerts': acceptInvalidCerts,
+    });
+    return data as bool;
+  }
+
   Future<bool> verifyStalkerPortal({
     required String baseUrl,
     required String macAddress,

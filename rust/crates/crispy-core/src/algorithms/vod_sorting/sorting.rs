@@ -20,6 +20,13 @@ pub fn sort_vod_items(items_json: &str, sort_by: &str) -> String {
         return "[]".to_string();
     };
 
+    sort_vod_items_vec(&mut items, sort_by);
+
+    serde_json::to_string(&items).unwrap_or_else(|_| "[]".to_string())
+}
+
+/// In-place sorting of VodItem slice.
+pub fn sort_vod_items_vec(items: &mut [VodItem], sort_by: &str) {
     match sort_by {
         SORT_ADDED_DESC => {
             items.sort_by(|a, b| {
@@ -64,6 +71,4 @@ pub fn sort_vod_items(items_json: &str, sort_by: &str) -> String {
         // Unknown sort_by → no-op (return as-is).
         _ => {}
     }
-
-    serde_json::to_string(&items).unwrap_or_else(|_| "[]".to_string())
 }

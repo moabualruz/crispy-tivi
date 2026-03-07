@@ -13,6 +13,18 @@ use crate::parsers::{m3u, vod};
 use crate::services::CrispyService;
 use crate::sync_progress::emit_progress;
 
+pub async fn verify_m3u_url(url: &str, accept_invalid_certs: bool) -> Result<bool> {
+    let client = get_shared_client(accept_invalid_certs);
+    let req = client.head(url).send().await;
+    match req {
+        Ok(res) => {
+            // 405 means server is reachable but doesn't support HEAD
+            Ok(res.status().is_success() || res.status().as_u16() == 405)
+        }
+        Err(e) => Err(anyhow::anyhow!("Connection error: {}", e)),
+    }
+}
+
 /// Fetches, parses, and saves an M3U playlist.
 ///
 /// Downloads the M3U content, parses channels and EPG URL,
