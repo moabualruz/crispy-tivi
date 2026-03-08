@@ -362,16 +362,19 @@ class _CrispyTiviAppState extends ConsumerState<CrispyTiviApp>
 
           Widget result = child ?? const SizedBox.shrink();
 
-          // Apply true scaling for high-res displays
+          // Scale UI for high-res displays (e.g. 4K at 100% DPI).
+          // FittedBox handles painting, layout AND hit-testing
+          // correctly — unlike Transform.scale which only paints.
           if (autoScale > 1.0) {
-            result = FractionallySizedBox(
-              widthFactor: 1 / autoScale,
-              heightFactor: 1 / autoScale,
-              alignment: Alignment.topLeft,
-              child: Transform.scale(
-                scale: autoScale,
+            result = SizedBox.expand(
+              child: FittedBox(
+                fit: BoxFit.fill,
                 alignment: Alignment.topLeft,
-                child: result,
+                child: SizedBox(
+                  width: mq.size.width / autoScale,
+                  height: mq.size.height / autoScale,
+                  child: result,
+                ),
               ),
             );
           }
