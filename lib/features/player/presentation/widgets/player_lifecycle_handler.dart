@@ -18,6 +18,10 @@ import 'player_fullscreen_overlay.dart';
 /// focus/blur, OS fullscreen sync, and the back/PiP action
 /// callbacks.
 mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
+  /// Override to restore keyboard focus after lifecycle events
+  /// that may steal it (fullscreen toggle, window restore).
+  void restorePlayerFocus();
+
   // ── Lifecycle state ──
   bool autoPausedByLifecycle = false;
   bool autoPausedByFocusLoss = false;
@@ -120,6 +124,7 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
       ref.read(playerServiceProvider).resume();
     }
     ref.read(playerServiceProvider).resumeFromWatchdog();
+    restorePlayerFocus();
   }
 
   Future<void> toggleOsFullscreen() async {
@@ -152,6 +157,7 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
         isFullscreen ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
       );
     }
+    restorePlayerFocus();
   }
 
   /// Restore maximized state after leaving fullscreen.

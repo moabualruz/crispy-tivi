@@ -14,10 +14,34 @@ import '../../../../core/theme/crispy_spacing.dart';
 ///
 /// Glassmorphism style: semi-transparent dark panel
 /// with a subtle border, blur backdrop.
-class PlayerShortcutsHelpOverlay extends StatelessWidget {
+class PlayerShortcutsHelpOverlay extends StatefulWidget {
   const PlayerShortcutsHelpOverlay({required this.onDismiss, super.key});
 
   final VoidCallback onDismiss;
+
+  @override
+  State<PlayerShortcutsHelpOverlay> createState() =>
+      _PlayerShortcutsHelpOverlayState();
+}
+
+class _PlayerShortcutsHelpOverlayState
+    extends State<PlayerShortcutsHelpOverlay> {
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,18 +49,18 @@ class PlayerShortcutsHelpOverlay extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return KeyboardListener(
-      focusNode: FocusNode()..requestFocus(),
+      focusNode: _focusNode,
       autofocus: true,
       onKeyEvent: (event) {
         if (event is! KeyDownEvent) return;
         final key = event.logicalKey;
         if (key == LogicalKeyboardKey.escape ||
             key == LogicalKeyboardKey.slash) {
-          onDismiss();
+          widget.onDismiss();
         }
       },
       child: GestureDetector(
-        onTap: onDismiss,
+        onTap: widget.onDismiss,
         child: ColoredBox(
           color: CrispyColors.scrimMid,
           child: Center(
@@ -86,7 +110,7 @@ class PlayerShortcutsHelpOverlay extends StatelessWidget {
                                   color: Colors.white54,
                                   size: 18,
                                 ),
-                                onPressed: onDismiss,
+                                onPressed: widget.onDismiss,
                                 tooltip: 'Close (Esc)',
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),

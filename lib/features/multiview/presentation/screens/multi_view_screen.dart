@@ -72,11 +72,18 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
   /// Timer that commits the dial after 1.5s of inactivity.
   Timer? _dialTimer;
 
+  /// Focus node for the root [KeyboardListener].
+  late final FocusNode _focusNode;
+
   static const _kMvDialTimeout = Duration(milliseconds: 1500);
 
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
     _scaleController = AnimationController(
       vsync: this,
       duration: CrispyAnimation.normal,
@@ -89,9 +96,20 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _scaleController.dispose();
     _dialTimer?.cancel();
     super.dispose();
+  }
+
+  /// Restore keyboard focus to the root node after interactions
+  /// that may steal it (toolbar buttons, dialogs, etc.).
+  void _restoreFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_focusNode.hasPrimaryFocus) {
+        _focusNode.requestFocus();
+      }
+    });
   }
 
   // ── Maximize / restore ──────────────────────────────────────
@@ -209,7 +227,7 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
     final isPortrait = orientation == Orientation.portrait || width < 600;
 
     return KeyboardListener(
-      focusNode: FocusNode(),
+      focusNode: _focusNode,
       autofocus: true,
       onKeyEvent: (event) {
         if (event is! KeyDownEvent) return;
@@ -507,7 +525,7 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
               Navigator.pop(ctx);
             },
           ),
-    );
+    ).then((_) => _restoreFocus());
   }
 
   /// Show dialog to save current layout.
@@ -568,7 +586,10 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
               ),
             ],
           ),
-    ).then((_) => controller.dispose());
+    ).then((_) {
+      controller.dispose();
+      _restoreFocus();
+    });
   }
 
   /// Show bottom sheet to load a saved layout.
@@ -586,7 +607,7 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
               ref.read(multiViewProvider.notifier).deleteLayout(id);
             },
           ),
-    );
+    ).then((_) => _restoreFocus());
   }
 }
 

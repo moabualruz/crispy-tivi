@@ -14,6 +14,7 @@ import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/group_sidebar.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
+import '../../../player/presentation/providers/player_providers.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../domain/entities/channel.dart';
 import '../providers/channel_providers.dart';
@@ -83,10 +84,23 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
   bool _isGroupsCollapsed = false;
 
   // ── Direct-dial state ───────────────────────────────────────
-  final _focusNode = FocusNode();
+  late final FocusNode _focusNode;
   String _dialDigits = '';
   Timer? _dialTimer;
   final ScrollController _channelScrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    // Ensure the root keyboard listener can capture digit keys
+    // even if no child has focus yet.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_focusNode.hasPrimaryFocus) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -95,6 +109,16 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
     _focusNode.dispose();
     _channelScrollController.dispose();
     super.dispose();
+  }
+
+  /// Restore keyboard focus to the root node after interactions
+  /// that may steal it (navigation, dialogs, etc.).
+  void _restoreFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_focusNode.hasPrimaryFocus) {
+        _focusNode.requestFocus();
+      }
+    });
   }
 
   // ── Direct-dial helpers ─────────────────────────────────────
@@ -206,6 +230,14 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
     // Sync previewed channel when returning from fullscreen
     // after the user zapped to a different channel.
     listenForChannelSync();
+
+    // Restore keyboard focus when exiting fullscreen so
+    // direct-dial digit keys work immediately.
+    ref.listen(playerModeProvider.select((s) => s.mode), (prev, mode) {
+      if (prev == PlayerMode.fullscreen && mode != PlayerMode.fullscreen) {
+        _restoreFocus();
+      }
+    });
 
     final tt = Theme.of(context).textTheme;
     final epgState = ref.watch(epgProvider); // reactive — updates EPG overlay

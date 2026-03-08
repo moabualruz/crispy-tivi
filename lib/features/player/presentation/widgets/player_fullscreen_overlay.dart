@@ -75,6 +75,7 @@ class _PlayerFullscreenOverlayState
     WidgetsBinding.instance.addObserver(this);
     initWindowListener();
     initFullscreenSync();
+    FocusManager.instance.addLateKeyEventHandler(_lateKeyHandler);
 
     // Defer initial playback setup.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -150,6 +151,7 @@ class _PlayerFullscreenOverlayState
     if (isInPip) pipHandler.exitPiP();
 
     _zapOverlayTimer?.cancel();
+    FocusManager.instance.removeLateKeyEventHandler(_lateKeyHandler);
     _focusNode.dispose();
     disposeGestures();
     disposeHistory();
@@ -297,7 +299,37 @@ class _PlayerFullscreenOverlayState
     } else {
       ref.read(osdStateProvider.notifier).toggle();
     }
+    _restoreFocus();
   }
+
+  // ────────────────────────────────────────────────
+  //  Focus management
+  // ────────────────────────────────────────────────
+
+  /// Late key event handler — fires only for events NOT consumed
+  /// by any widget in the focus tree. Acts as a safety net when
+  /// focus is lost (e.g. after mouse clicks steal focus).
+  KeyEventResult _lateKeyHandler(KeyEvent event) {
+    if (!mounted) return KeyEventResult.ignored;
+    // Don't consume if a dialog/modal is on top of the player.
+    if (ModalRoute.of(context)?.isCurrent != true) {
+      return KeyEventResult.ignored;
+    }
+    _onKeyEvent(event);
+    return KeyEventResult.handled;
+  }
+
+  /// Restores keyboard focus to the player's [_focusNode].
+  void _restoreFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_focusNode.hasPrimaryFocus) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void restorePlayerFocus() => _restoreFocus();
 
   // ────────────────────────────────────────────────
   //  Keyboard
@@ -315,7 +347,10 @@ class _PlayerFullscreenOverlayState
       ref: ref,
       isLive: session.isLive,
       canZap: canZap,
-      hasPrimaryFocus: _focusNode.hasPrimaryFocus,
+      // Always true: the late key handler only fires for events
+      // not consumed by any focused widget, so button activation
+      // keys (Enter/Space) are already handled upstream.
+      hasPrimaryFocus: true,
       showZapOverlay: _showZapOverlay,
       onPlayPause: () => ref.read(playerServiceProvider).playOrPause(),
       onZapChannel: _zapChannel,
@@ -382,6 +417,14 @@ class _PlayerFullscreenOverlayState
       }
     });
 
+    // Restore focus when OSD finishes hiding — ExcludeFocus ejects
+    // OSD buttons from the focus tree, scattering focus.
+    ref.listen(osdStateProvider, (prev, next) {
+      if (next == OsdState.hidden && prev != null && prev != OsdState.hidden) {
+        _restoreFocus();
+      }
+    });
+
     final session = ref.watch(playbackSessionProvider);
 
     final s = ref.watch(
@@ -438,7 +481,6 @@ class _PlayerFullscreenOverlayState
             onPointerDown: (e) => lastPointerKind = e.kind,
             child: KeyboardListener(
               focusNode: _focusNode,
-              onKeyEvent: _onKeyEvent,
               child: GestureDetector(
                 key: TestKeys.playerGestureDetector,
                 onTap: _onTap,
@@ -515,10 +557,14 @@ class _PlayerFullscreenOverlayState
                   isLive: session.isLive,
                   channelList: session.channelList,
                   currentChannelIndex: session.channelIndex,
-                  onZapDismiss: () => setState(() => _showZapOverlay = false),
+                  onZapDismiss: () {
+                    setState(() => _showZapOverlay = false);
+                    _restoreFocus();
+                  },
                   onChannelSelected: (ch) {
                     _zapToChannel(ch);
                     setState(() => _showZapOverlay = false);
+                    _restoreFocus();
                   },
                   nextEpisode: nextEpisodeToShow,
                   onPlayNext:
@@ -576,7 +622,10 @@ class _PlayerFullscreenOverlayState
         // ── Shortcuts help overlay (? key) ──
         if (_showShortcutsHelp && !isInPip)
           PlayerShortcutsHelpOverlay(
-            onDismiss: () => setState(() => _showShortcutsHelp = false),
+            onDismiss: () {
+              setState(() => _showShortcutsHelp = false);
+              _restoreFocus();
+            },
           ),
 
         // FE-PS-19: Zoom percentage indicator (pinch-to-zoom HUD).

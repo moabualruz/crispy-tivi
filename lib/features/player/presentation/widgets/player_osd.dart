@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/utils/input_mode_notifier.dart';
 import '../../domain/entities/playback_state.dart';
 import '../providers/player_providers.dart';
 import '../widgets/stream_stats_overlay.dart';
@@ -121,6 +122,7 @@ class _PlayerOsdState extends ConsumerState<PlayerOsd> {
   @override
   Widget build(BuildContext context) {
     final osdState = ref.watch(osdStateProvider);
+    final inputMode = ref.watch(inputModeProvider);
     // Build full OSD content during visible and
     // fading states (fading needs content for the
     // fade-out animation). Skip during hidden to
@@ -177,7 +179,13 @@ class _PlayerOsdState extends ConsumerState<PlayerOsd> {
             child: IgnorePointer(
               ignoring: osdState != OsdState.visible,
               child: ExcludeFocus(
-                excluding: osdState != OsdState.visible,
+                // Exclude focus when OSD is hidden, OR when using
+                // mouse/touch — prevents Material buttons from
+                // stealing keyboard focus on mouse click.
+                excluding:
+                    osdState != OsdState.visible ||
+                    inputMode == InputMode.mouse ||
+                    inputMode == InputMode.touch,
                 child:
                     showContent
                         ? _buildOsdContent(context)
