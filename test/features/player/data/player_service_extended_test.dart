@@ -48,6 +48,7 @@ class MockPlayerStream extends Mock implements PlayerStream {}
   when(() => ms.error).thenAnswer((_) => error ?? const Stream.empty());
   when(() => ms.tracks).thenAnswer((_) => tracks ?? const Stream.empty());
   when(() => ms.width).thenAnswer((_) => const Stream.empty());
+  when(() => mp.pause()).thenAnswer((_) async {});
   when(() => mp.dispose()).thenAnswer((_) async {});
 
   return (player: mp, streams: ms);

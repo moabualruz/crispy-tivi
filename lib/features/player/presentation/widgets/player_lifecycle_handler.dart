@@ -82,7 +82,9 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
           }
         });
       } else {
-        if (playerService.state.isPlaying) {
+        // AND-07: Don't pause video when entering PiP mode on
+        // Android — onPause fires during PiP transition.
+        if (!isInPip && playerService.state.isPlaying) {
           autoPausedByLifecycle = true;
           playerService.pause();
         }
@@ -130,7 +132,16 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
         _wasMaximizedBeforeFullscreen = await windowManager.isMaximized();
         // Un-maximize first — Windows cannot transition
         // directly from maximized to true fullscreen.
-        if (_wasMaximizedBeforeFullscreen) await windowManager.unmaximize();
+        if (_wasMaximizedBeforeFullscreen) {
+          await windowManager.unmaximize();
+          // WIN-01: Poll until window actually un-maximizes.
+          // PostMessage(WM_SYSCOMMAND, SC_RESTORE) is async —
+          // Dart await resolves before the window restores.
+          for (var i = 0; i < 20; i++) {
+            if (!await windowManager.isMaximized()) break;
+            await Future.delayed(const Duration(milliseconds: 50));
+          }
+        }
       }
       await windowManager.setFullScreen(!isFs);
     } else {

@@ -10,15 +10,17 @@ class PipImpl {
   /// PiP window size — 400x225 is a compact 16:9 window.
   static const _pipSize = Size(400, 225);
 
-  /// Normal restored window size after exiting PiP.
-  static const _normalSize = Size(1280, 720);
+  /// Pre-PiP window bounds, saved on enter and restored
+  /// on exit (WIN-04).
+  Size? _prePipSize;
+  Offset? _prePipPosition;
 
   /// Enter PiP mode.
   ///
   /// - **Android**: Uses `floating` package for system PiP.
-  /// - **Desktop**: Resizes the window to a small 16:9
-  ///   always-on-top window in the bottom-right corner
-  ///   with the title bar hidden.
+  /// - **Desktop**: Saves window bounds, hides from taskbar,
+  ///   resizes to a small 16:9 always-on-top window in the
+  ///   bottom-right corner with the title bar hidden.
   Future<bool> enterPiP() async {
     if (Platform.isAndroid) {
       final status = await _floating.enable(const ImmediatePiP());
@@ -27,12 +29,13 @@ class PipImpl {
 
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       try {
-        // Remove title bar for a cleaner PiP look.
+        // WIN-04: Save current bounds for restoration.
+        _prePipSize = await windowManager.getSize();
+        _prePipPosition = await windowManager.getPosition();
         await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
+        await windowManager.setSkipTaskbar(true);
         await windowManager.setAlwaysOnTop(true);
         await windowManager.setSize(_pipSize);
-        // Position in the bottom-right corner of the
-        // screen with a small margin.
         await windowManager.setAlignment(Alignment.bottomRight);
         return true;
       } catch (e) {
@@ -45,16 +48,27 @@ class PipImpl {
 
   /// Exit PiP mode.
   ///
-  /// Restores the window to its normal size, removes
-  /// always-on-top, restores the title bar, and centers
-  /// the window.
+  /// Restores the window to its pre-PiP size and position,
+  /// removes always-on-top, shows in taskbar, and restores
+  /// the title bar.
   Future<void> exitPiP() async {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       try {
         await windowManager.setAlwaysOnTop(false);
-        await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
-        await windowManager.setSize(_normalSize);
-        await windowManager.setAlignment(Alignment.center);
+        await windowManager.setSkipTaskbar(false);
+        // WIN-03: Restore title bar (was incorrectly hidden).
+        await windowManager.setTitleBarStyle(TitleBarStyle.normal);
+        // WIN-04: Restore pre-PiP bounds instead of hardcoded size.
+        if (_prePipSize != null) {
+          await windowManager.setSize(_prePipSize!);
+        }
+        if (_prePipPosition != null) {
+          await windowManager.setPosition(_prePipPosition!);
+        } else {
+          await windowManager.setAlignment(Alignment.center);
+        }
+        _prePipSize = null;
+        _prePipPosition = null;
       } catch (e) {
         debugPrint('PiP Exit Error (Desktop): $e');
       }

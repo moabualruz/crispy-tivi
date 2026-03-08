@@ -11,6 +11,12 @@ import AVKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // IOS-01: Configure audio session for background playback before
+    // plugin registration (plugin order is not guaranteed).
+    let audioSession = AVAudioSession.sharedInstance()
+    try? audioSession.setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay])
+    try? audioSession.setActive(true)
+
     GeneratedPluginRegistrant.register(with: self)
 
     // Register AirPlay plugin

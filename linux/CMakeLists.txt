@@ -54,6 +54,13 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
 
+# LNX-03: Verify libmpv is installed. media_kit requires libmpv
+# for video playback. Without this check, the build succeeds but
+# the app crashes at runtime with "libmpv.so: cannot open shared
+# object file". Install via: apt install libmpv-dev (Debian/Ubuntu),
+# dnf install mpv-libs-devel (Fedora), pacman -S mpv (Arch).
+pkg_check_modules(MPV REQUIRED mpv)
+
 add_definitions(-DAPPLICATION_ID="${APPLICATION_ID}")
 
 # Define the application target. To change its name, change BINARY_NAME above,

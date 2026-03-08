@@ -77,6 +77,9 @@ dependencies:
   # Wakelock (prevent screen sleep during playback)
   wakelock_plus: ^1.2.8
 
+  # Audio session management (interruption handling on iOS/Android)
+  audio_session: ^0.2.2
+
   # Voice Search
   # speech_to_text is broken on Windows (C++ MSVC linker error identifier not found)
   # speech_to_text: ^7.0.0

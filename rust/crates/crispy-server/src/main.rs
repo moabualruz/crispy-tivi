@@ -8,7 +8,9 @@
 //! ## Endpoints
 //!
 //! - `GET /health` — liveness probe
-//! - `GET /proxy?url=<url>` — CORS image proxy
+//! - `GET /proxy?url=<url>` — CORS relay proxy
+//!   (images, M3U8 playlists with URL rewriting,
+//!   TS segments)
 //! - `GET /ws` — WebSocket upgrade
 //!
 //! ## Configuration
@@ -54,17 +56,21 @@ struct ProxyParams {
     url: String,
 }
 
-/// Proxies an image request to bypass browser CORS restrictions.
+/// CORS relay proxy for browser-based playback.
+///
+/// Fetches the upstream URL server-side and re-serves the
+/// content with CORS headers. For M3U8 playlists, rewrites
+/// segment and key URLs to also route through the proxy.
 ///
 /// Only allows `http://` and `https://` URLs to prevent SSRF.
-async fn image_proxy(Query(params): Query<ProxyParams>) -> impl IntoResponse {
+async fn cors_proxy(Query(params): Query<ProxyParams>) -> impl IntoResponse {
     // Validate URL scheme to prevent SSRF
     if !params.url.starts_with("http://") && !params.url.starts_with("https://") {
         return StatusCode::BAD_REQUEST.into_response();
     }
 
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
+        .timeout(std::time::Duration::from_secs(30))
         .build()
         .unwrap_or_default();
 
@@ -76,20 +82,115 @@ async fn image_proxy(Query(params): Query<ProxyParams>) -> impl IntoResponse {
                 .and_then(|v| v.to_str().ok())
                 .unwrap_or("application/octet-stream")
                 .to_string();
+
+            let is_m3u8 = content_type.contains("mpegurl")
+                || params.url.ends_with(".m3u8")
+                || params.url.ends_with(".m3u");
+
             match resp.bytes().await {
-                Ok(bytes) => (
-                    [
-                        (header::CONTENT_TYPE, content_type),
-                        (header::CACHE_CONTROL, "public, max-age=86400".to_string()),
-                    ],
-                    bytes,
-                )
-                    .into_response(),
+                Ok(bytes) => {
+                    if is_m3u8 {
+                        let body = String::from_utf8_lossy(&bytes);
+                        let rewritten = rewrite_m3u8(&body, &params.url);
+                        (
+                            [
+                                (
+                                    header::CONTENT_TYPE,
+                                    "application/vnd.apple.mpegurl".to_string(),
+                                ),
+                                (header::CACHE_CONTROL, "no-cache".to_string()),
+                            ],
+                            rewritten,
+                        )
+                            .into_response()
+                    } else {
+                        (
+                            [
+                                (header::CONTENT_TYPE, content_type),
+                                (header::CACHE_CONTROL, "public, max-age=86400".to_string()),
+                            ],
+                            bytes,
+                        )
+                            .into_response()
+                    }
+                }
                 Err(_) => StatusCode::BAD_GATEWAY.into_response(),
             }
         }
         Err(_) => StatusCode::BAD_GATEWAY.into_response(),
     }
+}
+
+// ── M3U8 rewriting ─────────────────────────────────
+
+/// Rewrite URLs in an M3U8 playlist to route through
+/// the CORS proxy.
+fn rewrite_m3u8(body: &str, base_url: &str) -> String {
+    let base_dir = base_url.rsplit_once('/').map_or(base_url, |(dir, _)| dir);
+
+    body.lines()
+        .map(|line| {
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                return line.to_string();
+            }
+            if trimmed.starts_with('#') {
+                return rewrite_tag_uri(line, base_dir);
+            }
+            // Segment URL line
+            let absolute = resolve_url(trimmed, base_dir);
+            format!(
+                "/proxy?url={}",
+                percent_encoding::utf8_percent_encode(
+                    &absolute,
+                    percent_encoding::NON_ALPHANUMERIC,
+                )
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Resolve a potentially relative URL against a base
+/// directory URL.
+fn resolve_url(url: &str, base_dir: &str) -> String {
+    if url.starts_with("http://") || url.starts_with("https://") {
+        return url.to_string();
+    }
+    if url.starts_with('/') {
+        // Root-relative — extract scheme + host from base.
+        if let Some(idx) = base_dir.find("://")
+            && let Some(host_end) = base_dir[idx + 3..].find('/')
+        {
+            return format!("{}{url}", &base_dir[..idx + 3 + host_end]);
+        }
+        return format!("{base_dir}{url}");
+    }
+    // Relative — append to base directory.
+    format!("{base_dir}/{url}")
+}
+
+/// Rewrite `URI="..."` attributes in M3U8 tags
+/// (`#EXT-X-KEY`, `#EXT-X-MAP`, etc.).
+fn rewrite_tag_uri(line: &str, base_dir: &str) -> String {
+    if let Some(uri_start) = line.find("URI=\"") {
+        let after_uri = &line[uri_start + 5..];
+        if let Some(uri_end) = after_uri.find('"') {
+            let uri = &after_uri[..uri_end];
+            let absolute = resolve_url(uri, base_dir);
+            let encoded = percent_encoding::utf8_percent_encode(
+                &absolute,
+                percent_encoding::NON_ALPHANUMERIC,
+            );
+            return format!(
+                "{}URI=\"/proxy?url={}\"{}",
+                &line[..uri_start],
+                encoded,
+                &line[uri_start + 5 + uri_end + 1..],
+            );
+        }
+    }
+    line.to_string()
 }
 
 /// Health check endpoint.
@@ -311,7 +412,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/health", get(health))
-        .route("/proxy", get(image_proxy))
+        .route("/proxy", get(cors_proxy))
         .route("/ws", get(ws_upgrade))
         .fallback(any(|| async { (StatusCode::NOT_FOUND, "Not Found") }))
         .with_state(state)

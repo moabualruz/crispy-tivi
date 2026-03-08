@@ -4,6 +4,7 @@ import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/utils/stream_url_actions.dart';
+import '../../../../core/widgets/smart_image.dart';
 import '../../../player/data/web_video_bridge_web.dart' show escapeJs;
 import 'package:web/web.dart' as web;
 
@@ -40,7 +41,16 @@ class _WebHlsVideoState extends State<WebHlsVideo> {
   static int _counter = 0;
   web.HTMLVideoElement? _videoElement;
 
-  String get _hlsUrl => normalizeStreamUrl(widget.streamUrl);
+  /// Normalize the stream URL and wrap through the CORS
+  /// proxy when a backend is available (WEB-01).
+  String get _hlsUrl {
+    final normalized = normalizeStreamUrl(widget.streamUrl);
+    final proxyBase = SmartImage.proxyBaseUrl;
+    if (proxyBase != null && proxyBase.isNotEmpty) {
+      return '$proxyBase/proxy?url=${Uri.encodeComponent(normalized)}';
+    }
+    return normalized;
+  }
 
   @override
   void initState() {

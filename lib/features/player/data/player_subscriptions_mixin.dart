@@ -10,6 +10,12 @@ mixin PlayerSubscriptionsMixin on PlayerServiceBase {
 
   /// Subscribes to all media_kit player streams.
   void initSubscriptions() {
+    // XP-02: Configure audio session on all native
+    // platforms (iOS, Android, macOS). Fire-and-forget.
+    if (!kIsWeb) {
+      unawaited(_initAudioSession());
+    }
+
     // On web, state comes entirely from WebVideoBridge.
     // media_kit Player is never opened, so its streams
     // emit idle/false values that corrupt web state.
@@ -143,6 +149,50 @@ mixin PlayerSubscriptionsMixin on PlayerServiceBase {
         }
       }),
     );
+  }
+
+  /// Configures the platform audio session and listens
+  /// for audio interruptions (phone calls, Siri, etc.).
+  ///
+  /// On interruption begin: pauses playback.
+  /// On interruption end (type == pause): resumes.
+  Future<void> _initAudioSession() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(
+        const AudioSessionConfiguration(
+          avAudioSessionCategory: AVAudioSessionCategory.playback,
+          avAudioSessionMode: AVAudioSessionMode.moviePlayback,
+          androidAudioAttributes: AndroidAudioAttributes(
+            contentType: AndroidAudioContentType.movie,
+            usage: AndroidAudioUsage.media,
+          ),
+          androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+        ),
+      );
+
+      _subs.add(
+        session.interruptionEventStream.listen((event) {
+          if (event.begin) {
+            // Audio focus lost — pause if playing.
+            if (_state.status == app.PlaybackStatus.playing) {
+              _autoPausedByInterruption = true;
+              pause();
+            }
+          } else {
+            // Audio focus regained — resume if we auto-paused.
+            if (_autoPausedByInterruption &&
+                event.type == AudioInterruptionType.pause) {
+              _autoPausedByInterruption = false;
+              resume();
+            }
+          }
+        }),
+      );
+    } catch (e) {
+      // audio_session unavailable (tests, unsupported platform).
+      debugPrint('PlayerService: audio session init failed: $e');
+    }
   }
 
   /// Handles playback errors with automatic reconnection

@@ -43,6 +43,7 @@ void main() {
       when(() => mockStreams.tracks).thenAnswer((_) => const Stream.empty());
       when(() => mockStreams.width).thenAnswer((_) => const Stream.empty());
 
+      when(() => mockPlayer.pause()).thenAnswer((_) async {});
       when(() => mockPlayer.dispose()).thenAnswer((_) async {});
 
       playerService = PlayerService(player: mockPlayer);
@@ -201,6 +202,7 @@ void main() {
       when(() => mockStreams.tracks).thenAnswer((_) => const Stream.empty());
       when(() => mockStreams.width).thenAnswer((_) => const Stream.empty());
 
+      when(() => mockPlayer.pause()).thenAnswer((_) async {});
       when(() => mockPlayer.dispose()).thenAnswer((_) async {});
       when(() => mockPlayer.setVolume(any())).thenAnswer((_) async {});
 
@@ -266,6 +268,7 @@ void main() {
       when(() => mockStreams.tracks).thenAnswer((_) => const Stream.empty());
       when(() => mockStreams.width).thenAnswer((_) => const Stream.empty());
 
+      when(() => mockPlayer.pause()).thenAnswer((_) async {});
       when(() => mockPlayer.dispose()).thenAnswer((_) async {});
       when(() => mockPlayer.setRate(any())).thenAnswer((_) async {});
 
@@ -338,6 +341,7 @@ void main() {
       when(() => mockStreams.tracks).thenAnswer((_) => const Stream.empty());
       when(() => mockStreams.width).thenAnswer((_) => const Stream.empty());
 
+      when(() => mockPlayer.pause()).thenAnswer((_) async {});
       when(() => mockPlayer.dispose()).thenAnswer((_) async {});
       when(() => mockPlayer.pause()).thenAnswer((_) async {});
       when(() => mockPlayer.play()).thenAnswer((_) async {});
@@ -516,6 +520,7 @@ void main() {
       when(() => mockStreams.tracks).thenAnswer((_) => tracksController.stream);
       when(() => mockStreams.width).thenAnswer((_) => const Stream.empty());
 
+      when(() => mockPlayer.pause()).thenAnswer((_) async {});
       when(() => mockPlayer.dispose()).thenAnswer((_) async {});
 
       playerService = PlayerService(player: mockPlayer);
@@ -690,6 +695,7 @@ void main() {
       when(() => mockStreams.tracks).thenAnswer((_) => const Stream.empty());
       when(() => mockStreams.width).thenAnswer((_) => const Stream.empty());
 
+      when(() => mockPlayer.pause()).thenAnswer((_) async {});
       when(() => mockPlayer.dispose()).thenAnswer((_) async {});
 
       playerService = PlayerService(player: mockPlayer);

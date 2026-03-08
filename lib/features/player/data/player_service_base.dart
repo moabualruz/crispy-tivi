@@ -124,6 +124,12 @@ abstract class PlayerServiceBase {
   /// Codecs to passthrough: 'ac3', 'dts', etc.
   List<String> _audioPassthroughCodecs = ['ac3', 'dts'];
 
+  // ── Audio Interruption ──────────────────────────────
+  /// True when playback was auto-paused by an audio
+  /// interruption (phone call, Siri, etc.) and should
+  /// resume when the interruption ends.
+  bool _autoPausedByInterruption = false;
+
   // ── Subscriptions ────────────────────────────────────
   final List<StreamSubscription<dynamic>> _subs = [];
 

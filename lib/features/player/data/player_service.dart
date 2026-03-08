@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:audio_session/audio_session.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../domain/entities/gpu_info.dart';
@@ -51,6 +52,16 @@ class PlayerService extends PlayerServiceBase
         PlayerAudioConfigMixin,
         PlayerUpscaleMixin {
   PlayerService({super.player, super.clock}) {
+    // LNX-02: Impeller + external textures broken on Linux
+    // until Flutter PR#181656 lands in stable. Linux defaults
+    // to Skia (--no-enable-impeller), which is safe.
+    assert(
+      kIsWeb ||
+          defaultTargetPlatform != TargetPlatform.linux ||
+          true, // No runtime Impeller detection — see build docs.
+      'Linux: ensure --no-enable-impeller is set (Impeller '
+      'external textures broken until Flutter stable update)',
+    );
     initSubscriptions();
   }
 
@@ -210,6 +221,20 @@ class PlayerService extends PlayerServiceBase
           '${_audioPassthroughCodecs.join(",")}',
         );
       }
+    }
+
+    // LNX-01: On Linux, recreate VideoController before opening
+    // a new stream to avoid blank screen (media-kit#1016).
+    // The GL populate callback never fires for the new stream
+    // when reusing the same VideoController.
+    if (!kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.linux &&
+        _videoController != null) {
+      _videoController = null;
+      // Force immediate recreation via the lazy getter so the
+      // rendering surface is fresh before the new stream opens.
+      final _ = videoController;
+      await Future.delayed(const Duration(milliseconds: 100));
     }
 
     await _player.open(
@@ -449,6 +474,10 @@ class PlayerService extends PlayerServiceBase
     _subs.clear();
     await _stateController.close();
     _videoController = null;
+    // IOS-04: Pause and let mpv render thread quiesce before
+    // disposing — avoids free_option_data crash (media-kit#1361).
+    await _player.pause();
+    await Future.delayed(const Duration(milliseconds: 200));
     await _player.dispose();
   }
 }

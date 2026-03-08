@@ -463,12 +463,26 @@ class _PlayerFullscreenOverlayState
                 onLongPressMoveUpdate:
                     isLiveStream || isInPip ? null : onLongPressMoveUpdate,
                 onLongPressEnd: isLiveStream || isInPip ? null : onLongPressEnd,
-                onVerticalDragStart: isInPip ? null : onSwipeStart,
-                onVerticalDragUpdate: onSwipeUpdate,
-                onVerticalDragEnd: (_) {
-                  isSwiping = false;
-                  swipeType = null;
-                },
+                // WIN-05: In PiP on desktop, drag to move the
+                // frameless window. startDragging() hands off
+                // to the OS so horizontal movement also works.
+                onVerticalDragStart:
+                    isInPip
+                        ? (!kIsWeb &&
+                                (Platform.isWindows ||
+                                    Platform.isLinux ||
+                                    Platform.isMacOS)
+                            ? (_) => windowManager.startDragging()
+                            : null)
+                        : onSwipeStart,
+                onVerticalDragUpdate: isInPip ? null : onSwipeUpdate,
+                onVerticalDragEnd:
+                    isInPip
+                        ? null
+                        : (_) {
+                          isSwiping = false;
+                          swipeType = null;
+                        },
                 // FE-PS-19: Pinch-to-zoom — scale gestures.
                 onScaleStart: isInPip ? null : onScaleStart,
                 onScaleUpdate: isInPip ? null : onScaleUpdate,
