@@ -6,6 +6,16 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../domain/entities/active_stream.dart';
 
 /// A lightweight video player for Multi-View slots.
+///
+/// Creates an independent [Player] per multiview slot. This
+/// intentionally bypasses the [CrispyPlayer] singleton because
+/// multiview IS multi-play by design — each slot decodes its own
+/// stream. Only the `isAudioActive == true` slot has audible
+/// output; others play at volume 0.
+///
+/// Hardware decoder limits: most devices support 2–4 simultaneous
+/// hardware decoders. Exceeding this falls back to software
+/// decoding which increases CPU usage significantly.
 class MiniPlayer extends StatefulWidget {
   const MiniPlayer({
     super.key,

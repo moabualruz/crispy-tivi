@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +11,7 @@ import '../../../../core/utils/debounce_throttle.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/glass_surface.dart';
 import '../../../../core/widgets/group_sidebar.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
@@ -268,38 +268,36 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
             child: Column(
               children: [
                 // ── Top: Video Preview with EPG overlay ──
-                // Flexible(flex: 2) gives ~40 % of column height.
-                // ConstrainedBox inside ensures the preview never
-                // collapses below 180 dp on very small windows.
-                Flexible(
-                  flex: 2,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 180.0),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        VideoPreviewWidget(onTap: expandPlayer),
-                        if (displayChannel != null)
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            child: MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: expandPlayer,
-                                child: ChannelEpgOverlay(
-                                  channel: displayChannel,
-                                  entry: _currentEpgEntry(epgState),
-                                  upcomingPrograms: _upcomingEpgEntries(
-                                    epgState,
-                                  ),
-                                ),
+                // Capped at 40 % of screen height so the channel
+                // list below gets the majority of vertical space.
+                // StackFit.loose lets AspectRatio(16/9) inside
+                // VideoPreviewWidget control the actual height.
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: 180.0,
+                    maxHeight: MediaQuery.sizeOf(context).height * 0.4,
+                  ),
+                  child: Stack(
+                    children: [
+                      VideoPreviewWidget(onTap: expandPlayer),
+                      if (displayChannel != null)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: expandPlayer,
+                              child: ChannelEpgOverlay(
+                                channel: displayChannel,
+                                entry: _currentEpgEntry(epgState),
+                                upcomingPrograms: _upcomingEpgEntries(epgState),
                               ),
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
                 ),
                 const Divider(height: 1),
@@ -441,31 +439,21 @@ class _DialHud extends StatelessWidget {
     final crispyColors = Theme.of(context).crispyColors;
     final tt = Theme.of(context).textTheme;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(CrispyRadius.md),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: crispyColors.glassBlur,
-          sigmaY: crispyColors.glassBlur,
-        ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: CrispySpacing.xl,
-            vertical: CrispySpacing.lg,
-          ),
-          decoration: BoxDecoration(
-            color: crispyColors.glassTint,
-            borderRadius: BorderRadius.circular(CrispyRadius.md),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-          ),
-          child: Text(
-            digits,
-            style: tt.displayLarge?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 8,
-            ),
-          ),
+    return GlassSurface(
+      borderRadius: CrispyRadius.md,
+      blurSigma: crispyColors.glassBlur,
+      tintColor: crispyColors.glassTint,
+      borderColor: Colors.white.withValues(alpha: 0.15),
+      padding: const EdgeInsets.symmetric(
+        horizontal: CrispySpacing.xl,
+        vertical: CrispySpacing.lg,
+      ),
+      child: Text(
+        digits,
+        style: tt.displayLarge?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 8,
         ),
       ),
     );

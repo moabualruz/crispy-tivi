@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../domain/entities/cloud_sync_state.dart';
 import '../../domain/entities/sync_conflict.dart';
@@ -37,7 +39,7 @@ class CloudSyncSection extends ConsumerWidget {
               ),
               const SizedBox(width: CrispySpacing.sm),
               Text(
-                'Cloud Sync',
+                context.l10n.cloudSyncTitle,
                 style: theme.textTheme.titleSmall?.copyWith(
                   color: theme.colorScheme.primary,
                 ),
@@ -100,7 +102,11 @@ class CloudSyncSection extends ConsumerWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                   : const Icon(Icons.sync),
-          label: Text(isSyncing ? 'Syncing...' : 'Sync Now'),
+          label: Text(
+            isSyncing
+                ? context.l10n.cloudSyncSyncing
+                : context.l10n.cloudSyncNow,
+          ),
         ),
         const SizedBox(height: CrispySpacing.sm),
         Row(
@@ -109,7 +115,7 @@ class CloudSyncSection extends ConsumerWidget {
               child: OutlinedButton.icon(
                 onPressed: isSyncing ? null : () => _forceUpload(context, ref),
                 icon: const Icon(Icons.cloud_upload, size: 18),
-                label: const Text('Force Upload'),
+                label: Text(context.l10n.cloudSyncForceUpload),
               ),
             ),
             const SizedBox(width: CrispySpacing.sm),
@@ -118,7 +124,7 @@ class CloudSyncSection extends ConsumerWidget {
                 onPressed:
                     isSyncing ? null : () => _forceDownload(context, ref),
                 icon: const Icon(Icons.cloud_download, size: 18),
-                label: const Text('Force Download'),
+                label: Text(context.l10n.cloudSyncForceDownload),
               ),
             ),
           ],
@@ -134,7 +140,7 @@ class CloudSyncSection extends ConsumerWidget {
   ) {
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
-      title: const Text('Auto-sync'),
+      title: Text(context.l10n.cloudSyncAutoSync),
       subtitle: const Text('Sync automatically on app start'),
       value: state.isAutoSyncEnabled,
       onChanged: (value) {
@@ -243,7 +249,7 @@ class CloudSyncSection extends ConsumerWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+                child: Text(context.l10n.commonCancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),

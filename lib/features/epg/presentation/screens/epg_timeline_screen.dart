@@ -8,9 +8,7 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/error_state_widget.dart';
-import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
-import '../../../../core/widgets/group_sidebar.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../iptv/domain/entities/channel.dart';
@@ -22,12 +20,9 @@ import '../providers/epg_providers.dart';
 import '../widgets/epg_actions_mixin.dart';
 import '../widgets/epg_app_bar.dart';
 import '../widgets/epg_channel_row.dart';
-import '../widgets/epg_mobile_video_overlay.dart';
 import '../widgets/epg_program_block.dart';
-import '../widgets/epg_program_info_panel.dart';
 import '../widgets/epg_state_helpers.dart';
-import '../../../../core/widgets/video_preview_widget.dart';
-import '../widgets/epg_whats_on_now_row.dart';
+import '../widgets/epg_timeline_layout.dart';
 import '../widgets/virtual_epg_grid.dart';
 
 /// EPG timeline screen per `.ai/docs/project-specs/ui_ux_spec.md §3.3`.
@@ -313,121 +308,30 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
     // EPG layout is always guide mode — grid stays mounted
     // to preserve scroll position.
 
+    final (startDate, endDate) = getEpgDateRange(state.viewMode, _selectedDate);
+    final ppm = getEpgPixelsPerMinute(state.viewMode);
+    final epgGrid = _buildEpgGrid(state, startDate, endDate, ppm);
+
     return Scaffold(
       key: TestKeys.epgScreen,
       body: ResponsiveLayout(
-        compactBody: _buildMobileLayout(state),
-        largeBody: _buildTvLayout(state),
+        compactBody: EpgMobileLayout(
+          state: state,
+          appBar: _buildAppBar(state, showGroupDropdown: true),
+          epgGrid: epgGrid,
+          onScrollToChannel: _scrollToChannel,
+          onExpandPlayer: expandPlayer,
+        ),
+        largeBody: EpgTvLayout(
+          state: state,
+          appBar: _buildAppBar(state, showGroupDropdown: false),
+          epgGrid: epgGrid,
+          onScrollToChannel: _scrollToChannel,
+          onExpandPlayer: expandPlayer,
+          onPlayEntry: playSelectedEntry,
+          onRecordEntry: recordSelectedEntry,
+        ),
       ),
-    );
-  }
-
-  // ── Mobile layout ─────────────────────────────
-
-  Widget _buildMobileLayout(EpgState state) {
-    final (startDate, endDate) = getEpgDateRange(state.viewMode, _selectedDate);
-    final ppm = getEpgPixelsPerMinute(state.viewMode);
-    final appBar = _buildAppBar(state, showGroupDropdown: true);
-
-    return Column(
-      children: [
-        SizedBox(height: appBar.preferredSize.height, child: appBar),
-        // Source filter bar (hidden when ≤1 source).
-        const SourceSelectorBar(),
-        // FE-EPG-10: "What's On Now" summary row (day view only).
-        if (state.viewMode == EpgViewMode.day)
-          EpgWhatsOnNowRow(onChannelTap: _scrollToChannel),
-        Expanded(
-          child: FocusTraversalGroup(
-            child: Stack(
-              children: [
-                _buildEpgGrid(state, startDate, endDate, ppm),
-                EpgMobileVideoOverlay(onTap: expandPlayer),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── TV/Desktop layout ─────────────────────────
-
-  Widget _buildTvLayout(EpgState state) {
-    final textTheme = Theme.of(context).textTheme;
-    final timezone = ref.watch(epgTimezoneProvider);
-    final (startDate, endDate) = getEpgDateRange(state.viewMode, _selectedDate);
-    final ppm = getEpgPixelsPerMinute(state.viewMode);
-
-    return Row(
-      children: [
-        // ── Group Sidebar ──
-        GroupSidebar(
-          groups: state.groups,
-          selectedGroup: state.selectedGroup,
-          onGroupSelected: (group) {
-            ref.read(epgProvider.notifier).selectGroup(group);
-          },
-          header: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.sm),
-            child: Text(
-              'Groups',
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-
-        // ── EPG Content Area ──
-        Expanded(
-          child: FocusTraversalGroup(
-            child: Builder(
-              builder: (context) {
-                final appBar = _buildAppBar(state, showGroupDropdown: false);
-                return Column(
-                  children: [
-                    SizedBox(
-                      height: appBar.preferredSize.height,
-                      child: appBar,
-                    ),
-                    // ── Top: Info + Video
-                    // Info panel (Expanded) absorbs sidebar width
-                    // changes; video stays anchored on the right
-                    // so the Platform View doesn't need to move
-                    // during sidebar animation.
-                    SizedBox(
-                      height: 180,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: EpgProgramInfoPanel(
-                              entry: state.selectedEntry,
-                              channels: state.channels,
-                              timezone: timezone,
-                              onWatch: playSelectedEntry,
-                              onRecord: recordSelectedEntry,
-                            ),
-                          ),
-                          VideoPreviewWidget(onTap: expandPlayer),
-                        ],
-                      ),
-                    ),
-                    // FE-EPG-10: "What's On Now" row (day view only).
-                    if (state.viewMode == EpgViewMode.day)
-                      EpgWhatsOnNowRow(onChannelTap: _scrollToChannel),
-                    // ── EPG Grid ──
-                    Expanded(
-                      child: _buildEpgGrid(state, startDate, endDate, ppm),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-      ],
     );
   }
 

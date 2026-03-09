@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -111,7 +113,10 @@ class _ChannelSwipeActionsState extends ConsumerState<ChannelSwipeActions> {
         alignment: Alignment.centerRight,
         color: colorScheme.primaryContainer,
         icon: channel.isFavorite ? Icons.star_border : Icons.star,
-        label: channel.isFavorite ? 'Unfavorite' : 'Favorite',
+        label:
+            channel.isFavorite
+                ? context.l10n.contextMenuRemoveFromFavorites
+                : context.l10n.contextMenuAddToFavorites,
         foregroundColor: colorScheme.onPrimaryContainer,
         padding: const EdgeInsets.only(right: CrispySpacing.lg),
       ),
@@ -121,7 +126,7 @@ class _ChannelSwipeActionsState extends ConsumerState<ChannelSwipeActions> {
         alignment: Alignment.centerLeft,
         color: colorScheme.errorContainer,
         icon: Icons.visibility_off,
-        label: 'Hide',
+        label: context.l10n.contextMenuHideChannel,
         foregroundColor: colorScheme.onErrorContainer,
         padding: const EdgeInsets.only(left: CrispySpacing.lg),
       ),

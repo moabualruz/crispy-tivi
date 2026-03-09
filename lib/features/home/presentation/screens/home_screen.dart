@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../vod/presentation/providers/vod_providers.dart';
@@ -34,7 +36,7 @@ class HomeScreen extends ConsumerWidget {
           IconButton(
             key: TestKeys.homeFavoritesButton,
             icon: const Icon(Icons.favorite_border_rounded),
-            tooltip: 'Favorites',
+            tooltip: context.l10n.commonFavorites,
             onPressed: () => context.go(AppRoutes.favorites),
           ),
         ],

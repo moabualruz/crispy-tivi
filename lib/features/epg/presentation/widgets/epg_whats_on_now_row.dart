@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/utils/duration_formatter.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/nav_arrow.dart';
 import '../../../../core/widgets/smart_image.dart';
+import '../../../../core/widgets/watch_progress_bar.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
 import '../providers/epg_providers.dart';
@@ -194,13 +196,13 @@ class _NowCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     final remaining = item.entry.endTime.difference(now);
-    final remainingMin = remaining.inMinutes.clamp(0, 9999);
+    final remainingStr = DurationFormatter.humanShort(remaining);
     final progress = item.entry.progressAt(now);
 
     return Semantics(
       label:
           '${item.channel.name}: ${item.entry.title}, '
-          '$remainingMin min remaining',
+          '$remainingStr remaining',
       button: true,
       child: GestureDetector(
         onTap: onTap,
@@ -265,7 +267,7 @@ class _NowCard extends StatelessWidget {
                     const SizedBox(height: CrispySpacing.xxs),
                     // Time remaining
                     Text(
-                      '$remainingMin min left',
+                      '$remainingStr left',
                       style: textTheme.labelSmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -278,13 +280,10 @@ class _NowCard extends StatelessWidget {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child: LinearProgressIndicator(
+                child: WatchProgressBar(
                   value: progress,
-                  minHeight: 2,
+                  height: 2,
                   backgroundColor: colorScheme.surfaceContainerHighest,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    colorScheme.primary,
-                  ),
                 ),
               ),
             ],

@@ -5,10 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/settings_notifier.dart';
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/utils/debounce_throttle.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/widgets/alpha_jump_bar.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../../../core/widgets/responsive_layout.dart';
@@ -40,6 +43,7 @@ class ChannelListScreen extends ConsumerStatefulWidget {
 class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
   final _searchController = TextEditingController();
   final _searchDebouncer = Debouncer(duration: CrispyAnimation.normal);
+  final _channelScrollController = ScrollController();
   bool _showSearchBar = false;
   String? _lastKnownRoute;
   bool _autoResumeRan = false;
@@ -85,6 +89,7 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
   void dispose() {
     _searchDebouncer.dispose();
     _searchController.dispose();
+    _channelScrollController.dispose();
     super.dispose();
   }
 
@@ -153,18 +158,18 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
             IconButton(
               icon: const Icon(Icons.grid_view),
               onPressed: () => context.push(AppRoutes.multiview),
-              tooltip: 'Multi-View',
+              tooltip: context.l10n.iptvMultiView,
             ),
             IconButton(
               icon: const Icon(Icons.calendar_month),
               onPressed: () => context.push(AppRoutes.epg),
-              tooltip: 'TV Guide',
+              tooltip: context.l10n.iptvTvGuide,
             ),
             _searchBtn(),
             IconButton(
               key: TestKeys.channelListFavoriteButton,
               icon: const Icon(Icons.favorite_border_rounded),
-              tooltip: 'Favorites',
+              tooltip: context.l10n.commonFavorites,
               onPressed: () => context.push(AppRoutes.favorites),
             ),
           ],
@@ -212,56 +217,75 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
             ? ref.watch(epgAwareChannelListProvider)
             : s.filteredChannels;
 
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          floating: true,
-          snap: true,
-          leading:
-              s.displayGroups.isNotEmpty
-                  ? IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed:
-                        () => ref
-                            .read(channelListProvider.notifier)
-                            .setShowGroupsView(true),
-                    tooltip: 'Back to groups',
-                  )
-                  : null,
-          title: Text(
-            s.effectiveGroup ?? 'All Channels',
-            style: tt.headlineSmall,
-          ),
-          actions: [
-            _viewModeBtn(viewMode),
-            _searchBtn(),
-            if (displayChannels.isNotEmpty)
-              ChannelSortMenu(
-                state: s,
-                duplicateCount: ref.watch(duplicateCountProvider),
-                hiddenChannelCount: hiddenCount,
-                onSelected: _onSortSelected,
+    final names = displayChannels.map((c) => c.name).toList();
+    final indexOffsets = AlphaJumpBar.computeIndexOffsets(names);
+
+    return Stack(
+      children: [
+        CustomScrollView(
+          controller: _channelScrollController,
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              snap: true,
+              leading:
+                  s.displayGroups.isNotEmpty
+                      ? IconButton(
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed:
+                            () => ref
+                                .read(channelListProvider.notifier)
+                                .setShowGroupsView(true),
+                        tooltip: context.l10n.iptvBackToGroups,
+                      )
+                      : null,
+              title: Text(
+                s.effectiveGroup ?? 'All Channels',
+                style: tt.headlineSmall,
               ),
+              actions: [
+                _viewModeBtn(viewMode),
+                _searchBtn(),
+                if (displayChannels.isNotEmpty)
+                  ChannelSortMenu(
+                    state: s,
+                    duplicateCount: ref.watch(duplicateCountProvider),
+                    hiddenChannelCount: hiddenCount,
+                    onSelected: _onSortSelected,
+                  ),
+              ],
+            ),
+            ..._searchAndResume(s),
+            // Source filter bar (hidden when ≤1 source).
+            const SliverToBoxAdapter(child: SourceSelectorBar()),
+            // FE-TV-09: genre filter chips — hidden while search bar is open.
+            if (!_showSearchBar) const ChannelGenreChipsSliver(),
+            // Recent channels strip — only in default (unfiltered) mode.
+            if (!isFiltered) RecentChannelsStrip(onChannelTap: _onChannelTap),
+            channelStateSliver(
+                  isLoading: s.isLoading,
+                  error: s.error,
+                  isEmpty: displayChannels.isEmpty,
+                ) ??
+                (viewMode == ChannelViewMode.grid
+                    ? ChannelGridSliver(
+                      channels: displayChannels,
+                      onTap: _onChannelTap,
+                    )
+                    : _channelSliver(displayChannels)),
           ],
         ),
-        ..._searchAndResume(s),
-        // Source filter bar (hidden when ≤1 source).
-        const SliverToBoxAdapter(child: SourceSelectorBar()),
-        // FE-TV-09: genre filter chips — hidden while search bar is open.
-        if (!_showSearchBar) const ChannelGenreChipsSliver(),
-        // Recent channels strip — only in default (unfiltered) mode.
-        if (!isFiltered) RecentChannelsStrip(onChannelTap: _onChannelTap),
-        channelStateSliver(
-              isLoading: s.isLoading,
-              error: s.error,
-              isEmpty: displayChannels.isEmpty,
-            ) ??
-            (viewMode == ChannelViewMode.grid
-                ? ChannelGridSliver(
-                  channels: displayChannels,
-                  onTap: _onChannelTap,
-                )
-                : _channelSliver(displayChannels)),
+        // Alpha jump bar — right edge, proportional scrolling.
+        Positioned(
+          right: 0,
+          top: 0,
+          bottom: 0,
+          child: _AlphaJumpBarAdapter(
+            scrollController: _channelScrollController,
+            indexOffsets: indexOffsets,
+            totalItemCount: displayChannels.length,
+          ),
+        ),
       ],
     );
   }
@@ -284,7 +308,7 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
   Widget _searchBtn() => IconButton(
     icon: Icon(_showSearchBar ? Icons.search_off : Icons.search),
     onPressed: _toggleSearch,
-    tooltip: 'Search channels',
+    tooltip: context.l10n.iptvSearchChannels,
   );
 
   /// Toggles between list and grid view modes.
@@ -292,7 +316,10 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
     icon: Icon(
       current == ChannelViewMode.grid ? Icons.list : Icons.grid_view_rounded,
     ),
-    tooltip: current == ChannelViewMode.grid ? 'List View' : 'Grid View',
+    tooltip:
+        current == ChannelViewMode.grid
+            ? context.l10n.iptvListGridView
+            : context.l10n.iptvGridView,
     onPressed: () {
       final next =
           current == ChannelViewMode.grid
@@ -449,5 +476,78 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
         final s = ref.read(channelListProvider);
         n.setShowHiddenChannels(!s.showHiddenChannels);
     }
+  }
+}
+
+/// Adapter that converts index-based offsets to pixel offsets
+/// once the scroll controller's max extent is known.
+class _AlphaJumpBarAdapter extends StatefulWidget {
+  final ScrollController scrollController;
+  final Map<String, double> indexOffsets;
+  final int totalItemCount;
+
+  const _AlphaJumpBarAdapter({
+    required this.scrollController,
+    required this.indexOffsets,
+    required this.totalItemCount,
+  });
+
+  @override
+  State<_AlphaJumpBarAdapter> createState() => _AlphaJumpBarAdapterState();
+}
+
+class _AlphaJumpBarAdapterState extends State<_AlphaJumpBarAdapter> {
+  Map<String, double> _pixelOffsets = const {};
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _update());
+    widget.scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void didUpdateWidget(_AlphaJumpBarAdapter old) {
+    super.didUpdateWidget(old);
+    if (old.indexOffsets != widget.indexOffsets ||
+        old.totalItemCount != widget.totalItemCount) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _update());
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.scrollController.removeListener(_onScroll);
+    super.dispose();
+  }
+
+  bool _extentReady = false;
+
+  void _onScroll() {
+    if (!_extentReady && widget.scrollController.hasClients) {
+      _update();
+    }
+  }
+
+  void _update() {
+    if (!widget.scrollController.hasClients) return;
+    final maxExtent = widget.scrollController.position.maxScrollExtent;
+    if (maxExtent <= 0) return;
+    _extentReady = true;
+    final scaled = AlphaJumpBar.scaleOffsets(
+      widget.indexOffsets,
+      maxExtent,
+      widget.totalItemCount,
+    );
+    if (mounted) setState(() => _pixelOffsets = scaled);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlphaJumpBar(
+      controller: widget.scrollController,
+      sectionOffsets: _pixelOffsets,
+      totalItemCount: widget.totalItemCount,
+    );
   }
 }

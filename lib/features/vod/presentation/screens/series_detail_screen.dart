@@ -24,8 +24,7 @@ export '../widgets/series_details_tab.dart' show SeriesDetailsTab;
 export '../widgets/series_episodes_tab.dart' show SeriesEpisodesTab;
 
 /// Detail screen for a TV series.
-/// Netflix-style layout per
-/// .ai/docs/plans/netflix_ui_reference.md.
+/// Cinematic series detail layout.
 ///
 /// Features three tabs below the hero header:
 /// - Episodes (default): season selector + episode list
@@ -222,6 +221,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     showContextMenuPanel(
       context: ctx,
       sections: buildEpisodeContextMenu(
+        context: ctx,
         episodeName: ep.name,
         colorScheme: Theme.of(ctx).colorScheme,
         onPlay: () => _play(ep),

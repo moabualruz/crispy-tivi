@@ -1,8 +1,9 @@
+import 'package:crispy_tivi/core/data/cache_service.dart';
+import 'package:crispy_tivi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/core/providers/source_filter_provider.dart';
 import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
@@ -71,7 +72,11 @@ void main() {
           vodFavoritesProvider.overrideWith(_TestVodFavoritesController.new),
           effectiveSourceIdsProvider.overrideWithValue(const []),
         ],
-        child: MaterialApp.router(routerConfig: router),
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
       ),
     );
 

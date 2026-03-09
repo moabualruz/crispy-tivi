@@ -1,11 +1,10 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/glass_surface.dart';
 import '../../domain/entities/channel.dart';
 
 /// A single alternative stream option for a channel.
@@ -124,93 +123,86 @@ class StreamFailoverSheet extends ConsumerWidget {
 
     // Sheet body — glassmorphic background matching
     // the design system's bottom sheet style.
-    return ClipRRect(
-      borderRadius: CrispyRadius.top(CrispyRadius.md),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: crispyColors.glassBlur,
-          sigmaY: crispyColors.glassBlur,
+    return GlassSurface(
+      borderRadius: CrispyRadius.md,
+      blurSigma: crispyColors.glassBlur,
+      tintColor: colorScheme.surface,
+      child: ConstrainedBox(
+        // Limit height to 50 % of the screen so the sheet
+        // doesn't cover the entire UI on phones.
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.5,
         ),
-        child: Container(
-          color: colorScheme.surface,
-          // Limit height to 50 % of the screen so the sheet
-          // doesn't cover the entire UI on phones.
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.5,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Drag handle ──────────────────────────────
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(
-                    vertical: CrispySpacing.sm,
-                  ),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: colorScheme.onSurface.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                  ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Drag handle ──────────────────────────────
+            Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: CrispySpacing.sm),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurface.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(CrispyRadius.tv),
                 ),
               ),
-              // ── Header ───────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  CrispySpacing.md,
-                  CrispySpacing.xs,
-                  CrispySpacing.md,
-                  CrispySpacing.sm,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Stream sources',
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+            ),
+            // ── Header ───────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                CrispySpacing.md,
+                CrispySpacing.xs,
+                CrispySpacing.md,
+                CrispySpacing.sm,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Stream sources',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: CrispySpacing.xxs),
-                    Text(
-                      channel.name,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              // ── Stream list ──────────────────────────────
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.only(
-                    bottom:
-                        MediaQuery.paddingOf(context).bottom + CrispySpacing.sm,
                   ),
-                  itemCount: options.length,
-                  itemBuilder: (context, i) {
-                    final option = options[i];
-                    final isActive = option.url == currentUrl;
-                    return _StreamOptionTile(
-                      option: option,
-                      isActive: isActive,
-                      onTap: () {
-                        Navigator.of(context).pop(option);
-                        onStreamSelected(option);
-                      },
-                    );
-                  },
-                ),
+                  const SizedBox(height: CrispySpacing.xxs),
+                  Text(
+                    channel.name,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const Divider(height: 1),
+            // ── Stream list ──────────────────────────────
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                padding: EdgeInsets.only(
+                  bottom:
+                      MediaQuery.paddingOf(context).bottom + CrispySpacing.sm,
+                ),
+                itemCount: options.length,
+                itemBuilder: (context, i) {
+                  final option = options[i];
+                  final isActive = option.url == currentUrl;
+                  return _StreamOptionTile(
+                    option: option,
+                    isActive: isActive,
+                    onTap: () {
+                      Navigator.of(context).pop(option);
+                      onStreamSelected(option);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -3,13 +3,12 @@
 // Displays the accumulated digit string while the user types a channel
 // number on the keyboard. The overlay auto-dismisses 1.5 s after the last
 // key press (controlled by the parent via [digits] becoming empty).
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/glass_surface.dart';
 
 /// Glassmorphic HUD that shows the digits typed so far during
 /// a direct-dial channel-number jump (FE-TV-02).
@@ -46,45 +45,35 @@ class ChannelNumberJumpOverlay extends StatelessWidget {
     final crispyColors = Theme.of(context).crispyColors;
     final tt = Theme.of(context).textTheme;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(CrispyRadius.md),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: crispyColors.glassBlur,
-          sigmaY: crispyColors.glassBlur,
-        ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: CrispySpacing.xl,
-            vertical: CrispySpacing.lg,
+    return GlassSurface(
+      borderRadius: CrispyRadius.md,
+      blurSigma: crispyColors.glassBlur,
+      tintColor: crispyColors.glassTint,
+      borderColor: Colors.white.withValues(alpha: 0.15),
+      padding: const EdgeInsets.symmetric(
+        horizontal: CrispySpacing.xl,
+        vertical: CrispySpacing.lg,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            digits,
+            style: tt.displayLarge?.copyWith(
+              color: CrispyColors.textHigh,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 8,
+            ),
           ),
-          decoration: BoxDecoration(
-            color: crispyColors.glassTint,
-            borderRadius: BorderRadius.circular(CrispyRadius.md),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+          const SizedBox(height: CrispySpacing.xs),
+          Text(
+            'Channel',
+            style: tt.labelSmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.6),
+              letterSpacing: 2,
+            ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                digits,
-                style: tt.displayLarge?.copyWith(
-                  color: CrispyColors.textHigh,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 8,
-                ),
-              ),
-              const SizedBox(height: CrispySpacing.xs),
-              Text(
-                'Channel',
-                style: tt.labelSmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  letterSpacing: 2,
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }

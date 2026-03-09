@@ -75,6 +75,8 @@ class MediaServerSource implements MediaSource {
           sortBy: 'SortName',
           startIndex: startIndex,
           limit: limit,
+          recursive: true,
+          includeItemTypes: 'Movie,Series,Episode',
         );
         return response.items.map(_mapToMediaItem).toList();
       }
@@ -113,6 +115,8 @@ class MediaServerSource implements MediaSource {
           sortBy: 'SortName',
           startIndex: startIndex,
           limit: limit,
+          recursive: true,
+          includeItemTypes: 'Movie,Series,Episode',
         );
         return PaginatedResult(
           items: response.items.map(_mapToMediaItem).toList(),

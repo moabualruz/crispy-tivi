@@ -9,6 +9,7 @@ import '../../../player/presentation/providers/player_providers.dart';
 import '../../application/duplicate_detection_service.dart';
 import '../../domain/entities/channel.dart';
 import '../providers/channel_providers.dart';
+import '../providers/smart_group_providers.dart';
 import 'channel_context_menu.dart';
 import 'channel_list_item.dart';
 import 'channel_reorderable_list.dart';
@@ -117,6 +118,12 @@ class ChannelSliver extends ConsumerWidget {
                   onMiddleClick != null ? () => onMiddleClick!(ch) : null,
               autofocus: i == 0,
               isDuplicate: ref.watch(isChannelDuplicateProvider(ch.id)),
+              isInSmartGroup:
+                  ref
+                      .watch(smartGroupChannelIdsProvider)
+                      .value
+                      ?.contains(ch.id) ??
+                  false,
               onLongPress:
                   () => showChannelContextMenu(
                     context: ctx,

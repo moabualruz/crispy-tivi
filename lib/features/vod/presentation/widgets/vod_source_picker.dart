@@ -74,13 +74,14 @@ class _ActiveSourceNotifier extends Notifier<String?> {
 /// Provider tracking the active source URL for a given VOD item.
 ///
 /// Keyed by item ID. Defaults to [null] (the item's own stream URL).
+/// autoDispose: freed when the VOD detail screen pops.
 ///
 /// Usage:
 /// ```dart
 /// final active = ref.watch(activeSourceProvider('itemId'));
 /// ```
-final activeSourceProvider =
-    NotifierProvider.family<_ActiveSourceNotifier, String?, String>(
+final activeSourceProvider = NotifierProvider.family
+    .autoDispose<_ActiveSourceNotifier, String?, String>(
       (arg) => _ActiveSourceNotifier(),
     );
 

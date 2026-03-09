@@ -1,8 +1,9 @@
+import 'package:crispy_tivi/core/data/cache_service.dart';
+import 'package:crispy_tivi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/features/player/data/watch_history_service.dart';
 import 'package:crispy_tivi/features/player/domain/entities/watch_history_entry.dart';
@@ -63,7 +64,11 @@ void main() {
           ),
           vodRecommendationsProvider.overrideWithValue(const []),
         ],
-        child: MaterialApp.router(routerConfig: router),
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
       ),
     );
 

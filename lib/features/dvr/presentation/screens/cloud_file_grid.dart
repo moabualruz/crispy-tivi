@@ -8,6 +8,7 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/date_format_utils.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
+import '../../../../core/widgets/smart_image.dart';
 import '../../domain/entities/storage_backend.dart';
 import '../../domain/storage_provider.dart';
 import '../../domain/utils/file_filter.dart';
@@ -134,27 +135,12 @@ class FileThumbnail extends StatelessWidget {
     } else if (isImageFile(file.name)) {
       icon = ClipRRect(
         borderRadius: BorderRadius.circular(CrispyRadius.tv),
-        child: Image.network(
-          file.path,
-          width: 40,
-          height: 40,
+        child: SmartImage(
+          title: file.name,
+          imageUrl: file.path,
           fit: BoxFit.cover,
-          errorBuilder:
-              (context, error, stackTrace) =>
-                  Icon(Icons.broken_image, color: iconColor),
-          loadingBuilder: (_, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return SizedBox(
-              width: 40,
-              height: 40,
-              child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 1.5,
-                  color: cs.primary,
-                ),
-              ),
-            );
-          },
+          memCacheWidth: 80,
+          memCacheHeight: 80,
         ),
       );
     } else if (isVideoFile(file.name)) {

@@ -1,5 +1,6 @@
 import 'package:crispy_tivi/config/app_config.dart';
 import 'package:crispy_tivi/config/settings_notifier.dart';
+import 'package:crispy_tivi/l10n/app_localizations.dart';
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
@@ -135,7 +136,11 @@ Widget _buildScreen({required OnboardingState initial}) {
       ),
       onboardingProvider.overrideWith(() => _PreloadedNotifier(initial)),
     ],
-    child: const MaterialApp(home: OnboardingScreen()),
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const OnboardingScreen(),
+    ),
   );
 }
 
@@ -151,7 +156,11 @@ Widget _buildStep({required Widget step, required OnboardingState state}) {
       ),
       onboardingProvider.overrideWith(() => _PreloadedNotifier(state)),
     ],
-    child: MaterialApp(home: Scaffold(body: step)),
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(body: step),
+    ),
   );
 }
 
@@ -171,7 +180,11 @@ Widget _buildStepWithRecorder({
       ),
       onboardingProvider.overrideWith(() => recorder),
     ],
-    child: MaterialApp(home: Scaffold(body: step)),
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(body: step),
+    ),
   );
 }
 
@@ -240,7 +253,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Get Started'), findsOneWidget);
+      expect(find.text('Start Watching'), findsOneWidget);
     });
 
     testWidgets('tapping Get Started calls goToStep(typePicker)', (
@@ -256,7 +269,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.text('Get Started'));
+      await tester.tap(find.text('Start Watching'));
       await tester.pump();
 
       expect(recorder.calls, contains('goToStep:OnboardingStep.typePicker'));
@@ -441,7 +454,10 @@ void main() {
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.text('Connecting and loading channels...'), findsOneWidget);
+      expect(
+        find.text('Connecting and loading channels\u2026'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('success: shows check icon, channel count, Enter App', (

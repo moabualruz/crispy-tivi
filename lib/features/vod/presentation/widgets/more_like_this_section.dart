@@ -73,6 +73,7 @@ class MoreLikeThisSection extends ConsumerWidget {
     showContextMenuPanel(
       context: ctx,
       sections: buildSeriesContextMenu(
+        context: ctx,
         seriesName: item.name,
         isFavorite: favs.contains(item.id),
         colorScheme: cs,

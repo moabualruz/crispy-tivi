@@ -23,7 +23,7 @@ import '../providers/vod_favorites_provider.dart';
 ///   detail
 /// - Long press to open context menu
 /// - Hover-reveal star to toggle favorites
-/// - Netflix-style hover preview after 300ms delay
+/// - Cinematic hover preview after 300ms delay
 class VodPosterCard extends ConsumerWidget {
   const VodPosterCard({
     super.key,

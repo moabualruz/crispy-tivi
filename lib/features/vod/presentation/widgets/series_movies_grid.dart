@@ -72,6 +72,7 @@ class SeriesMoviesGrid extends ConsumerWidget {
           () => showContextMenuPanel(
             context: context,
             sections: buildSeriesContextMenu(
+              context: context,
               seriesName: item.name,
               isFavorite: item.isFavorite,
               colorScheme: Theme.of(context).colorScheme,

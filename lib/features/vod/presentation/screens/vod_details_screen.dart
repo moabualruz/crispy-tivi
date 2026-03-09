@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/constants.dart';
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/duration_formatter.dart';
@@ -25,11 +26,11 @@ import '../widgets/vod_detail_metadata.dart';
 import '../widgets/vod_source_picker.dart';
 
 /// Cinematic details screen for VOD (Movies).
-/// Netflix-style layout per .ai/docs/plans/netflix_ui_reference.md.
+/// Cinematic detail layout.
 ///
 /// Features:
 /// - Immersive Hero Banner (500px, multi-stop gradient).
-/// - Netflix-style metadata badges (year, rating,
+/// - Metadata badges (year, rating,
 ///   duration).
 /// - Quality badges (HD, 4K) from extension field.
 /// - Primary Actions (Play, My List, Rate).
@@ -260,6 +261,9 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
                   resume ? Duration(milliseconds: history.positionMs) : null,
               sourceId: widget.item.sourceId,
             );
+        ref
+            .read(playerModeProvider.notifier)
+            .enterFullscreen(hostRoute: AppRoutes.vodDetails);
         return;
       }
     }
@@ -276,6 +280,9 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
           mediaType: item.type == VodType.movie ? 'movie' : 'episode',
           sourceId: widget.item.sourceId,
         );
+    ref
+        .read(playerModeProvider.notifier)
+        .enterFullscreen(hostRoute: AppRoutes.vodDetails);
   }
 
   void _toggleFavorite(String itemId) {

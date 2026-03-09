@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +10,7 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/duration_formatter.dart';
+import '../../../../core/widgets/glass_surface.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../domain/entities/vod_item.dart';
@@ -245,26 +245,17 @@ class _QuickInfoOverlayState extends State<_QuickInfoOverlay>
                 child: GestureDetector(
                   // Prevent tap-outside from propagating through the card.
                   onTap: () {},
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(CrispyRadius.md),
-                    child: BackdropFilter(
-                      filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: cs.surfaceContainerHigh.withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(CrispyRadius.md),
-                          border: Border.all(
-                            color: cs.outline.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: _CardContent(
-                          item: item,
-                          cs: cs,
-                          textTheme: textTheme,
-                          onPlay: widget.onPlay,
-                          onMoreInfo: widget.onMoreInfo,
-                        ),
-                      ),
+                  child: GlassSurface(
+                    borderRadius: CrispyRadius.md,
+                    blurSigma: 18,
+                    tintColor: cs.surfaceContainerHigh.withValues(alpha: 0.9),
+                    borderColor: cs.outline.withValues(alpha: 0.3),
+                    child: _CardContent(
+                      item: item,
+                      cs: cs,
+                      textTheme: textTheme,
+                      onPlay: widget.onPlay,
+                      onMoreInfo: widget.onMoreInfo,
                     ),
                   ),
                 ),

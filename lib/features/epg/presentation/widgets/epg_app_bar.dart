@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/category_dropdown.dart';
 import '../providers/epg_providers.dart';
@@ -221,7 +223,7 @@ class EpgAppBar extends ConsumerWidget implements PreferredSizeWidget {
         IconButton(
           icon: const Icon(Icons.search),
           onPressed: onSearch,
-          tooltip: 'Search',
+          tooltip: context.l10n.commonSearch,
         ),
         IconButton(
           icon:

@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -117,7 +118,11 @@ void main() {
             ),
             latestVodProvider.overrideWith((ref) => mockVodState.items),
           ],
-          child: const MaterialApp(home: HomeScreen()),
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const HomeScreen(),
+          ),
         ),
       );
 

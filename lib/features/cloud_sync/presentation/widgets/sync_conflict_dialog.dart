@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/date_format_utils.dart';
 import '../../domain/entities/sync_conflict.dart';
@@ -40,7 +42,7 @@ class SyncConflictDialog extends StatelessWidget {
         children: [
           Icon(Icons.warning_amber, color: theme.colorScheme.error),
           const SizedBox(width: CrispySpacing.sm),
-          const Text('Sync Conflict'),
+          Text(context.l10n.cloudSyncConflict),
         ],
       ),
       content: SingleChildScrollView(
@@ -61,12 +63,12 @@ class SyncConflictDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => onResolution(ConflictResolution.cancel),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.commonCancel),
         ),
         const SizedBox(width: CrispySpacing.xs),
         _buildResolutionChip(
           context,
-          label: 'Keep Local',
+          label: context.l10n.cloudSyncKeepLocal,
           icon: Icons.phone_android,
           description: 'Use this device\'s data',
           resolution: ConflictResolution.keepLocal,
@@ -74,7 +76,7 @@ class SyncConflictDialog extends StatelessWidget {
         ),
         _buildResolutionChip(
           context,
-          label: 'Keep Cloud',
+          label: context.l10n.cloudSyncKeepRemote,
           icon: Icons.cloud,
           description: 'Use cloud data',
           resolution: ConflictResolution.keepCloud,
@@ -98,7 +100,7 @@ class SyncConflictDialog extends StatelessWidget {
             Expanded(
               child: _buildDataColumn(
                 context,
-                title: 'This Device',
+                title: context.l10n.cloudSyncThisDevice,
                 icon: Icons.phone_android,
                 time: conflict.localModifiedTime,
                 deviceId: conflict.localDeviceId,
@@ -113,7 +115,7 @@ class SyncConflictDialog extends StatelessWidget {
             Expanded(
               child: _buildDataColumn(
                 context,
-                title: 'Cloud',
+                title: context.l10n.cloudSyncCloud,
                 icon: Icons.cloud,
                 time: conflict.cloudModifiedTime,
                 deviceId: conflict.cloudDeviceId,
@@ -173,7 +175,7 @@ class SyncConflictDialog extends StatelessWidget {
                 borderRadius: BorderRadius.zero,
               ),
               child: Text(
-                'NEWER',
+                context.l10n.cloudSyncNewer,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onPrimaryContainer,
                 ),

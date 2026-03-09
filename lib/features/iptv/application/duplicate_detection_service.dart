@@ -136,7 +136,9 @@ final duplicateChannelIdsProvider = FutureProvider<Set<String>>((ref) async {
 
 /// Provider for checking if a specific channel is a
 /// duplicate.
-final isChannelDuplicateProvider = Provider.family<bool, String>((
+///
+/// autoDispose: O(1) Set.contains — trivial to recompute.
+final isChannelDuplicateProvider = Provider.family.autoDispose<bool, String>((
   ref,
   channelId,
 ) {

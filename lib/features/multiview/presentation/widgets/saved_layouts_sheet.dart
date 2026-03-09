@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../domain/entities/multiview_session.dart';
@@ -44,7 +46,7 @@ class SavedLayoutsSheet extends ConsumerWidget {
                   ),
                   const SizedBox(width: CrispySpacing.sm),
                   Text(
-                    'Saved Layouts',
+                    context.l10n.multiviewLoadLayout,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -157,18 +159,18 @@ class SavedLayoutTile extends StatelessWidget {
       ),
       trailing: IconButton(
         icon: Icon(Icons.delete_outline, color: colorScheme.onSurfaceVariant),
-        tooltip: 'Delete layout',
+        tooltip: context.l10n.multiviewDeleteLayout,
         onPressed: () {
           showDialog(
             context: context,
             builder:
                 (ctx) => AlertDialog(
-                  title: const Text('Delete Layout'),
+                  title: Text(context.l10n.multiviewDeleteLayout),
                   content: Text('Delete "${layout.name}"?'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel'),
+                      child: Text(context.l10n.commonCancel),
                     ),
                     FilledButton(
                       onPressed: () {
@@ -178,7 +180,7 @@ class SavedLayoutTile extends StatelessWidget {
                       style: FilledButton.styleFrom(
                         backgroundColor: colorScheme.error,
                       ),
-                      child: const Text('Delete'),
+                      child: Text(context.l10n.commonDelete),
                     ),
                   ],
                 ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/theme/crispy_spacing.dart';
 
 /// Inline search bar sliver for real-time channel
@@ -49,10 +51,10 @@ class ChannelSearchBarSliver extends StatelessWidget {
             onChanged: onChanged,
             decoration: InputDecoration(
               hintText: 'Filter channels...',
-              labelText: 'Search channels',
+              labelText: context.l10n.iptvSearchChannels,
               prefixIcon: const Icon(Icons.search, size: 20),
               suffixIcon: IconButton(
-                tooltip: 'Close search',
+                tooltip: context.l10n.commonClose,
                 icon: const Icon(Icons.close, size: 18),
                 onPressed: onClose,
               ),

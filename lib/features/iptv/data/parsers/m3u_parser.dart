@@ -5,7 +5,11 @@ import '../../domain/entities/channel.dart';
 /// Result of M3U parsing, including channels and any
 /// EPG URL discovered in the `#EXTM3U` header.
 class M3uParseResult {
-  const M3uParseResult({required this.channels, this.epgUrl});
+  const M3uParseResult({
+    required this.channels,
+    this.epgUrl,
+    this.errors = const [],
+  });
 
   /// Parsed channels.
   final List<Channel> channels;
@@ -13,6 +17,10 @@ class M3uParseResult {
   /// EPG URL from `url-tvg` or `x-tvg-url` header
   /// attribute in the `#EXTM3U` line.
   final String? epgUrl;
+
+  /// Parse errors for individual entries that failed.
+  /// Callers can log these without losing valid channels.
+  final List<String> errors;
 }
 
 /// Parses M3U/M3U8 playlist content into [Channel]
@@ -49,8 +57,10 @@ abstract final class M3uParser {
         rawChannels.cast<Map<String, dynamic>>().map(mapToChannel).toList();
 
     final epgUrl = result['epg_url'] as String?;
+    final rawErrors = result['errors'] as List<dynamic>? ?? [];
+    final errors = rawErrors.cast<String>();
 
-    return M3uParseResult(channels: channels, epgUrl: epgUrl);
+    return M3uParseResult(channels: channels, epgUrl: epgUrl, errors: errors);
   }
 
   /// Parses M3U content in the Rust backend.

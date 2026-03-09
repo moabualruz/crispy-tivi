@@ -10,7 +10,7 @@ import '../../domain/entities/vod_item.dart';
 
 const double _kHeroExpandedHeight = 400.0;
 
-/// Netflix-style hero header for the series detail
+/// Cinematic hero header for the series detail
 /// screen.
 ///
 /// Shows the backdrop/poster image with a bottom

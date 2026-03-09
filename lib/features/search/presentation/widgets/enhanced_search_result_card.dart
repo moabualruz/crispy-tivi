@@ -8,6 +8,7 @@ import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/duration_formatter.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
+import '../../../../core/widgets/smart_image.dart';
 
 // ── Source bar constants ──────────────────────────────────────────────────────
 
@@ -27,12 +28,6 @@ const double _kVodImageWidth = 80.0;
 
 /// Height of the thumbnail for non-channel results.
 const double _kVodImageHeight = 120.0;
-
-/// Icon size inside the channel image placeholder.
-const double _kChannelPlaceholderIconSize = 24.0;
-
-/// Icon size inside the non-channel image placeholder.
-const double _kVodPlaceholderIconSize = 32.0;
 
 /// Size of the inline play button (filled circle diameter).
 const double _kPlayButtonSize = 36.0;
@@ -102,25 +97,6 @@ class EnhancedSearchResultCard extends StatelessWidget {
     return cs.tertiary;
   }
 
-  IconData get _typeIcon {
-    switch (item.type) {
-      case MediaType.channel:
-        return Icons.live_tv;
-      case MediaType.movie:
-        return Icons.movie;
-      case MediaType.series:
-        return Icons.tv;
-      case MediaType.season:
-        return Icons.format_list_numbered;
-      case MediaType.episode:
-        return Icons.video_library;
-      case MediaType.folder:
-        return Icons.folder;
-      case MediaType.unknown:
-        return Icons.play_circle;
-    }
-  }
-
   String? get _duration =>
       item.durationMs != null && item.durationMs! > 0
           ? DurationFormatter.humanShortMs(item.durationMs)
@@ -165,26 +141,15 @@ class EnhancedSearchResultCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Poster / Logo
-                    ClipRect(
-                      child: SizedBox(
-                        width: imageWidth,
-                        height: imageHeight,
-                        child:
-                            item.logoUrl != null && item.logoUrl!.isNotEmpty
-                                ? Image.network(
-                                  item.logoUrl!,
-                                  fit:
-                                      isChannel ? BoxFit.contain : BoxFit.cover,
-                                  errorBuilder:
-                                      (_, _, _) => _ImagePlaceholder(
-                                        icon: _typeIcon,
-                                        isChannel: isChannel,
-                                      ),
-                                )
-                                : _ImagePlaceholder(
-                                  icon: _typeIcon,
-                                  isChannel: isChannel,
-                                ),
+                    SizedBox(
+                      width: imageWidth,
+                      height: imageHeight,
+                      child: SmartImage(
+                        title: item.name,
+                        imageUrl: item.logoUrl,
+                        fit: isChannel ? BoxFit.contain : BoxFit.cover,
+                        memCacheWidth: (imageWidth * 2).toInt(),
+                        memCacheHeight: (imageHeight * 2).toInt(),
                       ),
                     ),
 
@@ -280,32 +245,6 @@ class EnhancedSearchResultCard extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ImagePlaceholder extends StatelessWidget {
-  const _ImagePlaceholder({required this.icon, required this.isChannel});
-
-  final IconData icon;
-  final bool isChannel;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      color: colorScheme.surfaceContainerHighest,
-      child: Center(
-        child: Icon(
-          icon,
-          size:
-              isChannel
-                  ? _kChannelPlaceholderIconSize
-                  : _kVodPlaceholderIconSize,
-          color: colorScheme.onSurfaceVariant,
         ),
       ),
     );

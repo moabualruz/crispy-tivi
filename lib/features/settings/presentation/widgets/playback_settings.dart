@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../config/app_config.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/widgets/async_value_ui.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -10,6 +11,7 @@ import '../../../player/domain/entities/audio_output.dart';
 import '../../../player/domain/entities/hardware_decoder.dart';
 import '../../../player/domain/entities/passthrough_codec.dart';
 import '../../../player/domain/entities/stream_profile.dart';
+import '../../../player/domain/segment_skip_config.dart';
 import 'playback_audio_dialogs.dart';
 import 'playback_hwdec_dialog.dart';
 import 'playback_selection_dialogs.dart';
@@ -169,22 +171,6 @@ class PlaybackSettingsSection extends ConsumerWidget {
               ),
             ],
             const Divider(height: 1),
-            // -- Picture-in-Picture --
-            SwitchListTile(
-              title: const Text('PiP on Minimize'),
-              subtitle: const Text(
-                'Auto-enter Picture-in-Picture '
-                'when minimized',
-              ),
-              secondary: const Icon(Icons.picture_in_picture),
-              value: config.player.pipOnMinimize,
-              onChanged: (val) {
-                ref
-                    .read(settingsNotifierProvider.notifier)
-                    .setPipOnMinimize(val);
-              },
-            ),
-            const Divider(height: 1),
             // -- Skip Buttons (FE-PS-03) --
             SwitchListTile(
               title: const Text('Skip Intro / Credits Buttons'),
@@ -199,6 +185,25 @@ class PlaybackSettingsSection extends ConsumerWidget {
                     .read(settingsNotifierProvider.notifier)
                     .setShowSkipButtons(val);
               },
+            ),
+            // -- Per-type segment skip config --
+            if (config.player.showSkipButtons) ...[
+              ListTile(
+                leading: const SizedBox(width: kSettingsIndent),
+                title: const Text('Segment Skip Behavior'),
+                subtitle: const Text('Per-type skip mode for each segment'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showSegmentSkipDialog(context, ref, config),
+              ),
+            ],
+            const Divider(height: 1),
+            // -- Next-up overlay mode --
+            ListTile(
+              leading: const Icon(Icons.queue_play_next),
+              title: const Text('Next-Up Overlay'),
+              subtitle: Text(parseNextUpMode(config.player.nextUpMode).label),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showNextUpModeDialog(context, ref, config),
             ),
             const Divider(height: 1),
             // -- External Player --
@@ -281,6 +286,38 @@ class PlaybackSettingsSection extends ConsumerWidget {
                     ),
               ),
             ],
+            const Divider(height: 1),
+            // -- Loudness Normalization --
+            SwitchListTile(
+              title: const Text('Loudness Normalization'),
+              subtitle: const Text(
+                'Normalize volume levels across '
+                'channels (EBU R128)',
+              ),
+              secondary: const Icon(Icons.graphic_eq),
+              value: config.player.loudnessNormalization,
+              onChanged: (val) {
+                ref
+                    .read(settingsNotifierProvider.notifier)
+                    .setLoudnessNormalization(val);
+              },
+            ),
+            const Divider(height: 1),
+            // -- Stereo Downmix --
+            SwitchListTile(
+              title: const Text('Stereo Downmix'),
+              subtitle: const Text(
+                'Convert surround sound to stereo '
+                'for headphones',
+              ),
+              secondary: const Icon(Icons.headphones),
+              value: config.player.stereoDownmix,
+              onChanged: (val) {
+                ref
+                    .read(settingsNotifierProvider.notifier)
+                    .setStereoDownmix(val);
+              },
+            ),
           ],
         ),
       ],
@@ -315,6 +352,10 @@ class PlaybackSettingsSection extends ConsumerWidget {
       'kodi': 'Kodi',
       'justPlayer': 'Just Player',
       'mpv': 'mpv',
+      'iina': 'IINA',
+      'potPlayer': 'PotPlayer',
+      'celluloid': 'Celluloid',
+      'infuse': 'Infuse',
     };
     return labels[player] ?? 'Built-in (Default)';
   }
@@ -329,5 +370,143 @@ class PlaybackSettingsSection extends ConsumerWidget {
     return PassthroughCodec.fromMpvValues(
       codecs,
     ).map((c) => c.label).join(', ');
+  }
+
+  // ── Segment Skip Dialog ─────────────────────────
+
+  void _showSegmentSkipDialog(
+    BuildContext context,
+    WidgetRef ref,
+    AppConfig config,
+  ) {
+    final currentConfig = decodeSegmentSkipConfig(
+      config.player.segmentSkipConfig,
+    );
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return _SegmentSkipConfigDialog(
+          initialConfig: currentConfig,
+          onSave: (newConfig) {
+            ref
+                .read(settingsNotifierProvider.notifier)
+                .setSegmentSkipConfig(encodeSegmentSkipConfig(newConfig));
+          },
+        );
+      },
+    );
+  }
+
+  // ── Next-Up Mode Dialog ─────────────────────────
+
+  void _showNextUpModeDialog(
+    BuildContext context,
+    WidgetRef ref,
+    AppConfig config,
+  ) {
+    final currentMode = parseNextUpMode(config.player.nextUpMode);
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return SimpleDialog(
+          title: const Text('Next-Up Overlay'),
+          children: [
+            for (final mode in NextUpMode.values)
+              SimpleDialogOption(
+                onPressed: () {
+                  ref
+                      .read(settingsNotifierProvider.notifier)
+                      .setNextUpMode(mode.name);
+                  Navigator.of(dialogContext).pop();
+                },
+                child: Row(
+                  children: [
+                    Icon(
+                      mode == currentMode
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_unchecked,
+                      size: 20,
+                    ),
+                    const SizedBox(width: CrispySpacing.md),
+                    Text(mode.label),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Dialog for configuring per-type segment skip behavior.
+class _SegmentSkipConfigDialog extends StatefulWidget {
+  const _SegmentSkipConfigDialog({
+    required this.initialConfig,
+    required this.onSave,
+  });
+
+  final Map<SegmentType, SegmentSkipMode> initialConfig;
+  final ValueChanged<Map<SegmentType, SegmentSkipMode>> onSave;
+
+  @override
+  State<_SegmentSkipConfigDialog> createState() =>
+      _SegmentSkipConfigDialogState();
+}
+
+class _SegmentSkipConfigDialogState extends State<_SegmentSkipConfigDialog> {
+  late final Map<SegmentType, SegmentSkipMode> _config;
+
+  @override
+  void initState() {
+    super.initState();
+    _config = Map.of(widget.initialConfig);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Segment Skip Behavior'),
+      content: SizedBox(
+        width: 400,
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            for (final type in SegmentType.values)
+              ListTile(
+                title: Text(type.label),
+                trailing: DropdownButton<SegmentSkipMode>(
+                  value: _config[type] ?? SegmentSkipMode.ask,
+                  underline: const SizedBox.shrink(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => _config[type] = val);
+                    }
+                  },
+                  items: [
+                    for (final mode in SegmentSkipMode.values)
+                      DropdownMenuItem(value: mode, child: Text(mode.label)),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            widget.onSave(_config);
+            Navigator.of(context).pop();
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
   }
 }

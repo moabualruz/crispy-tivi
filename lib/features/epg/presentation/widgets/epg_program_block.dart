@@ -7,6 +7,8 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/date_format_utils.dart';
 import '../../../../core/utils/timezone_utils.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
+import '../../../../core/widgets/smart_image.dart';
+import '../../../../core/widgets/watch_progress_bar.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../providers/epg_providers.dart';
@@ -168,10 +170,10 @@ class EpgProgramBlock extends ConsumerWidget {
                 // FE-EPG-05: background thumbnail for wide blocks.
                 if (showThumbnail)
                   Positioned.fill(
-                    child: Image.network(
-                      entry.iconUrl!,
+                    child: SmartImage(
+                      title: entry.title,
+                      imageUrl: entry.iconUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, e, st) => const SizedBox.shrink(),
                     ),
                   ),
 
@@ -228,16 +230,12 @@ class EpgProgramBlock extends ConsumerWidget {
                           // Progress bar for live programs.
                           if (isLive) ...[
                             const SizedBox(height: CrispySpacing.xs),
-                            ClipRect(
-                              child: LinearProgressIndicator(
-                                value: entry.progressAt(now),
-                                minHeight: _kProgressBarMinHeight,
-                                backgroundColor:
-                                    colorScheme.surfaceContainerHighest,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  crispyColors.liveRed,
-                                ),
-                              ),
+                            WatchProgressBar(
+                              value: entry.progressAt(now),
+                              height: _kProgressBarMinHeight,
+                              fillColor: crispyColors.liveRed,
+                              backgroundColor:
+                                  colorScheme.surfaceContainerHighest,
                             ),
                           ],
                         ],

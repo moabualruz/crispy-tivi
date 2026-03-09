@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
+import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
@@ -130,6 +133,8 @@ class _EmbyLoginScreenState extends ConsumerState<EmbyLoginScreen> {
 
       if (!mounted) return;
       ref.read(settingsNotifierProvider.notifier).addSource(source);
+      unawaited(ref.read(playlistSyncServiceProvider).syncSource(source));
+      if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(
         context,

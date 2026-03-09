@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,13 +14,27 @@ import 'package:crispy_tivi/core/domain/media_source.dart';
 /// persistent settings (see [PlaylistSource.deviceId]).
 const String kDefaultDeviceId = 'crispy_tivi_web';
 
+/// Returns the platform name for the MediaBrowser `Device` field.
+///
+/// Uses [Platform.operatingSystem] on native and `'Web'` on web.
+/// Capitalizes the first letter for readability
+/// (e.g. `'Android'`, `'Windows'`, `'Linux'`).
+String _platformDeviceName() {
+  if (kIsWeb) return 'Web';
+  final os = Platform.operatingSystem; // e.g. "android", "windows"
+  return '${os[0].toUpperCase()}${os.substring(1)}';
+}
+
 /// Builds the shared Emby/Jellyfin authorization header value.
 ///
 /// The resulting string follows the MediaBrowser format required by
 /// both Emby and Jellyfin servers:
 /// `MediaBrowser Client="...", Device="...", DeviceId="...", Version="..."`
+///
+/// The `Device` field uses the actual platform name (Android, Windows, etc.)
+/// so the media server can distinguish clients per device.
 String embyAuthHeader(String? deviceId) =>
-    'MediaBrowser Client="CrispyTivi", Device="CrispyTivi Web", '
+    'MediaBrowser Client="CrispyTivi", Device="${_platformDeviceName()}", '
     'DeviceId="${deviceId ?? kDefaultDeviceId}", Version="0.1.0"';
 
 /// Normalizes a raw server URL using the Rust backend and returns the result.

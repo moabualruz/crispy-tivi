@@ -117,7 +117,7 @@ class BodyContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Netflix-style Play button
+        // Cinematic Play button
         Row(
           children: [
             Expanded(

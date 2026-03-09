@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +6,7 @@ import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
+import '../../../../core/widgets/glass_surface.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../providers/onboarding_notifier.dart';
 
@@ -123,42 +122,33 @@ class _TypeCard extends StatelessWidget {
           borderRadius: CrispyRadius.lg,
           child: GestureDetector(
             onTap: onTap,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(CrispyRadius.lg),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                child: Container(
-                  padding: const EdgeInsets.all(CrispySpacing.lg),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.3,
-                    ),
-                    borderRadius: BorderRadius.circular(CrispyRadius.lg),
-                    border: Border.all(
-                      color: colorScheme.outline.withValues(alpha: 0.2),
-                    ),
+            child: GlassSurface(
+              borderRadius: CrispyRadius.lg,
+              blurSigma: 8,
+              tintColor: colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.3,
+              ),
+              borderColor: colorScheme.outline.withValues(alpha: 0.2),
+              padding: const EdgeInsets.all(CrispySpacing.lg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 40, color: colorScheme.primary),
+                  const SizedBox(height: CrispySpacing.sm),
+                  Text(
+                    title,
+                    style: textTheme.titleMedium,
+                    textAlign: TextAlign.center,
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(icon, size: 40, color: colorScheme.primary),
-                      const SizedBox(height: CrispySpacing.sm),
-                      Text(
-                        title,
-                        style: textTheme.titleMedium,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: CrispySpacing.xs),
-                      Text(
-                        subtitle,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                  const SizedBox(height: CrispySpacing.xs),
+                  Text(
+                    subtitle,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                ),
+                ],
               ),
             ),
           ),

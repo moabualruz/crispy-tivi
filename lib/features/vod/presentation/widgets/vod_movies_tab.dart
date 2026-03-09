@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/alpha_jump_bar.dart';
 import '../../../../core/widgets/genre_pill_row.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
@@ -26,8 +27,14 @@ import 'vod_search_sort_bar.dart';
 /// continue watching, recommendations, swimlanes,
 /// and category grid.
 class VodMoviesTab extends ConsumerStatefulWidget {
-  const VodMoviesTab({super.key, required this.state});
-  final VodState state;
+  const VodMoviesTab({
+    super.key,
+    required this.movieCategories,
+    required this.newReleases,
+  });
+
+  final List<String> movieCategories;
+  final List<VodItem> newReleases;
 
   @override
   ConsumerState<VodMoviesTab> createState() => _VodMoviesTabState();
@@ -38,6 +45,7 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
   @override
   bool get wantKeepAlive => true;
 
+  final _scrollController = ScrollController();
   VodGridDensity _density = VodGridDensity.standard;
 
   @override
@@ -99,6 +107,7 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
 
   @override
   void dispose() {
+    _scrollController.dispose();
     disposeSortable();
     super.dispose();
   }
@@ -112,9 +121,8 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
     checkAndRefreshSort(allFiltered);
 
     final cw = ref.watch(continueWatchingMoviesProvider);
-    // Categories and new releases come from VodState (pre-computed).
-    final movieCategories = widget.state.movieCategories;
-    final newReleases = widget.state.newReleases;
+    final movieCategories = widget.movieCategories;
+    final newReleases = widget.newReleases;
     // Hero banner and favorites are pre-computed by providers (O(1) read).
     final featured = ref.watch(featuredMoviesProvider);
     final favorites = ref.watch(favoriteMoviesProvider);
@@ -122,113 +130,204 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
     final isSearchOrCategory =
         selectedCategory != null || searchQuery.isNotEmpty;
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: VodSearchSortBar(
-            searchQuery: searchQuery,
-            searchController: searchController,
-            onSearchChanged: (q) {
-              setState(() => searchQuery = q);
-            },
-            sortOption: sortOption,
-            onSortChanged: onSortOptionChanged,
-            gridDensity: _density,
-            onDensityChanged: _onDensityChanged,
-            onShuffle: () => _onShuffle(movies),
+    final names = allFiltered.map((m) => m.name).toList();
+    final indexOffsets = AlphaJumpBar.computeIndexOffsets(names);
+
+    return Stack(
+      children: [
+        CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: VodSearchSortBar(
+                searchQuery: searchQuery,
+                searchController: searchController,
+                onSearchChanged: (q) {
+                  setState(() => searchQuery = q);
+                },
+                sortOption: sortOption,
+                onSortChanged: onSortOptionChanged,
+                gridDensity: _density,
+                onDensityChanged: _onDensityChanged,
+                onShuffle: () => _onShuffle(movies),
+              ),
+            ),
+            // Source filter bar (hidden when ≤1 source).
+            const SliverToBoxAdapter(child: SourceSelectorBar()),
+            if (!isSearchOrCategory)
+              ...cw.when(
+                data:
+                    (items) =>
+                        items.isEmpty
+                            ? <Widget>[]
+                            : <Widget>[
+                              SliverToBoxAdapter(
+                                child: ContinueWatchingSection(
+                                  title: 'Continue Watching',
+                                  icon: Icons.play_circle_outline,
+                                  items: items,
+                                ),
+                              ),
+                            ],
+                loading: () => <Widget>[],
+                error: (_, _) => <Widget>[],
+              ),
+            if (!isSearchOrCategory) ..._buildRecommendations(),
+            if (!isSearchOrCategory)
+              SliverToBoxAdapter(
+                child: RecentlyAddedSection(
+                  showMoviesOnly: true,
+                  onItemTap: (item) {
+                    final tag = '${item.id}_recently_added';
+                    context.push(
+                      AppRoutes.vodDetails,
+                      extra: {'item': item, 'heroTag': tag},
+                    );
+                  },
+                ),
+              ),
+            if (newReleases.isNotEmpty && !isSearchOrCategory)
+              SliverToBoxAdapter(
+                child: VodRow(
+                  title: 'New Releases',
+                  icon: Icons.new_releases,
+                  items: newReleases,
+                  isTitleBadge: true,
+                ),
+              ),
+            if (favorites.isNotEmpty && !isSearchOrCategory)
+              SliverToBoxAdapter(
+                child: VodRow(
+                  title: 'Favorites',
+                  icon: Icons.star,
+                  items: favorites,
+                ),
+              ),
+            // FE-VODS-04: Auto-cycling featured hero with trailer support.
+            if (featured.isNotEmpty && !isSearchOrCategory)
+              SliverToBoxAdapter(child: VodFeaturedHero(items: featured)),
+            SliverToBoxAdapter(
+              child: GenrePillRow(
+                categories: movieCategories,
+                selectedCategory: selectedCategory,
+                onCategorySelected: (cat) {
+                  setState(() => selectedCategory = cat);
+                },
+              ),
+            ),
+            if (isSearchOrCategory) ...[
+              SliverToBoxAdapter(
+                child: Semantics(
+                  label: 'Movies grid',
+                  container: true,
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+              VodMoviesGrid(movies: movies, density: _density),
+            ] else
+              SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final cat = movieCategories[index];
+                  final items =
+                      allFiltered.where((m) => m.category == cat).toList();
+                  if (items.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return VodRow(
+                    title: cat,
+                    icon: Icons.local_movies,
+                    items: items,
+                    isTitleBadge: true,
+                  );
+                }, childCount: movieCategories.length),
+              ),
+            const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xl)),
+          ],
+        ),
+        // Alpha jump bar — right edge, proportional scrolling.
+        Positioned(
+          right: 0,
+          top: 0,
+          bottom: 0,
+          child: _VodAlphaJumpAdapter(
+            scrollController: _scrollController,
+            indexOffsets: indexOffsets,
+            totalItemCount: allFiltered.length,
           ),
         ),
-        // Source filter bar (hidden when ≤1 source).
-        const SliverToBoxAdapter(child: SourceSelectorBar()),
-        if (!isSearchOrCategory)
-          ...cw.when(
-            data:
-                (items) =>
-                    items.isEmpty
-                        ? <Widget>[]
-                        : <Widget>[
-                          SliverToBoxAdapter(
-                            child: ContinueWatchingSection(
-                              title: 'Continue Watching',
-                              icon: Icons.play_circle_outline,
-                              items: items,
-                            ),
-                          ),
-                        ],
-            loading: () => <Widget>[],
-            error: (_, _) => <Widget>[],
-          ),
-        if (!isSearchOrCategory) ..._buildRecommendations(),
-        if (!isSearchOrCategory)
-          SliverToBoxAdapter(
-            child: RecentlyAddedSection(
-              showMoviesOnly: true,
-              onItemTap: (item) {
-                final tag = '${item.id}_recently_added';
-                context.push(
-                  AppRoutes.vodDetails,
-                  extra: {'item': item, 'heroTag': tag},
-                );
-              },
-            ),
-          ),
-        if (newReleases.isNotEmpty && !isSearchOrCategory)
-          SliverToBoxAdapter(
-            child: VodRow(
-              title: 'New Releases',
-              icon: Icons.new_releases,
-              items: newReleases,
-              isTitleBadge: true,
-            ),
-          ),
-        if (favorites.isNotEmpty && !isSearchOrCategory)
-          SliverToBoxAdapter(
-            child: VodRow(
-              title: 'Favorites',
-              icon: Icons.star,
-              items: favorites,
-            ),
-          ),
-        // FE-VODS-04: Auto-cycling featured hero with trailer support.
-        if (featured.isNotEmpty && !isSearchOrCategory)
-          SliverToBoxAdapter(child: VodFeaturedHero(items: featured)),
-        SliverToBoxAdapter(
-          child: GenrePillRow(
-            categories: movieCategories,
-            selectedCategory: selectedCategory,
-            onCategorySelected: (cat) {
-              setState(() => selectedCategory = cat);
-            },
-          ),
-        ),
-        if (isSearchOrCategory) ...[
-          SliverToBoxAdapter(
-            child: Semantics(
-              label: 'Movies grid',
-              container: true,
-              child: const SizedBox.shrink(),
-            ),
-          ),
-          VodMoviesGrid(movies: movies, density: _density),
-        ] else
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final cat = movieCategories[index];
-              final items =
-                  allFiltered.where((m) => m.category == cat).toList();
-              if (items.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              return VodRow(
-                title: cat,
-                icon: Icons.local_movies,
-                items: items,
-                isTitleBadge: true,
-              );
-            }, childCount: movieCategories.length),
-          ),
-        const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xl)),
       ],
+    );
+  }
+}
+
+/// Adapter that converts index-based offsets to pixel offsets
+/// once the scroll controller's max extent is known.
+class _VodAlphaJumpAdapter extends StatefulWidget {
+  final ScrollController scrollController;
+  final Map<String, double> indexOffsets;
+  final int totalItemCount;
+
+  const _VodAlphaJumpAdapter({
+    required this.scrollController,
+    required this.indexOffsets,
+    required this.totalItemCount,
+  });
+
+  @override
+  State<_VodAlphaJumpAdapter> createState() => _VodAlphaJumpAdapterState();
+}
+
+class _VodAlphaJumpAdapterState extends State<_VodAlphaJumpAdapter> {
+  Map<String, double> _pixelOffsets = const {};
+  bool _extentReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _update());
+    widget.scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void didUpdateWidget(_VodAlphaJumpAdapter old) {
+    super.didUpdateWidget(old);
+    if (old.indexOffsets != widget.indexOffsets ||
+        old.totalItemCount != widget.totalItemCount) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _update());
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.scrollController.removeListener(_onScroll);
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_extentReady && widget.scrollController.hasClients) {
+      _update();
+    }
+  }
+
+  void _update() {
+    if (!widget.scrollController.hasClients) return;
+    final maxExtent = widget.scrollController.position.maxScrollExtent;
+    if (maxExtent <= 0) return;
+    _extentReady = true;
+    final scaled = AlphaJumpBar.scaleOffsets(
+      widget.indexOffsets,
+      maxExtent,
+      widget.totalItemCount,
+    );
+    if (mounted) setState(() => _pixelOffsets = scaled);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlphaJumpBar(
+      controller: widget.scrollController,
+      sectionOffsets: _pixelOffsets,
+      totalItemCount: widget.totalItemCount,
     );
   }
 }

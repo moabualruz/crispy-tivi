@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -40,7 +42,7 @@ class OnboardingSyncStep extends ConsumerWidget {
               const CircularProgressIndicator(),
               const SizedBox(height: CrispySpacing.lg),
               Text(
-                'Connecting and loading channels...',
+                context.l10n.onboardingSyncing,
                 style: textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),
@@ -52,20 +54,20 @@ class OnboardingSyncStep extends ConsumerWidget {
               const Icon(Icons.check_circle, size: 72, color: Colors.green),
               const SizedBox(height: CrispySpacing.md),
               Text(
-                '${state.channelCount} channels loaded!',
+                context.l10n.onboardingChannelsLoaded(state.channelCount),
                 style: textTheme.titleLarge,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: CrispySpacing.xxl),
               Semantics(
                 button: true,
-                label: 'Enter the app',
+                label: context.l10n.onboardingEnterAppLabel,
                 child: FocusWrapper(
                   autofocus: true,
                   onSelect: () => _enterApp(context, ref),
                   child: FilledButton(
                     onPressed: () => _enterApp(context, ref),
-                    child: const Text('Enter App'),
+                    child: Text(context.l10n.onboardingEnterApp),
                   ),
                 ),
               ),
@@ -77,7 +79,7 @@ class OnboardingSyncStep extends ConsumerWidget {
               Icon(Icons.error_outline, size: 72, color: colorScheme.error),
               const SizedBox(height: CrispySpacing.md),
               Text(
-                'Could not connect',
+                context.l10n.onboardingCouldNotConnect,
                 style: textTheme.titleMedium,
                 textAlign: TextAlign.center,
               ),
@@ -96,23 +98,23 @@ class OnboardingSyncStep extends ConsumerWidget {
               const SizedBox(height: CrispySpacing.lg),
               Semantics(
                 button: true,
-                label: 'Retry connection',
+                label: context.l10n.onboardingRetryLabel,
                 child: FocusWrapper(
                   autofocus: true,
                   onSelect: () => notifier.retrySync(),
                   child: FilledButton(
                     onPressed: () => notifier.retrySync(),
-                    child: const Text('Retry'),
+                    child: Text(context.l10n.commonRetry),
                   ),
                 ),
               ),
               const SizedBox(height: CrispySpacing.sm),
               Semantics(
                 button: true,
-                label: 'Edit source details',
+                label: context.l10n.onboardingEditSource,
                 child: TextButton(
                   onPressed: () => notifier.editSource(),
-                  child: const Text('Edit source details'),
+                  child: Text(context.l10n.onboardingEditSource),
                 ),
               ),
             ],

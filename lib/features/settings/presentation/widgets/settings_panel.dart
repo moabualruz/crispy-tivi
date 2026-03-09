@@ -16,7 +16,7 @@ import 'settings_shared_widgets.dart' show kSettingsPanelWidth;
 /// On large screens, overlays the current content
 /// with a sliding settings panel. Use this instead
 /// of navigating to the full settings screen for a
-/// TiviMate-style experience.
+/// streamlined experience.
 void showSettingsPanel(BuildContext context) {
   showGeneralDialog(
     context: context,

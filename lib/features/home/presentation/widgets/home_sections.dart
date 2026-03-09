@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
@@ -39,6 +41,7 @@ void _showChannelContextMenu(
   showContextMenuPanel(
     context: context,
     sections: buildChannelContextMenu(
+      context: context,
       channelName: channel.name,
       isFavorite: channel.isFavorite,
       colorScheme: Theme.of(context).colorScheme,
@@ -88,7 +91,7 @@ class HomeContinueWatchingSection extends ConsumerWidget {
     // FE-H-05: dynamic label — "Continue Watching · 3 items".
     final cwTitle = dynamicSectionLabel(
       type: 'continue_watching',
-      fallback: 'Continue Watching',
+      fallback: context.l10n.vodContinueWatching,
       count: allContinueWatching.length,
     );
 

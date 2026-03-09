@@ -8,6 +8,7 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/favorite_star_overlay.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/smart_image.dart';
+import '../../../../core/widgets/watch_progress_bar.dart';
 import '../../domain/entities/channel.dart';
 
 /// A single channel row in the channel list.
@@ -31,6 +32,7 @@ class ChannelListItem extends StatefulWidget {
     this.autofocus = false,
     this.isDuplicate = false,
     this.isPlaying = false,
+    this.isInSmartGroup = false,
     super.key,
   });
 
@@ -69,6 +71,9 @@ class ChannelListItem extends StatefulWidget {
 
   /// Whether this channel is currently playing.
   final bool isPlaying;
+
+  /// Whether this channel belongs to a smart group.
+  final bool isInSmartGroup;
 
   @override
   State<ChannelListItem> createState() => _ChannelListItemState();
@@ -182,15 +187,11 @@ class _ChannelListItemState extends State<ChannelListItem> {
                 ),
                 if (widget.programProgress != null) ...[
                   const SizedBox(height: CrispySpacing.xs),
-                  ClipRect(
-                    child: LinearProgressIndicator(
-                      value: widget.programProgress,
-                      minHeight: 3,
-                      backgroundColor: colorScheme.surfaceContainerHighest,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        crispyColors.liveRed,
-                      ),
-                    ),
+                  WatchProgressBar(
+                    value: widget.programProgress ?? 0.0,
+                    height: 3,
+                    fillColor: crispyColors.liveRed,
+                    backgroundColor: colorScheme.surfaceContainerHighest,
                   ),
                 ],
                 if (widget.nextProgramLabel != null) ...[
@@ -242,6 +243,14 @@ class _ChannelListItemState extends State<ChannelListItem> {
                   size: 15,
                   color: colorScheme.tertiary,
                 ),
+              ),
+            ),
+          if (widget.isInSmartGroup)
+            Padding(
+              padding: const EdgeInsets.only(right: CrispySpacing.xs),
+              child: Tooltip(
+                message: 'Smart group',
+                child: Icon(Icons.bolt, size: 15, color: colorScheme.primary),
               ),
             ),
           if (widget.isDuplicate)

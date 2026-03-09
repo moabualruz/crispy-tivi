@@ -24,9 +24,14 @@ void main() {
           RemoteAction.toggleZap,
           RemoteAction.showOsd,
           RemoteAction.toggleCaptions,
+          RemoteAction.openGuide,
+          RemoteAction.openSettings,
+          RemoteAction.startRecording,
+          RemoteAction.openSearch,
+          RemoteAction.showDebug,
         ]),
       );
-      expect(RemoteAction.values, hasLength(13));
+      expect(RemoteAction.values, hasLength(18));
     });
 
     test('each action has a non-empty label', () {

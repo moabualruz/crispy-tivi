@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
+import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
 import 'package:crispy_tivi/core/network/network_timeouts.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
@@ -344,6 +345,9 @@ class JellyfinQuickConnectScreen extends ConsumerWidget {
       final data = next.asData?.value;
       if (data?.phase == _QcPhase.done && data?.source != null) {
         ref.read(settingsNotifierProvider.notifier).addSource(data!.source!);
+        unawaited(
+          ref.read(playlistSyncServiceProvider).syncSource(data.source!),
+        );
         context.pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Connected to ${data.source!.name}')),

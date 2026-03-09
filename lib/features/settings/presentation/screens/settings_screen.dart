@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,8 +27,10 @@ import '../widgets/notification_settings.dart';
 import '../widgets/parental_settings.dart';
 import '../widgets/live_tv_settings.dart';
 import '../widgets/playback_settings.dart';
+import '../widgets/screensaver_settings.dart';
 import '../widgets/remote_settings.dart';
 import '../widgets/appearance_settings.dart';
+import '../widgets/language_settings.dart';
 import '../widgets/settings_search_delegate.dart';
 import '../widgets/sources_settings.dart';
 import '../widgets/network_diagnostics_settings.dart';
@@ -129,6 +132,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     switch (section) {
       case SettingsSection.profiles:
       case SettingsSection.appearance:
+      case SettingsSection.language:
       case SettingsSection.liveTV:
       case SettingsSection.device:
         return _SettingsTab.general.index;
@@ -141,6 +145,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       case SettingsSection.playback:
       case SettingsSection.bandwidth:
       case SettingsSection.accessibility:
+      case SettingsSection.screensaver:
         return _SettingsTab.playback.index;
 
       case SettingsSection.sync:
@@ -199,12 +204,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     return Scaffold(
       key: TestKeys.settingsScreen,
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(context.l10n.navSettings),
         actions: [
           // Settings-internal search — filters and scrolls to a section.
           IconButton(
             icon: const Icon(Icons.manage_search),
-            tooltip: 'Search settings',
+            tooltip: context.l10n.settingsSearchSettings,
             onPressed: () => _openSettingsSearch(context),
           ),
           const AppBarSearchButton(),
@@ -213,13 +218,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           controller: _tabController,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          tabs: const [
-            Tab(icon: Icon(Icons.palette_outlined), text: 'General'),
-            Tab(icon: Icon(Icons.playlist_add), text: 'Sources'),
-            Tab(icon: Icon(Icons.play_circle_outline), text: 'Playback'),
-            Tab(icon: Icon(Icons.sync), text: 'Data'),
-            Tab(icon: Icon(Icons.tune), text: 'Advanced'),
-            Tab(icon: Icon(Icons.info_outline), text: 'About'),
+          tabs: [
+            Tab(
+              icon: const Icon(Icons.palette_outlined),
+              text: context.l10n.settingsGeneral,
+            ),
+            Tab(
+              icon: const Icon(Icons.playlist_add),
+              text: context.l10n.settingsSources,
+            ),
+            Tab(
+              icon: const Icon(Icons.play_circle_outline),
+              text: context.l10n.settingsPlayback,
+            ),
+            Tab(icon: const Icon(Icons.sync), text: context.l10n.settingsData),
+            Tab(
+              icon: const Icon(Icons.tune),
+              text: context.l10n.settingsAdvanced,
+            ),
+            Tab(
+              icon: const Icon(Icons.info_outline),
+              text: context.l10n.settingsAbout,
+            ),
           ],
         ),
       ),
@@ -238,12 +258,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                 children: [
                   const Icon(Icons.error_outline, size: 48),
                   const SizedBox(height: CrispySpacing.md),
-                  Text('Error: $e'),
+                  Text(context.l10n.commonError(e.toString())),
                   const SizedBox(height: CrispySpacing.lg),
                   FilledButton.icon(
                     onPressed: () => ref.invalidate(settingsNotifierProvider),
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Retry'),
+                    label: Text(context.l10n.commonRetry),
                   ),
                 ],
               ),
@@ -290,6 +310,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         SizedBox(
           key: _sectionKeys[SettingsSection.appearance],
           child: const _AppearanceSection(),
+        ),
+        const SizedBox(height: CrispySpacing.lg),
+
+        // ── Language ──
+        SizedBox(
+          key: _sectionKeys[SettingsSection.language],
+          child: const LanguageSettingsSection(),
         ),
         const SizedBox(height: CrispySpacing.lg),
 
@@ -370,6 +397,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         SizedBox(
           key: _sectionKeys[SettingsSection.accessibility],
           child: const AccessibilitySettingsSection(),
+        ),
+        const SizedBox(height: CrispySpacing.lg),
+
+        // ── Screensaver ──
+        SizedBox(
+          key: _sectionKeys[SettingsSection.screensaver],
+          child: ScreensaverSettingsSection(settings: settings),
         ),
         const SizedBox(height: CrispySpacing.xl),
       ],
@@ -542,12 +576,14 @@ enum SettingsSection {
   parental,
   // FE-S-05
   accessibility,
+  screensaver,
   admin,
   epgUrls,
   userAgent,
   backup,
   device,
   cloudSync,
+  language,
   cloudStorage,
   experimental,
   about,

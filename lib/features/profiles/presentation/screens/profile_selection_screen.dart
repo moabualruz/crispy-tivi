@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
@@ -22,7 +24,7 @@ import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 
-/// Netflix-style profile selection screen.
+/// Profile selection screen.
 ///
 /// Shown on app launch or when switching profiles.
 /// Single-profile auto-skip is handled by the GoRouter
@@ -61,7 +63,7 @@ class ProfileSelectionScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Who's watching?",
+                      context.l10n.profilesWhoIsWatching,
                       style: Theme.of(
                         context,
                       ).textTheme.headlineMedium?.copyWith(
@@ -201,7 +203,7 @@ class _ReorderableProfileGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     // Use a Wrap for the grid with an invisible ReorderableWrap delegate.
     // ReorderableListView only supports 1D lists — we use a scrollable row
-    // with drag handles. For the compact Netflix-style grid we rely on the
+    // with drag handles. For the compact grid we rely on the
     // standard Wrap + a long-press drag approach via ReorderableWrap.
     //
     // Implementation: wrap profiles in a horizontal ReorderableListView
@@ -521,7 +523,7 @@ class _AddProfileTile extends StatelessWidget {
             ),
             const SizedBox(height: CrispySpacing.sm),
             Text(
-              'Add Profile',
+              context.l10n.profilesCreate,
               style: textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),

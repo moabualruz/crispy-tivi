@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/smart_image.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/presentation/providers/channel_providers.dart';
 
@@ -70,13 +71,15 @@ class _ChannelPickerSheetState extends ConsumerState<ChannelPickerSheet> {
                     leading: SizedBox(
                       width: 40,
                       height: 40,
-                      child:
-                          channel.logoUrl != null
-                              ? Image.network(
-                                channel.logoUrl!,
-                                errorBuilder: (_, _, _) => const Icon(Icons.tv),
-                              )
-                              : const Icon(Icons.tv),
+                      child: SmartImage(
+                        title: channel.name,
+                        imageUrl: channel.logoUrl,
+                        imageKind: 'logo',
+                        fit: BoxFit.contain,
+                        icon: Icons.tv,
+                        memCacheWidth: 80,
+                        memCacheHeight: 80,
+                      ),
                     ),
                     title: Text(channel.name),
                     onTap: () => widget.onSelect(channel),

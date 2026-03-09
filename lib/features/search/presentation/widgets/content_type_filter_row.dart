@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../domain/entities/search_filter.dart';
 
@@ -33,7 +35,7 @@ class ContentTypeFilterRow extends StatelessWidget {
       child: Row(
         children: [
           _FilterChip(
-            label: 'Channels',
+            label: context.l10n.searchFilterChannels,
             icon: Icons.live_tv,
             isSelected: filter.contentTypes.contains(
               SearchContentType.channels,
@@ -44,7 +46,7 @@ class ContentTypeFilterRow extends StatelessWidget {
           ),
           const SizedBox(width: CrispySpacing.sm),
           _FilterChip(
-            label: 'Movies',
+            label: context.l10n.searchFilterMovies,
             icon: Icons.movie,
             isSelected: filter.contentTypes.contains(SearchContentType.movies),
             selectedColor: colorScheme.primary,
@@ -53,7 +55,7 @@ class ContentTypeFilterRow extends StatelessWidget {
           ),
           const SizedBox(width: CrispySpacing.sm),
           _FilterChip(
-            label: 'Series',
+            label: context.l10n.searchFilterSeries,
             icon: Icons.tv,
             isSelected: filter.contentTypes.contains(SearchContentType.series),
             selectedColor: colorScheme.primary,

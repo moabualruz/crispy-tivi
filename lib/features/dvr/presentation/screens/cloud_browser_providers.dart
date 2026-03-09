@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/toggle_notifier.dart';
 import '../../domain/storage_provider.dart';
 import '../../domain/utils/file_filter.dart';
 
@@ -88,10 +89,7 @@ final selectedPathsProvider =
     );
 
 /// Tracks whether multi-select mode is currently active.
-class MultiSelectNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-
+class MultiSelectNotifier extends ToggleNotifier {
   void activate() => state = true;
   void deactivate() => state = false;
 }
@@ -103,10 +101,7 @@ final multiSelectActiveProvider = NotifierProvider<MultiSelectNotifier, bool>(
 // ── FE-CB-08: Upload state ─────────────────────────────────────────
 
 /// Whether an upload is currently in progress.
-class UploadActiveNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-
+class UploadActiveNotifier extends ToggleNotifier {
   void setActive(bool active) => state = active;
 }
 

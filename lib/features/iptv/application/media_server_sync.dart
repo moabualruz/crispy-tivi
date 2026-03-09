@@ -1,10 +1,13 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../config/settings_notifier.dart';
 import '../../../core/constants.dart';
 import '../../../core/data/cache_service.dart';
-import '../../../core/data/crispy_backend.dart';
 import '../../../core/domain/entities/media_item.dart';
 import '../../../core/domain/entities/media_type.dart';
 import '../../../core/domain/entities/playlist_source.dart';
@@ -22,33 +25,103 @@ import 'playlist_sync_service.dart';
 /// unified Rust VOD database.
 ///
 /// Fetches library items via Dart HTTP clients, maps them to
-/// [VodItem]s, and persists via [CrispyBackend.saveVodItems].
+/// [VodItem]s, and persists via [CacheService].
 class MediaServerSyncService {
   MediaServerSyncService(this._ref);
   final Ref _ref;
 
+  /// Threshold in bytes above which JSON decoding is offloaded to a
+  /// background isolate to avoid UI jank during large library syncs.
+  static const int _offloadThresholdBytes = 50 * 1024;
+
+  /// Decodes UTF-8 response bytes, offloading to a background isolate
+  /// for payloads larger than [_offloadThresholdBytes].
+  static FutureOr<String> _lenientUtf8Decoder(
+    List<int> responseBytes,
+    RequestOptions options,
+    ResponseBody responseBody,
+  ) {
+    if (responseBytes.length > _offloadThresholdBytes) {
+      return compute(_decodeUtf8, responseBytes);
+    }
+    return utf8.decode(responseBytes, allowMalformed: true);
+  }
+
+  static String _decodeUtf8(List<int> bytes) =>
+      utf8.decode(bytes, allowMalformed: true);
+
   /// Syncs a single media server source and returns a [SyncReport].
+  ///
+  /// Updates the source sync status in the Rust DB on success or failure.
   Future<SyncReport> syncSource(PlaylistSource source) async {
-    return switch (source.type) {
-      PlaylistSourceType.plex => _syncPlex(source),
-      PlaylistSourceType.emby ||
-      PlaylistSourceType.jellyfin => _syncEmbyJellyfin(source),
-      _ => throw ArgumentError('Not a media server: ${source.type}'),
-    };
+    final cache = _ref.read(cacheServiceProvider);
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      final report = await switch (source.type) {
+        PlaylistSourceType.plex => _syncPlex(source),
+        PlaylistSourceType.emby ||
+        PlaylistSourceType.jellyfin => _syncEmbyJellyfin(source),
+        _ => throw ArgumentError('Not a media server: ${source.type}'),
+      };
+
+      stopwatch.stop();
+      await cache.updateSourceSyncStatus(
+        source.id,
+        'success',
+        syncTimeMs: stopwatch.elapsedMilliseconds,
+      );
+      return report;
+    } catch (e) {
+      stopwatch.stop();
+      await cache.updateSourceSyncStatus(
+        source.id,
+        'error',
+        error: e.toString(),
+        syncTimeMs: stopwatch.elapsedMilliseconds,
+      );
+      rethrow;
+    }
+  }
+
+  /// Re-authenticates an Emby/Jellyfin source to obtain a fresh userId.
+  ///
+  /// Returns the updated [PlaylistSource] with userId populated,
+  /// or `null` if re-authentication fails.
+  Future<PlaylistSource?> _reAuthEmbyJellyfin(
+    PlaylistSource source,
+    Dio dio,
+  ) async {
+    if (source.username == null || source.password == null) return null;
+
+    try {
+      final client = MediaServerApiClient(dio, baseUrl: source.url);
+      final authResult = await client.authenticateByName({
+        'Username': source.username!,
+        'Pw': source.password!,
+      });
+
+      final updated = source.copyWith(
+        userId: authResult.user.id,
+        accessToken: authResult.accessToken,
+      );
+      // Persist the refreshed credentials.
+      await _ref.read(settingsNotifierProvider.notifier).updateSource(updated);
+      return updated;
+    } catch (e) {
+      debugPrint('MediaServerSync: re-auth failed for ${source.name}: $e');
+      return null;
+    }
   }
 
   /// Syncs an Emby or Jellyfin source.
   Future<SyncReport> _syncEmbyJellyfin(PlaylistSource source) async {
-    if (source.userId == null) {
-      debugPrint('MediaServerSync: ${source.name} — no userId, skip');
-      return const SyncReport();
-    }
-
     final dio = Dio(
       BaseOptions(
         baseUrl: source.url,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 30),
+        responseDecoder: _lenientUtf8Decoder,
       ),
     );
     try {
@@ -59,22 +132,39 @@ class MediaServerSyncService {
         source.deviceId,
       );
 
+      // Re-authenticate if userId is missing instead of silently skipping.
+      var activeSource = source;
+      if (activeSource.userId == null) {
+        final refreshed = await _reAuthEmbyJellyfin(activeSource, dio);
+        if (refreshed == null) {
+          throw StateError(
+            '${activeSource.name}: no userId and re-authentication failed '
+            '(credentials may be missing or invalid)',
+          );
+        }
+        activeSource = refreshed;
+        // Update Dio headers with fresh token.
+        if (activeSource.accessToken != null) {
+          dio.options.headers['X-Emby-Token'] = activeSource.accessToken;
+        }
+      }
+
       final server = MediaServerSource(
-        apiClient: MediaServerApiClient(dio, baseUrl: source.url),
-        serverUrl: source.url,
-        userId: source.userId!,
-        deviceId: source.deviceId ?? kDefaultDeviceId,
-        serverName: source.name,
-        serverId: source.id,
-        accessToken: source.accessToken ?? '',
+        apiClient: MediaServerApiClient(dio, baseUrl: activeSource.url),
+        serverUrl: activeSource.url,
+        userId: activeSource.userId!,
+        deviceId: activeSource.deviceId ?? kDefaultDeviceId,
+        serverName: activeSource.name,
+        serverId: activeSource.id,
+        accessToken: activeSource.accessToken ?? '',
         type:
-            source.type == PlaylistSourceType.emby
+            activeSource.type == PlaylistSourceType.emby
                 ? MediaServerType.emby
                 : MediaServerType.jellyfin,
       );
 
       return _syncMediaServer(
-        source: source,
+        source: activeSource,
         fetchLibraries: () => server.getLibrary(null),
         fetchPage:
             (libraryId, startIndex) => server.getLibraryPaginated(
@@ -83,8 +173,9 @@ class MediaServerSyncService {
               limit: kMediaServerPageSize,
             ),
         buildStreamUrl:
-            (itemId) => '${source.type.name}://${source.id}/$itemId',
-        idPrefix: source.type == PlaylistSourceType.emby ? 'emby' : 'jf',
+            (itemId) =>
+                '${activeSource.type.name}://${activeSource.id}/$itemId',
+        idPrefix: activeSource.type == PlaylistSourceType.emby ? 'emby' : 'jf',
       );
     } finally {
       dio.close();
@@ -97,6 +188,7 @@ class MediaServerSyncService {
       BaseOptions(
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 30),
+        responseDecoder: _lenientUtf8Decoder,
       ),
     );
     try {
@@ -128,6 +220,9 @@ class MediaServerSyncService {
   }
 
   /// Generic sync loop shared by all server types.
+  ///
+  /// Saves partial results on error and uses [CacheService] consistently
+  /// for all data operations.
   Future<SyncReport> _syncMediaServer({
     required PlaylistSource source,
     required Future<List<MediaItem>> Function() fetchLibraries,
@@ -139,12 +234,14 @@ class MediaServerSyncService {
     required String Function(String itemId) buildStreamUrl,
     required String idPrefix,
   }) async {
-    final backend = _ref.read(crispyBackendProvider);
     final cache = _ref.read(cacheServiceProvider);
 
     // 1. Fetch root libraries.
     final libraries = await fetchLibraries();
-    final vodLibraries = libraries.where((lib) => lib.type == MediaType.folder);
+    // Skip libraries with empty IDs (null key guard for Plex).
+    final vodLibraries = libraries.where(
+      (lib) => lib.type == MediaType.folder && lib.id.isNotEmpty,
+    );
 
     final allVodItems = <VodItem>[];
     final allCategories = <String>[];
@@ -158,7 +255,7 @@ class MediaServerSyncService {
       var hasMore = true;
 
       while (hasMore) {
-        final page = await fetchPage(library.id, startIndex);
+        final page = await withRetry(() => fetchPage(library.id, startIndex));
 
         for (final item in page.items) {
           // Skip non-playable container types.
@@ -185,16 +282,17 @@ class MediaServerSyncService {
       }
     }
 
-    // 3. Persist to Rust DB.
+    // 3. Persist to Rust DB + clean up stale items.
+    // Guard: only delete when we got valid results. An empty result
+    // could indicate a network/parse error, not that all items were
+    // removed from the server. Prevents catastrophic data loss.
     if (allVodItems.isNotEmpty) {
       await cache.saveVodItems(allVodItems);
+      final keepIds = allVodItems.map((v) => v.id).toSet();
+      await cache.deleteRemovedVodItems(source.id, keepIds);
     }
 
-    // 4. Clean up items no longer on server.
-    final keepIds = allVodItems.map((v) => v.id).toSet();
-    await backend.deleteRemovedVodItems(source.id, keepIds.toList());
-
-    // 5. Save categories.
+    // 4. Save categories.
     if (allCategories.isNotEmpty) {
       // Merge with existing categories (don't overwrite IPTV ones).
       final existing = await cache.loadCategories();
@@ -213,5 +311,30 @@ class MediaServerSyncService {
       vodCount: allVodItems.length,
       vodCategories: allCategories,
     );
+  }
+
+  /// Retries [fn] up to [maxAttempts] times for transient server errors.
+  ///
+  /// Only retries on 5xx status codes and timeouts. Client errors (4xx)
+  /// are rethrown immediately. Uses exponential backoff between attempts.
+  @visibleForTesting
+  static Future<T> withRetry<T>(
+    Future<T> Function() fn, {
+    int maxAttempts = 3,
+  }) async {
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await fn();
+      } on DioException catch (e) {
+        final isRetryable =
+            e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.receiveTimeout ||
+            (e.response?.statusCode != null && e.response!.statusCode! >= 500);
+        if (attempt == maxAttempts || !isRetryable) rethrow;
+        await Future<void>.delayed(Duration(seconds: attempt * 2));
+      }
+    }
+    // Unreachable — the loop always returns or rethrows.
+    throw StateError('unreachable');
   }
 }

@@ -77,6 +77,7 @@ class VodMoviesGrid extends ConsumerWidget {
           () => showContextMenuPanel(
             context: context,
             sections: buildMovieContextMenu(
+              context: context,
               movieName: item.name,
               isFavorite: item.isFavorite,
               colorScheme: Theme.of(context).colorScheme,

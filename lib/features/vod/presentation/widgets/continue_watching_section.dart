@@ -119,7 +119,7 @@ class WatchHistoryCardOverlay extends StatelessWidget {
   }
 }
 
-/// Netflix-style "Continue Watching" row utilizing standard [VodRow].
+/// Cinematic "Continue Watching" row utilizing standard [VodRow].
 class ContinueWatchingSection extends ConsumerWidget {
   const ContinueWatchingSection({
     super.key,

@@ -283,8 +283,26 @@ class EpgNotifier extends Notifier<EpgState> {
       final mergedJson = await backend.mergeEpgWindow(existingJson, newJson);
       final merged = EpgJsonCodec.decode(mergedJson);
 
+      // Evict entries outside the retention window to bound memory.
+      // Run after merge so dedup has both old and new data.
+      const retentionBuffer = Duration(hours: 4);
+      final retentionStart = start.subtract(retentionBuffer);
+      final retentionEnd = end.add(retentionBuffer);
+      final trimmed = <String, List<EpgEntry>>{};
+      for (final entry in merged.entries) {
+        final kept =
+            entry.value
+                .where(
+                  (e) =>
+                      e.endTime.isAfter(retentionStart) &&
+                      e.startTime.isBefore(retentionEnd),
+                )
+                .toList();
+        if (kept.isNotEmpty) trimmed[entry.key] = kept;
+      }
+
       state = state.copyWith(
-        entries: merged,
+        entries: trimmed,
         isLoading: false,
         clearError: true,
       );

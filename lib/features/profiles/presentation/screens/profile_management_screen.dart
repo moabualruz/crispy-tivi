@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -28,7 +30,7 @@ class ProfileManagementScreen extends ConsumerWidget {
 
     return Scaffold(
       key: TestKeys.profileManagementScreen,
-      appBar: AppBar(title: const Text('Manage Profiles')),
+      appBar: AppBar(title: Text(context.l10n.profilesManage)),
       body: stateAsync.when(
         loading: () => const LoadingStateWidget(),
         error:
@@ -125,11 +127,11 @@ class ProfileManagementScreen extends ConsumerWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+                child: Text(context.l10n.commonCancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Confirm'),
+                child: Text(context.l10n.commonConfirm),
               ),
             ],
           ),

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:crispy_tivi/l10n/app_localizations.dart';
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../providers/channel_providers.dart';
 
 /// Typed action keys for sort/filter operations emitted by
@@ -47,22 +50,24 @@ class ChannelSortMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return PopupMenuButton<ChannelSortAction>(
       icon: Icon(state.isReorderMode ? Icons.check : Icons.sort),
-      tooltip: state.isReorderMode ? 'Done reordering' : 'Sort options',
+      tooltip:
+          state.isReorderMode ? l10n.iptvSortDone : l10n.iptvSearchChannels,
       onSelected: onSelected,
-      itemBuilder: (_) => _buildItems(),
+      itemBuilder: (ctx) => _buildItems(ctx.l10n),
     );
   }
 
-  List<PopupMenuEntry<ChannelSortAction>> _buildItems() {
+  List<PopupMenuEntry<ChannelSortAction>> _buildItems(AppLocalizations l10n) {
     if (state.isReorderMode) {
       return [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: ChannelSortAction.done,
           child: ListTile(
-            leading: Icon(Icons.check),
-            title: Text('Done'),
+            leading: const Icon(Icons.check),
+            title: Text(l10n.iptvSortDone),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -74,13 +79,13 @@ class ChannelSortMenu extends StatelessWidget {
       _sortItem(
         ChannelSortAction.sortDefault,
         Icons.format_list_numbered,
-        'By Playlist Order',
+        l10n.iptvSortByPlaylistOrder,
         cs == ChannelSortMode.defaultOrder,
       ),
       _sortItem(
         ChannelSortAction.sortName,
         Icons.sort_by_alpha,
-        'By Name',
+        l10n.iptvSortByName,
         cs == ChannelSortMode.byName,
       ),
       _sortItem(
@@ -103,11 +108,11 @@ class ChannelSortMenu extends StatelessWidget {
       ),
       const PopupMenuDivider(),
       if (state.customOrderMap != null)
-        const PopupMenuItem(
+        PopupMenuItem(
           value: ChannelSortAction.reset,
           child: ListTile(
-            leading: Icon(Icons.restore),
-            title: Text('Reset to Default'),
+            leading: const Icon(Icons.restore),
+            title: Text(l10n.iptvSortResetToDefault),
             contentPadding: EdgeInsets.zero,
           ),
         ),

@@ -334,6 +334,15 @@ class PlexSource implements MediaSource {
     }
   }
 
+  /// Builds a full Plex image URL with authentication token.
+  ///
+  /// Plex API returns relative paths (e.g. `/library/metadata/35/thumb/...`).
+  /// Clients must prepend the server URL and append the auth token.
+  String? _buildImageUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    return '$serverUrl$path?X-Plex-Token=$accessToken';
+  }
+
   MediaItem _mapToMediaItem(dynamic item) {
     if (item is PlexMetadata) {
       final releaseDate =
@@ -341,12 +350,15 @@ class PlexSource implements MediaSource {
               ? DateTime.tryParse(item.originallyAvailableAt!)
               : (item.year != null ? DateTime(item.year!) : null);
 
+      final thumbUrl = _buildImageUrl(item.thumb);
+      final backdropUrl = _buildImageUrl(item.art);
+
       return MediaItem(
         id: item.ratingKey ?? '',
         name: item.title ?? 'Unknown',
         type: _mapType(item.type),
         parentId: null,
-        logoUrl: item.thumb,
+        logoUrl: thumbUrl,
         overview: item.summary,
         releaseDate: releaseDate,
         durationMs: item.duration,
@@ -355,7 +367,7 @@ class PlexSource implements MediaSource {
         isWatched: item.isWatched,
         rating: item.contentRating,
         metadata: {
-          if (item.art != null) 'backdropUrl': item.art,
+          if (backdropUrl != null) 'backdropUrl': backdropUrl,
           if (item.year != null) 'year': item.year,
         },
       );

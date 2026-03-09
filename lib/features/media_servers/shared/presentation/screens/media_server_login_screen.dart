@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -12,6 +13,7 @@ import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/widgets/async_filled_button.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
+import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/error_sanitizer.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
 
@@ -301,10 +303,14 @@ class _MediaServerLoginScreenState
 
       if (mounted) {
         ref.read(settingsNotifierProvider.notifier).addSource(source);
-        context.pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Connected to ${source.name}')));
+        // Trigger immediate sync so content appears without restart.
+        unawaited(ref.read(playlistSyncServiceProvider).syncSource(source));
+        if (mounted) {
+          context.pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Connected to ${source.name}')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

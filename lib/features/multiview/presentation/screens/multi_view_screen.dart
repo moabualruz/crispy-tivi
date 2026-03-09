@@ -16,25 +16,23 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:media_kit/media_kit.dart';
 
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
-import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../../core/theme/crispy_typography.dart';
-import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/glass_surface.dart';
 import '../../../iptv/presentation/providers/channel_providers.dart';
 import '../../../iptv/presentation/widgets/channel_number_jump_overlay.dart';
-import '../../../player/presentation/providers/pip_provider.dart';
 import '../../domain/entities/active_stream.dart';
 import '../../domain/entities/multiview_session.dart';
 import '../providers/multiview_providers.dart';
 import '../widgets/channel_picker_sheet.dart';
 import '../widgets/empty_slot.dart';
+import '../widgets/multiview_controls.dart';
 import '../widgets/multiview_epg_sheet.dart';
+import '../widgets/multiview_slot_tile.dart';
+import '../widgets/multiview_stats_overlay.dart';
 import '../widgets/saved_layouts_sheet.dart';
 import '../widgets/video_slot.dart';
 
@@ -84,6 +82,8 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focusNode.requestFocus();
     });
+    // Enter immersive mode (hide system bars) like the player does.
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _scaleController = AnimationController(
       vsync: this,
       duration: CrispyAnimation.normal,
@@ -96,6 +96,8 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
 
   @override
   void dispose() {
+    // Restore system UI bars on exit.
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _focusNode.dispose();
     _scaleController.dispose();
     _dialTimer?.cancel();
@@ -286,7 +288,8 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
                           children: [
                             // ── Named preset chips (FE-MV-01) ──
                             // Hide chips in portrait to save space.
-                            if (!isPortrait) _PresetChipRow(session: session),
+                            if (!isPortrait)
+                              MultiviewPresetChipRow(session: session),
                             if (!isPortrait)
                               const VerticalDivider(
                                 width: CrispySpacing.lg,
@@ -326,7 +329,9 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
                             // FE-MV-02: Picture-in-Picture button —
                             // only visible on Android and iOS.
                             if (Platform.isAndroid || Platform.isIOS)
-                              _PipButton(focusedSlotIndex: _dialSlotIndex),
+                              MultiviewPipButton(
+                                focusedSlotIndex: _dialSlotIndex,
+                              ),
                             const SizedBox(width: CrispySpacing.sm),
                             IconButton(
                               onPressed: () => Navigator.pop(context),
@@ -359,7 +364,7 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
                       ),
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
-                        child: _PresetChipRow(session: session),
+                        child: MultiviewPresetChipRow(session: session),
                       ),
                     ),
                   ),
@@ -419,7 +424,7 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
 
     return Stack(
       children: [
-        _SlotTile(
+        MultiviewSlotTile(
           index: index,
           slot: slot,
           isAudioFocus: isAudioFocus,
@@ -446,7 +451,7 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
 
         // FE-MV-06: Stats overlay — shown on long-press.
         if (showStats)
-          _StatsOverlay(
+          MultiviewStatsOverlay(
             slot: slot,
             onDismiss: () => setState(() => _statsSlotIndex = null),
           ),
@@ -500,7 +505,7 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
             bottom: CrispySpacing.md,
             left: 0,
             right: 0,
-            child: Center(child: _EscapeHint(onDismiss: _restore)),
+            child: Center(child: MultiviewEscapeHint(onDismiss: _restore)),
           ),
         ],
       ),
@@ -608,518 +613,5 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
             },
           ),
     ).then((_) => _restoreFocus());
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  _SlotTile — grid cell with double-tap / Enter maximize
-// ─────────────────────────────────────────────────────────────
-
-/// A single cell in the multi-view grid.
-///
-/// Wraps [FocusWrapper] to handle:
-/// - Single tap/Enter → select audio focus (or open channel picker).
-/// - Double-tap / [onMaximize] callback → maximize (FE-MV-03).
-/// - Enter key when focused → audio focus / picker (via FocusWrapper).
-///
-/// TV "Press Enter to maximize" hint is shown when the slot is
-/// focused and filled.
-class _SlotTile extends StatefulWidget {
-  const _SlotTile({
-    required this.index,
-    required this.slot,
-    required this.isAudioFocus,
-    required this.colorScheme,
-    required this.onSelect,
-    this.onLongPress,
-    this.onMaximize,
-    // FE-MV-08: notifies parent when this slot gains/loses focus.
-    this.onFocused,
-  });
-
-  final int index;
-  final ActiveStream? slot;
-  final bool isAudioFocus;
-  final ColorScheme colorScheme;
-  final VoidCallback onSelect;
-  final VoidCallback? onLongPress;
-  final VoidCallback? onMaximize;
-
-  /// Called when focus changes. [focused] is true when gained.
-  final ValueChanged<bool>? onFocused;
-
-  @override
-  State<_SlotTile> createState() => _SlotTileState();
-}
-
-class _SlotTileState extends State<_SlotTile> {
-  bool _focused = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      // Double-tap maximizes the slot.
-      onDoubleTap: widget.onMaximize,
-      child: FocusWrapper(
-        autofocus: widget.index == 0,
-        borderRadius: CrispyRadius.tv,
-        scaleFactor: 1.0,
-        semanticLabel:
-            widget.slot != null
-                ? 'Slot ${widget.index + 1}: ${widget.slot!.channelName}'
-                : 'Empty slot ${widget.index + 1}',
-        onSelect: widget.onSelect,
-        onLongPress: widget.onLongPress,
-        // Listen to focus changes to show the TV maximize hint
-        // and to route digit keys to this slot (FE-MV-08).
-        onFocusChange: (focused) {
-          if (mounted) {
-            setState(() => _focused = focused);
-            widget.onFocused?.call(focused);
-          }
-        },
-        // Enter key on a filled slot: first press = audio focus,
-        // double-press pattern is handled at the GestureDetector level.
-        // For TV, we also support a dedicated "maximize" via long-press on
-        // the FocusWrapper (mapped to onLongPress which calls startPlayback).
-        child: Stack(
-          children: [
-            // Slot border + content.
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                border: Border.all(
-                  color:
-                      widget.isAudioFocus
-                          ? widget.colorScheme.primary
-                          : Colors.white24,
-                  width: widget.isAudioFocus ? 3 : 1,
-                ),
-              ),
-              child:
-                  widget.slot != null
-                      ? VideoSlot(
-                        index: widget.index,
-                        stream: widget.slot!,
-                        isAudioFocus: widget.isAudioFocus,
-                      )
-                      : const EmptySlot(),
-            ),
-
-            // TV hint overlay: "Press Enter to maximize" (FE-MV-03).
-            if (_focused && widget.slot != null && widget.onMaximize != null)
-              Positioned(
-                bottom: CrispySpacing.xs,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: AnimatedOpacity(
-                    opacity: _focused ? 1.0 : 0.0,
-                    duration: CrispyAnimation.fast,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: CrispySpacing.sm,
-                        vertical: CrispySpacing.xxs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: CrispyColors.scrimMid,
-                        borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.open_in_full,
-                            size: 12,
-                            color: Colors.white70,
-                          ),
-                          const SizedBox(width: CrispySpacing.xxs),
-                          Text(
-                            'Double-tap to maximize',
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(color: Colors.white70),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  _StatsOverlay — FE-MV-06
-// ─────────────────────────────────────────────────────────────
-
-/// Semi-transparent stats panel shown on long-press of a filled slot.
-///
-/// Displays playback stats from the [MiniPlayer]'s underlying
-/// [Player.state]: bitrate, dropped frames, buffer level, and
-/// resolution. Tapping dismisses it.
-///
-/// Because [MiniPlayer] owns the [Player] instance internally and
-/// doesn't expose it, this widget watches live [PlayerState] via
-/// media_kit's own stream-based state. Stats are best-effort — if
-/// no player is linked to [slot], placeholder values are shown.
-class _StatsOverlay extends StatelessWidget {
-  const _StatsOverlay({required this.slot, required this.onDismiss});
-
-  final ActiveStream slot;
-  final VoidCallback onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    // Stats are read from a StreamBuilder that listens to the
-    // underlying Player state. Because MiniPlayer owns its own
-    // Player instance privately, we surface the static slot info
-    // that is always available, and note the dynamic stats as live
-    // values that the player exposes through its own ValueNotifier
-    // streams. In this implementation we display the always-correct
-    // channel/URL and show placeholder stats with a note that
-    // real-time stats require a shared player controller reference.
-    return GestureDetector(
-      onTap: onDismiss,
-      child: Container(
-        color: Colors.transparent, // absorb taps across the whole tile.
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: Padding(
-            padding: const EdgeInsets.all(CrispySpacing.sm),
-            child: _StatsPanel(slot: slot, onDismiss: onDismiss),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The actual stats panel card.
-class _StatsPanel extends StatelessWidget {
-  const _StatsPanel({required this.slot, required this.onDismiss});
-
-  final ActiveStream slot;
-  final VoidCallback onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      padding: const EdgeInsets.all(CrispySpacing.sm),
-      decoration: BoxDecoration(
-        color: CrispyColors.scrimHeavy,
-        borderRadius: BorderRadius.circular(CrispyRadius.tv),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: DefaultTextStyle(
-        style:
-            textTheme.labelSmall?.copyWith(
-              color: Colors.white70,
-              fontFamily: 'monospace',
-              fontSize: CrispyTypography.micro,
-              height: 1.6,
-            ) ??
-            const TextStyle(
-              color: Colors.white70,
-              fontFamily: 'monospace',
-              fontSize: CrispyTypography.micro,
-              height: 1.6,
-            ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header row.
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.bar_chart, size: 12, color: Colors.white54),
-                const SizedBox(width: CrispySpacing.xxs),
-                Text(
-                  'STATS',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: Colors.white54,
-                    fontSize: 9,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: CrispySpacing.sm),
-                GestureDetector(
-                  onTap: onDismiss,
-                  child: const Icon(
-                    Icons.close,
-                    size: 12,
-                    color: Colors.white38,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: CrispySpacing.xxs),
-            _LiveStats(slot: slot),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Streams live playback stats from the shared player state.
-///
-/// Listens to [_miniPlayerStatsProvider] which is keyed by stream URL.
-/// If no stats are available yet, shows placeholder dashes.
-class _LiveStats extends StatefulWidget {
-  const _LiveStats({required this.slot});
-
-  final ActiveStream slot;
-
-  @override
-  State<_LiveStats> createState() => _LiveStatsState();
-}
-
-class _LiveStatsState extends State<_LiveStats> {
-  /// Holds the last-known player state snapshot.
-  PlayerState? _state;
-
-  @override
-  Widget build(BuildContext context) {
-    // Resolution, bitrate, buffer and dropped-frames come from
-    // media_kit Player.stream — they are only available when the
-    // MiniPlayer shares its Player reference. Since MiniPlayer
-    // creates its player privately, we show channel-level info
-    // that is always accurate and mark runtime stats as
-    // "live" — they will populate once a shared controller
-    // pattern is adopted.
-    final w = _state?.videoParams.dw;
-    final h = _state?.videoParams.dh;
-    final resolution = (w != null && h != null) ? '${w}x$h' : 'live';
-    final bufferMs =
-        _state != null ? '${_state!.buffer.inMilliseconds} ms' : 'live';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _StatRow(label: 'Channel', value: widget.slot.channelName),
-        _StatRow(label: 'Res', value: resolution),
-        _StatRow(label: 'Buffer', value: bufferMs),
-        _StatRow(label: 'Bitrate', value: 'live'),
-        _StatRow(label: 'Dropped', value: 'live'),
-      ],
-    );
-  }
-}
-
-/// One `label: value` line in the stats panel.
-class _StatRow extends StatelessWidget {
-  const _StatRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 52,
-          child: Text(label, style: const TextStyle(color: Colors.white38)),
-        ),
-        Text(value),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  _PresetChipRow — FE-MV-01
-// ─────────────────────────────────────────────────────────────
-
-/// Horizontal row of [ChoiceChip]s for each [MultiViewPreset].
-///
-/// Selection drives [MultiViewNotifier.setPreset] which updates
-/// both the named preset and the underlying grid layout.
-class _PresetChipRow extends ConsumerWidget {
-  const _PresetChipRow({required this.session});
-
-  final MultiViewSession session;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children:
-          MultiViewPreset.values.map((preset) {
-            final isSelected = session.preset == preset;
-            return Padding(
-              padding: const EdgeInsets.only(right: CrispySpacing.xs),
-              child: ChoiceChip(
-                avatar: Icon(
-                  preset.icon,
-                  size: 16,
-                  color:
-                      isSelected
-                          ? colorScheme.onPrimaryContainer
-                          : colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-                label: Text(preset.label),
-                selected: isSelected,
-                onSelected: (_) {
-                  ref.read(multiViewProvider.notifier).setPreset(preset);
-                },
-                selectedColor: colorScheme.primaryContainer,
-                backgroundColor: Colors.white10,
-                labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color:
-                      isSelected
-                          ? colorScheme.onPrimaryContainer
-                          : colorScheme.onSurface.withValues(alpha: 0.85),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                  side: BorderSide(
-                    color: isSelected ? colorScheme.primary : Colors.white24,
-                  ),
-                ),
-                showCheckmark: false,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: CrispySpacing.xs,
-                  vertical: CrispySpacing.xxs,
-                ),
-              ),
-            );
-          }).toList(),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  _PipButton — FE-MV-02
-// ─────────────────────────────────────────────────────────────
-
-/// PiP toggle button shown in the multiview controls overlay.
-///
-/// Only rendered on Android and iOS (guard at call site). Tapping
-/// enters PiP for the currently focused slot via [PipNotifier].
-/// Tapping again while PiP is active calls [PipNotifier.exitPip].
-///
-/// NOTE: The native MethodChannel handler is a stub — see
-/// [PipNotifier] for the TODO items needed to complete native wiring.
-class _PipButton extends ConsumerWidget {
-  const _PipButton({this.focusedSlotIndex});
-
-  /// Index of the slot currently receiving focus / digit input.
-  /// Passed to [PipNotifier.enterPip] so the native side can
-  /// select the correct video surface.
-  final int? focusedSlotIndex;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final pipState = ref.watch(pipProvider);
-    final isActive = pipState.isActive;
-
-    return Tooltip(
-      message: isActive ? 'Exit Picture-in-Picture' : 'Picture-in-Picture',
-      child: IconButton(
-        onPressed: () {
-          if (isActive) {
-            ref.read(pipProvider.notifier).exitPip();
-          } else {
-            ref
-                .read(pipProvider.notifier)
-                .enterPip(slotIndex: focusedSlotIndex);
-          }
-        },
-        icon: Icon(
-          isActive ? Icons.picture_in_picture : Icons.picture_in_picture_alt,
-          color: isActive ? Colors.white : Colors.white70,
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  _EscapeHint — auto-hiding dismiss hint (FE-MV-03)
-// ─────────────────────────────────────────────────────────────
-
-/// Shows a "Press Esc / Back to return" hint that fades out after
-/// [_kHintDuration].
-class _EscapeHint extends StatefulWidget {
-  const _EscapeHint({required this.onDismiss});
-
-  final VoidCallback onDismiss;
-
-  @override
-  State<_EscapeHint> createState() => _EscapeHintState();
-}
-
-class _EscapeHintState extends State<_EscapeHint>
-    with SingleTickerProviderStateMixin {
-  static const _kHintDuration = Duration(seconds: 3);
-
-  late final AnimationController _fadeController;
-  late final Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: CrispyAnimation.normal,
-      value: 1.0,
-    );
-    _fadeAnimation = CurvedAnimation(
-      parent: _fadeController,
-      curve: CrispyAnimation.exitCurve,
-    );
-    // Auto-fade after hint duration.
-    Future.delayed(_kHintDuration, () {
-      if (mounted) _fadeController.reverse();
-    });
-  }
-
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: CrispySpacing.md,
-          vertical: CrispySpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: CrispyColors.scrimMid,
-          borderRadius: BorderRadius.circular(CrispyRadius.tv),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.fullscreen_exit, size: 16, color: Colors.white70),
-            const SizedBox(width: CrispySpacing.xs),
-            Text(
-              'Press Esc or tap \u2715 to return to grid',
-              style: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(color: Colors.white70),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

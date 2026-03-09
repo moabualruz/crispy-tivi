@@ -9,6 +9,7 @@ import '../../../../core/utils/relative_time_formatter.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/smart_image.dart';
+import '../../../../core/widgets/watch_progress_bar.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 
@@ -20,11 +21,8 @@ const double _kPosterHeight = 84.0;
 ///
 /// Watches [watchHistoryServiceProvider] so it re-evaluates when
 /// the active profile changes.
-final profileWatchHistoryProvider =
-    FutureProvider.family<List<WatchHistoryEntry>, String>((
-      ref,
-      profileId,
-    ) async {
+final profileWatchHistoryProvider = FutureProvider.family
+    .autoDispose<List<WatchHistoryEntry>, String>((ref, profileId) async {
       final service = ref.watch(watchHistoryServiceProvider);
       final all = await service.getAll();
       // Filter by profile and return most recent first.
@@ -248,10 +246,10 @@ class _WatchHistoryItem extends StatelessWidget {
                 label:
                     'Watch progress: '
                     '${(entry.progress * 100).toInt()}%',
-                child: LinearProgressIndicator(
-                  value: entry.progress.clamp(0.0, 1.0),
-                  minHeight: 3,
-                  color: CrispyColors.netflixRed,
+                child: WatchProgressBar(
+                  value: entry.progress,
+                  height: 3,
+                  fillColor: CrispyColors.brandRed,
                   backgroundColor: cs.outlineVariant,
                 ),
               ),

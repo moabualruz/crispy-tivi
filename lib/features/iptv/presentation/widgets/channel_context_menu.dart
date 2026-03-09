@@ -7,8 +7,10 @@ import '../../../../core/widgets/context_menu_builders.dart';
 import '../../../../core/widgets/context_menu_panel.dart';
 import '../../../epg/presentation/widgets/epg_assign_dialog.dart';
 import '../../../player/presentation/providers/player_providers.dart';
+import '../../../player/presentation/screens/multi_view_screen.dart';
 import '../../domain/entities/channel.dart';
 import '../providers/channel_providers.dart';
+import 'smart_channel_sheet.dart';
 import 'stream_failover_sheet.dart';
 
 /// Shows the channel long-press context menu.
@@ -26,6 +28,7 @@ void showChannelContextMenu({
   showContextMenuPanel(
     context: context,
     sections: buildChannelContextMenu(
+      context: context,
       channelName: channel.name,
       isFavorite: channel.isFavorite,
       colorScheme: colorScheme,
@@ -38,6 +41,12 @@ void showChannelContextMenu({
       onSwitchStream:
           () =>
               _showFailoverSheet(context: context, ref: ref, channel: channel),
+      onSmartGroup:
+          () => showSmartChannelSheet(
+            context: context,
+            ref: ref,
+            preselectedChannelId: channel.id,
+          ),
       onAssignEpg:
           () => showDialog(
             context: context,
@@ -60,6 +69,24 @@ void showChannelContextMenu({
               ref.read(settingsNotifierProvider).value?.allHiddenChannelIds ??
                   {channel.id},
             );
+      },
+      onMultiView: () {
+        final channels = ref.read(channelListProvider).filteredChannels;
+        final idx = channels.indexWhere((c) => c.id == channel.id);
+        final start = idx >= 0 ? idx : 0;
+        final subset =
+            channels
+                .skip(start)
+                .where((c) => c.streamUrl.isNotEmpty)
+                .take(9)
+                .toList();
+        if (subset.isNotEmpty && context.mounted) {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => MultiViewScreen(channels: subset),
+            ),
+          );
+        }
       },
       onCopyUrl: () => copyStreamUrl(context, channel.streamUrl),
       onOpenExternal:

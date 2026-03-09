@@ -12,7 +12,7 @@ import '../../../../core/widgets/horizontal_scroll_row.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 
-/// Netflix-style horizontal channel section with
+/// Horizontal channel section with
 /// navigation arrows on hover.
 ///
 /// Delegates carousel scaffolding (scroll controller, hover arrows,

@@ -20,6 +20,7 @@ import '../providers/biometric_provider.dart';
 import '../screens/profile_watch_history_screen.dart';
 import 'add_profile_dialog.dart'
     show MaturityRatingBadge, MaturityRatingDropdown;
+import 'dvr_permission_badge.dart';
 import 'profile_language_prefs_sheet.dart';
 import 'profile_viewing_stats_tile.dart';
 import 'role_badge.dart';
@@ -540,54 +541,5 @@ class ProfileSettingDropdown<T> extends StatelessWidget {
           ),
       ],
     );
-  }
-}
-
-/// Small badge showing DVR permission level.
-class DvrPermissionBadge extends StatelessWidget {
-  const DvrPermissionBadge({required this.permission, super.key});
-
-  final DvrPermission permission;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final (color, icon) = _getStyle(permission, theme);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: CrispySpacing.sm,
-        vertical: CrispySpacing.xxs,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.zero,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: CrispySpacing.xs),
-          Text(
-            'DVR: ${permission.label}',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  (Color, IconData) _getStyle(DvrPermission perm, ThemeData theme) {
-    switch (perm) {
-      case DvrPermission.none:
-        return (theme.colorScheme.error, Icons.block);
-      case DvrPermission.viewOnly:
-        return (theme.colorScheme.tertiary, Icons.visibility);
-      case DvrPermission.full:
-        return (theme.colorScheme.primary, Icons.videocam);
-    }
   }
 }

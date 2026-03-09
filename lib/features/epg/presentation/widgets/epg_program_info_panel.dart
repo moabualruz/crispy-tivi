@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/duration_formatter.dart';
 import '../../../../core/utils/timezone_utils.dart';
+import '../../../../core/widgets/watch_progress_bar.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
 
@@ -108,7 +112,7 @@ class EpgProgramInfoPanel extends StatelessWidget {
           Text(
             '${TimezoneUtils.formatTime(e.startTime, timezone)}'
             ' – ${TimezoneUtils.formatTime(e.endTime, timezone)}'
-            '  (${e.duration.inMinutes} min)',
+            '  (${DurationFormatter.humanShort(e.duration)})',
             style: textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -117,13 +121,11 @@ class EpgProgramInfoPanel extends StatelessWidget {
           // ── Progress bar (live only) ──
           if (isLive) ...[
             const SizedBox(height: CrispySpacing.xs),
-            ClipRect(
-              child: LinearProgressIndicator(
-                value: e.progress,
-                minHeight: 3,
-                backgroundColor: colorScheme.surfaceContainerHighest,
-                valueColor: AlwaysStoppedAnimation<Color>(crispyColors.liveRed),
-              ),
+            WatchProgressBar(
+              value: e.progress,
+              height: 3,
+              fillColor: crispyColors.liveRed,
+              backgroundColor: colorScheme.surfaceContainerHighest,
             ),
           ],
 
@@ -162,7 +164,7 @@ class EpgProgramInfoPanel extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: onRecord,
                 icon: const Icon(Icons.fiber_manual_record, size: 14),
-                label: const Text('Record'),
+                label: Text(context.l10n.epgRecord),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: CrispySpacing.sm,

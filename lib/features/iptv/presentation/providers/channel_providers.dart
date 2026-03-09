@@ -4,12 +4,12 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/providers/active_profile_provider.dart';
 import '../../../../core/providers/source_filter_provider.dart';
 import '../../data/parsers/m3u_parser.dart';
 import '../../domain/entities/channel.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../favorites/presentation/providers/favorites_controller.dart';
-import '../../../profiles/data/profile_service.dart';
 import 'channel_list_state.dart';
 
 export 'channel_list_state.dart';
@@ -255,8 +255,7 @@ class ChannelListNotifier extends Notifier<ChannelListState> {
     channels.insert(newIndex, channel);
 
     // Get current profile ID and group name.
-    final profileState = ref.read(profileServiceProvider).asData?.value;
-    final profileId = profileState?.activeProfileId ?? 'default';
+    final profileId = ref.read(activeProfileIdProvider);
     final groupName = state.effectiveGroup ?? '';
 
     // Save new order.
@@ -279,8 +278,7 @@ class ChannelListNotifier extends Notifier<ChannelListState> {
   /// Deletes any custom order and reverts to
   /// number/alphabetical sort.
   Future<void> resetToDefaultOrder() async {
-    final profileState = ref.read(profileServiceProvider).asData?.value;
-    final profileId = profileState?.activeProfileId ?? 'default';
+    final profileId = ref.read(activeProfileIdProvider);
     final groupName = state.effectiveGroup ?? '';
 
     await ref
@@ -295,8 +293,7 @@ class ChannelListNotifier extends Notifier<ChannelListState> {
   ///
   /// Called when group changes or on initial load.
   Future<void> loadCustomOrder() async {
-    final profileState = ref.read(profileServiceProvider).asData?.value;
-    final profileId = profileState?.activeProfileId ?? 'default';
+    final profileId = ref.read(activeProfileIdProvider);
     final groupName = state.effectiveGroup ?? '';
 
     final orderMap = await ref

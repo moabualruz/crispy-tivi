@@ -18,7 +18,7 @@ import 'vod_landscape_card.dart';
 export '../../../../core/widgets/meta_chip.dart' show MetaChip;
 
 /// Small bordered rectangle showing quality label
-/// (e.g. "HD", "4K"). Netflix V2 style with sharp
+/// (e.g. "HD", "4K"). Cinematic style with sharp
 /// corners.
 class QualityBadge extends StatelessWidget {
   const QualityBadge({super.key, required this.label});
@@ -109,6 +109,7 @@ class MovieRecommendationsSection extends ConsumerWidget {
                 showContextMenuPanel(
                   context: context,
                   sections: buildMovieContextMenu(
+                    context: context,
                     movieName: movie.name,
                     isFavorite: movie.isFavorite,
                     colorScheme: cs,

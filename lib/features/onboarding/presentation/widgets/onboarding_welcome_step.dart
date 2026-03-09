@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../providers/onboarding_notifier.dart';
@@ -26,13 +28,13 @@ class OnboardingWelcomeStep extends ConsumerWidget {
             Icon(Icons.live_tv, size: 72, color: colorScheme.primary),
             const SizedBox(height: CrispySpacing.lg),
             Text(
-              'Welcome to CrispyTivi',
+              context.l10n.onboardingWelcome,
               style: textTheme.headlineLarge,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: CrispySpacing.sm),
             Text(
-              'Add your IPTV source to get started',
+              context.l10n.onboardingAddSource,
               style: textTheme.bodyLarge?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -53,7 +55,7 @@ class OnboardingWelcomeStep extends ConsumerWidget {
                       () => ref
                           .read(onboardingProvider.notifier)
                           .goToStep(OnboardingStep.typePicker),
-                  child: const Text('Get Started'),
+                  child: Text(context.l10n.onboardingStartWatching),
                 ),
               ),
             ),

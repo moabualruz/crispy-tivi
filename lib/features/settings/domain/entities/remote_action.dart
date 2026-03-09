@@ -39,7 +39,22 @@ enum RemoteAction {
   showOsd('Show Controls'),
 
   /// Toggle subtitle track.
-  toggleCaptions('Toggle Captions');
+  toggleCaptions('Toggle Captions'),
+
+  /// Navigate to the EPG guide screen.
+  openGuide('Open Guide'),
+
+  /// Navigate to the settings screen.
+  openSettings('Open Settings'),
+
+  /// Start/stop DVR recording for the current channel.
+  startRecording('Start Recording'),
+
+  /// Open the search screen.
+  openSearch('Open Search'),
+
+  /// Toggle the stream debug/diagnostics overlay.
+  showDebug('Show Debug');
 
   const RemoteAction(this.label);
 
@@ -70,6 +85,13 @@ final Map<int, RemoteAction> defaultRemoteKeyMap = Map.unmodifiable({
   LogicalKeyboardKey.keyJ.keyId: RemoteAction.seekBack,
   LogicalKeyboardKey.keyL.keyId: RemoteAction.seekForward,
   LogicalKeyboardKey.keyC.keyId: RemoteAction.toggleCaptions,
+
+  // ── Quick-access shortcuts ─────────────────────────
+  LogicalKeyboardKey.keyR.keyId: RemoteAction.startRecording,
+  LogicalKeyboardKey.keyG.keyId: RemoteAction.openGuide,
+  LogicalKeyboardKey.keyS.keyId: RemoteAction.openSettings,
+  LogicalKeyboardKey.keyD.keyId: RemoteAction.showDebug,
+  LogicalKeyboardKey.slash.keyId: RemoteAction.openSearch,
 
   // ── Media keys (TV remotes) ──────────────────────────
   LogicalKeyboardKey.mediaRewind.keyId: RemoteAction.seekBack,

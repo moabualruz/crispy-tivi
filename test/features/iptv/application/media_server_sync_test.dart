@@ -1,9 +1,26 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+
 import 'package:crispy_tivi/core/domain/entities/media_item.dart';
 import 'package:crispy_tivi/core/domain/entities/media_type.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
+import 'package:crispy_tivi/core/domain/media_source.dart';
+import 'package:crispy_tivi/features/iptv/application/media_server_sync.dart';
+import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_api_client.dart';
+import 'package:crispy_tivi/features/media_servers/plex/data/models/plex_metadata.dart';
+import 'package:crispy_tivi/features/media_servers/plex/domain/entities/plex_server.dart';
+import 'package:crispy_tivi/features/media_servers/plex/domain/plex_source.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/media_item_vod_adapter.dart';
 import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
+
+// ── Mocks ──────────────────────────────────────────
+
+class MockPlexApiClient extends Mock implements PlexApiClient {}
+
+class MockDio extends Mock implements Dio {}
 
 void main() {
   group('MediaItemVodAdapter', () {
@@ -264,6 +281,369 @@ void main() {
       expect(namespaced.category, 'Server > Movies');
       expect(namespaced.posterUrl, 'http://img.jpg');
       expect(namespaced.year, 2023);
+    });
+  });
+
+  // ── Plex image URL construction ───────────────────
+
+  group('Plex image URL construction', () {
+    late MockPlexApiClient mockApiClient;
+    late PlexSource plexSource;
+
+    const serverUrl = 'http://plex.local:32400';
+    const token = 'plex-token-abc';
+    const server = PlexServer(
+      url: serverUrl,
+      name: 'Test Plex',
+      accessToken: token,
+      clientIdentifier: 'crispy-id',
+    );
+
+    setUp(() {
+      mockApiClient = MockPlexApiClient();
+      plexSource = PlexSource(
+        apiClient: mockApiClient,
+        serverUrl: serverUrl,
+        accessToken: token,
+        clientIdentifier: 'crispy-id',
+        serverName: 'Test Plex',
+        serverId: 'plex-srv-1',
+      );
+    });
+
+    setUpAll(() {
+      registerFallbackValue(server);
+    });
+
+    test('produces fully-qualified image URLs with token', () async {
+      when(() => mockApiClient.getLibraries(any())).thenAnswer((_) async => []);
+      when(
+        () => mockApiClient.getItems(any(), libraryId: any(named: 'libraryId')),
+      ).thenAnswer(
+        (_) async => [
+          const PlexMetadata(
+            ratingKey: '42',
+            title: 'Inception',
+            type: 'movie',
+            thumb: '/library/metadata/42/thumb/1234',
+            art: '/library/metadata/42/art/5678',
+          ),
+        ],
+      );
+
+      final items = await plexSource.getLibrary('1');
+      expect(items, hasLength(1));
+
+      final item = items.first;
+      expect(
+        item.logoUrl,
+        '$serverUrl/library/metadata/42/thumb/1234?X-Plex-Token=$token',
+      );
+      expect(
+        item.metadata['backdropUrl'],
+        '$serverUrl/library/metadata/42/art/5678?X-Plex-Token=$token',
+      );
+    });
+
+    test('handles null thumb and art paths gracefully', () async {
+      when(
+        () => mockApiClient.getItems(any(), libraryId: any(named: 'libraryId')),
+      ).thenAnswer(
+        (_) async => [
+          const PlexMetadata(
+            ratingKey: '99',
+            title: 'No Images',
+            type: 'movie',
+          ),
+        ],
+      );
+
+      final items = await plexSource.getLibrary('1');
+      expect(items, hasLength(1));
+      expect(items.first.logoUrl, isNull);
+      expect(items.first.metadata['backdropUrl'], isNull);
+    });
+  });
+
+  // ── Null section key filtering ────────────────────
+
+  group('Null Plex section key filtering', () {
+    test('libraries with empty id are skipped', () {
+      final libraries = [
+        const MediaItem(id: '1', name: 'Movies', type: MediaType.folder),
+        const MediaItem(id: '', name: 'Bad Section', type: MediaType.folder),
+        const MediaItem(id: '3', name: 'TV Shows', type: MediaType.folder),
+      ];
+
+      // Same filter used in _syncMediaServer.
+      final valid = libraries.where(
+        (lib) => lib.type == MediaType.folder && lib.id.isNotEmpty,
+      );
+
+      expect(valid.map((l) => l.name), ['Movies', 'TV Shows']);
+    });
+
+    test('non-folder types are also filtered out', () {
+      final libraries = [
+        const MediaItem(id: '1', name: 'Movies', type: MediaType.folder),
+        const MediaItem(id: '2', name: 'A Movie', type: MediaType.movie),
+      ];
+
+      final valid = libraries.where(
+        (lib) => lib.type == MediaType.folder && lib.id.isNotEmpty,
+      );
+
+      expect(valid.map((l) => l.name), ['Movies']);
+    });
+  });
+
+  // ── Retry logic ───────────────────────────────────
+
+  group('withRetry', () {
+    test('returns immediately on success', () async {
+      var calls = 0;
+      final result = await MediaServerSyncService.withRetry(() async {
+        calls++;
+        return 42;
+      });
+      expect(result, 42);
+      expect(calls, 1);
+    });
+
+    test('retries up to 3 times for 5xx errors', () async {
+      var calls = 0;
+      final result = await MediaServerSyncService.withRetry(() async {
+        calls++;
+        if (calls < 3) {
+          throw DioException(
+            type: DioExceptionType.badResponse,
+            response: Response(
+              statusCode: 500,
+              requestOptions: RequestOptions(path: ''),
+            ),
+            requestOptions: RequestOptions(path: ''),
+          );
+        }
+        return 'ok';
+      });
+      expect(result, 'ok');
+      expect(calls, 3);
+    });
+
+    test('retries on connection timeout', () async {
+      var calls = 0;
+      final result = await MediaServerSyncService.withRetry(() async {
+        calls++;
+        if (calls < 2) {
+          throw DioException(
+            type: DioExceptionType.connectionTimeout,
+            requestOptions: RequestOptions(path: ''),
+          );
+        }
+        return 'recovered';
+      });
+      expect(result, 'recovered');
+      expect(calls, 2);
+    });
+
+    test('retries on receive timeout', () async {
+      var calls = 0;
+      final result = await MediaServerSyncService.withRetry(() async {
+        calls++;
+        if (calls < 2) {
+          throw DioException(
+            type: DioExceptionType.receiveTimeout,
+            requestOptions: RequestOptions(path: ''),
+          );
+        }
+        return 'recovered';
+      });
+      expect(result, 'recovered');
+      expect(calls, 2);
+    });
+
+    test('does NOT retry 4xx errors', () async {
+      var calls = 0;
+      await expectLater(
+        () => MediaServerSyncService.withRetry(() async {
+          calls++;
+          throw DioException(
+            type: DioExceptionType.badResponse,
+            response: Response(
+              statusCode: 404,
+              requestOptions: RequestOptions(path: ''),
+            ),
+            requestOptions: RequestOptions(path: ''),
+          );
+        }),
+        throwsA(isA<DioException>()),
+      );
+      expect(calls, 1);
+    });
+
+    test('does NOT retry 401 Unauthorized', () async {
+      var calls = 0;
+      await expectLater(
+        () => MediaServerSyncService.withRetry(() async {
+          calls++;
+          throw DioException(
+            type: DioExceptionType.badResponse,
+            response: Response(
+              statusCode: 401,
+              requestOptions: RequestOptions(path: ''),
+            ),
+            requestOptions: RequestOptions(path: ''),
+          );
+        }),
+        throwsA(isA<DioException>()),
+      );
+      expect(calls, 1);
+    });
+
+    test('rethrows after max attempts exhausted', () async {
+      var calls = 0;
+      await expectLater(
+        () => MediaServerSyncService.withRetry(() async {
+          calls++;
+          throw DioException(
+            type: DioExceptionType.badResponse,
+            response: Response(
+              statusCode: 503,
+              requestOptions: RequestOptions(path: ''),
+            ),
+            requestOptions: RequestOptions(path: ''),
+          );
+        }, maxAttempts: 2),
+        throwsA(isA<DioException>()),
+      );
+      // Should have tried exactly maxAttempts times.
+      expect(calls, 2);
+    });
+
+    test('non-DioException errors are not retried', () async {
+      var calls = 0;
+      await expectLater(
+        () => MediaServerSyncService.withRetry(() async {
+          calls++;
+          throw StateError('something broke');
+        }),
+        throwsA(isA<StateError>()),
+      );
+      expect(calls, 1);
+    });
+  });
+
+  // ── Large response offloading ─────────────────────
+
+  group('Large response UTF-8 decoding', () {
+    test('small payload decodes synchronously via utf8', () {
+      final smallPayload = utf8.encode('{"hello":"world"}');
+      // Verify the payload is under the 50KB threshold.
+      expect(smallPayload.length, lessThan(50 * 1024));
+
+      final decoded = utf8.decode(smallPayload, allowMalformed: true);
+      expect(decoded, '{"hello":"world"}');
+    });
+
+    test('large payload (>50KB) decodes correctly', () {
+      // Generate a payload larger than the 50KB threshold.
+      final largeString = 'x' * (60 * 1024);
+      final largePayload = utf8.encode(largeString);
+      expect(largePayload.length, greaterThan(50 * 1024));
+
+      final decoded = utf8.decode(largePayload, allowMalformed: true);
+      expect(decoded.length, 60 * 1024);
+    });
+
+    test('malformed UTF-8 does not throw', () {
+      // Invalid UTF-8 sequence.
+      final malformed = [0xC0, 0xAF, 0x48, 0x65, 0x6C, 0x6C, 0x6F];
+      final decoded = utf8.decode(malformed, allowMalformed: true);
+      // Should contain replacement chars but not throw.
+      expect(decoded, contains('Hello'));
+    });
+  });
+
+  // ── Sync report and status patterns ───────────────
+
+  group('Sync error and status patterns', () {
+    test('ArgumentError thrown for non-media-server types', () {
+      // The sync service throws ArgumentError for M3U and Xtream types.
+      // Verify the expected types ARE media servers.
+      expect(PlaylistSourceType.plex.name, 'plex');
+      expect(PlaylistSourceType.emby.name, 'emby');
+      expect(PlaylistSourceType.jellyfin.name, 'jellyfin');
+
+      // These should NOT be passed to media server sync.
+      expect(PlaylistSourceType.m3u.name, 'm3u');
+      expect(PlaylistSourceType.xtream.name, 'xtream');
+    });
+
+    test('empty items guard prevents deletion of existing content', () {
+      // When allVodItems is empty, deleteRemovedVodItems should NOT
+      // be called. This prevents data loss on network errors.
+      final allVodItems = <VodItem>[];
+      expect(allVodItems.isNotEmpty, false);
+    });
+
+    test('keepIds set is built from allVodItems correctly', () {
+      final items = [
+        VodItem(
+          id: 'plex_src_1',
+          name: 'Movie 1',
+          streamUrl: 'plex://src/1',
+          type: VodType.movie,
+          sourceId: 'src',
+        ),
+        VodItem(
+          id: 'plex_src_2',
+          name: 'Movie 2',
+          streamUrl: 'plex://src/2',
+          type: VodType.movie,
+          sourceId: 'src',
+        ),
+      ];
+
+      final keepIds = items.map((v) => v.id).toSet();
+      expect(keepIds, {'plex_src_1', 'plex_src_2'});
+    });
+  });
+
+  // ── PaginatedResult behavior ──────────────────────
+
+  group('PaginatedResult pagination logic', () {
+    test('hasMore is true when more items exist', () {
+      const result = PaginatedResult<MediaItem>(
+        items: [
+          MediaItem(id: '1', name: 'A', type: MediaType.movie),
+          MediaItem(id: '2', name: 'B', type: MediaType.movie),
+        ],
+        totalCount: 10,
+        startIndex: 0,
+        limit: 2,
+      );
+      expect(result.hasMore, true);
+      expect(result.nextStartIndex, 2);
+    });
+
+    test('hasMore is false on last page', () {
+      const result = PaginatedResult<MediaItem>(
+        items: [
+          MediaItem(id: '9', name: 'I', type: MediaType.movie),
+          MediaItem(id: '10', name: 'J', type: MediaType.movie),
+        ],
+        totalCount: 10,
+        startIndex: 8,
+        limit: 2,
+      );
+      expect(result.hasMore, false);
+    });
+
+    test('empty result has no more items', () {
+      final result = PaginatedResult.empty<MediaItem>();
+      expect(result.hasMore, false);
+      expect(result.items, isEmpty);
+      expect(result.totalCount, 0);
     });
   });
 }

@@ -92,6 +92,10 @@ void showExternalPlayerDialog({
     ('kodi', 'Kodi'),
     ('justPlayer', 'Just Player'),
     ('mpv', 'mpv'),
+    ('iina', 'IINA'),
+    ('potPlayer', 'PotPlayer'),
+    ('celluloid', 'Celluloid'),
+    ('infuse', 'Infuse'),
   ];
 
   showDialog<void>(

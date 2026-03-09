@@ -1,5 +1,6 @@
 import 'package:crispy_tivi/config/app_config.dart';
 import 'package:crispy_tivi/config/settings_notifier.dart';
+import 'package:crispy_tivi/l10n/app_localizations.dart';
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
@@ -135,7 +136,11 @@ Future<GoRouter> _pumpApp(
       child: Consumer(
         builder: (context, ref, _) {
           router = ref.watch(goRouterProvider);
-          return MaterialApp.router(routerConfig: router);
+          return MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          );
         },
       ),
     ),

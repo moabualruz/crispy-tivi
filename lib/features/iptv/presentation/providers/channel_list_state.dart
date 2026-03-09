@@ -155,7 +155,7 @@ enum ChannelGroupMode {
   byPlaylist,
 }
 
-/// Channel sort mode options (TiviMate-style).
+/// Channel sort mode options.
 enum ChannelSortMode {
   /// Default: by order in playlist
   /// (number, then name).

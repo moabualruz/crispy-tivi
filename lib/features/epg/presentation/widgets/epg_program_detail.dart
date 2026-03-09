@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/live_badge.dart';
+import '../../../../core/utils/duration_formatter.dart';
 import '../../../../core/utils/timezone_utils.dart';
 import '../../../../core/widgets/smart_image.dart';
+import '../../../../core/widgets/watch_progress_bar.dart';
 import '../../../dvr/data/dvr_service.dart';
 import '../../../iptv/data/services/catchup_url_builder.dart';
 import '../../../iptv/domain/entities/channel.dart';
@@ -88,7 +92,7 @@ class EpgProgramDetailSheet extends ConsumerWidget {
               ),
               IconButton(
                 icon: const Icon(Icons.close),
-                tooltip: 'Close',
+                tooltip: context.l10n.commonClose,
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -139,8 +143,7 @@ class EpgProgramDetailSheet extends ConsumerWidget {
               Text(
                 '${_fmt(entry.startTime)}'
                 ' – ${_fmt(entry.endTime)}'
-                '  (${entry.duration.inMinutes}'
-                ' min)',
+                '  (${DurationFormatter.humanShort(entry.duration)})',
                 style: textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -164,13 +167,11 @@ class EpgProgramDetailSheet extends ConsumerWidget {
           // ── Progress bar ──
           if (isLive) ...[
             const SizedBox(height: CrispySpacing.md),
-            ClipRect(
-              child: LinearProgressIndicator(
-                value: entry.progressAt(now),
-                minHeight: 4,
-                backgroundColor: colorScheme.surfaceContainerHighest,
-                valueColor: AlwaysStoppedAnimation<Color>(crispyColors.liveRed),
-              ),
+            WatchProgressBar(
+              value: entry.progressAt(now),
+              height: 4,
+              fillColor: crispyColors.liveRed,
+              backgroundColor: colorScheme.surfaceContainerHighest,
             ),
           ],
 
@@ -220,7 +221,7 @@ class EpgProgramDetailSheet extends ConsumerWidget {
                       onRemind ??
                       () => _addReminder(context, ref, resolvedChannel),
                   icon: const Icon(Icons.alarm),
-                  label: const Text('Remind'),
+                  label: Text(context.l10n.epgSetReminder),
                 ),
                 OutlinedButton.icon(
                   onPressed:
@@ -230,7 +231,7 @@ class EpgProgramDetailSheet extends ConsumerWidget {
                               _scheduleRecording(context, ref, resolvedChannel)
                           : null),
                   icon: const Icon(Icons.fiber_manual_record),
-                  label: const Text('Record'),
+                  label: Text(context.l10n.epgRecord),
                 ),
               ],
             ),
@@ -380,11 +381,11 @@ class _ProgrammeMetadataRow extends StatelessWidget {
         if (hasPoster) ...[
           ClipRRect(
             borderRadius: BorderRadius.circular(CrispyRadius.xs),
-            child: Image.network(
-              entry.iconUrl!,
-              height: 100,
+            child: SmartImage(
+              title: entry.title,
+              imageUrl: entry.iconUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              memCacheHeight: 200,
             ),
           ),
           const SizedBox(height: CrispySpacing.sm),

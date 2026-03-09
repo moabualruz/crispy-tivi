@@ -282,6 +282,7 @@ void showVodRowContextMenu({
     sections:
         item.type == VodType.movie
             ? buildMovieContextMenu(
+              context: context,
               movieName: item.name,
               isFavorite: item.isFavorite,
               colorScheme: Theme.of(context).colorScheme,
@@ -310,6 +311,7 @@ void showVodRowContextMenu({
                       : null,
             )
             : buildSeriesContextMenu(
+              context: context,
               seriesName: item.name,
               isFavorite: item.isFavorite,
               colorScheme: Theme.of(context).colorScheme,

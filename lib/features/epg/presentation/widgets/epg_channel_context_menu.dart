@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/utils/stream_url_actions.dart';
 import '../../../../core/widgets/context_menu_panel.dart';
 import '../../../iptv/domain/entities/channel.dart';
@@ -8,7 +10,7 @@ import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../../iptv/presentation/providers/channel_providers.dart';
 import '../providers/epg_providers.dart';
 
-/// Shows the TiviMate-style channel context menu.
+/// Shows the channel context menu from the EPG view.
 ///
 /// All callbacks are provided by the caller so this
 /// function stays free of direct provider/state writes.
@@ -61,14 +63,17 @@ void showEpgChannelContextMenu({
         items: [
           ContextMenuItem(
             icon: isFavorite ? Icons.star : Icons.star_outline,
-            label: isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
+            label:
+                isFavorite
+                    ? context.l10n.contextMenuRemoveFromFavorites
+                    : context.l10n.contextMenuAddToFavorites,
             onTap: () {
               ref.read(channelListProvider.notifier).toggleFavorite(channel.id);
             },
           ),
           ContextMenuItem(
             icon: Icons.visibility_off,
-            label: 'Hide channel',
+            label: context.l10n.contextMenuHideChannel,
             onTap: onHideChannel,
           ),
           ContextMenuItem(
@@ -82,7 +87,11 @@ void showEpgChannelContextMenu({
             isDestructive: true,
             onTap: onBlockChannel,
           ),
-          ContextMenuItem(icon: Icons.search, label: 'Search', onTap: onSearch),
+          ContextMenuItem(
+            icon: Icons.search,
+            label: context.l10n.commonSearch,
+            onTap: onSearch,
+          ),
           ContextMenuItem(
             icon:
                 epgState.showEpgOnly
