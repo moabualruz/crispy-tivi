@@ -86,6 +86,20 @@ pub(super) fn handle(_svc: &CrispyService, cmd: &str, args: &Value) -> Option<Re
             }
         })(),
 
+        "parseBifIndex" => (|| {
+            let data_arr = args
+                .get("data")
+                .and_then(|v| v.as_array())
+                .ok_or_else(|| anyhow!("missing data"))?;
+            let bytes: Vec<u8> = data_arr
+                .iter()
+                .filter_map(|v| v.as_u64().map(|n| n as u8))
+                .collect();
+            let entries = crispy_core::parsers::bif::parse_bif_index(&bytes);
+            let s = serde_json::to_string(&entries)?;
+            Ok(json!({"data": s}))
+        })(),
+
         // ── Stalker Parsers ──────────────────
         "parseStalkerEpg" => (|| {
             let json_str = get_str(args, "json")?;

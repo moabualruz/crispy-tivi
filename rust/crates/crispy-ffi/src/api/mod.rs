@@ -12,6 +12,9 @@
 //! - State: `OnceLock<CrispyService>` singleton
 
 pub mod algorithms;
+pub mod app_update;
+pub mod bookmarks;
+pub mod buffer;
 pub mod channels;
 pub mod display;
 pub mod dvr;
@@ -20,12 +23,17 @@ pub mod lifecycle;
 pub mod parsers;
 pub mod profiles;
 pub mod settings;
+pub mod smart_groups;
 pub mod sources;
+pub mod stream_health;
 pub mod sync;
 pub mod vod;
 pub mod watchlist;
 
 pub use algorithms::*;
+pub use app_update::*;
+pub use bookmarks::*;
+pub use buffer::*;
 pub use channels::*;
 pub use display::*;
 pub use dvr::*;
@@ -34,7 +42,9 @@ pub use lifecycle::*;
 pub use parsers::*;
 pub use profiles::*;
 pub use settings::*;
+pub use smart_groups::*;
 pub use sources::*;
+pub use stream_health::*;
 pub use sync::*;
 pub use vod::*;
 pub use watchlist::*;

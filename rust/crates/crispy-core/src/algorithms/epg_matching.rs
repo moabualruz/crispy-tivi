@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::models::{Channel, EpgEntry};
 
+use super::epg_fuzzy::fuzzy_name_score;
 use super::normalize::normalize_name;
 
 /// Statistics for each matching strategy.
@@ -74,15 +75,58 @@ pub struct EpgMatchResult {
     pub stats: EpgMatchStats,
 }
 
-/// Internal enum for tracking which strategy matched.
-#[derive(Debug, Clone, Copy)]
-enum MatchStrategy {
+/// Enum for tracking which strategy matched.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MatchStrategy {
     TvgIdExact,
     TvgIdLower,
     DirectId,
     XmltvName,
     NormName,
     NameAsId,
+    Fuzzy,
+}
+
+impl MatchStrategy {
+    /// Base confidence score for this strategy.
+    pub fn confidence(self) -> f64 {
+        match self {
+            Self::TvgIdExact => 1.0,
+            Self::TvgIdLower => 0.95,
+            Self::DirectId => 0.90,
+            Self::XmltvName => 0.85,
+            Self::NormName => 0.80,
+            Self::NameAsId => 0.70,
+            Self::Fuzzy => 0.0, // variable — set per match
+        }
+    }
+}
+
+/// Corroboration boost per additional matching strategy.
+const CORROBORATION_BOOST: f64 = 0.05;
+
+/// Auto-apply threshold: matches >= this are applied
+/// without user review.
+const AUTO_APPLY_THRESHOLD: f64 = 0.70;
+
+/// Suggestion threshold: matches >= this (but below
+/// auto-apply) are saved for user review.
+const SUGGEST_THRESHOLD: f64 = 0.40;
+
+/// A candidate EPG match with confidence scoring.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EpgMatchCandidate {
+    /// Internal channel ID.
+    pub channel_id: String,
+    /// XMLTV EPG channel ID.
+    pub epg_channel_id: String,
+    /// Confidence score (0.0 - 1.0).
+    pub confidence: f64,
+    /// Strategies that matched this pair.
+    pub strategies: Vec<MatchStrategy>,
+    /// Whether to auto-apply (confidence >= 0.70).
+    pub auto_apply: bool,
 }
 
 /// Match EPG entries to internal channels using 6
@@ -240,6 +284,7 @@ pub fn match_epg_to_channels(
                 MatchStrategy::XmltvName => stats.xmltv_name += 1,
                 MatchStrategy::NormName => stats.norm_name += 1,
                 MatchStrategy::NameAsId => stats.name_as_id += 1,
+                MatchStrategy::Fuzzy => stats.fuzzy_name += 1,
             }
             continue;
         }
@@ -355,6 +400,56 @@ pub fn filter_upcoming_programs(
     serde_json::to_string(&results).unwrap_or_else(|_| "[]".to_string())
 }
 
+/// Remove overlapping EPG entries from a sorted list.
+///
+/// For each candidate entry, checks overlap against all already-accepted
+/// entries. If the overlap exceeds 50% of the candidate's duration, the
+/// candidate is dropped. The first entry always survives (existing entries
+/// appear first after a stable sort, giving them priority).
+fn dedup_overlapping_entries(sorted: Vec<serde_json::Value>) -> Vec<serde_json::Value> {
+    let mut accepted: Vec<serde_json::Value> = Vec::with_capacity(sorted.len());
+
+    for entry in sorted {
+        let start = entry
+            .get("startTime")
+            .and_then(serde_json::Value::as_i64)
+            .unwrap_or(0);
+        let end = entry
+            .get("endTime")
+            .and_then(serde_json::Value::as_i64)
+            .unwrap_or(start);
+        let duration = end - start;
+
+        // Zero-duration or negative entries: keep unconditionally.
+        if duration <= 0 {
+            accepted.push(entry);
+            continue;
+        }
+
+        // Check against accepted entries for >50% overlap.
+        let dominated = accepted.iter().any(|u| {
+            let u_start = u
+                .get("startTime")
+                .and_then(serde_json::Value::as_i64)
+                .unwrap_or(0);
+            let u_end = u
+                .get("endTime")
+                .and_then(serde_json::Value::as_i64)
+                .unwrap_or(u_start);
+            let overlap_start = start.max(u_start);
+            let overlap_end = end.min(u_end);
+            let overlap_ms = overlap_end - overlap_start;
+            overlap_ms > 0 && overlap_ms > duration / 2
+        });
+
+        if !dominated {
+            accepted.push(entry);
+        }
+    }
+
+    accepted
+}
+
 /// Merges new EPG entries into existing entries, deduplicating by `startTime`.
 ///
 /// Both inputs are JSON objects:
@@ -421,13 +516,253 @@ pub fn merge_epg_window(existing_json: &str, new_json: &str) -> String {
             }
         }
 
-        // Sort by startTime ascending.
+        // Sort by startTime ascending (stable — existing entries precede
+        // new entries at the same startTime since they were appended first).
         merged.sort_by_key(|e| e.get("startTime").and_then(Value::as_i64).unwrap_or(0));
 
-        result.insert(key, Value::Array(merged));
+        // Overlap dedup: sweep through sorted entries and remove any entry
+        // whose duration overlaps > 50% with an already-accepted entry.
+        // Existing entries have priority because they appear first.
+        let deduped = dedup_overlapping_entries(merged);
+
+        result.insert(key, Value::Array(deduped));
     }
 
     serde_json::to_string(&Value::Object(result)).unwrap_or_else(|_| "{}".to_string())
+}
+
+/// Match EPG entries to channels with confidence scoring.
+///
+/// Unlike `match_epg_to_channels()` which uses first-match-wins,
+/// this function tries ALL strategies for each unique XMLTV
+/// channel, collects matches with confidence scores, and applies
+/// corroboration boost when multiple strategies agree.
+///
+/// Returns candidates sorted by confidence descending.
+/// Only candidates with confidence >= 0.40 are included.
+pub fn match_epg_with_confidence(
+    entries: &[EpgEntry],
+    channels: &[Channel],
+    xmltv_display_names: &HashMap<String, String>,
+) -> Vec<EpgMatchCandidate> {
+    // Build lookup maps from channels.
+    let mut tvg_id_exact_map: HashMap<&str, &str> = HashMap::new();
+    let mut tvg_id_lower_map: HashMap<String, &str> = HashMap::new();
+    let mut direct_ids: HashSet<&str> = HashSet::new();
+    let mut name_exact_map: HashMap<String, &str> = HashMap::new();
+    let mut name_norm_map: HashMap<String, &str> = HashMap::new();
+
+    for ch in channels {
+        if let Some(ref tvg) = ch.tvg_id {
+            let tvg_trimmed = tvg.trim();
+            if !tvg_trimmed.is_empty() {
+                tvg_id_exact_map
+                    .entry(tvg_trimmed)
+                    .or_insert(ch.id.as_str());
+                tvg_id_lower_map
+                    .entry(tvg_trimmed.to_lowercase())
+                    .or_insert(ch.id.as_str());
+            }
+        }
+        direct_ids.insert(ch.id.as_str());
+        let display = ch
+            .tvg_name
+            .as_deref()
+            .filter(|n| !n.is_empty())
+            .unwrap_or(ch.name.as_str());
+        name_exact_map
+            .entry(display.to_lowercase())
+            .or_insert(ch.id.as_str());
+        let norm = normalize_name(display);
+        if !norm.is_empty() {
+            name_norm_map.entry(norm).or_insert(ch.id.as_str());
+        }
+    }
+
+    // Channel name lookup for CJK script guard.
+    let channel_names: HashMap<&str, &str> = channels
+        .iter()
+        .map(|c| {
+            let display = c
+                .tvg_name
+                .as_deref()
+                .filter(|n| !n.is_empty())
+                .unwrap_or(c.name.as_str());
+            (c.id.as_str(), display)
+        })
+        .collect();
+
+    // Channel display names for fuzzy matching.
+    let channel_displays: Vec<(&str, &str)> = channels
+        .iter()
+        .map(|c| {
+            let display = c
+                .tvg_name
+                .as_deref()
+                .filter(|n| !n.is_empty())
+                .unwrap_or(c.name.as_str());
+            (c.id.as_str(), display)
+        })
+        .collect();
+
+    // Collect unique XMLTV channel IDs with original forms
+    // and sample titles for CJK check.
+    let mut xmltv_info: HashMap<String, (String, String)> = HashMap::new();
+    for entry in entries {
+        let trimmed = entry.channel_id.trim().to_string();
+        xmltv_info
+            .entry(trimmed)
+            .or_insert_with(|| (entry.channel_id.clone(), entry.title.clone()));
+    }
+
+    let mut candidates: Vec<EpgMatchCandidate> = Vec::new();
+
+    for (xmltv_id, (xmltv_original, sample_title)) in &xmltv_info {
+        // Track matches: internal_ch_id → Vec<(strategy, confidence)>.
+        let mut matches: HashMap<String, Vec<(MatchStrategy, f64)>> = HashMap::new();
+
+        // Look up XMLTV display name (used by strategies 4, 5, 7).
+        let dn = xmltv_display_names
+            .get(xmltv_original)
+            .or_else(|| xmltv_display_names.get(xmltv_id));
+
+        // Strategy 1: exact tvg_id.
+        if let Some(&ch_id) = tvg_id_exact_map.get(xmltv_id.as_str()) {
+            matches.entry(ch_id.to_string()).or_default().push((
+                MatchStrategy::TvgIdExact,
+                MatchStrategy::TvgIdExact.confidence(),
+            ));
+        }
+
+        // Strategy 2: case-insensitive tvg_id.
+        let lower = xmltv_id.to_lowercase();
+        if let Some(&ch_id) = tvg_id_lower_map.get(&lower) {
+            let strats = matches.entry(ch_id.to_string()).or_default();
+            if !strats.iter().any(|(s, _)| *s == MatchStrategy::TvgIdLower) {
+                strats.push((
+                    MatchStrategy::TvgIdLower,
+                    MatchStrategy::TvgIdLower.confidence(),
+                ));
+            }
+        }
+
+        // Strategy 3: direct channel.id match.
+        if direct_ids.contains(xmltv_id.as_str()) {
+            matches.entry(xmltv_id.clone()).or_default().push((
+                MatchStrategy::DirectId,
+                MatchStrategy::DirectId.confidence(),
+            ));
+        }
+
+        // Strategy 4: XMLTV display-name → channel name.
+        if let Some(display_name) = dn {
+            let dn_lower = display_name.trim().to_lowercase();
+            if let Some(&ch_id) = name_exact_map.get(&dn_lower) {
+                matches.entry(ch_id.to_string()).or_default().push((
+                    MatchStrategy::XmltvName,
+                    MatchStrategy::XmltvName.confidence(),
+                ));
+            }
+        }
+
+        // Strategy 5: normalized display-name.
+        if let Some(display_name) = dn {
+            let dn_norm = normalize_name(display_name);
+            if !dn_norm.is_empty()
+                && let Some(&ch_id) = name_norm_map.get(&dn_norm)
+            {
+                let strats = matches.entry(ch_id.to_string()).or_default();
+                if !strats.iter().any(|(s, _)| *s == MatchStrategy::NormName) {
+                    strats.push((
+                        MatchStrategy::NormName,
+                        MatchStrategy::NormName.confidence(),
+                    ));
+                }
+            }
+        }
+
+        // Strategy 6: XMLTV channel ID used as name.
+        let id_lower = xmltv_id.to_lowercase();
+        if let Some(&ch_id) = name_exact_map.get(&id_lower) {
+            let strats = matches.entry(ch_id.to_string()).or_default();
+            if !strats.iter().any(|(s, _)| *s == MatchStrategy::NameAsId) {
+                strats.push((
+                    MatchStrategy::NameAsId,
+                    MatchStrategy::NameAsId.confidence(),
+                ));
+            }
+        } else {
+            let id_norm = normalize_name(xmltv_id);
+            if !id_norm.is_empty()
+                && let Some(&ch_id) = name_norm_map.get(&id_norm)
+            {
+                let strats = matches.entry(ch_id.to_string()).or_default();
+                if !strats.iter().any(|(s, _)| *s == MatchStrategy::NameAsId) {
+                    strats.push((
+                        MatchStrategy::NameAsId,
+                        MatchStrategy::NameAsId.confidence(),
+                    ));
+                }
+            }
+        }
+
+        // Strategy 7: fuzzy matching.
+        // Only run when no high-confidence match found (optimization).
+        let best_so_far = matches
+            .values()
+            .flat_map(|v| v.iter().map(|(_, c)| *c))
+            .fold(0.0_f64, f64::max);
+
+        if best_so_far < MatchStrategy::NormName.confidence() {
+            let query = dn.map(String::as_str).unwrap_or(xmltv_id.as_str());
+            for &(ch_id, ch_display) in &channel_displays {
+                let score = fuzzy_name_score(query, ch_display);
+                if score >= SUGGEST_THRESHOLD {
+                    matches
+                        .entry(ch_id.to_string())
+                        .or_default()
+                        .push((MatchStrategy::Fuzzy, score));
+                }
+            }
+        }
+
+        // Build candidates from matches.
+        for (ch_id, strats) in &matches {
+            let best_conf = strats.iter().map(|(_, c)| *c).fold(0.0_f64, f64::max);
+
+            // Corroboration: +0.05 per additional strategy.
+            let boost = ((strats.len() as f64 - 1.0) * CORROBORATION_BOOST).max(0.0);
+            let confidence = (best_conf + boost).min(1.0);
+
+            if confidence < SUGGEST_THRESHOLD {
+                continue;
+            }
+
+            // CJK script guard.
+            if let Some(&ch_name) = channel_names.get(ch_id.as_str())
+                && !scripts_compatible(ch_name, sample_title)
+            {
+                continue;
+            }
+
+            candidates.push(EpgMatchCandidate {
+                channel_id: ch_id.clone(),
+                epg_channel_id: xmltv_id.clone(),
+                confidence,
+                strategies: strats.iter().map(|(s, _)| *s).collect(),
+                auto_apply: confidence >= AUTO_APPLY_THRESHOLD,
+            });
+        }
+    }
+
+    // Sort by confidence descending.
+    candidates.sort_by(|a, b| {
+        b.confidence
+            .partial_cmp(&a.confidence)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    candidates
 }
 
 #[cfg(test)]
@@ -456,6 +791,7 @@ mod tests {
             source_id: None,
             added_at: None,
             updated_at: None,
+            is_247: false,
         }
     }
 
@@ -1025,5 +1361,236 @@ mod tests {
         let result = filter_upcoming_programs(epg_map, "[]", 1000, 10, 20);
         let v: serde_json::Value = serde_json::from_str(&result).unwrap();
         assert!(v.as_array().unwrap().is_empty());
+    }
+
+    // ── dedup_overlapping_entries / merge overlap tests ──
+
+    #[test]
+    fn merge_dedup_removes_high_overlap_entry() {
+        // Two programmes: A (1000–2000) and B (1100–2100) → 80% overlap on B → B removed.
+        let existing = r#"{"ch1": [{"startTime": 1000, "endTime": 2000, "title": "A"}]}"#;
+        let new = r#"{"ch1": [{"startTime": 1100, "endTime": 2100, "title": "B"}]}"#;
+        let merged = merge_epg_window(existing, new);
+        let v: serde_json::Value = serde_json::from_str(&merged).unwrap();
+        let ch1 = v.get("ch1").and_then(|v| v.as_array()).unwrap();
+        assert_eq!(ch1.len(), 1);
+        assert_eq!(ch1[0]["title"], "A");
+    }
+
+    #[test]
+    fn merge_dedup_keeps_low_overlap_entries() {
+        // Two programmes: A (1000–2000) and B (1700–2700) → 30% overlap on B → both kept.
+        let existing = r#"{"ch1": [{"startTime": 1000, "endTime": 2000, "title": "A"}]}"#;
+        let new = r#"{"ch1": [{"startTime": 1700, "endTime": 2700, "title": "B"}]}"#;
+        let merged = merge_epg_window(existing, new);
+        let v: serde_json::Value = serde_json::from_str(&merged).unwrap();
+        let ch1 = v.get("ch1").and_then(|v| v.as_array()).unwrap();
+        assert_eq!(ch1.len(), 2);
+    }
+
+    #[test]
+    fn merge_dedup_removes_identical_programmes() {
+        // Identical start/end → 100% overlap → second removed.
+        let existing = r#"{"ch1": [{"startTime": 1000, "endTime": 2000, "title": "A"}]}"#;
+        let new = r#"{"ch1": [{"startTime": 1000, "endTime": 2000, "title": "A_dup"}]}"#;
+        let merged = merge_epg_window(existing, new);
+        let v: serde_json::Value = serde_json::from_str(&merged).unwrap();
+        let ch1 = v.get("ch1").and_then(|v| v.as_array()).unwrap();
+        // Only 1 entry: existing "A" kept (deduped by startTime), "A_dup" skipped.
+        assert_eq!(ch1.len(), 1);
+        assert_eq!(ch1[0]["title"], "A");
+    }
+
+    #[test]
+    fn merge_dedup_non_overlapping_all_kept() {
+        // No overlap → all kept.
+        let existing = r#"{"ch1": [{"startTime": 1000, "endTime": 2000, "title": "A"}]}"#;
+        let new = r#"{"ch1": [{"startTime": 3000, "endTime": 4000, "title": "B"}]}"#;
+        let merged = merge_epg_window(existing, new);
+        let v: serde_json::Value = serde_json::from_str(&merged).unwrap();
+        let ch1 = v.get("ch1").and_then(|v| v.as_array()).unwrap();
+        assert_eq!(ch1.len(), 2);
+    }
+
+    #[test]
+    fn merge_dedup_chain_a_overlaps_b_but_not_c() {
+        // A (1000–2000), B (1400–2400, 60% overlap with A → removed),
+        // C (2600–3600, no overlap with A → kept).
+        let existing = r#"{"ch1": [
+            {"startTime": 1000, "endTime": 2000, "title": "A"}
+        ]}"#;
+        let new = r#"{"ch1": [
+            {"startTime": 1400, "endTime": 2400, "title": "B"},
+            {"startTime": 2600, "endTime": 3600, "title": "C"}
+        ]}"#;
+        let merged = merge_epg_window(existing, new);
+        let v: serde_json::Value = serde_json::from_str(&merged).unwrap();
+        let ch1 = v.get("ch1").and_then(|v| v.as_array()).unwrap();
+        let titles: Vec<&str> = ch1.iter().filter_map(|e| e["title"].as_str()).collect();
+        assert_eq!(titles, vec!["A", "C"]);
+    }
+
+    #[test]
+    fn merge_dedup_existing_wins_over_new_same_time() {
+        // Source priority: existing entry wins when times are identical.
+        // The startTime-based dedup already keeps existing "A", so "B" never enters.
+        let existing = r#"{"ch1": [{"startTime": 1000, "endTime": 2000, "title": "A_existing"}]}"#;
+        let new = r#"{"ch1": [{"startTime": 1000, "endTime": 2000, "title": "B_new"}]}"#;
+        let merged = merge_epg_window(existing, new);
+        let v: serde_json::Value = serde_json::from_str(&merged).unwrap();
+        let ch1 = v.get("ch1").and_then(|v| v.as_array()).unwrap();
+        assert_eq!(ch1.len(), 1);
+        assert_eq!(ch1[0]["title"], "A_existing");
+    }
+
+    #[test]
+    fn dedup_overlapping_entries_preserves_zero_duration() {
+        // Zero-duration entries are kept unconditionally.
+        let entries = vec![
+            serde_json::json!({"startTime": 1000, "endTime": 1000, "title": "Zero"}),
+            serde_json::json!({"startTime": 1000, "endTime": 2000, "title": "Normal"}),
+        ];
+        let result = dedup_overlapping_entries(entries);
+        assert_eq!(result.len(), 2);
+    }
+
+    // ── match_epg_with_confidence tests ──────────────
+
+    #[test]
+    fn confidence_exact_tvg_id_returns_high() {
+        let channels = vec![make_channel("c1", "BBC One", Some("bbc1"), None)];
+        let entries = vec![make_epg("bbc1", "News")];
+        let display = HashMap::new();
+
+        let candidates = match_epg_with_confidence(&entries, &channels, &display);
+
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].channel_id, "c1");
+        assert!(candidates[0].confidence >= 0.95);
+        assert!(candidates[0].auto_apply);
+        assert!(
+            candidates[0]
+                .strategies
+                .contains(&MatchStrategy::TvgIdExact)
+        );
+    }
+
+    #[test]
+    fn confidence_corroboration_boosts_score() {
+        // tvg_id matches AND display name matches → corroboration.
+        let channels = vec![make_channel("c1", "CNN", Some("cnn"), None)];
+        let entries = vec![make_epg("cnn", "News")];
+        let mut display = HashMap::new();
+        display.insert("cnn".to_string(), "CNN".to_string());
+
+        let candidates = match_epg_with_confidence(&entries, &channels, &display);
+
+        assert_eq!(candidates.len(), 1);
+        assert!(candidates[0].strategies.len() > 1);
+        assert_eq!(candidates[0].confidence, 1.0); // capped at 1.0
+    }
+
+    #[test]
+    fn confidence_unmatched_returns_empty() {
+        let channels = vec![make_channel("c1", "BBC One", Some("bbc1"), None)];
+        let entries = vec![make_epg("totally_unknown", "Mystery")];
+        let display = HashMap::new();
+
+        let candidates = match_epg_with_confidence(&entries, &channels, &display);
+
+        assert!(candidates.is_empty());
+    }
+
+    #[test]
+    fn confidence_cjk_guard_rejects_mismatch() {
+        let channels = vec![make_channel("c1", "Be inSPORTS 2 4K", Some("365941"), None)];
+        let entries = vec![make_epg("365941", "アルペンスキーFIS W杯25/26")];
+        let display = HashMap::new();
+
+        let candidates = match_epg_with_confidence(&entries, &channels, &display);
+
+        assert!(candidates.is_empty());
+    }
+
+    #[test]
+    fn confidence_sorted_descending() {
+        let channels = vec![
+            make_channel("c1", "BBC One", Some("bbc1"), None),
+            make_channel("c2", "CNN", None, None),
+        ];
+        let entries = vec![make_epg("bbc1", "News"), make_epg("CNN", "Report")];
+        let display = HashMap::new();
+
+        let candidates = match_epg_with_confidence(&entries, &channels, &display);
+
+        for i in 1..candidates.len() {
+            assert!(candidates[i - 1].confidence >= candidates[i].confidence);
+        }
+    }
+
+    #[test]
+    fn confidence_below_suggest_excluded() {
+        let channels = vec![make_channel("c1", "XYZ Very Unique Name", None, None)];
+        let entries = vec![make_epg("abc123", "Completely Different")];
+        let display = HashMap::new();
+
+        let candidates = match_epg_with_confidence(&entries, &channels, &display);
+
+        assert!(candidates.is_empty());
+    }
+
+    #[test]
+    fn confidence_name_as_id_auto_apply() {
+        // Strategy 6 (name_as_id) gives 0.70 → auto_apply = true.
+        let channels = vec![make_channel("c1", "Sky Sports", None, None)];
+        let entries = vec![make_epg("Sky Sports", "Football")];
+        let display = HashMap::new();
+
+        let candidates = match_epg_with_confidence(&entries, &channels, &display);
+
+        assert!(!candidates.is_empty());
+        assert!(candidates[0].auto_apply);
+    }
+
+    #[test]
+    fn confidence_display_name_match() {
+        let channels = vec![make_channel("c1", "National Geographic", None, None)];
+        let entries = vec![make_epg("natgeo.xml", "Wild")];
+        let mut display = HashMap::new();
+        display.insert("natgeo.xml".to_string(), "National Geographic".to_string());
+
+        let candidates = match_epg_with_confidence(&entries, &channels, &display);
+
+        assert!(!candidates.is_empty());
+        assert_eq!(candidates[0].channel_id, "c1");
+        assert!(candidates[0].strategies.contains(&MatchStrategy::XmltvName));
+    }
+
+    #[test]
+    fn confidence_multiple_xmltv_channels_independent() {
+        let channels = vec![
+            make_channel("c1", "BBC", Some("bbc1"), None),
+            make_channel("c2", "CNN", Some("cnn1"), None),
+        ];
+        let entries = vec![make_epg("bbc1", "News"), make_epg("cnn1", "Report")];
+        let display = HashMap::new();
+
+        let candidates = match_epg_with_confidence(&entries, &channels, &display);
+
+        assert_eq!(candidates.len(), 2);
+        let ch_ids: HashSet<&str> = candidates.iter().map(|c| c.channel_id.as_str()).collect();
+        assert!(ch_ids.contains("c1"));
+        assert!(ch_ids.contains("c2"));
+    }
+
+    #[test]
+    fn confidence_empty_entries_returns_empty() {
+        let channels = vec![make_channel("c1", "BBC", Some("bbc1"), None)];
+        let entries: Vec<EpgEntry> = vec![];
+        let display = HashMap::new();
+
+        let candidates = match_epg_with_confidence(&entries, &channels, &display);
+
+        assert!(candidates.is_empty());
     }
 }

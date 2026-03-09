@@ -126,3 +126,37 @@ Future<void> clearSearchHistory() =>
 /// (case-insensitive). Returns count deleted.
 Future<BigInt> deleteSearchByQuery({required String query}) =>
     RustLib.instance.api.crateApiSettingsDeleteSearchByQuery(query: query);
+
+/// Resolve a single channel name to a tv-logos URL.
+Future<String?> resolveChannelLogo({required String name}) =>
+    RustLib.instance.api.crateApiSettingsResolveChannelLogo(name: name);
+
+/// Resolve logos for a batch of channel names.
+/// Returns JSON map of `name → url`.
+Future<String> resolveLogosBatch({required String namesJson}) => RustLib
+    .instance
+    .api
+    .crateApiSettingsResolveLogosBatch(namesJson: namesJson);
+
+/// Check if the logo index needs refreshing (>24 h old).
+Future<bool> isLogoIndexStale() =>
+    RustLib.instance.api.crateApiSettingsIsLogoIndexStale();
+
+/// Fetch the logo index from the GitHub API and save it.
+Future<void> refreshLogoIndex() =>
+    RustLib.instance.api.crateApiSettingsRefreshLogoIndex();
+
+/// Decode a BlurHash string into BMP image bytes.
+///
+/// Returns minimal 32-bit BMP data suitable for `Image.memory()`.
+/// Default size: 16×16 (~1 KB). Use as placeholder while full
+/// image loads.
+Uint8List decodeBlurhash({
+  required String hash,
+  required int width,
+  required int height,
+}) => RustLib.instance.api.crateApiSettingsDecodeBlurhash(
+  hash: hash,
+  width: width,
+  height: height,
+);

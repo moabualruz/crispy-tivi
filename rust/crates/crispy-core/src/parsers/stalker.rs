@@ -278,6 +278,7 @@ pub fn parse_stalker_live_streams(data: &[Value], source_id: &str, base_url: &st
                 source_id: Some(source_id.to_string()),
                 added_at: None,
                 updated_at: None,
+                is_247: false,
             })
         })
         .collect()

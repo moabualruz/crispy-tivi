@@ -32,6 +32,7 @@ pub fn make_channel(id: &str, name: &str) -> Channel {
         source_id: Some("src1".to_string()),
         added_at: None,
         updated_at: None,
+        is_247: false,
     }
 }
 

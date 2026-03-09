@@ -25,7 +25,7 @@ use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
 /// Current schema version.
-const SCHEMA_VERSION: u32 = 30;
+const SCHEMA_VERSION: u32 = 35;
 
 // ── Table name constants ──────────────────────────────────
 
@@ -154,6 +154,12 @@ impl Database {
         tx.execute_batch(CREATE_DB_REMINDERS)?;
         tx.execute_batch(CREATE_DB_WATCHLIST)?;
         tx.execute_batch(CREATE_DB_SOURCES)?;
+        tx.execute_batch(CREATE_DB_BUFFER_TIERS)?;
+        tx.execute_batch(CREATE_DB_BOOKMARKS)?;
+        tx.execute_batch(CREATE_DB_STREAM_HEALTH)?;
+        tx.execute_batch(CREATE_DB_EPG_MAPPINGS)?;
+        tx.execute_batch(CREATE_DB_SMART_GROUPS)?;
+        tx.execute_batch(CREATE_DB_SMART_GROUP_MEMBERS)?;
         tx.execute_batch(CREATE_INDEXES)?;
 
         tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
@@ -274,6 +280,40 @@ impl Database {
             )?;
         }
 
+        // v31: Add db_buffer_tiers for adaptive buffer persistence.
+        if from_version < 31 {
+            tx.execute_batch(CREATE_DB_BUFFER_TIERS)?;
+        }
+
+        // v32: Add db_bookmarks for persistent video bookmarks.
+        if from_version < 32 {
+            tx.execute_batch(CREATE_DB_BOOKMARKS)?;
+            tx.execute_batch(
+                "CREATE INDEX IF NOT EXISTS idx_bookmarks_content \
+                    ON db_bookmarks (content_id);",
+            )?;
+        }
+
+        // v33: Add db_stream_health for stream reliability tracking.
+        if from_version < 33 {
+            tx.execute_batch(CREATE_DB_STREAM_HEALTH)?;
+        }
+
+        // v34: Add db_epg_mappings table and is_247 column on channels.
+        if from_version < 34 {
+            tx.execute_batch(CREATE_DB_EPG_MAPPINGS)?;
+            let _ = tx.execute(
+                "ALTER TABLE db_channels ADD COLUMN is_247 INTEGER NOT NULL DEFAULT 0",
+                [],
+            );
+        }
+
+        // v35: Add smart channel groups for cross-provider failover.
+        if from_version < 35 {
+            tx.execute_batch(CREATE_DB_SMART_GROUPS)?;
+            tx.execute_batch(CREATE_DB_SMART_GROUP_MEMBERS)?;
+        }
+
         tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
         tx.commit()?;
         Ok(())
@@ -309,7 +349,8 @@ CREATE TABLE IF NOT EXISTS db_channels (
     catchup_source TEXT,
     source_id TEXT,
     added_at INTEGER,
-    updated_at INTEGER
+    updated_at INTEGER,
+    is_247 INTEGER NOT NULL DEFAULT 0
 );";
 
 const CREATE_DB_VOD_ITEMS: &str = "\
@@ -564,6 +605,59 @@ CREATE TABLE IF NOT EXISTS db_sources (
     updated_at INTEGER
 );";
 
+const CREATE_DB_BUFFER_TIERS: &str = "\
+CREATE TABLE IF NOT EXISTS db_buffer_tiers (
+    url_hash TEXT PRIMARY KEY NOT NULL,
+    tier TEXT NOT NULL DEFAULT 'normal',
+    updated_at INTEGER NOT NULL
+);";
+
+const CREATE_DB_BOOKMARKS: &str = "\
+CREATE TABLE IF NOT EXISTS db_bookmarks (
+    id TEXT PRIMARY KEY NOT NULL,
+    content_id TEXT NOT NULL,
+    content_type TEXT NOT NULL,
+    position_ms INTEGER NOT NULL,
+    label TEXT,
+    created_at INTEGER NOT NULL
+);";
+
+const CREATE_DB_STREAM_HEALTH: &str = "\
+CREATE TABLE IF NOT EXISTS db_stream_health (
+    url_hash TEXT PRIMARY KEY NOT NULL,
+    stall_count INTEGER NOT NULL DEFAULT 0,
+    buffer_sum REAL NOT NULL DEFAULT 0,
+    buffer_samples INTEGER NOT NULL DEFAULT 0,
+    ttff_ms INTEGER NOT NULL DEFAULT 0,
+    last_seen INTEGER NOT NULL
+);";
+
+const CREATE_DB_EPG_MAPPINGS: &str = "\
+CREATE TABLE IF NOT EXISTS db_epg_mappings (
+    channel_id TEXT PRIMARY KEY NOT NULL,
+    epg_channel_id TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    source TEXT NOT NULL,
+    locked INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+);";
+
+const CREATE_DB_SMART_GROUPS: &str = "\
+CREATE TABLE IF NOT EXISTS db_smart_groups (
+    id TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);";
+
+const CREATE_DB_SMART_GROUP_MEMBERS: &str = "\
+CREATE TABLE IF NOT EXISTS db_smart_group_members (
+    group_id TEXT NOT NULL REFERENCES db_smart_groups(id) ON DELETE CASCADE,
+    channel_id TEXT NOT NULL,
+    source_id TEXT NOT NULL DEFAULT '',
+    priority INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (group_id, channel_id)
+);";
+
 // ── Indexes ──────────────────────────────────────────────
 
 const CREATE_INDEXES: &str = "\
@@ -591,6 +685,8 @@ CREATE INDEX IF NOT EXISTS idx_epg_source
     ON db_epg_entries (source_id);
 CREATE INDEX IF NOT EXISTS idx_categories_source
     ON db_categories (source_id);
+CREATE INDEX IF NOT EXISTS idx_bookmarks_content
+    ON db_bookmarks (content_id);
 ";
 
 // ── Tests ────────────────────────────────────────────────
@@ -631,10 +727,13 @@ mod tests {
             .collect();
 
         let expected = vec![
+            "db_bookmarks",
+            "db_buffer_tiers",
             "db_categories",
             "db_channel_order",
             "db_channels",
             "db_epg_entries",
+            "db_epg_mappings",
             "db_profiles",
             "db_profile_source_access",
             "db_recordings",
@@ -642,8 +741,11 @@ mod tests {
             "db_saved_layouts",
             "db_search_history",
             "db_settings",
+            "db_smart_group_members",
+            "db_smart_groups",
             "db_sources",
             "db_storage_backends",
+            "db_stream_health",
             "db_sync_meta",
             "db_transfer_tasks",
             "db_user_favorites",
@@ -653,7 +755,7 @@ mod tests {
             "db_watchlist",
         ];
 
-        assert_eq!(tables.len(), 21, "expected 21 tables");
+        assert_eq!(tables.len(), 27, "expected 27 tables");
         for name in &expected {
             assert!(tables.contains(&name.to_string()), "missing table: {name}",);
         }
@@ -679,6 +781,7 @@ mod tests {
             .collect();
 
         let expected = vec![
+            "idx_bookmarks_content",
             "idx_categories_source",
             "idx_channel_order_profile",
             "idx_channels_source",
@@ -693,7 +796,7 @@ mod tests {
             "idx_watch_history_source",
         ];
 
-        assert_eq!(indexes.len(), 12, "expected 12 indexes",);
+        assert_eq!(indexes.len(), 13, "expected 13 indexes",);
         for name in &expected {
             assert!(indexes.contains(&name.to_string()), "missing index: {name}",);
         }

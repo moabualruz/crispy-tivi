@@ -8,7 +8,7 @@ use crate::database::{DbError, TABLE_CHANNELS};
 use crate::events::DataChangeEvent;
 use crate::models::Channel;
 
-/// SELECT column list for `db_channels` (17 columns, positional order).
+/// SELECT column list for `db_channels` (18 columns, positional order).
 ///
 /// Use with `format!("SELECT {CHANNEL_COLUMNS} FROM db_channels ...")`.
 /// Column order matches `channel_from_row` index bindings.
@@ -17,14 +17,14 @@ pub(crate) const CHANNEL_COLUMNS: &str = "id, name, stream_url, number, \
      tvg_name, is_favorite, user_agent, \
      has_catchup, catchup_days, \
      catchup_type, catchup_source, \
-     source_id, added_at, updated_at";
+     source_id, added_at, updated_at, is_247";
 
 /// Map a single SQLite row to a `Channel`.
 ///
 /// Column order must match `CHANNEL_COLUMNS`:
 /// `id, name, stream_url, number, channel_group, logo_url, tvg_id,
 ///  tvg_name, is_favorite, user_agent, has_catchup, catchup_days,
-///  catchup_type, catchup_source, source_id, added_at, updated_at`
+///  catchup_type, catchup_source, source_id, added_at, updated_at, is_247`
 fn channel_from_row(row: &Row) -> rusqlite::Result<Channel> {
     Ok(Channel {
         id: row.get(0)?,
@@ -45,6 +45,7 @@ fn channel_from_row(row: &Row) -> rusqlite::Result<Channel> {
         source_id: row.get(14)?,
         added_at: opt_ts_to_dt(row.get(15)?),
         updated_at: opt_ts_to_dt(row.get(16)?),
+        is_247: int_to_bool(row.get(17)?),
     })
 }
 
@@ -64,11 +65,11 @@ impl CrispyService {
                     tvg_name, is_favorite, user_agent,
                     has_catchup, catchup_days,
                     catchup_type, catchup_source,
-                    source_id, added_at, updated_at
+                    source_id, added_at, updated_at, is_247
                 ) VALUES (
                     ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
                     ?9, ?10, ?11, ?12, ?13, ?14, ?15,
-                    ?16, ?17
+                    ?16, ?17, ?18
                 )",
                 params![
                     ch.id,
@@ -88,6 +89,7 @@ impl CrispyService {
                     ch.source_id,
                     opt_dt_to_ts(&ch.added_at),
                     opt_dt_to_ts(&ch.updated_at),
+                    bool_to_int(ch.is_247),
                 ],
             )?;
             count += 1;

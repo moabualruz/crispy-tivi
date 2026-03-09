@@ -69,6 +69,29 @@ pub struct Channel {
     /// When the channel was last refreshed.
     #[serde(default)]
     pub updated_at: Option<NaiveDateTime>,
+    /// Whether this is a 24/7 loop channel.
+    #[serde(default)]
+    pub is_247: bool,
+}
+
+// ── EpgMapping ────────────────────────────────────────
+
+/// A persisted EPG channel-to-channel mapping.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EpgMapping {
+    /// Internal channel ID.
+    pub channel_id: String,
+    /// XMLTV EPG channel ID.
+    pub epg_channel_id: String,
+    /// Confidence score (0.0 - 1.0).
+    pub confidence: f64,
+    /// Matching strategy that produced this mapping.
+    pub source: String,
+    /// Whether the user has locked this mapping.
+    #[serde(default)]
+    pub locked: bool,
+    /// When the mapping was created (epoch seconds).
+    pub created_at: i64,
 }
 
 // ── VodItem ─────────────────────────────────────────
@@ -674,6 +697,30 @@ pub struct SearchHistory {
     /// Number of results returned.
     #[serde(default)]
     pub result_count: i32,
+}
+
+// ── Bookmark ───────────────────────────────────────
+
+/// A user-defined timestamp pin in a video.
+///
+/// Maps to the `db_bookmarks` table. Stores bookmark
+/// position so users can mark and return to specific
+/// moments across app restarts.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Bookmark {
+    /// Unique bookmark identifier.
+    pub id: String,
+    /// Content identifier (channel ID or VOD item ID).
+    pub content_id: String,
+    /// Content type: "channel" or "vod".
+    pub content_type: String,
+    /// Playback position in milliseconds.
+    pub position_ms: i64,
+    /// Optional user label (e.g. "Best scene").
+    #[serde(default)]
+    pub label: Option<String>,
+    /// When the bookmark was created.
+    pub created_at: NaiveDateTime,
 }
 
 // ── ChannelOrder ────────────────────────────────────

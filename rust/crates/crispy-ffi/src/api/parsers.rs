@@ -83,6 +83,35 @@ pub fn parse_vtt_thumbnails(content: String, base_url: String) -> Result<Option<
     }
 }
 
+// ── BIF Trickplay Parser ────────────────────────────
+
+/// Parse a BIF file's index table.
+/// Returns JSON array of `{timestamp_ms, offset, length}`.
+pub fn parse_bif_index(data: Vec<u8>) -> Result<String> {
+    let entries = crispy_core::parsers::bif::parse_bif_index(&data);
+    Ok(serde_json::to_string(&entries)?)
+}
+
+/// Find the BIF thumbnail nearest to the target timestamp
+/// and extract its JPEG bytes.
+///
+/// `index_json` is the JSON array returned by `parse_bif_index`.
+/// Returns the JPEG bytes, or an empty vec if not found.
+pub fn get_bif_thumbnail(data: Vec<u8>, index_json: String, timestamp_ms: i64) -> Result<Vec<u8>> {
+    let entries: Vec<crispy_core::parsers::bif::BifEntry> = serde_json::from_str(&index_json)?;
+    let ts = if timestamp_ms < 0 {
+        0u64
+    } else {
+        timestamp_ms as u64
+    };
+    match crispy_core::parsers::bif::find_bif_entry(&entries, ts) {
+        Some(entry) => {
+            Ok(crispy_core::parsers::bif::extract_bif_thumbnail(&data, entry).unwrap_or_default())
+        }
+        None => Ok(Vec::new()),
+    }
+}
+
 // ── Stalker Parsers ─────────────────────────────────
 
 /// Parse Stalker EPG entries for a channel.

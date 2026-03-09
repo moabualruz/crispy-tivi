@@ -79,6 +79,26 @@ Future<String?> parseVttThumbnails({
   baseUrl: baseUrl,
 );
 
+/// Parse a BIF file's index table.
+/// Returns JSON array of `{timestamp_ms, offset, length}`.
+Future<String> parseBifIndex({required List<int> data}) =>
+    RustLib.instance.api.crateApiParsersParseBifIndex(data: data);
+
+/// Find the BIF thumbnail nearest to the target timestamp
+/// and extract its JPEG bytes.
+///
+/// `index_json` is the JSON array returned by `parse_bif_index`.
+/// Returns the JPEG bytes, or an empty vec if not found.
+Future<Uint8List> getBifThumbnail({
+  required List<int> data,
+  required String indexJson,
+  required PlatformInt64 timestampMs,
+}) => RustLib.instance.api.crateApiParsersGetBifThumbnail(
+  data: data,
+  indexJson: indexJson,
+  timestampMs: timestampMs,
+);
+
 /// Parse Stalker EPG entries for a channel.
 /// Returns JSON array of EpgEntry objects.
 Future<String> parseStalkerEpg({

@@ -58,6 +58,23 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             );
             Ok(json!({"data": result}))
         })(),
+        "matchEpgWithConfidence" => (|| {
+            let entries_json = get_str(args, "entriesJson")?;
+            let channels_json = get_str(args, "channelsJson")?;
+            let names_json = get_str(args, "displayNamesJson")?;
+            let entries: Vec<EpgEntry> =
+                serde_json::from_str(&entries_json).context("Invalid entries JSON")?;
+            let channels: Vec<Channel> =
+                serde_json::from_str(&channels_json).context("Invalid channels JSON")?;
+            let display_names: HashMap<String, String> =
+                serde_json::from_str(&names_json).context("Invalid display names JSON")?;
+            let candidates = crispy_core::algorithms::epg_matching::match_epg_with_confidence(
+                &entries,
+                &channels,
+                &display_names,
+            );
+            Ok(json!({"data": candidates}))
+        })(),
 
         // ── Catchup ────────────────────────────
         "buildCatchupUrl" => (|| {
@@ -888,6 +905,31 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let limit = get_i64(args, "limit")? as usize;
             let result =
                 crispy_core::algorithms::vod_sorting::similar_vod_items(&items, &item_id, limit);
+            Ok(json!({"data": result}))
+        })(),
+
+        // ── Stream Alternatives ──────────────────
+        "rankStreamAlternatives" => (|| {
+            let target_json = get_str(args, "targetJson")?;
+            let all_json = get_str(args, "allChannelsJson")?;
+            let health_json = get_str(args, "healthScoresJson")?;
+            let target: Channel =
+                serde_json::from_str(&target_json).context("Invalid target channel JSON")?;
+            let all_channels: Vec<Channel> =
+                serde_json::from_str(&all_json).context("Invalid channels JSON")?;
+            let health_scores: HashMap<String, f64> =
+                serde_json::from_str(&health_json).context("Invalid health scores JSON")?;
+            let ranked = crispy_core::algorithms::stream_alternatives::rank_stream_alternatives(
+                &target,
+                &all_channels,
+                &health_scores,
+            );
+            let s = serde_json::to_string(&ranked)?;
+            Ok(json!({"data": s}))
+        })(),
+        "extractCallSign" => (|| {
+            let name = get_str(args, "name")?;
+            let result = crispy_core::algorithms::stream_alternatives::extract_call_sign(&name);
             Ok(json!({"data": result}))
         })(),
 

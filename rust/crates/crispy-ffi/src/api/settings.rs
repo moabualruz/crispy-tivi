@@ -163,3 +163,43 @@ pub fn clear_search_history() -> Result<()> {
 pub fn delete_search_by_query(query: String) -> Result<usize> {
     Ok(svc()?.delete_search_by_query(&query)?)
 }
+
+// ── Logo Resolver ──────────────────────────────────────
+
+/// Resolve a single channel name to a tv-logos URL.
+pub fn resolve_channel_logo(name: String) -> Result<Option<String>> {
+    Ok(svc()?.resolve_logo(&name)?)
+}
+
+/// Resolve logos for a batch of channel names.
+/// Returns JSON map of `name → url`.
+pub fn resolve_logos_batch(names_json: String) -> Result<String> {
+    let names: Vec<String> = from_json(&names_json)?;
+    let results = svc()?.resolve_logos_batch(&names)?;
+    Ok(serde_json::to_string(&results)?)
+}
+
+/// Check if the logo index needs refreshing (>24 h old).
+pub fn is_logo_index_stale() -> Result<bool> {
+    Ok(svc()?.is_logo_index_stale()?)
+}
+
+/// Fetch the logo index from the GitHub API and save it.
+pub async fn refresh_logo_index() -> Result<()> {
+    let index = crispy_core::services::logo_resolver::fetch_logo_index()
+        .await
+        .map_err(|e| anyhow!("{e}"))?;
+    svc()?.save_logo_index(&index)?;
+    Ok(())
+}
+
+/// Decode a BlurHash string into BMP image bytes.
+///
+/// Returns minimal 32-bit BMP data suitable for `Image.memory()`.
+/// Default size: 16×16 (~1 KB). Use as placeholder while full
+/// image loads.
+#[flutter_rust_bridge::frb(sync)]
+pub fn decode_blurhash(hash: String, width: u32, height: u32) -> Result<Vec<u8>> {
+    crispy_core::services::logo_resolver::decode_blurhash_to_bmp(&hash, width, height)
+        .map_err(|e| anyhow!("{e}"))
+}

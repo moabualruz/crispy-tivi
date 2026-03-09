@@ -480,6 +480,7 @@ mod tests {
             source_id: None,
             added_at: None,
             updated_at: None,
+            is_247: false,
         }
     }
 

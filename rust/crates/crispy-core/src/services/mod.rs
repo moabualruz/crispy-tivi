@@ -12,22 +12,29 @@ use rusqlite::params;
 use crate::database::{Database, DbError};
 use crate::events::{DataChangeEvent, EventCallback};
 
+pub mod app_update;
 pub mod epg_sync;
 pub mod m3u_sync;
 pub mod stalker_sync;
 pub mod xtream_sync;
 
+mod bookmarks;
+mod buffer_tiers;
 mod bulk;
 mod categories;
 mod channels;
 mod dvr;
 mod epg;
+mod epg_mappings;
 mod history;
+pub mod logo_resolver;
 mod misc;
 mod profiles;
 mod reminders;
 mod settings;
+mod smart_groups;
 mod sources;
+mod stream_health;
 mod vod;
 mod watchlist;
 

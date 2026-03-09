@@ -88,9 +88,11 @@ pub enum DataChangeEvent {
     },
 
     // ── Misc UI data ──────────────────────────────
+    BookmarkChanged,
     SavedLayoutChanged,
     SearchHistoryChanged,
     ReminderChanged,
+    SmartGroupChanged,
 
     // ── Bulk ──────────────────────────────────────
     CloudSyncCompleted,
@@ -181,6 +183,7 @@ mod tests {
         for e in [
             DataChangeEvent::WatchHistoryCleared,
             DataChangeEvent::ChannelOrderChanged,
+            DataChangeEvent::BookmarkChanged,
             DataChangeEvent::SavedLayoutChanged,
             DataChangeEvent::SearchHistoryChanged,
             DataChangeEvent::ReminderChanged,

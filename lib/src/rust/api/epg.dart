@@ -39,10 +39,15 @@ Future<BigInt> evictStaleEpg({required PlatformInt64 days}) =>
     RustLib.instance.api.crateApiEpgEvictStaleEpg(days: days);
 
 /// Download, parse, match, and save XMLTV EPG asynchronously.
+///
+/// Skips if the same URL was refreshed within the 4-hour
+/// cooldown window.
 Future<BigInt> syncXmltvEpg({required String url}) =>
     RustLib.instance.api.crateApiEpgSyncXmltvEpg(url: url);
 
 /// Download, parse, match, and save Xtream short EPG batches asynchronously.
+///
+/// Cooldown is applied to the derived XMLTV URL.
 Future<BigInt> syncXtreamEpg({
   required String baseUrl,
   required String username,
@@ -56,6 +61,8 @@ Future<BigInt> syncXtreamEpg({
 );
 
 /// Download, parse, match, and save Stalker short EPG batches asynchronously.
+///
+/// Cooldown is applied to the base URL.
 Future<BigInt> syncStalkerEpg({
   required String baseUrl,
   required String channelsJson,
@@ -102,6 +109,45 @@ Future<String> parseXtreamShortEpg({
   listingsJson: listingsJson,
   channelId: channelId,
 );
+
+/// Run confidence-based EPG matching.
+/// Returns JSON array of EpgMatchCandidate objects.
+Future<String> matchEpgWithConfidence({
+  required String entriesJson,
+  required String channelsJson,
+  required String displayNamesJson,
+}) => RustLib.instance.api.crateApiEpgMatchEpgWithConfidence(
+  entriesJson: entriesJson,
+  channelsJson: channelsJson,
+  displayNamesJson: displayNamesJson,
+);
+
+/// Save an EPG mapping.
+Future<void> saveEpgMapping({required String json}) =>
+    RustLib.instance.api.crateApiEpgSaveEpgMapping(json: json);
+
+/// Get all EPG mappings as JSON array.
+Future<String> getEpgMappings() =>
+    RustLib.instance.api.crateApiEpgGetEpgMappings();
+
+/// Lock an EPG mapping so it won't be overridden.
+Future<void> lockEpgMapping({required String channelId}) =>
+    RustLib.instance.api.crateApiEpgLockEpgMapping(channelId: channelId);
+
+/// Delete an EPG mapping.
+Future<void> deleteEpgMapping({required String channelId}) =>
+    RustLib.instance.api.crateApiEpgDeleteEpgMapping(channelId: channelId);
+
+/// Get pending EPG suggestions (0.40-0.69 confidence, not locked).
+Future<String> getPendingEpgSuggestions() =>
+    RustLib.instance.api.crateApiEpgGetPendingEpgSuggestions();
+
+/// Mark a channel as 24/7.
+Future<void> setChannel247({required String channelId, required bool is247}) =>
+    RustLib.instance.api.crateApiEpgSetChannel247(
+      channelId: channelId,
+      is247: is247,
+    );
 
 /// Merges new EPG entries into existing entries,
 /// deduplicating by `startTime`.

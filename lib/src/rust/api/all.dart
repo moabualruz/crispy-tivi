@@ -1,4 +1,7 @@
 export 'algorithms.dart';
+export 'app_update.dart';
+export 'bookmarks.dart';
+export 'buffer.dart';
 export 'channels.dart';
 export 'display.dart';
 export 'dvr.dart';
@@ -7,7 +10,9 @@ export 'lifecycle.dart';
 export 'parsers.dart';
 export 'profiles.dart';
 export 'settings.dart';
+export 'smart_groups.dart';
 export 'sources.dart';
+export 'stream_health.dart';
 export 'sync.dart';
 export 'vod.dart';
 export 'watchlist.dart';

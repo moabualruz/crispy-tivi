@@ -719,4 +719,21 @@ mod tests {
         assert!(!names.contains_key("empty"));
         assert_eq!(names.get("valid").map(|s| s.as_str()), Some("Real Name"),);
     }
+
+    #[test]
+    fn parse_with_replacement_characters() {
+        // Simulate content that went through from_utf8_lossy:
+        // U+FFFD replacement characters in title/description.
+        let xml = "<tv>\n\
+          <programme start=\"20240216150000 +0000\" \
+            stop=\"20240216160000 +0000\" channel=\"ch1\">\n\
+            <title>News \u{FFFD} Bulletin</title>\n\
+            <desc>Weather \u{FFFD}\u{FFFD} report</desc>\n\
+          </programme>\n\
+        </tv>";
+        let entries = parse_epg(xml);
+        assert_eq!(entries.len(), 1);
+        assert!(entries[0].title.contains('\u{FFFD}'));
+        assert_eq!(entries[0].title, "News \u{FFFD} Bulletin");
+    }
 }

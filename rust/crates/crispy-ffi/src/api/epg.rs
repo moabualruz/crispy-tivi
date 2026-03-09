@@ -38,12 +38,19 @@ pub fn evict_stale_epg(days: i64) -> Result<usize> {
 }
 
 /// Download, parse, match, and save XMLTV EPG asynchronously.
+///
+/// Skips if the same URL was refreshed within the 4-hour
+/// cooldown window.
 pub async fn sync_xmltv_epg(url: String) -> Result<usize> {
     let service = svc()?;
-    into_anyhow(crispy_core::services::epg_sync::fetch_and_save_xmltv_epg(&service, &url).await)
+    into_anyhow(
+        crispy_core::services::epg_sync::fetch_and_save_xmltv_epg(&service, &url, false).await,
+    )
 }
 
 /// Download, parse, match, and save Xtream short EPG batches asynchronously.
+///
+/// Cooldown is applied to the derived XMLTV URL.
 pub async fn sync_xtream_epg(
     base_url: String,
     username: String,
@@ -54,19 +61,23 @@ pub async fn sync_xtream_epg(
     let channels: Vec<Channel> = from_json(&channels_json)?;
     into_anyhow(
         crispy_core::services::epg_sync::fetch_and_save_xtream_epg(
-            &service, &base_url, &username, &password, &channels,
+            &service, &base_url, &username, &password, &channels, false,
         )
         .await,
     )
 }
 
 /// Download, parse, match, and save Stalker short EPG batches asynchronously.
+///
+/// Cooldown is applied to the base URL.
 pub async fn sync_stalker_epg(base_url: String, channels_json: String) -> Result<usize> {
     let service = svc()?;
     let channels: Vec<Channel> = from_json(&channels_json)?;
     into_anyhow(
-        crispy_core::services::epg_sync::fetch_and_save_stalker_epg(&service, &base_url, &channels)
-            .await,
+        crispy_core::services::epg_sync::fetch_and_save_stalker_epg(
+            &service, &base_url, &channels, false,
+        )
+        .await,
     )
 }
 
@@ -156,6 +167,57 @@ pub fn parse_xtream_short_epg(listings_json: String, channel_id: String) -> Resu
     let data: Vec<serde_json::Value> = from_json(&listings_json)?;
     let entries = crispy_core::parsers::xtream::parse_short_epg(&data, &channel_id);
     json_result(entries)
+}
+
+// ── EPG Mappings ───────────────────────────────────
+
+/// Run confidence-based EPG matching.
+/// Returns JSON array of EpgMatchCandidate objects.
+pub fn match_epg_with_confidence(
+    entries_json: String,
+    channels_json: String,
+    display_names_json: String,
+) -> Result<String> {
+    let entries: Vec<EpgEntry> = from_json(&entries_json)?;
+    let channels: Vec<Channel> = from_json(&channels_json)?;
+    let display_names: HashMap<String, String> = from_json(&display_names_json)?;
+    let candidates = crispy_core::algorithms::epg_matching::match_epg_with_confidence(
+        &entries,
+        &channels,
+        &display_names,
+    );
+    json_result(candidates)
+}
+
+/// Save an EPG mapping.
+pub fn save_epg_mapping(json: String) -> Result<()> {
+    let mapping: crispy_core::models::EpgMapping = from_json(&json)?;
+    Ok(svc()?.save_epg_mapping(&mapping)?)
+}
+
+/// Get all EPG mappings as JSON array.
+pub fn get_epg_mappings() -> Result<String> {
+    json_result(svc()?.get_epg_mappings()?)
+}
+
+/// Lock an EPG mapping so it won't be overridden.
+pub fn lock_epg_mapping(channel_id: String) -> Result<()> {
+    Ok(svc()?.lock_epg_mapping(&channel_id)?)
+}
+
+/// Delete an EPG mapping.
+pub fn delete_epg_mapping(channel_id: String) -> Result<()> {
+    Ok(svc()?.delete_epg_mapping(&channel_id)?)
+}
+
+/// Get pending EPG suggestions (0.40-0.69 confidence, not locked).
+pub fn get_pending_epg_suggestions() -> Result<String> {
+    json_result(svc()?.get_pending_epg_suggestions()?)
+}
+
+/// Mark a channel as 24/7.
+pub fn set_channel_247(channel_id: String, is_247: bool) -> Result<()> {
+    Ok(svc()?.set_channel_247(&channel_id, is_247)?)
 }
 
 /// Merges new EPG entries into existing entries,

@@ -285,6 +285,7 @@ pub fn parse_xtream_live_streams(
             source_id: None,
             added_at: None,
             updated_at: None,
+            is_247: false,
         });
     }
 

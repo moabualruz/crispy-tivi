@@ -1,6 +1,7 @@
-//! Content parsers for M3U, XMLTV, VOD JSON, and
-//! WebVTT thumbnail sprites.
+//! Content parsers for M3U, XMLTV, VOD JSON, BIF
+//! trickplay, and WebVTT thumbnail sprites.
 
+pub mod bif;
 pub mod epg;
 pub mod m3u;
 pub mod s3;

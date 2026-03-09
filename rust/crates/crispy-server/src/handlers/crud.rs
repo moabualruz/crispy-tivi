@@ -219,7 +219,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             // with the current runtime handle directly (no block_in_place).
             let count = tokio::runtime::Handle::current()
                 .block_on(crispy_core::services::epg_sync::fetch_and_save_xmltv_epg(
-                    svc, &url,
+                    svc, &url, false,
                 ))
                 .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true, "count": count}))
@@ -234,7 +234,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
 
             let count = tokio::runtime::Handle::current()
                 .block_on(crispy_core::services::epg_sync::fetch_and_save_xtream_epg(
-                    svc, &base_url, &username, &password, &channels,
+                    svc, &base_url, &username, &password, &channels, false,
                 ))
                 .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true, "count": count}))
@@ -247,7 +247,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
 
             let count = tokio::runtime::Handle::current()
                 .block_on(crispy_core::services::epg_sync::fetch_and_save_stalker_epg(
-                    svc, &base_url, &channels,
+                    svc, &base_url, &channels, false,
                 ))
                 .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true, "count": count}))
@@ -283,6 +283,35 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             Ok(json!({"ok": true, "count": count}))
         })(),
         "clearEpgEntries" => svc_ok!(svc, clear_epg_entries),
+
+        // ── EPG Mappings ─────────────────────
+        "saveEpgMapping" => (|| {
+            let mapping: crispy_core::models::EpgMapping = serde_json::from_value(
+                args.get("mapping")
+                    .cloned()
+                    .ok_or_else(|| anyhow!("Missing mapping"))?,
+            )
+            .context("Invalid EPG mapping")?;
+            svc_ok!(svc, save_epg_mapping, &mapping)
+        })(),
+        "getEpgMappings" => svc_data!(svc, get_epg_mappings),
+        "lockEpgMapping" => (|| {
+            let channel_id = get_str(args, "channelId")?;
+            svc_ok!(svc, lock_epg_mapping, &channel_id)
+        })(),
+        "deleteEpgMapping" => (|| {
+            let channel_id = get_str(args, "channelId")?;
+            svc_ok!(svc, delete_epg_mapping, &channel_id)
+        })(),
+        "getPendingEpgSuggestions" => svc_data!(svc, get_pending_epg_suggestions),
+        "setChannel247" => (|| {
+            let channel_id = get_str(args, "channelId")?;
+            let is_247 = args
+                .get("is247")
+                .and_then(|v| v.as_bool())
+                .ok_or_else(|| anyhow!("Missing is247"))?;
+            svc_ok!(svc, set_channel_247, &channel_id, is_247)
+        })(),
 
         // ── Watch History ──────────────────────
         "loadWatchHistory" => svc_data!(svc, load_watch_history),
@@ -661,6 +690,148 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                 .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true}))
         })(),
+
+        // ── Bookmarks ──────────────────────────────
+        "loadBookmarks" => (|| {
+            let content_id = get_str(args, "contentId")?;
+            svc_data!(svc, load_bookmarks, &content_id)
+        })(),
+        "saveBookmark" => (|| {
+            let json_str = get_str(args, "json")?;
+            let bm: Bookmark = serde_json::from_str(&json_str).context("Invalid bookmark JSON")?;
+            svc.save_bookmark(&bm).map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"ok": true}))
+        })(),
+        "deleteBookmark" => (|| {
+            let id = get_str(args, "id")?;
+            svc_ok!(svc, delete_bookmark, &id)
+        })(),
+        "clearBookmarks" => (|| {
+            let content_id = get_str(args, "contentId")?;
+            svc_ok!(svc, clear_bookmarks, &content_id)
+        })(),
+
+        // ── Stream Health ─────────────────────────
+        "recordStreamStall" => (|| {
+            let url_hash = get_str(args, "urlHash")?;
+            svc_ok!(svc, record_stream_stall, &url_hash)
+        })(),
+        "recordBufferSample" => (|| {
+            let url_hash = get_str(args, "urlHash")?;
+            let value = args
+                .get("value")
+                .and_then(|v| v.as_f64())
+                .ok_or_else(|| anyhow!("Missing f64 arg: value"))?;
+            svc_ok!(svc, record_buffer_sample, &url_hash, value)
+        })(),
+        "recordTtff" => (|| {
+            let url_hash = get_str(args, "urlHash")?;
+            let ttff_ms = get_i64(args, "ttffMs")?;
+            svc_ok!(svc, record_ttff, &url_hash, ttff_ms)
+        })(),
+        "getStreamHealthScore" => (|| {
+            let url_hash = get_str(args, "urlHash")?;
+            let score = svc_call!(svc, get_stream_health_score, &url_hash)?;
+            Ok(json!({"data": score}))
+        })(),
+        "pruneStreamHealth" => (|| {
+            let max = get_i64(args, "maxEntries")?;
+            let deleted = svc_call!(svc, prune_stream_health, max)?;
+            Ok(json!({"ok": true, "count": deleted}))
+        })(),
+
+        // ── Logo Resolver ──────────────────────────
+        "resolveChannelLogo" => (|| {
+            let name = get_str(args, "name")?;
+            let url = svc_call!(svc, resolve_logo, &name)?;
+            Ok(json!({"data": url}))
+        })(),
+        "resolveLogosBatch" => (|| {
+            let names = get_str_vec(args, "names")?;
+            let results = svc_call!(svc, resolve_logos_batch, &names)?;
+            Ok(json!({"data": results}))
+        })(),
+        "isLogoIndexStale" => (|| {
+            let stale = svc_call!(svc, is_logo_index_stale)?;
+            Ok(json!({"data": stale}))
+        })(),
+        "refreshLogoIndex" => (|| {
+            let index = tokio::runtime::Handle::current()
+                .block_on(crispy_core::services::logo_resolver::fetch_logo_index())
+                .map_err(|e| anyhow!("{e}"))?;
+            svc.save_logo_index(&index).map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"ok": true}))
+        })(),
+
+        "decodeBlurHash" => (|| {
+            let hash = get_str(args, "hash")?;
+            let width = args.get("width").and_then(|v| v.as_u64()).unwrap_or(16) as u32;
+            let height = args.get("height").and_then(|v| v.as_u64()).unwrap_or(16) as u32;
+            let bmp =
+                crispy_core::services::logo_resolver::decode_blurhash_to_bmp(&hash, width, height)
+                    .map_err(|e| anyhow!("{e}"))?;
+            // Return base64-encoded BMP since JSON can't carry raw bytes.
+            use base64::Engine;
+            let b64 = base64::engine::general_purpose::STANDARD.encode(&bmp);
+            Ok(json!({"data": b64}))
+        })(),
+
+        // ── Smart Groups ──────────────────────────
+        "createSmartGroup" => (|| {
+            let name = get_str(args, "name")?;
+            let id = svc.create_smart_group(&name).map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": id}))
+        })(),
+        "deleteSmartGroup" => (|| {
+            let group_id = get_str(args, "groupId")?;
+            svc_ok!(svc, delete_smart_group, &group_id)
+        })(),
+        "renameSmartGroup" => (|| {
+            let group_id = get_str(args, "groupId")?;
+            let name = get_str(args, "name")?;
+            svc.rename_smart_group(&group_id, &name)
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"ok": true}))
+        })(),
+        "addSmartGroupMember" => (|| {
+            let group_id = get_str(args, "groupId")?;
+            let channel_id = get_str(args, "channelId")?;
+            let source_id = get_str(args, "sourceId")?;
+            let priority = args.get("priority").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+            svc.add_smart_group_member(&group_id, &channel_id, &source_id, priority)
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"ok": true}))
+        })(),
+        "removeSmartGroupMember" => (|| {
+            let group_id = get_str(args, "groupId")?;
+            let channel_id = get_str(args, "channelId")?;
+            svc.remove_smart_group_member(&group_id, &channel_id)
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"ok": true}))
+        })(),
+        "reorderSmartGroupMembers" => (|| {
+            let group_id = get_str(args, "groupId")?;
+            let ordered_json = get_str(args, "orderedChannelIdsJson")?;
+            svc.reorder_smart_group_members(&group_id, &ordered_json)
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"ok": true}))
+        })(),
+        "getSmartGroups" => svc_data!(svc, get_smart_groups_json),
+        "getSmartGroupForChannel" => (|| {
+            let channel_id = get_str(args, "channelId")?;
+            let result = svc
+                .get_smart_group_for_channel(&channel_id)
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": result}))
+        })(),
+        "getSmartGroupAlternatives" => (|| {
+            let channel_id = get_str(args, "channelId")?;
+            let json = svc
+                .get_smart_group_alternatives(&channel_id)
+                .map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": json}))
+        })(),
+        "detectSmartGroupCandidates" => svc_data!(svc, detect_smart_group_candidates),
 
         _ => return None,
     };

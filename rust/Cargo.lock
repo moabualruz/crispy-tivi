@@ -213,6 +213,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "blurhash"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e79769241dcd44edf79a732545e8b5cec84c247ac060f5252cd51885d093a8fc"
+
+[[package]]
 name = "build-target"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -355,6 +361,7 @@ version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64",
+ "blurhash",
  "chrono",
  "chrono-tz",
  "dirs",
@@ -366,9 +373,11 @@ dependencies = [
  "reqwest",
  "rusqlite",
  "scraper",
+ "semver",
  "serde",
  "serde_json",
  "sha2",
+ "strsim",
  "tempfile",
  "thiserror",
  "tokio",
@@ -2206,6 +2215,12 @@ dependencies = [
  "proc-macro2",
  "quote",
 ]
+
+[[package]]
+name = "strsim"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "subtle"

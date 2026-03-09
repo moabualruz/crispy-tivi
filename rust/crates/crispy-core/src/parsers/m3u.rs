@@ -18,7 +18,7 @@ static LINE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\r?\n").unwrap()
 static EPG_URL_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"(?i)(?:url-tvg|x-tvg-url)="([^"]+)""#).unwrap());
 static ATTR_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"([\w-]+)="([^"]*)""#).unwrap());
-static NAME_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r",\s*(.+)$").unwrap());
+static NAME_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r",\s*(.*)$").unwrap());
 static UA_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)#EXTVLCOPT:http-user-agent=(.+)").unwrap());
 static RE_4K: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b(4K|UHD|2160P?)\b").unwrap());
@@ -33,6 +33,10 @@ pub struct M3uParseResult {
     pub channels: Vec<Channel>,
     /// EPG URL from `url-tvg` or `x-tvg-url` header.
     pub epg_url: Option<String>,
+    /// Parse errors for individual entries that failed.
+    /// Callers can log these without losing valid channels.
+    #[serde(default)]
+    pub errors: Vec<String>,
 }
 
 /// Parse M3U/M3U8 playlist content into channels.
@@ -45,11 +49,13 @@ pub fn parse_m3u(content: &str) -> M3uParseResult {
         return M3uParseResult {
             channels: Vec::new(),
             epg_url: None,
+            errors: Vec::new(),
         };
     }
 
     let lines: Vec<&str> = LINE_RE.split(content).collect();
     let mut channels = Vec::new();
+    let mut errors = Vec::new();
     let mut epg_url: Option<String> = None;
 
     let mut current_extinf: Option<&str> = None;
@@ -93,7 +99,7 @@ pub fn parse_m3u(content: &str) -> M3uParseResult {
         // Stream URL following an #EXTINF.
         if current_extinf.is_some() && is_stream_url(line) {
             channel_number += 1;
-            if let Some(ch) = parse_entry(
+            match parse_entry(
                 current_extinf.unwrap(),
                 line,
                 channel_number,
@@ -101,14 +107,19 @@ pub fn parse_m3u(content: &str) -> M3uParseResult {
                 &ATTR_RE,
                 &NAME_RE,
             ) {
-                channels.push(ch);
+                Ok(ch) => channels.push(ch),
+                Err(e) => errors.push(e),
             }
             current_extinf = None;
             current_ua = None;
         }
     }
 
-    M3uParseResult { channels, epg_url }
+    M3uParseResult {
+        channels,
+        epg_url,
+        errors,
+    }
 }
 
 fn is_stream_url(line: &str) -> bool {
@@ -125,7 +136,7 @@ fn parse_entry(
     user_agent: Option<&str>,
     attr_re: &Regex,
     name_re: &Regex,
-) -> Option<Channel> {
+) -> Result<Channel, String> {
     // Extract key="value" attributes.
     let mut attrs = HashMap::new();
     for cap in attr_re.captures_iter(ext_inf) {
@@ -138,9 +149,14 @@ fn parse_entry(
     let name = name_re
         .captures(ext_inf)
         .and_then(|c| c.get(1))
-        .map(|m| m.as_str().trim().to_string())?;
+        .map(|m| m.as_str().trim().to_string())
+        .ok_or_else(|| {
+            let preview: String = ext_inf.chars().take(80).collect();
+            format!("No channel name in: {preview}")
+        })?;
     if name.is_empty() {
-        return None;
+        let preview: String = ext_inf.chars().take(80).collect();
+        return Err(format!("Empty channel name in: {preview}"));
     }
 
     // Generate stable ID from stream URL SHA-256 hash
@@ -174,7 +190,7 @@ fn parse_entry(
     // Detect resolution.
     let resolution = detect_resolution(&attrs, &name, stream_url);
 
-    Some(Channel {
+    Ok(Channel {
         id,
         name,
         stream_url: stream_url.to_string(),
@@ -193,6 +209,7 @@ fn parse_entry(
         source_id: None,
         added_at: None,
         updated_at: None,
+        is_247: false,
     })
 }
 
@@ -600,5 +617,95 @@ http://stream.example.com/ch3
 
         assert_eq!(r1.channels[0].id, r2.channels[0].id);
         assert!(!r1.channels[0].id.is_empty());
+    }
+
+    #[test]
+    fn error_accumulation_invalid_among_valid() {
+        // Mix of valid entries and entries without a channel
+        // name (no comma in EXTINF → parse_entry returns Err).
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1,Valid One\n",
+            "http://s.test/valid1\n",
+            "#EXTINF:-1 tvg-id=\"bad\"\n",
+            "http://s.test/no-name\n",
+            "#EXTINF:-1,Valid Two\n",
+            "http://s.test/valid2\n",
+        );
+
+        let result = parse_m3u(content);
+
+        // Valid channels still parsed.
+        assert_eq!(result.channels.len(), 2);
+        assert_eq!(result.channels[0].name, "Valid One");
+        assert_eq!(result.channels[1].name, "Valid Two");
+
+        // Error recorded for the nameless entry.
+        assert_eq!(result.errors.len(), 1);
+        assert!(
+            result.errors[0].contains("No channel name"),
+            "Error should mention missing name: {}",
+            result.errors[0],
+        );
+    }
+
+    #[test]
+    fn error_accumulation_empty_name() {
+        // EXTINF with comma but nothing after it → regex
+        // matches empty group, triggering "Empty channel name".
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1,\n",
+            "http://s.test/empty\n",
+            "#EXTINF:-1,OK Channel\n",
+            "http://s.test/ok\n",
+        );
+
+        let result = parse_m3u(content);
+
+        assert_eq!(result.channels.len(), 1);
+        assert_eq!(result.channels[0].name, "OK Channel");
+        assert_eq!(result.errors.len(), 1);
+        assert!(result.errors[0].contains("Empty channel name"));
+    }
+
+    #[test]
+    fn no_errors_for_valid_playlist() {
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1,Channel A\n",
+            "http://s.test/a\n",
+            "#EXTINF:-1,Channel B\n",
+            "http://s.test/b\n",
+        );
+
+        let result = parse_m3u(content);
+
+        assert_eq!(result.channels.len(), 2);
+        assert!(result.errors.is_empty());
+    }
+
+    #[test]
+    fn errors_serialized_in_json() {
+        let result = M3uParseResult {
+            channels: Vec::new(),
+            epg_url: None,
+            errors: vec!["test error".to_string()],
+        };
+
+        let json = serde_json::to_string(&result).unwrap();
+        assert!(json.contains("\"errors\":[\"test error\"]"));
+
+        // Deserialize back — errors field is preserved.
+        let parsed: M3uParseResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.errors.len(), 1);
+    }
+
+    #[test]
+    fn errors_default_empty_on_deserialize() {
+        // Old JSON without errors field → defaults to empty.
+        let json = r#"{"channels":[],"epg_url":null}"#;
+        let result: M3uParseResult = serde_json::from_str(json).unwrap();
+        assert!(result.errors.is_empty());
     }
 }
