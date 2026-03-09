@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
@@ -10,7 +11,7 @@ import 'player_osd/osd_shared.dart';
 /// Overlay shown when an episode is near completion.
 /// Auto-advances after countdown unless dismissed.
 ///
-/// Netflix-inspired design: thumbnail preview, animated
+/// Cinematic design: thumbnail preview, animated
 /// countdown progress bar, season/episode badge.
 class NextEpisodeOverlay extends StatefulWidget {
   const NextEpisodeOverlay({
@@ -98,7 +99,7 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
                   Icon(Icons.skip_next, color: colorScheme.primary, size: 20),
                   const SizedBox(width: CrispySpacing.sm),
                   Text(
-                    'Up Next in $_secondsRemaining',
+                    context.l10n.playerNextUpIn(_secondsRemaining),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
@@ -206,7 +207,7 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
                           vertical: CrispySpacing.md,
                         ),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(context.l10n.commonCancel),
                     ),
                   ),
                   const SizedBox(width: CrispySpacing.sm),
@@ -218,7 +219,7 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
                           vertical: CrispySpacing.md,
                         ),
                       ),
-                      child: const Text('Play Now'),
+                      child: Text(context.l10n.playerPlayNow),
                     ),
                   ),
                 ],

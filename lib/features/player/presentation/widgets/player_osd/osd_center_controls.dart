@@ -1,9 +1,10 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/crispy_colors.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
 
-/// Center controls -- Netflix style.
+/// Center controls.
 ///
 /// Skip back 10s (48px), play/pause (60px hero),
 /// skip forward 10s (48px). 56px gap between icons.
@@ -33,7 +34,7 @@ class OsdCenterControls extends StatelessWidget {
         if (onSeekBack != null)
           OsdCenterButton(
             icon: Icons.replay_10_rounded,
-            semanticLabel: 'Skip back 10 seconds',
+            semanticLabel: context.l10n.playerSkipBack,
             size: CrispySpacing.xxl, // 48
             onTap: onSeekBack!,
           ),
@@ -43,7 +44,8 @@ class OsdCenterControls extends StatelessWidget {
         // Play / Pause (hero -- largest, 60px)
         OsdCenterButton(
           icon: isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-          semanticLabel: isPlaying ? 'Pause' : 'Play',
+          semanticLabel:
+              isPlaying ? context.l10n.commonPause : context.l10n.commonPlay,
           size: 60,
           onTap: onPlayPause,
         ),
@@ -54,7 +56,7 @@ class OsdCenterControls extends StatelessWidget {
         if (onSeekForward != null)
           OsdCenterButton(
             icon: Icons.forward_10_rounded,
-            semanticLabel: 'Skip forward 10 seconds',
+            semanticLabel: context.l10n.playerSkipForward,
             size: CrispySpacing.xxl, // 48
             onTap: onSeekForward!,
           ),

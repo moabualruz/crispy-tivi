@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:crispy_tivi/core/data/cache_service.dart';
+import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/features/iptv/domain/entities/channel.dart';
 import 'package:crispy_tivi/features/player/data/player_service.dart';
 import 'package:crispy_tivi/features/player/presentation/providers/player_providers.dart';
@@ -34,7 +36,10 @@ VodItem _makeEpisode({
 
 ProviderContainer _makeContainer(MockPlayerService mockSvc) {
   return ProviderContainer(
-    overrides: [playerServiceProvider.overrideWithValue(mockSvc)],
+    overrides: [
+      playerServiceProvider.overrideWithValue(mockSvc),
+      cacheServiceProvider.overrideWithValue(CacheService(MemoryBackend())),
+    ],
   );
 }
 

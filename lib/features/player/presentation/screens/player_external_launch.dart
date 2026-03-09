@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../data/external_player_service.dart';
+import '../providers/player_providers.dart';
 
 /// Launch the current stream in an external player app.
 ///
+/// Pauses internal playback before launching (REQ-06).
 /// Returns silently on success. Shows a [SnackBar] on
 /// failure if [context] is still mounted.
 Future<void> launchExternalPlayer({
@@ -16,6 +18,9 @@ Future<void> launchExternalPlayer({
   String? title,
   Map<String, String>? headers,
 }) async {
+  // Pause internal playback before handing off.
+  await ref.read(playerServiceProvider).pause();
+
   final settings = ref.read(settingsNotifierProvider).value;
   final pName = settings?.config.player.externalPlayer ?? 'systemDefault';
   final ep = ExternalPlayer.values.firstWhere(

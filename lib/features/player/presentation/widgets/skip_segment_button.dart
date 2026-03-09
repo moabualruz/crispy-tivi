@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +9,7 @@ import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../domain/entities/playback_state.dart';
+import '../../domain/segment_skip_config.dart';
 import '../../domain/utils/skip_segment_utils.dart';
 import '../providers/player_providers.dart';
 import 'player_osd/osd_shared.dart';
@@ -16,8 +18,41 @@ import 'player_osd/osd_shared.dart';
 /// user interaction before auto-fading.
 const _kSkipAutoHideDuration = Duration(seconds: 8);
 
+/// Tracks which [SegmentType]s have been auto-skipped in
+/// the current playback session (for "once" mode).
+///
+/// Reset when a new playback session starts (provider is
+/// auto-disposed with the player widget tree).
+class AutoSkippedSegmentsNotifier extends Notifier<Set<SegmentType>> {
+  @override
+  Set<SegmentType> build() => {};
+
+  /// Record that [type] has been auto-skipped.
+  void markSkipped(SegmentType type) {
+    state = {...state, type};
+  }
+
+  /// Clear all tracked auto-skips (e.g. on new content).
+  void reset() {
+    state = {};
+  }
+}
+
+/// Provider for the set of segment types auto-skipped this session.
+final autoSkippedSegmentsProvider =
+    NotifierProvider<AutoSkippedSegmentsNotifier, Set<SegmentType>>(
+      AutoSkippedSegmentsNotifier.new,
+    );
+
 /// Overlay button that appears when playback position
 /// enters an intro, recap, or credits segment.
+///
+/// Behavior depends on the per-type [SegmentSkipMode]:
+/// - [SegmentSkipMode.none]: button is suppressed.
+/// - [SegmentSkipMode.ask]: button shown, user must tap.
+/// - [SegmentSkipMode.once]: auto-skip first occurrence,
+///   then show button for subsequent occurrences.
+/// - [SegmentSkipMode.auto]: always auto-skip silently.
 ///
 /// Auto-fades after [_kSkipAutoHideDuration] (8 s) if
 /// the user does not tap it. Tapping seeks past the
@@ -91,16 +126,23 @@ class _SkipSegmentButtonState extends ConsumerState<SkipSegmentButton>
     });
   }
 
-  void _onSkip() {
-    final seg = _activeSegment;
-    if (seg == null) return;
+  void _seekPast(SkipSegment seg) {
     ref.read(playerServiceProvider).seek(seg.end);
     _hide();
   }
 
+  void _autoSkip(SkipSegment seg, SegmentType type) {
+    ref.read(playerServiceProvider).seek(seg.end);
+    // For "once" mode, record that this type was auto-skipped.
+    ref.read(autoSkippedSegmentsProvider.notifier).markSkipped(type);
+    if (_visible) _hide();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Watch position + segments; react to changes.
+    final skipConfig = ref.watch(segmentSkipConfigProvider);
+    final autoSkipped = ref.watch(autoSkippedSegmentsProvider);
+
     ref.listen(
       playbackStateProvider.select(
         (s) => (
@@ -126,8 +168,29 @@ class _SkipSegmentButtonState extends ConsumerState<SkipSegmentButton>
 
         if (hit == null) {
           if (_visible) _hide();
-        } else if (hit != _activeSegment) {
-          _show(hit, segmentLabel(hit, segments));
+          return;
+        }
+
+        // Same segment already active — no action needed.
+        if (hit == _activeSegment) return;
+
+        final type = inferSegmentType(hit, segments);
+        final mode = skipConfig[type] ?? SegmentSkipMode.ask;
+
+        switch (mode) {
+          case SegmentSkipMode.none:
+            if (_visible) _hide();
+          case SegmentSkipMode.auto:
+            _autoSkip(hit, type);
+          case SegmentSkipMode.once:
+            if (autoSkipped.contains(type)) {
+              // Already auto-skipped once — show button.
+              _show(hit, segmentLabel(hit, segments));
+            } else {
+              _autoSkip(hit, type);
+            }
+          case SegmentSkipMode.ask:
+            _show(hit, segmentLabel(hit, segments));
         }
       },
     );
@@ -139,7 +202,13 @@ class _SkipSegmentButtonState extends ConsumerState<SkipSegmentButton>
       bottom: kOsdBottomBarHeight + CrispySpacing.md,
       child: FadeTransition(
         opacity: _fadeAnim,
-        child: _SkipButton(label: _label, onTap: _onSkip),
+        child: _SkipButton(
+          label: _label,
+          onTap: () {
+            final seg = _activeSegment;
+            if (seg != null) _seekPast(seg);
+          },
+        ),
       ),
     );
   }
@@ -170,7 +239,7 @@ class _SkipButtonState extends State<_SkipButton> {
       cursor: SystemMouseCursors.click,
       child: Semantics(
         button: true,
-        label: 'Skip segment',
+        label: context.l10n.playerSkipSegment,
         child: GestureDetector(
           onTap: widget.onTap,
           child: AnimatedContainer(
@@ -184,7 +253,7 @@ class _SkipButtonState extends State<_SkipButton> {
                   _hovered
                       ? colorScheme.onSurface.withValues(alpha: 0.9)
                       : colorScheme.surface.withValues(alpha: 0.85),
-              border: Border.all(color: CrispyColors.netflixRed, width: 2),
+              border: Border.all(color: CrispyColors.brandRed, width: 2),
               borderRadius: BorderRadius.circular(CrispyRadius.md),
             ),
             child: Row(
@@ -202,8 +271,7 @@ class _SkipButtonState extends State<_SkipButton> {
                 Icon(
                   Icons.skip_next_rounded,
                   size: 18,
-                  color:
-                      _hovered ? colorScheme.surface : CrispyColors.netflixRed,
+                  color: _hovered ? colorScheme.surface : CrispyColors.brandRed,
                 ),
               ],
             ),

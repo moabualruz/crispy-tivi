@@ -12,6 +12,20 @@ import '../providers/player_providers.dart';
 typedef VoidAction = void Function();
 typedef DirectionZap = void Function(int direction);
 
+// ── Progressive seek acceleration state ─────────────────
+LogicalKeyboardKey? _seekDirection;
+int _seekRepeatCount = 0;
+
+/// Returns multiplier for progressive seek acceleration.
+///
+/// 4 tiers: ≤5 repeats → 1.5x, ≤15 → 3x, ≤30 → 6x, >30 → 10x.
+double getSeekMultiplier(int repeatCount) {
+  if (repeatCount <= 5) return 1.5;
+  if (repeatCount <= 15) return 3.0;
+  if (repeatCount <= 30) return 6.0;
+  return 10.0;
+}
+
 /// Handles a single [KeyEvent] from the player screen's
 /// [KeyboardListener]. Returns `true` if the event was
 /// consumed, `false` to let it propagate.
@@ -36,8 +50,28 @@ void handlePlayerKeyEvent({
   VoidAction? onToggleCaptions,
   VoidAction? onShowShortcuts,
   VoidAction? onToggleLock,
+  VoidAction? onOpenGuide,
+  VoidAction? onOpenSettings,
+  VoidAction? onStartRecording,
+  VoidAction? onOpenSearch,
+  VoidAction? onShowDebug,
+  VoidAction? onScreenshot,
+  VoidAction? onCleanScreenshot,
+  VoidAction? onAlwaysOnTop,
+  VoidAction? onCycleShader,
 }) {
-  if (event is! KeyDownEvent) return;
+  // Reset progressive seek on key release.
+  if (event is KeyUpEvent) {
+    final k = event.logicalKey;
+    if (k == LogicalKeyboardKey.arrowLeft ||
+        k == LogicalKeyboardKey.arrowRight) {
+      _seekDirection = null;
+      _seekRepeatCount = 0;
+    }
+    return;
+  }
+
+  if (event is! KeyDownEvent && event is! KeyRepeatEvent) return;
 
   final service = ref.read(playerServiceProvider);
   final osd = ref.read(osdStateProvider.notifier);
@@ -45,21 +79,35 @@ void handlePlayerKeyEvent({
 
   final childHasFocus = osdVisible && !hasPrimaryFocus;
 
+  // `?` (Shift+/) — shortcuts help overlay. Check before action
+  // lookup so slash doesn't fire openSearch when Shift is held.
+  if (event.logicalKey == LogicalKeyboardKey.slash &&
+      HardwareKeyboard.instance.isShiftPressed) {
+    onShowShortcuts?.call();
+    return;
+  }
+
   final settings = ref.read(settingsNotifierProvider).value;
   final keyMap = settings?.remoteKeyMap ?? defaultRemoteKeyMap;
   final action = keyMap[event.logicalKey.keyId];
 
-  // When a child OSD button has focus, let activation keys
-  // (Enter/Space/Select/GamepadA) propagate to the button
-  // instead of triggering play/pause. Other mapped keys (K,
-  // arrow-based actions, etc.) still execute normally.
+  // When a child OSD button has focus, let activation and arrow
+  // keys propagate so Flutter's focus system handles D-pad
+  // navigation between OSD buttons naturally. Only non-navigation
+  // mapped keys (K, J, L, etc.) still execute their actions.
   if (childHasFocus) {
+    final k = event.logicalKey;
     final isActivationKey =
-        event.logicalKey == LogicalKeyboardKey.enter ||
-        event.logicalKey == LogicalKeyboardKey.space ||
-        event.logicalKey == LogicalKeyboardKey.select ||
-        event.logicalKey == LogicalKeyboardKey.gameButtonA;
-    if (isActivationKey) {
+        k == LogicalKeyboardKey.enter ||
+        k == LogicalKeyboardKey.space ||
+        k == LogicalKeyboardKey.select ||
+        k == LogicalKeyboardKey.gameButtonA;
+    final isArrowKey =
+        k == LogicalKeyboardKey.arrowUp ||
+        k == LogicalKeyboardKey.arrowDown ||
+        k == LogicalKeyboardKey.arrowLeft ||
+        k == LogicalKeyboardKey.arrowRight;
+    if (isActivationKey || isArrowKey) {
       osd.show();
       return;
     }
@@ -73,32 +121,32 @@ void handlePlayerKeyEvent({
       if (canZap) {
         onZapChannel(-1);
       } else {
-        service.setVolume((service.state.volume + 0.1).clamp(0.0, 1.0));
+        service.setVolume(service.state.volume + 0.1);
       }
       osd.show();
     case RemoteAction.channelDown:
       if (canZap) {
         onZapChannel(1);
       } else {
-        service.setVolume((service.state.volume - 0.1).clamp(0.0, 1.0));
+        service.setVolume(service.state.volume - 0.1);
       }
       osd.show();
     case RemoteAction.volumeUp:
-      service.setVolume((service.state.volume + 0.1).clamp(0.0, 1.0));
+      service.setVolume(service.state.volume + 0.1);
       osd.show();
     case RemoteAction.volumeDown:
-      service.setVolume((service.state.volume - 0.1).clamp(0.0, 1.0));
+      service.setVolume(service.state.volume - 0.1);
       osd.show();
     case RemoteAction.seekForward:
       if (isLive && canZap && !osdVisible) {
         onShowZap();
       } else if (!isLive) {
-        onSeekForward();
+        _progressiveSeek(event, service, ref, LogicalKeyboardKey.arrowRight);
       }
       osd.show();
     case RemoteAction.seekBack:
       if (!isLive) {
-        onSeekBack();
+        _progressiveSeek(event, service, ref, LogicalKeyboardKey.arrowLeft);
       }
       osd.show();
     case RemoteAction.mute:
@@ -121,19 +169,23 @@ void handlePlayerKeyEvent({
       } else {
         onBack();
       }
+    case RemoteAction.openGuide:
+      onOpenGuide?.call();
+    case RemoteAction.openSettings:
+      onOpenSettings?.call();
+    case RemoteAction.startRecording:
+      onStartRecording?.call();
+    case RemoteAction.openSearch:
+      onOpenSearch?.call();
+    case RemoteAction.showDebug:
+      onShowDebug?.call();
+      osd.show();
     case null:
       osd.show();
   }
 
   // ── Direct key handling (no RemoteAction mapping) ──
   final key = event.logicalKey;
-
-  // `?` (Shift+/) — shortcuts help overlay.
-  if (key == LogicalKeyboardKey.slash &&
-      HardwareKeyboard.instance.isShiftPressed) {
-    onShowShortcuts?.call();
-    return;
-  }
 
   // 0-9: Percentage seek (VOD only).
   if (!isLive) {
@@ -176,6 +228,13 @@ void handlePlayerKeyEvent({
       osd.show();
       return;
     }
+  }
+
+  // Backslash — reset playback speed to 1.0x (VOD only).
+  if (!isLive && key == LogicalKeyboardKey.backslash) {
+    service.setSpeed(1.0);
+    osd.show();
+    return;
   }
 
   // ── mpv/VLC-parity shortcuts ────────────────────────────
@@ -233,9 +292,77 @@ void handlePlayerKeyEvent({
     onToggleLock?.call();
     return;
   }
+
+  // Ctrl+S — cycle shader preset (desktop only).
+  if (key == LogicalKeyboardKey.keyS &&
+      HardwareKeyboard.instance.isControlPressed) {
+    onCycleShader?.call();
+    osd.show();
+    return;
+  }
+
+  // S — screenshot. Shift+S — clean screenshot (no subtitles).
+  if (key == LogicalKeyboardKey.keyS) {
+    if (HardwareKeyboard.instance.isShiftPressed) {
+      onCleanScreenshot?.call();
+    } else {
+      onScreenshot?.call();
+    }
+    return;
+  }
+
+  // T — toggle always-on-top (desktop only).
+  if (key == LogicalKeyboardKey.keyT) {
+    onAlwaysOnTop?.call();
+    osd.show();
+    return;
+  }
 }
 
-/// Maps digit keys to their numeric value.
+/// Progressive seek with acceleration on key repeat.
+///
+/// Base step: 0.5% of duration (clamped 500ms–15s).
+/// On `KeyRepeatEvent`, multiplied by [getSeekMultiplier].
+void _progressiveSeek(
+  KeyEvent event,
+  PlayerService service,
+  WidgetRef ref,
+  LogicalKeyboardKey direction,
+) {
+  final duration = service.state.duration;
+  if (duration.inMilliseconds <= 0) return;
+
+  // Track direction change — reset if direction changes.
+  if (_seekDirection != direction) {
+    _seekDirection = direction;
+    _seekRepeatCount = 0;
+  }
+
+  // Increment repeat count on KeyRepeatEvent.
+  if (event is KeyRepeatEvent) {
+    _seekRepeatCount++;
+  }
+
+  // Base step: 0.5% of duration, clamped 500ms–15s.
+  final baseStepMs =
+      (duration.inMilliseconds * 0.005).clamp(500, 15000).toInt();
+
+  // Apply progressive multiplier only on repeat events.
+  final multiplier =
+      event is KeyRepeatEvent ? getSeekMultiplier(_seekRepeatCount) : 1.0;
+  final stepMs = (baseStepMs * multiplier).clamp(500, 60000).toInt();
+  final step = Duration(milliseconds: stepMs);
+
+  final isForward = direction == LogicalKeyboardKey.arrowRight;
+  final pos = service.state.position;
+  final target = isForward ? pos + step : pos - step;
+  final clamped = Duration(
+    milliseconds: target.inMilliseconds.clamp(0, duration.inMilliseconds),
+  );
+  service.seek(clamped);
+}
+
+/// Maps digit keys (main row + numpad) to their numeric value.
 int? _digitFromKey(LogicalKeyboardKey key) {
   final digits = {
     LogicalKeyboardKey.digit0: 0,
@@ -248,6 +375,16 @@ int? _digitFromKey(LogicalKeyboardKey key) {
     LogicalKeyboardKey.digit7: 7,
     LogicalKeyboardKey.digit8: 8,
     LogicalKeyboardKey.digit9: 9,
+    LogicalKeyboardKey.numpad0: 0,
+    LogicalKeyboardKey.numpad1: 1,
+    LogicalKeyboardKey.numpad2: 2,
+    LogicalKeyboardKey.numpad3: 3,
+    LogicalKeyboardKey.numpad4: 4,
+    LogicalKeyboardKey.numpad5: 5,
+    LogicalKeyboardKey.numpad6: 6,
+    LogicalKeyboardKey.numpad7: 7,
+    LogicalKeyboardKey.numpad8: 8,
+    LogicalKeyboardKey.numpad9: 9,
   };
   return digits[key];
 }

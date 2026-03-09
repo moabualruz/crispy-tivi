@@ -100,12 +100,14 @@ class PlayerSeekBar extends ConsumerStatefulWidget {
     required this.duration,
     required this.onSeek,
     this.bufferProgress = 0.0,
+    this.bufferRanges,
     this.accentColor,
     super.key,
   });
 
   final double progress;
   final double bufferProgress;
+  final List<(double start, double end)>? bufferRanges;
   final Duration duration;
   final ValueChanged<double> onSeek;
   final Color? accentColor;
@@ -153,6 +155,7 @@ class _PlayerSeekBarState extends ConsumerState<PlayerSeekBar> {
                   SeekBarWithPreview(
                     progress: widget.progress,
                     bufferProgress: widget.bufferProgress,
+                    bufferRanges: widget.bufferRanges,
                     duration: widget.duration,
                     onSeek: widget.onSeek,
                     accentColor: widget.accentColor,

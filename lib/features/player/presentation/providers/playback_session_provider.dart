@@ -6,6 +6,7 @@ import '../../../iptv/domain/entities/channel.dart';
 import '../../../vod/domain/entities/vod_item.dart';
 import '../../data/stream_url_resolver.dart';
 import '../../domain/entities/playback_session_params.dart';
+import '../widgets/bookmark_overlay.dart';
 import 'player_providers.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -249,6 +250,11 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
             hostRoute: ref.read(playerModeProvider).currentRoute,
           );
       ref.read(playerServiceProvider).forceStateEmit();
+
+      // Load persisted bookmarks for this stream.
+      ref
+          .read(bookmarkProvider.notifier)
+          .loadForContent(effectiveUrl, isLive ? 'channel' : 'vod');
     } finally {
       _isPending = false;
     }

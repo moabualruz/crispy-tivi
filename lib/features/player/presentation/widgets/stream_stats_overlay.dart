@@ -1,12 +1,17 @@
 import 'dart:async';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/theme/crispy_typography.dart';
+import '../../../../core/widgets/sparkline.dart';
 import '../providers/player_providers.dart';
+
+/// Maximum number of rolling sparkline samples.
+const _maxSamples = 30;
 
 /// "Nerd Stats" overlay showing real-time stream
 /// diagnostic info.
@@ -27,6 +32,12 @@ class _StreamStatsOverlayState extends ConsumerState<StreamStatsOverlay> {
   Timer? _refreshTimer;
   Map<String, String> _stats = {};
   bool _copied = false;
+
+  /// Rolling buffer duration samples (seconds).
+  final _bufferSamples = <double>[];
+
+  /// Rolling FPS samples.
+  final _fpsSamples = <double>[];
 
   @override
   void initState() {
@@ -51,20 +62,35 @@ class _StreamStatsOverlayState extends ConsumerState<StreamStatsOverlay> {
     if (!visible) return;
 
     final info = ref.read(playerServiceProvider).streamInfo;
-    // Only rebuild when the stats map actually changed.
-    if (_mapsEqual(_stats, info)) return;
+
+    // Collect sparkline samples from stream info.
+    _collectSample(_bufferSamples, _parseBufferSeconds(info['Buffer']));
+    _collectSample(_fpsSamples, _parseFps(info['FPS']));
+
+    // Only rebuild when the stats map actually changed
+    // or sparkline data changed (every cycle).
     if (mounted) {
       setState(() => _stats = info);
     }
   }
 
-  /// Shallow equality check for string maps.
-  static bool _mapsEqual(Map<String, String> a, Map<String, String> b) {
-    if (a.length != b.length) return false;
-    for (final key in a.keys) {
-      if (a[key] != b[key]) return false;
+  void _collectSample(List<double> samples, double value) {
+    samples.add(value);
+    if (samples.length > _maxSamples) {
+      samples.removeAt(0);
     }
-    return true;
+  }
+
+  static double _parseBufferSeconds(String? raw) {
+    if (raw == null) return 0;
+    // Format: "3s" or "12s"
+    final digits = raw.replaceAll(RegExp(r'[^0-9.]'), '');
+    return double.tryParse(digits) ?? 0;
+  }
+
+  static double _parseFps(String? raw) {
+    if (raw == null) return 0;
+    return double.tryParse(raw) ?? 0;
   }
 
   void _copyToClipboard() {
@@ -109,7 +135,7 @@ class _StreamStatsOverlayState extends ConsumerState<StreamStatsOverlay> {
       right: CrispySpacing.md,
       child: Container(
         padding: const EdgeInsets.all(CrispySpacing.sm),
-        constraints: const BoxConstraints(maxWidth: 320),
+        constraints: const BoxConstraints(maxWidth: 360),
         decoration: BoxDecoration(
           color: colorScheme.surface.withValues(alpha: 0.80),
           borderRadius: BorderRadius.zero,
@@ -132,7 +158,7 @@ class _StreamStatsOverlayState extends ConsumerState<StreamStatsOverlay> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Stream Stats',
+                    context.l10n.playerStreamStats,
                     style: textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
@@ -149,6 +175,38 @@ class _StreamStatsOverlayState extends ConsumerState<StreamStatsOverlay> {
               color: colorScheme.onSurface.withValues(alpha: 0.15),
             ),
             const SizedBox(height: CrispySpacing.xs),
+
+            // Info badges row.
+            _BadgeRow(stats: _stats),
+            const SizedBox(height: CrispySpacing.xs),
+
+            // Buffer sparkline.
+            if (_bufferSamples.length >= 2) ...[
+              _SparklineRow(
+                label: context.l10n.playerStreamStatsBuffer,
+                samples: _bufferSamples,
+                minValue: 0,
+                maxValue: 30,
+                lowThreshold: 2,
+                highThreshold: 10,
+                valueLabel: _stats['Buffer'] ?? '',
+              ),
+              const SizedBox(height: CrispySpacing.xs),
+            ],
+
+            // FPS sparkline.
+            if (_fpsSamples.length >= 2) ...[
+              _SparklineRow(
+                label: context.l10n.playerStreamStatsFps,
+                samples: _fpsSamples,
+                minValue: 0,
+                maxValue: 60,
+                lowThreshold: 20,
+                highThreshold: 50,
+                valueLabel: _stats['FPS'] ?? '',
+              ),
+              const SizedBox(height: CrispySpacing.xs),
+            ],
 
             // Stats rows.
             ..._stats.entries.map(
@@ -192,6 +250,157 @@ class _StreamStatsOverlayState extends ConsumerState<StreamStatsOverlay> {
   }
 }
 
+/// Row showing a sparkline with label and current value.
+class _SparklineRow extends StatelessWidget {
+  const _SparklineRow({
+    required this.label,
+    required this.samples,
+    required this.minValue,
+    required this.maxValue,
+    required this.lowThreshold,
+    required this.highThreshold,
+    required this.valueLabel,
+  });
+
+  final String label;
+  final List<double> samples;
+  final double minValue;
+  final double maxValue;
+  final double lowThreshold;
+  final double highThreshold;
+  final String valueLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Row(
+      children: [
+        SizedBox(
+          width: 50,
+          child: Text(
+            label,
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.67),
+              fontSize: CrispyTypography.micro,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ),
+        Sparkline(
+          samples: List.of(samples),
+          minValue: minValue,
+          maxValue: maxValue,
+          lowThreshold: lowThreshold,
+          highThreshold: highThreshold,
+          width: 80,
+          height: 24,
+        ),
+        const SizedBox(width: CrispySpacing.xs),
+        Text(
+          valueLabel,
+          style: textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurface,
+            fontSize: CrispyTypography.micro,
+            fontFamily: 'monospace',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Row of info badges: resolution, codec, interlace.
+class _BadgeRow extends StatelessWidget {
+  const _BadgeRow({required this.stats});
+
+  final Map<String, String> stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final badges = <String>[];
+
+    // Resolution badge.
+    final resolution = stats['Resolution'];
+    if (resolution != null && resolution != 'N/A') {
+      badges.add(_resolutionLabel(resolution));
+    }
+
+    // Codec badge.
+    final codec = stats['Video Codec'];
+    if (codec != null && codec != 'N/A') {
+      badges.add(_formatCodecName(codec));
+    }
+
+    // Interlace badge.
+    final pixFmt = stats['Pixel Format'] ?? '';
+    if (pixFmt.contains('interlace') || pixFmt.endsWith('i')) {
+      badges.add('Interlaced');
+    }
+
+    // Stream type badge.
+    final streamType = stats['Stream Type'];
+    if (streamType != null) {
+      badges.add(streamType);
+    }
+
+    if (badges.isEmpty) return const SizedBox.shrink();
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      children: badges.map(_buildBadge).toList(),
+    );
+  }
+
+  Widget _buildBadge(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white24, width: 0.5),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 10,
+          color: Colors.white70,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  /// Maps resolution string to friendly label.
+  static String _resolutionLabel(String resolution) {
+    // Parse "WxH" format.
+    final parts = resolution.split('\u00D7');
+    if (parts.length == 2) {
+      final h = int.tryParse(parts[1]) ?? 0;
+      if (h >= 2160) return '4K';
+      if (h >= 1080) return '1080p';
+      if (h >= 720) return '720p';
+      if (h >= 480) return '480p';
+      if (h > 0) return 'SD';
+    }
+    return resolution;
+  }
+
+  /// Normalizes codec name to friendly form.
+  static String _formatCodecName(String codec) {
+    final upper = codec.toUpperCase();
+    if (upper.contains('HEVC') || upper.contains('H265')) return 'HEVC';
+    if (upper.contains('H264') || upper.contains('AVC')) return 'H.264';
+    if (upper.contains('AV1')) return 'AV1';
+    if (upper.contains('VP9')) return 'VP9';
+    if (upper.contains('VP8')) return 'VP8';
+    return codec;
+  }
+}
+
 /// Small copy-to-clipboard button for the stats
 /// overlay header.
 class _CopyButton extends StatelessWidget {
@@ -209,7 +418,10 @@ class _CopyButton extends StatelessWidget {
       child: IconButton(
         padding: EdgeInsets.zero,
         iconSize: 14,
-        tooltip: copied ? 'Copied!' : 'Copy stats',
+        tooltip:
+            copied
+                ? context.l10n.playerStreamStatsCopied
+                : context.l10n.playerStreamStatsCopy,
         onPressed: onPressed,
         icon: Icon(
           copied ? Icons.check : Icons.copy_outlined,

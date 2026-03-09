@@ -1,7 +1,7 @@
-import 'dart:io';
-
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../core/utils/pip_impl.dart';
 
 /// Picture-in-Picture state for a single video slot.
 class PipState {
@@ -22,68 +22,93 @@ class PipState {
   }
 }
 
-/// Controls Picture-in-Picture mode for the video player.
+/// Unified Picture-in-Picture controller for all 6 platforms.
+///
+/// Replaces the old `PipHandler` singleton. All PiP state
+/// flows through this single Riverpod provider.
 ///
 /// ## Platform support
-/// - **Android**: uses `PictureInPictureParams` via a MethodChannel.
-///   Requires `android:supportsPictureInPicture="true"` in the Activity
-///   manifest and `onPictureInPictureModeChanged` forwarded to Flutter.
-/// - **iOS**: uses `AVPictureInPictureController`.
-/// - **Other platforms**: PiP is not available — [isPlatformSupported]
-///   returns false and [enterPip] is a no-op.
+/// - **Android**: Native `PictureInPictureParams` via
+///   MethodChannel.
+/// - **iOS**: `AVPictureInPictureController` via IosPipPlayer
+///   handoff.
+/// - **Windows/macOS/Linux**: `window_manager` resize.
+/// - **Web**: Browser `requestPictureInPicture` API.
 class PipNotifier extends Notifier<PipState> {
-  // Platform channel shared with native Android/iOS PiP implementation.
-  //
-  // Channel name must match the native side registration.
-  // Methods: `enterPip`, `exitPip`.
-  static const _channel = MethodChannel('crispy/pip');
+  final _impl = PipImpl();
 
   @override
-  PipState build() => const PipState();
-
-  /// Whether the current platform supports PiP.
-  ///
-  /// Returns true only on Android and iOS.
-  static bool get isPlatformSupported => Platform.isAndroid || Platform.isIOS;
-
-  /// Attempt to enter Picture-in-Picture mode for [slotIndex].
-  ///
-  /// On Android, this invokes `PictureInPictureParams.Builder`
-  /// to set the aspect ratio and calls
-  /// `Activity.enterPictureInPictureMode()`.
-  ///
-  /// On iOS, this activates `AVPictureInPictureController.startPictureInPicture()`.
-  Future<void> enterPip({int? slotIndex}) async {
-    if (!isPlatformSupported) return;
-
-    try {
-      await _channel.invokeMethod<void>('enterPip', {
-        'slotIndex': slotIndex ?? 0,
-      });
-      state = state.copyWith(isActive: true, slotIndex: slotIndex);
-    } on PlatformException {
-      // PiP request silently fails if the platform denies it
-      // (e.g., user disabled PiP for the app in system settings).
-    }
+  PipState build() {
+    _impl.onNativePipChanged = _onNativePipChanged;
+    return const PipState();
   }
 
-  /// Exit Picture-in-Picture mode and restore normal playback.
+  /// Whether PiP is supported on the current platform.
+  bool get isSupported {
+    if (kIsWeb) return _impl.isSupported;
+    return _impl.isSupported;
+  }
+
+  /// Attempt to enter Picture-in-Picture mode.
+  ///
+  /// Returns `(true, null)` on success, or
+  /// `(false, errorMessage)` on failure.
+  Future<(bool, String?)> enterPip({
+    int? slotIndex,
+    int? width,
+    int? height,
+  }) async {
+    if (!isSupported) return (false, 'PiP not supported');
+
+    final (success, error) = await _impl.enterPiP(width: width, height: height);
+    if (success) {
+      state = state.copyWith(isActive: true, slotIndex: slotIndex);
+    }
+    return (success, error);
+  }
+
+  /// Exit Picture-in-Picture mode and restore normal UI.
   Future<void> exitPip() async {
     if (!state.isActive) return;
-
-    try {
-      await _channel.invokeMethod<void>('exitPip');
-    } on PlatformException {
-      // Ignored — state is cleared regardless.
-    }
-
+    await _impl.exitPiP();
     state = const PipState();
   }
 
-  /// Called by the native layer (via MethodChannel callback) when
-  /// PiP mode changes externally (e.g. user dismisses the PiP window).
+  /// Toggle PiP mode.
+  Future<(bool, String?)> togglePip({
+    int? slotIndex,
+    int? width,
+    int? height,
+  }) async {
+    if (state.isActive) {
+      await exitPip();
+      return (true, null);
+    }
+    return enterPip(slotIndex: slotIndex, width: width, height: height);
+  }
+
+  /// Arm/disarm native auto-PiP for background entry.
+  Future<void> setAutoPipReady({
+    required bool ready,
+    int? width,
+    int? height,
+  }) async {
+    await _impl.setAutoPipReady(ready: ready, width: width, height: height);
+  }
+
+  /// Called by the native layer (via MethodChannel callback)
+  /// when PiP mode changes externally (e.g. user dismisses
+  /// the PiP window on Android).
   void onNativePipChanged({required bool isInPip}) {
-    state = state.copyWith(isActive: isInPip);
+    if (isInPip) {
+      state = state.copyWith(isActive: true);
+    } else {
+      state = const PipState();
+    }
+  }
+
+  void _onNativePipChanged(bool isInPip) {
+    onNativePipChanged(isInPip: isInPip);
   }
 }
 

@@ -1,11 +1,20 @@
 import 'package:flutter/foundation.dart';
 
+/// Abstract interface for thumbnail data sources.
+///
+/// Both VTT sprite sheets and BIF trickplay files implement
+/// this to provide format-agnostic thumbnail lookup.
+abstract class ThumbnailSource {
+  /// Gets the thumbnail region for a given video position.
+  ThumbnailRegion? getRegionAt(Duration position);
+}
+
 /// Represents a thumbnail sprite sheet with timing data.
 ///
 /// Sprite sheets contain multiple thumbnails in a grid layout,
 /// with a VTT file mapping timestamps to sprite positions.
 @immutable
-class ThumbnailSprite {
+class ThumbnailSprite implements ThumbnailSource {
   const ThumbnailSprite({
     required this.imageUrl,
     required this.columns,
@@ -39,6 +48,7 @@ class ThumbnailSprite {
   /// Gets the sprite region for a given position.
   ///
   /// Returns null if the position is not within any cue range.
+  @override
   ThumbnailRegion? getRegionAt(Duration position) {
     for (final cue in cues) {
       if (position >= cue.start && position < cue.end) {
@@ -106,24 +116,29 @@ class ThumbnailCue {
   int get hashCode => Object.hash(start, end, x, y);
 }
 
-/// Represents a region within a sprite sheet for rendering.
+/// Represents a region within a sprite sheet or a standalone
+/// thumbnail image for rendering.
 @immutable
 class ThumbnailRegion {
   const ThumbnailRegion({
-    required this.imageUrl,
+    this.imageUrl = '',
+    this.imageBytes,
     required this.x,
     required this.y,
     required this.width,
     required this.height,
   });
 
-  /// URL to the sprite sheet image.
+  /// URL to the sprite sheet image (VTT sprites).
   final String imageUrl;
 
-  /// X offset within the sprite sheet.
+  /// Raw JPEG bytes for standalone thumbnails (BIF).
+  final Uint8List? imageBytes;
+
+  /// X offset within the sprite sheet (0 for BIF).
   final int x;
 
-  /// Y offset within the sprite sheet.
+  /// Y offset within the sprite sheet (0 for BIF).
   final int y;
 
   /// Width of the thumbnail region.
@@ -131,6 +146,9 @@ class ThumbnailRegion {
 
   /// Height of the thumbnail region.
   final int height;
+
+  /// Whether this region uses raw image bytes (BIF format).
+  bool get isBifThumbnail => imageBytes != null;
 
   @override
   bool operator ==(Object other) {

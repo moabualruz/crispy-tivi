@@ -1,15 +1,23 @@
 import 'package:flutter/foundation.dart';
 
+import '../segment_skip_config.dart';
+
 /// A time segment that may be skipped (intro, recap, credits).
 @immutable
 class SkipSegment {
-  const SkipSegment({required this.start, required this.end});
+  const SkipSegment({required this.start, required this.end, this.type});
 
   /// Start of the segment.
   final Duration start;
 
   /// End of the segment (exclusive).
   final Duration end;
+
+  /// Explicit segment type from media server metadata.
+  ///
+  /// When `null`, the type is inferred from position heuristics
+  /// via [inferSegmentType].
+  final SegmentType? type;
 
   /// Whether [position] falls inside this segment.
   bool containsPosition(Duration position) =>
@@ -18,10 +26,13 @@ class SkipSegment {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SkipSegment && start == other.start && end == other.end;
+      other is SkipSegment &&
+          start == other.start &&
+          end == other.end &&
+          type == other.type;
 
   @override
-  int get hashCode => Object.hash(start, end);
+  int get hashCode => Object.hash(start, end, type);
 }
 
 /// Video format / HDR tier reported by the decoder.
@@ -128,6 +139,7 @@ class PlaybackState {
     this.subtitleTracks = const [],
     this.selectedAudioTrackId,
     this.selectedSubtitleTrackId,
+    this.selectedSecondarySubtitleTrackId,
     this.errorMessage,
     this.retryCount = 0,
     this.sleepTimerRemaining,
@@ -162,6 +174,12 @@ class PlaybackState {
   final List<SubtitleTrack> subtitleTracks;
   final int? selectedAudioTrackId;
   final int? selectedSubtitleTrackId;
+
+  /// Secondary subtitle track for dual-subtitle display.
+  ///
+  /// When non-null and different from [selectedSubtitleTrackId],
+  /// a second subtitle overlay is rendered via mpv `secondary-sid`.
+  final int? selectedSecondarySubtitleTrackId;
 
   /// Error details when [status] is [PlaybackStatus.error].
   final String? errorMessage;
@@ -239,6 +257,8 @@ class PlaybackState {
           currentProgram == other.currentProgram &&
           selectedAudioTrackId == other.selectedAudioTrackId &&
           selectedSubtitleTrackId == other.selectedSubtitleTrackId &&
+          selectedSecondarySubtitleTrackId ==
+              other.selectedSecondarySubtitleTrackId &&
           errorMessage == other.errorMessage &&
           retryCount == other.retryCount &&
           sleepTimerRemaining == other.sleepTimerRemaining &&
@@ -266,6 +286,7 @@ class PlaybackState {
     currentProgram,
     selectedAudioTrackId,
     selectedSubtitleTrackId,
+    selectedSecondarySubtitleTrackId,
     errorMessage,
     retryCount,
     sleepTimerRemaining,
@@ -295,6 +316,8 @@ class PlaybackState {
     List<SubtitleTrack>? subtitleTracks,
     int? selectedAudioTrackId,
     int? selectedSubtitleTrackId,
+    int? selectedSecondarySubtitleTrackId,
+    bool clearSecondarySubtitle = false,
     String? errorMessage,
     int? retryCount,
     bool clearError = false,
@@ -326,6 +349,11 @@ class PlaybackState {
       selectedAudioTrackId: selectedAudioTrackId ?? this.selectedAudioTrackId,
       selectedSubtitleTrackId:
           selectedSubtitleTrackId ?? this.selectedSubtitleTrackId,
+      selectedSecondarySubtitleTrackId:
+          clearSecondarySubtitle
+              ? null
+              : (selectedSecondarySubtitleTrackId ??
+                  this.selectedSecondarySubtitleTrackId),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       retryCount: retryCount ?? this.retryCount,
       sleepTimerRemaining:

@@ -24,14 +24,11 @@ const osdBottomGradient = LinearGradient(
 /// Panel background for audio/subtitle picker.
 const osdPanelColor = Color(0xD91A1A1A); // #1A1A1A @ 85%
 
-/// Unselected text color for track pickers.
-const osdGrayText = Color(0xFFA1A1A1);
-
 /// Height reserved for the OSD bottom bar, used by overlays
 /// (completion, next-episode) to position above the controls.
 const kOsdBottomBarHeight = 80.0;
 
-/// Reusable icon button for the OSD bar (Netflix style).
+/// Reusable icon button for the OSD bar.
 class OsdIconButton extends StatelessWidget {
   const OsdIconButton({
     required this.icon,

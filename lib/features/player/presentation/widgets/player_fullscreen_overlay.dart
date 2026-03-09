@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -8,12 +9,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:universal_io/io.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../../../../config/settings_notifier.dart';
+import '../../../../core/data/cache_service.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
-import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/utils/platform_capabilities.dart';
+import '../../../../core/utils/screen_brightness_helper.dart';
 import '../../../favorites/data/favorites_history_service.dart';
+import '../providers/pip_provider.dart';
 import '../../../iptv/domain/entities/channel.dart';
+import '../../../vod/domain/entities/vod_item.dart';
+import '../../data/shader_service.dart';
 import '../../domain/entities/playback_state.dart';
 import '../providers/playback_progress_provider.dart';
 import '../providers/player_providers.dart';
@@ -25,8 +31,14 @@ import 'player_lifecycle_handler.dart';
 import 'player_mouse_region.dart';
 import 'player_gesture_overlays.dart';
 import 'player_osd/osd_subtitle_picker.dart';
+import 'player_osd/subtitle_style_dialog.dart';
+import 'player_queue_overlay.dart';
 import 'player_shortcuts_help_overlay.dart';
+import 'player_guide_split.dart';
 import 'player_stack.dart';
+import 'screensaver_overlay.dart';
+import 'player_zoom_indicator.dart';
+import 'screenshot_indicator.dart';
 
 /// Fullscreen player overlay mounted in [AppShell] Stack layer 2.
 ///
@@ -68,6 +80,10 @@ class _PlayerFullscreenOverlayState
   late final FocusNode _focusNode;
   PlayerMode? _lastAppliedMode;
 
+  /// Whether the video expand animation has completed.
+  /// OSD content delays rendering until this is true.
+  bool _isVideoExpanded = false;
+
   @override
   void initState() {
     super.initState();
@@ -86,22 +102,38 @@ class _PlayerFullscreenOverlayState
         final mode = ref.read(playerModeProvider).mode;
         _applySystemChrome(mode);
         _lastAppliedMode = mode;
+        // Apply persisted subtitle style to mpv.
+        try {
+          final style = ref.read(subtitleStyleProvider);
+          final player = ref.read(playerProvider);
+          applySubtitleStyleToPlayer(player, style);
+        } catch (_) {}
       }
     });
+
+    // Delay OSD rendering until the video expand animation completes
+    // (CrispyAnimation.normal = 300ms). During this time the video is
+    // animating from preview/mini to fullscreen beneath this overlay.
+    Future.delayed(CrispyAnimation.normal, () {
+      if (mounted) setState(() => _isVideoExpanded = true);
+    });
+
+    // Arm native auto-PiP so the OS enters PiP on home press
+    // (Android API 31+ setAutoEnterEnabled, API 26-30 onUserLeaveHint).
+    armAutoPip();
   }
 
   /// Applies [SystemChrome] immersive/orientation settings for the
-  /// given [mode] on mobile platforms. Must be called from lifecycle
-  /// hooks — never from [build].
-  void _applySystemChrome(PlayerMode mode) {
+  /// given [mode] on mobile platforms. Respects the user's saved
+  /// rotation lock preference when in fullscreen. Must be called
+  /// from lifecycle hooks — never from [build].
+  Future<void> _applySystemChrome(PlayerMode mode) async {
     if (kIsWeb) return;
     if (!Platform.isAndroid && !Platform.isIOS) return;
     if (mode == PlayerMode.fullscreen) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
+      final orientations = await _loadRotationLock();
+      SystemChrome.setPreferredOrientations(orientations.toList());
     } else {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
       // On phones, restore the app-wide landscape lock.
@@ -116,6 +148,22 @@ class _PlayerFullscreenOverlayState
             : [],
       );
     }
+  }
+
+  /// Reads the persisted rotation lock preference. Falls back to
+  /// landscape-only when no preference has been saved.
+  Future<List<DeviceOrientation>> _loadRotationLock() async {
+    final json = await ref
+        .read(cacheServiceProvider)
+        .getSetting(kRotationLockKey);
+    if (json == null || json.isEmpty) {
+      return [
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ];
+    }
+    final indices = (jsonDecode(json) as List).cast<int>();
+    return indices.map((i) => DeviceOrientation.values[i]).toList();
   }
 
   @override
@@ -143,12 +191,32 @@ class _PlayerFullscreenOverlayState
 
   @override
   void dispose() {
+    disarmAutoPip();
     cancelFullscreenListener?.call();
     WidgetsBinding.instance.removeObserver(this);
     if (isWindowListenerRegistered) {
       windowManager.removeListener(this);
     }
-    if (isInPip) pipHandler.exitPiP();
+    if (isInPip) ref.read(pipProvider.notifier).exitPip();
+
+    // Restore all orientations on player exit (REQ-05).
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      SystemChrome.setPreferredOrientations([]);
+    }
+
+    // Reset screen brightness to system default on player exit (REQ-04).
+    if (ref.read(screenBrightnessProvider) != null) {
+      ref.read(screenBrightnessProvider.notifier).resetToSystem();
+      ScreenBrightnessHelper.resetBrightness();
+    }
+
+    // Reset always-on-top on player exit.
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
+      if (ref.read(alwaysOnTopProvider)) {
+        ref.read(alwaysOnTopProvider.notifier).set(false);
+        windowManager.setAlwaysOnTop(false);
+      }
+    }
 
     _zapOverlayTimer?.cancel();
     FocusManager.instance.removeLateKeyEventHandler(_lateKeyHandler);
@@ -166,9 +234,19 @@ class _PlayerFullscreenOverlayState
   void _syncSession() {
     final session = ref.read(playbackSessionProvider);
     if (session.streamUrl.isEmpty) return;
+
+    // Skip full sync if this stream was already synced — happens when
+    // the overlay is remounted after a mini-player ↔ fullscreen toggle.
+    final lastSynced = ref.read(lastSyncedStreamUrlProvider);
+    if (session.streamUrl == lastSynced) {
+      _activeStreamUrl = session.streamUrl;
+      return;
+    }
+
     if (session.streamUrl == _activeStreamUrl) return;
 
     _activeStreamUrl = session.streamUrl;
+    ref.read(lastSyncedStreamUrlProvider.notifier).set(session.streamUrl);
     _resetTrackingState();
 
     // Start VOD tracking.
@@ -286,13 +364,50 @@ class _PlayerFullscreenOverlayState
   }
 
   // ────────────────────────────────────────────────
+  //  Queue item playback
+  // ────────────────────────────────────────────────
+
+  /// Plays a queue item based on the current session type.
+  void _playQueueItem(QueueItem item, PlaybackSessionState session) {
+    // Hide the queue panel.
+    ref.read(queueProvider.notifier).hide();
+
+    if (session.isLive) {
+      // Live TV: find the Channel in the list and zap to it.
+      final ch = session.channelList?.firstWhere(
+        (c) => c.id == item.id,
+        orElse:
+            () => Channel(
+              id: item.id,
+              name: item.title,
+              streamUrl: item.streamUrl,
+            ),
+      );
+      if (ch != null) _zapToChannel(ch);
+    } else {
+      // VOD: find the episode in the list and play it.
+      final ep = session.episodeList?.firstWhere(
+        (e) => e.id == item.id,
+        orElse:
+            () => VodItem(
+              id: item.id,
+              name: item.title,
+              streamUrl: item.streamUrl,
+              type: VodType.episode,
+            ),
+      );
+      if (ep != null) playNextEpisode(ep);
+    }
+  }
+
+  // ────────────────────────────────────────────────
   //  Tap handler
   // ────────────────────────────────────────────────
 
   void _onTap() {
     if (isInPip) {
       if (!kIsWeb && !Platform.isAndroid && !Platform.isIOS) {
-        pipHandler.exitPiP().then((_) {
+        ref.read(pipProvider.notifier).exitPip().then((_) {
           if (mounted) setState(() => isInPip = false);
         });
       }
@@ -309,11 +424,16 @@ class _PlayerFullscreenOverlayState
   /// Late key event handler — fires only for events NOT consumed
   /// by any widget in the focus tree. Acts as a safety net when
   /// focus is lost (e.g. after mouse clicks steal focus).
+  /// Restores focus to [_focusNode] so subsequent key events are
+  /// handled by [KeyboardListener.onKeyEvent] directly.
   KeyEventResult _lateKeyHandler(KeyEvent event) {
     if (!mounted) return KeyEventResult.ignored;
-    // Don't consume if a dialog/modal is on top of the player.
     if (ModalRoute.of(context)?.isCurrent != true) {
       return KeyEventResult.ignored;
+    }
+    // Restore focus so primary handler takes over next time.
+    if (!_focusNode.hasPrimaryFocus) {
+      _focusNode.requestFocus();
     }
     _onKeyEvent(event);
     return KeyEventResult.handled;
@@ -383,6 +503,37 @@ class _PlayerFullscreenOverlayState
       onToggleLock: () {
         ref.read(playerLockedProvider.notifier).toggle();
       },
+      onOpenGuide: () {
+        ref.read(guideSplitProvider.notifier).toggle();
+      },
+      onShowDebug: () {
+        ref.read(streamStatsVisibleProvider.notifier).update((v) => !v);
+      },
+      onScreenshot: () {
+        captureScreenshot(boundaryKey: screenshotBoundaryKey, ref: ref);
+      },
+      onCleanScreenshot: () {
+        captureScreenshot(
+          boundaryKey: screenshotBoundaryKey,
+          ref: ref,
+          clean: true,
+        );
+      },
+      onAlwaysOnTop: () {
+        if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
+          final notifier = ref.read(alwaysOnTopProvider.notifier);
+          notifier.toggle();
+          final newValue = ref.read(alwaysOnTopProvider);
+          windowManager.setAlwaysOnTop(newValue);
+        }
+      },
+      onCycleShader: () {
+        final current = ref.read(shaderPresetProvider);
+        final presets = ShaderPreset.allPresets;
+        final idx = presets.indexWhere((p) => p.id == current.id);
+        final next = presets[(idx + 1) % presets.length];
+        ref.read(settingsNotifierProvider.notifier).setShaderPreset(next.id);
+      },
     );
   }
 
@@ -392,11 +543,17 @@ class _PlayerFullscreenOverlayState
 
   @override
   Widget build(BuildContext context) {
+    // During the initial video expand animation, render nothing —
+    // the video is animating beneath and OSD would flash prematurely.
+    if (!_isVideoExpanded) return const SizedBox.expand();
+
     // Activate setting-sync side-effect providers.
     ref.watch(hwdecSyncProvider);
     ref.watch(audioSyncProvider);
     ref.watch(upscaleSyncProvider);
     ref.watch(deinterlaceSyncProvider);
+    ref.watch(streamProfileSyncProvider);
+    ref.watch(queueAutoPopulateProvider);
 
     // React to player mode changes → apply SystemChrome as a side
     // effect via ref.listen (never inline in build).
@@ -481,6 +638,7 @@ class _PlayerFullscreenOverlayState
             onPointerDown: (e) => lastPointerKind = e.kind,
             child: KeyboardListener(
               focusNode: _focusNode,
+              onKeyEvent: _onKeyEvent,
               child: GestureDetector(
                 key: TestKeys.playerGestureDetector,
                 onTap: _onTap,
@@ -530,89 +688,97 @@ class _PlayerFullscreenOverlayState
                 onScaleUpdate: isInPip ? null : onScaleUpdate,
                 onScaleEnd: isInPip ? null : onScaleEnd,
                 behavior: HitTestBehavior.opaque,
-                child: PlayerStack(
-                  // Transparent placeholder — video is in
-                  // PermanentVideoLayer on the Stack layer below.
-                  videoSurface: const SizedBox.shrink(),
-                  seekStepSeconds: seekStep,
-                  brightnessNotifier: brightnessNotifier,
-                  isInPip: isInPip,
-                  isBuffering: s.isBuffering,
-                  retryCount: s.retryCount,
-                  seekDirection: seekDirection,
-                  hasError: s.hasError,
-                  errorMessage: s.errorMessage,
-                  onRetry: () => ref.read(playerServiceProvider).retry(),
-                  isSwiping: isSwiping,
-                  swipeType: swipeType,
-                  swipeValue:
-                      swipeType == SwipeType.volume
-                          ? ref.read(playerServiceProvider).state.volume
-                          : 1.0 - brightnessNotifier.value,
-                  zapChannelName: _zapChannelName,
-                  canZap: canZap,
-                  showZapOverlay: _showZapOverlay,
-                  rightEdgeThreshold: PlayerGestureMixin.rightEdgeThreshold,
-                  onSwipeLeftEdge: () => setState(() => _showZapOverlay = true),
-                  isLive: session.isLive,
-                  channelList: session.channelList,
-                  currentChannelIndex: session.channelIndex,
-                  onZapDismiss: () {
-                    setState(() => _showZapOverlay = false);
-                    _restoreFocus();
-                  },
-                  onChannelSelected: (ch) {
-                    _zapToChannel(ch);
-                    setState(() => _showZapOverlay = false);
-                    _restoreFocus();
-                  },
-                  nextEpisode: nextEpisodeToShow,
-                  onPlayNext:
-                      nextEpisodeToShow != null
-                          ? () => playNextEpisode(nextEpisodeToShow!)
-                          : null,
-                  onCancelNext: () => setState(() => nextEpisodeToShow = null),
-                  showMovieCompletion: showMovieCompletion,
-                  currentTitle: session.channelName,
-                  onWatchAgain:
-                      showMovieCompletion
-                          ? () {
-                            setState(() => showMovieCompletion = false);
-                            ref.read(playerServiceProvider).seek(Duration.zero);
-                            ref.read(playerServiceProvider).playOrPause();
-                          }
-                          : null,
-                  onBrowseMore:
-                      showMovieCompletion
-                          ? () {
-                            setState(() => showMovieCompletion = false);
-                            onBack();
-                          }
-                          : null,
-                  streamUrl: session.streamUrl,
-                  onBack: onBack,
-                  onToggleFullscreen:
-                      PlatformCapabilities.fullscreen
-                          ? () => toggleOsFullscreen()
-                          : null,
-                  onEnterPip: PlatformCapabilities.pip ? onEnterPip : null,
-                  onToggleZapOverlay:
-                      canZap
-                          ? () =>
-                              setState(() => _showZapOverlay = !_showZapOverlay)
-                          : null,
-                  onOpenExternal:
-                      PlatformCapabilities.externalPlayer
-                          ? () => launchExternalPlayer(
-                            ref: ref,
-                            context: context,
-                            streamUrl: session.streamUrl,
-                            mounted: mounted,
-                            title: session.channelName,
-                            headers: session.headers,
-                          )
-                          : null,
-                  channelLogoUrl: s.channelLogoUrl,
+                child: ScreensaverController(
+                  child: PlayerStack(
+                    // Transparent placeholder — video is in
+                    // PermanentVideoLayer on the Stack layer below.
+                    videoSurface: const SizedBox.shrink(),
+                    seekStepSeconds: seekStep,
+                    brightnessNotifier: brightnessNotifier,
+                    isInPip: isInPip,
+                    isBuffering: s.isBuffering,
+                    retryCount: s.retryCount,
+                    seekDirection: seekDirection,
+                    hasError: s.hasError,
+                    errorMessage: s.errorMessage,
+                    onRetry: () => ref.read(playerServiceProvider).retry(),
+                    isSwiping: isSwiping,
+                    swipeType: swipeType,
+                    swipeValue:
+                        swipeType == SwipeType.volume
+                            ? ref.read(playerServiceProvider).state.volume
+                            : 1.0 - brightnessNotifier.value,
+                    zapChannelName: _zapChannelName,
+                    canZap: canZap,
+                    showZapOverlay: _showZapOverlay,
+                    rightEdgeThreshold: PlayerGestureMixin.rightEdgeThreshold,
+                    onSwipeLeftEdge:
+                        () => setState(() => _showZapOverlay = true),
+                    isLive: session.isLive,
+                    channelList: session.channelList,
+                    currentChannelIndex: session.channelIndex,
+                    onZapDismiss: () {
+                      setState(() => _showZapOverlay = false);
+                      _restoreFocus();
+                    },
+                    onChannelSelected: (ch) {
+                      _zapToChannel(ch);
+                      setState(() => _showZapOverlay = false);
+                      _restoreFocus();
+                    },
+                    nextEpisode: nextEpisodeToShow,
+                    onPlayNext:
+                        nextEpisodeToShow != null
+                            ? () => playNextEpisode(nextEpisodeToShow!)
+                            : null,
+                    onCancelNext:
+                        () => setState(() => nextEpisodeToShow = null),
+                    showMovieCompletion: showMovieCompletion,
+                    currentTitle: session.channelName,
+                    onWatchAgain:
+                        showMovieCompletion
+                            ? () {
+                              setState(() => showMovieCompletion = false);
+                              ref
+                                  .read(playerServiceProvider)
+                                  .seek(Duration.zero);
+                              ref.read(playerServiceProvider).playOrPause();
+                            }
+                            : null,
+                    onBrowseMore:
+                        showMovieCompletion
+                            ? () {
+                              setState(() => showMovieCompletion = false);
+                              onBack();
+                            }
+                            : null,
+                    streamUrl: session.streamUrl,
+                    onBack: onBack,
+                    onToggleFullscreen:
+                        PlatformCapabilities.fullscreen
+                            ? () => toggleOsFullscreen()
+                            : null,
+                    onEnterPip: PlatformCapabilities.pip ? onEnterPip : null,
+                    onToggleZapOverlay:
+                        canZap
+                            ? () => setState(
+                              () => _showZapOverlay = !_showZapOverlay,
+                            )
+                            : null,
+                    onOpenExternal:
+                        PlatformCapabilities.externalPlayer
+                            ? () => launchExternalPlayer(
+                              ref: ref,
+                              context: context,
+                              streamUrl: session.streamUrl,
+                              mounted: mounted,
+                              title: session.channelName,
+                              headers: session.headers,
+                            )
+                            : null,
+                    channelLogoUrl: s.channelLogoUrl,
+                    onSkipToQueueItem: (item) => _playQueueItem(item, session),
+                  ),
                 ),
               ),
             ),
@@ -630,51 +796,35 @@ class _PlayerFullscreenOverlayState
 
         // FE-PS-19: Zoom percentage indicator (pinch-to-zoom HUD).
         if (!isInPip && (zoomScale != 1.0 || isPinching))
-          _ZoomIndicatorOverlay(label: zoomPercentLabel, visible: isPinching),
+          PlayerZoomIndicator(label: zoomPercentLabel, visible: isPinching),
+
+        // TV guide split-screen — EPG grid on the right half.
+        if (!isInPip)
+          Consumer(
+            builder: (context, ref, _) {
+              final guideSplit = ref.watch(guideSplitProvider);
+              if (!guideSplit) return const SizedBox.shrink();
+              final screenWidth = MediaQuery.sizeOf(context).width;
+
+              return Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: screenWidth / 2,
+                child: PlayerGuideSplit(
+                  onChannelSelected: (ch) {
+                    _zapToChannel(ch);
+                    _restoreFocus();
+                  },
+                  onDismiss: () {
+                    ref.read(guideSplitProvider.notifier).set(value: false);
+                    _restoreFocus();
+                  },
+                ),
+              );
+            },
+          ),
       ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// FE-PS-19: Zoom percentage HUD overlay
-// ─────────────────────────────────────────────────────────────
-
-/// Centered glassmorphic badge showing the current zoom level.
-///
-/// Shown while pinching and briefly after the gesture ends.
-/// Fades when [visible] is false (gesture ended).
-class _ZoomIndicatorOverlay extends StatelessWidget {
-  const _ZoomIndicatorOverlay({required this.label, required this.visible});
-
-  final String label;
-  final bool visible;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Align(
-      alignment: Alignment.center,
-      child: AnimatedOpacity(
-        opacity: visible ? 1.0 : 0.6,
-        duration: CrispyAnimation.osdShow,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          decoration: BoxDecoration(
-            color: cs.surface.withValues(alpha: 0.75),
-            borderRadius: BorderRadius.circular(CrispyRadius.sm),
-            border: Border.all(color: cs.onSurface.withValues(alpha: 0.15)),
-          ),
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: cs.onSurface,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

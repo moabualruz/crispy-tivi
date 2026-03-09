@@ -1,3 +1,5 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,7 +15,7 @@ import 'subtitle_style_dialog.dart';
 
 /// Shows the combined audio + subtitle track panel.
 ///
-/// Netflix-style: slide-up panel from bottom-right
+/// Cinematic: slide-up panel from bottom-right
 /// with two columns (AUDIO | SUBTITLES).
 /// Animation: slide up + fade in, 200ms.
 void showSubtitleTrackPicker(
@@ -82,7 +84,7 @@ class _CombinedTrackPanel extends ConsumerWidget {
 
     // Build subtitle items with "Off" option.
     final subItems = [
-      const TrackItem(index: -1, label: 'Off'),
+      TrackItem(index: -1, label: context.l10n.commonOff),
       ...state.subtitleTracks.map(
         (t) => TrackItem(
           index: t.id,
@@ -111,7 +113,7 @@ class _CombinedTrackPanel extends ConsumerWidget {
               child: Row(
                 children: [
                   Text(
-                    'Audio & Subtitles',
+                    context.l10n.playerAudioSubtitles,
                     style: textTheme.titleMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -119,11 +121,11 @@ class _CombinedTrackPanel extends ConsumerWidget {
                   ),
                   const Spacer(),
                   Tooltip(
-                    message: 'Close',
+                    message: context.l10n.commonClose,
                     child: IconButton(
                       icon: const Icon(Icons.close, color: Colors.white70),
                       onPressed: onClose,
-                      tooltip: 'Close',
+                      tooltip: context.l10n.commonClose,
                     ),
                   ),
                 ],
@@ -141,7 +143,7 @@ class _CombinedTrackPanel extends ConsumerWidget {
                   if (hasAudio)
                     Expanded(
                       child: _TrackColumn(
-                        title: 'AUDIO',
+                        title: context.l10n.playerAudioSectionLabel,
                         items: audioItems,
                         selectedIndex: state.selectedAudioTrackId,
                         onSelected: (id) {
@@ -158,12 +160,27 @@ class _CombinedTrackPanel extends ConsumerWidget {
                   if (hasSubs)
                     Expanded(
                       child: _TrackColumn(
-                        title: 'SUBTITLES',
+                        title: context.l10n.playerSubtitlesSectionLabel,
                         items: subItems,
                         selectedIndex: state.selectedSubtitleTrackId ?? -1,
+                        secondaryIndex:
+                            kIsWeb
+                                ? null
+                                : state.selectedSecondarySubtitleTrackId,
                         onSelected: (id) {
                           ref.read(playerServiceProvider).setSubtitleTrack(id);
                         },
+                        onSecondarySelected:
+                            kIsWeb
+                                ? null
+                                : (id) {
+                                  final svc = ref.read(playerServiceProvider);
+                                  if (id == -1) {
+                                    svc.clearSecondarySubtitleTrack();
+                                  } else {
+                                    svc.setSecondarySubtitleTrack(id);
+                                  }
+                                },
                         textTheme: textTheme,
                         onCcStyle: () {
                           Navigator.pop(context);
@@ -185,6 +202,10 @@ class _CombinedTrackPanel extends ConsumerWidget {
 ///
 /// When [onCcStyle] is provided (subtitles column only), a
 /// "CC Style" footer button is rendered below the track list.
+///
+/// When [secondaryIndex] and [onSecondarySelected] are provided,
+/// long-press on a track item sets it as the secondary subtitle.
+/// Primary items show a "1" badge, secondary items show a "2" badge.
 class _TrackColumn extends StatelessWidget {
   const _TrackColumn({
     required this.title,
@@ -192,6 +213,8 @@ class _TrackColumn extends StatelessWidget {
     required this.selectedIndex,
     required this.onSelected,
     required this.textTheme,
+    this.secondaryIndex,
+    this.onSecondarySelected,
     this.onCcStyle,
   });
 
@@ -201,14 +224,19 @@ class _TrackColumn extends StatelessWidget {
   final ValueChanged<int> onSelected;
   final TextTheme textTheme;
 
+  /// Currently selected secondary subtitle track index.
+  final int? secondaryIndex;
+
+  /// Callback for long-press: set as secondary subtitle.
+  final ValueChanged<int>? onSecondarySelected;
+
   /// Optional callback that opens the CC style dialog.
-  ///
-  /// Only the subtitles column passes this; the audio column
-  /// leaves it null, so no footer is rendered there.
   final VoidCallback? onCcStyle;
 
   @override
   Widget build(BuildContext context) {
+    final hasDual = onSecondarySelected != null;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,13 +248,27 @@ class _TrackColumn extends StatelessWidget {
             top: CrispySpacing.sm,
             bottom: CrispySpacing.xs,
           ),
-          child: Text(
-            title,
-            style: textTheme.labelSmall?.copyWith(
-              color: osdGrayText,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1.2,
-            ),
+          child: Row(
+            children: [
+              Text(
+                title,
+                style: textTheme.labelSmall?.copyWith(
+                  color: Colors.white60,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              if (hasDual) ...[
+                const SizedBox(width: CrispySpacing.sm),
+                Text(
+                  context.l10n.playerSubtitlesSecondHint,
+                  style: textTheme.labelSmall?.copyWith(
+                    color: Colors.white38,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
 
@@ -238,46 +280,63 @@ class _TrackColumn extends StatelessWidget {
             itemCount: items.length,
             itemBuilder: (context, i) {
               final item = items[i];
-              final selected = item.index == selectedIndex;
+              final isPrimary = item.index == selectedIndex;
+              final isSecondary = hasDual && item.index == secondaryIndex;
+
               return Semantics(
                 label: item.label,
-                selected: selected,
+                selected: isPrimary,
                 button: true,
                 child: FocusWrapper(
                   onSelect: () => onSelected(item.index),
                   borderRadius: CrispyRadius.tv,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: CrispySpacing.md,
-                      vertical: CrispySpacing.sm,
-                    ),
-                    child: Row(
-                      children: [
-                        // Radio indicator
-                        Icon(
-                          selected
-                              ? Icons.radio_button_checked
-                              : Icons.radio_button_off,
-                          color: selected ? Colors.white : osdGrayText,
-                          size: 18,
-                        ),
-                        const SizedBox(width: CrispySpacing.sm),
-                        Expanded(
-                          child: Text(
-                            item.label,
-                            style: TextStyle(
-                              color: selected ? Colors.white : osdGrayText,
-                              fontSize: 14,
-                              fontWeight:
-                                  selected
-                                      ? FontWeight.w600
-                                      : FontWeight.normal,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                  child: GestureDetector(
+                    onLongPress:
+                        hasDual && item.index != -1
+                            ? () => onSecondarySelected!(item.index)
+                            : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: CrispySpacing.md,
+                        vertical: CrispySpacing.sm,
+                      ),
+                      child: Row(
+                        children: [
+                          // Radio indicator
+                          Icon(
+                            isPrimary
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_off,
+                            color:
+                                isPrimary || isSecondary
+                                    ? Colors.white
+                                    : Colors.white60,
+                            size: 18,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: CrispySpacing.sm),
+                          Expanded(
+                            child: Text(
+                              item.label,
+                              style: TextStyle(
+                                color:
+                                    isPrimary || isSecondary
+                                        ? Colors.white
+                                        : Colors.white60,
+                                fontSize: 14,
+                                fontWeight:
+                                    isPrimary || isSecondary
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          // Badge for primary/secondary
+                          if (isPrimary && hasDual) _TrackBadge(label: '1'),
+                          if (isSecondary) _TrackBadge(label: '2'),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -303,21 +362,21 @@ class _TrackColumn extends StatelessWidget {
                   children: [
                     const Icon(
                       Icons.closed_caption_outlined,
-                      color: osdGrayText,
+                      color: Colors.white60,
                       size: 16,
                     ),
                     const SizedBox(width: CrispySpacing.sm),
                     Text(
-                      'CC Style',
+                      context.l10n.playerSubtitlesCcStyle,
                       style: textTheme.labelSmall?.copyWith(
-                        color: osdGrayText,
+                        color: Colors.white60,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const Spacer(),
                     const Icon(
                       Icons.chevron_right,
-                      color: osdGrayText,
+                      color: Colors.white60,
                       size: 16,
                     ),
                   ],
@@ -327,6 +386,33 @@ class _TrackColumn extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Small numbered badge for track selection (primary/secondary).
+class _TrackBadge extends StatelessWidget {
+  const _TrackBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(left: CrispySpacing.xs),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white24,
+        borderRadius: BorderRadius.circular(CrispyRadius.sm),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }

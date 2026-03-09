@@ -84,4 +84,48 @@ mixin PlayerAudioConfigMixin on PlayerServiceBase {
       'codecs: ${codecs.join(", ")}',
     );
   }
+
+  // ── Loudness Normalization ────────────────────────
+
+  /// Whether EBU R128 loudness normalization is enabled.
+  bool get loudnessNormalization => _loudnessNormalization;
+
+  /// Enable or disable EBU R128 loudness normalization.
+  void setLoudnessNormalization(bool enabled) {
+    _loudnessNormalization = enabled;
+    debugPrint(
+      'PlayerService: loudness normalization '
+      '${enabled ? "enabled" : "disabled"}',
+    );
+  }
+
+  // ── Stereo Downmix ────────────────────────────────
+
+  /// Whether surround-to-stereo downmix is enabled.
+  bool get stereoDownmix => _stereoDownmix;
+
+  /// Enable or disable surround-to-stereo downmix.
+  void setStereoDownmix(bool enabled) {
+    _stereoDownmix = enabled;
+    debugPrint(
+      'PlayerService: stereo downmix '
+      '${enabled ? "enabled" : "disabled"}',
+    );
+  }
+
+  // ── Max Volume ─────────────────────────────────────
+
+  /// Maximum volume percentage (100–300).
+  int get maxVolume => _maxVolume;
+
+  /// Sets the maximum volume percentage.
+  ///
+  /// Values: 100 (standard) to 300 (3x boost).
+  /// Also sets the mpv `volume-max` property on the
+  /// active player so the engine allows the higher level.
+  void setMaxVolume(int value) {
+    _maxVolume = value.clamp(100, 300);
+    _player.setProperty('volume-max', '$_maxVolume');
+    debugPrint('PlayerService: max volume set to $_maxVolume%');
+  }
 }

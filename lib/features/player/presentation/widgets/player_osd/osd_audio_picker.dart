@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -34,7 +35,7 @@ void showAudioTrackPicker(
   if (context.isLarge) {
     _showSidePanel(
       context,
-      title: 'Audio Track',
+      title: context.l10n.playerAudioTrack,
       child: TrackPickerList(
         items: items,
         selectedIndex: state.selectedAudioTrackId,
@@ -52,7 +53,7 @@ void showAudioTrackPicker(
       ),
       builder:
           (ctx) => TrackPickerSheet(
-            title: 'Audio Track',
+            title: context.l10n.playerAudioTrack,
             child: TrackPickerList(
               items: items,
               selectedIndex: state.selectedAudioTrackId,

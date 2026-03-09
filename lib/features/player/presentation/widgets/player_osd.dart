@@ -1,7 +1,5 @@
-import 'dart:ui' as ui;
-
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
@@ -9,6 +7,10 @@ import '../../../../core/utils/input_mode_notifier.dart';
 import '../../domain/entities/playback_state.dart';
 import '../providers/player_providers.dart';
 import '../widgets/stream_stats_overlay.dart';
+import '../widgets/subtitle_position_manager.dart';
+import 'player_osd/osd_shared.dart';
+import 'player_osd/subtitle_style_dialog.dart';
+import 'screenshot_indicator.dart';
 import 'live_epg_strip.dart';
 import 'player_osd/osd_audio_picker.dart';
 import 'player_osd/osd_bottom_bar.dart';
@@ -18,18 +20,15 @@ import 'player_osd/osd_subtitle_picker.dart';
 import 'player_osd/osd_top_bar.dart';
 import 'player_seek_utils.dart';
 
-/// Netflix-style on-screen display overlay.
+/// On-screen display overlay.
 ///
 /// Layout: top gradient bar (back + title), center
 /// controls (skip back / play-pause / skip forward),
 /// bottom gradient bar (left: play + volume + title,
-/// right: subs + speed + fullscreen), Netflix Red
+/// right: subs + speed + fullscreen), brand red
 /// progress bar above bottom bar.
 ///
 /// Auto-hides after 4 seconds of inactivity.
-///
-/// Design ref: `.ai/docs/plans/netflix_ui_reference.md`
-/// section 11.
 class PlayerOsd extends ConsumerStatefulWidget {
   const PlayerOsd({
     this.state,
@@ -71,52 +70,19 @@ class PlayerOsd extends ConsumerStatefulWidget {
 }
 
 class _PlayerOsdState extends ConsumerState<PlayerOsd> {
-  /// Key wrapping the video area so [RepaintBoundary.toImage]
-  /// can capture the frame for the screenshot feature.
-  final GlobalKey _screenshotKey = GlobalKey();
+  SubtitlePositionManager? _subPosManager;
+
+  @override
+  void dispose() {
+    _subPosManager?.dispose();
+    super.dispose();
+  }
 
   // ── Screenshot ──────────────────────────────────
 
-  /// Captures the current video frame via [RepaintBoundary]
-  /// and shows a brief flash + "Saved" toast.
-  ///
-  /// The actual file-save is a TODO — the UI affordance
-  /// (flash + snack) is implemented here.
+  /// Captures the current video frame and saves to disk.
   Future<void> _captureScreenshot() async {
-    final boundary =
-        _screenshotKey.currentContext?.findRenderObject()
-            as RenderRepaintBoundary?;
-    if (boundary == null) return;
-
-    // Flash animation — briefly show a white overlay.
-    if (!mounted) return;
-    final overlay = Overlay.of(context);
-    final entry = OverlayEntry(
-      builder:
-          (_) => IgnorePointer(
-            child: Container(color: Colors.white.withValues(alpha: 0.35)),
-          ),
-    );
-    overlay.insert(entry);
-    await Future<void>.delayed(const Duration(milliseconds: 120));
-    entry.remove();
-
-    // Capture image (unused until save path wired up).
-    try {
-      // ignore: unused_local_variable
-      final ui.Image image = await boundary.toImage(pixelRatio: 2.0);
-      image.dispose();
-    } catch (_) {
-      // Silently ignore capture errors (e.g. platform-limited surfaces).
-    }
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Screenshot saved'),
-        duration: CrispyAnimation.snackBarDuration,
-      ),
-    );
+    await captureScreenshot(boundaryKey: screenshotBoundaryKey, ref: ref);
   }
 
   @override
@@ -142,28 +108,31 @@ class _PlayerOsdState extends ConsumerState<PlayerOsd> {
     // Sync input mode to OSD timeout.
     ref.watch(osdTimeoutSyncProvider);
 
-    // PS-18: Enforce A-B loop — seek back to A when
-    // playback crosses the B point.
-    ref.listen(playbackStateProvider.select((s) => s.value?.progress ?? 0.0), (
-      prev,
-      progress,
-    ) {
-      final loop = ref.read(abLoopProvider);
-      if (!loop.isActive) return;
-      final loopEnd = loop.loopEnd!;
-      if (progress >= loopEnd) {
-        final loopStart = loop.loopStart!;
-        final duration =
-            ref.read(playbackStateProvider).value?.duration ?? Duration.zero;
-        final seekPos = Duration(
-          milliseconds: (loopStart * duration.inMilliseconds).round(),
+    // ── Subtitle position sync ──
+    // Shift subtitles up when OSD is visible so they aren't
+    // obscured by the bottom bar.
+    if (!kIsWeb) {
+      final player = ref.watch(playerProvider);
+      _subPosManager ??= SubtitlePositionManager(player: player);
+
+      final subStyle = ref.watch(subtitleStyleProvider);
+      _subPosManager!.updateUserPosition(subStyle.verticalPosition);
+
+      final zoomScale = ref.watch(videoZoomScaleProvider);
+      final videoHeight = MediaQuery.sizeOf(context).height;
+
+      ref.listen<OsdState>(osdStateProvider, (prev, next) {
+        _subPosManager?.onOsdVisibilityChanged(
+          visible: next == OsdState.visible,
+          barHeightPx: kOsdBottomBarHeight,
+          videoHeightPx: videoHeight,
+          zoomScale: zoomScale,
         );
-        ref.read(playerServiceProvider).seek(seekPos);
-      }
-    });
+      });
+    }
 
     return RepaintBoundary(
-      key: _screenshotKey,
+      key: screenshotBoundaryKey,
       child: Stack(
         children: [
           // ── Main OSD — fades in/out ──
@@ -400,7 +369,7 @@ class _PlayerOsdState extends ConsumerState<PlayerOsd> {
                 onSearch: widget.onSearch,
                 onChannelList: widget.onChannelList,
                 onRecordings: widget.onRecordings,
-                onScreenshot: _captureScreenshot,
+                onScreenshot: kIsWeb ? null : _captureScreenshot,
                 onToggleLock: () {
                   ref.read(playerLockedProvider.notifier).toggle();
                 },

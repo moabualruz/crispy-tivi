@@ -42,7 +42,7 @@ mixin PlayerUpscaleMixin on PlayerServiceBase {
       );
       // Re-apply if currently playing (native) or
       // web bridge is active (web).
-      if (_player.state.playing || _webBridge != null) {
+      if (_player.isPlaying || _webBridge != null) {
         applyUpscale();
       }
     }

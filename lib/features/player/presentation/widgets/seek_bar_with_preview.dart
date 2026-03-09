@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../domain/entities/playback_state.dart';
 import '../../domain/entities/thumbnail_sprite.dart';
 import '../providers/thumbnail_providers.dart';
+import 'buffer_range_painter.dart';
 import 'thumbnail_preview_popup.dart';
 
 /// Custom seek bar with thumbnail preview on hover.
@@ -18,7 +20,9 @@ class SeekBarWithPreview extends ConsumerStatefulWidget {
     required this.duration,
     required this.onSeek,
     this.bufferProgress = 0.0,
-    this.thumbnailSprite,
+    this.bufferRanges,
+    this.skipSegments = const [],
+    this.thumbnailSource,
     this.accentColor,
     this.trackHeight = 3.0,
     this.thumbRadius = 6.0,
@@ -31,14 +35,23 @@ class SeekBarWithPreview extends ConsumerStatefulWidget {
   /// Buffered progress (0.0 to 1.0).
   final double bufferProgress;
 
+  /// Optional multi-range cache segments (normalized 0.0–1.0).
+  ///
+  /// When provided, replaces the single [bufferProgress] bar
+  /// with a [BufferRangePainter] showing all cached regions.
+  final List<(double start, double end)>? bufferRanges;
+
+  /// Skip segments to display as colored bars on the track.
+  final List<SkipSegment> skipSegments;
+
   /// Total video duration.
   final Duration duration;
 
   /// Callback when user seeks to a new position.
   final ValueChanged<double> onSeek;
 
-  /// Optional thumbnail sprite data for preview.
-  final ThumbnailSprite? thumbnailSprite;
+  /// Optional thumbnail data for preview (VTT or BIF).
+  final ThumbnailSource? thumbnailSource;
 
   /// Accent color for the active track.
   final Color? accentColor;
@@ -189,13 +202,34 @@ class _SeekBarWithPreviewState extends ConsumerState<SeekBarWithPreview> {
                     color: colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                 ),
-                // Buffer progress (lighter)
-                if (widget.bufferProgress > 0)
+                // Buffer ranges (multi-segment) or single bar
+                if (widget.bufferRanges != null &&
+                    widget.bufferRanges!.isNotEmpty)
+                  CustomPaint(
+                    size: Size.infinite,
+                    painter: BufferRangePainter(
+                      ranges: widget.bufferRanges!,
+                      color: colorScheme.primary.withValues(alpha: 0.3),
+                      trackHeight: h,
+                    ),
+                  )
+                else if (widget.bufferProgress > 0)
                   FractionallySizedBox(
                     alignment: Alignment.centerLeft,
                     widthFactor: widget.bufferProgress.clamp(0.0, 1.0),
                     child: Container(
                       color: colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                // Skip segment colored bars
+                if (widget.skipSegments.isNotEmpty &&
+                    widget.duration.inMilliseconds > 0)
+                  CustomPaint(
+                    size: Size.infinite,
+                    painter: _SegmentBarPainter(
+                      segments: widget.skipSegments,
+                      durationMs: widget.duration.inMilliseconds,
+                      trackHeight: h,
                     ),
                   ),
                 // Played progress (accent)
@@ -215,7 +249,7 @@ class _SeekBarWithPreviewState extends ConsumerState<SeekBarWithPreview> {
   /// Builds the thumb indicator.
   ///
   /// White circle, 12-16px, only visible on hover,
-  /// drag, or focus -- Netflix-style.
+  /// drag, or focus -- cinematic-style.
   Widget _buildThumb(Color accentColor, ColorScheme colorScheme) {
     final thumbX = _effectiveProgress * _seekBarWidth;
     final r = widget.thumbRadius;
@@ -254,8 +288,8 @@ class _SeekBarWithPreviewState extends ConsumerState<SeekBarWithPreview> {
 
     // Get thumbnail region if available
     ThumbnailRegion? region;
-    if (widget.thumbnailSprite != null) {
-      region = widget.thumbnailSprite!.getRegionAt(hoverPosition);
+    if (widget.thumbnailSource != null) {
+      region = widget.thumbnailSource!.getRegionAt(hoverPosition);
     }
 
     // Calculate popup position with edge clamping
@@ -297,4 +331,53 @@ class _SeekBarWithPreviewState extends ConsumerState<SeekBarWithPreview> {
     final progress = (x / _seekBarWidth).clamp(0.0, 1.0);
     widget.onSeek(progress);
   }
+}
+
+/// Paints colored bars on the seek bar track for skip segments.
+///
+/// Uses a semi-transparent yellow-orange for all segment types
+/// so they stand out against both the track background and the
+/// played progress bar.
+class _SegmentBarPainter extends CustomPainter {
+  _SegmentBarPainter({
+    required this.segments,
+    required this.durationMs,
+    required this.trackHeight,
+  });
+
+  final List<SkipSegment> segments;
+  final int durationMs;
+  final double trackHeight;
+
+  static const _segmentColor = Color(0x80FFB300); // amber, 50% alpha
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (durationMs <= 0) return;
+
+    final paint =
+        Paint()
+          ..color = _segmentColor
+          ..style = PaintingStyle.fill;
+
+    for (final seg in segments) {
+      final startFraction = (seg.start.inMilliseconds / durationMs).clamp(
+        0.0,
+        1.0,
+      );
+      final endFraction = (seg.end.inMilliseconds / durationMs).clamp(0.0, 1.0);
+
+      final left = startFraction * size.width;
+      final right = endFraction * size.width;
+      if (right <= left) continue;
+
+      canvas.drawRect(Rect.fromLTWH(left, 0, right - left, trackHeight), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SegmentBarPainter oldDelegate) =>
+      !identical(segments, oldDelegate.segments) ||
+      durationMs != oldDelegate.durationMs ||
+      trackHeight != oldDelegate.trackHeight;
 }

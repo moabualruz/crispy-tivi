@@ -25,8 +25,8 @@ void main() {
       expect(segmentLabel(s1, [s1, s2, s3]), 'Skip Intro');
     });
 
-    test('last of multiple returns Skip Credits', () {
-      expect(segmentLabel(s3, [s1, s2, s3]), 'Skip Credits');
+    test('last of multiple returns Skip Outro / Credits', () {
+      expect(segmentLabel(s3, [s1, s2, s3]), 'Skip Outro / Credits');
     });
 
     test('middle segment returns Skip Recap', () {
@@ -37,8 +37,8 @@ void main() {
       expect(segmentLabel(s1, [s1, s3]), 'Skip Intro');
     });
 
-    test('last-of-two returns Skip Credits', () {
-      expect(segmentLabel(s3, [s1, s3]), 'Skip Credits');
+    test('last-of-two returns Skip Outro / Credits', () {
+      expect(segmentLabel(s3, [s1, s3]), 'Skip Outro / Credits');
     });
   });
 }

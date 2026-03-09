@@ -7,7 +7,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/utils/fullscreen_helper.dart';
-import '../../../../core/utils/pip_handler.dart';
+import '../providers/pip_provider.dart';
 import '../providers/player_providers.dart';
 import 'player_fullscreen_overlay.dart';
 
@@ -26,7 +26,6 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
   bool autoPausedByLifecycle = false;
   bool autoPausedByFocusLoss = false;
   bool isWindowListenerRegistered = false;
-  final pipHandler = PipHandler();
   bool isInPip = false;
   VoidCallback? cancelFullscreenListener;
   bool _wasMaximizedBeforeFullscreen = false;
@@ -68,14 +67,17 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
 
   void handleAppLifecycleChange(AppLifecycleState state) {
     final playerService = ref.read(playerServiceProvider);
+    final pipNotifier = ref.read(pipProvider.notifier);
+    final pipState = ref.read(pipProvider);
 
     if (state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused) {
       final settings = ref.read(settingsNotifierProvider).asData?.value;
       final pipOnMinimize = settings?.config.player.pipOnMinimize ?? true;
 
-      if (pipOnMinimize && !pipHandler.isPipMode && !kIsWeb) {
-        pipHandler.enterPiP().then((entered) {
+      if (pipOnMinimize && !pipState.isActive) {
+        pipNotifier.enterPip().then((result) {
+          final (entered, _) = result;
           if (entered && mounted) {
             setState(() => isInPip = true);
           } else if (mounted) {
@@ -95,6 +97,7 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
       }
     } else if (state == AppLifecycleState.resumed) {
       if (isInPip) {
+        pipNotifier.exitPip();
         setState(() => isInPip = false);
       }
       if (autoPausedByLifecycle) {
@@ -171,15 +174,37 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
   }
 
   void onBack() {
-    ref.read(playerModeProvider.notifier).exitToPreview();
+    final screenSize = MediaQuery.sizeOf(context);
+    ref.read(playerModeProvider.notifier).exitToPreview(screenSize: screenSize);
     ref.read(playerServiceProvider).forceStateEmit();
   }
 
   void onEnterPip() {
-    pipHandler.enterPiP().then((ok) {
+    ref.read(pipProvider.notifier).enterPip().then((result) {
+      final (ok, _) = result;
       if (ok && mounted) {
         setState(() => isInPip = true);
       }
     });
+  }
+
+  /// Arm native auto-PiP for seamless background entry.
+  ///
+  /// On Android API 31+, `setAutoEnterEnabled(true)` makes the
+  /// OS auto-enter PiP on home press. On older Android, the
+  /// `onUserLeaveHint()` Kotlin callback handles it.
+  /// Call from [initState] when player starts and from
+  /// [dispose] to disarm.
+  void armAutoPip() {
+    final settings = ref.read(settingsNotifierProvider).asData?.value;
+    final pipOnMinimize = settings?.config.player.pipOnMinimize ?? true;
+    if (pipOnMinimize) {
+      ref.read(pipProvider.notifier).setAutoPipReady(ready: true);
+    }
+  }
+
+  /// Disarm native auto-PiP.
+  void disarmAutoPip() {
+    ref.read(pipProvider.notifier).setAutoPipReady(ready: false);
   }
 }

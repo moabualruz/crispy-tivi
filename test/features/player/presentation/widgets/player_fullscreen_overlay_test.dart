@@ -12,25 +12,25 @@
 //   3. Widget-smoke the overlay with all heavy providers mocked so
 //      that pumpWidget does not crash.
 
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:mocktail/mocktail.dart';
-
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
+import 'package:crispy_tivi/l10n/app_localizations.dart';
 import 'package:crispy_tivi/features/player/data/player_service.dart';
+import 'package:crispy_tivi/features/player/domain/crispy_player.dart';
 import 'package:crispy_tivi/features/player/domain/entities/playback_state.dart'
     as app;
 import 'package:crispy_tivi/features/player/presentation/providers/player_providers.dart';
 import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 
 // ─── Mocks ───────────────────────────────────────────────────
 
 class MockPlayerService extends Mock implements PlayerService {}
 
-class MockPlayer extends Mock implements Player {}
+class MockCrispyPlayer extends Mock implements CrispyPlayer {}
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -300,11 +300,11 @@ void main() {
 
   group('PlayerFullscreenOverlay widget smoke', () {
     late MockPlayerService mockPlayerService;
-    late MockPlayer mockPlayer;
+    late MockCrispyPlayer mockPlayer;
 
     setUp(() {
       mockPlayerService = MockPlayerService();
-      mockPlayer = MockPlayer();
+      mockPlayer = MockCrispyPlayer();
 
       when(() => mockPlayerService.player).thenReturn(mockPlayer);
       when(() => mockPlayerService.state).thenReturn(const app.PlaybackState());
@@ -327,9 +327,9 @@ void main() {
       ).thenReturn(null);
       when(() => mockPlayerService.retry()).thenAnswer((_) async {});
 
-      when(() => mockPlayer.state).thenReturn(
-        PlayerState(tracks: const Tracks(audio: [], subtitle: [], video: [])),
-      );
+      when(() => mockPlayer.audioTracks).thenReturn(const []);
+      when(() => mockPlayer.subtitleTracks).thenReturn(const []);
+      when(() => mockPlayer.isPlaying).thenReturn(false);
     });
 
     Widget buildSmoke() {
@@ -350,7 +350,11 @@ void main() {
           mouseCursorVisibleProvider.overrideWith(() => MouseCursorNotifier()),
           streamStatsVisibleProvider.overrideWith(() => StreamStatsNotifier()),
         ],
-        child: const MaterialApp(home: Scaffold(body: _OverlayHarness())),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: _OverlayHarness()),
+        ),
       );
     }
 

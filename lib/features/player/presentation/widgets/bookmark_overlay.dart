@@ -1,7 +1,9 @@
 // FE-PS-15: Video bookmarks / timestamp pins
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -22,6 +24,18 @@ class VideoBookmark {
     required this.createdAt,
     this.label,
   });
+
+  /// Creates a [VideoBookmark] from a backend map.
+  factory VideoBookmark.fromMap(Map<String, dynamic> m) {
+    return VideoBookmark(
+      id: m['id'] as String,
+      position: Duration(milliseconds: (m['position_ms'] as num).toInt()),
+      label: m['label'] as String?,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(
+        (m['created_at'] as num).toInt(),
+      ),
+    );
+  }
 
   /// Unique bookmark ID (UUID or timestamp string).
   final String id;
@@ -44,6 +58,18 @@ class VideoBookmark {
     );
   }
 
+  /// Converts to a backend map for persistence.
+  Map<String, dynamic> toMap(String contentId, String contentType) {
+    return {
+      'id': id,
+      'content_id': contentId,
+      'content_type': contentType,
+      'position_ms': position.inMilliseconds,
+      'label': label,
+      'created_at': createdAt.millisecondsSinceEpoch,
+    };
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) || other is VideoBookmark && id == other.id;
@@ -57,45 +83,80 @@ class VideoBookmark {
 // ─────────────────────────────────────────────────────────────
 
 /// Manages the list of video bookmarks for the current playback
-/// session.
+/// session, persisted via [CacheService].
 ///
-/// Bookmarks are stored in provider state (in-memory). They are
-/// cleared when a new media item loads.
-///
+/// Call [loadForContent] when a new stream opens to fetch
+/// persisted bookmarks. Mutations are auto-persisted.
 class BookmarkNotifier extends Notifier<List<VideoBookmark>> {
+  String? _contentId;
+  String? _contentType;
+
   @override
   List<VideoBookmark> build() => const [];
+
+  /// Loads persisted bookmarks for [contentId] from the backend.
+  Future<void> loadForContent(String contentId, String contentType) async {
+    _contentId = contentId;
+    _contentType = contentType;
+    final cache = ref.read(cacheServiceProvider);
+    final maps = await cache.loadBookmarks(contentId);
+    state =
+        maps.map(VideoBookmark.fromMap).toList()
+          ..sort((a, b) => a.position.compareTo(b.position));
+  }
 
   /// Adds a bookmark at [position] with an optional [label].
   ///
   /// Returns the newly created [VideoBookmark].
-  VideoBookmark add(Duration position, {String? label}) {
+  Future<VideoBookmark> add(Duration position, {String? label}) async {
     final bookmark = VideoBookmark(
-      id: '${position.inMilliseconds}_${DateTime.now().millisecondsSinceEpoch}',
+      id:
+          '${position.inMilliseconds}_'
+          '${DateTime.now().millisecondsSinceEpoch}',
       position: position,
       label: label,
       createdAt: DateTime.now(),
     );
     state = [...state, bookmark]
       ..sort((a, b) => a.position.compareTo(b.position));
+
+    if (_contentId != null && _contentType != null) {
+      final cache = ref.read(cacheServiceProvider);
+      await cache.saveBookmark(bookmark.toMap(_contentId!, _contentType!));
+    }
     return bookmark;
   }
 
   /// Removes the bookmark with [id].
-  void remove(String id) {
+  Future<void> remove(String id) async {
     state = state.where((b) => b.id != id).toList();
+    final cache = ref.read(cacheServiceProvider);
+    await cache.deleteBookmark(id);
   }
 
   /// Updates the label of bookmark [id].
-  void updateLabel(String id, String newLabel) {
+  Future<void> updateLabel(String id, String newLabel) async {
     state = [
       for (final b in state)
         if (b.id == id) b.copyWith(label: newLabel) else b,
     ];
+
+    if (_contentId != null && _contentType != null) {
+      final updated = state.where((b) => b.id == id).firstOrNull;
+      if (updated != null) {
+        final cache = ref.read(cacheServiceProvider);
+        await cache.saveBookmark(updated.toMap(_contentId!, _contentType!));
+      }
+    }
   }
 
-  /// Clears all bookmarks (call when a new media item loads).
-  void clear() => state = const [];
+  /// Clears local bookmark state (call when a new media item
+  /// loads). Does NOT delete persisted bookmarks.
+  void clear() {
+    _contentId = null;
+    _contentType = null;
+    state = const [];
+  }
 
   /// Returns the bookmark closest to [position] within
   /// [snapRadius], or null if none is that close.
@@ -230,7 +291,7 @@ class _BookmarkPin extends StatelessWidget {
       bottom: 0,
       child: Semantics(
         button: true,
-        label: 'Bookmark',
+        label: context.l10n.playerBookmark,
         child: GestureDetector(
           onTap: onTap,
           onLongPress: () => onLongPress(context),
@@ -337,7 +398,7 @@ class _BookmarkEditSheetState extends State<BookmarkEditSheet> {
           ),
 
           Text(
-            'Edit Bookmark',
+            context.l10n.playerEditBookmark,
             style: textTheme.titleSmall?.copyWith(
               color: colorScheme.onSurface,
               fontWeight: FontWeight.bold,
@@ -350,8 +411,8 @@ class _BookmarkEditSheetState extends State<BookmarkEditSheet> {
             controller: _controller,
             autofocus: true,
             decoration: InputDecoration(
-              hintText: 'Bookmark label (optional)',
-              labelText: 'Bookmark label',
+              hintText: context.l10n.playerBookmarkLabelHint,
+              labelText: context.l10n.playerBookmarkLabelInput,
               hintStyle: TextStyle(
                 color: colorScheme.onSurface.withValues(alpha: 0.4),
               ),
@@ -384,7 +445,7 @@ class _BookmarkEditSheetState extends State<BookmarkEditSheet> {
               Expanded(
                 child: FilledButton(
                   onPressed: _save,
-                  child: const Text('Save'),
+                  child: Text(context.l10n.commonSave),
                 ),
               ),
             ],
@@ -416,7 +477,7 @@ class OsdBookmarkButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return OsdIconButton(
       icon: Icons.bookmark_add_outlined,
-      tooltip: 'Bookmark',
+      tooltip: context.l10n.playerBookmark,
       order: order,
       onPressed: () => _addBookmark(context, ref),
     );
@@ -433,7 +494,7 @@ class OsdBookmarkButton extends ConsumerWidget {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Bookmark added at $label'),
+        content: Text(context.l10n.playerBookmarkAdded(label)),
         duration: CrispyAnimation.normal * 2,
         behavior: SnackBarBehavior.floating,
       ),

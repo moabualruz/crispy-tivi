@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../domain/crispy_player.dart';
 import '../domain/entities/gpu_info.dart';
 import '../domain/entities/upscale_mode.dart';
 import '../domain/entities/upscale_quality.dart';
@@ -12,7 +12,7 @@ import 'metalfx_bridge.dart' as metalfx_bridge;
 import 'upscale_tier.dart';
 
 /// Orchestrates video upscaling detection and filter
-/// application via the media_kit [Player].
+/// application via [CrispyPlayer].
 ///
 /// Supports GPU-aware hardware tiers (RTX VSR, Intel
 /// VSR, MetalFX) when [GpuInfo] indicates capability,
@@ -33,7 +33,7 @@ class UpscaleManager {
   /// When [mode] is [UpscaleMode.off], removes any
   /// active upscaling and returns `null`.
   Future<int?> applyUpscaling(
-    Player player,
+    CrispyPlayer player,
     UpscaleMode mode,
     UpscaleQuality quality,
     GpuInfo gpu,
@@ -76,14 +76,12 @@ class UpscaleManager {
   ///
   /// Clears GLSL shaders and resets the scale algorithm
   /// to mpv's default (bilinear).
-  Future<void> removeUpscaling(Player player) async {
+  Future<void> removeUpscaling(CrispyPlayer player) async {
     if (kIsWeb) return;
     try {
-      final dynamic native = player.platform;
-      if (native == null) return;
-      await native.setProperty('glsl-shaders', '');
-      await native.setProperty('scale', 'bilinear');
-      await native.setProperty('vf', '');
+      player.setProperty('glsl-shaders', '');
+      player.setProperty('scale', 'bilinear');
+      player.setProperty('vf', '');
 
       // Dispose MetalFX resources if active.
       if (metalfx_bridge.isMetalFxPlatform) {
@@ -110,7 +108,7 @@ class UpscaleManager {
   /// When [mode] is [UpscaleMode.forceSoftware], HW
   /// tiers (0-2.5) are skipped.
   List<UpscaleTier> _buildFallbackChain(
-    Player player,
+    CrispyPlayer player,
     UpscaleMode mode,
     UpscaleQuality quality,
     GpuInfo gpu,
@@ -230,16 +228,13 @@ class UpscaleManager {
   ///
   /// Returns `true` on success, `false` if the shader
   /// could not be loaded or applied.
-  Future<bool> _trySetShader(Player player, String assetPath) async {
+  Future<bool> _trySetShader(CrispyPlayer player, String assetPath) async {
     if (kIsWeb) return false;
     try {
       final path = await extractShaderAsset(assetPath);
       if (path == null) return false;
 
-      final dynamic native = player.platform;
-      if (native == null) return false;
-
-      await native.setProperty('glsl-shaders', path);
+      player.setProperty('glsl-shaders', path);
       debugPrint('UpscaleManager: shader applied — $path');
       return true;
     } catch (e) {
@@ -252,13 +247,10 @@ class UpscaleManager {
   /// [player].
   ///
   /// Returns `true` on success, `false` otherwise.
-  Future<bool> _trySetScale(Player player, String scaler) async {
+  Future<bool> _trySetScale(CrispyPlayer player, String scaler) async {
     if (kIsWeb) return false;
     try {
-      final dynamic native = player.platform;
-      if (native == null) return false;
-
-      await native.setProperty('scale', scaler);
+      player.setProperty('scale', scaler);
       debugPrint('UpscaleManager: scaler applied — $scaler');
       return true;
     } catch (e) {
@@ -274,15 +266,13 @@ class UpscaleManager {
   ///
   /// Used for D3D11 hardware VSR (NVIDIA RTX VSR,
   /// Intel VSR). Returns `true` on success.
-  Future<bool> _trySetVf(Player player, String filter) async {
+  Future<bool> _trySetVf(CrispyPlayer player, String filter) async {
     if (kIsWeb) return false;
     try {
-      final dynamic native = player.platform;
-      if (native == null) return false;
-      await native.setProperty('vf', filter);
+      player.setProperty('vf', filter);
       // Verify it applied.
-      final actual = await native.getProperty('vf');
-      return actual?.toString().contains('d3d11vpp') ?? false;
+      final actual = player.getProperty('vf');
+      return actual?.contains('d3d11vpp') ?? false;
     } catch (e) {
       debugPrint(
         'UpscaleManager: _trySetVf($filter) '
@@ -297,14 +287,12 @@ class UpscaleManager {
   /// Uses mpv's `vf=rtx-upscale` video filter. Only
   /// available on NVIDIA GPUs with RTX Video SDK
   /// support.
-  Future<bool> _tryRtxVideoSdk(Player player) async {
+  Future<bool> _tryRtxVideoSdk(CrispyPlayer player) async {
     if (kIsWeb) return false;
     try {
-      final dynamic native = player.platform;
-      if (native == null) return false;
-      await native.setProperty('vf', 'rtx-upscale');
-      final actual = await native.getProperty('vf');
-      return actual?.toString().contains('rtx') ?? false;
+      player.setProperty('vf', 'rtx-upscale');
+      final actual = player.getProperty('vf');
+      return actual?.contains('rtx') ?? false;
     } catch (e) {
       debugPrint('UpscaleManager: RTX Video SDK failed: $e');
       return false;
@@ -315,14 +303,12 @@ class UpscaleManager {
   ///
   /// Uses mpv's `vf=coreml-sr` video filter. Only
   /// available on macOS and iOS with Apple GPUs.
-  Future<bool> _tryCoremlSr(Player player) async {
+  Future<bool> _tryCoremlSr(CrispyPlayer player) async {
     if (kIsWeb) return false;
     try {
-      final dynamic native = player.platform;
-      if (native == null) return false;
-      await native.setProperty('vf', 'coreml-sr');
-      final actual = await native.getProperty('vf');
-      return actual?.toString().contains('coreml') ?? false;
+      player.setProperty('vf', 'coreml-sr');
+      final actual = player.getProperty('vf');
+      return actual?.contains('coreml') ?? false;
     } catch (e) {
       debugPrint('UpscaleManager: Core ML SR failed: $e');
       return false;

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import '../../../core/data/cache_service.dart';
 import '../../../core/data/crispy_backend.dart';
 import '../../../core/data/dart_algorithm_fallbacks.dart';
 import '../../../core/data/device_service.dart';
+import '../../../core/providers/active_profile_provider.dart';
 import '../../profiles/data/profile_service.dart';
 import '../domain/entities/watch_history_entry.dart';
 
@@ -256,7 +258,7 @@ final watchHistoryServiceProvider = Provider<WatchHistoryService>((ref) {
     cache,
     deviceService,
     backend,
-    profileState?.activeProfileId ?? 'default',
+    ref.watch(activeProfileIdProvider),
     isGuestProfile: isGuest,
   );
 });
@@ -286,18 +288,22 @@ final crossDeviceWatchingProvider = FutureProvider<List<WatchHistoryEntry>>((
 });
 
 /// Provider for progress lookup by media ID.
-final watchProgressProvider = FutureProvider.family<double?, String>((
-  ref,
-  mediaId,
-) async {
-  final service = ref.watch(watchHistoryServiceProvider);
-  final history = await service.getById(mediaId);
-  if (history == null || history.durationMs == 0) {
-    return null;
-  }
-  final progress = history.progress.clamp(0.0, 1.0);
-  return progress < kCompletionThreshold ? progress : null;
-});
+///
+/// autoDispose with 3-minute keepAlive: freed after the user
+/// scrolls past a list item, but survives brief scroll-backs.
+final watchProgressProvider = FutureProvider.family
+    .autoDispose<double?, String>((ref, mediaId) async {
+      final link = ref.keepAlive();
+      final timer = Timer(const Duration(minutes: 3), link.close);
+      ref.onDispose(timer.cancel);
+      final service = ref.watch(watchHistoryServiceProvider);
+      final history = await service.getById(mediaId);
+      if (history == null || history.durationMs == 0) {
+        return null;
+      }
+      final progress = history.progress.clamp(0.0, 1.0);
+      return progress < kCompletionThreshold ? progress : null;
+    });
 
 /// Provider to check if item was watched on
 /// another device.
@@ -316,16 +322,20 @@ final otherDeviceSourceProvider = FutureProvider.family<String?, String>((
 /// Unlike [watchProgressProvider] — which returns `null` for
 /// completed items — this provider is specifically for the
 /// "completed" checkmark badge on [VodPosterCard].
-final vodItemIsCompletedProvider = FutureProvider.family<bool, String>((
-  ref,
-  mediaId,
-) async {
-  final service = ref.watch(watchHistoryServiceProvider);
-  final history = await service.getById(mediaId);
-  if (history == null || history.durationMs == 0) return false;
-  final progress = history.progress.clamp(0.0, 1.0);
-  return progress >= kCompletionThreshold;
-});
+///
+/// autoDispose with 3-minute keepAlive: matches
+/// [watchProgressProvider] lifecycle.
+final vodItemIsCompletedProvider = FutureProvider.family
+    .autoDispose<bool, String>((ref, mediaId) async {
+      final link = ref.keepAlive();
+      final timer = Timer(const Duration(minutes: 3), link.close);
+      ref.onDispose(timer.cancel);
+      final service = ref.watch(watchHistoryServiceProvider);
+      final history = await service.getById(mediaId);
+      if (history == null || history.durationMs == 0) return false;
+      final progress = history.progress.clamp(0.0, 1.0);
+      return progress >= kCompletionThreshold;
+    });
 
 /// One-shot migration provider that re-derives all watch history
 /// entry IDs to use stable SHA-256 hashes.

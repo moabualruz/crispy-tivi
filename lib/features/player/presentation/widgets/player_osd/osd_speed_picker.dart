@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/crispy_radius.dart';
@@ -35,7 +36,7 @@ class OsdSpeedButton extends StatelessWidget {
             : cs.primary;
 
     Widget button = Tooltip(
-      message: isLive ? 'Speed (live)' : 'Speed',
+      message: isLive ? context.l10n.playerSpeedLive : context.l10n.playerSpeed,
       child: Material(
         color: Colors.transparent,
         child: FocusWrapper(

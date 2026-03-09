@@ -5,6 +5,8 @@ import 'package:mocktail/mocktail.dart';
 import 'package:crispy_tivi/core/data/crispy_backend.dart';
 import 'package:crispy_tivi/features/player/data/'
     'thumbnail_service.dart';
+import 'package:crispy_tivi/features/player/domain/entities/'
+    'thumbnail_sprite.dart';
 
 // ── Mocks ──────────────────────────────────────────
 
@@ -74,7 +76,8 @@ void main() {
       );
 
       expect(result, isNotNull);
-      expect(result!.imageUrl, 'http://x.com/tile.jpg');
+      expect(result, isA<ThumbnailSprite>());
+      expect((result! as ThumbnailSprite).imageUrl, 'http://x.com/tile.jpg');
     });
 
     test('constructs correct trickplay VTT URL', () async {
@@ -250,7 +253,10 @@ void main() {
 
       expect(first, isNotNull);
       expect(second, isNotNull);
-      expect(first!.imageUrl, second!.imageUrl);
+      expect(
+        (first! as ThumbnailSprite).imageUrl,
+        (second! as ThumbnailSprite).imageUrl,
+      );
 
       // Backend only called once.
       verify(() => mockBackend.parseVttThumbnails(any(), any())).called(1);

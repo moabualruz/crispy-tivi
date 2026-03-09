@@ -119,6 +119,14 @@ class PlayerModeNotifier extends Notifier<PlayerModeState> {
   /// Snapshots [currentRoute] into [originRoute] so screens
   /// can verify/restore state when the user returns.
   void enterFullscreen({String? hostRoute}) {
+    // Skip redundant state emission when already in fullscreen
+    // at the same host route — prevents re-triggering transitions
+    // (e.g. channel_list_screen calls enterFullscreen immediately,
+    // then startPlayback calls it again after play() completes).
+    if (state.mode == PlayerMode.fullscreen &&
+        (hostRoute == null || hostRoute == state.hostRoute)) {
+      return;
+    }
     state = state.copyWith(
       mode: PlayerMode.fullscreen,
       hostRoute: hostRoute,
@@ -126,18 +134,52 @@ class PlayerModeNotifier extends Notifier<PlayerModeState> {
     );
   }
 
+  /// Routes that support in-app video preview (mini PiP corner).
+  /// All other routes show only the MiniPlayerBar (audio continues).
+  static const _kPreviewRoutes = {'/tv', '/epg'};
+
   /// Collapse from fullscreen back to the preview area.
-  /// Falls back to background if no preview rect is set.
-  /// Clears [originRoute] — the transition is complete.
-  void exitToPreview() {
+  ///
+  /// When a screen-specific preview rect exists, transitions to
+  /// [PlayerMode.preview] at that rect. Otherwise, if [screenSize]
+  /// is provided AND the host route supports video preview (TV or
+  /// EPG), enters a mini PiP corner. All other screens fall back
+  /// to [PlayerMode.background] (audio only, MiniPlayerBar shows).
+  void exitToPreview({Size? screenSize}) {
     if (state.previewRect != null) {
       state = state.copyWith(mode: PlayerMode.preview, clearOriginRoute: true);
+    } else if (screenSize != null &&
+        _kPreviewRoutes.contains(state.hostRoute)) {
+      _enterMiniPipCorner(screenSize);
     } else {
       state = state.copyWith(
         mode: PlayerMode.background,
         clearOriginRoute: true,
       );
     }
+  }
+
+  /// Positions the video as a small 16:9 PiP in the bottom-right
+  /// corner, above the [MiniPlayerBar] (60 dp + padding).
+  ///
+  /// Size: ~18% of screen width, clamped to 120–200 dp.
+  /// Reference: YouTube mini player ~160 dp, VLC ~200 dp.
+  void _enterMiniPipCorner(Size screenSize) {
+    final pipWidth = (screenSize.width * 0.18).clamp(120.0, 200.0);
+    final pipHeight = pipWidth * (9.0 / 16.0);
+    const padding = 16.0;
+    const miniBarHeight = 76.0; // 60 bar + 16 spacing
+    final rect = Rect.fromLTWH(
+      screenSize.width - pipWidth - padding,
+      screenSize.height - pipHeight - miniBarHeight,
+      pipWidth,
+      pipHeight,
+    );
+    state = state.copyWith(
+      mode: PlayerMode.preview,
+      previewRect: rect,
+      clearOriginRoute: true,
+    );
   }
 
   /// Keep audio playing but hide the video surface.

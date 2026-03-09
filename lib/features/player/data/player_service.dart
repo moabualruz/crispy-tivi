@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -13,7 +11,15 @@ import '../domain/entities/stream_profile.dart';
 import '../domain/entities/upscale_mode.dart';
 import '../domain/entities/upscale_quality.dart';
 import '../../../core/utils/stream_url_actions.dart';
+import '../domain/crispy_player.dart';
+import 'adaptive_buffer.dart';
+import 'ios_pip_player.dart';
+import 'media_kit_player.dart';
+import 'os_media_session.dart';
+import 'player_handoff_manager.dart';
+import 'stream_proxy.dart';
 import 'upscale_manager.dart';
+import 'warm_failover_engine.dart';
 import 'web_upscale_bridge.dart';
 import 'web_video_bridge.dart';
 
@@ -26,16 +32,16 @@ part 'player_stream_info_mixin.dart';
 part 'player_audio_config_mixin.dart';
 part 'player_upscale_mixin.dart';
 
-/// Wraps [media_kit]'s [Player] with a clean domain API.
+/// Wraps [CrispyPlayer] with a clean domain API.
 ///
 /// Exposes a [stateStream] of [app.PlaybackState]
 /// snapshots. All playback commands go through this
-/// service — feature code never touches the raw [Player]
+/// service — feature code never touches the player
 /// directly.
 ///
 /// Behaviour is split across mixins (all in the same
 /// library via `part` files):
-/// - [PlayerSubscriptionsMixin] — media_kit stream
+/// - [PlayerSubscriptionsMixin] — player stream
 ///   subscriptions
 /// - [PlayerWebBridgeMixin] — web `<video>` bridge
 /// - [PlayerWatchdogMixin] — UI heartbeat watchdog
@@ -51,7 +57,19 @@ class PlayerService extends PlayerServiceBase
         PlayerStreamInfoMixin,
         PlayerAudioConfigMixin,
         PlayerUpscaleMixin {
-  PlayerService({super.player, super.clock}) {
+  PlayerService({
+    super.player,
+    super.clock,
+    super.bufferManager,
+    super.warmFailover,
+  }) {
+    _handoffManager = PlayerHandoffManager(primaryPlayer: _player);
+
+    // Register iOS PiP takeover player (AVPlayer + AVPlayerViewController).
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      _handoffManager.registerTakeover(PlayerCapability.pip, IosPipPlayer());
+    }
+
     // LNX-02: Impeller + external textures broken on Linux
     // until Flutter PR#181656 lands in stable. Linux defaults
     // to Skia (--no-enable-impeller), which is safe.
@@ -111,6 +129,17 @@ class PlayerService extends PlayerServiceBase
 
     final normalizedUrl = normalizeStreamUrl(url);
 
+    // Notify adaptive buffer manager of channel change
+    // so in-memory health counters are reset for the new URL.
+    if (isLive && _bufferManager != null) {
+      unawaited(_bufferManager.onChannelChange(normalizedUrl));
+    }
+
+    // Reset warm failover state for the new channel.
+    if (_warmFailover != null) {
+      unawaited(_warmFailover.onChannelChange());
+    }
+
     // Detect VOD → Live transition for logging. player.open() handles
     // the transition in-place — no explicit stop() needed.
     final wasPlayingVod =
@@ -155,6 +184,15 @@ class PlayerService extends PlayerServiceBase
     );
     _stateController.add(_state);
 
+    // Activate OS media session with channel metadata.
+    unawaited(
+      _mediaSession.activate(
+        title: currentProgram ?? channelName ?? 'CrispyTivi',
+        artist: channelName,
+        artUrl: channelLogoUrl,
+      ),
+    );
+
     // On web, WebVideoBridge handles playback via the
     // <video> element — skip media_kit Player.open().
     if (_webBridge != null) {
@@ -173,7 +211,17 @@ class PlayerService extends PlayerServiceBase
       debugPrint('PlayerService: VOD→Live transition — opening in-place');
     }
 
+    // Reset proxy state for the new channel.
+    _audioCheckTimer?.cancel();
+    _proxyActive = false;
+    _proxyRetriedUrls.clear();
+    unawaited(_streamProxy.stop());
+
     await openMedia(url, isLive: isLive);
+
+    // Schedule audio track detection watchdog — if no audio
+    // tracks appear within 3s, retry through ffmpeg proxy.
+    _scheduleAudioCheck(url);
   }
 
   /// Opens media with appropriate options for live
@@ -189,9 +237,26 @@ class PlayerService extends PlayerServiceBase
       extras['demuxer-lavf-o'] =
           'reconnect=1,reconnect_streamed=1,'
           'reconnect_delay_max=5';
-      extras['cache'] = 'no';
-      extras['demuxer-readahead-secs'] = '5';
+
+      // Adaptive buffer: use persisted tier if available,
+      // otherwise default to normal (120s readahead).
+      if (_bufferManager != null) {
+        final tier = await _bufferManager.getTierForUrl(effectiveUrl);
+        extras.addAll(AdaptiveBufferManager.mpvOptionsForTier(tier));
+        debugPrint(
+          'PlayerService: adaptive buffer tier=${tier.name} '
+          '(readahead=${tier.readaheadSecs}s)',
+        );
+      } else {
+        extras['cache'] = 'yes';
+        extras['cache-pause'] = 'no';
+        extras['demuxer-readahead-secs'] = '120';
+      }
+
       extras['untimed'] = '';
+      // Reduce audio/video drift on live streams with variable
+      // frame rates. For VOD the default 'audio' sync is better.
+      extras['video-sync'] = 'display-resample';
     }
 
     // Apply stream profile / audio / hwdec.
@@ -209,6 +274,11 @@ class PlayerService extends PlayerServiceBase
       extras['hwdec'] = _hwdecMode;
       debugPrint('PlayerService: hwdec=$_hwdecMode');
 
+      if (_maxVolume > 100) {
+        extras['volume-max'] = '$_maxVolume';
+        debugPrint('PlayerService: volume-max=$_maxVolume');
+      }
+
       if (_audioOutput != 'auto') {
         extras['ao'] = _audioOutput;
         debugPrint('PlayerService: ao=$_audioOutput');
@@ -221,28 +291,25 @@ class PlayerService extends PlayerServiceBase
           '${_audioPassthroughCodecs.join(",")}',
         );
       }
-    }
 
-    // LNX-01: On Linux, recreate VideoController before opening
-    // a new stream to avoid blank screen (media-kit#1016).
-    // The GL populate callback never fires for the new stream
-    // when reusing the same VideoController.
-    if (!kIsWeb &&
-        defaultTargetPlatform == TargetPlatform.linux &&
-        _videoController != null) {
-      _videoController = null;
-      // Force immediate recreation via the lazy getter so the
-      // rendering surface is fresh before the new stream opens.
-      final _ = videoController;
-      await Future.delayed(const Duration(milliseconds: 100));
+      // EBU R128 loudness normalization.
+      if (_loudnessNormalization) {
+        extras['af'] = 'loudnorm=I=-14:TP=-1:LRA=13';
+        debugPrint('PlayerService: af=loudnorm (EBU R128)');
+      }
+
+      // Surround-to-stereo downmix.
+      if (_stereoDownmix) {
+        extras['audio-channels'] = 'stereo';
+        extras['audio-normalize-downmix'] = 'yes';
+        debugPrint('PlayerService: stereo downmix enabled');
+      }
     }
 
     await _player.open(
-      Media(
-        effectiveUrl,
-        httpHeaders: _lastHeaders,
-        extras: extras.isNotEmpty ? extras : null,
-      ),
+      effectiveUrl,
+      httpHeaders: _lastHeaders,
+      extras: extras.isNotEmpty ? extras : null,
     );
   }
 
@@ -299,18 +366,20 @@ class PlayerService extends PlayerServiceBase
     await _player.seek(position);
   }
 
-  /// Set volume (0.0 – 1.0).
+  /// Set volume (0.0 – maxVolume/100).
+  ///
+  /// When [maxVolume] is 100 (default), range is 0.0–1.0.
+  /// When [maxVolume] is 200, range is 0.0–2.0, etc.
   Future<void> setVolume(double volume) async {
-    final clamped = volume.clamp(0.0, 1.0);
+    final max = _maxVolume / 100.0;
+    final clamped = volume.clamp(0.0, max);
     if (_webBridge != null) {
-      _webBridge!.setVolume(clamped);
-      // Optimistic update so OSD reflects the change
-      // instantly instead of waiting for the 250 ms
-      // poll.
+      // Web: cap at 1.0 (browser limitation).
+      _webBridge!.setVolume(clamped.clamp(0.0, 1.0));
       _updateState(volume: clamped, isMuted: clamped <= 0);
       return;
     }
-    await _player.setVolume(clamped * 100.0);
+    await _player.setVolume(clamped);
   }
 
   /// Toggle mute.
@@ -359,75 +428,111 @@ class PlayerService extends PlayerServiceBase
       return;
     }
 
-    final realTracks =
-        _player.state.tracks.audio
-            .where((t) => t.id != 'auto' && t.id != 'no')
-            .toList();
-    if (index >= 0 && index < realTracks.length) {
-      await _player.setAudioTrack(realTracks[index]);
-      _updateState(selectedAudioTrackId: index);
-    }
+    await _player.setAudioTrack(index);
+    _updateState(selectedAudioTrackId: index);
   }
 
   /// Select a subtitle track by index, or -1 to
   /// disable subtitles.
   Future<void> setSubtitleTrack(int index) async {
-    if (index < 0) {
-      if (_webBridge != null) {
-        _webBridge!.setSubtitleTrack(-1);
-      } else {
-        await _player.setSubtitleTrack(SubtitleTrack.no());
-      }
-      _updateState(selectedSubtitleTrackId: -1);
-      return;
-    }
-
     if (_webBridge != null) {
       _webBridge!.setSubtitleTrack(index);
       _updateState(selectedSubtitleTrackId: index);
       return;
     }
 
-    final realTracks =
-        _player.state.tracks.subtitle
-            .where((t) => t.id != 'auto' && t.id != 'no')
-            .toList();
-    if (index >= 0 && index < realTracks.length) {
-      await _player.setSubtitleTrack(realTracks[index]);
-      _updateState(selectedSubtitleTrackId: index);
+    await _player.setSubtitleTrack(index);
+    _updateState(selectedSubtitleTrackId: index);
+    // Clear secondary if primary is disabled or matches.
+    final sec = _state.selectedSecondarySubtitleTrackId;
+    if (index == -1 || index == sec) {
+      clearSecondarySubtitleTrack();
     }
+  }
+
+  /// Select a secondary subtitle track by index.
+  ///
+  /// Uses mpv's `secondary-sid` property to display two
+  /// subtitle tracks simultaneously. Pass -1 or call
+  /// [clearSecondarySubtitleTrack] to disable.
+  void setSecondarySubtitleTrack(int index) {
+    if (kIsWeb || index == -1) {
+      clearSecondarySubtitleTrack();
+      return;
+    }
+    // Don't set secondary to same as primary.
+    if (index == _state.selectedSubtitleTrackId) return;
+
+    _player.setSecondarySubtitleTrack(index);
+    _updateState(selectedSecondarySubtitleTrackId: index);
+  }
+
+  /// Clear the secondary subtitle track.
+  void clearSecondarySubtitleTrack() {
+    _player.setSecondarySubtitleTrack(-1);
+    _updateState(clearSecondarySubtitle: true);
   }
 
   /// Sets the mpv audio filter string (`af`).
   ///
-  /// Primarily used by the Equalizer feature. No-op on web where
-  /// mpv properties are unavailable.
+  /// Primarily used by the Equalizer feature. Composes with
+  /// loudness normalization when both are active. No-op on web
+  /// where mpv properties are unavailable.
   void setAudioFilter(String filterStr) {
     if (kIsWeb) return;
-    try {
-      (_player.platform as dynamic).setProperty('af', filterStr);
-    } catch (e) {
-      debugPrint('[PlayerService] Failed to set audio filter: $e');
+    final chain = _buildAudioFilterChain(eqFilter: filterStr);
+    _player.setProperty('af', chain);
+  }
+
+  /// Builds the composite `af` filter chain from loudnorm +
+  /// equalizer filters. Returns empty string when neither is
+  /// active.
+  String _buildAudioFilterChain({String eqFilter = ''}) {
+    final parts = <String>[];
+    if (_loudnessNormalization) {
+      parts.add('loudnorm=I=-14:TP=-1:LRA=13');
     }
+    if (eqFilter.isNotEmpty) {
+      parts.add(eqFilter);
+    }
+    return parts.join(',');
   }
 
   /// Enables or disables deinterlacing via mpv.
   ///
-  /// [mode] can be 'off' or 'auto'. No-op on web.
+  /// [mode] can be `'off'`, `'auto'`, or `'on'`. No-op on web.
   void setDeinterlace(String mode) {
     if (kIsWeb) return;
-    try {
-      final value =
-          mode == 'auto' ? 'yes' : 'no'; // mpv deinterlace accepts yes/no/auto
-      (_player.platform as dynamic).setProperty('deinterlace', value);
-    } catch (e) {
-      debugPrint('[PlayerService] Failed to set deinterlace property: $e');
-    }
+    // mpv deinterlace property accepts yes/no/auto.
+    final value = switch (mode) {
+      'on' => 'yes',
+      'auto' => 'auto',
+      _ => 'no',
+    };
+    _player.setProperty('deinterlace', value);
   }
 
   /// Force refresh — restarts the current stream.
+  ///
+  /// Clears the URL dedup guard so the same stream can be
+  /// reopened with different player options (e.g. quality change).
   Future<void> refresh() async {
-    await retry();
+    if (_lastUrl == null) return;
+    final url = _lastUrl!;
+    final isLive = _lastIsLive;
+    final name = _lastChannelName;
+    final logo = _lastChannelLogoUrl;
+    final prog = _lastCurrentProgram;
+    final hdrs = _lastHeaders;
+    _lastUrl = null; // Clear so play() bypasses the dedup guard.
+    await play(
+      url,
+      isLive: isLive,
+      channelName: name,
+      channelLogoUrl: logo,
+      currentProgram: prog,
+      headers: hdrs,
+    );
   }
 
   /// Stop playback and reset state.
@@ -439,9 +544,15 @@ class PlayerService extends PlayerServiceBase
     _sleepTimer?.cancel();
     _sleepTimer = null;
     _sleepTimerEndTime = null;
+    _warmFailover?.dispose();
+    _audioCheckTimer?.cancel();
+    _proxyActive = false;
+    unawaited(_streamProxy.stop());
 
     _lastUrl = null;
     _retryCount = 0;
+
+    unawaited(_mediaSession.deactivate());
 
     if (_webBridge != null) {
       _webBridge!.stop();
@@ -464,20 +575,20 @@ class PlayerService extends PlayerServiceBase
     _retryTimer?.cancel();
     _sleepTimer?.cancel();
     _positionFlushTimer?.cancel();
+    _audioCheckTimer?.cancel();
+    _warmFailover?.dispose();
+    await _streamProxy.stop();
     _webBridge?.dispose();
     _webBridge = null;
     await _syncWakelock(app.PlaybackStatus.idle);
     _bufferingDebounce?.cancel();
+    await _mediaSession.dispose();
     for (final sub in _subs) {
       await sub.cancel();
     }
     _subs.clear();
     await _stateController.close();
-    _videoController = null;
-    // IOS-04: Pause and let mpv render thread quiesce before
-    // disposing — avoids free_option_data crash (media-kit#1361).
-    await _player.pause();
-    await Future.delayed(const Duration(milliseconds: 200));
+    await _handoffManager.disposeAll();
     await _player.dispose();
   }
 }

@@ -2,11 +2,12 @@ import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:crispy_tivi/features/player/data/'
     'player_service.dart';
+import 'package:crispy_tivi/features/player/domain/'
+    'crispy_player.dart';
 import 'package:crispy_tivi/features/player/domain/entities/'
     'playback_state.dart'
     as app;
@@ -15,15 +16,27 @@ import 'package:crispy_tivi/features/player/domain/entities/'
 
 // ── Mocks ──────────────────────────────────────────
 
-class MockPlayer extends Mock implements Player {}
-
-class MockPlayerStream extends Mock implements PlayerStream {}
+class MockCrispyPlayer extends Mock implements CrispyPlayer {}
 
 // ── Helpers ────────────────────────────────────────
 
-/// Creates a fully-stubbed [MockPlayer] with empty streams
-/// unless overridden.
-({MockPlayer player, MockPlayerStream streams}) _setup({
+/// Stubs `player.open(...)` with all named parameters
+/// matched so mocktail intercepts the real call from
+/// [PlayerService.openMedia].
+void _stubOpen(MockCrispyPlayer mp) {
+  when(
+    () => mp.open(
+      any(),
+      httpHeaders: any(named: 'httpHeaders'),
+      extras: any(named: 'extras'),
+      startPosition: any(named: 'startPosition'),
+    ),
+  ).thenAnswer((_) async {});
+}
+
+/// Creates a fully-stubbed [MockCrispyPlayer] with empty
+/// streams unless overridden.
+({MockCrispyPlayer player}) _setup({
   Stream<bool>? playing,
   Stream<Duration>? position,
   Stream<Duration>? duration,
@@ -31,36 +44,38 @@ class MockPlayerStream extends Mock implements PlayerStream {}
   Stream<bool>? buffering,
   Stream<double>? volume,
   Stream<double>? rate,
-  Stream<String>? error,
-  Stream<Tracks>? tracks,
+  Stream<String?>? error,
+  Stream<CrispyTrackList>? tracks,
 }) {
-  final mp = MockPlayer();
-  final ms = MockPlayerStream();
+  final mp = MockCrispyPlayer();
 
-  when(() => mp.stream).thenReturn(ms);
-  when(() => ms.playing).thenAnswer((_) => playing ?? const Stream.empty());
-  when(() => ms.position).thenAnswer((_) => position ?? const Stream.empty());
-  when(() => ms.duration).thenAnswer((_) => duration ?? const Stream.empty());
-  when(() => ms.buffer).thenAnswer((_) => buffer ?? const Stream.empty());
-  when(() => ms.buffering).thenAnswer((_) => buffering ?? const Stream.empty());
-  when(() => ms.volume).thenAnswer((_) => volume ?? const Stream.empty());
-  when(() => ms.rate).thenAnswer((_) => rate ?? const Stream.empty());
-  when(() => ms.error).thenAnswer((_) => error ?? const Stream.empty());
-  when(() => ms.tracks).thenAnswer((_) => tracks ?? const Stream.empty());
-  when(() => ms.width).thenAnswer((_) => const Stream.empty());
+  when(
+    () => mp.playingStream,
+  ).thenAnswer((_) => playing ?? const Stream.empty());
+  when(
+    () => mp.positionStream,
+  ).thenAnswer((_) => position ?? const Stream.empty());
+  when(
+    () => mp.durationStream,
+  ).thenAnswer((_) => duration ?? const Stream.empty());
+  when(() => mp.bufferStream).thenAnswer((_) => buffer ?? const Stream.empty());
+  when(
+    () => mp.bufferingStream,
+  ).thenAnswer((_) => buffering ?? const Stream.empty());
+  when(() => mp.volumeStream).thenAnswer((_) => volume ?? const Stream.empty());
+  when(() => mp.rateStream).thenAnswer((_) => rate ?? const Stream.empty());
+  when(() => mp.errorStream).thenAnswer((_) => error ?? const Stream.empty());
+  when(() => mp.tracksStream).thenAnswer((_) => tracks ?? const Stream.empty());
   when(() => mp.pause()).thenAnswer((_) async {});
   when(() => mp.dispose()).thenAnswer((_) async {});
 
-  return (player: mp, streams: ms);
+  return (player: mp);
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() {
-    registerFallbackValue(Media(''));
-    registerFallbackValue(const AudioTrack('', '', null));
-    registerFallbackValue(const SubtitleTrack('', '', null));
     registerFallbackValue(Duration.zero);
   });
 
@@ -69,9 +84,9 @@ void main() {
   group('PlayerService — error handling', () {
     test('live stream error triggers auto-retry up to '
         'maxRetries', () async {
-      final errorController = StreamController<String>.broadcast();
+      final errorController = StreamController<String?>.broadcast();
       final s = _setup(error: errorController.stream);
-      when(() => s.player.open(any())).thenAnswer((_) async {});
+      _stubOpen(s.player);
 
       final svc = PlayerService(player: s.player);
       addTearDown(() {
@@ -91,9 +106,9 @@ void main() {
     });
 
     test('VOD stream error goes straight to error state', () async {
-      final errorController = StreamController<String>.broadcast();
+      final errorController = StreamController<String?>.broadcast();
       final s = _setup(error: errorController.stream);
-      when(() => s.player.open(any())).thenAnswer((_) async {});
+      _stubOpen(s.player);
 
       final svc = PlayerService(player: s.player);
       addTearDown(() {
@@ -114,9 +129,9 @@ void main() {
 
     test('live stream enters error state after '
         'maxRetries exceeded', () async {
-      final errorController = StreamController<String>.broadcast();
+      final errorController = StreamController<String?>.broadcast();
       final s = _setup(error: errorController.stream);
-      when(() => s.player.open(any())).thenAnswer((_) async {});
+      _stubOpen(s.player);
 
       final svc = PlayerService(player: s.player);
       addTearDown(() {
@@ -140,13 +155,13 @@ void main() {
     });
 
     test('successful play after error resets retry count', () async {
-      final errorController = StreamController<String>.broadcast();
+      final errorController = StreamController<String?>.broadcast();
       final playingController = StreamController<bool>.broadcast();
       final s = _setup(
         error: errorController.stream,
         playing: playingController.stream,
       );
-      when(() => s.player.open(any())).thenAnswer((_) async {});
+      _stubOpen(s.player);
 
       final svc = PlayerService(player: s.player);
       addTearDown(() {
@@ -169,7 +184,7 @@ void main() {
 
     test('play() stores metadata for reconnection', () async {
       final s = _setup();
-      when(() => s.player.open(any())).thenAnswer((_) async {});
+      _stubOpen(s.player);
 
       final svc = PlayerService(player: s.player);
       addTearDown(() => svc.dispose());
@@ -191,7 +206,7 @@ void main() {
 
     test('retry() replays last URL with same metadata', () async {
       final s = _setup();
-      when(() => s.player.open(any())).thenAnswer((_) async {});
+      _stubOpen(s.player);
 
       final svc = PlayerService(player: s.player);
       addTearDown(() => svc.dispose());
@@ -205,7 +220,14 @@ void main() {
 
       // open() should be called twice — initial
       // play + retry.
-      verify(() => s.player.open(any())).called(2);
+      verify(
+        () => s.player.open(
+          any(),
+          httpHeaders: any(named: 'httpHeaders'),
+          extras: any(named: 'extras'),
+          startPosition: any(named: 'startPosition'),
+        ),
+      ).called(2);
     });
 
     test('retry() is no-op when no URL has been played', () async {
@@ -214,19 +236,26 @@ void main() {
       addTearDown(() => svc.dispose());
 
       await svc.retry();
-      verifyNever(() => s.player.open(any()));
+      verifyNever(
+        () => s.player.open(
+          any(),
+          httpHeaders: any(named: 'httpHeaders'),
+          extras: any(named: 'extras'),
+          startPosition: any(named: 'startPosition'),
+        ),
+      );
     });
   });
 
   // ── Audio Config Mixin ──────────────────────────
 
   group('PlayerService — audio config', () {
-    test('default hwdec mode is "auto"', () {
+    test('default hwdec mode is "auto-safe"', () {
       final s = _setup();
       final svc = PlayerService(player: s.player);
       addTearDown(() => svc.dispose());
 
-      expect(svc.hwdecMode, 'auto');
+      expect(svc.hwdecMode, 'auto-safe');
     });
 
     test('setHwdecMode updates mode', () {
@@ -308,7 +337,7 @@ void main() {
   group('PlayerService — state stream', () {
     test('play() emits buffering status immediately', () async {
       final s = _setup();
-      when(() => s.player.open(any())).thenAnswer((_) async {});
+      _stubOpen(s.player);
 
       final svc = PlayerService(player: s.player);
       addTearDown(() => svc.dispose());
@@ -325,7 +354,7 @@ void main() {
 
     test('stop() resets state to default PlaybackState', () async {
       final s = _setup();
-      when(() => s.player.open(any())).thenAnswer((_) async {});
+      _stubOpen(s.player);
       when(() => s.player.stop()).thenAnswer((_) async {});
 
       final svc = PlayerService(player: s.player);
@@ -426,7 +455,7 @@ void main() {
 
         // Emit volume change — should bypass
         // throttle.
-        volController.add(50.0);
+        volController.add(0.5);
         async.elapse(const Duration(milliseconds: 10));
 
         // Volume update should have emitted.
@@ -467,7 +496,7 @@ void main() {
       fakeAsync((async) {
         final bufferingController = StreamController<bool>.broadcast();
         final s = _setup(buffering: bufferingController.stream);
-        when(() => s.player.state).thenReturn(PlayerState(playing: true));
+        when(() => s.player.isPlaying).thenReturn(true);
 
         final svc = PlayerService(player: s.player);
 
@@ -535,7 +564,7 @@ void main() {
 
     test('stop() resets all live-stream bookkeeping', () async {
       final s = _setup();
-      when(() => s.player.open(any())).thenAnswer((_) async {});
+      _stubOpen(s.player);
       when(() => s.player.stop()).thenAnswer((_) async {});
 
       final svc = PlayerService(player: s.player);
@@ -556,7 +585,7 @@ void main() {
 
     test('refresh() is equivalent to retry()', () async {
       final s = _setup();
-      when(() => s.player.open(any())).thenAnswer((_) async {});
+      _stubOpen(s.player);
 
       final svc = PlayerService(player: s.player);
       addTearDown(() => svc.dispose());
@@ -565,7 +594,14 @@ void main() {
       await svc.refresh();
 
       // play() + refresh()/retry() = 2 opens
-      verify(() => s.player.open(any())).called(2);
+      verify(
+        () => s.player.open(
+          any(),
+          httpHeaders: any(named: 'httpHeaders'),
+          extras: any(named: 'extras'),
+          startPosition: any(named: 'startPosition'),
+        ),
+      ).called(2);
     });
   });
 
@@ -633,8 +669,7 @@ void main() {
       expect(svc.state.speed, 2.0);
     });
 
-    test('volume stream updates state.volume (0-100 '
-        'to 0.0-1.0)', () async {
+    test('volume stream updates state.volume', () async {
       final volController = StreamController<double>.broadcast();
       final s = _setup(volume: volController.stream);
 
@@ -644,7 +679,7 @@ void main() {
         volController.close();
       });
 
-      volController.add(75.0);
+      volController.add(0.75);
       await Future.delayed(Duration.zero);
 
       expect(svc.state.volume, 0.75);
@@ -732,7 +767,7 @@ void main() {
   group('PlayerService — play metadata', () {
     test('play() sets isLive flag in state', () async {
       final s = _setup();
-      when(() => s.player.open(any())).thenAnswer((_) async {});
+      _stubOpen(s.player);
 
       final svc = PlayerService(player: s.player);
       addTearDown(() => svc.dispose());
@@ -744,7 +779,7 @@ void main() {
 
     test('play() defaults isLive to false', () async {
       final s = _setup();
-      when(() => s.player.open(any())).thenAnswer((_) async {});
+      _stubOpen(s.player);
 
       final svc = PlayerService(player: s.player);
       addTearDown(() => svc.dispose());
@@ -755,9 +790,9 @@ void main() {
     });
 
     test('play() clears previous error in state', () async {
-      final errorController = StreamController<String>.broadcast();
+      final errorController = StreamController<String?>.broadcast();
       final s = _setup(error: errorController.stream);
-      when(() => s.player.open(any())).thenAnswer((_) async {});
+      _stubOpen(s.player);
 
       final svc = PlayerService(player: s.player);
       addTearDown(() {

@@ -6,7 +6,7 @@ import 'player_osd/osd_shared.dart';
 
 /// Overlay shown when a movie (non-episode VOD) reaches 95% completion.
 ///
-/// Displays a Netflix-inspired post-play card positioned bottom-right,
+/// Displays a cinematic post-play card positioned bottom-right,
 /// offering the viewer options to watch again or browse for more content.
 class MovieCompletionOverlay extends StatelessWidget {
   const MovieCompletionOverlay({

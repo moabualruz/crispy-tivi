@@ -1,29 +1,36 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:crispy_tivi/features/player/data/upscale_manager.dart';
+import 'package:crispy_tivi/features/player/domain/crispy_player.dart';
 import 'package:crispy_tivi/features/player/domain/entities/gpu_info.dart';
 import 'package:crispy_tivi/features/player/domain/entities/upscale_mode.dart';
 import 'package:crispy_tivi/features/player/domain/entities/upscale_quality.dart';
 
-class MockPlayer extends Mock implements Player {}
+class MockCrispyPlayer extends Mock implements CrispyPlayer {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('UpscaleManager', () {
     late UpscaleManager manager;
-    late MockPlayer mockPlayer;
+    late MockCrispyPlayer mockPlayer;
 
     setUp(() {
       manager = UpscaleManager();
-      mockPlayer = MockPlayer();
+      mockPlayer = MockCrispyPlayer();
+      // Simulate non-mpv backend: setProperty throws so
+      // all upscale tiers fail gracefully (matching real
+      // behavior where non-mpv players don't support
+      // property-based filter chains).
+      when(
+        () => mockPlayer.setProperty(any(), any()),
+      ).thenThrow(UnimplementedError('mock'));
     });
 
     group('applyUpscaling', () {
       test('mode Off removes upscaling and returns null', () async {
-        // MockPlayer.platform returns null from mock,
+        // MockCrispyPlayer.setProperty/getProperty are no-ops on mock,
         // so removeUpscaling exits early (no-op).
         final result = await manager.applyUpscaling(
           mockPlayer,
@@ -36,8 +43,8 @@ void main() {
 
       test('mode Auto with mock player returns null '
           '(all tiers fail gracefully)', () async {
-        // MockPlayer.platform is null → _trySetScale
-        // and _trySetShader return false → all tiers
+        // Mock CrispyPlayer setProperty/getProperty are no-ops →
+        // _trySetScale and _trySetShader return false → all tiers
         // fail → returns null.
         final result = await manager.applyUpscaling(
           mockPlayer,
@@ -73,14 +80,14 @@ void main() {
 
     group('removeUpscaling', () {
       test('does not throw with mock player '
-          '(platform is null)', () async {
-        // player.platform returns null → early return.
+          '(mock CrispyPlayer)', () async {
+        // mock CrispyPlayer → setProperty is a no-op → early return.
         await expectLater(manager.removeUpscaling(mockPlayer), completes);
       });
 
       test('mode Off calls removeUpscaling without error', () async {
         // Ensures the Off path handles a player whose
-        // platform is unavailable.
+        // properties are unavailable.
         final result = await manager.applyUpscaling(
           mockPlayer,
           UpscaleMode.off,
@@ -95,7 +102,7 @@ void main() {
       test('performance quality: all tiers fail, '
           'returns null', () async {
         // Performance → only spline36 tier.
-        // Mock player → tier fails → null.
+        // Mock CrispyPlayer → tier fails → null.
         final result = await manager.applyUpscaling(
           mockPlayer,
           UpscaleMode.auto,
@@ -108,7 +115,7 @@ void main() {
       test('balanced quality: all tiers fail, '
           'returns null', () async {
         // Balanced → ewa_lanczossharp + spline36.
-        // Mock player → both fail → null.
+        // Mock CrispyPlayer → both fail → null.
         final result = await manager.applyUpscaling(
           mockPlayer,
           UpscaleMode.auto,
@@ -121,7 +128,7 @@ void main() {
       test('maximum quality: all tiers fail, '
           'returns null', () async {
         // Maximum → FSR + ewa_lanczossharp + spline36.
-        // Mock player → all three fail → null.
+        // Mock CrispyPlayer → all three fail → null.
         final result = await manager.applyUpscaling(
           mockPlayer,
           UpscaleMode.auto,
@@ -177,7 +184,7 @@ void main() {
           UpscaleQuality.maximum,
           nvidiaGpu,
         );
-        // All tiers fail on mock player (platform null).
+        // All tiers fail on mock CrispyPlayer (setProperty is no-op).
         expect(result, isNull);
       });
 
@@ -253,7 +260,7 @@ void main() {
           appleGpu,
         );
         // MetalFX _tryMetalFx returns false (stub).
-        // SW tiers also fail on mock.
+        // SW tiers also fail on mock CrispyPlayer.
         expect(result, isNull);
       });
 
@@ -296,7 +303,7 @@ void main() {
       test('every UpscaleMode + UpscaleQuality combo '
           'completes without exception', () async {
         // Exhaustive: no mode/quality/gpu combo should
-        // throw. All return null on mock player.
+        // throw. All return null on mock CrispyPlayer.
         for (final mode in UpscaleMode.values) {
           for (final quality in UpscaleQuality.values) {
             final result = await manager.applyUpscaling(

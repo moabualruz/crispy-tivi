@@ -2,13 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:media_kit/media_kit.dart';
 
+import '../domain/crispy_player.dart';
 import 'afr_helper.dart';
 
 /// Provider for AFR Service.
 final afrServiceProvider = Provider<AfrService>((ref) {
-  return AfrService();
+  final service = AfrService();
+  ref.onDispose(() => service.dispose());
+  return service;
 });
 
 /// Service to handle Auto Frame Rate (AFR) switching.
@@ -45,16 +47,14 @@ class AfrService {
   ///
   /// Listens to video track changes and extracts FPS using libmpv's
   /// `estimated-vf-fps` property for accurate frame rate detection.
-  void monitor(Player player) {
+  void monitor(CrispyPlayer player) {
     _trackSubscription?.cancel();
-    _trackSubscription = player.stream.tracks.listen((tracks) async {
+    _trackSubscription = player.tracksStream.listen((trackList) async {
       if (!_isEnabled) return;
+      if (trackList.audio.isEmpty && trackList.subtitle.isEmpty) return;
 
-      final videoTrack = tracks.video.firstOrNull;
-      if (videoTrack == null) return;
-
-      // Extract FPS from libmpv using NativePlayer
-      final fps = await _extractFps(player);
+      // Extract FPS from engine properties.
+      final fps = _extractFps(player);
       if (fps == null || fps <= 0) {
         debugPrint('AFR: Could not detect video FPS');
         return;
@@ -72,52 +72,31 @@ class AfrService {
     });
   }
 
-  /// Extracts video FPS from the player using libmpv properties.
+  /// Extracts video FPS from the player using engine properties.
   ///
   /// Tries multiple properties in order of preference:
   /// 1. `estimated-vf-fps` - Most accurate, post-filter chain FPS
   /// 2. `container-fps` - Container-reported FPS
-  Future<double?> _extractFps(Player player) async {
-    // Skip on web or unsupported platforms
+  double? _extractFps(CrispyPlayer player) {
     if (kIsWeb) return null;
 
-    try {
-      final nativePlayer = player.platform;
-      if (nativePlayer == null) return null;
-
-      // Use dynamic to access NativePlayer methods
-      // This avoids direct dependency on platform-specific types
-      final dynamic native = nativePlayer;
-
-      // Try estimated-vf-fps first (most accurate)
-      try {
-        final estimated = await native.getProperty('estimated-vf-fps');
-        final fps = double.tryParse(estimated ?? '');
-        if (fps != null && fps > 0) {
-          debugPrint('AFR: Got estimated-vf-fps: $fps');
-          return fps;
-        }
-      } catch (e) {
-        debugPrint('AFR: estimated-vf-fps not available: $e');
-      }
-
-      // Fall back to container-fps
-      try {
-        final container = await native.getProperty('container-fps');
-        final fps = double.tryParse(container ?? '');
-        if (fps != null && fps > 0) {
-          debugPrint('AFR: Got container-fps: $fps');
-          return fps;
-        }
-      } catch (e) {
-        debugPrint('AFR: container-fps not available: $e');
-      }
-
-      return null;
-    } catch (e) {
-      debugPrint('AFR: FPS extraction failed: $e');
-      return null;
+    // Try estimated-vf-fps first (most accurate)
+    final estimated = player.getProperty('estimated-vf-fps');
+    final estFps = estimated != null ? double.tryParse(estimated) : null;
+    if (estFps != null && estFps > 0) {
+      debugPrint('AFR: Got estimated-vf-fps: $estFps');
+      return estFps;
     }
+
+    // Fall back to container-fps
+    final container = player.getProperty('container-fps');
+    final contFps = container != null ? double.tryParse(container) : null;
+    if (contFps != null && contFps > 0) {
+      debugPrint('AFR: Got container-fps: $contFps');
+      return contFps;
+    }
+
+    return null;
   }
 
   /// Manually trigger AFR for a specific FPS value.

@@ -77,11 +77,14 @@ class ThumbnailPreviewPopup extends ConsumerWidget {
   }
 }
 
-/// Renders a thumbnail from a sprite sheet region.
+/// Renders a thumbnail from a sprite sheet region or BIF frame.
 ///
-/// Uses widget-based clipping to extract the correct tile
-/// from the sprite sheet — the image is offset so the
-/// desired region aligns with the visible viewport.
+/// For sprite sheets: uses widget-based clipping to extract the
+/// correct tile — the image is offset so the desired region
+/// aligns with the visible viewport.
+///
+/// For BIF frames: renders the standalone JPEG directly via
+/// [Image.memory].
 class _ThumbnailFromSprite extends StatelessWidget {
   const _ThumbnailFromSprite({required this.region});
 
@@ -89,6 +92,21 @@ class _ThumbnailFromSprite extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // BIF: standalone JPEG frame — render directly.
+    if (region.isBifThumbnail) {
+      return SizedBox(
+        width: ThumbnailPreviewPopup.thumbnailWidth,
+        height: ThumbnailPreviewPopup.thumbnailHeight,
+        child: Image.memory(
+          region.imageBytes!,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.medium,
+          errorBuilder: (context, error, stackTrace) => _thumbnailError(),
+        ),
+      );
+    }
+
+    // VTT: sprite sheet — clip to the correct tile.
     return ClipRect(
       child: SizedBox(
         width: ThumbnailPreviewPopup.thumbnailWidth,
@@ -108,19 +126,23 @@ class _ThumbnailFromSprite extends StatelessWidget {
                   width: null,
                   height: null,
                   errorBuilder:
-                      (context, error, stackTrace) => Container(
-                        color: Colors.black26,
-                        child: const Icon(
-                          Icons.broken_image_outlined,
-                          color: Colors.white38,
-                          size: 32,
-                        ),
-                      ),
+                      (context, error, stackTrace) => _thumbnailError(),
                 ),
               ),
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _thumbnailError() {
+    return Container(
+      color: Colors.black26,
+      child: const Icon(
+        Icons.broken_image_outlined,
+        color: Colors.white38,
+        size: 32,
       ),
     );
   }

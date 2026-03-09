@@ -1,28 +1,31 @@
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:mocktail/mocktail.dart';
-
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
+import 'package:crispy_tivi/l10n/app_localizations.dart';
 import 'package:crispy_tivi/core/widgets/side_panel.dart';
 import 'package:crispy_tivi/features/epg/presentation/providers/epg_providers.dart';
 import 'package:crispy_tivi/features/iptv/domain/entities/epg_entry.dart';
 import 'package:crispy_tivi/features/player/data/player_service.dart';
+import 'package:crispy_tivi/features/player/domain/crispy_player.dart';
 import 'package:crispy_tivi/features/player/domain/entities/playback_state.dart'
     as app;
 import 'package:crispy_tivi/features/player/presentation/providers/player_providers.dart';
 import 'package:crispy_tivi/features/player/presentation/widgets/player_osd.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 
 // Mocks
 class MockPlayerService extends Mock implements PlayerService {}
 
-class MockPlayer extends Mock implements Player {}
+class MockCrispyPlayer extends Mock implements CrispyPlayer {}
 
-class MockPlayerStream extends Mock implements PlayerStream {}
+class _EmptyBufferRangesNotifier extends BufferRangesNotifier {
+  @override
+  List<(double, double)> build() => const [];
+}
 
 void main() {
   setUpAll(() {
@@ -31,11 +34,11 @@ void main() {
 
   group('PlayerOsd', () {
     late MockPlayerService mockPlayerService;
-    late MockPlayer mockPlayer;
+    late MockCrispyPlayer mockPlayer;
 
     setUp(() {
       mockPlayerService = MockPlayerService();
-      mockPlayer = MockPlayer();
+      mockPlayer = MockCrispyPlayer();
 
       // Stub PlayerService
       when(() => mockPlayerService.player).thenReturn(mockPlayer);
@@ -58,18 +61,12 @@ void main() {
       when(() => mockPlayerService.seek(any())).thenAnswer((_) async {});
 
       // Stub Player
-      when(() => mockPlayer.state).thenReturn(
-        PlayerState(
-          tracks: const Tracks(
-            audio: [
-              AudioTrack('1', 'Audio 1', 'en'),
-              AudioTrack('2', 'Audio 2', 'es'),
-            ],
-            subtitle: [],
-            video: [],
-          ),
-        ),
-      );
+      when(() => mockPlayer.audioTracks).thenReturn(const [
+        CrispyAudioTrack(index: 0, title: 'Audio 1', language: 'en'),
+        CrispyAudioTrack(index: 1, title: 'Audio 2', language: 'es'),
+      ]);
+      when(() => mockPlayer.subtitleTracks).thenReturn(const []);
+      when(() => mockPlayer.isPlaying).thenReturn(false);
     });
 
     // Helper to build the widget under test with overrides
@@ -89,8 +86,11 @@ void main() {
           playbackStateProvider.overrideWith((ref) => Stream.value(state)),
           osdStateProvider.overrideWith(() => OsdStateNotifierRaw()),
           streamStatsVisibleProvider.overrideWith(() => StreamStatsNotifier()),
+          bufferRangesProvider.overrideWith(() => _EmptyBufferRangesNotifier()),
         ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: MediaQuery(
             data: MediaQueryData(size: size),
             child: Scaffold(body: PlayerOsd(state: state)),
@@ -322,10 +322,15 @@ void main() {
             streamStatsVisibleProvider.overrideWith(
               () => StreamStatsNotifier(),
             ),
+            bufferRangesProvider.overrideWith(
+              () => _EmptyBufferRangesNotifier(),
+            ),
             if (epgState != null)
               epgProvider.overrideWith(() => _TestEpgNotifier(epgState)),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: MediaQuery(
               data: MediaQueryData(size: size),
               child: Scaffold(

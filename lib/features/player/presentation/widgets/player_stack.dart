@@ -9,8 +9,11 @@ import 'lock_indicator.dart';
 import 'movie_completion_overlay.dart';
 import 'next_episode_overlay.dart';
 import 'player_indicators.dart';
+import 'pip_overlay.dart';
 import 'player_osd_builder.dart';
 import 'player_gesture_overlays.dart';
+import 'player_queue_overlay.dart';
+import 'screenshot_indicator.dart';
 import 'skip_segment_button.dart';
 
 /// Builds the layered [Stack] of video surface +
@@ -56,6 +59,7 @@ class PlayerStack extends ConsumerWidget {
     required this.onEnterPip,
     required this.onToggleZapOverlay,
     required this.onOpenExternal,
+    required this.onSkipToQueueItem,
     this.channelLogoUrl,
     this.seekStepSeconds = 10,
     super.key,
@@ -96,6 +100,9 @@ class PlayerStack extends ConsumerWidget {
   final VoidCallback? onEnterPip;
   final VoidCallback? onToggleZapOverlay;
   final VoidCallback? onOpenExternal;
+
+  /// Called when the user taps a queue item to skip to it.
+  final ValueChanged<QueueItem> onSkipToQueueItem;
 
   /// Optional channel logo URL forwarded to [BufferingIndicator].
   final String? channelLogoUrl;
@@ -149,15 +156,17 @@ class PlayerStack extends ConsumerWidget {
             channelList != null &&
             channelList!.isNotEmpty &&
             !isInPip)
-          ChannelZapOverlay(
-            channels: channelList!,
-            currentChannelId:
-                currentChannelIndex < channelList!.length
-                    ? channelList![currentChannelIndex].id
-                    : '',
-            isVisible: showZapOverlay,
-            onDismiss: onZapDismiss,
-            onChannelSelected: onChannelSelected,
+          RepaintBoundary(
+            child: ChannelZapOverlay(
+              channels: channelList!,
+              currentChannelId:
+                  currentChannelIndex < channelList!.length
+                      ? channelList![currentChannelIndex].id
+                      : '',
+              isVisible: showZapOverlay,
+              onDismiss: onZapDismiss,
+              onChannelSelected: onChannelSelected,
+            ),
           ),
         if (nextEpisode != null && !isInPip)
           NextEpisodeOverlay(
@@ -179,17 +188,28 @@ class PlayerStack extends ConsumerWidget {
           const SkipSegmentButton(),
 
         if (!isInPip)
-          PlayerOsdBuilder(
-            streamUrl: streamUrl,
-            isLive: isLive,
-            channelList: channelList,
-            currentChannelIndex: currentChannelIndex,
-            onBack: onBack,
-            onToggleFullscreen: onToggleFullscreen,
-            onEnterPip: onEnterPip,
-            onToggleZapOverlay: onToggleZapOverlay,
-            onOpenExternal: onOpenExternal,
+          RepaintBoundary(
+            child: PlayerOsdBuilder(
+              streamUrl: streamUrl,
+              isLive: isLive,
+              channelList: channelList,
+              currentChannelIndex: currentChannelIndex,
+              onBack: onBack,
+              onToggleFullscreen: onToggleFullscreen,
+              onEnterPip: onEnterPip,
+              onToggleZapOverlay: onToggleZapOverlay,
+              onOpenExternal: onOpenExternal,
+            ),
           ),
+
+        // Queue panel (slides in from right).
+        if (!isInPip) PlayerQueueOverlay(onSkipTo: onSkipToQueueItem),
+
+        // Screenshot flash + result indicator.
+        if (!isInPip) const ScreenshotIndicator(),
+
+        // Desktop PiP hover controls: restore, close, play/pause.
+        if (isInPip) const PipOverlay(),
 
         // Touch lock indicator — topmost overlay, absorbs
         // all gestures when active.

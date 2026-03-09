@@ -1,12 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/network/dio_provider.dart';
 import '../../data/thumbnail_service.dart';
 import '../../domain/entities/thumbnail_sprite.dart';
 
 /// Provider for [ThumbnailService].
 final thumbnailServiceProvider = Provider<ThumbnailService>((ref) {
-  final service = ThumbnailService(backend: ref.read(crispyBackendProvider));
+  final service = ThumbnailService(
+    backend: ref.read(crispyBackendProvider),
+    dio: ref.watch(dioProvider),
+  );
   ref.onDispose(() => service.clearCache());
   return service;
 });
@@ -29,14 +33,11 @@ class ThumbnailParams {
   int get hashCode => Object.hash(streamUrl, duration);
 }
 
-/// Provider for thumbnail sprite data.
+/// Provider for thumbnail data (VTT sprite or BIF trickplay).
 ///
 /// Returns null if thumbnails are unavailable or loading failed.
-final thumbnailSpriteProvider =
-    FutureProvider.family<ThumbnailSprite?, ThumbnailParams>((
-      ref,
-      params,
-    ) async {
+final thumbnailSpriteProvider = FutureProvider.family
+    .autoDispose<ThumbnailSource?, ThumbnailParams>((ref, params) async {
       // Don't load thumbnails for live streams (no duration)
       if (params.duration == Duration.zero) {
         return null;
@@ -124,8 +125,8 @@ final isSeekBarHoveredProvider = Provider<bool>((ref) {
 /// - Not hovering over seek bar
 /// - Thumbnails not available
 /// - No thumbnail for current position
-final currentThumbnailRegionProvider =
-    Provider.family<ThumbnailRegion?, ThumbnailParams>((ref, params) {
+final currentThumbnailRegionProvider = Provider.family
+    .autoDispose<ThumbnailRegion?, ThumbnailParams>((ref, params) {
       final hoverPosition = ref.watch(seekBarHoverPositionProvider);
       if (hoverPosition == null) return null;
 

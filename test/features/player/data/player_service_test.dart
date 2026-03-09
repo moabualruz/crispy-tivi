@@ -2,50 +2,44 @@ import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:crispy_tivi/features/player/data/player_service.dart';
+import 'package:crispy_tivi/features/player/domain/crispy_player.dart';
 
 // Mocks
-class MockPlayer extends Mock implements Player {}
+class MockCrispyPlayer extends Mock implements CrispyPlayer {}
 
-class MockPlayerStream extends Mock implements PlayerStream {}
+/// Helper to stub all CrispyPlayer streams with empty defaults.
+void _stubEmptyStreams(MockCrispyPlayer mock) {
+  when(() => mock.playingStream).thenAnswer((_) => const Stream.empty());
+  when(() => mock.positionStream).thenAnswer((_) => const Stream.empty());
+  when(() => mock.durationStream).thenAnswer((_) => const Stream.empty());
+  when(() => mock.bufferStream).thenAnswer((_) => const Stream.empty());
+  when(() => mock.bufferingStream).thenAnswer((_) => const Stream.empty());
+  when(() => mock.volumeStream).thenAnswer((_) => const Stream.empty());
+  when(() => mock.rateStream).thenAnswer((_) => const Stream.empty());
+  when(() => mock.errorStream).thenAnswer((_) => const Stream.empty());
+  when(() => mock.tracksStream).thenAnswer((_) => const Stream.empty());
+
+  when(() => mock.pause()).thenAnswer((_) async {});
+  when(() => mock.dispose()).thenAnswer((_) async {});
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() {
-    registerFallbackValue(Media(''));
-    registerFallbackValue(const AudioTrack('', '', null));
-    registerFallbackValue(const SubtitleTrack('', '', null));
+    registerFallbackValue(Duration.zero);
   });
 
   group('PlayerService', () {
-    late MockPlayer mockPlayer;
-    late MockPlayerStream mockStreams;
+    late MockCrispyPlayer mockPlayer;
     late PlayerService playerService;
 
     setUp(() {
-      mockPlayer = MockPlayer();
-      mockStreams = MockPlayerStream();
-
-      when(() => mockPlayer.stream).thenReturn(mockStreams);
-
-      when(() => mockStreams.playing).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.position).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.duration).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.buffer).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.buffering).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.volume).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.rate).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.error).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.tracks).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.width).thenAnswer((_) => const Stream.empty());
-
-      when(() => mockPlayer.pause()).thenAnswer((_) async {});
-      when(() => mockPlayer.dispose()).thenAnswer((_) async {});
-
+      mockPlayer = MockCrispyPlayer();
+      _stubEmptyStreams(mockPlayer);
       playerService = PlayerService(player: mockPlayer);
     });
 
@@ -182,28 +176,12 @@ void main() {
   });
 
   group('PlayerService — volume / mute', () {
-    late MockPlayer mockPlayer;
-    late MockPlayerStream mockStreams;
+    late MockCrispyPlayer mockPlayer;
     late PlayerService playerService;
 
     setUp(() {
-      mockPlayer = MockPlayer();
-      mockStreams = MockPlayerStream();
-
-      when(() => mockPlayer.stream).thenReturn(mockStreams);
-      when(() => mockStreams.playing).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.position).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.duration).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.buffer).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.buffering).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.volume).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.rate).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.error).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.tracks).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.width).thenAnswer((_) => const Stream.empty());
-
-      when(() => mockPlayer.pause()).thenAnswer((_) async {});
-      when(() => mockPlayer.dispose()).thenAnswer((_) async {});
+      mockPlayer = MockCrispyPlayer();
+      _stubEmptyStreams(mockPlayer);
       when(() => mockPlayer.setVolume(any())).thenAnswer((_) async {});
 
       playerService = PlayerService(player: mockPlayer);
@@ -213,15 +191,15 @@ void main() {
       playerService.dispose();
     });
 
-    test('setVolume delegates to native player '
-        'scaled to 0-100', () async {
+    test('setVolume delegates to CrispyPlayer '
+        'with 0.0-1.0 range', () async {
       await playerService.setVolume(0.5);
-      verify(() => mockPlayer.setVolume(50.0)).called(1);
+      verify(() => mockPlayer.setVolume(0.5)).called(1);
     });
 
     test('setVolume clamps value to 0.0-1.0', () async {
       await playerService.setVolume(1.5);
-      verify(() => mockPlayer.setVolume(100.0)).called(1);
+      verify(() => mockPlayer.setVolume(1.0)).called(1);
 
       await playerService.setVolume(-0.5);
       verify(() => mockPlayer.setVolume(0.0)).called(1);
@@ -238,7 +216,7 @@ void main() {
 
       // Unmute — should restore to 0.7.
       playerService.toggleMute();
-      verify(() => mockPlayer.setVolume(70.0)).called(1);
+      verify(() => mockPlayer.setVolume(0.7)).called(1);
     });
 
     test('default isMuted is false', () {
@@ -247,29 +225,12 @@ void main() {
   });
 
   group('PlayerService — setSpeed', () {
-    late MockPlayer mockPlayer;
-    late MockPlayerStream mockStreams;
+    late MockCrispyPlayer mockPlayer;
     late PlayerService playerService;
 
     setUp(() {
-      mockPlayer = MockPlayer();
-      mockStreams = MockPlayerStream();
-
-      when(() => mockPlayer.stream).thenReturn(mockStreams);
-
-      when(() => mockStreams.playing).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.position).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.duration).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.buffer).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.buffering).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.volume).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.rate).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.error).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.tracks).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.width).thenAnswer((_) => const Stream.empty());
-
-      when(() => mockPlayer.pause()).thenAnswer((_) async {});
-      when(() => mockPlayer.dispose()).thenAnswer((_) async {});
+      mockPlayer = MockCrispyPlayer();
+      _stubEmptyStreams(mockPlayer);
       when(() => mockPlayer.setRate(any())).thenAnswer((_) async {});
 
       playerService = PlayerService(player: mockPlayer);
@@ -293,9 +254,14 @@ void main() {
     });
 
     test('is a no-op when stream is live', () async {
-      // Simulate a live stream by calling play()
-      // which sets isLive = true in state.
-      when(() => mockPlayer.open(any())).thenAnswer((_) async {});
+      when(
+        () => mockPlayer.open(
+          any(),
+          httpHeaders: any(named: 'httpHeaders'),
+          extras: any(named: 'extras'),
+          startPosition: any(named: 'startPosition'),
+        ),
+      ).thenAnswer((_) async {});
 
       await playerService.play('http://live.example.com/stream', isLive: true);
 
@@ -304,7 +270,14 @@ void main() {
     });
 
     test('play() resets speed to 1.0 in state', () async {
-      when(() => mockPlayer.open(any())).thenAnswer((_) async {});
+      when(
+        () => mockPlayer.open(
+          any(),
+          httpHeaders: any(named: 'httpHeaders'),
+          extras: any(named: 'extras'),
+          startPosition: any(named: 'startPosition'),
+        ),
+      ).thenAnswer((_) async {});
 
       // Set speed to 2x first.
       await playerService.setSpeed(2.0);
@@ -317,33 +290,41 @@ void main() {
   });
 
   group('PlayerService — UI Heartbeat Watchdog', () {
-    late MockPlayer mockPlayer;
-    late MockPlayerStream mockStreams;
+    late MockCrispyPlayer mockPlayer;
     late StreamController<bool> playingController;
 
-    MockPlayer createMockPlayer() {
-      mockPlayer = MockPlayer();
-      mockStreams = MockPlayerStream();
+    MockCrispyPlayer createMockPlayer() {
+      mockPlayer = MockCrispyPlayer();
       playingController = StreamController<bool>.broadcast();
 
-      when(() => mockPlayer.stream).thenReturn(mockStreams);
-
       when(
-        () => mockStreams.playing,
+        () => mockPlayer.playingStream,
       ).thenAnswer((_) => playingController.stream);
-      when(() => mockStreams.position).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.duration).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.buffer).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.buffering).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.volume).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.rate).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.error).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.tracks).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.width).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.positionStream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.durationStream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.bufferStream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.bufferingStream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.volumeStream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(() => mockPlayer.rateStream).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.errorStream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.tracksStream,
+      ).thenAnswer((_) => const Stream.empty());
 
       when(() => mockPlayer.pause()).thenAnswer((_) async {});
       when(() => mockPlayer.dispose()).thenAnswer((_) async {});
-      when(() => mockPlayer.pause()).thenAnswer((_) async {});
       when(() => mockPlayer.play()).thenAnswer((_) async {});
 
       return mockPlayer;
@@ -382,34 +363,26 @@ void main() {
         'elapsed > 5s while playing', () async {
       final mp = createMockPlayer();
 
-      // Clock: first call (startWatchdog) returns base,
-      // second call (tick) returns base + 10s → freeze.
       var callCount = 0;
       final baseTime = DateTime(2026, 2, 20, 12, 0, 0);
       DateTime fakeClock() {
         callCount++;
         if (callCount == 1) return baseTime;
-        // Subsequent calls simulate a 10s freeze
         return baseTime.add(const Duration(seconds: 10));
       }
 
       final svc = PlayerService(player: mp, clock: fakeClock);
       addTearDown(() => svc.dispose());
 
-      // Simulate playing state via the stream
       playingController.add(true);
       await Future.delayed(Duration.zero);
 
       expect(svc.state.isPlaying, isTrue);
 
-      // Start watchdog (clock call #1 → baseTime)
       svc.startWatchdog();
 
-      // Wait for the 2s periodic timer to fire
-      // (clock call #2 → baseTime + 10s → freeze!)
       await Future.delayed(const Duration(milliseconds: 2200));
 
-      // Should have auto-paused
       expect(svc.wasAutoPausedByWatchdog, isTrue);
       verify(() => mp.pause()).called(1);
 
@@ -419,7 +392,6 @@ void main() {
     test('watchdog does NOT pause when elapsed < 5s', () async {
       final mp = createMockPlayer();
 
-      // Clock returns real time (normal interval)
       final svc = PlayerService(player: mp);
       addTearDown(() => svc.dispose());
 
@@ -428,10 +400,8 @@ void main() {
 
       svc.startWatchdog();
 
-      // Wait for one tick (~2s)
       await Future.delayed(const Duration(milliseconds: 2200));
 
-      // Should NOT have auto-paused (real ~2s < 5s)
       expect(svc.wasAutoPausedByWatchdog, isFalse);
       verifyNever(() => mp.pause());
 
@@ -457,12 +427,10 @@ void main() {
 
       svc.startWatchdog();
 
-      // Wait for freeze detection
       await Future.delayed(const Duration(milliseconds: 2200));
 
       expect(svc.wasAutoPausedByWatchdog, isTrue);
 
-      // Resume from watchdog
       svc.resumeFromWatchdog();
 
       expect(svc.wasAutoPausedByWatchdog, isFalse);
@@ -477,7 +445,6 @@ void main() {
       final svc = PlayerService(player: mp);
       addTearDown(() => svc.dispose());
 
-      // Not auto-paused → resume should be a no-op
       svc.resumeFromWatchdog();
       verifyNever(() => mp.play());
     });
@@ -492,33 +459,44 @@ void main() {
       svc.startWatchdog();
       await svc.stop();
 
-      // wasAutoPausedByWatchdog should be reset
       expect(svc.wasAutoPausedByWatchdog, isFalse);
     });
   });
 
   group('PlayerService — track selection', () {
-    late MockPlayer mockPlayer;
-    late MockPlayerStream mockStreams;
-    late StreamController<Tracks> tracksController;
+    late MockCrispyPlayer mockPlayer;
+    late StreamController<CrispyTrackList> tracksController;
     late PlayerService playerService;
 
     setUp(() {
-      mockPlayer = MockPlayer();
-      mockStreams = MockPlayerStream();
-      tracksController = StreamController<Tracks>.broadcast();
+      mockPlayer = MockCrispyPlayer();
+      tracksController = StreamController<CrispyTrackList>.broadcast();
 
-      when(() => mockPlayer.stream).thenReturn(mockStreams);
-      when(() => mockStreams.playing).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.position).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.duration).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.buffer).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.buffering).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.volume).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.rate).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.error).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.tracks).thenAnswer((_) => tracksController.stream);
-      when(() => mockStreams.width).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.playingStream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.positionStream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.durationStream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.bufferStream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.bufferingStream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.volumeStream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(() => mockPlayer.rateStream).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.errorStream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockPlayer.tracksStream,
+      ).thenAnswer((_) => tracksController.stream);
 
       when(() => mockPlayer.pause()).thenAnswer((_) async {});
       when(() => mockPlayer.dispose()).thenAnswer((_) async {});
@@ -531,22 +509,18 @@ void main() {
       tracksController.close();
     });
 
-    test('populates audioTracks from media_kit '
-        'stream, filtering sentinels', () async {
+    test('populates audioTracks from CrispyPlayer '
+        'tracksStream', () async {
       tracksController.add(
-        const Tracks(
+        const CrispyTrackList(
           audio: [
-            AudioTrack('auto', null, null),
-            AudioTrack('no', null, null),
-            AudioTrack('1', 'English', 'en'),
-            AudioTrack('2', 'Spanish', 'es'),
+            CrispyAudioTrack(index: 0, title: 'English', language: 'en'),
+            CrispyAudioTrack(index: 1, title: 'Spanish', language: 'es'),
           ],
           subtitle: [],
-          video: [],
         ),
       );
 
-      // Allow stream listener to fire.
       await Future.delayed(Duration.zero);
 
       expect(playerService.state.audioTracks, hasLength(2));
@@ -556,10 +530,9 @@ void main() {
 
     test('subtitleTracks empty when stream has none', () async {
       tracksController.add(
-        const Tracks(
-          audio: [AudioTrack('1', 'English', 'en')],
+        const CrispyTrackList(
+          audio: [CrispyAudioTrack(index: 0, title: 'English', language: 'en')],
           subtitle: [],
-          video: [],
         ),
       );
 
@@ -568,17 +541,15 @@ void main() {
       expect(playerService.state.subtitleTracks, isEmpty);
     });
 
-    test('populates subtitleTracks from media_kit '
-        'stream, filtering sentinels', () async {
+    test('populates subtitleTracks from CrispyPlayer '
+        'tracksStream', () async {
       tracksController.add(
-        const Tracks(
+        const CrispyTrackList(
           audio: [],
           subtitle: [
-            SubtitleTrack('auto', null, null),
-            SubtitleTrack('1', 'English', 'en'),
-            SubtitleTrack('2', 'French', 'fr'),
+            CrispySubtitleTrack(index: 0, title: 'English', language: 'en'),
+            CrispySubtitleTrack(index: 1, title: 'French', language: 'fr'),
           ],
-          video: [],
         ),
       );
 
@@ -589,33 +560,12 @@ void main() {
       expect(playerService.state.subtitleTracks[1].title, 'French');
     });
 
-    test('setAudioTrack calls media_kit with correct '
-        'track (skipping sentinels)', () async {
+    test('setAudioTrack delegates to CrispyPlayer', () async {
       when(() => mockPlayer.setAudioTrack(any())).thenAnswer((_) async {});
-
-      // Stub state with sentinel + real tracks.
-      when(() => mockPlayer.state).thenReturn(
-        PlayerState(
-          tracks: const Tracks(
-            audio: [
-              AudioTrack('auto', null, null),
-              AudioTrack('1', 'English', 'en'),
-              AudioTrack('2', 'Spanish', 'es'),
-            ],
-            subtitle: [],
-            video: [],
-          ),
-        ),
-      );
 
       await playerService.setAudioTrack(1);
 
-      // Should select 'Spanish' (index 1 of
-      // real tracks, which is index 2 in the
-      // unfiltered list).
-      verify(
-        () => mockPlayer.setAudioTrack(const AudioTrack('2', 'Spanish', 'es')),
-      ).called(1);
+      verify(() => mockPlayer.setAudioTrack(1)).called(1);
       expect(playerService.state.selectedAudioTrackId, 1);
     });
 
@@ -624,80 +574,27 @@ void main() {
 
       await playerService.setSubtitleTrack(-1);
 
-      verify(() => mockPlayer.setSubtitleTrack(SubtitleTrack.no())).called(1);
+      verify(() => mockPlayer.setSubtitleTrack(-1)).called(1);
       expect(playerService.state.selectedSubtitleTrackId, -1);
     });
 
-    test('setSubtitleTrack selects correct track '
-        '(skipping sentinels)', () async {
+    test('setSubtitleTrack selects correct track', () async {
       when(() => mockPlayer.setSubtitleTrack(any())).thenAnswer((_) async {});
-
-      when(() => mockPlayer.state).thenReturn(
-        PlayerState(
-          tracks: const Tracks(
-            audio: [],
-            subtitle: [
-              SubtitleTrack('auto', null, null),
-              SubtitleTrack('1', 'English', 'en'),
-            ],
-            video: [],
-          ),
-        ),
-      );
 
       await playerService.setSubtitleTrack(0);
 
-      verify(
-        () => mockPlayer.setSubtitleTrack(
-          const SubtitleTrack('1', 'English', 'en'),
-        ),
-      ).called(1);
+      verify(() => mockPlayer.setSubtitleTrack(0)).called(1);
       expect(playerService.state.selectedSubtitleTrackId, 0);
-    });
-
-    test('setAudioTrack out of bounds is a no-op', () async {
-      when(() => mockPlayer.setAudioTrack(any())).thenAnswer((_) async {});
-
-      when(() => mockPlayer.state).thenReturn(
-        PlayerState(
-          tracks: const Tracks(
-            audio: [AudioTrack('1', 'English', 'en')],
-            subtitle: [],
-            video: [],
-          ),
-        ),
-      );
-
-      await playerService.setAudioTrack(5);
-
-      verifyNever(() => mockPlayer.setAudioTrack(any()));
     });
   });
 
   group('PlayerService — fullscreen state', () {
-    late MockPlayer mockPlayer;
-    late MockPlayerStream mockStreams;
+    late MockCrispyPlayer mockPlayer;
     late PlayerService playerService;
 
     setUp(() {
-      mockPlayer = MockPlayer();
-      mockStreams = MockPlayerStream();
-
-      when(() => mockPlayer.stream).thenReturn(mockStreams);
-      when(() => mockStreams.playing).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.position).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.duration).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.buffer).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.buffering).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.volume).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.rate).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.error).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.tracks).thenAnswer((_) => const Stream.empty());
-      when(() => mockStreams.width).thenAnswer((_) => const Stream.empty());
-
-      when(() => mockPlayer.pause()).thenAnswer((_) async {});
-      when(() => mockPlayer.dispose()).thenAnswer((_) async {});
-
+      mockPlayer = MockCrispyPlayer();
+      _stubEmptyStreams(mockPlayer);
       playerService = PlayerService(player: mockPlayer);
     });
 

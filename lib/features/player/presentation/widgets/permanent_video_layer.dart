@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
 import '../providers/player_providers.dart';
@@ -52,10 +51,17 @@ class PermanentVideoLayer extends ConsumerWidget {
     switch (modeState.mode) {
       case PlayerMode.idle:
       case PlayerMode.background:
-        // Hidden — park offscreen at 1x1 to keep widget alive
-        // without consuming GPU compositing resources.
-        targetRect = Rect.fromLTWH(0, 0, 1, 1);
+        // Park offscreen at full natural size — eliminates the
+        // shrink animation on mode exit and the "fly in from
+        // corner" on re-entry. Duration.zero snaps instantly.
+        targetRect = Rect.fromLTWH(
+          -screenSize.width - 1,
+          -screenSize.height - 1,
+          screenSize.width,
+          screenSize.height,
+        );
         opacity = 0.0;
+        duration = Duration.zero;
       case PlayerMode.preview:
         // Hide when navigated away from host screen (EPG →
         // Home) or when preview rect isn't reported yet.
@@ -65,7 +71,12 @@ class PermanentVideoLayer extends ConsumerWidget {
           targetRect = rect;
           opacity = 1.0;
         } else {
-          targetRect = Rect.fromLTWH(0, 0, 1, 1);
+          targetRect = Rect.fromLTWH(
+            -screenSize.width - 1,
+            -screenSize.height - 1,
+            screenSize.width,
+            screenSize.height,
+          );
           opacity = 0.0;
         }
         // Rect-only updates (e.g. sidebar resize): snap
@@ -74,7 +85,18 @@ class PermanentVideoLayer extends ConsumerWidget {
         duration =
             modeState.isRectOnlyUpdate ? Duration.zero : CrispyAnimation.fast;
       case PlayerMode.fullscreen:
-        targetRect = fullRect;
+        final guideSplit = ref.watch(guideSplitProvider);
+        if (guideSplit) {
+          // Guide split: video occupies the left half.
+          targetRect = Rect.fromLTWH(
+            0,
+            0,
+            screenSize.width / 2,
+            screenSize.height,
+          );
+        } else {
+          targetRect = fullRect;
+        }
         opacity = 1.0;
     }
 
@@ -115,8 +137,6 @@ class PermanentVideoLayer extends ConsumerWidget {
 
   // Extracted so linter sees it's used in build.
   Widget _buildVideoSurface(BuildContext context, WidgetRef ref) {
-    final playerService = ref.read(playerServiceProvider);
-
     // Read aspect ratio label from playback state.
     final aspectLabel = ref.watch(
       playbackStateProvider.select(
@@ -125,28 +145,27 @@ class PermanentVideoLayer extends ConsumerWidget {
     );
     final fit = boxFitFromLabel(aspectLabel);
 
-    if (!kIsWeb) {
-      return Video(
-        controller: playerService.videoController,
-        controls: NoVideoControls,
-        fit: fit,
+    // Web path: WebHlsVideo with stats callback integration.
+    if (kIsWeb) {
+      final playerService = ref.read(playerServiceProvider);
+      return WebHlsVideo(
+        key: playerService.webVideoKey,
+        streamUrl: playerService.currentUrl ?? '',
+        onVideoIdReady: (videoId) {
+          playerService.attachWebVideo(videoId);
+          if (playerService.currentUrl != null) {
+            playerService.play(playerService.currentUrl!, isLive: true);
+          }
+        },
+        onStatsUpdate: (stats) {
+          playerService.updateExternalStreamInfo(stats);
+        },
       );
     }
 
-    // Web: single WebHlsVideo element preserved via GlobalKey.
-    return WebHlsVideo(
-      key: playerService.webVideoKey,
-      streamUrl: playerService.currentUrl ?? '',
-      onVideoIdReady: (videoId) {
-        playerService.attachWebVideo(videoId);
-        if (playerService.currentUrl != null) {
-          playerService.play(playerService.currentUrl!, isLive: true);
-        }
-      },
-      onStatsUpdate: (stats) {
-        playerService.updateExternalStreamInfo(stats);
-      },
-    );
+    // Native path: delegate to CrispyPlayer's video widget.
+    final player = ref.watch(playerProvider);
+    return player.buildVideoWidget(fit: fit);
   }
 }
 

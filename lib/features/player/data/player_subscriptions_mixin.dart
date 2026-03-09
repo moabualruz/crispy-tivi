@@ -1,14 +1,14 @@
 part of 'player_service.dart';
 
-/// media_kit stream subscriptions and error handling.
+/// Player stream subscriptions and error handling.
 ///
-/// Subscribes to [Player.stream] events and maps them
-/// to [PlaybackState] updates via [_updateState].
+/// Subscribes to [CrispyPlayer] stream events and maps
+/// them to [PlaybackState] updates via [_updateState].
 mixin PlayerSubscriptionsMixin on PlayerServiceBase {
   Timer? _bufferingDebounce;
   static const _bufferingWindow = Duration(milliseconds: 200);
 
-  /// Subscribes to all media_kit player streams.
+  /// Subscribes to all [CrispyPlayer] streams.
   void initSubscriptions() {
     // XP-02: Configure audio session on all native
     // platforms (iOS, Android, macOS). Fire-and-forget.
@@ -17,12 +17,12 @@ mixin PlayerSubscriptionsMixin on PlayerServiceBase {
     }
 
     // On web, state comes entirely from WebVideoBridge.
-    // media_kit Player is never opened, so its streams
+    // CrispyPlayer is never opened, so its streams
     // emit idle/false values that corrupt web state.
     if (kIsWeb) return;
 
     _subs.add(
-      _player.stream.playing.listen((playing) {
+      _player.playingStream.listen((playing) {
         if (playing) {
           _retryCount = 0;
           _bufferingDebounce?.cancel();
@@ -31,29 +31,51 @@ mixin PlayerSubscriptionsMixin on PlayerServiceBase {
         } else {
           _updateState(status: app.PlaybackStatus.paused);
         }
+        // Sync play/pause state to OS media controls.
+        unawaited(_mediaSession.updatePlaybackState(playing, _state.position));
+      }),
+    );
+
+    // Listen for OS media transport actions.
+    _subs.add(
+      _mediaSession.actions.listen((action) {
+        switch (action) {
+          case MediaAction.play:
+            resume();
+          case MediaAction.pause:
+            pause();
+          case MediaAction.stop:
+            stop();
+          case MediaAction.next:
+          case MediaAction.previous:
+            // Channel zap not wired here — the player
+            // screen handles next/prev via its own
+            // callbacks.
+            break;
+        }
       }),
     );
 
     _subs.add(
-      _player.stream.position.listen((pos) {
+      _player.positionStream.listen((pos) {
         _updateState(position: pos);
       }),
     );
 
     _subs.add(
-      _player.stream.duration.listen((dur) {
+      _player.durationStream.listen((dur) {
         _updateState(duration: dur);
       }),
     );
 
     _subs.add(
-      _player.stream.buffer.listen((buf) {
+      _player.bufferStream.listen((buf) {
         _updateState(bufferedPosition: buf);
       }),
     );
 
     _subs.add(
-      _player.stream.buffering.listen((isBuffering) {
+      _player.bufferingStream.listen((isBuffering) {
         if (isBuffering) {
           // Debounce: only promote to buffering after
           // 200ms stability — sub-250ms oscillations
@@ -67,7 +89,7 @@ mixin PlayerSubscriptionsMixin on PlayerServiceBase {
         } else {
           _bufferingDebounce?.cancel();
           _bufferingDebounce = null;
-          if (_player.state.playing) {
+          if (_player.isPlaying) {
             _updateState(status: app.PlaybackStatus.playing);
           }
         }
@@ -75,80 +97,108 @@ mixin PlayerSubscriptionsMixin on PlayerServiceBase {
     );
 
     _subs.add(
-      _player.stream.volume.listen((vol) {
-        _updateState(volume: vol / 100.0);
+      _player.volumeStream.listen((vol) {
+        _updateState(volume: vol);
       }),
     );
 
     _subs.add(
-      _player.stream.rate.listen((rate) {
+      _player.rateStream.listen((rate) {
         _updateState(speed: rate);
       }),
     );
 
     _subs.add(
-      _player.stream.error.listen((error) {
-        _handleError(error);
+      _player.errorStream.listen((error) {
+        if (error != null) _handleError(error);
       }),
     );
 
     // Populate PlaybackState.audioTracks /
-    // subtitleTracks from media_kit on native.
+    // subtitleTracks from CrispyPlayer on native.
     // Web tracks come via _onWebVideoState instead.
+    // Also triggers upscale re-evaluation on media
+    // load (replaces the former width stream).
     _subs.add(
-      _player.stream.tracks.listen((tracks) {
+      _player.tracksStream.listen((trackList) {
         if (_webBridge != null) return;
 
         final audio =
-            tracks.audio
-                .where((t) => t.id != 'auto' && t.id != 'no')
-                .toList()
-                .asMap()
-                .entries
+            trackList.audio
                 .map(
-                  (e) => app.AudioTrack(
-                    id: e.key,
-                    title:
-                        e.value.title ??
-                        e.value.language ??
-                        'Track ${e.key + 1}',
-                    language: e.value.language,
+                  (t) => app.AudioTrack(
+                    id: t.index,
+                    title: t.title,
+                    language: t.language,
                   ),
                 )
                 .toList();
 
         final subs =
-            tracks.subtitle
-                .where((t) => t.id != 'auto' && t.id != 'no')
-                .toList()
-                .asMap()
-                .entries
+            trackList.subtitle
                 .map(
-                  (e) => app.SubtitleTrack(
-                    id: e.key,
-                    title:
-                        e.value.title ??
-                        e.value.language ??
-                        'Subtitle ${e.key + 1}',
-                    language: e.value.language,
+                  (t) => app.SubtitleTrack(
+                    id: t.index,
+                    title: t.title,
+                    language: t.language,
                   ),
                 )
                 .toList();
 
         _updateState(audioTracks: audio, subtitleTracks: subs);
+        applyUpscale();
       }),
     );
+  }
 
-    // Video resolution change — apply upscaling when
-    // video dimensions are detected or change (e.g.
-    // IPTV channel switch with different resolution).
-    _subs.add(
-      _player.stream.width.listen((width) {
-        if (width != null && width > 0) {
-          applyUpscale();
-        }
-      }),
-    );
+  /// Schedules an audio track detection check 3 seconds after
+  /// playback starts.
+  ///
+  /// If no real audio tracks are detected and the URL hasn't been
+  /// proxy-retried, triggers a retry through the local ffmpeg proxy
+  /// (codec repair for non-standard EAC-3 tags).
+  void _scheduleAudioCheck(String originalUrl) {
+    _audioCheckTimer?.cancel();
+    if (kIsWeb) return;
+
+    _audioCheckTimer = Timer(const Duration(seconds: 3), () {
+      if (_proxyActive || _lastUrl != originalUrl) return;
+      if (_proxyRetriedUrls.contains(originalUrl)) return;
+
+      final tracks = _state.audioTracks;
+      if (tracks.isNotEmpty) return;
+
+      if (kDebugMode) {
+        debugPrint(
+          '[Player] No audio tracks after 3s, '
+          'trying ffmpeg proxy for $originalUrl',
+        );
+      }
+      _retryWithProxy(originalUrl);
+    });
+  }
+
+  /// Re-opens the stream through the local ffmpeg proxy.
+  Future<void> _retryWithProxy(String originalUrl) async {
+    if (_proxyActive) return;
+    _proxyRetriedUrls.add(originalUrl);
+
+    final proxyUrl = await _streamProxy.start(originalUrl);
+    if (proxyUrl == null) {
+      if (kDebugMode) {
+        debugPrint(
+          '[Player] ffmpeg proxy unavailable, '
+          'keeping direct playback',
+        );
+      }
+      return;
+    }
+
+    _proxyActive = true;
+    if (kDebugMode) {
+      debugPrint('[Player] Switching to proxied stream: $proxyUrl');
+    }
+    await openMedia(proxyUrl, isLive: _lastIsLive);
   }
 
   /// Configures the platform audio session and listens

@@ -218,7 +218,7 @@ class _EpgProgressBar extends StatelessWidget {
             FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: progress.clamp(0.0, 1.0),
-              child: Container(color: CrispyColors.netflixRed),
+              child: Container(color: CrispyColors.brandRed),
             ),
           ],
         ),

@@ -81,6 +81,44 @@ void main() {
       expect(state.previewRect, isNull);
     });
 
+    test(
+      'exitToPreview with screenSize but non-preview hostRoute → background',
+      () {
+        final notifier = container.read(playerModeProvider.notifier);
+        notifier.enterFullscreen(hostRoute: '/vods/details');
+        notifier.exitToPreview(screenSize: const Size(1920, 1080));
+
+        final state = container.read(playerModeProvider);
+        expect(state.mode, equals(PlayerMode.background));
+      },
+    );
+
+    test(
+      'exitToPreview with screenSize and TV hostRoute → preview (mini PiP)',
+      () {
+        final notifier = container.read(playerModeProvider.notifier);
+        notifier.enterFullscreen(hostRoute: '/tv');
+        notifier.exitToPreview(screenSize: const Size(1920, 1080));
+
+        final state = container.read(playerModeProvider);
+        expect(state.mode, equals(PlayerMode.preview));
+        expect(state.previewRect, isNotNull);
+      },
+    );
+
+    test(
+      'exitToPreview with screenSize and EPG hostRoute → preview (mini PiP)',
+      () {
+        final notifier = container.read(playerModeProvider.notifier);
+        notifier.enterFullscreen(hostRoute: '/epg');
+        notifier.exitToPreview(screenSize: const Size(1920, 1080));
+
+        final state = container.read(playerModeProvider);
+        expect(state.mode, equals(PlayerMode.preview));
+        expect(state.previewRect, isNotNull);
+      },
+    );
+
     test('stopPreviewIfLeavingRoute handles navigation leaving', () {
       bool playbackStopped = false;
       final notifier = container.read(playerModeProvider.notifier);

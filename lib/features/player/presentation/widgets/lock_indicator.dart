@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
@@ -102,14 +103,14 @@ class _LockIcon extends AnimatedWidget {
         ),
         const SizedBox(height: CrispySpacing.sm),
         Text(
-          'Screen locked',
+          context.l10n.playerScreenLocked,
           style: textTheme.bodyMedium?.copyWith(
             color: Colors.white.withValues(alpha: 0.8),
           ),
         ),
         const SizedBox(height: CrispySpacing.xs),
         Text(
-          'Hold to unlock',
+          context.l10n.playerHoldToUnlock,
           style: textTheme.labelSmall?.copyWith(
             color: Colors.white.withValues(alpha: 0.55),
           ),

@@ -56,33 +56,39 @@ class PlayerOsdBuilder extends StatelessWidget {
           ),
         );
 
-        return PlayerOsd(
-          streamUrl: streamUrl,
-          channelEpgId: currentChannel?.id,
-          isFavorite: isFav,
-          onBack: onBack,
-          onFavorite:
-              currentChannel != null
-                  ? () {
-                    ref
-                        .read(channelListProvider.notifier)
-                        .toggleFavorite(currentChannel!.id);
-                  }
-                  : null,
-          onEnterPip: onEnterPip,
-          onSleepTimer: () {
-            showDialog(
-              context: context,
-              builder: (_) => const SleepTimerDialog(),
-            );
-          },
-          onToggleFullscreen: onToggleFullscreen,
-          onSearch:
-              () => context.push(AppRoutes.tv, extra: {'openSearch': true}),
-          onChannelList: onToggleZapOverlay,
-          onRecordings: () => context.push(AppRoutes.dvr),
-          onCopyUrl: () => copyStreamUrl(context, streamUrl),
-          onOpenExternal: onOpenExternal,
+        // RTL guard: media playback controls always stay LTR
+        // per Material Design guidelines — play/pause, seek bar,
+        // skip controls refer to media direction, not text direction.
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: PlayerOsd(
+            streamUrl: streamUrl,
+            channelEpgId: currentChannel?.id,
+            isFavorite: isFav,
+            onBack: onBack,
+            onFavorite:
+                currentChannel != null
+                    ? () {
+                      ref
+                          .read(channelListProvider.notifier)
+                          .toggleFavorite(currentChannel!.id);
+                    }
+                    : null,
+            onEnterPip: onEnterPip,
+            onSleepTimer: () {
+              showDialog(
+                context: context,
+                builder: (_) => const SleepTimerDialog(),
+              );
+            },
+            onToggleFullscreen: onToggleFullscreen,
+            onSearch:
+                () => context.push(AppRoutes.tv, extra: {'openSearch': true}),
+            onChannelList: onToggleZapOverlay,
+            onRecordings: () => context.push(AppRoutes.dvr),
+            onCopyUrl: () => copyStreamUrl(context, streamUrl),
+            onOpenExternal: onOpenExternal,
+          ),
         );
       },
     );

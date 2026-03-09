@@ -5,7 +5,7 @@ import 'package:crispy_tivi/features/player/data/external_player_service.dart';
 void main() {
   group('ExternalPlayer enum', () {
     test('has all expected players', () {
-      expect(ExternalPlayer.values.length, 7);
+      expect(ExternalPlayer.values.length, 11);
       expect(
         ExternalPlayer.values.map((e) => e.name),
         containsAll([
@@ -16,6 +16,10 @@ void main() {
           'kodi',
           'justPlayer',
           'mpv',
+          'iina',
+          'potPlayer',
+          'celluloid',
+          'infuse',
         ]),
       );
     });
@@ -30,22 +34,44 @@ void main() {
       }
     });
 
-    test('non-systemDefault players have Android package', () {
-      for (final player in ExternalPlayer.values) {
-        if (player == ExternalPlayer.systemDefault) {
-          expect(player.androidPackage, isNull);
-        } else {
-          expect(
-            player.androidPackage,
-            isNotNull,
-            reason: '${player.name} should have package',
-          );
-          expect(
-            player.androidPackage,
-            isNotEmpty,
-            reason: '${player.name} package not empty',
-          );
-        }
+    test('Android players have Android package', () {
+      // Players with Android support have package names.
+      const androidPlayers = {
+        ExternalPlayer.vlc,
+        ExternalPlayer.mxPlayer,
+        ExternalPlayer.mxPlayerPro,
+        ExternalPlayer.kodi,
+        ExternalPlayer.justPlayer,
+        ExternalPlayer.mpv,
+      };
+      for (final player in androidPlayers) {
+        expect(
+          player.androidPackage,
+          isNotNull,
+          reason: '${player.name} should have package',
+        );
+        expect(
+          player.androidPackage,
+          isNotEmpty,
+          reason: '${player.name} package not empty',
+        );
+      }
+    });
+
+    test('desktop/iOS-only players have no Android package', () {
+      const noPackagePlayers = {
+        ExternalPlayer.systemDefault,
+        ExternalPlayer.iina,
+        ExternalPlayer.potPlayer,
+        ExternalPlayer.celluloid,
+        ExternalPlayer.infuse,
+      };
+      for (final player in noPackagePlayers) {
+        expect(
+          player.androidPackage,
+          isNull,
+          reason: '${player.name} should have no package',
+        );
       }
     });
 
@@ -134,6 +160,52 @@ void main() {
     });
   });
 
+  group('ExternalPlayerService protocol URLs', () {
+    test('protocolUrlFor returns vlc:// for VLC', () {
+      final url = ExternalPlayerService.protocolUrlFor(
+        'http://example.com/stream.m3u8',
+        ExternalPlayer.vlc,
+      );
+      expect(url, 'vlc://http://example.com/stream.m3u8');
+    });
+
+    test('protocolUrlFor returns potplayer:// for PotPlayer', () {
+      final url = ExternalPlayerService.protocolUrlFor(
+        'http://example.com/stream.m3u8',
+        ExternalPlayer.potPlayer,
+      );
+      expect(url, 'potplayer://http://example.com/stream.m3u8');
+    });
+
+    test('protocolUrlFor returns null for systemDefault', () {
+      expect(
+        ExternalPlayerService.protocolUrlFor(
+          'http://a.b/c',
+          ExternalPlayer.systemDefault,
+        ),
+        isNull,
+      );
+    });
+
+    test('protocolUrlFor returns null for players without URL schemes', () {
+      for (final player in [
+        ExternalPlayer.mpv,
+        ExternalPlayer.kodi,
+        ExternalPlayer.mxPlayer,
+        ExternalPlayer.justPlayer,
+        ExternalPlayer.iina,
+        ExternalPlayer.celluloid,
+        ExternalPlayer.infuse,
+      ]) {
+        expect(
+          ExternalPlayerService.protocolUrlFor('http://a.b/c', player),
+          isNull,
+          reason: '${player.name} should return null',
+        );
+      }
+    });
+  });
+
   group('ExternalPlayer name-based lookup', () {
     test('values.firstWhere matches by name for all players', () {
       for (final player in ExternalPlayer.values) {
@@ -155,6 +227,10 @@ void main() {
         'kodi': ExternalPlayer.kodi,
         'justPlayer': ExternalPlayer.justPlayer,
         'mpv': ExternalPlayer.mpv,
+        'iina': ExternalPlayer.iina,
+        'potPlayer': ExternalPlayer.potPlayer,
+        'celluloid': ExternalPlayer.celluloid,
+        'infuse': ExternalPlayer.infuse,
       };
 
       for (final entry in settingsMap.entries) {

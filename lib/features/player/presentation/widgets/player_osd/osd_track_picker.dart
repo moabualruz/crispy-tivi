@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/crispy_spacing.dart';
@@ -39,11 +40,11 @@ class TrackPickerSheet extends StatelessWidget {
                 ),
                 const Spacer(),
                 Tooltip(
-                  message: 'Close',
+                  message: context.l10n.commonClose,
                   child: IconButton(
                     icon: const Icon(Icons.close, color: Colors.white70),
                     onPressed: () => Navigator.pop(context),
-                    tooltip: 'Close',
+                    tooltip: context.l10n.commonClose,
                   ),
                 ),
               ],

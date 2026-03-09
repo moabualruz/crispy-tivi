@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/smart_image.dart';
 
 /// Direction indicator for double-tap seek.
 enum SeekDirection { forward, backward }
@@ -281,12 +282,17 @@ class BufferingIndicator extends StatelessWidget {
             if (hasLogo)
               Padding(
                 padding: const EdgeInsets.only(bottom: CrispySpacing.lg),
-                child: Image.network(
-                  channelLogoUrl!,
+                child: SizedBox(
                   width: 72,
                   height: 72,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                  child: SmartImage(
+                    title: channelName ?? '',
+                    imageUrl: channelLogoUrl,
+                    imageKind: 'logo',
+                    fit: BoxFit.contain,
+                    memCacheWidth: 144,
+                    memCacheHeight: 144,
+                  ),
                 ),
               ),
             // Spinner

@@ -26,7 +26,19 @@ enum ExternalPlayer {
   justPlayer('Just Player', 'com.brouken.player'),
 
   /// mpv (Android / Desktop).
-  mpv('mpv', 'is.xyz.mpv');
+  mpv('mpv', 'is.xyz.mpv'),
+
+  /// IINA (macOS only).
+  iina('IINA', null),
+
+  /// PotPlayer (Windows only).
+  potPlayer('PotPlayer', null),
+
+  /// Celluloid (Linux only).
+  celluloid('Celluloid', null),
+
+  /// Infuse (iOS only).
+  infuse('Infuse', null);
 
   const ExternalPlayer(this.label, this.androidPackage);
 
@@ -117,6 +129,15 @@ class ExternalPlayerService {
       case ExternalPlayer.justPlayer:
       case ExternalPlayer.mpv:
         return _launchWithPackage(streamUrl, player: player);
+
+      case ExternalPlayer.infuse:
+        return _launchInfuseMobile(streamUrl);
+
+      case ExternalPlayer.iina:
+      case ExternalPlayer.potPlayer:
+      case ExternalPlayer.celluloid:
+        // Desktop-only players — fall back on mobile.
+        return _launchSystemDefault(streamUrl);
 
       case ExternalPlayer.systemDefault:
         return _launchSystemDefault(streamUrl);
@@ -245,6 +266,21 @@ class ExternalPlayerService {
     return _launchSystemDefault(streamUrl);
   }
 
+  /// Infuse on iOS: `infuse://x-callback-url/play?url=`.
+  Future<bool> _launchInfuseMobile(String streamUrl) async {
+    final infuseUri = Uri.parse(
+      'infuse://x-callback-url/play?url=${Uri.encodeComponent(streamUrl)}',
+    );
+    try {
+      if (await canLaunchUrl(infuseUri)) {
+        return launchUrl(infuseUri);
+      }
+    } catch (e) {
+      debugPrint('Infuse URL scheme failed: $e');
+    }
+    return _launchSystemDefault(streamUrl);
+  }
+
   // ──────────────────────────────────────────────────────
   //  Desktop (Windows / Linux / macOS)
   // ──────────────────────────────────────────────────────
@@ -267,10 +303,20 @@ class ExternalPlayerService {
       case ExternalPlayer.mpv:
         return _launchMpvDesktop(streamUrl, title: title, headers: headers);
 
+      case ExternalPlayer.iina:
+        return _launchIinaDesktop(streamUrl);
+
+      case ExternalPlayer.potPlayer:
+        return _launchPotPlayerDesktop(streamUrl);
+
+      case ExternalPlayer.celluloid:
+        return _launchCelluloidDesktop(streamUrl);
+
       case ExternalPlayer.kodi:
       case ExternalPlayer.mxPlayer:
       case ExternalPlayer.mxPlayerPro:
       case ExternalPlayer.justPlayer:
+      case ExternalPlayer.infuse:
         // These players are mobile-only. Fall back to
         // system default on desktop.
         return _launchSystemDefault(streamUrl);
@@ -371,6 +417,94 @@ class ExternalPlayerService {
     }
 
     // Fallback: system default.
+    return _launchSystemDefault(streamUrl);
+  }
+
+  /// IINA on macOS: `iina://weblink?url=` URL scheme.
+  ///
+  /// IINA registers the `iina://` custom URL scheme on macOS.
+  /// Falls back to `open -a IINA` binary launch.
+  Future<bool> _launchIinaDesktop(String streamUrl) async {
+    final iinaUri = Uri.parse(
+      'iina://weblink?url=${Uri.encodeComponent(streamUrl)}',
+    );
+    try {
+      if (await canLaunchUrl(iinaUri)) {
+        return launchUrl(iinaUri);
+      }
+    } catch (e) {
+      debugPrint('IINA URL scheme failed: $e');
+    }
+
+    // Fallback: macOS `open -a` launch.
+    if (!kIsWeb && Platform.isMacOS) {
+      try {
+        final result = await Process.start('open', [
+          '-a',
+          'IINA',
+          streamUrl,
+        ], mode: ProcessStartMode.detached);
+        return result.pid > 0;
+      } catch (e) {
+        debugPrint('IINA open -a launch failed: $e');
+      }
+    }
+    return _launchSystemDefault(streamUrl);
+  }
+
+  /// PotPlayer on Windows: `potplayer://` URL scheme.
+  ///
+  /// PotPlayer registers the `potplayer://` scheme on Windows.
+  /// Falls back to binary detection in well-known paths.
+  Future<bool> _launchPotPlayerDesktop(String streamUrl) async {
+    final potUri = Uri.parse('potplayer://$streamUrl');
+    try {
+      if (await canLaunchUrl(potUri)) {
+        return launchUrl(potUri);
+      }
+    } catch (e) {
+      debugPrint('PotPlayer URL scheme failed: $e');
+    }
+
+    // Fallback: try well-known installation paths.
+    if (!kIsWeb && Platform.isWindows) {
+      const paths = [
+        r'C:\Program Files\DAUM\PotPlayer\PotPlayerMini64.exe',
+        r'C:\Program Files (x86)\DAUM\PotPlayer\PotPlayerMini.exe',
+        r'C:\Program Files\PotPlayer\PotPlayerMini64.exe',
+      ];
+      for (final path in paths) {
+        if (await File(path).exists()) {
+          try {
+            final result = await Process.start(path, [
+              streamUrl,
+            ], mode: ProcessStartMode.detached);
+            return result.pid > 0;
+          } catch (e) {
+            debugPrint('PotPlayer binary launch failed: $e');
+          }
+        }
+      }
+    }
+    return _launchSystemDefault(streamUrl);
+  }
+
+  /// Celluloid on Linux: launch via binary.
+  ///
+  /// Celluloid (formerly GNOME MPV) is a GTK frontend for
+  /// mpv. Detected via PATH lookup.
+  Future<bool> _launchCelluloidDesktop(String streamUrl) async {
+    final celluloidPath = await _findBinaryInPath('celluloid');
+    if (celluloidPath != null) {
+      try {
+        final result = await Process.start(celluloidPath, [
+          streamUrl,
+        ], mode: ProcessStartMode.detached);
+        return result.pid > 0;
+      } catch (e) {
+        debugPrint('Celluloid binary launch failed: $e');
+      }
+    }
     return _launchSystemDefault(streamUrl);
   }
 
@@ -484,11 +618,16 @@ class ExternalPlayerService {
     switch (player) {
       case ExternalPlayer.vlc:
         return 'vlc://$streamUrl';
+      case ExternalPlayer.potPlayer:
+        return 'potplayer://$streamUrl';
       case ExternalPlayer.mpv:
       case ExternalPlayer.kodi:
       case ExternalPlayer.mxPlayer:
       case ExternalPlayer.mxPlayerPro:
       case ExternalPlayer.justPlayer:
+      case ExternalPlayer.iina:
+      case ExternalPlayer.celluloid:
+      case ExternalPlayer.infuse:
       case ExternalPlayer.systemDefault:
         return null;
     }

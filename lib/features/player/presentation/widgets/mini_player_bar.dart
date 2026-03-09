@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +7,8 @@ import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/glass_surface.dart';
+import '../../../../core/widgets/smart_image.dart';
+import '../../../../core/widgets/watch_progress_bar.dart';
 import '../../domain/entities/playback_state.dart';
 import '../providers/player_providers.dart';
 
@@ -46,7 +49,10 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar>
   }
 
   void _enterFullscreen() {
-    ref.read(playerModeProvider.notifier).enterFullscreen();
+    final currentRoute = ref.read(playerModeProvider).currentRoute;
+    ref
+        .read(playerModeProvider.notifier)
+        .enterFullscreen(hostRoute: currentRoute);
     ref.read(playerServiceProvider).forceStateEmit();
   }
 
@@ -133,7 +139,7 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar>
         duration: CrispyAnimation.normal,
         child: Semantics(
           button: true,
-          label: 'Expand to fullscreen',
+          label: context.l10n.playerExpandToFullscreen,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: _enterFullscreen,
@@ -160,14 +166,11 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar>
                                 minHeight: CrispySpacing.xxs,
                               )
                               // VOD: track position / duration.
-                              : LinearProgressIndicator(
+                              : WatchProgressBar(
                                 value: progress,
+                                height: CrispySpacing.xxs,
                                 backgroundColor: colorScheme.outlineVariant
                                     .withValues(alpha: 0.3),
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  colorScheme.primary,
-                                ),
-                                minHeight: CrispySpacing.xxs,
                               ),
                     ),
 
@@ -190,29 +193,24 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar>
                       child: Row(
                         children: [
                           // Channel logo
-                          if (state.channelLogoUrl != null &&
-                              state.channelLogoUrl!.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                right: CrispySpacing.sm,
-                              ),
-                              child: ClipRect(
-                                child: Image.network(
-                                  state.channelLogoUrl!,
-                                  width: 36,
-                                  height: 36,
-                                  fit: BoxFit.cover,
-                                  errorBuilder:
-                                      (_, _, _) =>
-                                          const Icon(Icons.live_tv, size: 28),
-                                ),
-                              ),
-                            )
-                          else
-                            const Padding(
-                              padding: EdgeInsets.only(right: CrispySpacing.sm),
-                              child: Icon(Icons.live_tv, size: 28),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              right: CrispySpacing.sm,
                             ),
+                            child: SizedBox(
+                              width: 36,
+                              height: 36,
+                              child: SmartImage(
+                                title: state.channelName ?? '',
+                                imageUrl: state.channelLogoUrl,
+                                imageKind: 'logo',
+                                fit: BoxFit.contain,
+                                icon: Icons.live_tv,
+                                memCacheWidth: 72,
+                                memCacheHeight: 72,
+                              ),
+                            ),
+                          ),
 
                           // Channel name + LIVE badge / program title
                           Expanded(
@@ -279,7 +277,10 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar>
                                   : Icons.play_arrow_rounded,
                               size: 28,
                             ),
-                            tooltip: state.isPlaying ? 'Pause' : 'Play',
+                            tooltip:
+                                state.isPlaying
+                                    ? context.l10n.commonPause
+                                    : context.l10n.commonPlay,
                           ),
 
                           // Mute/Unmute button
@@ -293,14 +294,17 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar>
                               _volumeIcon(state.volume, state.isMuted),
                               size: 22,
                             ),
-                            tooltip: state.isMuted ? 'Unmute' : 'Mute',
+                            tooltip:
+                                state.isMuted
+                                    ? context.l10n.playerUnmute
+                                    : context.l10n.playerMute,
                           ),
 
                           // Close button
                           IconButton(
                             onPressed: _dismiss,
                             icon: const Icon(Icons.close_rounded, size: 22),
-                            tooltip: 'Stop playback',
+                            tooltip: context.l10n.playerStopPlayback,
                           ),
                         ],
                       ),

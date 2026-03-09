@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/toggle_notifier.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/utils/input_mode_notifier.dart';
 
@@ -196,125 +196,10 @@ final playerLockedProvider = NotifierProvider<PlayerLockedNotifier, bool>(
 );
 
 /// Notifier backing [playerLockedProvider].
-class PlayerLockedNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-
-  /// Toggles the lock state.
-  void toggle() => state = !state;
-
+class PlayerLockedNotifier extends ToggleNotifier {
   /// Sets the lock state explicitly.
   void setLocked({required bool value}) => state = value;
 }
-
-// ─────────────────────────────────────────────────────────────
-//  A-B Loop state (PS-18)
-// ─────────────────────────────────────────────────────────────
-
-/// State for the A-B loop feature.
-///
-/// Cycle: idle → A set → A+B set → idle (clear).
-enum AbLoopPhase {
-  /// Neither point is set.
-  idle,
-
-  /// Start point A is set; waiting for end point B.
-  aSet,
-
-  /// Both points are set; player loops between A and B.
-  abSet,
-}
-
-/// Holds the A-B loop position state.
-@immutable
-class AbLoopState {
-  const AbLoopState({
-    this.loopStart,
-    this.loopEnd,
-    this.phase = AbLoopPhase.idle,
-  });
-
-  /// Loop start point (A). Expressed as a progress fraction
-  /// (0.0 – 1.0) relative to total video duration.
-  final double? loopStart;
-
-  /// Loop end point (B). Expressed as a progress fraction
-  /// (0.0 – 1.0) relative to total video duration.
-  final double? loopEnd;
-
-  /// Current phase of the A-B cycle.
-  final AbLoopPhase phase;
-
-  /// Whether the loop is fully active (A and B both set).
-  bool get isActive => phase == AbLoopPhase.abSet;
-
-  AbLoopState copyWith({
-    double? loopStart,
-    double? loopEnd,
-    AbLoopPhase? phase,
-    bool clearStart = false,
-    bool clearEnd = false,
-  }) {
-    return AbLoopState(
-      loopStart: clearStart ? null : (loopStart ?? this.loopStart),
-      loopEnd: clearEnd ? null : (loopEnd ?? this.loopEnd),
-      phase: phase ?? this.phase,
-    );
-  }
-}
-
-/// Manages A-B loop state for VOD playback.
-///
-/// Tap cycle:
-///   1st tap → set A (loopStart = current position)
-///   2nd tap → set B (loopEnd = current position), activate loop
-///   3rd tap → clear both, return to idle
-class AbLoopNotifier extends Notifier<AbLoopState> {
-  @override
-  AbLoopState build() => const AbLoopState();
-
-  /// Advances the A-B loop cycle.
-  ///
-  /// [currentProgress] is the current playback position
-  /// as a fraction (0.0 – 1.0).
-  void advance(double currentProgress) {
-    switch (state.phase) {
-      case AbLoopPhase.idle:
-        // Set A point
-        state = AbLoopState(
-          loopStart: currentProgress,
-          phase: AbLoopPhase.aSet,
-        );
-      case AbLoopPhase.aSet:
-        // Set B point — ensure B is after A
-        final a = state.loopStart ?? 0.0;
-        final b = currentProgress;
-        if (b <= a) {
-          // If B is before A, swap them
-          state = AbLoopState(
-            loopStart: b,
-            loopEnd: a,
-            phase: AbLoopPhase.abSet,
-          );
-        } else {
-          state = state.copyWith(loopEnd: b, phase: AbLoopPhase.abSet);
-        }
-      case AbLoopPhase.abSet:
-        // Clear the loop
-        state = const AbLoopState();
-    }
-  }
-
-  /// Clears the A-B loop and returns to idle.
-  void clear() {
-    state = const AbLoopState();
-  }
-}
-
-/// Global A-B loop provider.
-final abLoopProvider = NotifierProvider<AbLoopNotifier, AbLoopState>(
-  AbLoopNotifier.new,
-);
 
 // ─────────────────────────────────────────────────────────────
 //  FE-PS-19: Video zoom scale (pinch-to-zoom)

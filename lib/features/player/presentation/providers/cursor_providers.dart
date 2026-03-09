@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/toggle_notifier.dart';
+
 // ─────────────────────────────────────────────────────────────
 //  Mouse cursor auto-hide
 // ─────────────────────────────────────────────────────────────
@@ -40,10 +42,7 @@ final streamStatsVisibleProvider = NotifierProvider<StreamStatsNotifier, bool>(
   StreamStatsNotifier.new,
 );
 
-class StreamStatsNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-
+class StreamStatsNotifier extends ToggleNotifier {
   void update(bool Function(bool) cb) {
     state = cb(state);
   }

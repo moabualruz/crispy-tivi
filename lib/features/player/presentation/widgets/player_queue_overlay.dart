@@ -1,4 +1,7 @@
 // FE-PS-07: Playback queue / watch-next panel
+import 'dart:async';
+
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,7 +9,9 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/duration_formatter.dart';
-import '../providers/osd_providers.dart';
+import '../../../../core/widgets/smart_image.dart';
+import '../../../iptv/domain/entities/channel.dart';
+import '../../../vod/domain/entities/vod_item.dart';
 import '../providers/player_providers.dart';
 import 'player_osd/osd_shared.dart';
 
@@ -20,6 +25,7 @@ class QueueItem {
   const QueueItem({
     required this.id,
     required this.title,
+    required this.streamUrl,
     this.thumbnailUrl,
     this.duration,
     this.subtitle,
@@ -30,6 +36,9 @@ class QueueItem {
 
   /// Display title.
   final String title;
+
+  /// Stream URL for playback.
+  final String streamUrl;
 
   /// Optional subtitle (e.g., episode number or channel name).
   final String? subtitle;
@@ -95,12 +104,6 @@ class QueueNotifier extends Notifier<QueueState> {
   QueueState build() => const QueueState();
 
   /// Populates the queue with [items] and an optional [label].
-  ///
-  /// Call this when loading a series season, EPG schedule,
-  /// or a playlist.
-  ///
-  /// TODO(FE-PS-07): Wire to series/EPG/playlist providers so
-  /// the queue auto-populates from backend data.
   void setQueue({
     required List<QueueItem> items,
     int currentIndex = 0,
@@ -111,6 +114,47 @@ class QueueNotifier extends Notifier<QueueState> {
       currentIndex: currentIndex,
       label: label,
     );
+  }
+
+  /// Auto-populates the queue from a [PlaybackSessionState].
+  ///
+  /// Maps series episodes or live TV channels to queue items.
+  /// Clears the queue when no applicable content is found.
+  void populateFromSession(PlaybackSessionState session) {
+    // Series: populate with season episodes.
+    if (session.episodeList != null && session.episodeList!.isNotEmpty) {
+      final items = _episodesToQueueItems(session.episodeList!);
+      final currentIdx = _findCurrentEpisodeIndex(
+        session.episodeList!,
+        session.streamUrl,
+        session.episodeNumber,
+      );
+      setQueue(
+        items: items,
+        currentIndex: currentIdx,
+        label:
+            session.seasonNumber != null
+                ? 'Season ${session.seasonNumber} Episodes'
+                : 'Episodes',
+      );
+      return;
+    }
+
+    // Live TV: populate with channel list.
+    if (session.isLive &&
+        session.channelList != null &&
+        session.channelList!.isNotEmpty) {
+      final items = _channelsToQueueItems(session.channelList!);
+      setQueue(
+        items: items,
+        currentIndex: session.channelIndex,
+        label: 'Channels',
+      );
+      return;
+    }
+
+    // No applicable content — clear the queue.
+    clear();
   }
 
   /// Clears the queue.
@@ -138,6 +182,73 @@ class QueueNotifier extends Notifier<QueueState> {
 final queueProvider = NotifierProvider<QueueNotifier, QueueState>(
   QueueNotifier.new,
 );
+
+// ─────────────────────────────────────────────────────────────
+//  Queue auto-population (FE-PS-07)
+// ─────────────────────────────────────────────────────────────
+
+/// Watches the playback session and auto-populates the queue
+/// with series episodes or live TV channels.
+///
+/// Watch this provider in the fullscreen overlay to activate.
+final queueAutoPopulateProvider = Provider<void>((ref) {
+  // Listen for subsequent session changes.
+  ref.listen<PlaybackSessionState>(playbackSessionProvider, (_, session) {
+    ref.read(queueProvider.notifier).populateFromSession(session);
+  });
+  // Deferred initial population — avoids modifying queueProvider
+  // during this provider's own initialization.
+  Future.microtask(() {
+    ref
+        .read(queueProvider.notifier)
+        .populateFromSession(ref.read(playbackSessionProvider));
+  });
+});
+
+List<QueueItem> _episodesToQueueItems(List<VodItem> episodes) {
+  return episodes.map((ep) {
+    final epNum = ep.episodeNumber;
+    final subtitle = epNum != null ? 'Episode $epNum' : null;
+    return QueueItem(
+      id: ep.id,
+      title: ep.name,
+      streamUrl: ep.streamUrl,
+      thumbnailUrl: ep.posterUrl,
+      duration: ep.duration != null ? Duration(minutes: ep.duration!) : null,
+      subtitle: subtitle,
+    );
+  }).toList();
+}
+
+int _findCurrentEpisodeIndex(
+  List<VodItem> episodes,
+  String currentUrl,
+  int? currentEpNum,
+) {
+  // Match by stream URL first.
+  for (var i = 0; i < episodes.length; i++) {
+    if (episodes[i].streamUrl == currentUrl) return i;
+  }
+  // Fallback: match by episode number.
+  if (currentEpNum != null) {
+    for (var i = 0; i < episodes.length; i++) {
+      if (episodes[i].episodeNumber == currentEpNum) return i;
+    }
+  }
+  return 0;
+}
+
+List<QueueItem> _channelsToQueueItems(List<Channel> channels) {
+  return channels.map((ch) {
+    return QueueItem(
+      id: ch.id,
+      title: ch.name,
+      streamUrl: ch.streamUrl,
+      thumbnailUrl: ch.logoUrl,
+      subtitle: ch.group,
+    );
+  }).toList();
+}
 
 // ─────────────────────────────────────────────────────────────
 //  Queue panel overlay (FE-PS-07)
@@ -251,7 +362,7 @@ class _QueuePanel extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Close',
+                  tooltip: context.l10n.playerQueueClose,
                   onPressed: onClose,
                   icon: Icon(
                     Icons.close_rounded,
@@ -275,7 +386,7 @@ class _QueuePanel extends StatelessWidget {
             Expanded(
               child: Center(
                 child: Text(
-                  'Queue is empty',
+                  context.l10n.playerQueueEmpty,
                   style: textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
@@ -443,14 +554,12 @@ class _QueueThumbnail extends StatelessWidget {
         height: h,
         child:
             thumbnailUrl != null
-                ? Image.network(
-                  thumbnailUrl!,
-                  width: w,
-                  height: h,
+                ? SmartImage(
+                  title: '',
+                  imageUrl: thumbnailUrl,
                   fit: BoxFit.cover,
-                  errorBuilder:
-                      (context, error, stackTrace) =>
-                          _PlaceholderThumb(colorScheme: colorScheme),
+                  memCacheWidth: 144,
+                  memCacheHeight: 80,
                 )
                 : _PlaceholderThumb(colorScheme: colorScheme),
       ),
@@ -497,7 +606,10 @@ class OsdQueueButton extends ConsumerWidget {
 
     return OsdIconButton(
       icon: Icons.queue_rounded,
-      tooltip: isVisible ? 'Close Queue' : 'Queue',
+      tooltip:
+          isVisible
+              ? context.l10n.playerQueueClose
+              : context.l10n.playerQueueOpen,
       iconColor:
           isVisible ? Theme.of(context).colorScheme.primary : Colors.white,
       order: order,

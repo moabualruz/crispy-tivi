@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,7 @@ import '../../../../../core/theme/crispy_radius.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
 import '../../../../../core/utils/date_format_utils.dart';
 import '../../../../../core/widgets/live_badge.dart';
+import '../../../../../core/widgets/smart_image.dart';
 import '../../../../epg/presentation/providers/epg_providers.dart';
 import '../../../domain/entities/playback_state.dart';
 import 'format_badge_row.dart';
@@ -17,7 +19,7 @@ import 'osd_sleep_timer.dart';
 
 /// Top bar: gradient overlay, back button + title.
 ///
-/// Netflix style: gradient top-to-transparent, minimal
+/// Gradient top-to-transparent, minimal
 /// controls. Removed: search, channels, recordings,
 /// favorite star, AirPlay/Cast, LIVE badge (moved to
 /// overflow or kept as badge).
@@ -75,7 +77,7 @@ class OsdTopBar extends StatelessWidget {
             // Back button (left arrow, white, 24px)
             IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
-              tooltip: 'Back',
+              tooltip: context.l10n.commonClose,
               onPressed:
                   onBack ??
                   () {
@@ -92,13 +94,16 @@ class OsdTopBar extends StatelessWidget {
             if (channelLogoUrl != null && channelLogoUrl!.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(right: CrispySpacing.sm),
-                child: ClipRect(
-                  child: Image.network(
-                    channelLogoUrl!,
-                    width: 28,
-                    height: 28,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: SmartImage(
+                    title: channelName ?? '',
+                    imageUrl: channelLogoUrl,
+                    imageKind: 'logo',
+                    fit: BoxFit.contain,
+                    memCacheWidth: 56,
+                    memCacheHeight: 56,
                   ),
                 ),
               ),
@@ -263,7 +268,7 @@ class CurrentProgramLabel extends ConsumerWidget {
                     widthFactor: current.progress.clamp(0.0, 1.0),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: CrispyColors.netflixRed,
+                        color: CrispyColors.brandRed,
                         borderRadius: BorderRadius.circular(CrispyRadius.tvSm),
                       ),
                     ),

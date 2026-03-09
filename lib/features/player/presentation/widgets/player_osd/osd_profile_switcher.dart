@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,7 +42,7 @@ class OsdProfileSwitcher extends ConsumerWidget {
                 kProfileAvatarColors.length];
 
         return Tooltip(
-          message: 'Switch profile (${active.name})',
+          message: context.l10n.playerSwitchProfileTooltip(active.name),
           child: InkWell(
             onTap: () => _showProfilePicker(context, ref, state),
             borderRadius: BorderRadius.circular(CrispyRadius.full),
@@ -130,7 +131,7 @@ class _ProfilePickerSheet extends StatelessWidget {
             ),
 
             Text(
-              "Switch Profile",
+              context.l10n.playerSwitchProfileTitle,
               style: tt.titleMedium?.copyWith(
                 color: cs.onSurface,
                 fontWeight: FontWeight.bold,

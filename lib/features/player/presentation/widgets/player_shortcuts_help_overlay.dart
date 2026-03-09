@@ -1,11 +1,11 @@
-import 'dart:ui';
-
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/glass_surface.dart';
 
 /// Two-column keyboard shortcuts reference overlay.
 ///
@@ -67,20 +67,15 @@ class _PlayerShortcutsHelpOverlayState
             child: GestureDetector(
               // Prevent taps inside the panel from dismissing.
               onTap: () {},
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                  child: Container(
+              child: Padding(
+                padding: const EdgeInsets.all(CrispySpacing.xl),
+                child: GlassSurface(
+                  borderRadius: CrispyRadius.tv,
+                  blurSigma: 18,
+                  tintColor: CrispyColors.scrimHeavy,
+                  borderColor: Colors.white.withValues(alpha: 0.12),
+                  child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 560),
-                    margin: const EdgeInsets.all(CrispySpacing.xl),
-                    decoration: BoxDecoration(
-                      color: CrispyColors.scrimHeavy,
-                      borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.12),
-                      ),
-                    ),
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(CrispySpacing.lg),
                       child: Column(
@@ -97,7 +92,7 @@ class _PlayerShortcutsHelpOverlayState
                               ),
                               const SizedBox(width: CrispySpacing.sm),
                               Text(
-                                'Keyboard Shortcuts',
+                                context.l10n.playerShortcutsTitle,
                                 style: textTheme.titleMedium?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -111,7 +106,7 @@ class _PlayerShortcutsHelpOverlayState
                                   size: 18,
                                 ),
                                 onPressed: widget.onDismiss,
-                                tooltip: 'Close (Esc)',
+                                tooltip: context.l10n.playerShortcutsCloseEsc,
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
                               ),
@@ -235,7 +230,7 @@ class _PlayerShortcutsHelpOverlayState
                           ),
                           const SizedBox(height: CrispySpacing.sm),
                           Text(
-                            'Press Esc or ? to close',
+                            context.l10n.playerShortcutsCloseEsc,
                             style: textTheme.labelSmall?.copyWith(
                               color: Colors.white30,
                             ),

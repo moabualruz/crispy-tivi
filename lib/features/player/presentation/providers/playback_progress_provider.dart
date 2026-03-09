@@ -6,6 +6,8 @@ import '../../../../core/constants.dart';
 import '../../../vod/domain/entities/vod_item.dart';
 import '../../data/watch_history_service.dart';
 import '../../domain/entities/playback_state.dart';
+import '../../domain/segment_skip_config.dart';
+import '../../domain/utils/skip_segment_utils.dart';
 import 'player_providers.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -198,6 +200,9 @@ class PlaybackProgressNotifier extends Notifier<PlaybackProgressState> {
     });
   }
 
+  /// Seconds before end at which the static next-up trigger fires.
+  static const _kStaticNextUpSeconds = 32;
+
   void _startCompletionPoll() {
     _completionPollTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
       if (_completionFired) {
@@ -208,12 +213,42 @@ class PlaybackProgressNotifier extends Notifier<PlaybackProgressState> {
       final ps = asyncState.value;
       if (ps == null || ps.status == PlaybackStatus.paused) return;
       if (ps.duration.inMilliseconds <= 0) return;
-      if (ps.progress < kCompletionThreshold) return;
+
+      final nextUpMode = ref.read(nextUpModeProvider);
+
+      // NextUpMode.off: only fire at kCompletionThreshold for
+      // content-finished state (watch history), never for next-up.
+      // NextUpMode.static: fire at 32s before end.
+      // NextUpMode.smart: fire when position enters an outro segment.
+      final bool shouldFire;
+      switch (nextUpMode) {
+        case NextUpMode.off:
+          shouldFire = ps.progress >= kCompletionThreshold;
+        case NextUpMode.static:
+          final remainingMs =
+              ps.duration.inMilliseconds - ps.position.inMilliseconds;
+          shouldFire =
+              remainingMs <= _kStaticNextUpSeconds * 1000 && ps.progress >= 0.5;
+        case NextUpMode.smart:
+          shouldFire = _isInOutroSegment(ps);
+      }
+
+      if (!shouldFire) return;
 
       _completionFired = true;
       timer.cancel();
 
       final session = ref.read(playbackSessionProvider);
+
+      // For NextUpMode.off, only mark content as finished — never
+      // show the next-up overlay.
+      if (nextUpMode == NextUpMode.off) {
+        if (!session.isLive && ps.progress >= kCompletionThreshold) {
+          state = state.copyWith(completionEvent: const ContentFinished());
+        }
+        return;
+      }
+
       if (session.mediaType == 'episode' && session.episodeList != null) {
         final next = findNextEpisode(session);
         if (next != null) {
@@ -225,6 +260,22 @@ class PlaybackProgressNotifier extends Notifier<PlaybackProgressState> {
         state = state.copyWith(completionEvent: const ContentFinished());
       }
     });
+  }
+
+  /// Whether the current position is inside an outro/credits segment.
+  bool _isInOutroSegment(PlaybackState ps) {
+    if (ps.skipSegments.isEmpty) {
+      // No segment data — fall back to static 32s trigger.
+      final remainingMs =
+          ps.duration.inMilliseconds - ps.position.inMilliseconds;
+      return remainingMs <= _kStaticNextUpSeconds * 1000 && ps.progress >= 0.5;
+    }
+    for (final seg in ps.skipSegments) {
+      if (!seg.containsPosition(ps.position)) continue;
+      final type = inferSegmentType(seg, ps.skipSegments);
+      if (type == SegmentType.outro) return true;
+    }
+    return false;
   }
 
   void _persist(PlaybackSessionState session) {

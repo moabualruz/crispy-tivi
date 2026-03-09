@@ -9,34 +9,35 @@ part of 'player_service.dart';
 /// This is a `part of` the player_service library so all
 /// mixins can access library-private members.
 abstract class PlayerServiceBase {
-  PlayerServiceBase({Player? player, DateTime Function()? clock})
-    : _player = player ?? Player(),
-      _clock = clock ?? DateTime.now;
+  PlayerServiceBase({
+    CrispyPlayer? player,
+    DateTime Function()? clock,
+    AdaptiveBufferManager? bufferManager,
+    WarmFailoverEngine? warmFailover,
+  }) : _player = player ?? MediaKitPlayer(),
+       _clock = clock ?? DateTime.now,
+       _bufferManager = bufferManager,
+       _warmFailover = warmFailover;
 
   // ── Core Player ──────────────────────────────────────
-  final Player _player;
+  // Mutable — PlayerHandoffManager swaps backends at runtime.
+  // ignore: prefer_final_fields
+  CrispyPlayer _player;
 
-  /// The underlying media_kit player for video rendering.
-  Player get player => _player;
+  /// The underlying [CrispyPlayer] for playback.
+  CrispyPlayer get player => _player;
 
   /// Clock function, injectable for testing.
   final DateTime Function() _clock;
 
-  // ── Video Controller ─────────────────────────────────
-  VideoController? _videoController;
+  /// Adaptive buffer tier manager (null when unavailable).
+  final AdaptiveBufferManager? _bufferManager;
 
-  /// Shared [VideoController] — created lazily, persists
-  /// with the [Player] to prevent texture/surface leaks
-  /// when the player screen is recreated.
-  VideoController get videoController {
-    _videoController ??= VideoController(
-      _player,
-      configuration: const VideoControllerConfiguration(
-        enableHardwareAcceleration: true,
-      ),
-    );
-    return _videoController!;
-  }
+  /// Warm failover engine (null when unavailable or on web).
+  final WarmFailoverEngine? _warmFailover;
+
+  // ── Handoff Manager ────────────────────────────────
+  late final PlayerHandoffManager _handoffManager;
 
   // ── Playback State ───────────────────────────────────
   app.PlaybackState _state = const app.PlaybackState();
@@ -109,8 +110,10 @@ abstract class PlayerServiceBase {
   // (especially PlayerStreamInfoMixin) can read them.
   // Setters are in PlayerAudioConfigMixin.
 
-  /// Hardware decoder mode: 'auto', 'no', or specific.
-  String _hwdecMode = 'auto';
+  /// Hardware decoder mode: 'auto-safe', 'auto', 'no', or specific.
+  /// Default 'auto-safe' uses only verified-safe hwdec methods,
+  /// avoiding instability on edge-case Android devices.
+  String _hwdecMode = 'auto-safe';
 
   /// Stream quality profile.
   StreamProfile _streamProfile = StreamProfile.auto;
@@ -124,11 +127,37 @@ abstract class PlayerServiceBase {
   /// Codecs to passthrough: 'ac3', 'dts', etc.
   List<String> _audioPassthroughCodecs = ['ac3', 'dts'];
 
+  /// EBU R128 loudness normalization.
+  bool _loudnessNormalization = true;
+
+  /// Surround-to-stereo downmix.
+  bool _stereoDownmix = false;
+
+  /// Maximum volume percentage (100–300).
+  int _maxVolume = 100;
+
+  // ── Stream Proxy ──────────────────────────────────
+  /// Local ffmpeg proxy for codec repair (desktop only).
+  final StreamProxy _streamProxy = StreamProxy();
+
+  /// Whether the current stream is playing through the proxy.
+  bool _proxyActive = false;
+
+  /// URLs already retried through the proxy this session.
+  /// Prevents infinite retry loops.
+  final Set<String> _proxyRetriedUrls = {};
+
+  /// Timer for audio track detection watchdog.
+  Timer? _audioCheckTimer;
+
   // ── Audio Interruption ──────────────────────────────
   /// True when playback was auto-paused by an audio
   /// interruption (phone call, Siri, etc.) and should
   /// resume when the interruption ends.
   bool _autoPausedByInterruption = false;
+
+  // ── OS Media Session ─────────────────────────────────
+  final OsMediaSession _mediaSession = OsMediaSession();
 
   // ── Subscriptions ────────────────────────────────────
   final List<StreamSubscription<dynamic>> _subs = [];
@@ -172,6 +201,8 @@ abstract class PlayerServiceBase {
     String? errorMessage,
     int? selectedAudioTrackId,
     int? selectedSubtitleTrackId,
+    int? selectedSecondarySubtitleTrackId,
+    bool clearSecondarySubtitle = false,
     String? aspectRatioLabel,
     bool? isFullscreen,
     int? retryCount,
@@ -197,6 +228,8 @@ abstract class PlayerServiceBase {
       errorMessage: errorMessage,
       selectedAudioTrackId: selectedAudioTrackId,
       selectedSubtitleTrackId: selectedSubtitleTrackId,
+      selectedSecondarySubtitleTrackId: selectedSecondarySubtitleTrackId,
+      clearSecondarySubtitle: clearSecondarySubtitle,
       aspectRatioLabel: aspectRatioLabel,
       retryCount: retryCount,
       audioTracks: audioTracks,
@@ -218,6 +251,8 @@ abstract class PlayerServiceBase {
         errorMessage == null &&
         selectedAudioTrackId == null &&
         selectedSubtitleTrackId == null &&
+        selectedSecondarySubtitleTrackId == null &&
+        !clearSecondarySubtitle &&
         aspectRatioLabel == null &&
         isFullscreen == null &&
         retryCount == null &&

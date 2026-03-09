@@ -79,6 +79,40 @@ mixin PlayerWatchdogMixin on PlayerServiceBase {
     }
 
     _checkStreamStall();
+    _checkBufferHealth();
+  }
+
+  /// Reads `demuxer-cache-duration` from mpv and feeds it
+  /// to the adaptive buffer manager. On tier change, applies
+  /// the new readahead value without restarting the stream.
+  ///
+  /// Also forwards buffer samples to the warm failover
+  /// engine for threshold evaluation.
+  void _checkBufferHealth() {
+    if (!_lastIsLive || kIsWeb) return;
+    if (_state.status != app.PlaybackStatus.playing) return;
+
+    final raw = _player.getProperty('demuxer-cache-duration');
+    if (raw == null) return;
+    final cacheDuration = double.tryParse(raw);
+    if (cacheDuration == null) return;
+
+    final url = _lastUrl;
+    if (url == null) return;
+
+    if (_bufferManager != null) {
+      _bufferManager.onBufferUpdate(url, cacheDuration).then((newTier) {
+        if (newTier != null) {
+          _player.setProperty(
+            'demuxer-readahead-secs',
+            newTier.readaheadSecs.toString(),
+          );
+        }
+      });
+    }
+
+    // Forward to warm failover for threshold evaluation.
+    _warmFailover?.onBufferUpdate(cacheDuration);
   }
 
   /// Detects a live stream that has stopped advancing (stalled).
@@ -93,7 +127,7 @@ mixin PlayerWatchdogMixin on PlayerServiceBase {
       return;
     }
 
-    final currentPos = _player.state.position;
+    final currentPos = _player.position;
     if (currentPos == _lastKnownPosition) {
       _stallTicks++;
       if (_stallTicks >= _stallThresholdTicks) {
@@ -114,10 +148,31 @@ mixin PlayerWatchdogMixin on PlayerServiceBase {
 
   /// Triggers a reconnect for a stalled live stream.
   ///
-  /// Resets the retry counter so the stall-triggered reconnect
-  /// gets the full [PlayerServiceBase.maxRetries] budget.
+  /// First checks the warm failover engine for a pre-buffered
+  /// alternative. If available, switches to it for near-instant
+  /// recovery. Otherwise falls back to standard reconnection.
   void _reconnectDueToStall() {
     if (_lastUrl == null) return;
+
+    // Check warm failover for a pre-buffered alternative.
+    final wf = _warmFailover;
+    if (wf != null) {
+      wf.onStreamStall().then((warmUrl) {
+        if (warmUrl != null) {
+          debugPrint('PlayerService: warm failover → $warmUrl');
+          _retryCount = 0;
+          openMedia(warmUrl, isLive: true);
+          return;
+        }
+        _coldReconnect();
+      });
+    } else {
+      _coldReconnect();
+    }
+  }
+
+  /// Standard cold reconnect with retry delay.
+  void _coldReconnect() {
     _retryCount = 0;
     _updateState(status: app.PlaybackStatus.buffering, retryCount: 0);
     _retryTimer?.cancel();

@@ -87,26 +87,6 @@ void main() {
     });
   });
 
-  group('AbLoopNotifier', () {
-    test('A-B Loop Phase progressions', () {
-      final container = ProviderContainer();
-      final notifier = container.read(abLoopProvider.notifier);
-
-      expect(container.read(abLoopProvider).phase, equals(AbLoopPhase.idle));
-
-      notifier.advance(0.2); // Set A
-      expect(container.read(abLoopProvider).phase, equals(AbLoopPhase.aSet));
-      expect(container.read(abLoopProvider).loopStart, equals(0.2));
-
-      notifier.advance(0.8); // Set B
-      expect(container.read(abLoopProvider).phase, equals(AbLoopPhase.abSet));
-      expect(container.read(abLoopProvider).loopEnd, equals(0.8));
-
-      notifier.advance(0.5); // Clear
-      expect(container.read(abLoopProvider).phase, equals(AbLoopPhase.idle));
-    });
-  });
-
   group('VideoZoomNotifier', () {
     test('updates and resets scale', () {
       final container = ProviderContainer();
