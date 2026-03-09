@@ -64,7 +64,13 @@ class GlassSurface extends ConsumerWidget {
 
     // Skip expensive BackdropFilter on desktop/web where GPU
     // blur causes high CPU/GPU spikes with multiple surfaces.
-    final useBlur = !kIsWeb && _isMobilePlatform && sigma >= 0.5;
+    // Also skip on Android TV form factor (width >= 1200dp) to
+    // protect weaker TV SoC GPU budget during video playback.
+    final isTvFormFactor =
+        defaultTargetPlatform == TargetPlatform.android &&
+        MediaQuery.sizeOf(context).width >= 1200;
+    final useBlur =
+        !kIsWeb && _isMobilePlatform && sigma >= 0.5 && !isTvFormFactor;
 
     final radius = BorderRadius.circular(borderRadius);
 

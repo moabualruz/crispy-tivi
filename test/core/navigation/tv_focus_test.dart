@@ -1,20 +1,21 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:crispy_tivi/config/app_config.dart';
+import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/core/providers/source_filter_provider.dart';
-import 'package:crispy_tivi/config/app_config.dart';
-import 'package:crispy_tivi/config/settings_notifier.dart';
+import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
+import 'package:crispy_tivi/features/player/data/watch_history_service.dart';
 import 'package:crispy_tivi/features/recommendations/domain/entities/recommendation.dart';
 import 'package:crispy_tivi/features/recommendations/presentation/providers/recommendation_providers.dart';
 import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/vod_favorites_provider.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/vod_providers.dart';
 import 'package:crispy_tivi/features/vod/presentation/screens/vod_browser_screen.dart';
-import 'package:crispy_tivi/features/player/data/watch_history_service.dart';
-import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
+import 'package:crispy_tivi/l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// Minimal settings notifier that does not require [CacheService] or
 /// [CrispyBackend] — avoids the late-field initialisation crash in
@@ -133,7 +134,11 @@ void main() {
           ),
           effectiveSourceIdsProvider.overrideWithValue(const []),
         ],
-        child: MaterialApp(home: const VodBrowserScreen()),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const VodBrowserScreen(),
+        ),
       ),
     );
 

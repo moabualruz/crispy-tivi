@@ -109,4 +109,19 @@ mixin _FfiSettingsMixin on _FfiBackendBase {
 
   List<String> guessLogoDomains(String name) =>
       rust_api.guessLogoDomains(name: name);
+
+  // ── Logo Resolver ──────────────────────────────
+
+  Future<String?> resolveChannelLogo(String name) =>
+      rust_api.resolveChannelLogo(name: name);
+
+  Future<String> resolveLogosBatch(String namesJson) =>
+      rust_api.resolveLogosBatch(namesJson: namesJson);
+
+  Future<bool> isLogoIndexStale() => rust_api.isLogoIndexStale();
+
+  Future<void> refreshLogoIndex() => rust_api.refreshLogoIndex();
+
+  Uint8List decodeBlurHash(String hash, int width, int height) =>
+      rust_api.decodeBlurhash(hash: hash, width: width, height: height);
 }

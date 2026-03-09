@@ -112,6 +112,30 @@ mixin _FfiEpgMixin on _FfiBackendBase {
 
   Future<void> clearEpgEntries() => rust_api.clearEpgEntries();
 
+  // ── EPG Mappings ─────────────────────────────────
+
+  Future<void> saveEpgMapping(Map<String, dynamic> mapping) =>
+      rust_api.saveEpgMapping(json: jsonEncode(mapping));
+
+  Future<List<Map<String, dynamic>>> getEpgMappings() async {
+    final json = await rust_api.getEpgMappings();
+    return _decodeJsonList(json);
+  }
+
+  Future<void> lockEpgMapping(String channelId) =>
+      rust_api.lockEpgMapping(channelId: channelId);
+
+  Future<void> deleteEpgMapping(String channelId) =>
+      rust_api.deleteEpgMapping(channelId: channelId);
+
+  Future<List<Map<String, dynamic>>> getPendingEpgSuggestions() async {
+    final json = await rust_api.getPendingEpgSuggestions();
+    return _decodeJsonList(json);
+  }
+
+  Future<void> setChannel247(String channelId, {required bool is247}) =>
+      rust_api.setChannel247(channelId: channelId, is247: is247);
+
   // ── Watch History ────────────────────────────────
 
   Future<List<Map<String, dynamic>>> loadWatchHistory() async {
@@ -141,6 +165,66 @@ mixin _FfiEpgMixin on _FfiBackendBase {
 
   Future<void> markReminderFired(String id) =>
       rust_api.markReminderFired(id: id);
+
+  // ── Bookmarks ────────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> loadBookmarks(String contentId) async {
+    final json = await rust_api.loadBookmarks(contentId: contentId);
+    return _decodeJsonList(json);
+  }
+
+  Future<void> saveBookmark(Map<String, dynamic> bookmark) =>
+      rust_api.saveBookmark(json: jsonEncode(bookmark));
+
+  Future<void> deleteBookmark(String id) => rust_api.deleteBookmark(id: id);
+
+  Future<void> clearBookmarks(String contentId) =>
+      rust_api.clearBookmarks(contentId: contentId);
+
+  // ── Smart Groups ──────────────────────────────
+
+  Future<String> createSmartGroup(String name) =>
+      rust_api.createSmartGroup(name: name);
+
+  Future<void> deleteSmartGroup(String groupId) =>
+      rust_api.deleteSmartGroup(groupId: groupId);
+
+  Future<void> renameSmartGroup(String groupId, String name) =>
+      rust_api.renameSmartGroup(groupId: groupId, name: name);
+
+  Future<void> addSmartGroupMember(
+    String groupId,
+    String channelId,
+    String sourceId,
+    int priority,
+  ) => rust_api.addSmartGroupMember(
+    groupId: groupId,
+    channelId: channelId,
+    sourceId: sourceId,
+    priority: priority,
+  );
+
+  Future<void> removeSmartGroupMember(String groupId, String channelId) =>
+      rust_api.removeSmartGroupMember(groupId: groupId, channelId: channelId);
+
+  Future<void> reorderSmartGroupMembers(
+    String groupId,
+    String orderedChannelIdsJson,
+  ) => rust_api.reorderSmartGroupMembers(
+    groupId: groupId,
+    orderedChannelIdsJson: orderedChannelIdsJson,
+  );
+
+  Future<String> getSmartGroupsJson() => rust_api.getSmartGroupsJson();
+
+  Future<String?> getSmartGroupForChannel(String channelId) =>
+      rust_api.getSmartGroupForChannel(channelId: channelId);
+
+  Future<String> getSmartGroupAlternatives(String channelId) =>
+      rust_api.getSmartGroupAlternatives(channelId: channelId);
+
+  Future<String> detectSmartGroupCandidates() =>
+      rust_api.detectSmartGroupCandidates();
 
   // ── Watch History Algorithms ───────────────────
 

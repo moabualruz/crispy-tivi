@@ -21,6 +21,9 @@ import AVKit
 
     // Register AirPlay plugin
     AirPlayPlugin.register(with: self.registrar(forPlugin: "AirPlayPlugin")!)
+
+    // Register PiP native player plugin (AVPlayer + AVPlayerViewController)
+    CrispyPipPlayerPlugin.register(with: self.registrar(forPlugin: "CrispyPipPlayerPlugin")!)
     
     // Register PiP MethodChannel
     if let controller = window?.rootViewController as? FlutterViewController {
@@ -28,17 +31,19 @@ import AVKit
         pipChannel?.setMethodCallHandler({ [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
             switch call.method {
             case "enterPip":
-                // Note: Proper iOS PiP requires AVPlayerLayer from the video player plugin (e.g. media_kit).
-                // This is a placeholder wiring to satisfy the method channel.
-                if AVPictureInPictureController.isPictureInPictureSupported() {
-                    // Activate PiP natively if configured
-                    result(nil)
-                } else {
-                    result(FlutterError(code: "UNAVAILABLE", message: "PiP not supported on this device", details: nil))
+                if !AVPictureInPictureController.isPictureInPictureSupported() {
+                    result(["success": false, "errorCode": "not_supported"])
+                    return
                 }
+                // iOS PiP is activated via IosPipPlayer → CrispyPipPlayerPlugin.
+                // This channel returns success to update PipNotifier state.
+                result(["success": true])
             case "exitPip":
-                // Exit PiP logic
                 result(nil)
+            case "setAutoPipReady":
+                // iOS doesn't have native auto-PiP like Android.
+                // The Dart lifecycle handler calls enterPip() directly.
+                result(true)
             default:
                 result(FlutterMethodNotImplemented)
             }

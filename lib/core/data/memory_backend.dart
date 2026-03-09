@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' show exp;
+import 'dart:typed_data';
 
 import '../constants.dart';
 import '../utils/duration_formatter.dart';
@@ -11,6 +12,7 @@ import 'dart_algorithm_fallbacks.dart';
 import 'epg_time_utils.dart';
 import 'xtream_url_builder.dart';
 
+part 'memory_backend_buffer.dart';
 part 'memory_backend_channels.dart';
 part 'memory_backend_vod.dart';
 part 'memory_backend_epg.dart';
@@ -26,6 +28,7 @@ part 'memory_backend_sync.dart';
 part 'memory_backend_recommendations.dart';
 part 'memory_backend_reco_sections.dart';
 part 'memory_backend_reco_trending.dart';
+part 'memory_backend_stream_health.dart';
 
 /// Pure in-memory [CrispyBackend] for testing.
 ///
@@ -52,6 +55,7 @@ part 'memory_backend_reco_trending.dart';
 ///   engine, section parsing/deserialization
 class MemoryBackend extends _MemoryStorage
     with
+        _MemoryBufferMixin,
         _MemoryChannelsMixin,
         _MemoryVodMixin,
         _MemoryEpgMixin,
@@ -64,7 +68,8 @@ class MemoryBackend extends _MemoryStorage
         _MemoryAlgoTimeMixin,
         _MemoryAlgorithmsMixin,
         _MemorySyncMixin,
-        _MemoryRecommendationsMixin
+        _MemoryRecommendationsMixin,
+        _MemoryStreamHealthMixin
     implements CrispyBackend {
   final _eventController = StreamController<String>.broadcast();
 
@@ -91,6 +96,27 @@ class MemoryBackend extends _MemoryStorage
   /// Inject a synthetic event for testing.
   void emitTestEvent(String jsonEvent) => _eventController.add(jsonEvent);
 
+  // ── Cleanup ────────────────────────────────────
+
+  @override
+  Future<void> dispose() async {
+    // In-memory — GC handles cleanup. No-op.
+  }
+
+  // ── App Update ────────────────────────────────
+
+  @override
+  Future<String> checkForUpdate(String currentVersion, String repoUrl) async {
+    return '{"has_update":false,"latest_version":"",'
+        '"download_url":"","changelog":"","published_at":"",'
+        '"assets_json":""}';
+  }
+
+  @override
+  String? getPlatformAssetUrl(String assetsJson, String platform) {
+    return null;
+  }
+
   // ── Maintenance ────────────────────────────────
 
   @override
@@ -115,7 +141,11 @@ class MemoryBackend extends _MemoryStorage
     savedLayouts.clear();
     searchHistory.clear();
     reminders.clear();
+    bookmarks.clear();
     sources.clear();
+    bufferTiers.clear();
+    smartGroups.clear();
+    smartGroupMembers.clear();
   }
 }
 
@@ -153,5 +183,27 @@ class _MemoryStorage {
   final savedLayouts = <String, Map<String, dynamic>>{};
   final searchHistory = <String, Map<String, dynamic>>{};
   final reminders = <String, Map<String, dynamic>>{};
+  final bookmarks = <String, Map<String, dynamic>>{};
   final sources = <String, Map<String, dynamic>>{};
+
+  /// Persisted adaptive-buffer tier by URL hash.
+  final bufferTiers = <String, String>{};
+
+  /// Stream health data by URL hash.
+  final streamHealth = <String, Map<String, dynamic>>{};
+
+  /// In-memory failover counters: urlHash → {lowBufferCount, stallCount}.
+  final failoverCounters = <String, List<int>>{};
+
+  /// EPG mapping storage: channelId → mapping.
+  final epgMappings = <String, Map<String, dynamic>>{};
+
+  /// 24/7 channel flags: channelId → true.
+  final channel247Flags = <String, bool>{};
+
+  /// Smart groups: groupId → {id, name, created_at}.
+  final smartGroups = <String, Map<String, dynamic>>{};
+
+  /// Smart group members: groupId → [channel entries].
+  final smartGroupMembers = <String, List<Map<String, dynamic>>>{};
 }

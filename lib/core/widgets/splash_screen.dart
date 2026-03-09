@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/crispy_animation.dart';
+import '../utils/device_form_factor.dart';
 
 /// Branded splash screen shown during app startup.
 ///
@@ -23,9 +24,11 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+    // On Android TV, use a snappy splash (no heavy animations).
+    final isTV = DeviceFormFactorService.current.isTV;
     _controller = AnimationController(
       vsync: this,
-      duration: CrispyAnimation.slow,
+      duration: isTV ? CrispyAnimation.fast : CrispyAnimation.slow,
     );
     _fadeIn = CurvedAnimation(
       parent: _controller,

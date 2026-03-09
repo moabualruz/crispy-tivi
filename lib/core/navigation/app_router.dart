@@ -288,6 +288,27 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             },
           ),
           GoRoute(
+            path: AppRoutes.vodDetails,
+            builder: (context, state) {
+              final extra = state.extra;
+              VodItem? item;
+              String? heroTag;
+
+              if (extra is VodItem) {
+                item = extra;
+              } else if (extra is Map<String, dynamic>) {
+                item = extra['item'] as VodItem?;
+                heroTag = extra['heroTag'] as String?;
+              }
+
+              if (item == null) {
+                return const _FallbackScreen('VOD Details');
+              }
+
+              return VodDetailsScreen(item: item, heroTag: heroTag);
+            },
+          ),
+          GoRoute(
             path: AppRoutes.cloudBrowser,
             builder: (context, state) => const CloudBrowserScreen(),
           ),
@@ -299,34 +320,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // ── Full-screen routes outside the shell ──
-      // VOD details, profiles, login, and multi-view
-      // are intentionally full-screen. They have NO AppShell
-      // parent, so we manually report currentRoute for
-      // player state tracking (AppShell.updateCurrentRoute
-      // only fires inside the ShellRoute).
-      GoRoute(
-        path: AppRoutes.vodDetails,
-        builder: (context, state) {
-          _reportRoute(ref, AppRoutes.vodDetails);
-
-          final extra = state.extra;
-          VodItem? item;
-          String? heroTag;
-
-          if (extra is VodItem) {
-            item = extra;
-          } else if (extra is Map<String, dynamic>) {
-            item = extra['item'] as VodItem?;
-            heroTag = extra['heroTag'] as String?;
-          }
-
-          if (item == null) {
-            return const _FallbackScreen('VOD Details');
-          }
-
-          return VodDetailsScreen(item: item, heroTag: heroTag);
-        },
-      ),
+      // Profiles, login, and multi-view are intentionally
+      // full-screen. They have NO AppShell parent, so we
+      // manually report currentRoute for player state
+      // tracking (AppShell.updateCurrentRoute only fires
+      // inside the ShellRoute).
 
       // Login route is not yet implemented.
       // Only reachable in debug builds for testing redirects.

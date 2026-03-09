@@ -148,4 +148,32 @@ mixin _WsSettingsMixin on _WsBackendBase {
 
   /// Delegates to shared [dartGuessLogoDomains].
   List<String> guessLogoDomains(String name) => dartGuessLogoDomains(name);
+
+  // ── Logo Resolver ──────────────────────────────
+
+  Future<String?> resolveChannelLogo(String name) async {
+    final data = await _send('resolveChannelLogo', {'name': name});
+    return data as String?;
+  }
+
+  Future<String> resolveLogosBatch(String namesJson) async {
+    final names = (jsonDecode(namesJson) as List).cast<String>();
+    final data = await _send('resolveLogosBatch', {'names': names});
+    return jsonEncode(data);
+  }
+
+  Future<bool> isLogoIndexStale() async {
+    final data = await _send('isLogoIndexStale');
+    return data as bool;
+  }
+
+  Future<void> refreshLogoIndex() => _send('refreshLogoIndex');
+
+  Uint8List decodeBlurHash(String hash, int width, int height) {
+    // Sync — local Dart fallback not available for BlurHash.
+    // Web uses the WS server, which returns base64 BMP.
+    throw UnimplementedError(
+      'decodeBlurHash: use decodeBlurHashAsync on WsBackend',
+    );
+  }
 }

@@ -45,6 +45,8 @@ mixin _MemoryParsersMixin on _MemoryStorage {
     String baseUrl,
   ) async => null;
 
+  Future<String> parseBifIndex(List<int> data) async => '[]';
+
   // ── Stalker Parsers ────────────────────────────
 
   Future<String> parseStalkerEpg(String json, String channelId) async => '[]';

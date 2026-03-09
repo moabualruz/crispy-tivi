@@ -77,6 +77,9 @@ mixin _FfiParsersMixin on _FfiBackendBase {
     return jsonDecode(json) as Map<String, dynamic>;
   }
 
+  Future<String> parseBifIndex(List<int> data) =>
+      rust_api.parseBifIndex(data: data);
+
   // ── Utility Algorithms ─────────────────────────
 
   String tryBase64Decode(String input) =>

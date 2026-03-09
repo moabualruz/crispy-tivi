@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 /// Each hue provides a different atmospheric base while maintaining
 /// readability. See `.ai/docs/project-specs/design_system.md §1.2` for details.
 enum MainColorHue {
-  /// Pure dark (#0F0F0F) — Netflix-style, OLED-friendly.
+  /// Pure dark (#0F0F0F) — Pure dark, OLED-friendly.
   pureBlack,
 
   /// Material dark (#121212) — Default warm gray.
@@ -107,7 +107,7 @@ extension MainColorHueColors on MainColorHue {
   String get description {
     switch (this) {
       case MainColorHue.pureBlack:
-        return 'Netflix-style, OLED-friendly';
+        return 'Pure dark, OLED-friendly';
       case MainColorHue.warmBlack:
         return 'Material Design default';
       case MainColorHue.coolBlack:

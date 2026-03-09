@@ -5,6 +5,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../theme/crispy_animation.dart';
 import '../theme/crispy_spacing.dart';
+import '../utils/window_config.dart';
 
 /// Height of the custom title bar in logical pixels.
 const double kCrispyTitleBarHeight = 32.0;
@@ -72,7 +73,8 @@ class _CrispyTitleBarState extends State<CrispyTitleBar> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb ||
+    if (!kUseCustomTitleBar ||
+        kIsWeb ||
         !(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       return const SizedBox.shrink();
     }

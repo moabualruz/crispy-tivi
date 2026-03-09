@@ -36,6 +36,8 @@
 ///   sync, search, sorting, categories, timezone
 library;
 
+import 'dart:typed_data';
+
 part 'crispy_backend_data.dart';
 part 'crispy_backend_storage.dart';
 part 'crispy_backend_parsers.dart';
@@ -69,6 +71,15 @@ abstract class CrispyBackend
   /// Web: fed by WebSocket server-push messages.
   /// Tests: fed by [MemoryBackend.emitTestEvent].
   Stream<String> get dataEvents;
+
+  // ── Cleanup ─────────────────────────────────────────
+
+  /// Release resources (timers, sockets, streams).
+  ///
+  /// Called once before app exit. Default no-op — FfiBackend
+  /// and MemoryBackend inherit this (Rust/GC manage their
+  /// own lifecycle). WsBackend overrides with actual cleanup.
+  Future<void> dispose() async {}
 
   // ── Maintenance ──────────────────────────────────────
 

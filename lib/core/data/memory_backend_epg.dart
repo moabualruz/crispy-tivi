@@ -89,6 +89,40 @@ mixin _MemoryEpgMixin on _MemoryStorage {
 
   Future<void> clearEpgEntries() async => epg.clear();
 
+  // ── EPG Mappings ─────────────────────────────────
+
+  Future<void> saveEpgMapping(Map<String, dynamic> mapping) async {
+    epgMappings[mapping['channel_id'] as String] = mapping;
+  }
+
+  Future<List<Map<String, dynamic>>> getEpgMappings() async =>
+      epgMappings.values.toList();
+
+  Future<void> lockEpgMapping(String channelId) async {
+    final m = epgMappings[channelId];
+    if (m != null) m['locked'] = true;
+  }
+
+  Future<void> deleteEpgMapping(String channelId) async {
+    epgMappings.remove(channelId);
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingEpgSuggestions() async =>
+      epgMappings.values
+          .where(
+            (m) =>
+                (m['confidence'] as num) >= 0.40 &&
+                (m['confidence'] as num) < 0.70 &&
+                m['locked'] != true,
+          )
+          .toList();
+
+  Future<void> setChannel247(String channelId, {required bool is247}) async {
+    channel247Flags[channelId] = is247;
+    final ch = channels[channelId];
+    if (ch != null) ch['is_247'] = is247;
+  }
+
   // ── Watch History ──────────────────────────────
 
   Future<List<Map<String, dynamic>>> loadWatchHistory() async =>

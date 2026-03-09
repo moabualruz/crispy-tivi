@@ -10,14 +10,10 @@ import 'device_form_factor.dart';
 /// is supported before showing its UI control.
 abstract final class PlatformCapabilities {
   /// Picture-in-Picture.
-  /// Supported on Android (native) and desktop
-  /// (window_manager resize).
-  static bool get pip =>
-      !kIsWeb &&
-      (Platform.isAndroid ||
-          Platform.isWindows ||
-          Platform.isMacOS ||
-          Platform.isLinux);
+  /// Supported on all 6 platforms: Android (native),
+  /// iOS (AVPiP via IosPipPlayer), desktop
+  /// (window_manager), web (browser PiP API).
+  static bool get pip => true;
 
   /// External player (open in VLC, MX Player, etc.).
   /// Available on all platforms. On web, uses protocol

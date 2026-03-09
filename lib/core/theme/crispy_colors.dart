@@ -60,8 +60,8 @@ class CrispyColors extends ThemeExtension<CrispyColors> {
   /// Focus border color (white).
   static const Color focusBorder = Color(0xFFFFFFFF);
 
-  /// Netflix-style brand red (used for accent highlights).
-  static const Color netflixRed = Color(0xFFE50914);
+  /// Cinematic brand red (used for accent highlights).
+  static const Color brandRed = Color(0xFFE50914);
 
   /// Toast / status indicator: success state background (static alias).
   ///

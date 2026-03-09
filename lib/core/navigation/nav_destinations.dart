@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import 'app_routes.dart';
 
 /// Data class for navigation destinations.
@@ -74,6 +75,26 @@ const List<NavItem> sideDestinations = [
     route: AppRoutes.settings,
   ),
 ];
+
+/// Returns the localized display label for a navigation destination.
+///
+/// The [NavItem.label] field is a stable English key used for test
+/// identification ([TestKeys.navItem]). This function provides the
+/// user-facing translation.
+String localizedNavLabel(AppLocalizations l10n, String label) {
+  return switch (label) {
+    'Home' => l10n.navHome,
+    'Search' => l10n.navSearch,
+    'Live TV' => l10n.navLiveTv,
+    'Guide' => l10n.navGuide,
+    'Movies' => l10n.navMovies,
+    'Series' => l10n.navSeries,
+    'DVR' => l10n.navDvr,
+    'Favorites' => l10n.navFavorites,
+    'Settings' => l10n.navSettings,
+    _ => label,
+  };
+}
 
 /// Bottom bar destinations (compact, max 5 items).
 const List<NavItem> bottomDestinations = [

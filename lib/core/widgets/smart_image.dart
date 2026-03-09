@@ -11,7 +11,10 @@ import '../../src/rust/api/all.dart' as rust_api;
 /// Image widget with automatic fallback chain:
 ///
 /// 1. [imageUrl] — original URL from provider
-/// 2. [GeneratedPlaceholder] (first letter + gradient)
+/// 2. tv-logos index resolution (for logos)
+/// 3. Clearbit domain guessing (for logos)
+/// 4. [blurHash] placeholder (if provided)
+/// 5. [GeneratedPlaceholder] (first letter + gradient)
 ///
 /// Handles null/empty URLs, 404s, and Network errors gracefully without caching.
 ///
@@ -36,6 +39,7 @@ class SmartImage extends StatelessWidget {
     this.imageKind = 'poster',
     this.fit = BoxFit.cover,
     this.icon,
+    this.blurHash,
     this.placeholderAspectRatio,
     this.memCacheWidth,
     this.memCacheHeight,
@@ -59,6 +63,14 @@ class SmartImage extends StatelessWidget {
   /// Fallback icon for the generated placeholder.
   final IconData? icon;
 
+  /// Optional BlurHash string for placeholder rendering.
+  ///
+  /// When provided, a decoded BMP placeholder is shown while the
+  /// full image loads, instead of a skeleton or letter avatar.
+  /// Sourced from media server metadata (e.g. Jellyfin
+  /// `ImageBlurHashes`).
+  final String? blurHash;
+
   /// Aspect ratio for skeleton placeholder.
   final double? placeholderAspectRatio;
 
@@ -78,10 +90,10 @@ class SmartImage extends StatelessWidget {
       return _buildCachedImage(context, imageUrl!);
     }
 
-    // Attempt real-time domain guessing if this is a TV channel logo
+    // Attempt logo resolution chain if this is a TV channel logo
     // and no explicit image URL was provided via M3U metadata.
     if (imageKind == 'logo') {
-      return _GuessedLogoImage(
+      return _ResolvedLogoImage(
         title: title,
         fit: fit,
         memCacheWidth: memCacheWidth,
@@ -149,6 +161,7 @@ class SmartImage extends StatelessWidget {
       fit: fit,
       memCacheWidth: memCacheWidth,
       memCacheHeight: memCacheHeight,
+      blurHashBytes: _decodeBlurHash(),
       onBuildPlaceholder: _buildPlaceholder,
       onBuildSkeleton: _buildSkeletonLoader,
     );
@@ -162,7 +175,28 @@ class SmartImage extends StatelessWidget {
   }
 
   Widget _buildPlaceholder() {
+    // If we have a BlurHash, show that instead of letter avatar.
+    final bmpBytes = _decodeBlurHash();
+    if (bmpBytes != null) {
+      return Image.memory(
+        bmpBytes,
+        fit: fit,
+        errorBuilder:
+            (_, _, _) => GeneratedPlaceholder(title: title, icon: icon),
+      );
+    }
     return GeneratedPlaceholder(title: title, icon: icon);
+  }
+
+  /// Decode [blurHash] to BMP bytes via Rust. Returns null on
+  /// failure or if no hash is provided.
+  Uint8List? _decodeBlurHash() {
+    if (blurHash == null || blurHash!.isEmpty || kIsWeb) return null;
+    try {
+      return rust_api.decodeBlurhash(hash: blurHash!, width: 16, height: 16);
+    } catch (_) {
+      return null;
+    }
   }
 }
 
@@ -184,12 +218,14 @@ class _NetworkImageWithTimeout extends StatefulWidget {
     required this.onBuildSkeleton,
     this.memCacheWidth,
     this.memCacheHeight,
+    this.blurHashBytes,
   });
 
   final String url;
   final BoxFit fit;
   final int? memCacheWidth;
   final int? memCacheHeight;
+  final Uint8List? blurHashBytes;
   final Widget Function() onBuildPlaceholder;
   final Widget Function() onBuildSkeleton;
 
@@ -230,8 +266,119 @@ class _NetworkImageWithTimeoutState extends State<_NetworkImageWithTimeout> {
           return child;
         }
         if (_timedOut) return widget.onBuildPlaceholder();
+
+        // Show BlurHash placeholder while loading if available.
+        if (widget.blurHashBytes != null) {
+          return Image.memory(
+            widget.blurHashBytes!,
+            fit: widget.fit,
+            errorBuilder: (_, _, _) => widget.onBuildSkeleton(),
+          );
+        }
+
         return widget.onBuildSkeleton();
       },
+    );
+  }
+}
+
+/// Resolves a channel logo through the full fallback chain:
+/// tv-logos index → Clearbit domain guessing → letter avatar.
+///
+/// Calls [resolveChannelLogo] (async DB lookup, <5 ms typical)
+/// then either shows the resolved URL or falls through to
+/// [_GuessedLogoImage] for Clearbit CDN guessing.
+class _ResolvedLogoImage extends StatefulWidget {
+  const _ResolvedLogoImage({
+    required this.title,
+    required this.fit,
+    this.memCacheWidth,
+    this.memCacheHeight,
+    required this.fallbackBuilder,
+  });
+
+  final String title;
+  final BoxFit fit;
+  final int? memCacheWidth;
+  final int? memCacheHeight;
+  final Widget Function() fallbackBuilder;
+
+  @override
+  State<_ResolvedLogoImage> createState() => _ResolvedLogoImageState();
+}
+
+class _ResolvedLogoImageState extends State<_ResolvedLogoImage> {
+  String? _resolvedUrl;
+  bool _checked = false;
+  bool _resolvedUrlFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolve();
+  }
+
+  Future<void> _resolve() async {
+    try {
+      final url = await rust_api.resolveChannelLogo(name: widget.title);
+      if (mounted) {
+        setState(() {
+          _resolvedUrl = url;
+          _checked = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _checked = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // While async resolution is in progress, show the letter placeholder.
+    // The DB lookup is typically <5 ms so this is rarely visible.
+    if (!_checked) return widget.fallbackBuilder();
+
+    // tv-logos URL resolved — try to load it.
+    if (_resolvedUrl != null && !_resolvedUrlFailed) {
+      if (kIsWeb) {
+        return createWebImage(
+          _resolvedUrl!,
+          fit: widget.fit,
+          errorBuilder: (_, _, _) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _resolvedUrlFailed = true);
+            });
+            return _buildClearbitFallback();
+          },
+          proxyBaseUrl: SmartImage.proxyBaseUrl,
+        );
+      }
+
+      return Image.network(
+        _resolvedUrl!,
+        fit: widget.fit,
+        cacheWidth: widget.memCacheWidth,
+        cacheHeight: widget.memCacheHeight,
+        errorBuilder: (_, _, _) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _resolvedUrlFailed = true);
+          });
+          return _buildClearbitFallback();
+        },
+      );
+    }
+
+    // No tv-logos match or URL failed — fall through to Clearbit.
+    return _buildClearbitFallback();
+  }
+
+  Widget _buildClearbitFallback() {
+    return _GuessedLogoImage(
+      title: widget.title,
+      fit: widget.fit,
+      memCacheWidth: widget.memCacheWidth,
+      memCacheHeight: widget.memCacheHeight,
+      fallbackBuilder: widget.fallbackBuilder,
     );
   }
 }

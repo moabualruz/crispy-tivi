@@ -11,6 +11,7 @@ import 'dart_algorithm_fallbacks.dart';
 import 'epg_time_utils.dart';
 import 'xtream_url_builder.dart';
 
+part 'ws_backend_buffer.dart';
 part 'ws_backend_channels.dart';
 part 'ws_backend_vod.dart';
 part 'ws_backend_epg.dart';
@@ -19,6 +20,7 @@ part 'ws_backend_profiles.dart';
 part 'ws_backend_settings.dart';
 part 'ws_backend_sync.dart';
 part 'ws_backend_algorithms.dart';
+part 'ws_backend_stream_health.dart';
 
 /// Extract a count integer from a WebSocket result map.
 ///
@@ -236,6 +238,7 @@ class _PendingRequest {
 /// holds no local state.
 class WsBackend extends _WsBackendBase
     with
+        _WsBufferMixin,
         _WsChannelsMixin,
         _WsVodMixin,
         _WsEpgMixin,
@@ -243,7 +246,8 @@ class WsBackend extends _WsBackendBase
         _WsProfilesMixin,
         _WsSettingsMixin,
         _WsSyncMixin,
-        _WsAlgorithmsMixin
+        _WsAlgorithmsMixin,
+        _WsStreamHealthMixin
     implements CrispyBackend {
   // ── Lifecycle ────────────────────────────────────
 
@@ -260,6 +264,21 @@ class WsBackend extends _WsBackendBase
   }
 
   @override
+  Future<void> dispose() async {
+    _disposed = true;
+    _stopPingTimer();
+    for (final req in _pending.values) {
+      if (!req.completer.isCompleted) {
+        req.completer.completeError(StateError('WsBackend disposed'));
+      }
+    }
+    _pending.clear();
+    await _channel?.sink.close();
+    _channel = null;
+    await _eventController.close();
+  }
+
+  @override
   String version() => '0.1.0 (ws)';
 
   @override
@@ -272,6 +291,21 @@ class WsBackend extends _WsBackendBase
 
   @override
   Stream<String> get dataEvents => _eventController.stream;
+
+  // ── App Update ────────────────────────────────
+
+  @override
+  Future<String> checkForUpdate(String currentVersion, String repoUrl) async {
+    // Web platform: show "refresh browser" instead of checking.
+    return '{"has_update":false,"latest_version":"",'
+        '"download_url":"","changelog":"","published_at":"",'
+        '"assets_json":""}';
+  }
+
+  @override
+  String? getPlatformAssetUrl(String assetsJson, String platform) {
+    return null;
+  }
 }
 
 /// Thrown when the WebSocket connection is lost.

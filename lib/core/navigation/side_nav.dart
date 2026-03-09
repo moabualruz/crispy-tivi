@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,18 +20,21 @@ import 'nav_destinations.dart';
 // ── SideNav dimension constants ──────────────────────────────────────────────
 
 /// Width of the rail when extended (hover / keyboard focus).
-const double _kRailWidth = 250.0;
+const double kRailExpandedWidth = 250.0;
 
 /// Width of the rail when collapsed (icon-only).
-const double _kRailCollapsedWidth = 72.0;
+///
+/// Exported for [AppShell] to reserve start-edge padding so content
+/// is not hidden behind the collapsed overlay rail.
+const double kRailCollapsedWidth = 72.0;
 
 /// Height of a single navigation item row.
 const double _kNavItemHeight = 56.0;
 
-/// TiviMate-style icon-only side navigation bar.
+/// Icon-only side navigation bar with hover/focus expansion.
 ///
-/// Width: [_kRailCollapsedWidth] px collapsed,
-/// [_kRailWidth] px extended (hover/focus).
+/// Width: [kRailCollapsedWidth] px collapsed,
+/// [kRailExpandedWidth] px extended (hover/focus).
 ///
 /// On TV (large breakpoint), pass [alwaysShowLabels] = true so
 /// labels are permanently visible without requiring hover/focus.
@@ -54,7 +58,7 @@ class SideNav extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
     final badges = ref.watch(navBadgeProvider);
 
-    final railWidth = extended ? _kRailWidth : _kRailCollapsedWidth;
+    final railWidth = extended ? kRailExpandedWidth : kRailCollapsedWidth;
 
     return Material(
       color: colorScheme.surface,
@@ -87,7 +91,7 @@ class SideNav extends ConsumerWidget {
                   if (extended) ...[
                     const SizedBox(width: CrispySpacing.sm),
                     Text(
-                      'CrispyTivi',
+                      context.l10n.appName,
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: colorScheme.primary,
                         fontWeight: FontWeight.bold,
@@ -169,15 +173,17 @@ class SideNav extends ConsumerWidget {
     // Wrap icon in a Badge when badge data warrants it.
     final badgedIcon = _wrapWithBadge(iconWidget, badge, colorScheme);
 
+    final displayLabel = localizedNavLabel(context.l10n, dest.label);
+
     return FocusWrapper(
       key: TestKeys.navItem(dest.label),
       onSelect: () => onDestinationSelected(index),
       borderRadius: CrispyRadius.sm,
       scaleFactor: 1.05,
       padding: EdgeInsets.zero,
-      semanticLabel: dest.label,
+      semanticLabel: displayLabel,
       child: Tooltip(
-        message: extended ? '' : dest.label,
+        message: extended ? '' : displayLabel,
         waitDuration: CrispyAnimation.normal,
         child: Container(
           width: double.infinity,
@@ -201,7 +207,7 @@ class SideNav extends ConsumerWidget {
                 const SizedBox(width: CrispySpacing.sm),
                 Expanded(
                   child: Text(
-                    dest.label,
+                    displayLabel,
                     style: theme.textTheme.labelLarge?.copyWith(
                       fontWeight:
                           isSelected ? FontWeight.bold : FontWeight.normal,
@@ -304,15 +310,15 @@ class _ProfileIndicatorRow extends ConsumerWidget {
             borderRadius: CrispyRadius.sm,
             semanticLabel:
                 hasMultipleProfiles
-                    ? 'Switch profile: ${profile.name}'
-                    : 'Manage profiles',
+                    ? context.l10n.sideNavSwitchProfileFor(profile.name)
+                    : context.l10n.sideNavManageProfiles,
             child: Tooltip(
               message:
                   extended
                       ? ''
                       : hasMultipleProfiles
-                      ? 'Switch profile'
-                      : 'Manage profiles',
+                      ? context.l10n.sideNavSwitchProfile
+                      : context.l10n.sideNavManageProfiles,
               waitDuration: CrispyAnimation.normal,
               child: Container(
                 height: _kNavItemHeight,
@@ -431,7 +437,7 @@ class ProfileSwitcherSheet extends ConsumerWidget {
                 child: Row(
                   children: [
                     Text(
-                      "Switch Profile",
+                      context.l10n.sideNavSwitchProfile,
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colorScheme.onSurface,
@@ -443,7 +449,7 @@ class ProfileSwitcherSheet extends ConsumerWidget {
                       icon: const Icon(Icons.close),
                       iconSize: 20,
                       color: colorScheme.onSurfaceVariant,
-                      tooltip: 'Close',
+                      tooltip: context.l10n.commonClose,
                     ),
                   ],
                 ),
@@ -456,7 +462,7 @@ class ProfileSwitcherSheet extends ConsumerWidget {
                   error:
                       (err, _) => Center(
                         child: Text(
-                          'Error: $err',
+                          context.l10n.commonError(err.toString()),
                           style: textTheme.bodyMedium?.copyWith(
                             color: colorScheme.error,
                           ),
@@ -497,7 +503,7 @@ class ProfileSwitcherSheet extends ConsumerWidget {
       // FE-PM-03: pass profileId so wrong-attempt lockout is per-profile.
       final verified = await PinInputDialog.show(
         context,
-        title: 'Enter PIN for ${profile.name}',
+        title: context.l10n.sideNavEnterPinFor(profile.name),
         profileId: profile.id,
         onVerify:
             (pin) => ref
@@ -544,8 +550,8 @@ class _ProfileSwitcherTile extends StatelessWidget {
       borderRadius: CrispyRadius.sm,
       semanticLabel: [
         profile.name,
-        if (isActive) 'active',
-        if (profile.hasPIN) 'PIN protected',
+        if (isActive) context.l10n.sideNavActive,
+        if (profile.hasPIN) context.l10n.sideNavPinProtected,
       ].join(', '),
       child: Container(
         padding: const EdgeInsets.symmetric(
@@ -590,7 +596,9 @@ class _ProfileSwitcherTile extends StatelessWidget {
             // Status indicators
             if (profile.hasPIN)
               Padding(
-                padding: const EdgeInsets.only(right: CrispySpacing.xs),
+                padding: const EdgeInsetsDirectional.only(
+                  end: CrispySpacing.xs,
+                ),
                 child: Icon(
                   Icons.lock_outline,
                   size: 16,
@@ -630,7 +638,7 @@ class _NewPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(CrispyRadius.tv),
       ),
       child: Text(
-        'NEW',
+        context.l10n.commonNew,
         style: TextStyle(
           fontSize: 9,
           fontWeight: FontWeight.w700,

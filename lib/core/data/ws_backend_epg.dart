@@ -115,6 +115,30 @@ mixin _WsEpgMixin on _WsBackendBase {
 
   Future<void> clearEpgEntries() => _send('clearEpgEntries');
 
+  // ── EPG Mappings ─────────────────────────────────
+
+  Future<void> saveEpgMapping(Map<String, dynamic> mapping) =>
+      _send('saveEpgMapping', {'mapping': mapping});
+
+  Future<List<Map<String, dynamic>>> getEpgMappings() async {
+    final data = await _send('getEpgMappings');
+    return (data as List).cast<Map<String, dynamic>>();
+  }
+
+  Future<void> lockEpgMapping(String channelId) =>
+      _send('lockEpgMapping', {'channelId': channelId});
+
+  Future<void> deleteEpgMapping(String channelId) =>
+      _send('deleteEpgMapping', {'channelId': channelId});
+
+  Future<List<Map<String, dynamic>>> getPendingEpgSuggestions() async {
+    final data = await _send('getPendingEpgSuggestions');
+    return (data as List).cast<Map<String, dynamic>>();
+  }
+
+  Future<void> setChannel247(String channelId, {required bool is247}) =>
+      _send('setChannel247', {'channelId': channelId, 'is247': is247});
+
   // ── Watch History ────────────────────────────────
 
   Future<List<Map<String, dynamic>>> loadWatchHistory() async {
@@ -144,6 +168,84 @@ mixin _WsEpgMixin on _WsBackendBase {
 
   Future<void> markReminderFired(String id) =>
       _send('markReminderFired', {'id': id});
+
+  // ── Bookmarks ────────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> loadBookmarks(String contentId) async {
+    final data = await _send('loadBookmarks', {'contentId': contentId});
+    return (data as List).cast<Map<String, dynamic>>();
+  }
+
+  Future<void> saveBookmark(Map<String, dynamic> bookmark) =>
+      _send('saveBookmark', {'json': jsonEncode(bookmark)});
+
+  Future<void> deleteBookmark(String id) => _send('deleteBookmark', {'id': id});
+
+  Future<void> clearBookmarks(String contentId) =>
+      _send('clearBookmarks', {'contentId': contentId});
+
+  // ── Smart Groups ──────────────────────────────
+
+  Future<String> createSmartGroup(String name) async {
+    final data = await _send('createSmartGroup', {'name': name});
+    return data as String;
+  }
+
+  Future<void> deleteSmartGroup(String groupId) =>
+      _send('deleteSmartGroup', {'groupId': groupId});
+
+  Future<void> renameSmartGroup(String groupId, String name) =>
+      _send('renameSmartGroup', {'groupId': groupId, 'name': name});
+
+  Future<void> addSmartGroupMember(
+    String groupId,
+    String channelId,
+    String sourceId,
+    int priority,
+  ) => _send('addSmartGroupMember', {
+    'groupId': groupId,
+    'channelId': channelId,
+    'sourceId': sourceId,
+    'priority': priority,
+  });
+
+  Future<void> removeSmartGroupMember(String groupId, String channelId) =>
+      _send('removeSmartGroupMember', {
+        'groupId': groupId,
+        'channelId': channelId,
+      });
+
+  Future<void> reorderSmartGroupMembers(
+    String groupId,
+    String orderedChannelIdsJson,
+  ) => _send('reorderSmartGroupMembers', {
+    'groupId': groupId,
+    'orderedChannelIdsJson': orderedChannelIdsJson,
+  });
+
+  Future<String> getSmartGroupsJson() async {
+    final data = await _send('getSmartGroups', {});
+    return data as String;
+  }
+
+  Future<String?> getSmartGroupForChannel(String channelId) async {
+    final data = await _send('getSmartGroupForChannel', {
+      'channelId': channelId,
+    });
+    return data as String?;
+  }
+
+  Future<String> getSmartGroupAlternatives(String channelId) async {
+    final data = await _send('getSmartGroupAlternatives', {
+      'channelId': channelId,
+    });
+    return data as String;
+  }
+
+  Future<String> detectSmartGroupCandidates() async {
+    final data = await _send('detectSmartGroupCandidates', {});
+    return data as String;
+  }
 
   // ── Watch History Algorithms ───────────────────
 

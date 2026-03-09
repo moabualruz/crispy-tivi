@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/data/cache_service.dart';
 import '../core/domain/entities/playlist_source.dart';
+import '../features/player/data/shader_service.dart';
+import '../features/player/presentation/widgets/screensaver_overlay.dart';
 import '../features/settings/domain/entities/remote_action.dart';
 import 'config_override_helper.dart';
 import 'config_service.dart';
@@ -122,6 +124,25 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
     final histPausedStr = await _cache.getSetting(kHistoryRecordingPausedKey);
     final historyRecordingPaused = histPausedStr == 'true';
 
+    // ── Screensaver ──
+    final ssModeName = await _cache.getSetting(kScreensaverModeKey);
+    final screensaverMode =
+        ssModeName != null
+            ? ScreensaverMode.values.firstWhere(
+              (e) => e.name == ssModeName,
+              orElse: () => ScreensaverMode.bouncingLogo,
+            )
+            : ScreensaverMode.bouncingLogo;
+    final ssTimeoutStr = await _cache.getSetting(kScreensaverTimeoutKey);
+    final screensaverTimeout =
+        ssTimeoutStr != null ? int.tryParse(ssTimeoutStr) ?? 0 : 0;
+
+    // ── Shader Preset ──
+    final shaderPresetId = await _cache.getSetting(kShaderPresetKey) ?? 'none';
+
+    // ── Locale ──
+    final locale = await _cache.getSetting(kLocaleKey);
+
     return SettingsState(
       config: config,
       sources: sources,
@@ -146,6 +167,10 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
       notifyEpgUpdate: notifyEpgUpdate,
       channelViewMode: channelViewMode,
       historyRecordingPaused: historyRecordingPaused,
+      screensaverMode: screensaverMode,
+      screensaverTimeout: screensaverTimeout,
+      shaderPresetId: shaderPresetId,
+      locale: locale,
     );
   }
 
@@ -228,6 +253,16 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
   Future<void> setAudioPassthroughCodecs(List<String> codecs) =>
       _applyOverride('player.audioPassthroughCodecs', codecs);
 
+  // ── Loudness / Downmix ──
+
+  /// Enable or disable EBU R128 loudness normalization.
+  Future<void> setLoudnessNormalization(bool enabled) =>
+      _applyOverride('player.loudnessNormalization', enabled);
+
+  /// Enable or disable surround-to-stereo downmix.
+  Future<void> setStereoDownmix(bool enabled) =>
+      _applyOverride('player.stereoDownmix', enabled);
+
   // ── Video Upscaling ──
 
   /// Enable or disable video upscaling globally.
@@ -261,6 +296,22 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
   Future<void> setShowSkipButtons(bool enabled) =>
       _applyOverride('player.showSkipButtons', enabled);
 
+  /// Set per-type segment skip config (JSON-encoded string).
+  Future<void> setSegmentSkipConfig(String config) =>
+      _applyOverride('player.segmentSkipConfig', config);
+
+  /// Set the next-up overlay trigger mode.
+  ///
+  /// Values: 'off', 'static', 'smart'.
+  Future<void> setNextUpMode(String mode) =>
+      _applyOverride('player.nextUpMode', mode);
+
+  // ── Max Volume ──
+
+  /// Set the maximum volume percentage (100–300).
+  Future<void> setMaxVolume(int value) =>
+      _applyOverride('player.maxVolume', value.clamp(100, 300));
+
   // ── Seek Step (PS-09) ──
 
   /// Set the seek step duration in seconds.
@@ -276,6 +327,50 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
   /// Values: 'off' (disabled) or 'auto' (media_kit auto-detect).
   Future<void> setDeinterlaceMode(String mode) =>
       _applyOverride('player.deinterlaceMode', mode);
+
+  // ── Screensaver ──
+
+  /// Set the screensaver display mode.
+  Future<void> setScreensaverMode(ScreensaverMode mode) async {
+    final current = state.value;
+    if (current == null) return;
+    await _cache.setSetting(kScreensaverModeKey, mode.name);
+    state = AsyncData(current.copyWith(screensaverMode: mode));
+  }
+
+  /// Set the screensaver idle timeout in minutes. 0 = disabled.
+  Future<void> setScreensaverTimeout(int minutes) async {
+    final current = state.value;
+    if (current == null) return;
+    await _cache.setSetting(kScreensaverTimeoutKey, minutes.toString());
+    state = AsyncData(current.copyWith(screensaverTimeout: minutes));
+  }
+
+  // ── Shader Preset ──
+
+  /// Set the active GPU shader preset.
+  Future<void> setShaderPreset(String presetId) async {
+    final current = state.value;
+    if (current == null) return;
+    await _cache.setSetting(kShaderPresetKey, presetId);
+    state = AsyncData(current.copyWith(shaderPresetId: presetId));
+  }
+
+  // ── Locale ──
+
+  /// Set the user's preferred locale (language code).
+  ///
+  /// Pass `null` to revert to system default.
+  Future<void> setLocale(String? languageCode) async {
+    final current = state.value;
+    if (current == null) return;
+    if (languageCode != null) {
+      await _cache.setSetting(kLocaleKey, languageCode);
+    } else {
+      await _cache.removeSetting(kLocaleKey);
+    }
+    state = AsyncData(current.copyWith(locale: languageCode));
+  }
 
   // ── Sync ──
 
@@ -690,7 +785,11 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
         await setSeekStepSeconds(10);
         await setDeinterlaceMode('off');
         await setAudioPassthroughEnabled(false);
+        await setLoudnessNormalization(true);
+        await setStereoDownmix(false);
         await setShowSkipButtons(true);
+        await setSegmentSkipConfig('');
+        await setNextUpMode('static');
         await resetSubtitleStyle();
       case 'notifications':
         await setNotificationsEnabled(true);

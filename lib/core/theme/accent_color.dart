@@ -9,7 +9,7 @@ enum AccentColor {
   /// Rice Blue (#3B82F6) — Default, calm.
   blue,
 
-  /// Netflix-style red (#E50914) — Bold, cinematic.
+  /// Cinematic red (#E50914) — Bold, vibrant.
   red,
 
   /// Fresh teal (#00BFA5) — Modern, clean.
@@ -39,7 +39,7 @@ enum AccentColor {
 /// the hex literals.
 const List<Color> kAppAccentPalette = [
   Color(0xFF3B82F6), // blue
-  CrispyColors.netflixRed, // red
+  CrispyColors.brandRed, // red
   Color(0xFF00BFA5), // teal
   Color(0xFFFF6D00), // orange
   Color(0xFFAA00FF), // purple
@@ -57,7 +57,7 @@ extension AccentColorValues on AccentColor {
       case AccentColor.blue:
         return const Color(0xFF3B82F6);
       case AccentColor.red:
-        return CrispyColors.netflixRed;
+        return CrispyColors.brandRed;
       case AccentColor.teal:
         return const Color(0xFF00BFA5);
       case AccentColor.orange:
@@ -143,9 +143,9 @@ extension AccentColorValues on AccentColor {
   String get description {
     switch (this) {
       case AccentColor.blue:
-        return 'TiviMate-style, calm';
+        return 'Classic, calm';
       case AccentColor.red:
-        return 'Netflix-style, bold';
+        return 'Vibrant, bold';
       case AccentColor.teal:
         return 'Fresh, modern';
       case AccentColor.orange:

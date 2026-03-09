@@ -211,6 +211,19 @@ mixin _WsChannelsMixin on _WsBackendBase {
     return data as Map<String, dynamic>;
   }
 
+  Future<String> matchEpgWithConfidence({
+    required String entriesJson,
+    required String channelsJson,
+    required String displayNamesJson,
+  }) async {
+    final data = await _send('matchEpgWithConfidence', {
+      'entriesJson': entriesJson,
+      'channelsJson': channelsJson,
+      'displayNamesJson': displayNamesJson,
+    });
+    return data as String;
+  }
+
   Future<String?> buildCatchupUrl({
     required String channelJson,
     required int startUtc,

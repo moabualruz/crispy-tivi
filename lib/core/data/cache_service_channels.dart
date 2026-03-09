@@ -155,6 +155,32 @@ mixin _CacheChannelsMixin on _CacheServiceBase {
     await _backend.clearEpgEntries();
   }
 
+  // ── EPG Mappings ─────────────────────────────────
+
+  /// Save an EPG mapping.
+  Future<void> saveEpgMapping(Map<String, dynamic> mapping) =>
+      _backend.saveEpgMapping(mapping);
+
+  /// Get all EPG mappings.
+  Future<List<Map<String, dynamic>>> getEpgMappings() =>
+      _backend.getEpgMappings();
+
+  /// Lock an EPG mapping so it won't be overridden.
+  Future<void> lockEpgMapping(String channelId) =>
+      _backend.lockEpgMapping(channelId);
+
+  /// Delete an EPG mapping.
+  Future<void> deleteEpgMapping(String channelId) =>
+      _backend.deleteEpgMapping(channelId);
+
+  /// Get pending EPG suggestions (0.40-0.69 confidence, not locked).
+  Future<List<Map<String, dynamic>>> getPendingEpgSuggestions() =>
+      _backend.getPendingEpgSuggestions();
+
+  /// Mark a channel as 24/7.
+  Future<void> setChannel247(String channelId, {required bool is247}) =>
+      _backend.setChannel247(channelId, is247: is247);
+
   // ── Sync Cleanup ──────────────────────────────────
 
   /// Deletes channels for [sourceId] not in

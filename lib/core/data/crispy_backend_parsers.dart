@@ -58,6 +58,10 @@ abstract class _BackendParserMethods {
     String baseUrl,
   );
 
+  /// Parse BIF trickplay file index via Rust.
+  /// Returns JSON array of {timestamp_ms, offset, length}.
+  Future<String> parseBifIndex(List<int> data);
+
   // ── Stalker Parsers ──────────────────────────────────
 
   /// Parse Stalker EPG entries for a channel.

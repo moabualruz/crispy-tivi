@@ -6,6 +6,7 @@ import '../../src/rust/frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'crispy_backend.dart';
 
+part 'ffi_backend_buffer.dart';
 part 'ffi_backend_channels.dart';
 part 'ffi_backend_vod.dart';
 part 'ffi_backend_epg.dart';
@@ -14,6 +15,7 @@ part 'ffi_backend_profiles.dart';
 part 'ffi_backend_settings.dart';
 part 'ffi_backend_sync.dart';
 part 'ffi_backend_parsers.dart';
+part 'ffi_backend_stream_health.dart';
 
 /// Decode a JSON string into a list of string-keyed maps.
 ///
@@ -37,6 +39,7 @@ abstract class _FfiBackendBase {
 /// native Dart types.
 class FfiBackend extends _FfiBackendBase
     with
+        _FfiBufferMixin,
         _FfiChannelsMixin,
         _FfiVodMixin,
         _FfiEpgMixin,
@@ -44,7 +47,8 @@ class FfiBackend extends _FfiBackendBase
         _FfiProfilesMixin,
         _FfiSettingsMixin,
         _FfiSyncMixin,
-        _FfiParsersMixin
+        _FfiParsersMixin,
+        _FfiStreamHealthMixin
     implements CrispyBackend {
   Stream<String>? _eventStream;
 
@@ -78,4 +82,29 @@ class FfiBackend extends _FfiBackendBase
 
   @override
   Stream<String> get dataEvents => _eventStream ?? const Stream.empty();
+
+  // ── Cleanup ────────────────────────────────────
+
+  @override
+  Future<void> dispose() async {
+    // Rust manages its own lifecycle via OnceLock — no-op.
+  }
+
+  // ── App Update ────────────────────────────────
+
+  @override
+  Future<String> checkForUpdate(String currentVersion, String repoUrl) async {
+    return await rust_api.checkForUpdate(
+      currentVersion: currentVersion,
+      repoUrl: repoUrl,
+    );
+  }
+
+  @override
+  String? getPlatformAssetUrl(String assetsJson, String platform) {
+    return rust_api.getPlatformAssetUrl(
+      assetsJson: assetsJson,
+      platform: platform,
+    );
+  }
 }

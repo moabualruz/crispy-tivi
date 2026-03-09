@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-
 import 'package:crispy_tivi/config/app_config.dart';
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/providers/source_filter_provider.dart';
 import 'package:crispy_tivi/core/widgets/source_selector_bar.dart';
+import 'package:crispy_tivi/l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 // ── Minimal AppConfig for test SettingsState ─────────────────
 
@@ -88,8 +88,12 @@ Widget _pumpBar({required List<PlaylistSource> sources}) {
         () => _StubSettingsNotifier(sources),
       ),
     ],
-    child: const MaterialApp(
-      home: Scaffold(body: SizedBox(width: 800, child: SourceSelectorBar())),
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const Scaffold(
+        body: SizedBox(width: 800, child: SourceSelectorBar()),
+      ),
     ),
   );
 }

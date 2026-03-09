@@ -65,41 +65,49 @@ class _VideoPreviewWidgetState extends ConsumerState<VideoPreviewWidget> {
           WidgetsBinding.instance.addPostFrameCallback((_) => _reportRect());
         }
 
-        return AspectRatio(
-          key: _key,
-          aspectRatio: 16 / 9,
-          child: FocusWrapper(
-            onSelect: isIdle ? null : widget.onTap,
-            borderRadius: CrispyRadius.tv,
-            child: Container(
-              // Transparent — the video shows through from
-              // PermanentVideoLayer behind this widget.
-              color: Colors.transparent,
-              child: Stack(
-                children: [
-                  // Idle overlay (covers transparent area with icon).
-                  if (isIdle)
-                    Container(
-                      color: Colors.black87,
-                      alignment: Alignment.center,
-                      child: Icon(
-                        Icons.live_tv,
-                        size: 48,
-                        color: colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.3,
+        // Cap height at 40 % of screen so the 16:9 ratio doesn't
+        // produce an excessively tall preview on wide screens
+        // (e.g. 1500 dp wide → 844 dp tall without cap).
+        final maxH = MediaQuery.sizeOf(context).height * 0.4;
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxH),
+          child: AspectRatio(
+            key: _key,
+            aspectRatio: 16 / 9,
+            child: FocusWrapper(
+              onSelect: isIdle ? null : widget.onTap,
+              borderRadius: CrispyRadius.tv,
+              child: Container(
+                // Transparent — the video shows through from
+                // PermanentVideoLayer behind this widget.
+                color: Colors.transparent,
+                child: Stack(
+                  children: [
+                    // Idle overlay (covers transparent area with icon).
+                    if (isIdle)
+                      Container(
+                        color: Colors.black87,
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.live_tv,
+                          size: 48,
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.3,
+                          ),
                         ),
                       ),
-                    ),
 
-                  // Buffering indicator.
-                  if (isBuffering)
-                    const Center(
-                      child: CircularProgressIndicator(
-                        color: CrispyColors.textHigh,
-                        strokeWidth: 2,
+                    // Buffering indicator.
+                    if (isBuffering)
+                      const Center(
+                        child: CircularProgressIndicator(
+                          color: CrispyColors.textHigh,
+                          strokeWidth: 2,
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

@@ -17,7 +17,7 @@ const kSidebarCollapsedWidth = 64.0;
 
 /// A left-anchored sidebar for group/category selection.
 ///
-/// TiviMate-style panel with glassmorphic styling, designed for
+/// Glassmorphic sidebar panel designed for
 /// large screens (≥1200px). Supports both expanded and collapsed modes.
 ///
 /// ```dart

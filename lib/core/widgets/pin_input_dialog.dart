@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -157,7 +158,7 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
 
     final pin = _currentPin;
     if (pin.length != 4) {
-      setState(() => _error = 'Enter all 4 digits');
+      setState(() => _error = context.l10n.pinEnterAllDigits);
       return;
     }
 
@@ -173,7 +174,7 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
         // Second entry — check match.
         if (pin != _firstPin) {
           setState(() {
-            _error = 'PINs do not match';
+            _error = context.l10n.pinDoNotMatch;
             _isConfirmPhase = false;
             _firstPin = null;
           });
@@ -211,7 +212,7 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
               .read(pinLockoutProvider.notifier)
               .recordFailure(profileId: _profileKey);
           setState(() {
-            _error = 'Incorrect PIN';
+            _error = context.l10n.pinIncorrect;
             _isVerifying = false;
           });
           _clearFields();
@@ -219,7 +220,7 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
       } catch (e) {
         if (!mounted) return;
         setState(() {
-          _error = 'Verification failed';
+          _error = context.l10n.pinVerificationFailed;
           _isVerifying = false;
         });
         _clearFields();
@@ -259,7 +260,7 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
             .recordSuccess(profileId: _profileKey);
         Navigator.of(context).pop(true);
       } else {
-        setState(() => _error = 'Biometric authentication failed or canceled');
+        setState(() => _error = context.l10n.pinBiometricFailed);
       }
     }
   }
@@ -279,7 +280,7 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
 
     String displayTitle = widget.title;
     if (widget.confirmMode && _isConfirmPhase) {
-      displayTitle = 'Confirm PIN';
+      displayTitle = context.l10n.pinConfirmPin;
     }
 
     return AlertDialog(
@@ -296,7 +297,7 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
                   Icon(Icons.lock_clock, size: 36, color: colorScheme.error),
                   const SizedBox(height: CrispySpacing.sm),
                   Text(
-                    'Too many incorrect attempts.',
+                    context.l10n.pinTooManyAttempts,
                     style: textTheme.bodyMedium?.copyWith(
                       color: colorScheme.error,
                     ),
@@ -305,7 +306,7 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
                   const SizedBox(height: CrispySpacing.xs),
                   // FE-PM-03: live countdown timer updates every second.
                   Text(
-                    'Try again in ${_formatCountdown(remaining)}',
+                    context.l10n.pinTryAgainIn(_formatCountdown(remaining)),
                     style: textTheme.titleMedium?.copyWith(
                       color: colorScheme.error,
                       fontWeight: FontWeight.bold,
@@ -331,7 +332,7 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
               Padding(
                 padding: const EdgeInsets.only(bottom: CrispySpacing.md),
                 child: Text(
-                  'Enter the same PIN again to confirm',
+                  context.l10n.pinEnterSameAgain,
                   style: textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -357,7 +358,7 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                             : Tooltip(
-                              message: 'Use fingerprint or face',
+                              message: context.l10n.pinUseBiometric,
                               child: IconButton(
                                 icon: const Icon(Icons.fingerprint),
                                 onPressed: _isVerifying ? null : _tryBiometric,
@@ -375,7 +376,7 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
                     child: SizedBox(
                       width: 48,
                       child: Semantics(
-                        label: 'PIN digit ${i + 1}',
+                        label: context.l10n.pinDigitN(i + 1),
                         child: TextField(
                           controller: _controllers[i],
                           focusNode: _focusNodes[i],
@@ -431,12 +432,14 @@ class _PinInputDialogState extends ConsumerState<PinInputDialog> {
         TextButton(
           onPressed:
               _isVerifying ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.commonCancel),
         ),
         if (!isLocked)
           FilledButton(
             onPressed: _isVerifying ? null : _submit,
-            child: Text(_isConfirmPhase ? 'Confirm' : 'Submit'),
+            child: Text(
+              _isConfirmPhase ? context.l10n.commonConfirm : 'Submit',
+            ),
           ),
       ],
     );

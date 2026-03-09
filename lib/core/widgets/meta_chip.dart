@@ -15,7 +15,7 @@ class MetaChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(right: CrispySpacing.sm),
+      margin: const EdgeInsetsDirectional.only(end: CrispySpacing.sm),
       padding: const EdgeInsets.symmetric(
         horizontal: CrispySpacing.sm,
         vertical: CrispySpacing.xs,

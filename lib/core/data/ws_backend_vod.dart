@@ -220,6 +220,11 @@ mixin _WsVodMixin on _WsBackendBase {
     return data as Map<String, dynamic>;
   }
 
+  Future<String> parseBifIndex(List<int> data) async {
+    final result = await _send('parseBifIndex', {'data': data});
+    return result as String;
+  }
+
   // ── VOD Sorting & Categorization ──────────────
 
   Future<String> sortVodItems(String itemsJson, String sortBy) async {

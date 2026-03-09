@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -126,7 +127,9 @@ class _BannerContent extends StatelessWidget {
           ),
           const SizedBox(width: CrispySpacing.xs),
           Text(
-            isRestored ? 'Connection restored' : 'No connection',
+            isRestored
+                ? context.l10n.offlineConnectionRestored
+                : context.l10n.offlineNoConnection,
             style: textTheme.labelSmall?.copyWith(color: fgColor),
           ),
         ],

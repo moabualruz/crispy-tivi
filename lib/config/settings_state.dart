@@ -2,6 +2,8 @@ import 'dart:ui' show Color;
 
 import 'app_config.dart';
 import '../core/domain/entities/playlist_source.dart';
+import '../features/player/data/shader_service.dart';
+import '../features/player/presentation/widgets/screensaver_overlay.dart';
 import '../features/settings/domain/entities/remote_action.dart';
 
 /// Key for persisting playlist sources list.
@@ -151,8 +153,21 @@ const kLastChannelIdKey = 'crispy_last_channel_id';
 const kLastGroupNameKey = 'crispy_last_group_name';
 
 /// Key: whether to auto-play the next episode after the
-/// current one ends. Default: true (matches Netflix/Disney+).
+/// current one ends. Default: true (matches common streaming apps).
 const kAutoplayNextEpisodeKey = 'crispy_autoplay_next_episode';
+
+/// Key: allowed device orientations for the player (JSON array of
+/// [DeviceOrientation] indices). Empty/absent = all orientations.
+const kRotationLockKey = 'crispy_rotation_lock';
+
+/// Key: whether to show a wall-clock finish time next to the remaining
+/// duration on the VOD seek bar. Speed-aware, locale-aware. Default: true.
+const kShowFinishTimeKey = 'crispy_show_finish_time';
+
+/// Key for persisting the user's preferred locale (language code).
+///
+/// Values: null (system default), 'en', 'ar', 'de', 'es', 'fr', etc.
+const kLocaleKey = 'crispy_locale';
 
 // ─────────────────────────────────────────────────────────────
 //  QualityCap — global stream quality ceiling
@@ -275,6 +290,30 @@ enum SubtitleEdgeStyle {
   };
 }
 
+/// Subtitle outline color presets.
+enum SubtitleOutlineColor {
+  black,
+  white,
+  red,
+  transparent;
+
+  /// Display label shown in the UI.
+  String get label => switch (this) {
+    SubtitleOutlineColor.black => 'Black',
+    SubtitleOutlineColor.white => 'White',
+    SubtitleOutlineColor.red => 'Red',
+    SubtitleOutlineColor.transparent => 'None',
+  };
+
+  /// The concrete [Color] value.
+  Color get color => switch (this) {
+    SubtitleOutlineColor.black => const Color(0xFF000000),
+    SubtitleOutlineColor.white => const Color(0xFFFFFFFF),
+    SubtitleOutlineColor.red => const Color(0xFFFF0000),
+    SubtitleOutlineColor.transparent => const Color(0x00000000),
+  };
+}
+
 /// Immutable subtitle CC style configuration.
 ///
 /// All fields have sensible defaults matching broadcast standards.
@@ -284,12 +323,40 @@ class SubtitleStyle {
     this.textColor = SubtitleTextColor.white,
     this.background = SubtitleBackground.semiTransparent,
     this.edgeStyle = SubtitleEdgeStyle.dropShadow,
+    this.isBold = false,
+    this.verticalPosition = 100,
+    this.outlineColor = SubtitleOutlineColor.black,
+    this.outlineSize = 2.0,
+    this.backgroundOpacity = 0.6,
+    this.hasShadow = true,
   });
 
   final SubtitleFontSize fontSize;
   final SubtitleTextColor textColor;
   final SubtitleBackground background;
+
+  /// Legacy edge style — kept for backward-compatible deserialization.
+  /// UI replaced by fine-grained outline/shadow controls.
   final SubtitleEdgeStyle edgeStyle;
+
+  /// Whether subtitle text is bold.
+  final bool isBold;
+
+  /// Vertical position from top (0) to bottom (100).
+  /// Default: 100 (bottom of screen). Maps to mpv `sub-pos`.
+  final int verticalPosition;
+
+  /// Outline (border) color around subtitle text.
+  final SubtitleOutlineColor outlineColor;
+
+  /// Outline thickness in pixels (0–10). Maps to mpv `sub-border-size`.
+  final double outlineSize;
+
+  /// Background box opacity (0.0 transparent – 1.0 opaque).
+  final double backgroundOpacity;
+
+  /// Whether to render a drop shadow behind text.
+  final bool hasShadow;
 
   /// Default style matching broadcast CC standards.
   static const SubtitleStyle defaults = SubtitleStyle();
@@ -299,19 +366,37 @@ class SubtitleStyle {
     SubtitleTextColor? textColor,
     SubtitleBackground? background,
     SubtitleEdgeStyle? edgeStyle,
+    bool? isBold,
+    int? verticalPosition,
+    SubtitleOutlineColor? outlineColor,
+    double? outlineSize,
+    double? backgroundOpacity,
+    bool? hasShadow,
   }) => SubtitleStyle(
     fontSize: fontSize ?? this.fontSize,
     textColor: textColor ?? this.textColor,
     background: background ?? this.background,
     edgeStyle: edgeStyle ?? this.edgeStyle,
+    isBold: isBold ?? this.isBold,
+    verticalPosition: verticalPosition ?? this.verticalPosition,
+    outlineColor: outlineColor ?? this.outlineColor,
+    outlineSize: outlineSize ?? this.outlineSize,
+    backgroundOpacity: backgroundOpacity ?? this.backgroundOpacity,
+    hasShadow: hasShadow ?? this.hasShadow,
   );
 
   /// Serialise to a JSON-compatible map for persistence.
-  Map<String, String> toJson() => {
+  Map<String, dynamic> toJson() => {
     'fontSize': fontSize.name,
     'textColor': textColor.name,
     'background': background.name,
     'edgeStyle': edgeStyle.name,
+    'isBold': isBold,
+    'verticalPosition': verticalPosition,
+    'outlineColor': outlineColor.name,
+    'outlineSize': outlineSize,
+    'backgroundOpacity': backgroundOpacity,
+    'hasShadow': hasShadow,
   };
 
   /// Deserialise from a JSON-compatible map.
@@ -335,6 +420,15 @@ class SubtitleStyle {
       (e) => e.name == json['edgeStyle'],
       orElse: () => SubtitleEdgeStyle.dropShadow,
     ),
+    isBold: json['isBold'] as bool? ?? false,
+    verticalPosition: json['verticalPosition'] as int? ?? 100,
+    outlineColor: SubtitleOutlineColor.values.firstWhere(
+      (e) => e.name == json['outlineColor'],
+      orElse: () => SubtitleOutlineColor.black,
+    ),
+    outlineSize: (json['outlineSize'] as num?)?.toDouble() ?? 2.0,
+    backgroundOpacity: (json['backgroundOpacity'] as num?)?.toDouble() ?? 0.6,
+    hasShadow: json['hasShadow'] as bool? ?? true,
   );
 
   @override
@@ -343,10 +437,27 @@ class SubtitleStyle {
       fontSize == other.fontSize &&
       textColor == other.textColor &&
       background == other.background &&
-      edgeStyle == other.edgeStyle;
+      edgeStyle == other.edgeStyle &&
+      isBold == other.isBold &&
+      verticalPosition == other.verticalPosition &&
+      outlineColor == other.outlineColor &&
+      outlineSize == other.outlineSize &&
+      backgroundOpacity == other.backgroundOpacity &&
+      hasShadow == other.hasShadow;
 
   @override
-  int get hashCode => Object.hash(fontSize, textColor, background, edgeStyle);
+  int get hashCode => Object.hash(
+    fontSize,
+    textColor,
+    background,
+    edgeStyle,
+    isBold,
+    verticalPosition,
+    outlineColor,
+    outlineSize,
+    backgroundOpacity,
+    hasShadow,
+  );
 }
 
 /// Reactive settings state.
@@ -376,6 +487,10 @@ class SettingsState {
     this.notifyEpgUpdate = false,
     this.channelViewMode = ChannelViewMode.list,
     this.historyRecordingPaused = false,
+    this.screensaverMode = ScreensaverMode.bouncingLogo,
+    this.screensaverTimeout = 0,
+    this.shaderPresetId = 'none',
+    this.locale,
   }) : remoteKeyMap = remoteKeyMap ?? defaultRemoteKeyMap;
 
   final AppConfig config;
@@ -411,7 +526,7 @@ class SettingsState {
   final bool autoResumeChannel;
 
   /// Whether to auto-play the next episode when the current
-  /// one ends. Default: `true` (matches Netflix/Disney+).
+  /// one ends. Default: `true` (matches common streaming apps).
   final bool autoplayNextEpisode;
 
   /// User's CC / subtitle styling preferences.
@@ -483,6 +598,27 @@ class SettingsState {
   /// Persisted via [kHistoryRecordingPausedKey].
   final bool historyRecordingPaused;
 
+  /// Screensaver display mode (bouncing logo, clock, black).
+  ///
+  /// Persisted via [kScreensaverModeKey].
+  final ScreensaverMode screensaverMode;
+
+  /// Screensaver idle timeout in minutes. 0 = disabled.
+  ///
+  /// Persisted via [kScreensaverTimeoutKey].
+  final int screensaverTimeout;
+
+  /// Active GPU shader preset ID. 'none' = disabled.
+  ///
+  /// Persisted via [kShaderPresetKey].
+  final String shaderPresetId;
+
+  /// User's preferred locale (language code).
+  ///
+  /// When `null`, the system locale is used.
+  /// Persisted via [kLocaleKey].
+  final String? locale;
+
   /// All channel IDs that should be excluded from
   /// display.
   Set<String> get allHiddenChannelIds => {
@@ -514,6 +650,10 @@ class SettingsState {
     bool? notifyEpgUpdate,
     ChannelViewMode? channelViewMode,
     bool? historyRecordingPaused,
+    ScreensaverMode? screensaverMode,
+    int? screensaverTimeout,
+    String? shaderPresetId,
+    String? locale,
   }) {
     return SettingsState(
       config: config ?? this.config,
@@ -542,6 +682,10 @@ class SettingsState {
       channelViewMode: channelViewMode ?? this.channelViewMode,
       historyRecordingPaused:
           historyRecordingPaused ?? this.historyRecordingPaused,
+      screensaverMode: screensaverMode ?? this.screensaverMode,
+      screensaverTimeout: screensaverTimeout ?? this.screensaverTimeout,
+      shaderPresetId: shaderPresetId ?? this.shaderPresetId,
+      locale: locale ?? this.locale,
     );
   }
 }

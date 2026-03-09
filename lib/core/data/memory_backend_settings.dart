@@ -207,4 +207,137 @@ mixin _MemorySettingsMixin on _MemoryStorage {
       reminder['fired'] = true;
     }
   }
+
+  // ── Bookmarks ──────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> loadBookmarks(String contentId) async {
+    return bookmarks.values.where((b) => b['content_id'] == contentId).toList();
+  }
+
+  Future<void> saveBookmark(Map<String, dynamic> bookmark) async {
+    bookmarks[bookmark['id'] as String] = bookmark;
+  }
+
+  Future<void> deleteBookmark(String id) async {
+    bookmarks.remove(id);
+  }
+
+  Future<void> clearBookmarks(String contentId) async {
+    bookmarks.removeWhere((_, v) => v['content_id'] == contentId);
+  }
+
+  // ── Smart Groups ─────────────────────────────────
+
+  Future<String> createSmartGroup(String name) async {
+    final id = 'sg-${DateTime.now().microsecondsSinceEpoch}';
+    smartGroups[id] = {
+      'id': id,
+      'name': name,
+      'created_at': DateTime.now().millisecondsSinceEpoch,
+    };
+    smartGroupMembers[id] = [];
+    return id;
+  }
+
+  Future<void> deleteSmartGroup(String groupId) async {
+    smartGroups.remove(groupId);
+    smartGroupMembers.remove(groupId);
+  }
+
+  Future<void> renameSmartGroup(String groupId, String name) async {
+    final g = smartGroups[groupId];
+    if (g != null) g['name'] = name;
+  }
+
+  Future<void> addSmartGroupMember(
+    String groupId,
+    String channelId,
+    String sourceId,
+    int priority,
+  ) async {
+    final members = smartGroupMembers.putIfAbsent(groupId, () => []);
+    members.removeWhere((m) => m['channel_id'] == channelId);
+    members.add({
+      'group_id': groupId,
+      'channel_id': channelId,
+      'source_id': sourceId,
+      'priority': priority,
+    });
+  }
+
+  Future<void> removeSmartGroupMember(String groupId, String channelId) async {
+    smartGroupMembers[groupId]?.removeWhere(
+      (m) => m['channel_id'] == channelId,
+    );
+  }
+
+  Future<void> reorderSmartGroupMembers(
+    String groupId,
+    String orderedChannelIdsJson,
+  ) async {
+    final ids = (jsonDecode(orderedChannelIdsJson) as List).cast<String>();
+    final members = smartGroupMembers[groupId];
+    if (members == null) return;
+    for (var i = 0; i < ids.length; i++) {
+      final m = members.firstWhere(
+        (m) => m['channel_id'] == ids[i],
+        orElse: () => <String, dynamic>{},
+      );
+      if (m.isNotEmpty) m['priority'] = i;
+    }
+  }
+
+  Future<String> getSmartGroupsJson() async {
+    final result = <Map<String, dynamic>>[];
+    for (final g in smartGroups.values) {
+      final members = smartGroupMembers[g['id']] ?? [];
+      final sorted = List<Map<String, dynamic>>.from(
+        members,
+      )..sort((a, b) => (a['priority'] as int).compareTo(b['priority'] as int));
+      result.add({...g, 'members': sorted});
+    }
+    return jsonEncode(result);
+  }
+
+  Future<String?> getSmartGroupForChannel(String channelId) async {
+    for (final entry in smartGroupMembers.entries) {
+      for (final m in entry.value) {
+        if (m['channel_id'] == channelId) {
+          final group = smartGroups[entry.key];
+          return group != null ? jsonEncode(group) : null;
+        }
+      }
+    }
+    return null;
+  }
+
+  Future<String> getSmartGroupAlternatives(String channelId) async {
+    // Find which group this channel belongs to.
+    String? groupId;
+    String? sourceId;
+    for (final entry in smartGroupMembers.entries) {
+      for (final m in entry.value) {
+        if (m['channel_id'] == channelId) {
+          groupId = entry.key;
+          sourceId = m['source_id'] as String?;
+          break;
+        }
+      }
+      if (groupId != null) break;
+    }
+    if (groupId == null) return '[]';
+    final members = smartGroupMembers[groupId] ?? [];
+    final alts =
+        members
+            .where(
+              (m) => m['channel_id'] != channelId && m['source_id'] != sourceId,
+            )
+            .toList();
+    return jsonEncode(alts);
+  }
+
+  Future<String> detectSmartGroupCandidates() async {
+    // Simplified: return empty candidates for testing.
+    return '[]';
+  }
 }

@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -40,7 +41,7 @@ class SourceSelectorBar extends ConsumerWidget {
 
     final chips = <Widget>[
       _SourceChip(
-        label: 'All Sources',
+        label: context.l10n.sourceAllSources,
         icon: null,
         isSelected: sourceFilter.isEmpty,
         colorScheme: colorScheme,
@@ -106,7 +107,7 @@ class _SourceChip extends StatelessWidget {
         isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant;
 
     return Semantics(
-      label: '$label source filter',
+      label: context.l10n.sourceFilterLabel(label),
       selected: isSelected,
       button: true,
       child: InkWell(

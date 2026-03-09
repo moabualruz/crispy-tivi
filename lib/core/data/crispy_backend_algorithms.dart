@@ -49,6 +49,14 @@ abstract class _BackendAlgorithmMethods {
     required String displayNamesJson,
   });
 
+  /// Match EPG entries to channels with confidence scoring.
+  /// Returns JSON array of EpgMatchCandidate objects.
+  Future<String> matchEpgWithConfidence({
+    required String entriesJson,
+    required String channelsJson,
+    required String displayNamesJson,
+  });
+
   /// Build a catch-up URL for a channel + EPG entry.
   /// Returns archive URL or null.
   Future<String?> buildCatchupUrl({
@@ -377,6 +385,27 @@ abstract class _BackendAlgorithmMethods {
   /// Guess search domains for channel logo lookup.
   List<String> guessLogoDomains(String name);
 
+  // ── Logo Resolver ──────────────────────────────────
+
+  /// Resolve a channel name to a tv-logos URL.
+  Future<String?> resolveChannelLogo(String name);
+
+  /// Resolve logos for a batch of channel names.
+  /// Returns JSON map of name → url.
+  Future<String> resolveLogosBatch(String namesJson);
+
+  /// Check if the logo index is stale (>24 h old).
+  Future<bool> isLogoIndexStale();
+
+  /// Fetch the logo index from GitHub and save it.
+  Future<void> refreshLogoIndex();
+
+  /// Decode a BlurHash string into BMP image bytes.
+  ///
+  /// Returns minimal 32-bit BMP data for `Image.memory()`.
+  /// Default size: 16×16 (~1 KB placeholder).
+  Uint8List decodeBlurHash(String hash, int width, int height);
+
   // ── Timezone Formatting ──────────────────────────────
 
   /// Returns the UTC offset in minutes for the given IANA timezone name
@@ -609,4 +638,115 @@ abstract class _BackendAlgorithmMethods {
   /// Normalize a server URL: prepend `http://` if no scheme present,
   /// strip trailing slash.
   String normalizeServerUrl(String raw);
+
+  // ── Stream Health ────────────────────────────────────
+
+  /// Record a stream stall event for [urlHash].
+  Future<void> recordStreamStall(String urlHash);
+
+  /// Record a buffer health sample for [urlHash].
+  Future<void> recordStreamBufferSample(
+    String urlHash,
+    double cacheDurationSecs,
+  );
+
+  /// Record time-to-first-frame for [urlHash].
+  Future<void> recordStreamTtff(String urlHash, int ttffMs);
+
+  /// Get the health score for [urlHash] (0.0–1.0).
+  Future<double> getStreamHealthScore(String urlHash);
+
+  /// Get health scores for multiple URL hashes.
+  /// [urlHashesJson] — JSON array of hash strings.
+  /// Returns JSON: `{"hash1": 0.8, "hash2": 0.5}`
+  Future<String> getStreamHealthScores(String urlHashesJson);
+
+  /// Keep only the newest [maxEntries] stream health rows.
+  Future<int> pruneStreamHealth(int maxEntries);
+
+  /// Feed a failover event and get the action decision.
+  ///
+  /// [eventType] — `"buffer"` or `"stall"`.
+  /// [value] — cache duration for buffer, 0 for stall.
+  /// Returns JSON: `{"action":"none"|"start_warming"|"swap_warm"}`
+  Future<String> evaluateFailoverEvent(
+    String urlHash,
+    String eventType,
+    double value,
+  );
+
+  /// Reset in-memory failover counters for [urlHash].
+  Future<void> resetFailoverState(String urlHash);
+
+  /// Rank alternative streams for failover.
+  ///
+  /// [targetJson] — JSON of the target Channel.
+  /// [allChannelsJson] — JSON array of all Channel objects.
+  /// [healthScoresJson] — JSON of `{urlHash: score}`.
+  /// Returns JSON array of RankedAlternative.
+  Future<String> rankStreamAlternatives(
+    String targetJson,
+    String allChannelsJson,
+    String healthScoresJson,
+  );
+
+  /// Extract a US broadcast call sign from a channel name.
+  ///
+  /// Returns the call sign or empty string if none found.
+  String extractCallSign(String name);
+
+  // ── Buffer Tier ───────────────────────────────────────
+
+  /// Get the persisted adaptive-buffer tier for [urlHash].
+  ///
+  /// Returns one of `"conservative"`, `"normal"`, or `"aggressive"`,
+  /// or `null` if no tier has been stored yet.
+  Future<String?> getBufferTier(String urlHash);
+
+  /// Persist an adaptive-buffer [tier] for [urlHash].
+  ///
+  /// [tier] must be one of `"conservative"`, `"normal"`,
+  /// or `"aggressive"`.
+  Future<void> setBufferTier(String urlHash, String tier);
+
+  /// Prune buffer-tier entries, keeping only the newest
+  /// [maxEntries].
+  ///
+  /// Returns the number of rows deleted.
+  Future<int> pruneBufferTiers(int maxEntries);
+
+  /// Feed a buffer-health sample and return the
+  /// (possibly updated) tier as JSON.
+  ///
+  /// Returns:
+  /// `{"tier":"normal","changed":false,"readahead_secs":120}`
+  Future<String> evaluateBufferSample(String urlHash, double cacheDurationSecs);
+
+  /// Reset in-memory buffer counters for [urlHash].
+  ///
+  /// Call this on every channel/VOD change to clear
+  /// stale health samples.
+  Future<void> resetBufferState(String urlHash);
+
+  /// Android heap-adaptive forward-buffer cap in MB.
+  ///
+  /// [heapMaxMb] is the JVM heap limit reported by
+  /// `Runtime.getRuntime().maxMemory()`.
+  ///
+  /// Returns `32` for heaps ≤ 256 MB, `64` for ≤ 512 MB,
+  /// and `100` for larger heaps.
+  ///
+  /// This is a pure CPU function — no I/O, no DB access.
+  int getBufferCapMb(int heapMaxMb);
+
+  // ── App Update ─────────────────────────────────────
+
+  /// Check for a newer app version via GitHub Releases API.
+  /// Returns JSON with `has_update`, `latest_version`,
+  /// `changelog`, `download_url`, `published_at`, `assets_json`.
+  Future<String> checkForUpdate(String currentVersion, String repoUrl);
+
+  /// Find a platform-specific download URL from release assets.
+  /// Returns the first matching asset URL, or `null`.
+  String? getPlatformAssetUrl(String assetsJson, String platform);
 }

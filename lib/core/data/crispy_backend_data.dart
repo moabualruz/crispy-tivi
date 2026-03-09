@@ -228,6 +228,26 @@ abstract class _BackendDataMethods {
     required String channelsJson,
   });
 
+  // ── EPG Mappings ────────────────────────────────────
+
+  /// Save an EPG mapping.
+  Future<void> saveEpgMapping(Map<String, dynamic> mapping);
+
+  /// Get all EPG mappings.
+  Future<List<Map<String, dynamic>>> getEpgMappings();
+
+  /// Lock an EPG mapping so it won't be overridden.
+  Future<void> lockEpgMapping(String channelId);
+
+  /// Delete an EPG mapping.
+  Future<void> deleteEpgMapping(String channelId);
+
+  /// Get pending EPG suggestions (0.40-0.69 confidence, not locked).
+  Future<List<Map<String, dynamic>>> getPendingEpgSuggestions();
+
+  /// Mark a channel as 24/7.
+  Future<void> setChannel247(String channelId, {required bool is247});
+
   // ── Watch History ────────────────────────────────────
 
   /// Load all watch history entries.

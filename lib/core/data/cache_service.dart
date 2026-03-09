@@ -163,6 +163,143 @@ class CacheService extends _CacheServiceBase
   /// Get per-source stats (channel count, VOD count).
   Future<String> getSourceStats() => _backend.getSourceStats();
 
+  // ── Buffer Tier ───────────────────────────────
+
+  /// Get the persisted adaptive-buffer tier for [urlHash].
+  Future<String?> getBufferTier(String urlHash) =>
+      _backend.getBufferTier(urlHash);
+
+  /// Persist an adaptive-buffer [tier] for [urlHash].
+  Future<void> setBufferTier(String urlHash, String tier) =>
+      _backend.setBufferTier(urlHash, tier);
+
+  /// Prune buffer-tier entries, keeping only the newest
+  /// [maxEntries]. Returns the number of rows deleted.
+  Future<int> pruneBufferTiers(int maxEntries) =>
+      _backend.pruneBufferTiers(maxEntries);
+
+  /// Feed a buffer-health sample and return the
+  /// (possibly updated) tier as JSON.
+  Future<String> evaluateBufferSample(
+    String urlHash,
+    double cacheDurationSecs,
+  ) => _backend.evaluateBufferSample(urlHash, cacheDurationSecs);
+
+  /// Reset in-memory buffer counters for [urlHash].
+  Future<void> resetBufferState(String urlHash) =>
+      _backend.resetBufferState(urlHash);
+
+  /// Android heap-adaptive forward-buffer cap in MB.
+  int getBufferCapMb(int heapMaxMb) => _backend.getBufferCapMb(heapMaxMb);
+
+  // ── Stream Health ──────────────────────────────
+
+  /// Record a stream stall event for [urlHash].
+  Future<void> recordStreamStall(String urlHash) =>
+      _backend.recordStreamStall(urlHash);
+
+  /// Record a buffer health sample for [urlHash].
+  Future<void> recordStreamBufferSample(
+    String urlHash,
+    double cacheDurationSecs,
+  ) => _backend.recordStreamBufferSample(urlHash, cacheDurationSecs);
+
+  /// Record time-to-first-frame for [urlHash].
+  Future<void> recordStreamTtff(String urlHash, int ttffMs) =>
+      _backend.recordStreamTtff(urlHash, ttffMs);
+
+  /// Get the health score for [urlHash] (0.0–1.0).
+  Future<double> getStreamHealthScore(String urlHash) =>
+      _backend.getStreamHealthScore(urlHash);
+
+  /// Get health scores for multiple URL hashes.
+  Future<String> getStreamHealthScores(String urlHashesJson) =>
+      _backend.getStreamHealthScores(urlHashesJson);
+
+  /// Keep only the newest [maxEntries] stream health rows.
+  Future<int> pruneStreamHealth(int maxEntries) =>
+      _backend.pruneStreamHealth(maxEntries);
+
+  /// Feed a failover event and get the action decision.
+  Future<String> evaluateFailoverEvent(
+    String urlHash,
+    String eventType,
+    double value,
+  ) => _backend.evaluateFailoverEvent(urlHash, eventType, value);
+
+  /// Reset in-memory failover counters for [urlHash].
+  Future<void> resetFailoverState(String urlHash) =>
+      _backend.resetFailoverState(urlHash);
+
+  /// Rank alternative streams for failover.
+  Future<String> rankStreamAlternatives(
+    String targetJson,
+    String allChannelsJson,
+    String healthScoresJson,
+  ) => _backend.rankStreamAlternatives(
+    targetJson,
+    allChannelsJson,
+    healthScoresJson,
+  );
+
+  /// Extract a US broadcast call sign from a channel name.
+  String extractCallSign(String name) => _backend.extractCallSign(name);
+
+  // ── App Update ─────────────────────────────────
+
+  String? _lastUpdateCheckResult;
+  DateTime? _lastUpdateCheckTime;
+
+  /// Check for updates with in-memory caching.
+  ///
+  /// [checkInterval] — skip if last successful check was
+  /// within this duration.
+  Future<String> checkForUpdate(
+    String currentVersion,
+    String repoUrl, {
+    Duration? checkInterval,
+  }) async {
+    if (checkInterval != null &&
+        _lastUpdateCheckResult != null &&
+        _lastUpdateCheckTime != null) {
+      final elapsed = DateTime.now().difference(_lastUpdateCheckTime!);
+      if (elapsed < checkInterval) {
+        return _lastUpdateCheckResult!;
+      }
+    }
+    final result = await _backend.checkForUpdate(currentVersion, repoUrl);
+    final parsed = jsonDecode(result) as Map<String, dynamic>;
+    if (parsed['error'] == null) {
+      _lastUpdateCheckResult = result;
+      _lastUpdateCheckTime = DateTime.now();
+    }
+    return result;
+  }
+
+  /// Find a platform-specific download URL from release assets.
+  String? getPlatformAssetUrl(String assetsJson, String platform) =>
+      _backend.getPlatformAssetUrl(assetsJson, platform);
+
+  // ── Logo Resolver ─────────────────────────────
+
+  /// Resolve a channel logo URL from the tv-logos index.
+  Future<String?> resolveChannelLogo(String name) =>
+      _backend.resolveChannelLogo(name);
+
+  /// Resolve logos for multiple channels at once.
+  Future<String> resolveLogosBatch(String namesJson) =>
+      _backend.resolveLogosBatch(namesJson);
+
+  /// Check if the tv-logos index needs refreshing.
+  Future<bool> isLogoIndexStale() => _backend.isLogoIndexStale();
+
+  /// Fetch and cache a fresh tv-logos index.
+  Future<void> refreshLogoIndex() => _backend.refreshLogoIndex();
+
+  /// Decode a BlurHash string into BMP image bytes.
+  Uint8List decodeBlurHash(String hash, {int width = 16, int height = 16}) =>
+      _backend.decodeBlurHash(hash, width, height);
+
   // ── Clear ─────────────────────────────────────
 
   /// Clears all cached data.

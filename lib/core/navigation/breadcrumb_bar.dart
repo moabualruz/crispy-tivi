@@ -1,6 +1,8 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../theme/crispy_animation.dart';
 import '../theme/crispy_radius.dart';
 import '../theme/crispy_spacing.dart';
@@ -19,26 +21,26 @@ const int _kBreadcrumbMinDepth = 2;
 /// shown (the first segment is always the root).
 const int _kMaxCrumbs = 4;
 
-/// Friendly display names for known route segments.
+/// Returns localized display names for known route segments.
 ///
 /// FE-AS-13: Converts raw path segments to human-readable labels.
-const Map<String, String> _kSegmentLabels = {
-  'home': 'Home',
-  'tv': 'Live TV',
-  'epg': 'Guide',
-  'vods': 'Movies',
-  'series': 'Series',
-  'dvr': 'DVR',
-  'favorites': 'Favorites',
-  'search': 'Search',
-  'settings': 'Settings',
-  'profiles': 'Profiles',
-  'jellyfin': 'Jellyfin',
-  'emby': 'Emby',
-  'plex': 'Plex',
-  'cloud-browser': 'Cloud',
-  'multiview': 'Multi-View',
-  'detail': 'Detail',
+Map<String, String> _segmentLabels(AppLocalizations l10n) => {
+  'home': l10n.navHome,
+  'tv': l10n.navLiveTv,
+  'epg': l10n.navGuide,
+  'vods': l10n.navMovies,
+  'series': l10n.navSeries,
+  'dvr': l10n.navDvr,
+  'favorites': l10n.navFavorites,
+  'search': l10n.navSearch,
+  'settings': l10n.navSettings,
+  'profiles': l10n.breadcrumbProfiles,
+  'jellyfin': l10n.breadcrumbJellyfin,
+  'emby': l10n.breadcrumbEmby,
+  'plex': l10n.breadcrumbPlex,
+  'cloud-browser': l10n.breadcrumbCloud,
+  'multiview': l10n.breadcrumbMultiView,
+  'detail': l10n.breadcrumbDetail,
 };
 
 /// A single breadcrumb segment.
@@ -57,7 +59,7 @@ class _Crumb {
 ///
 /// E.g. `/settings/profiles` →
 ///   [_Crumb('Settings', '/settings'), _Crumb('Profiles', '/settings/profiles')]
-List<_Crumb> _parseCrumbs(String location) {
+List<_Crumb> _parseCrumbs(String location, Map<String, String> labels) {
   // Strip query string + fragment.
   final clean = location.split('?').first.split('#').first;
   final segments = clean
@@ -78,7 +80,7 @@ List<_Crumb> _parseCrumbs(String location) {
       caseSensitive: false,
     ).hasMatch(seg);
     if (isId) continue;
-    final label = _kSegmentLabels[seg] ?? _capitalize(seg);
+    final label = labels[seg] ?? _capitalize(seg);
     crumbs.add(_Crumb(label: label, path: path));
   }
 
@@ -112,7 +114,7 @@ class BreadcrumbBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
-    final crumbs = _parseCrumbs(location);
+    final crumbs = _parseCrumbs(location, _segmentLabels(context.l10n));
 
     // Only render when depth >= threshold.
     if (crumbs.length < _kBreadcrumbMinDepth) return const SizedBox.shrink();
@@ -202,7 +204,7 @@ class BreadcrumbBar extends StatelessWidget {
         widgets.add(
           Semantics(
             button: true,
-            label: 'Navigate to parent',
+            label: context.l10n.breadcrumbNavigateToParent,
             child: InkWell(
               borderRadius: BorderRadius.circular(CrispyRadius.tv),
               onTap: () => context.go(crumb.path),

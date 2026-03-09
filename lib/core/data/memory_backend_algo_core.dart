@@ -26,6 +26,12 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
     required String displayNamesJson,
   }) async => {'matched': <String, dynamic>{}, 'stats': <String, dynamic>{}};
 
+  Future<String> matchEpgWithConfidence({
+    required String entriesJson,
+    required String channelsJson,
+    required String displayNamesJson,
+  }) async => '[]';
+
   Future<String?> buildCatchupUrl({
     required String channelJson,
     required int startUtc,
@@ -192,6 +198,18 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
 
   /// Delegates to shared [dartGuessLogoDomains].
   List<String> guessLogoDomains(String name) => dartGuessLogoDomains(name);
+
+  // ── Logo Resolver ───────────────────────────
+
+  Future<String?> resolveChannelLogo(String name) async => null;
+
+  Future<String> resolveLogosBatch(String namesJson) async => '{}';
+
+  Future<bool> isLogoIndexStale() async => true;
+
+  Future<void> refreshLogoIndex() async {}
+
+  Uint8List decodeBlurHash(String hash, int width, int height) => Uint8List(0);
 
   // ── URL Normalization ─────────────────────────
 

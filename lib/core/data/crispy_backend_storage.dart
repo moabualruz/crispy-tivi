@@ -201,6 +201,60 @@ abstract class _BackendStorageMethods {
   /// Mark a reminder as fired by ID.
   Future<void> markReminderFired(String id);
 
+  // ── Bookmarks ───────────────────────────────────────────
+
+  /// Load all bookmarks for a content item.
+  Future<List<Map<String, dynamic>>> loadBookmarks(String contentId);
+
+  /// Save a bookmark (upsert by id).
+  Future<void> saveBookmark(Map<String, dynamic> bookmark);
+
+  /// Delete a bookmark by ID.
+  Future<void> deleteBookmark(String id);
+
+  /// Clear all bookmarks for a content item.
+  Future<void> clearBookmarks(String contentId);
+
+  // ── Smart Groups ────────────────────────────────────────
+
+  /// Create a smart channel group. Returns UUID.
+  Future<String> createSmartGroup(String name);
+
+  /// Delete a smart group and all its members.
+  Future<void> deleteSmartGroup(String groupId);
+
+  /// Rename a smart group.
+  Future<void> renameSmartGroup(String groupId, String name);
+
+  /// Add a channel to a smart group.
+  Future<void> addSmartGroupMember(
+    String groupId,
+    String channelId,
+    String sourceId,
+    int priority,
+  );
+
+  /// Remove a channel from a smart group.
+  Future<void> removeSmartGroupMember(String groupId, String channelId);
+
+  /// Reorder members of a smart group.
+  Future<void> reorderSmartGroupMembers(
+    String groupId,
+    String orderedChannelIdsJson,
+  );
+
+  /// Load all smart groups with members as JSON.
+  Future<String> getSmartGroupsJson();
+
+  /// Get the smart group a channel belongs to, if any.
+  Future<String?> getSmartGroupForChannel(String channelId);
+
+  /// Get smart group alternatives (excluding same source).
+  Future<String> getSmartGroupAlternatives(String channelId);
+
+  /// Auto-detect potential smart group candidates.
+  Future<String> detectSmartGroupCandidates();
+
   // ── Backup ───────────────────────────────────────────
 
   /// Export all data as a JSON backup string.

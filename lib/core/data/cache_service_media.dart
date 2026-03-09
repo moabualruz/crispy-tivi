@@ -101,6 +101,88 @@ mixin _CacheMediaMixin on _CacheServiceBase {
   Future<void> markReminderFired(String id) async {
     await _backend.markReminderFired(id);
   }
+
+  // ── Bookmarks ──────────────────────────────────────
+
+  /// Load all bookmarks for a content item.
+  Future<List<Map<String, dynamic>>> loadBookmarks(String contentId) async {
+    return _backend.loadBookmarks(contentId);
+  }
+
+  /// Save a bookmark (raw map).
+  Future<void> saveBookmark(Map<String, dynamic> bookmark) async {
+    await _backend.saveBookmark(bookmark);
+  }
+
+  /// Delete a bookmark by ID.
+  Future<void> deleteBookmark(String id) async {
+    await _backend.deleteBookmark(id);
+  }
+
+  /// Clear all bookmarks for a content item.
+  Future<void> clearBookmarks(String contentId) async {
+    await _backend.clearBookmarks(contentId);
+  }
+
+  // ── Smart Groups ──────────────────────────────────────
+
+  /// Create a smart channel group. Returns UUID.
+  Future<String> createSmartGroup(String name) async {
+    return _backend.createSmartGroup(name);
+  }
+
+  /// Delete a smart group and all its members.
+  Future<void> deleteSmartGroup(String groupId) async {
+    await _backend.deleteSmartGroup(groupId);
+  }
+
+  /// Rename a smart group.
+  Future<void> renameSmartGroup(String groupId, String name) async {
+    await _backend.renameSmartGroup(groupId, name);
+  }
+
+  /// Add a channel to a smart group.
+  Future<void> addSmartGroupMember(
+    String groupId,
+    String channelId,
+    String sourceId,
+    int priority,
+  ) async {
+    await _backend.addSmartGroupMember(groupId, channelId, sourceId, priority);
+  }
+
+  /// Remove a channel from a smart group.
+  Future<void> removeSmartGroupMember(String groupId, String channelId) async {
+    await _backend.removeSmartGroupMember(groupId, channelId);
+  }
+
+  /// Reorder members of a smart group.
+  Future<void> reorderSmartGroupMembers(
+    String groupId,
+    String orderedChannelIdsJson,
+  ) async {
+    await _backend.reorderSmartGroupMembers(groupId, orderedChannelIdsJson);
+  }
+
+  /// Load all smart groups with members as JSON.
+  Future<String> getSmartGroupsJson() async {
+    return _backend.getSmartGroupsJson();
+  }
+
+  /// Get the smart group a channel belongs to, if any.
+  Future<String?> getSmartGroupForChannel(String channelId) async {
+    return _backend.getSmartGroupForChannel(channelId);
+  }
+
+  /// Get smart group alternatives (excluding same source).
+  Future<String> getSmartGroupAlternatives(String channelId) async {
+    return _backend.getSmartGroupAlternatives(channelId);
+  }
+
+  /// Auto-detect potential smart group candidates.
+  Future<String> detectSmartGroupCandidates() async {
+    return _backend.detectSmartGroupCandidates();
+  }
 }
 
 // ── Watch history converters (top-level) ──────────

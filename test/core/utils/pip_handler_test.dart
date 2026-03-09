@@ -1,46 +1,101 @@
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:crispy_tivi/core/utils/pip_handler.dart';
 import 'package:crispy_tivi/core/utils/platform_capabilities.dart';
+import 'package:crispy_tivi/features/player/presentation/providers/pip_provider.dart';
 
 void main() {
-  group('PipHandler', () {
-    late PipHandler handler;
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('PipNotifier (unified PiP)', () {
+    late ProviderContainer container;
+    final List<MethodCall> log = [];
 
     setUp(() {
-      handler = PipHandler();
+      log.clear();
+      // Mock the crispy/pip MethodChannel so PipImpl can initialize.
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(const MethodChannel('crispy/pip'), (
+            MethodCall methodCall,
+          ) async {
+            log.add(methodCall);
+            return null;
+          });
+      container = ProviderContainer();
     });
 
-    test('isSupported delegates to PlatformCapabilities.pip', () {
-      expect(handler.isSupported, equals(PlatformCapabilities.pip));
+    tearDown(() {
+      container.dispose();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(const MethodChannel('crispy/pip'), null);
     });
 
-    test('isPipMode defaults to false', () {
-      expect(handler.isPipMode, isFalse);
+    test('PlatformCapabilities.pip returns true on all platforms', () {
+      expect(PlatformCapabilities.pip, isTrue);
     });
 
-    test('singleton returns same instance', () {
-      final a = PipHandler();
-      final b = PipHandler();
-      expect(identical(a, b), isTrue);
+    test('initial state is inactive', () {
+      final state = container.read(pipProvider);
+      expect(state.isActive, isFalse);
+      expect(state.slotIndex, isNull);
     });
 
-    test('enterPiP returns false when not supported', () async {
-      // On the test VM (Windows), PiP IS supported,
-      // so this test verifies the flow works. If PiP
-      // were not supported, enterPiP should return false.
-      if (!PlatformCapabilities.pip) {
-        final result = await handler.enterPiP();
-        expect(result, isFalse);
-        expect(handler.isPipMode, isFalse);
-      }
+    test('onNativePipChanged updates state to active', () {
+      final notifier = container.read(pipProvider.notifier);
+
+      notifier.onNativePipChanged(isInPip: true);
+      expect(container.read(pipProvider).isActive, isTrue);
     });
 
-    test('exitPiP resets isPipMode', () async {
-      // Even if PiP was never entered, calling exitPiP
-      // should safely set isPipMode to false.
-      await handler.exitPiP();
-      expect(handler.isPipMode, isFalse);
+    test('onNativePipChanged resets state when PiP exits', () {
+      final notifier = container.read(pipProvider.notifier);
+
+      notifier.onNativePipChanged(isInPip: true);
+      expect(container.read(pipProvider).isActive, isTrue);
+
+      notifier.onNativePipChanged(isInPip: false);
+      expect(container.read(pipProvider).isActive, isFalse);
+      expect(container.read(pipProvider).slotIndex, isNull);
+    });
+
+    test('exitPip is no-op when not active', () async {
+      final notifier = container.read(pipProvider.notifier);
+      // Should not throw or change state.
+      await notifier.exitPip();
+      expect(container.read(pipProvider).isActive, isFalse);
+    });
+
+    test('multiple native callbacks are idempotent', () {
+      final notifier = container.read(pipProvider.notifier);
+
+      notifier.onNativePipChanged(isInPip: true);
+      notifier.onNativePipChanged(isInPip: true);
+      expect(container.read(pipProvider).isActive, isTrue);
+
+      notifier.onNativePipChanged(isInPip: false);
+      notifier.onNativePipChanged(isInPip: false);
+      expect(container.read(pipProvider).isActive, isFalse);
+    });
+
+    test('PipState copyWith preserves fields', () {
+      const state = PipState(isActive: true, slotIndex: 2);
+      final copy = state.copyWith();
+      expect(copy.isActive, isTrue);
+      expect(copy.slotIndex, 2);
+    });
+
+    test('PipState copyWith overrides fields', () {
+      const state = PipState();
+      final copy = state.copyWith(isActive: true, slotIndex: 1);
+      expect(copy.isActive, isTrue);
+      expect(copy.slotIndex, 1);
+    });
+
+    test('PipState default constructor has correct defaults', () {
+      const state = PipState();
+      expect(state.isActive, isFalse);
+      expect(state.slotIndex, isNull);
     });
   });
 }

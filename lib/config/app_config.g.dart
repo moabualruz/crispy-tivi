@@ -69,6 +69,11 @@ PlayerConfig _$PlayerConfigFromJson(Map<String, dynamic> json) => PlayerConfig(
   seekStepSeconds: (json['seekStepSeconds'] as num?)?.toInt() ?? 10,
   deinterlaceMode: json['deinterlaceMode'] as String? ?? 'off',
   showSkipButtons: json['showSkipButtons'] as bool? ?? true,
+  loudnessNormalization: json['loudnessNormalization'] as bool? ?? true,
+  stereoDownmix: json['stereoDownmix'] as bool? ?? false,
+  segmentSkipConfig: json['segmentSkipConfig'] as String? ?? '',
+  nextUpMode: json['nextUpMode'] as String? ?? 'static',
+  maxVolume: (json['maxVolume'] as num?)?.toInt() ?? 100,
 );
 
 Map<String, dynamic> _$PlayerConfigToJson(PlayerConfig instance) =>
@@ -95,6 +100,11 @@ Map<String, dynamic> _$PlayerConfigToJson(PlayerConfig instance) =>
       'seekStepSeconds': instance.seekStepSeconds,
       'deinterlaceMode': instance.deinterlaceMode,
       'showSkipButtons': instance.showSkipButtons,
+      'loudnessNormalization': instance.loudnessNormalization,
+      'stereoDownmix': instance.stereoDownmix,
+      'segmentSkipConfig': instance.segmentSkipConfig,
+      'nextUpMode': instance.nextUpMode,
+      'maxVolume': instance.maxVolume,
     };
 
 ThemeConfig _$ThemeConfigFromJson(Map<String, dynamic> json) => ThemeConfig(

@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +17,7 @@ import '../widgets/async_value_ui.dart';
 import '../theme/crispy_radius.dart';
 import '../widgets/crispy_title_bar.dart';
 import '../widgets/offline_banner.dart';
+import '../utils/keyboard_utils.dart';
 import '../widgets/responsive_layout.dart';
 import 'app_routes.dart';
 import 'breadcrumb_bar.dart';
@@ -48,40 +50,30 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  final FocusScopeNode _railFocusScope = FocusScopeNode();
   final FocusScopeNode _contentFocusScope = FocusScopeNode();
   String? _lastReportedPath;
-  bool _isHovering = false;
-  bool _isFocused = false;
 
-  // Cached shortcut maps — built once per layout mode to avoid
-  // allocating a new Map on every build() call.
-  Map<ShortcutActivator, VoidCallback>? _sideNavShortcuts;
-  Map<ShortcutActivator, VoidCallback>? _bottomNavShortcuts;
+  /// When true, screen content subtree is fully offstage
+  /// (zero layout + zero paint). Set after the fade-out
+  /// animation completes on fullscreen entry.
+  bool _contentOffstage = false;
 
-  bool get _isExtended => _isHovering || _isFocused;
+  /// Tracks whether the side navigation rail is currently extended
+  /// (hover or keyboard focus). Used to show the overlay scrim.
+  bool _railExtended = false;
+
+  // Shortcut map is rebuilt per build() since it depends on current route
+  // (digit keys disabled on channel screen for direct-dial).
 
   @override
   void initState() {
     super.initState();
-    _railFocusScope.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
-    _railFocusScope.removeListener(_onFocusChange);
-    _railFocusScope.dispose();
     _contentFocusScope.dispose();
     super.dispose();
-  }
-
-  void _onFocusChange() {
-    final hasFocus = _railFocusScope.hasFocus;
-    if (_isFocused != hasFocus) {
-      setState(() {
-        _isFocused = hasFocus;
-      });
-    }
   }
 
   int _currentIndex(BuildContext context, List<NavItem> destinations) {
@@ -108,7 +100,10 @@ class _AppShellState extends ConsumerState<AppShell> {
     final location = GoRouterState.of(context).uri.path;
     if (location != AppRoutes.customSearch) {
       _stopPreviewIfLeaving(AppRoutes.customSearch);
-      context.go(AppRoutes.customSearch);
+      // Defer navigation to avoid "pop during build" on rapid key presses.
+      Future.microtask(() {
+        if (context.mounted) context.go(AppRoutes.customSearch);
+      });
     }
   }
 
@@ -125,18 +120,11 @@ class _AppShellState extends ConsumerState<AppShell> {
         );
   }
 
-  /// Builds (and memoizes) the keyboard shortcut map for the given
-  /// layout mode. Called from [build] — returns the cached map on
-  /// subsequent invocations so no allocation occurs per frame.
+  /// Builds the keyboard shortcut map for the given layout mode.
   Map<ShortcutActivator, VoidCallback> _shortcutsFor(
     BuildContext context,
     bool usesSideNav,
   ) {
-    if (usesSideNav && _sideNavShortcuts != null) return _sideNavShortcuts!;
-    if (!usesSideNav && _bottomNavShortcuts != null) {
-      return _bottomNavShortcuts!;
-    }
-
     const digitKeys = [
       LogicalKeyboardKey.digit1,
       LogicalKeyboardKey.digit2,
@@ -165,20 +153,26 @@ class _AppShellState extends ConsumerState<AppShell> {
           () => _handleBack(context),
     };
 
-    for (var i = 0; i < navDests.length && i < digitKeys.length; i++) {
-      map[SingleActivator(digitKeys[i])] = () {
-        _stopPreviewIfLeaving(navDests[i].route);
-        // FE-AS-09: mark section visited via keyboard shortcut too.
-        ref.read(navFreshnessProvider.notifier).markVisited(navDests[i].route);
-        context.go(navDests[i].route);
-      };
+    // Digit shortcuts disabled on channel screen so ChannelTvLayout
+    // direct-dial (channel number jump) can receive digit key events.
+    final currentPath = GoRouterState.of(context).uri.path;
+    final isChannelScreen = currentPath.startsWith(AppRoutes.tv);
+
+    if (!isChannelScreen) {
+      for (var i = 0; i < navDests.length && i < digitKeys.length; i++) {
+        map[SingleActivator(digitKeys[i])] = () {
+          _stopPreviewIfLeaving(navDests[i].route);
+          // FE-AS-09: mark section visited via keyboard shortcut too.
+          ref
+              .read(navFreshnessProvider.notifier)
+              .markVisited(navDests[i].route);
+          Future.microtask(() {
+            if (context.mounted) context.go(navDests[i].route);
+          });
+        };
+      }
     }
 
-    if (usesSideNav) {
-      _sideNavShortcuts = map;
-    } else {
-      _bottomNavShortcuts = map;
-    }
     return map;
   }
 
@@ -215,7 +209,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           borderRadius: BorderRadius.all(Radius.circular(CrispyRadius.tv)),
         ),
         icon: const Icon(Icons.calendar_month_rounded),
-        label: const Text('Schedule'),
+        label: Text(context.l10n.fabSchedule),
       ),
       AppRoutes.favorites => FloatingActionButton.extended(
         heroTag: 'fab_new_list',
@@ -224,7 +218,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           borderRadius: BorderRadius.all(Radius.circular(CrispyRadius.tv)),
         ),
         icon: const Icon(Icons.add_rounded),
-        label: const Text('New List'),
+        label: Text(context.l10n.fabNewList),
       ),
       _ => null,
     };
@@ -260,18 +254,28 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _handleBack(BuildContext context) {
     final mode = ref.read(playerModeProvider).mode;
     if (mode == PlayerMode.fullscreen) {
-      ref.read(playerModeProvider.notifier).exitToPreview();
+      final screenSize = MediaQuery.sizeOf(context);
+      ref
+          .read(playerModeProvider.notifier)
+          .exitToPreview(screenSize: screenSize);
       ref.read(playerServiceProvider).forceStateEmit();
       return;
     }
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      final location = GoRouterState.of(context).uri.path;
-      if (location != AppRoutes.home) {
-        context.go(AppRoutes.home);
+    // Two-stage escape: first unfocus any active text field,
+    // second press pops the screen.
+    if (tryUnfocusTextFieldFirst()) return;
+    // Defer navigation to avoid "pop during build" on rapid key presses.
+    Future.microtask(() {
+      if (!context.mounted) return;
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        final location = GoRouterState.of(context).uri.path;
+        if (location != AppRoutes.home) {
+          context.go(AppRoutes.home);
+        }
       }
-    }
+    });
   }
 
   /// Wraps [icon] in a Material 3 [Badge] when [badge] warrants one.
@@ -302,6 +306,36 @@ class _AppShellState extends ConsumerState<AppShell> {
         ref.watch(playerModeProvider.select((s) => s.mode)) ==
         PlayerMode.fullscreen;
 
+    // Two-phase fullscreen transition:
+    // Phase 1: AnimatedOpacity fades content to 0 (300ms).
+    // Phase 2: Offstage removes content from layout + paint.
+    // On exit: immediately undo Offstage (video still covers).
+    ref.listen(playerModeProvider.select((s) => s.mode), (prev, next) {
+      if (next == PlayerMode.fullscreen) {
+        Future.delayed(CrispyAnimation.normal, () {
+          if (mounted && !_contentOffstage) {
+            setState(() => _contentOffstage = true);
+          }
+        });
+      } else if (_contentOffstage) {
+        setState(() => _contentOffstage = false);
+      }
+    });
+    // Handle case where mode is already fullscreen on first
+    // mount (e.g. auto-resume set fullscreen before AppShell
+    // mounted). ref.listen only fires on change, not initial.
+    if (isFullscreen && !_contentOffstage) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_contentOffstage) {
+          Future.delayed(CrispyAnimation.normal, () {
+            if (mounted && !_contentOffstage) {
+              setState(() => _contentOffstage = true);
+            }
+          });
+        }
+      });
+    }
+
     // Track the current route so PermanentVideoLayer can
     // hide the video when navigating away from the host screen.
     final currentPath = GoRouterState.of(context).uri.path;
@@ -319,10 +353,12 @@ class _AppShellState extends ConsumerState<AppShell> {
     // so PlayerFullscreenOverlay's KeyboardListener handles
     // all input (Escape for zap dismiss, digits for seek, etc.).
     // The map is memoized by [_shortcutsFor] to avoid per-frame allocs.
-    final shortcuts =
+    final baseShortcuts =
         isFullscreen
             ? const <ShortcutActivator, VoidCallback>{}
             : _shortcutsFor(context, usesSideNav);
+
+    final shortcuts = baseShortcuts;
 
     return Theme(
       data: profileTheme,
@@ -333,16 +369,31 @@ class _AppShellState extends ConsumerState<AppShell> {
           child: Stack(
             fit: StackFit.expand,
             children: [
+              // ── Black backdrop ──
+              // Prevents the white window background from
+              // bleeding through during the crossfade between
+              // content fading out and video fading in.
+              if (isFullscreen) const ColoredBox(color: Colors.black),
+
               // ── Layer 0: Screen content ──
-              AnimatedOpacity(
-                duration: CrispyAnimation.normal,
-                opacity: isFullscreen ? 0.0 : 1.0,
-                child: IgnorePointer(
-                  ignoring: isFullscreen,
-                  child:
-                      usesSideNav
-                          ? _buildRailLayout(context, colorScheme)
-                          : _buildBottomNavLayout(context, colorScheme),
+              // Offstage after fade-out completes — zero layout
+              // + zero paint during fullscreen playback.
+              // RepaintBoundary isolates content repaints from
+              // video compositing layer.
+              RepaintBoundary(
+                child: Offstage(
+                  offstage: _contentOffstage,
+                  child: AnimatedOpacity(
+                    duration: CrispyAnimation.normal,
+                    opacity: isFullscreen ? 0.0 : 1.0,
+                    child: IgnorePointer(
+                      ignoring: isFullscreen,
+                      child:
+                          usesSideNav
+                              ? _buildRailLayout(context, colorScheme)
+                              : _buildBottomNavLayout(context, colorScheme),
+                    ),
+                  ),
                 ),
               ),
 
@@ -352,10 +403,13 @@ class _AppShellState extends ConsumerState<AppShell> {
               // ── Layer 2: Fullscreen overlay (OSD + gestures + keyboard) ──
               // Material ancestor required to prevent yellow double-underline
               // on Text widgets (Flutter's missing-Material debug signal).
+              // RepaintBoundary isolates OSD repaints from video layer.
               if (isFullscreen)
-                const Material(
-                  type: MaterialType.transparency,
-                  child: PlayerFullscreenOverlay(),
+                const RepaintBoundary(
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: PlayerFullscreenOverlay(),
+                  ),
                 ),
             ],
           ),
@@ -382,71 +436,71 @@ class _AppShellState extends ConsumerState<AppShell> {
           Expanded(
             child: Stack(
               children: [
-                Row(
-                  children: [
-                    FocusTraversalGroup(
-                      child: MouseRegion(
-                        onEnter: (_) => setState(() => _isHovering = true),
-                        onExit: (_) => setState(() => _isHovering = false),
-                        child: FocusScope(
-                          node: _railFocusScope,
-                          child: CallbackShortcuts(
-                            bindings: {
-                              const SingleActivator(
-                                LogicalKeyboardKey.arrowRight,
-                              ): () {
-                                _contentFocusScope.requestFocus();
-                              },
-                            },
-                            child: SideNav(
-                              extended: _isExtended,
-                              selectedIndex: selectedIndex,
-                              onDestinationSelected:
-                                  (i) => _onDestinationSelected(
-                                    context,
-                                    i,
-                                    sideDestinations,
-                                  ),
-                              destinations: sideDestinations,
-                            ),
-                          ),
-                        ),
+                // ── Content area (start-padded for collapsed rail) ──
+                // Content always uses full width minus the collapsed
+                // rail. When the rail expands on hover/focus it
+                // overlays content instead of pushing it aside.
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    start: kRailCollapsedWidth,
+                  ),
+                  child: FocusTraversalGroup(
+                    child: FocusScope(
+                      node: _contentFocusScope,
+                      child: Column(
+                        children: [
+                          // ── FE-AS-07: Offline banner ───────────
+                          const OfflineBanner(),
+                          // ── FE-AS-13: Breadcrumb bar ───────────
+                          const BreadcrumbBar(),
+                          Expanded(child: ToastOverlay(child: widget.child)),
+                          const MiniPlayerBar(),
+                        ],
                       ),
                     ),
-                    VerticalDivider(
-                      width: 1,
-                      thickness: 1,
-                      color: colorScheme.outlineVariant,
-                    ),
-                    Expanded(
-                      child: FocusTraversalGroup(
-                        child: FocusScope(
-                          node: _contentFocusScope,
-                          child: CallbackShortcuts(
-                            bindings: {
-                              const SingleActivator(
-                                LogicalKeyboardKey.arrowLeft,
-                              ): () {
-                                _railFocusScope.requestFocus();
-                              },
-                            },
-                            child: Column(
-                              children: [
-                                // ── FE-AS-07: Offline banner ───────────
-                                const OfflineBanner(),
-                                // ── FE-AS-13: Breadcrumb bar ───────────
-                                const BreadcrumbBar(),
-                                Expanded(
-                                  child: ToastOverlay(child: widget.child),
-                                ),
-                                const MiniPlayerBar(),
-                              ],
+                  ),
+                ),
+
+                // ── Scrim when rail is expanded ──────────────────────
+                // Dims content behind the expanded rail overlay.
+                IgnorePointer(
+                  ignoring: !_railExtended,
+                  child: AnimatedOpacity(
+                    duration: CrispyAnimation.fast,
+                    opacity: _railExtended ? 1.0 : 0.0,
+                    child: const ColoredBox(color: Colors.black26),
+                  ),
+                ),
+
+                // ── Navigation rail (overlays at start edge) ─────────
+                PositionedDirectional(
+                  start: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _RailNavWidget(
+                        selectedIndex: selectedIndex,
+                        onDestinationSelected:
+                            (i) => _onDestinationSelected(
+                              context,
+                              i,
+                              sideDestinations,
                             ),
-                          ),
-                        ),
+                        onExtendedChanged: (extended) {
+                          if (_railExtended != extended) {
+                            setState(() => _railExtended = extended);
+                          }
+                        },
                       ),
-                    ),
-                  ],
+                      VerticalDivider(
+                        width: 1,
+                        thickness: 1,
+                        color: colorScheme.outlineVariant,
+                      ),
+                    ],
+                  ),
                 ),
 
                 // ── Global loading indicator (FE-AS-14) ───────────────
@@ -682,6 +736,80 @@ class _CompactProfileAvatar extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+// ── Rail navigation (extracted for rebuild isolation) ──────────────────────────
+
+/// Encapsulates rail hover/focus state so changes rebuild only
+/// the rail — not the entire [AppShell] subtree.
+class _RailNavWidget extends StatefulWidget {
+  const _RailNavWidget({
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    this.onExtendedChanged,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+
+  /// Called when the rail's extended state changes (hover/focus).
+  final ValueChanged<bool>? onExtendedChanged;
+
+  @override
+  State<_RailNavWidget> createState() => _RailNavWidgetState();
+}
+
+class _RailNavWidgetState extends State<_RailNavWidget> {
+  final FocusScopeNode _railFocusScope = FocusScopeNode();
+  bool _isHovering = false;
+  bool _isFocused = false;
+  bool get _isExtended => _isHovering || _isFocused;
+
+  @override
+  void initState() {
+    super.initState();
+    _railFocusScope.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _railFocusScope.removeListener(_onFocusChange);
+    _railFocusScope.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    final hasFocus = _railFocusScope.hasFocus;
+    if (_isFocused != hasFocus) {
+      setState(() => _isFocused = hasFocus);
+      widget.onExtendedChanged?.call(_isExtended);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusTraversalGroup(
+      child: MouseRegion(
+        onEnter: (_) {
+          setState(() => _isHovering = true);
+          widget.onExtendedChanged?.call(_isExtended);
+        },
+        onExit: (_) {
+          setState(() => _isHovering = false);
+          widget.onExtendedChanged?.call(_isExtended);
+        },
+        child: FocusScope(
+          node: _railFocusScope,
+          child: SideNav(
+            extended: _isExtended,
+            selectedIndex: widget.selectedIndex,
+            onDestinationSelected: widget.onDestinationSelected,
+            destinations: sideDestinations,
+          ),
+        ),
+      ),
     );
   }
 }

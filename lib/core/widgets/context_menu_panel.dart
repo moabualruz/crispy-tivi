@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/crispy_animation.dart';
 import '../theme/crispy_spacing.dart';
 
-/// A right-slide context menu panel (TiviMate-style).
+/// A right-slide context menu panel.
 ///
 /// Slides in from the right edge, overlaying the content area.
 /// Organized in sections with optional headers and dividers.

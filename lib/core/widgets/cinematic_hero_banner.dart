@@ -5,7 +5,7 @@ import 'sliver_back_button.dart';
 import 'vignette_gradient.dart';
 
 /// A cinematic [SliverAppBar] with a hero-animated backdrop image,
-/// a Netflix-style bottom vignette gradient, and a positioned
+/// a cinematic bottom vignette gradient, and a positioned
 /// title/metadata column anchored to the bottom-left.
 ///
 /// Usage:
@@ -60,7 +60,7 @@ class CinematicHeroBanner extends StatelessWidget {
             // Hero-animated backdrop image
             Hero(tag: heroTag, child: image),
 
-            // Netflix-style bottom vignette
+            // Cinematic bottom vignette
             const VignetteGradient(),
 
             // Title / metadata overlay (bottom-left)

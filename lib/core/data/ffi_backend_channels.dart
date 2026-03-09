@@ -195,6 +195,18 @@ mixin _FfiChannelsMixin on _FfiBackendBase {
     return jsonDecode(json) as Map<String, dynamic>;
   }
 
+  Future<String> matchEpgWithConfidence({
+    required String entriesJson,
+    required String channelsJson,
+    required String displayNamesJson,
+  }) async {
+    return rust_api.matchEpgWithConfidence(
+      entriesJson: entriesJson,
+      channelsJson: channelsJson,
+      displayNamesJson: displayNamesJson,
+    );
+  }
+
   Future<String?> buildCatchupUrl({
     required String channelJson,
     required int startUtc,

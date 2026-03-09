@@ -80,6 +80,11 @@ class PlayerConfig {
     this.deinterlaceMode = 'off',
     // FE-PS-03: Skip Intro / Credits buttons
     this.showSkipButtons = true,
+    this.loudnessNormalization = true,
+    this.stereoDownmix = false,
+    this.segmentSkipConfig = '',
+    this.nextUpMode = 'static',
+    this.maxVolume = 100,
   });
 
   factory PlayerConfig.fromJson(Map<String, dynamic> json) =>
@@ -183,6 +188,36 @@ class PlayerConfig {
   /// appears whenever playback enters a [SkipSegment]
   /// range. Set to `false` to suppress the button.
   final bool showSkipButtons;
+
+  /// EBU R128 loudness normalization for consistent volume across channels.
+  ///
+  /// When enabled, applies `loudnorm=I=-14:TP=-1:LRA=13` mpv audio filter.
+  final bool loudnessNormalization;
+
+  /// Force surround audio to stereo downmix.
+  ///
+  /// When enabled, sets mpv `audio-channels=stereo` for headphone users.
+  final bool stereoDownmix;
+
+  /// Per-type segment skip configuration as JSON string.
+  ///
+  /// Maps [SegmentType] name to [SegmentSkipMode] name.
+  /// Empty string = use defaults (all types = ask).
+  /// See [decodeSegmentSkipConfig] / [encodeSegmentSkipConfig].
+  final String segmentSkipConfig;
+
+  /// Next-up overlay trigger mode.
+  ///
+  /// Values: 'off', 'static' (32s before end), 'smart' (credits-aware).
+  /// Default: 'static'.
+  final String nextUpMode;
+
+  /// Maximum volume percentage (100–300).
+  ///
+  /// At 100 (default), volume slider caps at 100%.
+  /// Higher values enable volume boost (e.g. 200 = 200%).
+  /// Sets mpv `volume-max` property.
+  final int maxVolume;
 
   /// Whether external player is configured (not 'none').
   bool get useExternalPlayer => externalPlayer != 'none';
