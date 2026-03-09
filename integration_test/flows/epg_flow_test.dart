@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -27,8 +28,15 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
+  // EPG flow tests expect desktop-layout elements (Program Guide title,
+  // Day/Week toggles, channel sidebar) that only render at medium+ width.
+  // On Android phones (411dp compact), the EPG renders a different layout.
+  final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+
   group('EPG Flow', () {
-    testWidgets('EPG timeline renders with programme titles', (tester) async {
+    testWidgets('EPG timeline renders with programme titles', skip: isAndroid, (
+      tester,
+    ) async {
       final testBackend = MemoryBackend();
       final testCache = CacheService(testBackend);
       await seedTestSource(testCache);
@@ -73,7 +81,9 @@ void main() {
       );
     });
 
-    testWidgets('EPG shows channel names in sidebar or list', (tester) async {
+    testWidgets('EPG shows channel names in sidebar or list', skip: isAndroid, (
+      tester,
+    ) async {
       final testBackend = MemoryBackend();
       final testCache = CacheService(testBackend);
       await seedTestSource(testCache);
@@ -107,7 +117,9 @@ void main() {
       );
     });
 
-    testWidgets('EPG renders Day/Week toggle buttons', (tester) async {
+    testWidgets('EPG renders Day/Week toggle buttons', skip: isAndroid, (
+      tester,
+    ) async {
       final testBackend = MemoryBackend();
       final testCache = CacheService(testBackend);
       await seedTestSource(testCache);

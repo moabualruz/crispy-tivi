@@ -13,8 +13,12 @@ class SettingsRobot {
   Future<void> waitForSettings() async {
     await tester.pumpUntilFound(settingsScreen);
     await tester.pumpUntilFound(find.byType(TabBarView));
-    for (int i = 0; i < 25; i++) {
+    // Wait until the General tab's actual content is rendered (not the
+    // shimmer placeholder).  On slower devices, settingsAsync may take
+    // a while to resolve.
+    for (int i = 0; i < 60; i++) {
       await tester.pump(const Duration(milliseconds: 200));
+      if (_hasTabContent('General')) break;
     }
   }
 
@@ -25,15 +29,12 @@ class SettingsRobot {
   );
 
   Future<void> _scrollIntoView(Finder finder) async {
-    // Quick check: already visible?
-    if (tester.any(finder)) {
-      await tester.ensureVisible(finder);
-      await tester.pump(const Duration(milliseconds: 500));
-      return;
-    }
-
-    // Pump frames in case the widget is still loading.
-    for (int i = 0; i < 30; i++) {
+    // Settings tabs use ListView (not ListView.builder), so all items
+    // exist in the widget tree even when off-screen.  We just need to
+    // wait for the tab content to render, then ensureVisible scrolls
+    // the item on-screen.  This avoids dragUntilVisible which has
+    // race conditions on slower devices (Android emulators).
+    for (int i = 0; i < 80; i++) {
       await tester.pump(const Duration(milliseconds: 100));
       if (tester.any(finder)) {
         await tester.ensureVisible(finder);
@@ -42,14 +43,10 @@ class SettingsRobot {
       }
     }
 
-    // Use dragUntilVisible which handles scrollable
-    // detection automatically.
-    await tester.dragUntilVisible(
-      finder,
-      settingsScreen,
-      const Offset(0, -200),
+    throw StateError(
+      'Widget "${finder.describeMatch(Plurality.many)}" not found in settings screen '
+      'after 8 seconds of pumping',
     );
-    await tester.pump(const Duration(milliseconds: 500));
   }
 
   /// Returns the current value of a [SwitchListTile].

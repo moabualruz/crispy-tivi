@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -42,19 +44,19 @@ class HistoryScreen extends ConsumerWidget {
           title: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Favorites'),
+              Text(context.l10n.favoritesTitle),
               if (isPaused) ...[
                 const SizedBox(width: CrispySpacing.sm),
                 const _HistoryPausedBadge(),
               ],
             ],
           ),
-          bottom: const TabBar(
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'My Favorites'),
-              Tab(text: 'Recently Watched'),
-              Tab(text: 'Continue Watching'),
-              Tab(text: 'Up Next'),
+              const Tab(text: 'My Favorites'),
+              const Tab(text: 'Recently Watched'),
+              Tab(text: context.l10n.vodContinueWatching),
+              const Tab(text: 'Up Next'),
             ],
           ),
           actions: [

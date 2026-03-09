@@ -9,7 +9,6 @@ import 'package:crispy_tivi/core/data/memory_backend.dart';
 import '../helpers/test_app.dart';
 import '../helpers/test_data.dart';
 
-
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 

@@ -1,9 +1,9 @@
+import 'package:crispy_tivi/config/app_config.dart';
+import 'package:crispy_tivi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:crispy_tivi/config/app_config.dart';
 import 'package:crispy_tivi/config/config_service.dart';
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/data/cache_service.dart';
@@ -102,6 +102,8 @@ void main() {
           settingsNotifierProvider.overrideWith(() => _FakeSettingsNotifier()),
         ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: AppTheme.fromThemeState(const ThemeState()).theme,
           home: const ChannelListScreen(),
         ),

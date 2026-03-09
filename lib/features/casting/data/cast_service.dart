@@ -19,7 +19,14 @@ class CastService extends Notifier<CastState> {
   Timer? _timeoutTimer;
 
   @override
-  CastState build() => const CastState();
+  CastState build() {
+    ref.onDispose(() {
+      _timeoutTimer?.cancel();
+      _timeoutTimer = null;
+      _helper.stopDiscovery();
+    });
+    return const CastState();
+  }
 
   /// Starts scanning for Cast devices on the local
   /// network.

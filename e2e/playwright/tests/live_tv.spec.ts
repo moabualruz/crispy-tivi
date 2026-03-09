@@ -1,6 +1,7 @@
 import { test, expect, Page } from "@playwright/test";
 import * as path from "path";
 import * as fs from "fs";
+import { filterAppErrors } from "./helpers/error-filter";
 
 /**
  * Live TV & EPG QA Crawl
@@ -119,11 +120,8 @@ test.describe("Live TV and Guide (EPG)", () => {
     ].join("\n");
     fs.writeFileSync(path.join(REPORT_DIR, "livetv-crawl-logs.txt"), content);
 
-    // Filter OUT known backend-unavailable errors (no crispy-server
-    // running in E2E), then assert no remaining app errors.
-    const appErrors = errors.filter(
-      (e) => !e.includes("ERR_CONNECTION_REFUSED") && !e.includes("WebSocket"),
-    );
+    // Filter out known external/network errors — only assert on real app bugs.
+    const appErrors = filterAppErrors(errors);
     expect(appErrors).toHaveLength(0);
   });
 });

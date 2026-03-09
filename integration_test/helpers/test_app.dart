@@ -21,6 +21,7 @@ import 'package:crispy_tivi/features/iptv/presentation/providers/channel_provide
 import 'package:crispy_tivi/features/player/data/player_service.dart';
 import 'package:crispy_tivi/features/player/domain/entities/playback_state.dart';
 import 'package:crispy_tivi/features/player/presentation/providers/player_providers.dart';
+import 'package:crispy_tivi/features/voice_search/data/services/speech_service.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/vod_providers.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -72,6 +73,16 @@ const _testConfigJson = '''
   }
 }
 ''';
+
+/// No-op [VoiceSearchService] that skips microphone permission.
+///
+/// On Android, the real service requests mic permission via
+/// permission_handler which throws PlatformException in
+/// integration tests. This stub prevents that.
+class _NoOpVoiceSearchService extends VoiceSearchService {
+  @override
+  Future<bool> initialize() async => false;
+}
 
 /// Mock [PlayerService] that avoids MediaKit init.
 ///
@@ -218,6 +229,9 @@ Widget createTestApp({CrispyBackend? backend, CacheService? cache}) {
 
       // Fake sync: populates cache with test data.
       playlistSyncServiceProvider.overrideWith((ref) => FakeSyncService(ref)),
+
+      // No-op voice search: avoids mic permission on Android.
+      voiceSearchServiceProvider.overrideWith(() => _NoOpVoiceSearchService()),
 
       // Mock player: avoids MediaKit native init.
       playerServiceProvider.overrideWithValue(_MockPlayerService()),

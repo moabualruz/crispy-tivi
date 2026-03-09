@@ -14,6 +14,9 @@ import { defineConfig, devices } from "@playwright/test";
  *   flutter run -d chrome --web-port 3000
  */
 export default defineConfig({
+  /* Verify backend + web server are running before any test. */
+  globalSetup: require.resolve("./global-setup"),
+
   testDir: "./tests",
 
   /* Maximum time a test can run (90s for Flutter CanvasKit). */

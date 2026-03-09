@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
@@ -32,9 +34,9 @@ class MyFavoritesTab extends ConsumerWidget {
     final favChannels = favChannelsAsync.asData?.value ?? [];
 
     if (favChannels.isEmpty && favVods.isEmpty) {
-      return const EmptyStateWidget(
+      return EmptyStateWidget(
         icon: Icons.favorite_border,
-        title: 'No favorites yet',
+        title: context.l10n.favoritesEmpty,
         description:
             'Add channels or shows to your favorites to see them here.',
       );
@@ -134,7 +136,7 @@ class _VodFavoriteItem extends ConsumerWidget {
               ref.read(vodProvider.notifier).toggleFavorite(vod.id);
             },
             icon: Icon(Icons.favorite, size: 18, color: cs.error),
-            tooltip: 'Remove from favorites',
+            tooltip: context.l10n.contextMenuRemoveFromFavorites,
           ),
         ),
       ),

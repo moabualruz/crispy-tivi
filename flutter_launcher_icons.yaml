@@ -1,0 +1,20 @@
+flutter_launcher_icons:
+  image_path: "assets/logo_path2_grayscale.png"
+  android: "launcher_icon"
+  ios: true
+  image_path_ios: "assets/logo_path2_ios_fullbleed.png"
+  web:
+    generate: true
+    image_path: "assets/logo_path2_grayscale.png"
+    background_color: "#2D3135"
+    theme_color: "#2D3135"
+  windows:
+    generate: true
+    image_path: "assets/logo_path2_grayscale.png"
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/logo_path2_ios_fullbleed.png" # macOS squircle follows similar rules to iOS
+  linux:
+    generate: true
+    image_path: "assets/logo_path2_grayscale.png"

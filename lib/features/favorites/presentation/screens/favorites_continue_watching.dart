@@ -8,6 +8,7 @@ import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/smart_image.dart';
+import '../../../../core/widgets/watch_progress_bar.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../../player/presentation/providers/player_providers.dart';
@@ -298,10 +299,7 @@ class ContinueWatchingItem extends StatelessWidget {
                 const SizedBox(height: CrispySpacing.xs),
                 Semantics(
                   label: 'Watch progress: $progressPercent',
-                  child: LinearProgressIndicator(
-                    value: entry.progress,
-                    minHeight: 3,
-                  ),
+                  child: WatchProgressBar(value: entry.progress, height: 3),
                 ),
               ],
             ),

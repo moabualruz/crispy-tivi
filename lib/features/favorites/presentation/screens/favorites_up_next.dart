@@ -7,6 +7,7 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/smart_image.dart';
+import '../../../../core/widgets/watch_progress_bar.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../../player/presentation/providers/player_providers.dart';
@@ -171,15 +172,10 @@ class UpNextItem extends StatelessWidget {
                       ],
                       if (isPartial) ...[
                         const SizedBox(height: CrispySpacing.xs),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(
-                            CrispyRadius.full,
-                          ),
-                          child: LinearProgressIndicator(
-                            value: entry.progress,
-                            minHeight: 3,
-                            backgroundColor: cs.surfaceContainerHighest,
-                          ),
+                        WatchProgressBar(
+                          value: entry.progress,
+                          height: 3,
+                          backgroundColor: cs.surfaceContainerHighest,
                         ),
                       ],
                     ],

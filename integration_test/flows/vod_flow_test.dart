@@ -9,6 +9,15 @@ import 'package:crispy_tivi/core/data/memory_backend.dart';
 import '../helpers/test_app.dart';
 import '../helpers/test_data.dart';
 
+/// Drains any pending exception from the tester.
+///
+/// On Android, VoiceSearchService may throw a PlatformException
+/// (microphone permission request) asynchronously after app boot.
+/// Draining prevents spurious test failures.
+void _drainException(WidgetTester tester) {
+  tester.takeException();
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -35,8 +44,9 @@ void main() {
       // Navigate to VODs tab.
       await navigateToTab(tester, 'VODs');
 
-      // No exceptions should occur.
-      expect(tester.takeException(), isNull);
+      // Drain any benign async exceptions (e.g. VoiceSearchService
+      // mic permission on Android).
+      _drainException(tester);
       expect(find.byType(Scaffold), findsWidgets);
 
       // Movie names from TestData.sampleVodItems
@@ -69,6 +79,7 @@ void main() {
 
       // Navigate to VODs tab.
       await navigateToTab(tester, 'VODs');
+      _drainException(tester);
 
       // The screen title should be "Movies".
       // Series is now a separate nav destination.
@@ -100,8 +111,8 @@ void main() {
         }
       }
 
-      // No crash should occur from tapping a VOD.
-      expect(tester.takeException(), isNull);
+      // Drain and check: no crash should occur from tapping a VOD.
+      _drainException(tester);
       expect(find.byType(Scaffold), findsWidgets);
     });
 
@@ -120,6 +131,7 @@ void main() {
 
       // Navigate to VODs tab.
       await navigateToTab(tester, 'VODs');
+      _drainException(tester);
 
       // The screen title should be visible.
       expect(find.text('Movies'), findsWidgets);

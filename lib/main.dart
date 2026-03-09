@@ -12,6 +12,7 @@ import 'package:media_kit/media_kit.dart';
 
 import 'config/app_config.dart';
 import 'config/settings_notifier.dart';
+import 'l10n/app_localizations.dart';
 import 'core/data/app_directories.dart';
 import 'core/data/app_startup_provider.dart';
 import 'core/navigation/app_router.dart';
@@ -25,9 +26,11 @@ import 'core/data/event_driven_invalidator.dart';
 import 'core/data/ffi_backend.dart';
 import 'core/data/ws_backend.dart';
 import 'core/utils/timezone_utils.dart';
+import 'core/widgets/media_query_scaler.dart';
 import 'core/widgets/responsive_layout.dart';
 import 'core/widgets/smart_image.dart';
 import 'core/widgets/splash_screen.dart';
+import 'core/utils/window_config.dart';
 import 'core/widgets/ui_auto_scale.dart';
 import 'features/iptv/application/playlist_sync_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -184,31 +187,54 @@ Future<void> main() async {
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     await windowManager.ensureInitialized();
 
-    // Restore persisted window state (or fall back to defaults).
-    final prefs = await SharedPreferences.getInstance();
-    final savedW = prefs.getDouble(_kWinW) ?? 1400.0;
-    final savedH = prefs.getDouble(_kWinH) ?? 860.0;
-    final savedX = prefs.getDouble(_kWinX);
-    final savedY = prefs.getDouble(_kWinY);
-    final savedMax = prefs.getBool(_kWinMax) ?? false;
+    // Adaptive default: 1080p window for <=1440p screens, 1440p for larger.
+    var initialSize = const Size(1920.0, 1080.0);
+    final displays = WidgetsBinding.instance.platformDispatcher.displays;
+    if (displays.isNotEmpty) {
+      final screenHeight = displays.first.size.height;
+      initialSize =
+          screenHeight > 1440 ? const Size(2560, 1440) : const Size(1920, 1080);
+    }
+    var shouldCenter = true;
+    Offset? savedPosition;
+    var savedMax = false;
+
+    if (kPersistWindowState) {
+      // Restore persisted window state (or fall back to defaults).
+      final prefs = await SharedPreferences.getInstance();
+      initialSize = Size(
+        prefs.getDouble(_kWinW) ?? initialSize.width,
+        prefs.getDouble(_kWinH) ?? initialSize.height,
+      );
+      final savedX = prefs.getDouble(_kWinX);
+      final savedY = prefs.getDouble(_kWinY);
+      if (savedX != null && savedY != null) {
+        savedPosition = Offset(savedX, savedY);
+        shouldCenter = false;
+      }
+      savedMax = prefs.getBool(_kWinMax) ?? false;
+    }
 
     final windowOptions = WindowOptions(
-      size: Size(savedW, savedH),
+      size: initialSize,
       minimumSize: const Size(800, 480),
       title: 'CrispyTivi',
-      center: savedX == null,
-      titleBarStyle: TitleBarStyle.hidden,
+      center: shouldCenter,
+      titleBarStyle:
+          kUseCustomTitleBar ? TitleBarStyle.hidden : TitleBarStyle.normal,
     );
 
-    // Intercept close to persist state before destroying.
+    // Intercept close to clean up backend resources before destroying.
     await windowManager.setPreventClose(true);
 
     await windowManager.waitUntilReadyToShow(windowOptions, () async {
-      if (savedX != null && savedY != null) {
-        await windowManager.setPosition(Offset(savedX, savedY));
-      }
-      if (savedMax) {
-        await windowManager.maximize();
+      if (kPersistWindowState) {
+        if (savedPosition != null) {
+          await windowManager.setPosition(savedPosition);
+        }
+        if (savedMax) {
+          await windowManager.maximize();
+        }
       }
       await windowManager.show();
       await windowManager.focus();
@@ -266,18 +292,22 @@ class _CrispyTiviAppState extends ConsumerState<CrispyTiviApp>
       await windowManager.destroy();
       return;
     }
-    // Save non-maximized bounds before destroying.
-    final prefs = await SharedPreferences.getInstance();
-    final isMax = await windowManager.isMaximized();
-    if (!isMax) {
-      final size = await windowManager.getSize();
-      final pos = await windowManager.getPosition();
-      await prefs.setDouble(_kWinW, size.width);
-      await prefs.setDouble(_kWinH, size.height);
-      await prefs.setDouble(_kWinX, pos.dx);
-      await prefs.setDouble(_kWinY, pos.dy);
+    if (kPersistWindowState) {
+      // Save non-maximized bounds before destroying.
+      final prefs = await SharedPreferences.getInstance();
+      final isMax = await windowManager.isMaximized();
+      if (!isMax) {
+        final size = await windowManager.getSize();
+        final pos = await windowManager.getPosition();
+        await prefs.setDouble(_kWinW, size.width);
+        await prefs.setDouble(_kWinH, size.height);
+        await prefs.setDouble(_kWinX, pos.dx);
+        await prefs.setDouble(_kWinY, pos.dy);
+      }
+      await prefs.setBool(_kWinMax, isMax);
     }
-    await prefs.setBool(_kWinMax, isMax);
+    // Clean up backend resources (WsBackend: socket, timers, streams).
+    await ref.read(crispyBackendProvider).dispose();
     await windowManager.destroy();
   }
 
@@ -322,68 +352,77 @@ class _CrispyTiviAppState extends ConsumerState<CrispyTiviApp>
       visualDensity: themeState.density.visualDensity,
     );
 
-    return InputModeDetector(
-      child: MaterialApp.router(
-        title: settings.config.appName,
-        debugShowCheckedModeBanner: false,
-        theme: lightThemeData,
-        darkTheme: darkThemeData,
-        themeMode: ThemeMode.dark,
-        routerConfig: router,
-        builder: (context, child) {
-          // Fallback orientation lock: if PlatformDispatcher
-          // reported 0×0 at startup, lock here on first build.
-          if (!_orientationLocked && context.isPhoneFormFactor) {
-            _orientationLocked = true;
-            SystemChrome.setPreferredOrientations([
-              DeviceOrientation.landscapeLeft,
-              DeviceOrientation.landscapeRight,
-            ]);
-          }
+    return MediaQueryScaler(
+      enable: DeviceFormFactorService.current.isTV,
+      child: InputModeDetector(
+        child: MaterialApp.router(
+          title: settings.config.appName,
+          debugShowCheckedModeBanner: false,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: settings.locale != null ? Locale(settings.locale!) : null,
+          theme: lightThemeData,
+          darkTheme: darkThemeData,
+          themeMode: ThemeMode.dark,
+          routerConfig: router,
+          builder: (context, child) {
+            // Fallback orientation lock: if PlatformDispatcher
+            // reported 0×0 at startup, lock here on first build.
+            if (!_orientationLocked && context.isPhoneFormFactor) {
+              _orientationLocked = true;
+              SystemChrome.setPreferredOrientations([
+                DeviceOrientation.landscapeLeft,
+                DeviceOrientation.landscapeRight,
+              ]);
+            }
 
-          // Compute auto-scale for 1440p+ screens, then apply
-          // text scale from theme settings.
-          final mq = MediaQuery.of(context);
-          final autoScale = computeUiAutoScale(
-            mq.size.height,
-            mq.devicePixelRatio,
-          );
-          final scaledSize =
-              autoScale > 1.0
-                  ? Size(mq.size.width / autoScale, mq.size.height / autoScale)
-                  : mq.size;
-
-          final scaledData = mq.copyWith(
-            textScaler: TextScaler.linear(themeState.textScale),
-            size: scaledSize,
-            devicePixelRatio:
-                autoScale > 1.0 ? mq.devicePixelRatio * autoScale : null,
-          );
-
-          Widget result = child ?? const SizedBox.shrink();
-
-          // Scale UI for high-res displays (e.g. 4K at 100% DPI).
-          // FittedBox handles painting, layout AND hit-testing
-          // correctly — unlike Transform.scale which only paints.
-          if (autoScale > 1.0) {
-            result = SizedBox.expand(
-              child: FittedBox(
-                fit: BoxFit.fill,
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: mq.size.width / autoScale,
-                  height: mq.size.height / autoScale,
-                  child: result,
-                ),
-              ),
+            // Compute auto-scale for 1440p+ screens, then apply
+            // text scale from theme settings.
+            final mq = MediaQuery.of(context);
+            final autoScale = computeUiAutoScale(
+              mq.size.height,
+              mq.devicePixelRatio,
             );
-          }
+            final scaledSize =
+                autoScale > 1.0
+                    ? Size(
+                      mq.size.width / autoScale,
+                      mq.size.height / autoScale,
+                    )
+                    : mq.size;
 
-          return UiAutoScale(
-            scale: autoScale,
-            child: MediaQuery(data: scaledData, child: result),
-          );
-        },
+            final scaledData = mq.copyWith(
+              textScaler: TextScaler.linear(themeState.textScale),
+              size: scaledSize,
+              devicePixelRatio:
+                  autoScale > 1.0 ? mq.devicePixelRatio * autoScale : null,
+            );
+
+            Widget result = child ?? const SizedBox.shrink();
+
+            // Scale UI for high-res displays (e.g. 4K at 100% DPI).
+            // FittedBox handles painting, layout AND hit-testing
+            // correctly — unlike Transform.scale which only paints.
+            if (autoScale > 1.0) {
+              result = SizedBox.expand(
+                child: FittedBox(
+                  fit: BoxFit.fill,
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(
+                    width: mq.size.width / autoScale,
+                    height: mq.size.height / autoScale,
+                    child: result,
+                  ),
+                ),
+              );
+            }
+
+            return UiAutoScale(
+              scale: autoScale,
+              child: MediaQuery(data: scaledData, child: result),
+            );
+          },
+        ),
       ),
     );
   }
