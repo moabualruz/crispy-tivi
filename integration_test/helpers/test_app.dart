@@ -16,7 +16,9 @@ import 'package:crispy_tivi/core/theme/theme_provider.dart';
 import 'package:crispy_tivi/features/epg/presentation/providers/epg_providers.dart';
 import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
 import 'package:crispy_tivi/features/iptv/domain/entities/epg_entry.dart';
+import 'package:crispy_tivi/features/onboarding/presentation/providers/onboarding_notifier.dart';
 import 'package:crispy_tivi/features/profiles/domain/entities/user_profile.dart';
+import 'package:crispy_tivi/features/settings/presentation/providers/pin_lockout_provider.dart';
 import 'package:crispy_tivi/features/iptv/presentation/providers/channel_providers.dart';
 import 'package:crispy_tivi/features/player/data/player_service.dart';
 import 'package:crispy_tivi/features/player/domain/entities/playback_state.dart';
@@ -205,7 +207,20 @@ Future<void> seedMultipleProfiles(CacheService cache) async {
 /// Pass a pre-configured [backend] and [cache] to
 /// pre-populate test data. Otherwise, fresh in-memory
 /// instances are used.
-Widget createTestApp({CrispyBackend? backend, CacheService? cache}) {
+///
+/// [onboardingNotifierOverride] replaces [onboardingProvider] with a
+/// custom [OnboardingNotifier] factory — useful for testing pre-seeded
+/// onboarding states (e.g. error state) without triggering real sync.
+///
+/// [pinLockoutNotifierOverride] replaces [pinLockoutProvider] with a
+/// custom [PinLockoutNotifier] factory — useful for testing pre-locked
+/// states without simulating multiple wrong-PIN attempts.
+Widget createTestApp({
+  CrispyBackend? backend,
+  CacheService? cache,
+  OnboardingNotifier Function()? onboardingNotifierOverride,
+  PinLockoutNotifier Function()? pinLockoutNotifierOverride,
+}) {
   final testBackend = backend ?? MemoryBackend();
   final testCache = cache ?? CacheService(testBackend);
 
@@ -240,6 +255,14 @@ Widget createTestApp({CrispyBackend? backend, CacheService? cache}) {
       playbackStateProvider.overrideWith(
         (ref) => Stream<PlaybackState>.empty(),
       ),
+
+      // Optional onboarding notifier override (e.g. for error-state tests).
+      if (onboardingNotifierOverride != null)
+        onboardingProvider.overrideWith(onboardingNotifierOverride),
+
+      // Optional PIN lockout notifier override (e.g. for pre-locked tests).
+      if (pinLockoutNotifierOverride != null)
+        pinLockoutProvider.overrideWith(pinLockoutNotifierOverride),
     ],
     child: const _IntegrationTestApp(),
   );
