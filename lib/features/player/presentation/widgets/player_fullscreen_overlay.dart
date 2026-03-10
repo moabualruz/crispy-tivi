@@ -412,7 +412,8 @@ class _PlayerFullscreenOverlayState
         });
       }
     } else {
-      ref.read(osdStateProvider.notifier).toggle();
+      ref.read(playerServiceProvider).playOrPause();
+      ref.read(osdStateProvider.notifier).show();
     }
     _restoreFocus();
   }
@@ -636,9 +637,12 @@ class _PlayerFullscreenOverlayState
           child: Listener(
             onPointerSignal: (e) => onPointerSignal(e, isInPip),
             onPointerDown: (e) => lastPointerKind = e.kind,
-            child: KeyboardListener(
+            child: Focus(
               focusNode: _focusNode,
-              onKeyEvent: _onKeyEvent,
+              onKeyEvent: (_, event) {
+                _onKeyEvent(event);
+                return KeyEventResult.handled;
+              },
               child: GestureDetector(
                 key: TestKeys.playerGestureDetector,
                 onTap: _onTap,
