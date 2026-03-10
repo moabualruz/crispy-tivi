@@ -85,6 +85,9 @@ void main() {
         await tester.pump();
 
         expect(find.text('Jellyfin Quick Connect'), findsOneWidget);
+
+        // Drain Dio's internal connect-timeout timer.
+        await tester.pump(const Duration(seconds: 10));
       });
     });
 
@@ -108,6 +111,9 @@ void main() {
         await tester.pump();
 
         expect(find.byType(Scaffold), findsOneWidget);
+
+        // Drain Dio's internal connect-timeout timer.
+        await tester.pump(const Duration(seconds: 10));
       });
     });
   });
@@ -138,6 +144,11 @@ void main() {
         await tester.pump();
 
         expect(find.byType(CircularProgressIndicator), findsAtLeastNWidgets(1));
+
+        // Drain Dio's internal connect-timeout timer so it does not
+        // outlive the widget tree disposal and cause a pending-timer
+        // test failure.
+        await tester.pump(const Duration(seconds: 2));
       });
     });
   });
@@ -292,6 +303,9 @@ void main() {
         // The notifier calls restart() which sets state to AsyncLoading,
         // which renders the LoadingStateWidget (CircularProgressIndicator).
         expect(find.byType(CircularProgressIndicator), findsAtLeastNWidgets(1));
+
+        // Drain Dio's internal connect-timeout timer.
+        await tester.pump(const Duration(seconds: 10));
       });
     });
   });

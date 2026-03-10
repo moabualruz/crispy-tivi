@@ -207,7 +207,7 @@ class _UserListRow extends StatelessWidget {
           ),
           const SizedBox(height: CrispySpacing.sm),
           SizedBox(
-            height: 96,
+            height: 100,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: users.length,

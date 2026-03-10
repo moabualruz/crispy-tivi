@@ -83,6 +83,8 @@ class _CountingSyncService extends PlaylistSyncService {
   @override
   Future<SyncReport> syncSource(PlaylistSource source) async {
     onCall();
+    // Delay so the loading state is visible for at least one frame.
+    await Future.delayed(const Duration(milliseconds: 10));
     throw Exception('always fails');
   }
 
@@ -428,6 +430,9 @@ void main() {
         await tester.pump();
 
         expect(find.byType(CircularProgressIndicator), findsAtLeastNWidgets(1));
+
+        // Let the delayed failure complete and settle.
+        await tester.pumpAndSettle();
       });
     });
 

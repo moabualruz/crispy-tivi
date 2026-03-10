@@ -115,7 +115,7 @@ void handlePlayerKeyEvent({
 
   switch (action) {
     case RemoteAction.playPause:
-      service.playOrPause();
+      onPlayPause();
       osd.show();
     case RemoteAction.channelUp:
       if (canZap) {
@@ -142,11 +142,13 @@ void handlePlayerKeyEvent({
         onShowZap();
       } else if (!isLive) {
         _progressiveSeek(event, service, ref, LogicalKeyboardKey.arrowRight);
+        onSeekForward();
       }
       osd.show();
     case RemoteAction.seekBack:
       if (!isLive) {
         _progressiveSeek(event, service, ref, LogicalKeyboardKey.arrowLeft);
+        onSeekBack();
       }
       osd.show();
     case RemoteAction.mute:
@@ -262,20 +264,6 @@ void handlePlayerKeyEvent({
   // ] — increase playback speed by 0.1x (VOD only).
   if (!isLive && key == LogicalKeyboardKey.bracketRight) {
     _adjustSpeedFine(service, 0.1);
-    osd.show();
-    return;
-  }
-
-  // M — toggle mute.
-  if (key == LogicalKeyboardKey.keyM) {
-    service.toggleMute();
-    osd.show();
-    return;
-  }
-
-  // F — toggle fullscreen.
-  if (key == LogicalKeyboardKey.keyF) {
-    onToggleFullscreen();
     osd.show();
     return;
   }

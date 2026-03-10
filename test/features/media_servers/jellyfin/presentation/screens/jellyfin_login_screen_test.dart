@@ -173,12 +173,19 @@ void main() {
         await tester.pump(const Duration(milliseconds: 600));
         await tester.pumpAndSettle();
 
-        // Tap avatar tile.
-        await tester.tap(find.bySemanticsLabel('Select user').first);
+        // Tap the user avatar tile by its username label.
+        expect(find.text('TapMe'), findsOneWidget);
+        await tester.tap(find.text('TapMe'));
         await tester.pumpAndSettle();
 
         // Username field should now contain 'TapMe'.
-        expect(find.widgetWithText(TextFormField, 'TapMe'), findsOneWidget);
+        final usernameField =
+            tester
+                .widget<TextFormField>(
+                  find.widgetWithText(TextFormField, 'Username'),
+                )
+                .controller;
+        expect(usernameField?.text, 'TapMe');
       });
     });
   });
@@ -250,6 +257,11 @@ void main() {
 
           expect(find.byType(JellyfinQuickConnectScreen), findsOneWidget);
           expect(find.text('Jellyfin Quick Connect'), findsOneWidget);
+
+          // Drain Dio's internal connect-timeout timer so it does not
+          // outlive the widget tree disposal and cause a pending-timer
+          // test failure.
+          await tester.pump(const Duration(seconds: 2));
         });
       },
     );
@@ -327,12 +339,16 @@ void main() {
         await tester.tap(find.text('Connect'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
-        await tester.pumpAndSettle();
 
+        // Check before pumpAndSettle — the auto-dismiss timer (1500ms)
+        // would close the dialog during settling.
         final hasSyncing =
             find.text('Syncing libraries…').evaluate().isNotEmpty;
         final hasDone = find.text('Sync Complete').evaluate().isNotEmpty;
         expect(hasSyncing || hasDone, isTrue);
+
+        // Let the auto-dismiss timer complete.
+        await tester.pumpAndSettle();
       });
     });
   });

@@ -101,7 +101,8 @@ void main() {
   testWidgets(
     'SeriesDetailScreen golden — compact Episodes tab with season selector',
     (tester) async {
-      tester.view.physicalSize = const Size(411, 914);
+      // Use a taller viewport to avoid overflow with episode list.
+      tester.view.physicalSize = const Size(411, 1200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -234,8 +235,7 @@ void main() {
 
 // ── Fake notifiers ────────────────────────────────────────────────────────────
 
-class _FakeSettingsNotifier extends AsyncNotifier<SettingsState>
-    implements SettingsNotifier {
+class _FakeSettingsNotifier extends SettingsNotifier {
   @override
   Future<SettingsState> build() async => SettingsState(
     config: const AppConfig(
@@ -271,9 +271,6 @@ class _FakeSettingsNotifier extends AsyncNotifier<SettingsState>
       ),
     ),
   );
-
-  @override
-  dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
 }
 
 class _SeriesVodNotifier extends VodNotifier {

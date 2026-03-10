@@ -290,9 +290,13 @@ class _KeyRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         for (final key in keys)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.xxs),
-            child: _LetterKey(letter: key, onTap: () => onChar(key)),
+          Flexible(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: CrispySpacing.xxs,
+              ),
+              child: _LetterKey(letter: key, onTap: () => onChar(key)),
+            ),
           ),
       ],
     );
@@ -317,7 +321,7 @@ class _LetterKey extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 32,
+          constraints: const BoxConstraints(minWidth: 28, maxWidth: 36),
           height: 40,
           decoration: BoxDecoration(
             color: colorScheme.surfaceContainerHighest,
@@ -422,11 +426,14 @@ class _SpecialKeyButton extends StatelessWidget {
               children: [
                 Icon(icon, size: 16, color: fgColor),
                 const SizedBox(width: CrispySpacing.xxs),
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: fgColor,
-                    fontWeight: FontWeight.w600,
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: fgColor,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],

@@ -50,8 +50,7 @@ AppConfig _minimalConfig() => const AppConfig(
 
 // ── Fake SettingsNotifier ─────────────────────────────────────
 
-class _FakeSettingsNotifier extends AsyncNotifier<SettingsState>
-    implements SettingsNotifier {
+class _FakeSettingsNotifier extends SettingsNotifier {
   PlaylistSource? addedSource;
 
   @override

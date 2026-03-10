@@ -157,54 +157,91 @@ void showEpgUrlDialog({
   required WidgetRef ref,
   required bool Function() isMounted,
 }) {
-  final controller = TextEditingController();
-
-  // Pre-fill with existing value.
-  ref.read(cacheServiceProvider).getSetting(kGlobalEpgUrlKey).then((existing) {
-    if (existing != null && existing.isNotEmpty) {
-      controller.text = existing;
-    }
-  });
-
   showDialog<void>(
     context: context,
     builder:
-        (ctx) => AlertDialog(
-          title: const Text('EPG URL'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(
-              labelText: 'XMLTV URL',
-              hintText: 'https://example.com/epg.xml',
-              prefixIcon: Icon(Icons.calendar_today),
-            ),
-            keyboardType: TextInputType.url,
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final url = controller.text.trim();
-                final messenger = ScaffoldMessenger.of(context);
-                await ref
-                    .read(cacheServiceProvider)
-                    .setSetting(kGlobalEpgUrlKey, url);
-                if (context.mounted) {
-                  Navigator.pop(ctx);
-                }
-                if (isMounted()) {
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('EPG URL saved')),
-                  );
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
+        (ctx) => _EpgUrlDialog(
+          parentRef: ref,
+          isMounted: isMounted,
+          parentContext: context,
         ),
-  ).then((_) => controller.dispose());
+  );
+}
+
+/// Stateful dialog for editing the global EPG URL.
+class _EpgUrlDialog extends ConsumerStatefulWidget {
+  const _EpgUrlDialog({
+    required this.parentRef,
+    required this.isMounted,
+    required this.parentContext,
+  });
+
+  final WidgetRef parentRef;
+  final bool Function() isMounted;
+  final BuildContext parentContext;
+
+  @override
+  ConsumerState<_EpgUrlDialog> createState() => _EpgUrlDialogState();
+}
+
+class _EpgUrlDialogState extends ConsumerState<_EpgUrlDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill with persisted value, guarded by mounted check.
+    widget.parentRef
+        .read(cacheServiceProvider)
+        .getSetting(kGlobalEpgUrlKey)
+        .then((existing) {
+          if (mounted && existing != null && existing.isNotEmpty) {
+            _controller.text = existing;
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final url = _controller.text.trim();
+    final messenger = ScaffoldMessenger.of(widget.parentContext);
+    await widget.parentRef
+        .read(cacheServiceProvider)
+        .setSetting(kGlobalEpgUrlKey, url);
+    if (mounted) {
+      Navigator.pop(context);
+    }
+    if (widget.isMounted()) {
+      messenger.showSnackBar(const SnackBar(content: Text('EPG URL saved')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('EPG URL'),
+      content: TextField(
+        controller: _controller,
+        decoration: const InputDecoration(
+          labelText: 'XMLTV URL',
+          hintText: 'https://example.com/epg.xml',
+          prefixIcon: Icon(Icons.calendar_today),
+        ),
+        keyboardType: TextInputType.url,
+        autofocus: true,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(onPressed: _save, child: const Text('Save')),
+      ],
+    );
+  }
 }

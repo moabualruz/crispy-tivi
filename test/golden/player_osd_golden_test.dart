@@ -114,12 +114,17 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      // Use pump() — pumpAndSettle hangs on OSD auto-hide timer.
+      await tester.pump();
+      await tester.pump();
 
       await expectLater(
-        find.byType(PlayerOsd),
+        find.byType(Scaffold),
         matchesGoldenFile('goldens/player_osd_live.png'),
       );
+
+      // Drain the OSD auto-hide timer to avoid "Timer still pending" error.
+      await tester.pump(const Duration(seconds: 10));
     },
   );
 
@@ -199,12 +204,17 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      // Use pump() — pumpAndSettle hangs on OSD auto-hide timer.
+      await tester.pump();
+      await tester.pump();
 
       await expectLater(
-        find.byType(PlayerOsd),
+        find.byType(Scaffold),
         matchesGoldenFile('goldens/player_osd_vod.png'),
       );
+
+      // Drain the OSD auto-hide timer to avoid "Timer still pending" error.
+      await tester.pump(const Duration(seconds: 10));
     },
   );
 }

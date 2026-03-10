@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -37,6 +39,7 @@ class _SyncProgressDialogState extends ConsumerState<SyncProgressDialog> {
   bool _isSyncing = true;
   String? _error;
   SyncReport? _report;
+  Timer? _dismissTimer;
 
   @override
   void initState() {
@@ -64,10 +67,11 @@ class _SyncProgressDialogState extends ConsumerState<SyncProgressDialog> {
       });
 
       // Auto-dismiss after a short delay on success.
-      await Future<void>.delayed(const Duration(milliseconds: 1500));
-      if (mounted) {
-        Navigator.of(context).pop(true);
-      }
+      _dismissTimer = Timer(const Duration(milliseconds: 1500), () {
+        if (mounted) {
+          Navigator.of(context).pop(true);
+        }
+      });
     } catch (e, stack) {
       debugPrint('SyncProgressDialog error: $e\n$stack');
       if (!mounted) return;
@@ -76,6 +80,12 @@ class _SyncProgressDialogState extends ConsumerState<SyncProgressDialog> {
         _error = _formatError(e);
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _dismissTimer?.cancel();
+    super.dispose();
   }
 
   String _formatError(Object e) => sanitizeError(e);

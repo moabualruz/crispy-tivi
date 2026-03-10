@@ -250,35 +250,41 @@ class _SeriesEpisodesTabState extends ConsumerState<SeriesEpisodesTab> {
           children: [
             Text('Season', style: widget.tt.titleSmall),
             const SizedBox(width: CrispySpacing.md),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(CrispyRadius.none),
-                border: Border.all(
-                  color: widget.cs.outline.withValues(alpha: 0.3),
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: CrispySpacing.md,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(CrispyRadius.none),
+                  border: Border.all(
+                    color: widget.cs.outline.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: DropdownButton<int>(
+                  value: widget.selectedSeason,
+                  underline: const SizedBox.shrink(),
+                  isExpanded: true,
+                  borderRadius: BorderRadius.circular(CrispyRadius.none),
+                  items:
+                      widget.seasons
+                          .map(
+                            (s) => DropdownMenuItem(
+                              value: s,
+                              child: Text(
+                                countBySeason.containsKey(s)
+                                    ? 'Season $s · ${countBySeason[s]} Episodes'
+                                    : 'Season $s',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                  onChanged: widget.onSeasonChanged,
                 ),
               ),
-              child: DropdownButton<int>(
-                value: widget.selectedSeason,
-                underline: const SizedBox.shrink(),
-                borderRadius: BorderRadius.circular(CrispyRadius.none),
-                items:
-                    widget.seasons
-                        .map(
-                          (s) => DropdownMenuItem(
-                            value: s,
-                            child: Text(
-                              countBySeason.containsKey(s)
-                                  ? 'Season $s · ${countBySeason[s]} Episodes'
-                                  : 'Season $s',
-                            ),
-                          ),
-                        )
-                        .toList(),
-                onChanged: widget.onSeasonChanged,
-              ),
             ),
-            const Spacer(),
+            const SizedBox(width: CrispySpacing.sm),
             Text(
               '${widget.filtered.length} episodes',
               style: widget.tt.bodySmall?.copyWith(

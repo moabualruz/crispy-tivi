@@ -87,7 +87,8 @@ void main() {
   });
 
   testWidgets('SearchScreen golden — expanded with results', (tester) async {
-    tester.view.physicalSize = const Size(1280, 800);
+    // Use a taller viewport to avoid overflow in search result rows.
+    tester.view.physicalSize = const Size(1280, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);

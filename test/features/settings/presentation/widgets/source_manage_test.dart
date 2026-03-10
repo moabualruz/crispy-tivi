@@ -67,8 +67,7 @@ const _kXtreamSource = PlaylistSource(
 
 // ── Fake SettingsNotifier ──────────────────────────────────────
 
-class _FakeSettingsNotifier extends AsyncNotifier<SettingsState>
-    implements SettingsNotifier {
+class _FakeSettingsNotifier extends SettingsNotifier {
   final List<PlaylistSource> _initialSources;
 
   _FakeSettingsNotifier({List<PlaylistSource>? sources})
@@ -121,8 +120,6 @@ Future<_FakeSettingsNotifier> _pumpSourceTile(
   final cache = CacheService(backendImpl);
   final fakeNotifier = _FakeSettingsNotifier(sources: [source]);
 
-  // Import SourceTile via source_extra_sections.dart re-export is not
-  // available, so we import the widget class directly from there.
   // SourceTile is defined in source_extra_sections.dart.
   await tester.pumpWidget(
     ProviderScope(
@@ -136,11 +133,22 @@ Future<_FakeSettingsNotifier> _pumpSourceTile(
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SingleChildScrollView(
-            child: SourceTile(
-              source: source,
-              index: 0,
-              showDragHandle: showDragHandle,
-              onDelete: () => fakeNotifier.removeSource(source.id),
+            // Consumer forces provider initialization so that the notifier's
+            // $ref is set before any direct method calls on the instance.
+            child: Consumer(
+              builder: (context, ref, _) {
+                // Read the provider to ensure it is initialized.
+                ref.watch(settingsNotifierProvider);
+                return SourceTile(
+                  source: source,
+                  index: 0,
+                  showDragHandle: showDragHandle,
+                  onDelete:
+                      () => ref
+                          .read(settingsNotifierProvider.notifier)
+                          .removeSource(source.id),
+                );
+              },
             ),
           ),
         ),
@@ -408,7 +416,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // The existing user agent value should appear in the text field.
-      expect(find.text('VLC/3.0'), findsOneWidget);
+      // It also appears in the tile subtitle, so findsAtLeast(1) is used.
+      expect(find.text('VLC/3.0'), findsAtLeast(1));
     });
   });
 
@@ -449,7 +458,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // The existing EPG URL from _kM3uSource should appear in the field.
-      expect(find.text(_kM3uSource.epgUrl!), findsOneWidget);
+      // It also appears in the tile subtitle, so findsAtLeast(1) is used.
+      expect(find.text(_kM3uSource.epgUrl!), findsAtLeast(1));
     });
 
     testWidgets('Cancel closes dialog without saving', (tester) async {

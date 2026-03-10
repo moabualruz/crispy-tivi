@@ -449,8 +449,18 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // LogicalKeyboardKey.less is the '<' character (Shift+,).
-      await tester.sendKeyEvent(LogicalKeyboardKey.less);
+      // LogicalKeyboardKey.less has no android keyCode mapping — use
+      // platform: 'web' to bypass the native keyCode lookup.
+      await tester.sendKeyDownEvent(
+        LogicalKeyboardKey.less,
+        physicalKey: PhysicalKeyboardKey.comma,
+        platform: 'web',
+      );
+      await tester.sendKeyUpEvent(
+        LogicalKeyboardKey.less,
+        physicalKey: PhysicalKeyboardKey.comma,
+        platform: 'web',
+      );
       await tester.pump();
 
       // Verify setSpeed was called with a value lower than 1.0.
@@ -474,7 +484,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.greater);
+      await tester.sendKeyDownEvent(
+        LogicalKeyboardKey.greater,
+        physicalKey: PhysicalKeyboardKey.period,
+        platform: 'web',
+      );
+      await tester.sendKeyUpEvent(
+        LogicalKeyboardKey.greater,
+        physicalKey: PhysicalKeyboardKey.period,
+        platform: 'web',
+      );
       await tester.pump();
 
       final captured = verify(() => service.setSpeed(captureAny())).captured;

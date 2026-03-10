@@ -100,41 +100,47 @@ class _EpgMenuHarness extends StatelessWidget {
       ),
     ];
 
-    return ListView(
-      children: [
-        for (final section in sections) ...[
-          if (section.header != null)
-            Padding(
-              key: Key('header_${section.header}'),
-              padding: EdgeInsets.zero,
-              child: Text(
-                section.header!,
-                style: TextStyle(color: section.headerColor),
+    // Use SingleChildScrollView + Column (not ListView) so all items are
+    // eagerly built and findable by type/key even when the list is long.
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final section in sections) ...[
+            if (section.header != null)
+              Padding(
+                key: Key('header_${section.header}'),
+                padding: EdgeInsets.zero,
+                child: Text(
+                  section.header!,
+                  style: TextStyle(color: section.headerColor),
+                ),
               ),
-            ),
-          for (final item in section.items)
-            ListTile(
-              key: Key('item_${item.label}'),
-              leading: Icon(
-                item.icon,
-                color:
-                    item.isDestructive
-                        ? colorScheme.error
-                        : colorScheme.onSurfaceVariant,
-              ),
-              title: Text(
-                item.label,
-                style: TextStyle(
+            for (final item in section.items)
+              ListTile(
+                key: Key('item_${item.label}'),
+                leading: Icon(
+                  item.icon,
                   color:
                       item.isDestructive
                           ? colorScheme.error
-                          : colorScheme.onSurface,
+                          : colorScheme.onSurfaceVariant,
                 ),
+                title: Text(
+                  item.label,
+                  style: TextStyle(
+                    color:
+                        item.isDestructive
+                            ? colorScheme.error
+                            : colorScheme.onSurface,
+                  ),
+                ),
+                onTap: item.onTap,
               ),
-              onTap: item.onTap,
-            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

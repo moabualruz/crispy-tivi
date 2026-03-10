@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:crispy_tivi/core/data/cache_service.dart';
+import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/features/parental/data/parental_service.dart';
 import 'package:crispy_tivi/features/parental/domain/content_rating.dart';
 import 'package:crispy_tivi/features/profiles/data/profile_service.dart';
@@ -14,8 +16,7 @@ import 'package:crispy_tivi/l10n/app_localizations.dart';
 
 // ── Fake ParentalService ──────────────────────────────────────
 
-class _FakeParentalService extends AsyncNotifier<ParentalState>
-    implements ParentalService {
+class _FakeParentalService extends ParentalService {
   bool _hasMasterPin;
   String? lastSetPin;
   String? lastVerifiedPin;
@@ -50,15 +51,11 @@ class _FakeParentalService extends AsyncNotifier<ParentalState>
     state = AsyncData(const ParentalState(hasMasterPin: false));
     return true;
   }
-
-  @override
-  dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
 }
 
 // ── Fake ProfileService ───────────────────────────────────────
 
-class _FakeProfileService extends AsyncNotifier<ProfileState>
-    implements ProfileService {
+class _FakeProfileService extends ProfileService {
   final List<UserProfile> _profiles;
   String? lastUpdatedProfileId;
   bool? lastIsChild;
@@ -124,36 +121,24 @@ const _childProfile = UserProfile(
 // ── Test helpers ──────────────────────────────────────────────
 
 /// Pumps [ParentalSettingsSection] with provider overrides.
-///
-/// Returns the [ProviderContainer] so callers can interact with
-/// [pinLockoutProvider] to simulate lockout.
-///
-/// Both [parentalServiceProvider] and [profileServiceProvider] are
-/// pre-warmed (read once) before the widget pump so that
-/// [ref.read] inside tap handlers returns [AsyncData] immediately.
-Future<ProviderContainer> _pump(
+Future<void> _pump(
   WidgetTester tester, {
   required _FakeParentalService fakeParental,
   required _FakeProfileService fakeProfile,
 }) async {
-  final container = ProviderContainer(
-    overrides: [
-      parentalServiceProvider.overrideWith(() => fakeParental),
-      profileServiceProvider.overrideWith(() => fakeProfile),
-    ],
-  );
-  addTearDown(container.dispose);
-
-  // Pre-warm async providers so their state is AsyncData before any tap.
-  container.read(parentalServiceProvider);
-  container.read(profileServiceProvider);
-  // Allow futures from async build() methods to complete.
-  await Future<void>.delayed(Duration.zero);
-
+  final backend = MemoryBackend();
+  final cache = CacheService(backend);
+  final key = GlobalKey();
   await tester.pumpWidget(
-    UncontrolledProviderScope(
-      container: container,
+    ProviderScope(
+      overrides: [
+        crispyBackendProvider.overrideWithValue(backend),
+        cacheServiceProvider.overrideWithValue(cache),
+        parentalServiceProvider.overrideWith(() => fakeParental),
+        profileServiceProvider.overrideWith(() => fakeProfile),
+      ],
       child: MaterialApp(
+        key: key,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: const Scaffold(
@@ -163,7 +148,42 @@ Future<ProviderContainer> _pump(
     ),
   );
   await tester.pumpAndSettle();
-  return container;
+  // Eagerly trigger profileServiceProvider build so it's in AsyncData
+  // when Profile Restrictions dialog reads it synchronously.
+  ProviderScope.containerOf(key.currentContext!).read(profileServiceProvider);
+  await tester.pumpAndSettle();
+}
+
+/// Pumps the widget and returns a [ProviderContainer] for lockout tests
+/// that need to interact with the lockout notifier.
+Future<ProviderContainer> _pumpForLockout(
+  WidgetTester tester, {
+  required _FakeParentalService fakeParental,
+  required _FakeProfileService fakeProfile,
+}) async {
+  final backend = MemoryBackend();
+  final cache = CacheService(backend);
+  final key = GlobalKey();
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        crispyBackendProvider.overrideWithValue(backend),
+        cacheServiceProvider.overrideWithValue(cache),
+        parentalServiceProvider.overrideWith(() => fakeParental),
+        profileServiceProvider.overrideWith(() => fakeProfile),
+      ],
+      child: MaterialApp(
+        key: key,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const Scaffold(
+          body: SingleChildScrollView(child: ParentalSettingsSection()),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return ProviderScope.containerOf(key.currentContext!);
 }
 
 // ── Tests ─────────────────────────────────────────────────────
@@ -414,7 +434,6 @@ void main() {
       WidgetTester tester,
       ProviderContainer container,
     ) async {
-      // Drive the lockout through the public notifier API.
       final notifier = container.read(pinLockoutProvider.notifier);
       for (var i = 0; i < kPinMaxAttempts; i++) {
         notifier.recordFailure(profileId: '__global__');
@@ -422,102 +441,125 @@ void main() {
       await tester.pump(); // let the notifier update state.
     }
 
+    /// Cancels any active lockout timer to prevent pumpAndSettle hangs
+    /// in teardown.
+    void cancelLockout(ProviderContainer container) {
+      container
+          .read(pinLockoutProvider.notifier)
+          .recordSuccess(profileId: '__global__');
+    }
+
     testWidgets(
       'lockout message visible in PIN dialog after max failed attempts',
       (tester) async {
-        final container = await _pump(
+        final container = await _pumpForLockout(
           tester,
           fakeParental: fakeParental,
           fakeProfile: fakeProfile,
         );
 
-        // Open the PIN dialog.
+        // Open the PIN dialog. Use pump() because lockout creates
+        // Timer.periodic that prevents pumpAndSettle from settling.
         await tester.tap(find.text('Master PIN'));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
 
         expect(find.byType(AlertDialog), findsOneWidget);
 
-        // Trigger lockout via the real notifier.
         await triggerLockout(tester, container);
         await tester.pump();
 
         expect(find.text('Too many incorrect attempts.'), findsOneWidget);
+
+        cancelLockout(container);
       },
     );
 
     testWidgets(
       'countdown text appears in PIN dialog after lockout is triggered',
       (tester) async {
-        final container = await _pump(
+        final container = await _pumpForLockout(
           tester,
           fakeParental: fakeParental,
           fakeProfile: fakeProfile,
         );
 
         await tester.tap(find.text('Master PIN'));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
 
         await triggerLockout(tester, container);
         await tester.pump();
 
         expect(find.textContaining('Try again in'), findsOneWidget);
+
+        cancelLockout(container);
       },
     );
 
     testWidgets('lock_clock icon is shown in PIN dialog when locked', (
       tester,
     ) async {
-      final container = await _pump(
+      final container = await _pumpForLockout(
         tester,
         fakeParental: fakeParental,
         fakeProfile: fakeProfile,
       );
 
       await tester.tap(find.text('Master PIN'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
 
       await triggerLockout(tester, container);
       await tester.pump();
 
       expect(find.byIcon(Icons.lock_clock), findsOneWidget);
+
+      cancelLockout(container);
     });
 
     testWidgets('Submit button is absent from PIN dialog when locked', (
       tester,
     ) async {
-      final container = await _pump(
+      final container = await _pumpForLockout(
         tester,
         fakeParental: fakeParental,
         fakeProfile: fakeProfile,
       );
 
       await tester.tap(find.text('Master PIN'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
 
       await triggerLockout(tester, container);
       await tester.pump();
 
       // PinInputDialog hides FilledButton ("Submit") when locked.
       expect(find.byType(FilledButton), findsNothing);
+
+      cancelLockout(container);
     });
 
     testWidgets(
       'PIN fields are disabled (not rendered) when lockout is active',
       (tester) async {
-        final container = await _pump(
+        final container = await _pumpForLockout(
           tester,
           fakeParental: fakeParental,
           fakeProfile: fakeProfile,
         );
 
         await tester.tap(find.text('Master PIN'));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
 
         await triggerLockout(tester, container);
         await tester.pump();
 
         // When locked, PinInputDialog hides the digit TextField widgets.
         expect(find.byType(TextField), findsNothing);
+
+        cancelLockout(container);
       },
     );
   });

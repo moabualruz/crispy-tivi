@@ -3,12 +3,11 @@
 // Covers:
 //   - Renders episode label (S##E##) and progress bar
 //   - "Play Now" fires onPlayNext and "Cancel" fires onCancel
-//   - Auto-fires onPlayNext when AnimationController completes (fake_async)
+//   - Auto-fires onPlayNext when AnimationController completes
 
 import 'package:crispy_tivi/features/player/presentation/widgets/next_episode_overlay.dart';
 import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
 import 'package:crispy_tivi/l10n/app_localizations.dart';
-import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -121,34 +120,41 @@ void main() {
       expect(find.textContaining('S0'), findsNothing);
     });
 
-    test(
+    testWidgets(
       'AnimationController fires StatusListener with completed when elapsed',
-      () {
+      (tester) async {
         // Verify the auto-fire logic:
         // The _NextEpisodeOverlayState sets up an AnimationController that
         // calls onPlayNext when its status reaches completed. We verify this
-        // behaviour directly with fake_async.
-        fakeAsync((async) {
-          var firedCount = 0;
+        // behaviour by mounting a widget so the SchedulerBinding frame
+        // pipeline is active, then pumping past the full duration.
+        var firedCount = 0;
 
-          final controller = AnimationController(
-            vsync: const TestVSync(),
-            duration: const Duration(seconds: 5),
-          )..addStatusListener((status) {
-            if (status == AnimationStatus.completed) firedCount++;
-          });
+        // A mounted widget activates the SchedulerBinding frame pipeline so
+        // that ticker callbacks (used by AnimationController) are processed
+        // when tester.pump(duration) is called.
+        await tester.pumpWidget(const SizedBox.shrink());
 
-          controller.forward();
-          expect(firedCount, 0);
-
-          // Advance time past the full duration.
-          async.elapse(const Duration(seconds: 6));
-
-          controller.dispose();
-
-          // Completed status must have fired exactly once.
-          expect(firedCount, 1);
+        final controller = AnimationController(
+          vsync: tester,
+          duration: const Duration(seconds: 5),
+        )..addStatusListener((status) {
+          if (status == AnimationStatus.completed) firedCount++;
         });
+
+        controller.forward();
+        expect(firedCount, 0);
+
+        // Pump small increments to advance through the full 5-second duration.
+        // A single large pump may not fire the ticker if the binding hasn't
+        // processed the initial scheduleFrame request from forward().
+        await tester.pump(); // process the initial frame request
+        await tester.pump(const Duration(seconds: 6)); // advance past duration
+
+        controller.dispose();
+
+        // Completed status must have fired exactly once.
+        expect(firedCount, 1);
       },
     );
   });

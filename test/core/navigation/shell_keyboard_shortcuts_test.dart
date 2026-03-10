@@ -18,6 +18,7 @@ import 'package:crispy_tivi/core/navigation/app_routes.dart';
 import 'package:crispy_tivi/core/navigation/app_shell.dart';
 import 'package:crispy_tivi/core/theme/app_theme.dart';
 import 'package:crispy_tivi/core/theme/theme_provider.dart';
+import 'package:crispy_tivi/features/player/data/player_service.dart';
 import 'package:crispy_tivi/features/player/domain/entities/playback_state.dart';
 import 'package:crispy_tivi/features/player/presentation/providers/player_providers.dart';
 import 'package:crispy_tivi/l10n/app_localizations.dart';
@@ -26,7 +27,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// ─── Mocks ────────────────────────────────────────────────────
+
+/// Minimal [PlayerService] mock for shell tests.
+/// Only stubs the methods invoked by [AppShell._stopPreviewIfLeaving]
+/// and [AppShell._handleBack].
+class _MockPlayerService extends Mock implements PlayerService {}
 
 // ─── Fake SettingsNotifier ────────────────────────────────────
 
@@ -106,14 +115,29 @@ GoRouter _buildRouter({String initial = AppRoutes.home}) {
   return GoRouter(initialLocation: initial, routes: routes);
 }
 
+/// Builds a no-op [_MockPlayerService] with all stubs required by
+/// [AppShell._stopPreviewIfLeaving] and [AppShell._handleBack].
+_MockPlayerService _buildMockPlayerService() {
+  final mock = _MockPlayerService();
+  when(() => mock.stop()).thenAnswer((_) async {});
+  when(() => mock.forceStateEmit()).thenReturn(null);
+  when(
+    () => mock.stateStream,
+  ).thenAnswer((_) => const Stream<PlaybackState>.empty());
+  when(() => mock.state).thenReturn(const PlaybackState());
+  return mock;
+}
+
 /// Wraps the app in [ProviderScope] + [MaterialApp.router].
 Widget _buildApp(GoRouter router) {
   final backend = MemoryBackend();
+  final mockPlayerService = _buildMockPlayerService();
   return ProviderScope(
     overrides: [
       crispyBackendProvider.overrideWithValue(backend),
       cacheServiceProvider.overrideWithValue(CacheService(backend)),
       settingsNotifierProvider.overrideWith(() => _FakeSettingsNotifier()),
+      playerServiceProvider.overrideWithValue(mockPlayerService),
       playbackStateProvider.overrideWith(
         (_) => const Stream<PlaybackState>.empty(),
       ),
@@ -156,8 +180,12 @@ void main() {
       await tester.pumpWidget(_buildApp(router));
       await tester.pumpAndSettle();
 
-      // Confirm we start on Home.
-      expect(find.text('Home'), findsOneWidget);
+      // Confirm we start on Home via the router (avoids ambiguity with
+      // the NavigationDestination label also containing "Home").
+      expect(
+        router.routerDelegate.currentConfiguration.uri.path,
+        AppRoutes.home,
+      );
 
       // Press "/" — should trigger _openSearch → go(search).
       await tester.sendKeyEvent(LogicalKeyboardKey.slash);
@@ -315,8 +343,12 @@ void main() {
       await tester.pumpWidget(_buildApp(router));
       await tester.pumpAndSettle();
 
-      // Confirm we are on Settings, not Home.
-      expect(find.text('Settings'), findsOneWidget);
+      // Confirm we start on Settings via the router (avoids ambiguity with
+      // the NavigationDestination label also containing "Settings").
+      expect(
+        router.routerDelegate.currentConfiguration.uri.path,
+        AppRoutes.settings,
+      );
 
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pump();

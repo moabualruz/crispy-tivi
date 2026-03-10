@@ -159,6 +159,11 @@ void main() {
           final hasLoadingText =
               find.text('Testing connection…').evaluate().isNotEmpty;
           expect(hasSpinner || hasLoadingText, isTrue);
+
+          // Drain Dio's internal connect-timeout timer so it does not
+          // outlive the widget tree disposal and cause a pending-timer
+          // test failure.
+          await tester.pump(const Duration(seconds: 2));
         });
       },
     );
@@ -308,20 +313,19 @@ void main() {
         await tester.pump(const Duration(milliseconds: 600));
         await tester.pumpAndSettle();
 
-        // Tap the user avatar tile (semanticLabel "Select user").
-        final userTile = find.bySemanticsLabel('Select user');
-        expect(userTile, findsAtLeastNWidgets(1));
-        await tester.tap(userTile.first);
+        // Tap the user avatar tile by its username label.
+        expect(find.text('TapMe'), findsOneWidget);
+        await tester.tap(find.text('TapMe'));
         await tester.pumpAndSettle();
 
         // The username field should now contain "TapMe".
         final usernameField =
             tester
                 .widget<TextFormField>(
-                  find.widgetWithText(TextFormField, 'TapMe'),
+                  find.widgetWithText(TextFormField, 'Username'),
                 )
                 .controller;
-        expect(usernameField?.text ?? 'TapMe', 'TapMe');
+        expect(usernameField?.text, 'TapMe');
       });
     });
   });

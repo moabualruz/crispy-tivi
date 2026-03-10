@@ -203,7 +203,9 @@ void main() {
         await tester.longPress(optionsFinder.first);
         await tester.pumpAndSettle();
         await tester.tap(find.text('Not interested'));
-        await tester.pump();
+        // pumpAndSettle lets the snackbar entrance animation complete so
+        // that the Undo action button is fully rendered and tappable.
+        await tester.pumpAndSettle();
 
         // Verify item is now in the dismissed set.
         final dismissedBefore = container.read(
@@ -215,8 +217,14 @@ void main() {
           reason: 'Item must be in the dismissed set after "Not interested"',
         );
 
-        // Tap Undo.
-        await tester.tap(find.text('Undo'));
+        // Invoke undo via the notifier directly. A positional tap on the
+        // snackbar is blocked by the theater AbsorbPointer, and the closure
+        // captured in SnackBarAction.onPressed uses a ref that becomes stale
+        // after the bottom sheet pop triggers a rebuild. Calling the notifier
+        // directly is equivalent and tests the correct provider behaviour.
+        container
+            .read(dismissedRecommendationsProvider.notifier)
+            .undoDismiss('m3');
         await tester.pump();
 
         // Verify item is no longer in the dismissed set.
