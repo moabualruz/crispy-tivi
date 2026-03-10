@@ -7,6 +7,7 @@ import '../../../../../core/theme/crispy_radius.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
 import '../../../shared/presentation/screens/media_server_login_screen.dart'
     show kLoginFormMaxWidth;
+import '../../utils/error_sanitizer.dart';
 import '../../../../iptv/application/playlist_sync_service.dart';
 
 /// Modal dialog that shows sync progress after a media server login.
@@ -67,14 +68,17 @@ class _SyncProgressDialogState extends ConsumerState<SyncProgressDialog> {
       if (mounted) {
         Navigator.of(context).pop(true);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('SyncProgressDialog error: $e\n$stack');
       if (!mounted) return;
       setState(() {
         _isSyncing = false;
-        _error = e.toString();
+        _error = _formatError(e);
       });
     }
   }
+
+  String _formatError(Object e) => sanitizeError(e);
 
   @override
   Widget build(BuildContext context) {

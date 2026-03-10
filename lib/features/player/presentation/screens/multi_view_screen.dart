@@ -58,13 +58,14 @@ class _MultiViewScreenState extends State<MultiViewScreen> {
     if (kIsWeb) return;
     final np = player.platform;
     if (np is NativePlayer && Platform.isAndroid) {
-      np.setProperty('hwdec', 'mediacodec-copy');
-      np.setProperty('vo', 'gpu');
-      np.setProperty('framedrop', 'vo');
-      np.setProperty('cache', 'yes');
-      np.setProperty('cache-secs', '10');
-      np.setProperty('demuxer-max-bytes', '50M');
-      np.setProperty('demuxer-max-back-bytes', '5M');
+      final dynamic dnp = np;
+      dnp.setProperty('hwdec', 'mediacodec-copy');
+      dnp.setProperty('vo', 'gpu');
+      dnp.setProperty('framedrop', 'vo');
+      dnp.setProperty('cache', 'yes');
+      dnp.setProperty('cache-secs', '10');
+      dnp.setProperty('demuxer-max-bytes', '50M');
+      dnp.setProperty('demuxer-max-back-bytes', '5M');
     }
   }
 

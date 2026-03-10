@@ -205,26 +205,29 @@ class ShaderService {
   }
 
   Future<void> _mpvCommand(List<String> args) async {
-    final np = _player.platform;
+    if (kIsWeb) return;
+    final dynamic np = _player.platform;
     if (np is NativePlayer) {
-      await np.command(args);
+      await (np as dynamic).command(args);
     }
   }
 
   Future<bool> _isHdrContent() async {
+    if (kIsWeb) return false;
     try {
       final np = _player.platform;
       if (np is! NativePlayer) return false;
 
+      final dynamic dnp = np;
       final colormatrix =
-          await np.getProperty('video-params/colormatrix') as String?;
+          await dnp.getProperty('video-params/colormatrix') as String?;
       if (colormatrix?.contains('bt.2020') == true) return true;
 
       final primaries =
-          await np.getProperty('video-params/primaries') as String?;
+          await dnp.getProperty('video-params/primaries') as String?;
       if (primaries?.contains('bt.2020') == true) return true;
 
-      final gamma = await np.getProperty('video-params/gamma') as String?;
+      final gamma = await dnp.getProperty('video-params/gamma') as String?;
       if (gamma?.contains('pq') == true || gamma?.contains('hlg') == true) {
         return true;
       }

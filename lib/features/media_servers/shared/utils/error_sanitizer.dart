@@ -1,10 +1,17 @@
 import 'package:dio/dio.dart';
 
+import 'package:crispy_tivi/core/exceptions/media_source_exception.dart';
+
 /// Converts a raw exception into a user-friendly error message.
 ///
 /// Strips Dio stack traces and HTTP noise — only the human-readable
 /// reason is shown.
 String sanitizeError(Object e) {
+  // Unwrap MediaSourceException → sanitize its cause if it has one.
+  if (e is MediaSourceException) {
+    if (e.cause is DioException) return sanitizeError(e.cause!);
+    return e.failure.message;
+  }
   if (e is DioException) {
     final response = e.response;
     if (response != null) {

@@ -25,7 +25,8 @@ MediaSourceException dioToMediaSourceException(DioException e, String label) {
       cause: e,
     ),
     DioExceptionType.unknown => MediaSourceException.network(
-      message: 'Network error: ${e.message}',
+      message:
+          'Network error: ${e.message ?? e.error?.toString() ?? 'unknown'}',
       cause: e,
     ),
   };

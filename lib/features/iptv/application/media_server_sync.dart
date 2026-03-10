@@ -72,8 +72,9 @@ class MediaServerSyncService {
         syncTimeMs: stopwatch.elapsedMilliseconds,
       );
       return report;
-    } catch (e) {
+    } catch (e, stack) {
       stopwatch.stop();
+      debugPrint('MediaServerSync: ${source.name} sync failed: $e\n$stack');
       await cache.updateSourceSyncStatus(
         source.id,
         'error',
@@ -120,8 +121,7 @@ class MediaServerSyncService {
       BaseOptions(
         baseUrl: source.url,
         connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 30),
-        responseDecoder: _lenientUtf8Decoder,
+        receiveTimeout: const Duration(seconds: 120),
       ),
     );
     try {
