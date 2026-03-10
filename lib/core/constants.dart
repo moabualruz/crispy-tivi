@@ -17,7 +17,7 @@ const double kNextEpisodeThreshold = 0.90;
 /// Default page size for paginated media server library requests
 /// (Jellyfin, Emby, Plex). Applies to both startIndex-based and
 /// cursor-based pagination.
-const int kMediaServerPageSize = 50;
+const int kMediaServerPageSize = 200;
 
 // ── Cloud sync metadata keys ─────────────────────────────
 //

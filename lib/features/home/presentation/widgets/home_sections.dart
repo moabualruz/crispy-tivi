@@ -14,6 +14,7 @@ import '../../../../core/utils/stream_url_actions.dart';
 import '../../../../core/widgets/context_menu_builders.dart';
 import '../../../../core/widgets/context_menu_panel.dart';
 import '../../../../core/widgets/horizontal_scroll_row.dart';
+import '../../../../core/widgets/skeleton_loader.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../favorites/presentation/providers/favorites_controller.dart';
@@ -154,7 +155,12 @@ class HomeRecommendationsSection extends ConsumerWidget {
 
         return _DismissableRecommendationSections(sections: visible);
       },
-      loading: () => const SizedBox.shrink(),
+      loading:
+          () => const SkeletonRow(
+            itemCount: 5,
+            cardWidth: 140,
+            aspectRatio: 2 / 3,
+          ),
       error: (_, _) => const SizedBox.shrink(),
     );
   }
@@ -430,7 +436,7 @@ class HomeChannelSection extends ConsumerWidget {
       loading:
           () =>
               _showLoadingIndicator
-                  ? const LinearProgressIndicator()
+                  ? const SkeletonRow(itemCount: 4, cardWidth: 200)
                   : const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
     );

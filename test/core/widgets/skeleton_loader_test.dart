@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:crispy_tivi/core/widgets/shimmer_wrapper.dart';
 import 'package:crispy_tivi/core/widgets/skeleton_loader.dart';
 
 void main() {
@@ -17,20 +18,19 @@ void main() {
       expect(container.constraints?.maxHeight, 50);
     });
 
-    testWidgets('animates opacity (pulsing)', (tester) async {
+    testWidgets('wraps child in ShimmerWrapper', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Center(child: SkeletonLoader(width: 100, height: 50)),
         ),
       );
 
-      // Initial state renders.
       expect(find.byType(SkeletonLoader), findsOneWidget);
-      expect(find.byType(Opacity), findsOneWidget);
+      expect(find.byType(ShimmerWrapper), findsOneWidget);
 
-      // Pump a few frames — animation should be running.
+      // Pump a few frames — shimmer animation should be running.
       await tester.pump(const Duration(milliseconds: 100));
-      expect(find.byType(Opacity), findsOneWidget);
+      expect(find.byType(ShimmerWrapper), findsOneWidget);
     });
   });
 

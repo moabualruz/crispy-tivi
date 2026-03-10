@@ -27,6 +27,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get commonRetry => 'Yeniden Dene';
 
   @override
+  String get commonSomethingWentWrong => 'Bir şeyler yanlış gitti';
+
+  @override
   String get commonConfirm => 'Onayla';
 
   @override
@@ -87,6 +90,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get commonFavorites => 'Favoriler';
+
+  @override
+  String get keyboardShortcuts => 'Klavye kısayolları';
 
   @override
   String get navHome => 'Ana Sayfa';

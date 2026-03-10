@@ -27,6 +27,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get commonRetry => 'إعادة المحاولة';
 
   @override
+  String get commonSomethingWentWrong => 'حدث خطأ ما';
+
+  @override
   String get commonConfirm => 'تأكيد';
 
   @override
@@ -87,6 +90,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get commonFavorites => 'المفضلة';
+
+  @override
+  String get keyboardShortcuts => 'اختصارات لوحة المفاتيح';
 
   @override
   String get navHome => 'الرئيسية';

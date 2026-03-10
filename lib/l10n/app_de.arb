@@ -8,6 +8,7 @@
   "commonSave": "Speichern",
   "commonDelete": "Löschen",
   "commonRetry": "Wiederholen",
+  "commonSomethingWentWrong": "Etwas ist schiefgelaufen",
   "commonConfirm": "Bestätigen",
   "commonSubmit": "Absenden",
   "commonBack": "Zurück",
@@ -514,5 +515,6 @@
   "contextMenuFilterCategory": "Nach dieser Kategorie filtern",
 
   "confirmDeleteCancel": "Abbrechen",
-  "confirmDeleteAction": "Löschen"
+  "confirmDeleteAction": "Löschen",
+  "keyboardShortcuts": "Tastaturkürzel"
 }

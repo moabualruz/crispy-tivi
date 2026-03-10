@@ -27,6 +27,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonRetry => '重试';
 
   @override
+  String get commonSomethingWentWrong => '出了点问题';
+
+  @override
   String get commonConfirm => '确认';
 
   @override
@@ -87,6 +90,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commonFavorites => '收藏';
+
+  @override
+  String get keyboardShortcuts => '键盘快捷键';
 
   @override
   String get navHome => '首页';

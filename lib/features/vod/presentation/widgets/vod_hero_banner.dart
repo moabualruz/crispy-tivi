@@ -97,13 +97,12 @@ class _VodHeroBannerState extends ConsumerState<VodHeroBanner> {
 
 // ── FE-H-02: Trailer overlay on hero card ──────────────
 
-/// Trailer overlay placeholder for hero banner cards.
+/// Hero banner overlay that fades in a backdrop image with an info
+/// scrim showing description, genre chip, and year badge.
 ///
-/// Currently shows a fade-in backdrop image after a delay.
-/// When `VodItem.trailerUrl` is added to the domain entity,
-/// this should wire up a `Video` widget via [CrispyPlayer].
-/// No raw `Player()` instances are created — only [CrispyPlayer]
-/// should be used for media playback.
+/// The backdrop appears after [CrispyAnimation.trailerDelay] with
+/// a bottom gradient scrim for readability. The overlay is purely
+/// visual — all pointer events pass through to the card underneath.
 class _TrailerOverlay extends StatefulWidget {
   const _TrailerOverlay({required this.item});
 
@@ -134,25 +133,114 @@ class _TrailerOverlayState extends State<_TrailerOverlay> {
       return const SizedBox.shrink();
     }
 
+    final item = widget.item;
+    final textTheme = Theme.of(context).textTheme;
+    final hasDescription =
+        item.description != null && item.description!.isNotEmpty;
+    final hasCategory = item.category != null && item.category!.isNotEmpty;
+
     return Positioned.fill(
-      child: AnimatedOpacity(
-        opacity: _visible ? 1.0 : 0.0,
-        duration: CrispyAnimation.slow,
-        curve: CrispyAnimation.enterCurve,
-        child:
-            _visible
-                ? ClipRRect(
-                  borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                  child: SmartImage(
-                    itemId: 'trailer_$_backdropUrl',
-                    title: '',
-                    imageUrl: _backdropUrl!,
-                    imageKind: 'backdrop',
-                    fit: BoxFit.cover,
-                    memCacheWidth: 600,
-                  ),
-                )
-                : const SizedBox.shrink(),
+      child: IgnorePointer(
+        child: AnimatedOpacity(
+          opacity: _visible ? 1.0 : 0.0,
+          duration: CrispyAnimation.slow,
+          curve: CrispyAnimation.enterCurve,
+          child:
+              _visible
+                  ? ClipRRect(
+                    borderRadius: BorderRadius.circular(CrispyRadius.tv),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Backdrop image
+                        SmartImage(
+                          itemId: 'trailer_$_backdropUrl',
+                          title: '',
+                          imageUrl: _backdropUrl!,
+                          imageKind: 'backdrop',
+                          fit: BoxFit.cover,
+                          memCacheWidth: 600,
+                        ),
+                        // Gradient scrim for text readability
+                        const DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              stops: [0.35, 1.0],
+                              colors: [Colors.transparent, Color(0xCC000000)],
+                            ),
+                          ),
+                        ),
+                        // Info overlay at bottom
+                        if (hasDescription || hasCategory || item.year != null)
+                          Positioned(
+                            left: CrispySpacing.sm,
+                            right: CrispySpacing.sm,
+                            bottom: CrispySpacing.sm,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (hasDescription) ...[
+                                  Text(
+                                    item.description!,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                  const SizedBox(height: CrispySpacing.xs),
+                                ],
+                                // Category + year chips row
+                                Wrap(
+                                  spacing: CrispySpacing.xs,
+                                  runSpacing: CrispySpacing.xxs,
+                                  children: [
+                                    if (hasCategory)
+                                      _HeroChip(label: item.category!),
+                                    if (item.year != null)
+                                      _HeroChip(label: '${item.year}'),
+                                    if (item.rating != null)
+                                      _HeroChip(label: item.rating!),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                  : const SizedBox.shrink(),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact translucent chip for hero banner info overlays.
+class _HeroChip extends StatelessWidget {
+  const _HeroChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: CrispySpacing.xs,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white24,
+        borderRadius: BorderRadius.circular(CrispyRadius.xs),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall?.copyWith(color: Colors.white),
       ),
     );
   }

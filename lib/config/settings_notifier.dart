@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/data/cache_service.dart';
 import '../core/domain/entities/playlist_source.dart';
+import '../core/widgets/density_mode.dart';
 import '../features/player/data/shader_service.dart';
 import '../features/player/presentation/widgets/screensaver_overlay.dart';
 import '../features/settings/domain/entities/remote_action.dart';
@@ -140,6 +141,26 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
     // ── Shader Preset ──
     final shaderPresetId = await _cache.getSetting(kShaderPresetKey) ?? 'none';
 
+    // ── Grid Density ──
+    final gridDensityStr = await _cache.getSetting(kGridDensityKey);
+    final gridDensity =
+        gridDensityStr != null
+            ? DensityMode.values.firstWhere(
+              (e) => e.name == gridDensityStr,
+              orElse: () => DensityMode.comfortable,
+            )
+            : DensityMode.comfortable;
+    final spoilerBlurStr = await _cache.getSetting(kSpoilerBlurEnabledKey);
+    final spoilerBlurEnabled = spoilerBlurStr == 'true';
+    final vodDisplayModeStr = await _cache.getSetting(kVodDisplayModeKey);
+    final vodDisplayMode =
+        vodDisplayModeStr != null
+            ? VodDisplayMode.values.firstWhere(
+              (e) => e.name == vodDisplayModeStr,
+              orElse: () => VodDisplayMode.poster,
+            )
+            : VodDisplayMode.poster;
+
     // ── Locale ──
     final locale = await _cache.getSetting(kLocaleKey);
 
@@ -170,6 +191,9 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
       screensaverMode: screensaverMode,
       screensaverTimeout: screensaverTimeout,
       shaderPresetId: shaderPresetId,
+      gridDensity: gridDensity,
+      spoilerBlurEnabled: spoilerBlurEnabled,
+      vodDisplayMode: vodDisplayMode,
       locale: locale,
     );
   }
@@ -648,6 +672,32 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
     if (current == null) return;
     await _cache.setSetting(kChannelViewModeKey, mode.name);
     state = AsyncData(current.copyWith(channelViewMode: mode));
+  }
+
+  // ── Grid Density & Visual Polish ──
+
+  /// Persist and apply the grid density mode.
+  Future<void> setGridDensity(DensityMode mode) async {
+    final current = state.value;
+    if (current == null) return;
+    await _cache.setSetting(kGridDensityKey, mode.name);
+    state = AsyncData(current.copyWith(gridDensity: mode));
+  }
+
+  /// Toggle spoiler blur for unwatched episode thumbnails.
+  Future<void> setSpoilerBlurEnabled(bool enabled) async {
+    final current = state.value;
+    if (current == null) return;
+    await _cache.setSetting(kSpoilerBlurEnabledKey, enabled.toString());
+    state = AsyncData(current.copyWith(spoilerBlurEnabled: enabled));
+  }
+
+  /// Persist and apply the VOD display mode (poster/banner).
+  Future<void> setVodDisplayMode(VodDisplayMode mode) async {
+    final current = state.value;
+    if (current == null) return;
+    await _cache.setSetting(kVodDisplayModeKey, mode.name);
+    state = AsyncData(current.copyWith(vodDisplayMode: mode));
   }
 
   // ── History Recording (FE-FAV-05) ──

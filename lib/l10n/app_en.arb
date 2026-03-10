@@ -14,6 +14,8 @@
   "@commonDelete": {},
   "commonRetry": "Retry",
   "@commonRetry": {},
+  "commonSomethingWentWrong": "Something went wrong",
+  "@commonSomethingWentWrong": {},
   "commonConfirm": "Confirm",
   "@commonConfirm": {},
   "commonSubmit": "Submit",
@@ -58,6 +60,8 @@
   "@commonLive": {},
   "commonFavorites": "Favorites",
   "@commonFavorites": {},
+  "keyboardShortcuts": "Keyboard Shortcuts",
+  "@keyboardShortcuts": {},
 
   "navHome": "Home",
   "@navHome": {},

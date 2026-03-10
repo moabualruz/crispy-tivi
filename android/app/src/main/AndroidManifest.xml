@@ -13,7 +13,7 @@
         android:required="false" />
 
     <application
-        android:banner="@mipmap/ic_launcher"
+        android:banner="@drawable/tv_banner"
         android:label="CrispyTivi"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/error_boundary.dart';
 import '../../../../core/widgets/skeleton_loader.dart';
 
 /// Returns the appropriate channel-list sliver for a given
@@ -16,9 +17,12 @@ Widget? channelStateSliver({
   required bool isLoading,
   String? error,
   bool isEmpty = false,
+  VoidCallback? onRetry,
 }) {
   if (isLoading) return const ChannelSkeletonSliver();
-  if (error != null) return ChannelErrorSliver(error: error);
+  if (error != null) {
+    return ChannelErrorSliver(error: error, onRetry: onRetry);
+  }
   if (isEmpty) return const ChannelEmptySliver();
   return null;
 }
@@ -48,30 +52,15 @@ class ChannelSkeletonSliver extends StatelessWidget {
 
 /// Error state sliver for channel list load failures.
 class ChannelErrorSliver extends StatelessWidget {
-  const ChannelErrorSliver({super.key, required this.error});
+  const ChannelErrorSliver({super.key, required this.error, this.onRetry});
 
   final String error;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return SliverFillRemaining(
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: colorScheme.error),
-            const SizedBox(height: CrispySpacing.md),
-            Text(
-              'Failed to load channels',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: CrispySpacing.sm),
-            Text(error, style: TextStyle(color: colorScheme.error)),
-          ],
-        ),
-      ),
+      child: ErrorBoundary(error: error, onRetry: onRetry ?? () {}),
     );
   }
 }

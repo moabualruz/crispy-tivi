@@ -39,6 +39,7 @@ dependencies:
 
   # UI & Animation
   flutter_animate: ^4.5.2
+  flutter_svg: ^2.0.17
   google_fonts: ^8.0.1
 
   # Config & Serialization
@@ -123,3 +124,5 @@ flutter:
   assets:
     - assets/config/
     - assets/shaders/
+    - assets/logo.svg
+    - assets/logo.png

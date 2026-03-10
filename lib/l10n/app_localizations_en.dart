@@ -27,6 +27,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonRetry => 'Retry';
 
   @override
+  String get commonSomethingWentWrong => 'Something went wrong';
+
+  @override
   String get commonConfirm => 'Confirm';
 
   @override
@@ -87,6 +90,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonFavorites => 'Favorites';
+
+  @override
+  String get keyboardShortcuts => 'Keyboard Shortcuts';
 
   @override
   String get navHome => 'Home';

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/device_form_factor.dart';
 import '../../../../core/widgets/alpha_jump_bar.dart';
 import '../../../../core/widgets/genre_pill_row.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
@@ -16,6 +17,7 @@ import '../../../recommendations/presentation/providers/recommendation_providers
 import '../../../recommendations/presentation/widgets/recommendation_section_widget.dart';
 import '../../domain/entities/vod_item.dart';
 import '../mixins/vod_sortable_browser_mixin.dart';
+import '../../../iptv/application/playlist_sync_service.dart';
 import '../providers/vod_providers.dart';
 import 'continue_watching_section.dart';
 import 'recently_added_section.dart';
@@ -105,6 +107,17 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
     ];
   }
 
+  /// Wraps [child] in [RefreshIndicator] on mobile/tablet.
+  Widget _wrapRefresh(Widget child) {
+    if (!DeviceFormFactorService.current.isMobile) return child;
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(playlistSyncServiceProvider).syncAll();
+      },
+      child: child,
+    );
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -135,114 +148,119 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
 
     return Stack(
       children: [
-        CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            SliverToBoxAdapter(
-              child: VodSearchSortBar(
-                searchQuery: searchQuery,
-                searchController: searchController,
-                onSearchChanged: (q) {
-                  setState(() => searchQuery = q);
-                },
-                sortOption: sortOption,
-                onSortChanged: onSortOptionChanged,
-                gridDensity: _density,
-                onDensityChanged: _onDensityChanged,
-                onShuffle: () => _onShuffle(movies),
-              ),
-            ),
-            // Source filter bar (hidden when ≤1 source).
-            const SliverToBoxAdapter(child: SourceSelectorBar()),
-            if (!isSearchOrCategory)
-              ...cw.when(
-                data:
-                    (items) =>
-                        items.isEmpty
-                            ? <Widget>[]
-                            : <Widget>[
-                              SliverToBoxAdapter(
-                                child: ContinueWatchingSection(
-                                  title: 'Continue Watching',
-                                  icon: Icons.play_circle_outline,
-                                  items: items,
-                                ),
-                              ),
-                            ],
-                loading: () => <Widget>[],
-                error: (_, _) => <Widget>[],
-              ),
-            if (!isSearchOrCategory) ..._buildRecommendations(),
-            if (!isSearchOrCategory)
+        _wrapRefresh(
+          CustomScrollView(
+            key: const PageStorageKey('vod_movies'),
+            controller: _scrollController,
+            slivers: [
               SliverToBoxAdapter(
-                child: RecentlyAddedSection(
-                  showMoviesOnly: true,
-                  onItemTap: (item) {
-                    final tag = '${item.id}_recently_added';
-                    context.push(
-                      AppRoutes.vodDetails,
-                      extra: {'item': item, 'heroTag': tag},
-                    );
+                child: VodSearchSortBar(
+                  searchQuery: searchQuery,
+                  searchController: searchController,
+                  onSearchChanged: (q) {
+                    setState(() => searchQuery = q);
+                  },
+                  sortOption: sortOption,
+                  onSortChanged: onSortOptionChanged,
+                  gridDensity: _density,
+                  onDensityChanged: _onDensityChanged,
+                  onShuffle: () => _onShuffle(movies),
+                ),
+              ),
+              // Source filter bar (hidden when ≤1 source).
+              const SliverToBoxAdapter(child: SourceSelectorBar()),
+              if (!isSearchOrCategory)
+                ...cw.when(
+                  data:
+                      (items) =>
+                          items.isEmpty
+                              ? <Widget>[]
+                              : <Widget>[
+                                SliverToBoxAdapter(
+                                  child: ContinueWatchingSection(
+                                    title: 'Continue Watching',
+                                    icon: Icons.play_circle_outline,
+                                    items: items,
+                                  ),
+                                ),
+                              ],
+                  loading: () => <Widget>[],
+                  error: (_, _) => <Widget>[],
+                ),
+              if (!isSearchOrCategory) ..._buildRecommendations(),
+              if (!isSearchOrCategory)
+                SliverToBoxAdapter(
+                  child: RecentlyAddedSection(
+                    showMoviesOnly: true,
+                    onItemTap: (item) {
+                      final tag = '${item.id}_recently_added';
+                      context.push(
+                        AppRoutes.vodDetails,
+                        extra: {'item': item, 'heroTag': tag},
+                      );
+                    },
+                  ),
+                ),
+              if (newReleases.isNotEmpty && !isSearchOrCategory)
+                SliverToBoxAdapter(
+                  child: VodRow(
+                    title: 'New Releases',
+                    icon: Icons.new_releases,
+                    items: newReleases,
+                    isTitleBadge: true,
+                  ),
+                ),
+              if (favorites.isNotEmpty && !isSearchOrCategory)
+                SliverToBoxAdapter(
+                  child: VodRow(
+                    title: 'Favorites',
+                    icon: Icons.star,
+                    items: favorites,
+                  ),
+                ),
+              // FE-VODS-04: Auto-cycling featured hero with trailer support.
+              if (featured.isNotEmpty && !isSearchOrCategory)
+                SliverToBoxAdapter(child: VodFeaturedHero(items: featured)),
+              SliverToBoxAdapter(
+                child: GenrePillRow(
+                  categories: movieCategories,
+                  selectedCategory: selectedCategory,
+                  onCategorySelected: (cat) {
+                    setState(() => selectedCategory = cat);
                   },
                 ),
               ),
-            if (newReleases.isNotEmpty && !isSearchOrCategory)
-              SliverToBoxAdapter(
-                child: VodRow(
-                  title: 'New Releases',
-                  icon: Icons.new_releases,
-                  items: newReleases,
-                  isTitleBadge: true,
+              if (isSearchOrCategory) ...[
+                SliverToBoxAdapter(
+                  child: Semantics(
+                    label: 'Movies grid',
+                    container: true,
+                    child: const SizedBox.shrink(),
+                  ),
                 ),
-              ),
-            if (favorites.isNotEmpty && !isSearchOrCategory)
-              SliverToBoxAdapter(
-                child: VodRow(
-                  title: 'Favorites',
-                  icon: Icons.star,
-                  items: favorites,
+                VodMoviesGrid(movies: movies, density: _density),
+              ] else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final cat = movieCategories[index];
+                    final items =
+                        allFiltered.where((m) => m.category == cat).toList();
+                    if (items.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return VodRow(
+                      title: cat,
+                      icon: Icons.local_movies,
+                      items: items,
+                      isTitleBadge: true,
+                    );
+                  }, childCount: movieCategories.length),
                 ),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: CrispySpacing.xl),
               ),
-            // FE-VODS-04: Auto-cycling featured hero with trailer support.
-            if (featured.isNotEmpty && !isSearchOrCategory)
-              SliverToBoxAdapter(child: VodFeaturedHero(items: featured)),
-            SliverToBoxAdapter(
-              child: GenrePillRow(
-                categories: movieCategories,
-                selectedCategory: selectedCategory,
-                onCategorySelected: (cat) {
-                  setState(() => selectedCategory = cat);
-                },
-              ),
-            ),
-            if (isSearchOrCategory) ...[
-              SliverToBoxAdapter(
-                child: Semantics(
-                  label: 'Movies grid',
-                  container: true,
-                  child: const SizedBox.shrink(),
-                ),
-              ),
-              VodMoviesGrid(movies: movies, density: _density),
-            ] else
-              SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final cat = movieCategories[index];
-                  final items =
-                      allFiltered.where((m) => m.category == cat).toList();
-                  if (items.isEmpty) {
-                    return const SizedBox.shrink();
-                  }
-                  return VodRow(
-                    title: cat,
-                    icon: Icons.local_movies,
-                    items: items,
-                    isTitleBadge: true,
-                  );
-                }, childCount: movieCategories.length),
-              ),
-            const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xl)),
-          ],
+            ],
+          ),
         ),
         // Alpha jump bar — right edge, proportional scrolling.
         Positioned(

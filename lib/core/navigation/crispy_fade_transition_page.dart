@@ -53,3 +53,52 @@ class CrispyFadeTransitionPage<T> extends CustomTransitionPage<T> {
     );
   }
 }
+
+/// A [CustomTransitionPage] that fades in with a slight upward slide.
+///
+/// Used for detail-screen pushes (VOD details, series details) where a
+/// subtle vertical slide conveys navigational depth.
+///
+/// Duration: [CrispyAnimation.fast] (200 ms) for a snappy transition.
+class CrispySlideTransitionPage<T> extends CustomTransitionPage<T> {
+  /// Creates a fade-slide-up transition page.
+  // ignore: prefer_const_constructors_in_immutables
+  CrispySlideTransitionPage({
+    required super.child,
+    super.key,
+    super.name,
+    super.arguments,
+    super.restorationId,
+    super.maintainState,
+    super.fullscreenDialog,
+    super.opaque,
+  }) : super(
+         transitionDuration: CrispyAnimation.fast,
+         reverseTransitionDuration: CrispyAnimation.fast,
+         transitionsBuilder: _slideTransition,
+       );
+
+  static Widget _slideTransition(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: CrispyAnimation.enterCurve,
+      reverseCurve: CrispyAnimation.exitCurve,
+    );
+
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.05),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      ),
+    );
+  }
+}

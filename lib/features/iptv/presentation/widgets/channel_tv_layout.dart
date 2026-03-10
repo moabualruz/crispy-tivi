@@ -371,6 +371,8 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
                                   isLoading: widget.state.isLoading,
                                   error: widget.state.error,
                                   isEmpty: displayChannels.isEmpty,
+                                  onRetry:
+                                      () => ref.invalidate(channelListProvider),
                                 ) ??
                                 ChannelSliver(
                                   channels: displayChannels,

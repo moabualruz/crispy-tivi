@@ -27,6 +27,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonRetry => 'Wiederholen';
 
   @override
+  String get commonSomethingWentWrong => 'Etwas ist schiefgelaufen';
+
+  @override
   String get commonConfirm => 'Bestätigen';
 
   @override
@@ -87,6 +90,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get commonFavorites => 'Favoriten';
+
+  @override
+  String get keyboardShortcuts => 'Tastaturkürzel';
 
   @override
   String get navHome => 'Startseite';

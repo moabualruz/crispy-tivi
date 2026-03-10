@@ -10,6 +10,7 @@ import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/duration_formatter.dart';
+import '../../../../core/widgets/blur_backdrop.dart';
 import '../../../../core/widgets/cinematic_hero_banner.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../player/data/watch_history_service.dart';
@@ -110,112 +111,117 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
       child: Scaffold(
         key: TestKeys.vodDetailsScreen,
         backgroundColor: Theme.of(context).colorScheme.surface,
-        body: FocusTraversalGroup(
-          child: CustomScrollView(
-            slivers: [
-              // ── Hero Banner ──
-              CinematicHeroBanner(
-                heroTag: widget.heroTag ?? item.id,
-                expandedHeight: 500,
-                image: SmartImage(
-                  itemId: item.id,
-                  title: item.name,
-                  imageUrl: item.backdropUrl ?? item.posterUrl,
-                  imageKind: 'backdrop',
-                  icon: Icons.movie,
-                  placeholderAspectRatio: 16 / 9,
-                  memCacheWidth: 800,
-                ),
-                titleColumn: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Title
-                    Text(
-                      item.name,
-                      style: textTheme.displaySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                        shadows: const [
-                          Shadow(
-                            offset: Offset(0, 2),
-                            blurRadius: 4,
-                            color: CrispyColors.vignetteEnd,
-                          ),
+        body: BlurBackdrop(
+          imageUrl: liveItem.posterUrl,
+          opacity: 0.15,
+          child: FocusTraversalGroup(
+            child: CustomScrollView(
+              slivers: [
+                // ── Hero Banner ──
+                CinematicHeroBanner(
+                  heroTag: widget.heroTag ?? item.id,
+                  expandedHeight: 500,
+                  image: SmartImage(
+                    itemId: item.id,
+                    title: item.name,
+                    imageUrl: item.backdropUrl ?? item.posterUrl,
+                    imageKind: 'backdrop',
+                    icon: Icons.movie,
+                    placeholderAspectRatio: 16 / 9,
+                    memCacheWidth: 800,
+                  ),
+                  titleColumn: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Title
+                      Text(
+                        item.name,
+                        style: textTheme.displaySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                          shadows: const [
+                            Shadow(
+                              offset: Offset(0, 2),
+                              blurRadius: 4,
+                              color: CrispyColors.vignetteEnd,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: CrispySpacing.sm),
+
+                      // Metadata Row + Quality
+                      Row(
+                        children: [
+                          if (item.year != null)
+                            MetaChip(label: '${item.year}'),
+                          // FE-VD-11: Content advisory chip — rating field
+                          // may hold numeric score ("7.5") or content
+                          // rating ("PG-13", "TV-MA"). Displayed with
+                          // outline border to visually distinguish it.
+                          if (item.rating != null)
+                            _RatingChip(rating: item.rating!),
+                          // FE-VD-03: Runtime formatted as "Xh Ym"
+                          if (item.duration != null)
+                            MetaChip(
+                              label: DurationFormatter.humanShort(
+                                Duration(minutes: item.duration!),
+                              ),
+                            ),
+                          if (item.category != null)
+                            MetaChip(label: item.category!),
+                          if (quality != null) QualityBadge(label: quality),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: CrispySpacing.sm),
-
-                    // Metadata Row + Quality
-                    Row(
-                      children: [
-                        if (item.year != null) MetaChip(label: '${item.year}'),
-                        // FE-VD-11: Content advisory chip — rating field
-                        // may hold numeric score ("7.5") or content
-                        // rating ("PG-13", "TV-MA"). Displayed with
-                        // outline border to visually distinguish it.
-                        if (item.rating != null)
-                          _RatingChip(rating: item.rating!),
-                        // FE-VD-03: Runtime formatted as "Xh Ym"
-                        if (item.duration != null)
-                          MetaChip(
-                            label: DurationFormatter.humanShort(
-                              Duration(minutes: item.duration!),
-                            ),
-                          ),
-                        if (item.category != null)
-                          MetaChip(label: item.category!),
-                        if (quality != null) QualityBadge(label: quality),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // ── Actions & Synopsis ──
-              SliverToBoxAdapter(
-                child: BodyContent(
-                  item: item,
-                  liveItem: liveItem,
-                  textTheme: textTheme,
-                  onPlay: _isPlayLoading ? null : () => _play(context),
-                  onToggleFavorite: () => _toggleFavorite(liveItem.id),
-                  isWatched: isWatched,
-                  onMarkWatched: () => _toggleWatched(context),
-                  onShare: () => _copyToClipboard(context),
-                ),
-              ),
-
-              // ── Cast & Crew (FE-VODS-01) ──
-              SliverToBoxAdapter(
-                child: CastScrollRow(castNames: liveItem.cast),
-              ),
-
-              // ── Sources (FE-VODS-06-DETAILS) ──
-              SliverToBoxAdapter(
-                child: VodSourcePicker(
-                  itemId: liveItem.id,
-                  sources: _buildSources(
-                    liveItem,
-                    sourceName,
-                    alternatives,
-                    quality,
+                    ],
                   ),
-                  onSourceSelected: (source) {
-                    setState(() => _overrideStreamUrl = source.streamUrl);
-                  },
                 ),
-              ),
 
-              // ── More Like This ──
-              if (recommendations.isNotEmpty)
+                // ── Actions & Synopsis ──
                 SliverToBoxAdapter(
-                  child: MovieRecommendationsSection(
-                    recommendations: recommendations,
+                  child: BodyContent(
+                    item: item,
+                    liveItem: liveItem,
+                    textTheme: textTheme,
+                    onPlay: _isPlayLoading ? null : () => _play(context),
+                    onToggleFavorite: () => _toggleFavorite(liveItem.id),
+                    isWatched: isWatched,
+                    onMarkWatched: () => _toggleWatched(context),
+                    onShare: () => _copyToClipboard(context),
                   ),
                 ),
-            ],
+
+                // ── Cast & Crew (FE-VODS-01) ──
+                SliverToBoxAdapter(
+                  child: CastScrollRow(castNames: liveItem.cast),
+                ),
+
+                // ── Sources (FE-VODS-06-DETAILS) ──
+                SliverToBoxAdapter(
+                  child: VodSourcePicker(
+                    itemId: liveItem.id,
+                    sources: _buildSources(
+                      liveItem,
+                      sourceName,
+                      alternatives,
+                      quality,
+                    ),
+                    onSourceSelected: (source) {
+                      setState(() => _overrideStreamUrl = source.streamUrl);
+                    },
+                  ),
+                ),
+
+                // ── More Like This ──
+                if (recommendations.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: MovieRecommendationsSection(
+                      recommendations: recommendations,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

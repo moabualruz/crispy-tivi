@@ -279,17 +279,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.seriesDetail,
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final series = state.extra as VodItem?;
               if (series == null) {
-                return const _FallbackScreen('Series Detail');
+                return CrispySlideTransitionPage(
+                  key: state.pageKey,
+                  child: const _FallbackScreen('Series Detail'),
+                );
               }
-              return SeriesDetailScreen(series: series);
+              return CrispySlideTransitionPage(
+                key: state.pageKey,
+                child: SeriesDetailScreen(series: series),
+              );
             },
           ),
           GoRoute(
             path: AppRoutes.vodDetails,
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final extra = state.extra;
               VodItem? item;
               String? heroTag;
@@ -302,10 +308,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               }
 
               if (item == null) {
-                return const _FallbackScreen('VOD Details');
+                return CrispySlideTransitionPage(
+                  key: state.pageKey,
+                  child: const _FallbackScreen('VOD Details'),
+                );
               }
 
-              return VodDetailsScreen(item: item, heroTag: heroTag);
+              return CrispySlideTransitionPage(
+                key: state.pageKey,
+                child: VodDetailsScreen(item: item, heroTag: heroTag),
+              );
             },
           ),
           GoRoute(

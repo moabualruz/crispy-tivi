@@ -10,6 +10,7 @@ import '../testing/test_keys.dart';
 import '../theme/crispy_animation.dart';
 import '../theme/crispy_radius.dart';
 import '../theme/crispy_spacing.dart';
+import '../widgets/crispy_logo.dart';
 import '../widgets/focus_wrapper.dart';
 import '../widgets/loading_state_widget.dart';
 import '../widgets/pin_input_dialog.dart';
@@ -83,11 +84,7 @@ class SideNav extends ConsumerWidget {
                         ? MainAxisAlignment.start
                         : MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.stream_rounded,
-                    size: 28,
-                    color: colorScheme.primary,
-                  ),
+                  CrispyLogo(size: 28, color: colorScheme.primary),
                   if (extended) ...[
                     const SizedBox(width: CrispySpacing.sm),
                     Text(

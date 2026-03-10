@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
-import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
 import 'package:crispy_tivi/core/network/network_timeouts.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
@@ -17,6 +16,8 @@ import 'package:crispy_tivi/core/widgets/loading_state_widget.dart';
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
+import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/sync_progress_dialog.dart';
+import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
 
 // ── Quick Connect state ──────────────────────────────────────────────────
 
@@ -303,6 +304,11 @@ class _JellyfinQcNotifier extends AsyncNotifier<_QcState> {
       BaseOptions(
         connectTimeout: NetworkTimeouts.fastConnectTimeout,
         receiveTimeout: NetworkTimeouts.fastReceiveTimeout,
+        headers: {
+          'X-Emby-Authorization': embyAuthHeader(
+            MediaServerLoginScreen.kDeviceId,
+          ),
+        },
       ),
     );
   }
@@ -330,28 +336,50 @@ final jellyfinQuickConnectProvider = AsyncNotifierProvider.autoDispose
 ///
 /// Navigation: pushed from [JellyfinLoginScreen] via an "Use Quick Connect"
 /// button. On success, navigates to `/jellyfin/home`.
-class JellyfinQuickConnectScreen extends ConsumerWidget {
+class JellyfinQuickConnectScreen extends ConsumerStatefulWidget {
   const JellyfinQuickConnectScreen({super.key, required this.serverUrl});
 
   /// Normalized Jellyfin server URL (e.g. `http://192.168.1.10:8096`).
   final String serverUrl;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncState = ref.watch(jellyfinQuickConnectProvider(serverUrl));
+  ConsumerState<JellyfinQuickConnectScreen> createState() =>
+      _JellyfinQuickConnectScreenState();
+}
 
-    // When done — save source and navigate to home.
-    ref.listen(jellyfinQuickConnectProvider(serverUrl), (_, next) {
+class _JellyfinQuickConnectScreenState
+    extends ConsumerState<JellyfinQuickConnectScreen> {
+  bool _syncDialogShown = false;
+
+  Future<void> _showSyncDialog(PlaylistSource source) async {
+    await Future<void>.delayed(Duration.zero); // next frame
+    if (!mounted) return;
+    final success = await SyncProgressDialog.show(context, source);
+    if (!mounted) return;
+    context.pop();
+    if (success) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Connected to ${source.name}')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final asyncState = ref.watch(
+      jellyfinQuickConnectProvider(widget.serverUrl),
+    );
+
+    // When done — save source, show sync dialog, then navigate away.
+    ref.listen(jellyfinQuickConnectProvider(widget.serverUrl), (_, next) {
       final data = next.asData?.value;
-      if (data?.phase == _QcPhase.done && data?.source != null) {
-        ref.read(settingsNotifierProvider.notifier).addSource(data!.source!);
-        unawaited(
-          ref.read(playlistSyncServiceProvider).syncSource(data.source!),
-        );
-        context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Connected to ${data.source!.name}')),
-        );
+      if (data?.phase == _QcPhase.done &&
+          data?.source != null &&
+          !_syncDialogShown) {
+        _syncDialogShown = true;
+        final source = data!.source!;
+        ref.read(settingsNotifierProvider.notifier).addSource(source);
+        _showSyncDialog(source);
       }
     });
 
@@ -361,8 +389,10 @@ class JellyfinQuickConnectScreen extends ConsumerWidget {
       body: asyncState.when(
         loading: () => const LoadingStateWidget(),
         error:
-            (e, _) => _ErrorBody(message: e.toString(), serverUrl: serverUrl),
-        data: (qcState) => _QcBody(qcState: qcState, serverUrl: serverUrl),
+            (e, _) =>
+                _ErrorBody(message: e.toString(), serverUrl: widget.serverUrl),
+        data:
+            (qcState) => _QcBody(qcState: qcState, serverUrl: widget.serverUrl),
       ),
     );
   }

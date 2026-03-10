@@ -219,10 +219,9 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
         await reloadChannelList();
       }
       if (!_ref.mounted) return 0;
-      if (totalVod > 0 && _ref.exists(vodProvider)) {
-        final cachedVods = await _ref.read(cacheServiceProvider).loadVodItems();
-        if (_ref.mounted) {
-          _ref.read(vodProvider.notifier).loadData(cachedVods);
+      if (totalVod > 0) {
+        if (_ref.mounted && _ref.exists(vodProvider)) {
+          _ref.invalidate(vodProvider);
         }
       }
 
@@ -258,10 +257,9 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
         await reloadChannelList();
       }
       if (!_ref.mounted) return report;
-      if (report.vodCount > 0 && _ref.exists(vodProvider)) {
-        final cachedVods = await cache.loadVodItems();
-        if (_ref.mounted) {
-          _ref.read(vodProvider.notifier).loadData(cachedVods);
+      if (report.vodCount > 0) {
+        if (_ref.mounted && _ref.exists(vodProvider)) {
+          _ref.invalidate(vodProvider);
         }
       }
 

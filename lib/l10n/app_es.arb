@@ -8,6 +8,7 @@
   "commonSave": "Guardar",
   "commonDelete": "Eliminar",
   "commonRetry": "Reintentar",
+  "commonSomethingWentWrong": "Algo salió mal",
   "commonConfirm": "Confirmar",
   "commonSubmit": "Enviar",
   "commonBack": "Atrás",
@@ -512,5 +513,6 @@
   "contextMenuFilterCategory": "Filtrar por esta categoría",
 
   "confirmDeleteCancel": "Cancelar",
-  "confirmDeleteAction": "Eliminar"
+  "confirmDeleteAction": "Eliminar",
+  "keyboardShortcuts": "Atajos de teclado"
 }

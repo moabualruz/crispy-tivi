@@ -8,6 +8,7 @@
   "commonSave": "حفظ",
   "commonDelete": "حذف",
   "commonRetry": "إعادة المحاولة",
+  "commonSomethingWentWrong": "حدث خطأ ما",
   "commonConfirm": "تأكيد",
   "commonSubmit": "إرسال",
   "commonBack": "رجوع",
@@ -513,5 +514,6 @@
   "contextMenuFilterCategory": "تصفية حسب هذه الفئة",
 
   "confirmDeleteCancel": "إلغاء",
-  "confirmDeleteAction": "حذف"
+  "confirmDeleteAction": "حذف",
+  "keyboardShortcuts": "اختصارات لوحة المفاتيح"
 }

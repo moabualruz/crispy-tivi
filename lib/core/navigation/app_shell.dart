@@ -17,7 +17,9 @@ import '../widgets/async_value_ui.dart';
 import '../theme/crispy_radius.dart';
 import '../widgets/crispy_title_bar.dart';
 import '../widgets/offline_banner.dart';
+import '../utils/device_form_factor.dart';
 import '../utils/keyboard_utils.dart';
+import '../widgets/keyboard_shortcuts_overlay.dart';
 import '../widgets/responsive_layout.dart';
 import 'app_routes.dart';
 import 'breadcrumb_bar.dart';
@@ -144,6 +146,12 @@ class _AppShellState extends ConsumerState<AppShell> {
           () => _openSearch(context),
       const SingleActivator(LogicalKeyboardKey.keyK, control: true):
           () => _openSearch(context),
+      // Keyboard shortcuts overlay: ? (Shift+/)
+      // Only on desktop/web — TV and mobile don't use keyboard shortcuts.
+      if (!DeviceFormFactorService.current.isTV &&
+          !DeviceFormFactorService.current.isMobile)
+        const SingleActivator(LogicalKeyboardKey.slash, shift: true):
+            () => showKeyboardShortcutsOverlay(context),
       // Back: Escape, GoBack, Gamepad B
       const SingleActivator(LogicalKeyboardKey.escape):
           () => _handleBack(context),

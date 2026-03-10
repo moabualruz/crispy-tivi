@@ -2,6 +2,7 @@ import 'dart:ui' show Color;
 
 import 'app_config.dart';
 import '../core/domain/entities/playlist_source.dart';
+import '../core/widgets/density_mode.dart';
 import '../features/player/data/shader_service.dart';
 import '../features/player/presentation/widgets/screensaver_overlay.dart';
 import '../features/settings/domain/entities/remote_action.dart';
@@ -48,6 +49,21 @@ const kSeriesSortOptionKey = 'crispy_series_sort_option';
 ///
 /// Values: 'compact' | 'standard' | 'large'
 const kVodGridDensityKey = 'crispy_vod_grid_density';
+
+/// Key for persisting the grid density mode.
+///
+/// Values: 'compact' | 'comfortable' | 'spacious'
+const kGridDensityKey = 'crispy_grid_density';
+
+/// Key for persisting the spoiler blur toggle.
+///
+/// Values: 'true' | 'false' (default: 'false').
+const kSpoilerBlurEnabledKey = 'crispy_spoiler_blur_enabled';
+
+/// Key for persisting the VOD display mode.
+///
+/// Values: 'poster' | 'banner'
+const kVodDisplayModeKey = 'crispy_vod_display_mode';
 
 /// Key for persisting favorites list sort option.
 ///
@@ -96,12 +112,42 @@ enum ChannelViewMode {
   list,
 
   /// Responsive grid of channel logo tiles.
-  grid;
+  grid,
+
+  /// Dense list with smaller thumbnails — more items visible.
+  compact;
 
   /// Human-readable label shown in tooltips.
   String get label => switch (this) {
     ChannelViewMode.list => 'List View',
     ChannelViewMode.grid => 'Grid View',
+    ChannelViewMode.compact => 'Compact View',
+  };
+
+  /// The next mode in the cycle: list → grid → compact → list.
+  ChannelViewMode get next => switch (this) {
+    ChannelViewMode.list => ChannelViewMode.grid,
+    ChannelViewMode.grid => ChannelViewMode.compact,
+    ChannelViewMode.compact => ChannelViewMode.list,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+//  VodDisplayMode — poster vs banner card layout
+// ─────────────────────────────────────────────────────────────
+
+/// Display mode for VOD item cards.
+enum VodDisplayMode {
+  /// Portrait 2:3 poster art (default).
+  poster,
+
+  /// Landscape 16:9 backdrop/fanart.
+  banner;
+
+  /// Human-readable label shown in tooltips.
+  String get label => switch (this) {
+    VodDisplayMode.poster => 'Poster View',
+    VodDisplayMode.banner => 'Banner View',
   };
 }
 
@@ -490,6 +536,9 @@ class SettingsState {
     this.screensaverMode = ScreensaverMode.bouncingLogo,
     this.screensaverTimeout = 0,
     this.shaderPresetId = 'none',
+    this.gridDensity = DensityMode.comfortable,
+    this.spoilerBlurEnabled = false,
+    this.vodDisplayMode = VodDisplayMode.poster,
     this.locale,
   }) : remoteKeyMap = remoteKeyMap ?? defaultRemoteKeyMap;
 
@@ -613,6 +662,21 @@ class SettingsState {
   /// Persisted via [kShaderPresetKey].
   final String shaderPresetId;
 
+  /// Grid density mode (compact/comfortable/spacious).
+  ///
+  /// Persisted via [kGridDensityKey].
+  final DensityMode gridDensity;
+
+  /// Whether to blur thumbnails for unwatched episodes.
+  ///
+  /// Persisted via [kSpoilerBlurEnabledKey].
+  final bool spoilerBlurEnabled;
+
+  /// VOD card display mode (poster art vs backdrop banner).
+  ///
+  /// Persisted via [kVodDisplayModeKey].
+  final VodDisplayMode vodDisplayMode;
+
   /// User's preferred locale (language code).
   ///
   /// When `null`, the system locale is used.
@@ -653,6 +717,9 @@ class SettingsState {
     ScreensaverMode? screensaverMode,
     int? screensaverTimeout,
     String? shaderPresetId,
+    DensityMode? gridDensity,
+    bool? spoilerBlurEnabled,
+    VodDisplayMode? vodDisplayMode,
     String? locale,
   }) {
     return SettingsState(
@@ -685,6 +752,9 @@ class SettingsState {
       screensaverMode: screensaverMode ?? this.screensaverMode,
       screensaverTimeout: screensaverTimeout ?? this.screensaverTimeout,
       shaderPresetId: shaderPresetId ?? this.shaderPresetId,
+      gridDensity: gridDensity ?? this.gridDensity,
+      spoilerBlurEnabled: spoilerBlurEnabled ?? this.spoilerBlurEnabled,
+      vodDisplayMode: vodDisplayMode ?? this.vodDisplayMode,
       locale: locale ?? this.locale,
     );
   }

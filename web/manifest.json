@@ -5,8 +5,8 @@
     "display": "standalone",
     "background_color": "#2D3135",
     "theme_color": "#2D3135",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "description": "Cross-platform media streaming",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

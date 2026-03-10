@@ -8,6 +8,7 @@ import '../../../../config/settings_notifier.dart';
 import 'package:crispy_tivi/l10n/l10n_extension.dart';
 
 import '../../../../core/utils/debounce_throttle.dart';
+import '../../../../core/utils/device_form_factor.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
@@ -16,6 +17,7 @@ import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../../application/duplicate_detection_service.dart';
+import '../../application/playlist_sync_service.dart';
 import '../../domain/entities/channel.dart';
 import '../providers/channel_providers.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
@@ -148,51 +150,55 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
 
   Widget _groupsView(ChannelListState s) {
     final tt = Theme.of(context).textTheme;
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          floating: true,
-          snap: true,
-          title: Text('Live TV', style: tt.headlineSmall),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.grid_view),
-              onPressed: () => context.push(AppRoutes.multiview),
-              tooltip: context.l10n.iptvMultiView,
-            ),
-            IconButton(
-              icon: const Icon(Icons.calendar_month),
-              onPressed: () => context.push(AppRoutes.epg),
-              tooltip: context.l10n.iptvTvGuide,
-            ),
-            _searchBtn(),
-            IconButton(
-              key: TestKeys.channelListFavoriteButton,
-              icon: const Icon(Icons.favorite_border_rounded),
-              tooltip: context.l10n.commonFavorites,
-              onPressed: () => context.push(AppRoutes.favorites),
-            ),
-          ],
-        ),
-        ..._searchAndResume(s),
-        if (s.isLoading)
-          const ChannelSkeletonSliver()
-        else
-          SliverList(
-            delegate: SliverChildBuilderDelegate((_, i) {
-              final g = s.displayGroups[i];
-              return ChannelGroupRow(
-                group: g,
-                channelCount:
-                    g == ChannelListState.favoritesGroup
-                        ? s.favoriteCount
-                        : s.groupCounts[g] ?? 0,
-                onTap:
-                    () => ref.read(channelListProvider.notifier).selectGroup(g),
-              );
-            }, childCount: s.displayGroups.length),
+    return _wrapRefresh(
+      CustomScrollView(
+        key: const PageStorageKey('channel_groups'),
+        slivers: [
+          SliverAppBar(
+            floating: true,
+            snap: true,
+            title: Text('Live TV', style: tt.headlineSmall),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.grid_view),
+                onPressed: () => context.push(AppRoutes.multiview),
+                tooltip: context.l10n.iptvMultiView,
+              ),
+              IconButton(
+                icon: const Icon(Icons.calendar_month),
+                onPressed: () => context.push(AppRoutes.epg),
+                tooltip: context.l10n.iptvTvGuide,
+              ),
+              _searchBtn(),
+              IconButton(
+                key: TestKeys.channelListFavoriteButton,
+                icon: const Icon(Icons.favorite_border_rounded),
+                tooltip: context.l10n.commonFavorites,
+                onPressed: () => context.push(AppRoutes.favorites),
+              ),
+            ],
           ),
-      ],
+          ..._searchAndResume(s),
+          if (s.isLoading)
+            const ChannelSkeletonSliver()
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate((_, i) {
+                final g = s.displayGroups[i];
+                return ChannelGroupRow(
+                  group: g,
+                  channelCount:
+                      g == ChannelListState.favoritesGroup
+                          ? s.favoriteCount
+                          : s.groupCounts[g] ?? 0,
+                  onTap:
+                      () =>
+                          ref.read(channelListProvider.notifier).selectGroup(g),
+                );
+              }, childCount: s.displayGroups.length),
+            ),
+        ],
+      ),
     );
   }
 
@@ -222,58 +228,64 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
 
     return Stack(
       children: [
-        CustomScrollView(
-          controller: _channelScrollController,
-          slivers: [
-            SliverAppBar(
-              floating: true,
-              snap: true,
-              leading:
-                  s.displayGroups.isNotEmpty
-                      ? IconButton(
-                        icon: const Icon(Icons.arrow_back),
-                        onPressed:
-                            () => ref
-                                .read(channelListProvider.notifier)
-                                .setShowGroupsView(true),
-                        tooltip: context.l10n.iptvBackToGroups,
-                      )
-                      : null,
-              title: Text(
-                s.effectiveGroup ?? 'All Channels',
-                style: tt.headlineSmall,
+        _wrapRefresh(
+          CustomScrollView(
+            key: const PageStorageKey('channel_list'),
+            controller: _channelScrollController,
+            slivers: [
+              SliverAppBar(
+                floating: true,
+                snap: true,
+                leading:
+                    s.displayGroups.isNotEmpty
+                        ? IconButton(
+                          icon: const Icon(Icons.arrow_back),
+                          onPressed:
+                              () => ref
+                                  .read(channelListProvider.notifier)
+                                  .setShowGroupsView(true),
+                          tooltip: context.l10n.iptvBackToGroups,
+                        )
+                        : null,
+                title: Text(
+                  s.effectiveGroup ?? 'All Channels',
+                  style: tt.headlineSmall,
+                ),
+                actions: [
+                  _viewModeBtn(viewMode),
+                  _searchBtn(),
+                  if (displayChannels.isNotEmpty)
+                    ChannelSortMenu(
+                      state: s,
+                      duplicateCount: ref.watch(duplicateCountProvider),
+                      hiddenChannelCount: hiddenCount,
+                      onSelected: _onSortSelected,
+                    ),
+                ],
               ),
-              actions: [
-                _viewModeBtn(viewMode),
-                _searchBtn(),
-                if (displayChannels.isNotEmpty)
-                  ChannelSortMenu(
-                    state: s,
-                    duplicateCount: ref.watch(duplicateCountProvider),
-                    hiddenChannelCount: hiddenCount,
-                    onSelected: _onSortSelected,
-                  ),
-              ],
-            ),
-            ..._searchAndResume(s),
-            // Source filter bar (hidden when ≤1 source).
-            const SliverToBoxAdapter(child: SourceSelectorBar()),
-            // FE-TV-09: genre filter chips — hidden while search bar is open.
-            if (!_showSearchBar) const ChannelGenreChipsSliver(),
-            // Recent channels strip — only in default (unfiltered) mode.
-            if (!isFiltered) RecentChannelsStrip(onChannelTap: _onChannelTap),
-            channelStateSliver(
-                  isLoading: s.isLoading,
-                  error: s.error,
-                  isEmpty: displayChannels.isEmpty,
-                ) ??
-                (viewMode == ChannelViewMode.grid
-                    ? ChannelGridSliver(
+              ..._searchAndResume(s),
+              // Source filter bar (hidden when ≤1 source).
+              const SliverToBoxAdapter(child: SourceSelectorBar()),
+              // FE-TV-09: genre filter chips — hidden while search bar is open.
+              if (!_showSearchBar) const ChannelGenreChipsSliver(),
+              // Recent channels strip — only in default (unfiltered) mode.
+              if (!isFiltered) RecentChannelsStrip(onChannelTap: _onChannelTap),
+              channelStateSliver(
+                    isLoading: s.isLoading,
+                    error: s.error,
+                    isEmpty: displayChannels.isEmpty,
+                    onRetry: () => ref.invalidate(channelListProvider),
+                  ) ??
+                  switch (viewMode) {
+                    ChannelViewMode.grid => ChannelGridSliver(
                       channels: displayChannels,
                       onTap: _onChannelTap,
-                    )
-                    : _channelSliver(displayChannels)),
-          ],
+                    ),
+                    ChannelViewMode.list ||
+                    ChannelViewMode.compact => _channelSliver(displayChannels),
+                  },
+            ],
+          ),
         ),
         // Alpha jump bar — right edge, proportional scrolling.
         Positioned(
@@ -311,23 +323,34 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
     tooltip: context.l10n.iptvSearchChannels,
   );
 
-  /// Toggles between list and grid view modes.
-  Widget _viewModeBtn(ChannelViewMode current) => IconButton(
-    icon: Icon(
-      current == ChannelViewMode.grid ? Icons.list : Icons.grid_view_rounded,
-    ),
-    tooltip:
-        current == ChannelViewMode.grid
-            ? context.l10n.iptvListGridView
-            : context.l10n.iptvGridView,
-    onPressed: () {
-      final next =
-          current == ChannelViewMode.grid
-              ? ChannelViewMode.list
-              : ChannelViewMode.grid;
-      ref.read(settingsNotifierProvider.notifier).setChannelViewMode(next);
-    },
-  );
+  /// Cycles through list → grid → compact view modes.
+  Widget _viewModeBtn(ChannelViewMode current) {
+    final icon = switch (current) {
+      ChannelViewMode.list => Icons.view_list,
+      ChannelViewMode.grid => Icons.grid_view_rounded,
+      ChannelViewMode.compact => Icons.density_small,
+    };
+    return IconButton(
+      icon: Icon(icon),
+      tooltip: current.next.label,
+      onPressed: () {
+        ref
+            .read(settingsNotifierProvider.notifier)
+            .setChannelViewMode(current.next);
+      },
+    );
+  }
+
+  /// Wraps [child] in [RefreshIndicator] on mobile/tablet.
+  Widget _wrapRefresh(Widget child) {
+    if (!DeviceFormFactorService.current.isMobile) return child;
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(playlistSyncServiceProvider).syncAll();
+      },
+      child: child,
+    );
+  }
 
   // -- Auto-resume & EPG preload --
 

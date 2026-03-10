@@ -8,6 +8,7 @@
   "commonSave": "Kaydet",
   "commonDelete": "Sil",
   "commonRetry": "Yeniden Dene",
+  "commonSomethingWentWrong": "Bir şeyler yanlış gitti",
   "commonConfirm": "Onayla",
   "commonSubmit": "Gönder",
   "commonBack": "Geri",
@@ -513,5 +514,6 @@
   "contextMenuFilterCategory": "Bu kategoriye göre filtrele",
 
   "confirmDeleteCancel": "İptal",
-  "confirmDeleteAction": "Sil"
+  "confirmDeleteAction": "Sil",
+  "keyboardShortcuts": "Klavye kısayolları"
 }

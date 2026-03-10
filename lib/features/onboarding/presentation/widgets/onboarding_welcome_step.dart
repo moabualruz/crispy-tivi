@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:crispy_tivi/l10n/l10n_extension.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/crispy_logo.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../providers/onboarding_notifier.dart';
 
@@ -25,7 +26,7 @@ class OnboardingWelcomeStep extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.live_tv, size: 72, color: colorScheme.primary),
+            const CrispyLogo(size: 72),
             const SizedBox(height: CrispySpacing.lg),
             Text(
               context.l10n.onboardingWelcome,

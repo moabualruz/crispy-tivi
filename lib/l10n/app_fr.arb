@@ -8,6 +8,7 @@
   "commonSave": "Enregistrer",
   "commonDelete": "Supprimer",
   "commonRetry": "Réessayer",
+  "commonSomethingWentWrong": "Une erreur est survenue",
   "commonConfirm": "Confirmer",
   "commonSubmit": "Soumettre",
   "commonBack": "Retour",
@@ -514,5 +515,6 @@
   "contextMenuFilterCategory": "Filtrer par cette catégorie",
 
   "confirmDeleteCancel": "Annuler",
-  "confirmDeleteAction": "Supprimer"
+  "confirmDeleteAction": "Supprimer",
+  "keyboardShortcuts": "Raccourcis clavier"
 }

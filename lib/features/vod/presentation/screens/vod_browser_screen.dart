@@ -44,6 +44,7 @@ class VodBrowserScreen extends ConsumerWidget {
       emptyIcon: Icons.movie_outlined,
       emptyTitle: context.l10n.vodNoItems,
       emptyDescription: 'Add a playlist source in Settings',
+      onRetry: () => ref.invalidate(vodProvider),
       child: Scaffold(
         key: TestKeys.vodBrowserScreen,
         appBar: AppBar(

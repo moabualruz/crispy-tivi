@@ -7,8 +7,8 @@ import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
-import '../../../../core/widgets/error_state_widget.dart';
-import '../../../../core/widgets/loading_state_widget.dart';
+import '../../../../core/widgets/error_boundary.dart';
+import '../../../../core/widgets/skeleton_loader.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../iptv/domain/entities/channel.dart';
@@ -495,14 +495,19 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
   Widget _buildLoading() {
     return Scaffold(
       appBar: AppBar(title: const Text('Program Guide')),
-      body: const LoadingStateWidget(),
+      body: const SkeletonGrid(
+        crossAxisCount: 1,
+        itemCount: 8,
+        aspectRatio: 5,
+        showTitle: false,
+      ),
     );
   }
 
   Widget _buildError(String error, ColorScheme colorScheme) {
     return Scaffold(
       appBar: AppBar(title: const Text('Program Guide')),
-      body: ErrorStateWidget(message: 'Error: $error'),
+      body: ErrorBoundary(error: error, onRetry: _triggerRefresh),
     );
   }
 

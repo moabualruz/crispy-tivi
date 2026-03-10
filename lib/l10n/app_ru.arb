@@ -8,6 +8,7 @@
   "commonSave": "Сохранить",
   "commonDelete": "Удалить",
   "commonRetry": "Повторить",
+  "commonSomethingWentWrong": "Что-то пошло не так",
   "commonConfirm": "Подтвердить",
   "commonSubmit": "Отправить",
   "commonBack": "Назад",
@@ -509,5 +510,6 @@
   "contextMenuFilterCategory": "Фильтровать по этой категории",
 
   "confirmDeleteCancel": "Отмена",
-  "confirmDeleteAction": "Удалить"
+  "confirmDeleteAction": "Удалить",
+  "keyboardShortcuts": "Горячие клавиши"
 }

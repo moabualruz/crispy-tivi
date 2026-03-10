@@ -8,6 +8,7 @@
   "commonSave": "保存",
   "commonDelete": "删除",
   "commonRetry": "重试",
+  "commonSomethingWentWrong": "出了点问题",
   "commonConfirm": "确认",
   "commonSubmit": "提交",
   "commonBack": "返回",
@@ -509,5 +510,6 @@
   "contextMenuFilterCategory": "按此分类筛选",
 
   "confirmDeleteCancel": "取消",
-  "confirmDeleteAction": "删除"
+  "confirmDeleteAction": "删除",
+  "keyboardShortcuts": "键盘快捷键"
 }

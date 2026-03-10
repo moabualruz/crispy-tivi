@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/empty_state_widget.dart';
-import '../../../../core/widgets/error_state_widget.dart';
+import '../../../../core/widgets/error_boundary.dart';
 import '../../../../core/widgets/vod_grid_loading_shell.dart';
 import 'vod_movies_grid.dart' show vodMaxExtent;
 
@@ -41,6 +41,7 @@ class VodBrowserShell extends StatelessWidget {
     required this.emptyTitle,
     required this.emptyDescription,
     required this.child,
+    this.onRetry,
     super.key,
   });
 
@@ -66,6 +67,9 @@ class VodBrowserShell extends StatelessWidget {
   /// Secondary hint for the empty-state placeholder.
   final String emptyDescription;
 
+  /// Called when the user taps the retry button in the error state.
+  final VoidCallback? onRetry;
+
   /// Widget returned as-is when content is available.
   ///
   /// Must include its own [Scaffold]; this shell does not wrap it.
@@ -81,7 +85,8 @@ class VodBrowserShell extends StatelessWidget {
     }
     if (error != null) {
       return Scaffold(
-        body: ErrorStateWidget(message: 'Failed to load: $error'),
+        appBar: AppBar(title: Text(title)),
+        body: ErrorBoundary(error: error!, onRetry: onRetry ?? () {}),
       );
     }
     if (isEmpty) {

@@ -8,12 +8,14 @@ import '../../../../config/settings_notifier.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/device_form_factor.dart';
 import '../../../../core/widgets/alpha_jump_bar.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../../core/widgets/content_badge.dart';
 import '../../../../core/widgets/genre_pill_row.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
+import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../domain/entities/vod_item.dart';
 import '../mixins/vod_sortable_browser_mixin.dart';
@@ -66,6 +68,17 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
   List<String> get _seriesCategories =>
       ref.watch(vodProvider.select((s) => s.seriesCategories));
 
+  /// Wraps [child] in [RefreshIndicator] on mobile/tablet.
+  Widget _wrapRefresh(Widget child) {
+    if (!DeviceFormFactorService.current.isMobile) return child;
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(playlistSyncServiceProvider).syncAll();
+      },
+      child: child,
+    );
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -94,6 +107,7 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
       emptyIcon: Icons.tv_off,
       emptyTitle: context.l10n.vodNoItems,
       emptyDescription: 'Add a playlist source in Settings',
+      onRetry: () => ref.invalidate(vodProvider),
       child: Scaffold(
         key: TestKeys.seriesBrowserScreen,
         appBar: AppBar(
@@ -132,91 +146,98 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
 
     return Stack(
       children: [
-        CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            // Search bar + sort controls
-            SliverToBoxAdapter(
-              child: VodSearchSortBar(
-                searchQuery: searchQuery,
-                searchController: searchController,
-                hintText: 'Search series...',
-                onSearchChanged: (q) {
-                  setState(() => searchQuery = q);
-                },
-                sortOption: sortOption,
-                onSortChanged: onSortOptionChanged,
-              ),
-            ),
-
-            // Source filter bar (hidden when ≤1 source).
-            const SliverToBoxAdapter(child: SourceSelectorBar()),
-
-            // T10: Featured series hero banner (hidden during search/filter).
-            if (!isSearchOrCategory && allSeries.isNotEmpty)
-              SliverToBoxAdapter(child: SeriesFeaturedBanner(items: allSeries)),
-
-            // Continue watching
-            if (!isSearchOrCategory)
-              ...cw.when(
-                data:
-                    (items) =>
-                        items.isEmpty
-                            ? <Widget>[]
-                            : <Widget>[
-                              SliverToBoxAdapter(
-                                child: ContinueWatchingSection(
-                                  title: context.l10n.vodContinueWatching,
-                                  icon: Icons.play_circle_outline,
-                                  items: items,
-                                ),
-                              ),
-                            ],
-                loading: () => <Widget>[],
-                error: (_, _) => <Widget>[],
-              ),
-
-            // Recently Added Series
-            if (!isSearchOrCategory)
+        _wrapRefresh(
+          CustomScrollView(
+            key: const PageStorageKey('series_browser'),
+            controller: _scrollController,
+            slivers: [
+              // Search bar + sort controls
               SliverToBoxAdapter(
-                child: RecentlyAddedSection(
-                  showSeriesOnly: true,
-                  onItemTap: (item) {
-                    context.push(AppRoutes.seriesDetail, extra: item);
+                child: VodSearchSortBar(
+                  searchQuery: searchQuery,
+                  searchController: searchController,
+                  hintText: 'Search series...',
+                  onSearchChanged: (q) {
+                    setState(() => searchQuery = q);
+                  },
+                  sortOption: sortOption,
+                  onSortChanged: onSortOptionChanged,
+                ),
+              ),
+
+              // Source filter bar (hidden when ≤1 source).
+              const SliverToBoxAdapter(child: SourceSelectorBar()),
+
+              // T10: Featured series hero banner (hidden during search/filter).
+              if (!isSearchOrCategory && allSeries.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: SeriesFeaturedBanner(items: allSeries),
+                ),
+
+              // Continue watching
+              if (!isSearchOrCategory)
+                ...cw.when(
+                  data:
+                      (items) =>
+                          items.isEmpty
+                              ? <Widget>[]
+                              : <Widget>[
+                                SliverToBoxAdapter(
+                                  child: ContinueWatchingSection(
+                                    title: context.l10n.vodContinueWatching,
+                                    icon: Icons.play_circle_outline,
+                                    items: items,
+                                  ),
+                                ),
+                              ],
+                  loading: () => <Widget>[],
+                  error: (_, _) => <Widget>[],
+                ),
+
+              // Recently Added Series
+              if (!isSearchOrCategory)
+                SliverToBoxAdapter(
+                  child: RecentlyAddedSection(
+                    showSeriesOnly: true,
+                    onItemTap: (item) {
+                      context.push(AppRoutes.seriesDetail, extra: item);
+                    },
+                  ),
+                ),
+
+              // Favorites
+              if (_favorites.isNotEmpty && !isSearchOrCategory)
+                SliverToBoxAdapter(
+                  child: VodRow(
+                    title: context.l10n.commonFavorites,
+                    icon: Icons.star,
+                    items: _favorites,
+                    badgeBuilder: newEpisodeBadge,
+                  ),
+                ),
+
+              // Genre pill row
+              SliverToBoxAdapter(
+                child: GenrePillRow(
+                  categories: seriesCategories,
+                  selectedCategory: selectedCategory,
+                  onCategorySelected: (cat) {
+                    setState(() => selectedCategory = cat);
                   },
                 ),
               ),
 
-            // Favorites
-            if (_favorites.isNotEmpty && !isSearchOrCategory)
-              SliverToBoxAdapter(
-                child: VodRow(
-                  title: context.l10n.commonFavorites,
-                  icon: Icons.star,
-                  items: _favorites,
-                  badgeBuilder: newEpisodeBadge,
-                ),
+              // Series grid or swimlanes
+              if (isSearchOrCategory)
+                SeriesMoviesGrid(series: series)
+              else
+                _buildCategorySwimlanes(seriesCategories, allSeries),
+
+              const SliverToBoxAdapter(
+                child: SizedBox(height: CrispySpacing.xl),
               ),
-
-            // Genre pill row
-            SliverToBoxAdapter(
-              child: GenrePillRow(
-                categories: seriesCategories,
-                selectedCategory: selectedCategory,
-                onCategorySelected: (cat) {
-                  setState(() => selectedCategory = cat);
-                },
-              ),
-            ),
-
-            // Series grid or swimlanes
-            if (isSearchOrCategory)
-              SeriesMoviesGrid(series: series)
-            else
-              _buildCategorySwimlanes(seriesCategories, allSeries),
-
-            const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xl)),
-          ],
+            ],
+          ),
         ),
         // Alpha jump bar — right edge.
         Positioned(

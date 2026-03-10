@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../theme/crispy_animation.dart';
+import '../theme/crispy_spacing.dart';
 import '../utils/device_form_factor.dart';
+import 'crispy_logo.dart';
 
 /// Branded splash screen shown during app startup.
 ///
@@ -57,6 +59,8 @@ class _SplashScreenState extends State<SplashScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                const CrispyLogo(size: 80),
+                const SizedBox(height: CrispySpacing.md),
                 Text(
                   'CrispyTivi',
                   style: textTheme.headlineLarge?.copyWith(
@@ -64,7 +68,7 @@ class _SplashScreenState extends State<SplashScreen>
                     letterSpacing: 1.2,
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: CrispySpacing.xxl),
                 const SizedBox(
                   width: 24,
                   height: 24,

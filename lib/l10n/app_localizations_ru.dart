@@ -27,6 +27,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get commonRetry => 'Повторить';
 
   @override
+  String get commonSomethingWentWrong => 'Что-то пошло не так';
+
+  @override
   String get commonConfirm => 'Подтвердить';
 
   @override
@@ -87,6 +90,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get commonFavorites => 'Избранное';
+
+  @override
+  String get keyboardShortcuts => 'Горячие клавиши';
 
   @override
   String get navHome => 'Главная';
