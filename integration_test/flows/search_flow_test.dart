@@ -86,31 +86,27 @@ void main() {
       // Phase 14 item 3: type a known title and expect results.
       // The search screen auto-focuses the text field; enter text via
       // enterText on the TextField.
-      final textField = find.byType(TextField);
-      if (textField.evaluate().isNotEmpty) {
-        await tester.enterText(textField.first, 'BBC');
-        // Allow debounce + search to complete.
-        for (var i = 0; i < 30; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
 
-        // At least one result mentioning 'BBC' should be visible.
-        final hasResult =
-            find.textContaining('BBC').evaluate().isNotEmpty ||
-            find.byType(Card).evaluate().isNotEmpty;
-        expect(
-          hasResult,
-          isTrue,
-          reason:
-              'Typing "BBC" into search should produce at least one result '
-              'card from seeded channel data.',
-        );
-      } else {
-        // If the text field is not found on this platform/layout,
-        // verify the screen scaffold is at minimum present.
-        expect(find.byKey(TestKeys.searchScreen), findsOneWidget);
+      // Search screen must have a text field.
+      final textField = find.byType(TextField);
+      expect(
+        textField,
+        findsWidgets,
+        reason: 'Search screen must contain a TextField for query input.',
+      );
+      await tester.enterText(textField.first, 'BBC');
+      // Allow debounce + search to complete.
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
+      _drainException(tester);
+
+      // At least one result mentioning 'BBC' must be visible from seeded data.
+      expect(
+        find.textContaining('BBC'),
+        findsWidgets,
+        reason: 'Typing "BBC" must produce results from seeded channel data.',
+      );
     });
 
     testWidgets(
@@ -133,31 +129,30 @@ void main() {
         await _pumpUntilFound(tester, find.byKey(TestKeys.searchScreen));
 
         // Phase 14 item 4: ContentTypeFilterRow must display filter chips.
-        // The filter chips use semantic labels from content_type_filter_row.dart.
-        // The row is always visible (even before a query is entered).
-        final hasChannelsChip =
-            find.bySemanticsLabel('Filter by Channels').evaluate().isNotEmpty ||
-            find.text('Channels').evaluate().isNotEmpty;
-        final hasMoviesChip =
-            find.bySemanticsLabel('Filter by Movies').evaluate().isNotEmpty ||
-            find.text('Movies').evaluate().isNotEmpty;
-        final hasSeriesChip =
-            find.bySemanticsLabel('Filter by Series').evaluate().isNotEmpty ||
-            find.text('Series').evaluate().isNotEmpty;
-        final hasEpgChip =
-            find
-                .bySemanticsLabel('Filter by EPG Programs')
-                .evaluate()
-                .isNotEmpty ||
-            find.text('Programs').evaluate().isNotEmpty;
+        // The filter chips are always visible (even before a query is entered).
 
-        // At least one filter chip must be visible.
+        // All content-type filter chips must be visible on the search screen.
         expect(
-          hasChannelsChip || hasMoviesChip || hasSeriesChip || hasEpgChip,
-          isTrue,
+          find.text('Channels'),
+          findsOneWidget,
           reason:
-              'At least one content-type filter chip (Channels / Movies / '
-              'Series / EPG Programs) must be visible on the search screen.',
+              'Filter chip "Channels" must be visible on the search screen.',
+        );
+        expect(
+          find.text('Movies'),
+          findsOneWidget,
+          reason: 'Filter chip "Movies" must be visible on the search screen.',
+        );
+        expect(
+          find.text('Series'),
+          findsOneWidget,
+          reason: 'Filter chip "Series" must be visible on the search screen.',
+        );
+        expect(
+          find.text('Programs'),
+          findsOneWidget,
+          reason:
+              'Filter chip "Programs" must be visible on the search screen.',
         );
       },
     );
@@ -185,15 +180,18 @@ void main() {
       final chipLabels = ['Channels', 'Movies', 'Series', 'Programs'];
       for (final label in chipLabels) {
         final chip = find.text(label);
-        if (chip.evaluate().isNotEmpty) {
-          await tester.tap(chip.first, warnIfMissed: false);
-          for (var i = 0; i < 10; i++) {
-            await tester.pump(const Duration(milliseconds: 100));
-          }
-          _drainException(tester);
-          // Tapping should not crash; scaffold must still be visible.
-          expect(find.byType(Scaffold), findsWidgets);
+        expect(
+          chip,
+          findsWidgets,
+          reason: 'Filter chip "$label" must be visible.',
+        );
+        await tester.tap(chip.first, warnIfMissed: false);
+        for (var i = 0; i < 10; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
         }
+        _drainException(tester);
+        // Tapping should not crash; scaffold must still be visible.
+        expect(find.byType(Scaffold), findsWidgets);
       }
     });
 
@@ -218,40 +216,33 @@ void main() {
 
       // Type a search term that will produce results.
       final textField = find.byType(TextField);
-      if (textField.evaluate().isNotEmpty) {
-        await tester.enterText(textField.first, 'Matrix');
-        for (var i = 0; i < 30; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
-
-        // Phase 14 item 6: each result card must contain a play button icon
-        // and a source badge text (IPTV / VOD / EPG).
-        final hasPlayIcon = find.byIcon(Icons.play_arrow).evaluate().isNotEmpty;
-        final hasSourceBadge =
-            find.text('IPTV').evaluate().isNotEmpty ||
-            find.text('VOD').evaluate().isNotEmpty ||
-            find.text('EPG').evaluate().isNotEmpty;
-
-        // Only assert when cards are present; the data path may not surface
-        // results in all environments.
-        if (find.byType(Card).evaluate().isNotEmpty) {
-          expect(
-            hasPlayIcon,
-            isTrue,
-            reason:
-                'Search result cards must show a play button icon '
-                '(Icons.play_arrow) per FE-SR-05.',
-          );
-          expect(
-            hasSourceBadge,
-            isTrue,
-            reason:
-                'Search result cards must show a source badge '
-                '(IPTV / VOD / EPG) per FE-SR-10.',
-          );
-        }
+      expect(
+        textField,
+        findsWidgets,
+        reason: 'Search screen must contain a TextField.',
+      );
+      await tester.enterText(textField.first, 'Matrix');
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
+      _drainException(tester);
+
+      // Phase 14 item 6: result cards must contain a play button icon
+      // and a source badge text.
+      expect(
+        find.byIcon(Icons.play_arrow),
+        findsWidgets,
+        reason:
+            'Search result cards must show a play button icon '
+            '(Icons.play_arrow) per FE-SR-05.',
+      );
+      expect(
+        find.text('VOD'),
+        findsWidgets,
+        reason:
+            'Search result cards must show a source badge (VOD) '
+            'per FE-SR-10.',
+      );
     });
 
     testWidgets('Clearing search returns to empty / recent-searches state', (
@@ -275,25 +266,31 @@ void main() {
 
       // Type then clear.
       final textField = find.byType(TextField);
-      if (textField.evaluate().isNotEmpty) {
-        await tester.enterText(textField.first, 'BBC');
-        for (var i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-
-        // Phase 14 item 8: clear button (Icons.close) clears the query.
-        final clearButton = find.byIcon(Icons.close);
-        if (clearButton.evaluate().isNotEmpty) {
-          await tester.tap(clearButton.first);
-          for (var i = 0; i < 20; i++) {
-            await tester.pump(const Duration(milliseconds: 100));
-          }
-          _drainException(tester);
-
-          // After clear the screen should still be alive.
-          expect(find.byType(Scaffold), findsWidgets);
-        }
+      expect(
+        textField,
+        findsWidgets,
+        reason: 'Search screen must contain a TextField.',
+      );
+      await tester.enterText(textField.first, 'BBC');
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
+
+      // Phase 14 item 8: clear button (Icons.close) must appear after typing.
+      final clearButton = find.byIcon(Icons.close);
+      expect(
+        clearButton,
+        findsWidgets,
+        reason: 'Clear button must be visible after entering a search query.',
+      );
+      await tester.tap(clearButton.first);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      _drainException(tester);
+
+      // After clear the screen should still be alive.
+      expect(find.byType(Scaffold), findsWidgets);
     });
   });
 }

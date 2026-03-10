@@ -41,23 +41,14 @@ void main() {
       // Verify the TV screen renders without errors.
       expect(find.byType(Scaffold), findsWidgets);
 
-      // On large layout (Windows desktop) the TV layout
-      // uses a two-panel view with GroupSidebar + channel
-      // list. On compact, it shows a groups drill-down.
-      // Either the "Live TV" title or "All Channels" or
-      // group names should be visible.
-      final hasLiveTv = find.text('Live TV').evaluate().isNotEmpty;
-      final hasAllChannels = find.text('All Channels').evaluate().isNotEmpty;
-      final hasAll = find.text('All').evaluate().isNotEmpty;
-      final hasUkGroup = find.text('UK Entertainment').evaluate().isNotEmpty;
-
+      // The TV screen must show seeded channel groups.
+      // On large layout it shows a GroupSidebar; on compact it shows groups drill-down.
+      // Either way, the seeded group names must be visible.
       expect(
-        hasLiveTv || hasAllChannels || hasAll || hasUkGroup,
-        isTrue,
+        find.text('UK Entertainment'),
+        findsWidgets,
         reason:
-            'Expected the TV tab to render with either '
-            '"Live TV", "All Channels", "All", or a '
-            'group name visible.',
+            'Seeded channel group "UK Entertainment" must be visible on the TV tab.',
       );
     });
 
@@ -77,22 +68,22 @@ void main() {
       // Navigate to TV tab.
       await navigateToTab(tester, 'TV');
 
-      // On mobile, the groups view is shown first.
-      final groups = ['UK Entertainment', 'US News', 'Sports'];
-      final foundGroups = groups.where(
-        (g) => find.text(g).evaluate().isNotEmpty,
+      // All 3 seeded channel groups must be visible.
+      expect(
+        find.text('UK Entertainment'),
+        findsWidgets,
+        reason: 'Seeded group "UK Entertainment" must be visible.',
       );
-
-      // If groups are visible, verify at least two.
-      if (foundGroups.isNotEmpty) {
-        expect(
-          foundGroups.length,
-          greaterThanOrEqualTo(2),
-          reason:
-              'Expected at least 2 channel groups '
-              'to be visible.',
-        );
-      }
+      expect(
+        find.text('US News'),
+        findsWidgets,
+        reason: 'Seeded group "US News" must be visible.',
+      );
+      expect(
+        find.text('Sports'),
+        findsWidgets,
+        reason: 'Seeded group "Sports" must be visible.',
+      );
 
       // No crash.
       expect(tester.takeException(), isNull);
@@ -114,19 +105,27 @@ void main() {
       // Navigate to TV tab.
       await navigateToTab(tester, 'TV');
 
-      // Try to tap a group to drill into channels.
-      // "UK Entertainment" has BBC One and BBC Two.
-      final ukGroup = find.text('UK Entertainment');
-      if (ukGroup.evaluate().isNotEmpty) {
-        await tester.tap(ukGroup.first);
-        for (int i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-
-        // After drilling in, channel names should
-        // appear in the list.
-        expect(find.text('BBC One'), findsWidgets);
+      // "UK Entertainment" was seeded — it must exist to drill into.
+      expect(
+        find.text('UK Entertainment'),
+        findsWidgets,
+        reason:
+            'Seeded group "UK Entertainment" must be visible to drill into.',
+      );
+      await tester.tap(find.text('UK Entertainment').first);
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
+
+      // After drilling in, channel names from UK Entertainment group
+      // should appear in the list.
+      expect(
+        find.text('BBC One'),
+        findsWidgets,
+        reason:
+            'BBC One channel must be visible after drilling into '
+            'UK Entertainment.',
+      );
 
       // No crash from the navigation.
       expect(tester.takeException(), isNull);
@@ -149,23 +148,26 @@ void main() {
       // Navigate to TV tab.
       await navigateToTab(tester, 'TV');
 
-      // Try to find a channel to tap.
-      // First drill into a group if visible.
-      final ukGroup = find.text('UK Entertainment');
-      if (ukGroup.evaluate().isNotEmpty) {
-        await tester.tap(ukGroup.first);
-        for (int i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
+      // Drill into the seeded UK Entertainment group.
+      expect(
+        find.text('UK Entertainment'),
+        findsWidgets,
+        reason: 'Seeded group must be visible.',
+      );
+      await tester.tap(find.text('UK Entertainment').first);
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
 
-      // Now try to tap BBC One if visible.
-      final bbcOne = find.text('BBC One');
-      if (bbcOne.evaluate().isNotEmpty) {
-        await tester.tap(bbcOne.first);
-        for (int i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
+      // Tap BBC One channel.
+      expect(
+        find.text('BBC One'),
+        findsWidgets,
+        reason: 'BBC One must be visible after drilling into group.',
+      );
+      await tester.tap(find.text('BBC One').first);
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
 
       // The app should not crash with an unrelated

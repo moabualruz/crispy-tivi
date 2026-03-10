@@ -117,14 +117,17 @@ void main() {
       // The app shell should render with a Scaffold.
       expect(find.byType(Scaffold), findsWidgets);
 
-      // At least one navigation item key should be present.
-      final hasTab =
-          find.byKey(TestKeys.navItem('Home')).evaluate().isNotEmpty ||
-          find.byKey(TestKeys.navItem('Live TV')).evaluate().isNotEmpty ||
-          find.byKey(TestKeys.navItem('Guide')).evaluate().isNotEmpty ||
-          find.byKey(TestKeys.navItem('Movies')).evaluate().isNotEmpty ||
-          find.byKey(TestKeys.navItem('Settings')).evaluate().isNotEmpty;
-      expect(hasTab, isTrue);
+      // After profile selection, navigation items must be present in the app shell.
+      expect(
+        find.byKey(TestKeys.navItem('Home')),
+        findsOneWidget,
+        reason: 'Home nav item must be present after profile selection.',
+      );
+      expect(
+        find.byKey(TestKeys.navItem('Settings')),
+        findsOneWidget,
+        reason: 'Settings nav item must be present after profile selection.',
+      );
     });
   });
 }

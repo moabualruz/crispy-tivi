@@ -214,12 +214,8 @@ test.describe('Search Flow', () => {
           log(`Found ${count} result items in semantics`);
         }
       } catch {
-        // Semantics not exposing list items — visual check was done.
-        resultsFound = true;
-      }
-      if (!resultsFound) {
-        // Even if no semantic items found, screen rendered = pass.
-        resultsFound = true;
+        // Semantics not exposing list items — test will fail if no results found.
+        log('Could not find result items via semantics');
       }
       expect(resultsFound).toBe(true);
 
@@ -310,7 +306,6 @@ test.describe('Search Flow', () => {
           log('Search field cleared via keyboard shortcut');
         } catch {
           log('Could not clear search field');
-          fieldCleared = true; // Don't block the test.
         }
       }
       expect(fieldCleared).toBe(true);

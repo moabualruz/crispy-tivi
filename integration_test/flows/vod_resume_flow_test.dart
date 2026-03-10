@@ -73,11 +73,11 @@ void main() {
 
       // Tap on "The Matrix" card.
       final matrixFinder = find.text('The Matrix');
-      if (matrixFinder.evaluate().isEmpty) {
-        // VODs tab may not have loaded yet — skip rather than fail on
-        // missing data; the real assertion is about the dialog behavior.
-        return;
-      }
+      expect(
+        matrixFinder,
+        findsWidgets,
+        reason: 'Seeded VOD "The Matrix" must be visible on VODs tab.',
+      );
       await tester.tap(matrixFinder.first);
       for (int i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
@@ -85,24 +85,21 @@ void main() {
 
       // The VOD details screen should appear.
       final detailsScreenFinder = find.byKey(TestKeys.vodDetailsScreen);
-      if (detailsScreenFinder.evaluate().isEmpty) {
-        // Details screen not reached — test navigation only.
-        tester.takeException();
-        return;
-      }
+      expect(
+        detailsScreenFinder,
+        findsOneWidget,
+        reason: 'VOD details screen must appear after tapping a VOD card.',
+      );
 
       // Tap the Play button on details screen.
-      final playButton = find.widgetWithText(ElevatedButton, 'Play').first;
-      final altPlay = find.widgetWithIcon(ElevatedButton, Icons.play_arrow);
-      final playTarget =
-          playButton.evaluate().isNotEmpty ? playButton : altPlay;
-      if (playTarget.evaluate().isEmpty) {
-        // No identifiable play button — skip dialog assertion.
-        tester.takeException();
-        return;
-      }
+      final playButton = find.widgetWithText(ElevatedButton, 'Play');
+      expect(
+        playButton,
+        findsWidgets,
+        reason: 'VOD details screen must show a Play button.',
+      );
 
-      await tester.tap(playTarget.first);
+      await tester.tap(playButton.first);
       for (int i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -145,38 +142,39 @@ void main() {
       await navigateToTab(tester, 'VODs');
 
       final matrixFinder = find.text('The Matrix');
-      if (matrixFinder.evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        matrixFinder,
+        findsWidgets,
+        reason: 'Seeded VOD "The Matrix" must be visible on VODs tab.',
+      );
       await tester.tap(matrixFinder.first);
       for (int i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
 
-      if (find.byKey(TestKeys.vodDetailsScreen).evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        find.byKey(TestKeys.vodDetailsScreen),
+        findsOneWidget,
+        reason: 'VOD details screen must appear after tapping a VOD card.',
+      );
 
       final playButton = find.widgetWithText(ElevatedButton, 'Play');
-      final altPlay = find.widgetWithIcon(ElevatedButton, Icons.play_arrow);
-      final playTarget =
-          playButton.evaluate().isNotEmpty ? playButton : altPlay;
-      if (playTarget.evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        playButton,
+        findsWidgets,
+        reason: 'VOD details screen must show a Play button.',
+      );
 
-      await tester.tap(playTarget.first);
+      await tester.tap(playButton.first);
       for (int i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
 
-      if (find.text('Resume Playback?').evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        find.text('Resume Playback?'),
+        findsOneWidget,
+        reason: 'Half-watched VOD must show "Resume Playback?" dialog.',
+      );
 
       // Tap "Start Over" button.
       await tester.tap(find.text('Start Over'));
@@ -226,38 +224,39 @@ void main() {
       await navigateToTab(tester, 'VODs');
 
       final matrixFinder = find.text('The Matrix');
-      if (matrixFinder.evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        matrixFinder,
+        findsWidgets,
+        reason: 'Seeded VOD "The Matrix" must be visible on VODs tab.',
+      );
       await tester.tap(matrixFinder.first);
       for (int i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
 
-      if (find.byKey(TestKeys.vodDetailsScreen).evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        find.byKey(TestKeys.vodDetailsScreen),
+        findsOneWidget,
+        reason: 'VOD details screen must appear after tapping a VOD card.',
+      );
 
       final playButton = find.widgetWithText(ElevatedButton, 'Play');
-      final altPlay = find.widgetWithIcon(ElevatedButton, Icons.play_arrow);
-      final playTarget =
-          playButton.evaluate().isNotEmpty ? playButton : altPlay;
-      if (playTarget.evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        playButton,
+        findsWidgets,
+        reason: 'VOD details screen must show a Play button.',
+      );
 
-      await tester.tap(playTarget.first);
+      await tester.tap(playButton.first);
       for (int i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
 
-      if (find.text('Resume Playback?').evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        find.text('Resume Playback?'),
+        findsOneWidget,
+        reason: 'Half-watched VOD must show "Resume Playback?" dialog.',
+      );
 
       // Tap "Resume" button.
       await tester.tap(find.text('Resume'));
@@ -297,30 +296,30 @@ void main() {
       await navigateToTab(tester, 'VODs');
 
       final inceptionFinder = find.text('Inception');
-      if (inceptionFinder.evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        inceptionFinder,
+        findsWidgets,
+        reason: 'Seeded VOD "Inception" must be visible on VODs tab.',
+      );
       await tester.tap(inceptionFinder.first);
       for (int i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
 
-      if (find.byKey(TestKeys.vodDetailsScreen).evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        find.byKey(TestKeys.vodDetailsScreen),
+        findsOneWidget,
+        reason: 'VOD details screen must appear after tapping a VOD card.',
+      );
 
       final playButton = find.widgetWithText(ElevatedButton, 'Play');
-      final altPlay = find.widgetWithIcon(ElevatedButton, Icons.play_arrow);
-      final playTarget =
-          playButton.evaluate().isNotEmpty ? playButton : altPlay;
-      if (playTarget.evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        playButton,
+        findsWidgets,
+        reason: 'VOD details screen must show a Play button.',
+      );
 
-      await tester.tap(playTarget.first);
+      await tester.tap(playButton.first);
       for (int i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -363,39 +362,39 @@ void main() {
       await navigateToTab(tester, 'VODs');
 
       final matrixFinder = find.text('The Matrix');
-      if (matrixFinder.evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        matrixFinder,
+        findsWidgets,
+        reason: 'Seeded VOD "The Matrix" must be visible on VODs tab.',
+      );
       await tester.tap(matrixFinder.first);
       for (int i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
 
-      if (find.byKey(TestKeys.vodDetailsScreen).evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        find.byKey(TestKeys.vodDetailsScreen),
+        findsOneWidget,
+        reason: 'VOD details screen must appear after tapping a VOD card.',
+      );
 
       final playButton = find.widgetWithText(ElevatedButton, 'Play');
-      final altPlay = find.widgetWithIcon(ElevatedButton, Icons.play_arrow);
-      final playTarget =
-          playButton.evaluate().isNotEmpty ? playButton : altPlay;
-      if (playTarget.evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        playButton,
+        findsWidgets,
+        reason: 'VOD details screen must show a Play button.',
+      );
 
-      await tester.tap(playTarget.first);
+      await tester.tap(playButton.first);
       for (int i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
 
-      if (find.text('Resume Playback?').evaluate().isEmpty) {
-        // Resume dialog not shown — skip button assertions.
-        tester.takeException();
-        return;
-      }
+      expect(
+        find.text('Resume Playback?'),
+        findsOneWidget,
+        reason: 'Half-watched VOD must show "Resume Playback?" dialog.',
+      );
 
       // Phase 13: dialog must contain both action buttons.
       expect(

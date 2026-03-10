@@ -44,23 +44,18 @@ void main() {
       // Navigate to VODs tab.
       await navigateToTab(tester, 'VODs');
 
-      // Drain any benign async exceptions (e.g. VoiceSearchService
-      // mic permission on Android).
-      _drainException(tester);
       expect(find.byType(Scaffold), findsWidgets);
 
-      // Movie names from TestData.sampleVodItems
-      // should be visible.
-      final hasMatrix = find.text('The Matrix').evaluate().isNotEmpty;
-      final hasInception = find.text('Inception').evaluate().isNotEmpty;
-
+      // Both movies from TestData.sampleVodItems must be visible on the VODs tab.
       expect(
-        hasMatrix || hasInception,
-        isTrue,
-        reason:
-            'Expected at least one movie name '
-            'from test data to be visible on the '
-            'VODs tab.',
+        find.text('The Matrix'),
+        findsWidgets,
+        reason: 'Seeded VOD "The Matrix" must be visible on the VODs tab.',
+      );
+      expect(
+        find.text('Inception'),
+        findsWidgets,
+        reason: 'Seeded VOD "Inception" must be visible on the VODs tab.',
       );
     });
 
@@ -102,17 +97,19 @@ void main() {
       // Navigate to VODs tab.
       await navigateToTab(tester, 'VODs');
 
-      // Try to tap on "The Matrix" text if visible.
+      // The Matrix was seeded — it must be visible.
       final matrixText = find.text('The Matrix');
-      if (matrixText.evaluate().isNotEmpty) {
-        await tester.tap(matrixText.first);
-        for (int i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
+      expect(
+        matrixText,
+        findsWidgets,
+        reason: 'Seeded VOD "The Matrix" must be visible.',
+      );
+      await tester.tap(matrixText.first);
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
 
-      // Drain and check: no crash should occur from tapping a VOD.
-      _drainException(tester);
+      // No crash should occur from tapping a VOD.
       expect(find.byType(Scaffold), findsWidgets);
     });
 

@@ -215,65 +215,69 @@ void main() {
 
       // Expand FAB.
       final fab = find.byType(FloatingActionButton);
-      if (fab.evaluate().isNotEmpty) {
-        await tester.tap(fab.first);
-        for (var i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
+      expect(fab, findsWidgets, reason: 'DVR screen must have a FAB.');
+      await tester.tap(fab.first);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      _drainException(tester);
 
-        // Phase 16 DVR item 5: tap "Schedule" mini action.
-        final scheduleBtn = find.text('Schedule');
-        if (scheduleBtn.evaluate().isNotEmpty) {
-          await tester.tap(scheduleBtn.last);
-          for (var i = 0; i < 20; i++) {
-            await tester.pump(const Duration(milliseconds: 100));
-          }
-          _drainException(tester);
+      // Phase 16 DVR item 5: tap "Schedule" mini action.
+      final scheduleBtn = find.text('Schedule');
+      expect(
+        scheduleBtn,
+        findsWidgets,
+        reason: 'FAB speed dial must expose "Schedule" mini action.',
+      );
+      await tester.tap(scheduleBtn.last);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      _drainException(tester);
 
-          // ScheduleDialog must open as a Dialog.
-          expect(
-            find.byType(Dialog),
-            findsOneWidget,
-            reason: 'ScheduleDialog must open as a Dialog.',
-          );
+      // ScheduleDialog must open as a Dialog.
+      expect(
+        find.byType(Dialog),
+        findsOneWidget,
+        reason: 'ScheduleDialog must open as a Dialog.',
+      );
 
-          // Phase 16 DVR item 5: Dialog header title is "DVR".
-          expect(
-            find.text('DVR'),
-            findsOneWidget,
-            reason: 'ScheduleDialog must show "DVR" as its header title.',
-          );
+      // Phase 16 DVR item 5: Dialog header title is "DVR".
+      expect(
+        find.text('DVR'),
+        findsOneWidget,
+        reason: 'ScheduleDialog must show "DVR" as its header title.',
+      );
 
-          // Phase 16 DVR item 5: two tabs — Schedule, Auto-Record.
-          expect(
-            find.text('Schedule'),
-            findsWidgets,
-            reason: 'ScheduleDialog must have a "Schedule" tab.',
-          );
-          expect(
-            find.text('Auto-Record'),
-            findsOneWidget,
-            reason:
-                'ScheduleDialog must have an "Auto-Record" tab (FE-DVR-07).',
-          );
+      // Phase 16 DVR item 5: two tabs — Schedule, Auto-Record.
+      expect(
+        find.text('Schedule'),
+        findsWidgets,
+        reason: 'ScheduleDialog must have a "Schedule" tab.',
+      );
+      expect(
+        find.text('Auto-Record'),
+        findsOneWidget,
+        reason: 'ScheduleDialog must have an "Auto-Record" tab (FE-DVR-07).',
+      );
 
-          // Phase 16 DVR item 5: channel name text field.
-          expect(
-            find.text('Channel Name'),
-            findsOneWidget,
-            reason: '"Channel Name" field must be present in the Schedule tab.',
-          );
+      // Phase 16 DVR item 5: channel name text field.
+      expect(
+        find.text('Channel Name'),
+        findsOneWidget,
+        reason: '"Channel Name" field must be present in the Schedule tab.',
+      );
 
-          // Close the dialog.
-          final cancelBtn = find.text('Cancel');
-          if (cancelBtn.evaluate().isNotEmpty) {
-            await tester.tap(cancelBtn.first);
-            for (var i = 0; i < 10; i++) {
-              await tester.pump(const Duration(milliseconds: 100));
-            }
-          }
-        }
+      // Close the dialog.
+      final cancelBtn = find.text('Cancel');
+      expect(
+        cancelBtn,
+        findsWidgets,
+        reason: 'ScheduleDialog must have a "Cancel" button.',
+      );
+      await tester.tap(cancelBtn.first);
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
     });
 
@@ -293,46 +297,48 @@ void main() {
 
       // Expand FAB and open Schedule dialog.
       final fab = find.byType(FloatingActionButton);
-      if (fab.evaluate().isNotEmpty) {
-        await tester.tap(fab.first);
-        for (var i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
+      expect(fab, findsWidgets, reason: 'DVR screen must have a FAB.');
+      await tester.tap(fab.first);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      _drainException(tester);
 
-        final scheduleBtn = find.text('Schedule');
-        if (scheduleBtn.evaluate().isNotEmpty) {
-          await tester.tap(scheduleBtn.last);
-          for (var i = 0; i < 20; i++) {
-            await tester.pump(const Duration(milliseconds: 100));
-          }
-          _drainException(tester);
+      final scheduleBtn = find.text('Schedule');
+      expect(
+        scheduleBtn,
+        findsWidgets,
+        reason: 'FAB speed dial must expose "Schedule" mini action.',
+      );
+      await tester.tap(scheduleBtn.last);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      _drainException(tester);
 
-          // Phase 16 DVR item 5: start/end datetime picker tiles must be
-          // present (identified by the "Start:" prefix in the tile title).
-          final hasStartTile =
-              find.textContaining('Start:').evaluate().isNotEmpty;
-          final hasEndTile = find.textContaining('End:').evaluate().isNotEmpty;
-          expect(
-            hasStartTile,
-            isTrue,
-            reason: 'ScheduleDialog must show a "Start:" datetime picker tile.',
-          );
-          expect(
-            hasEndTile,
-            isTrue,
-            reason: 'ScheduleDialog must show an "End:" datetime picker tile.',
-          );
+      // Phase 16 DVR item 5: start/end datetime picker tiles must be
+      // present (identified by the "Start:" prefix in the tile title).
+      expect(
+        find.textContaining('Start:'),
+        findsWidgets,
+        reason: 'ScheduleDialog must show a "Start:" datetime picker tile.',
+      );
+      expect(
+        find.textContaining('End:'),
+        findsWidgets,
+        reason: 'ScheduleDialog must show an "End:" datetime picker tile.',
+      );
 
-          // Close.
-          final cancelBtn = find.text('Cancel');
-          if (cancelBtn.evaluate().isNotEmpty) {
-            await tester.tap(cancelBtn.first);
-            for (var i = 0; i < 10; i++) {
-              await tester.pump(const Duration(milliseconds: 100));
-            }
-          }
-        }
+      // Close.
+      final cancelBtn = find.text('Cancel');
+      expect(
+        cancelBtn,
+        findsWidgets,
+        reason: 'ScheduleDialog must have a "Cancel" button.',
+      );
+      await tester.tap(cancelBtn.first);
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
     });
 
@@ -352,44 +358,46 @@ void main() {
 
       // Expand FAB.
       final fab = find.byType(FloatingActionButton);
-      if (fab.evaluate().isNotEmpty) {
-        await tester.tap(fab.first);
-        for (var i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
+      expect(fab, findsWidgets, reason: 'DVR screen must have a FAB.');
+      await tester.tap(fab.first);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      _drainException(tester);
 
-        // Phase 16 DVR item 12: tap "Keyword Rules" mini action.
-        final kwBtn = find.text('Keyword Rules');
-        if (kwBtn.evaluate().isNotEmpty) {
-          await tester.tap(kwBtn.last);
-          for (var i = 0; i < 20; i++) {
-            await tester.pump(const Duration(milliseconds: 100));
-          }
-          _drainException(tester);
+      // Phase 16 DVR item 12: tap "Keyword Rules" mini action.
+      final kwBtn = find.text('Keyword Rules');
+      expect(
+        kwBtn,
+        findsWidgets,
+        reason: 'FAB speed dial must expose "Keyword Rules" mini action.',
+      );
+      await tester.tap(kwBtn.last);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      _drainException(tester);
 
-          // KeywordRulesSheet is a bottom sheet; verify its header title.
-          expect(
-            find.text('Keyword Auto-Record Rules'),
-            findsOneWidget,
-            reason:
-                'KeywordRulesSheet must show "Keyword Auto-Record Rules" '
-                'header.',
-          );
+      // KeywordRulesSheet is a bottom sheet; verify its header title.
+      expect(
+        find.text('Keyword Auto-Record Rules'),
+        findsOneWidget,
+        reason:
+            'KeywordRulesSheet must show "Keyword Auto-Record Rules" '
+            'header.',
+      );
 
-          // Phase 16 DVR item 13: "Add Rule" button must be visible.
-          expect(
-            find.text('Add Rule'),
-            findsWidgets,
-            reason: 'KeywordRulesSheet must contain an "Add Rule" button.',
-          );
+      // Phase 16 DVR item 13: "Add Rule" button must be visible.
+      expect(
+        find.text('Add Rule'),
+        findsWidgets,
+        reason: 'KeywordRulesSheet must contain an "Add Rule" button.',
+      );
 
-          // Close the bottom sheet by tapping outside or back.
-          await tester.tapAt(const Offset(10, 10));
-          for (var i = 0; i < 10; i++) {
-            await tester.pump(const Duration(milliseconds: 100));
-          }
-        }
+      // Close the bottom sheet by tapping outside or back.
+      await tester.tapAt(const Offset(10, 10));
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
     });
 
@@ -409,66 +417,73 @@ void main() {
 
       // Open Keyword Rules via FAB.
       final fab = find.byType(FloatingActionButton);
-      if (fab.evaluate().isNotEmpty) {
-        await tester.tap(fab.first);
-        for (var i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
+      expect(fab, findsWidgets, reason: 'DVR screen must have a FAB.');
+      await tester.tap(fab.first);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      _drainException(tester);
 
-        final kwBtn = find.text('Keyword Rules');
-        if (kwBtn.evaluate().isNotEmpty) {
-          await tester.tap(kwBtn.last);
-          for (var i = 0; i < 20; i++) {
-            await tester.pump(const Duration(milliseconds: 100));
-          }
-          _drainException(tester);
+      final kwBtn = find.text('Keyword Rules');
+      expect(
+        kwBtn,
+        findsWidgets,
+        reason: 'FAB speed dial must expose "Keyword Rules" mini action.',
+      );
+      await tester.tap(kwBtn.last);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      _drainException(tester);
 
-          // Phase 16 DVR item 13: tap "Add Rule" to open the rule dialog.
-          final addRuleBtn = find.text('Add Rule');
-          if (addRuleBtn.evaluate().isNotEmpty) {
-            await tester.tap(addRuleBtn.first);
-            for (var i = 0; i < 20; i++) {
-              await tester.pump(const Duration(milliseconds: 100));
-            }
-            _drainException(tester);
+      // Phase 16 DVR item 13: tap "Add Rule" to open the rule dialog.
+      final addRuleBtn = find.text('Add Rule');
+      expect(
+        addRuleBtn,
+        findsWidgets,
+        reason: 'KeywordRulesSheet must contain an "Add Rule" button.',
+      );
+      await tester.tap(addRuleBtn.first);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      _drainException(tester);
 
-            // _KeywordRuleDialog (AlertDialog) must open.
-            expect(
-              find.byType(AlertDialog),
-              findsOneWidget,
-              reason:
-                  'Tapping "Add Rule" must open the keyword rule builder '
-                  'dialog.',
-            );
+      // _KeywordRuleDialog (AlertDialog) must open.
+      expect(
+        find.byType(AlertDialog),
+        findsOneWidget,
+        reason:
+            'Tapping "Add Rule" must open the keyword rule builder '
+            'dialog.',
+      );
 
-            // Phase 16 DVR item 13: keyword input field must be present.
-            expect(
-              find.text('Keyword'),
-              findsWidgets,
-              reason:
-                  'Keyword rule dialog must contain a "Keyword" text field.',
-            );
+      // Phase 16 DVR item 13: keyword input field must be present.
+      expect(
+        find.text('Keyword'),
+        findsWidgets,
+        reason: 'Keyword rule dialog must contain a "Keyword" text field.',
+      );
 
-            // Phase 16 DVR item 13: channel filter field must be present.
-            expect(
-              find.text('Channel Filter (optional)'),
-              findsOneWidget,
-              reason:
-                  'Keyword rule dialog must contain a "Channel Filter" '
-                  'field.',
-            );
+      // Phase 16 DVR item 13: channel filter field must be present.
+      expect(
+        find.text('Channel Filter (optional)'),
+        findsOneWidget,
+        reason:
+            'Keyword rule dialog must contain a "Channel Filter" '
+            'field.',
+      );
 
-            // Close the dialog.
-            final cancelBtn = find.text('Cancel');
-            if (cancelBtn.evaluate().isNotEmpty) {
-              await tester.tap(cancelBtn.first);
-              for (var i = 0; i < 10; i++) {
-                await tester.pump(const Duration(milliseconds: 100));
-              }
-            }
-          }
-        }
+      // Close the dialog.
+      final cancelBtn = find.text('Cancel');
+      expect(
+        cancelBtn,
+        findsWidgets,
+        reason: 'Keyword rule dialog must have a "Cancel" button.',
+      );
+      await tester.tap(cancelBtn.first);
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
     });
 
@@ -495,35 +510,40 @@ void main() {
 
       // Navigate to In Progress.
       final inProgressTab = find.text('In Progress');
-      if (inProgressTab.evaluate().isNotEmpty) {
-        await tester.tap(inProgressTab.first);
-        for (var i = 0; i < 15; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
-        expect(
-          find.text('No active recordings'),
-          findsOneWidget,
-          reason:
-              'In Progress tab empty state must read "No active recordings".',
-        );
+      expect(
+        inProgressTab,
+        findsOneWidget,
+        reason: '"In Progress" tab must be visible.',
+      );
+      await tester.tap(inProgressTab.first);
+      for (var i = 0; i < 15; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
+      _drainException(tester);
+      expect(
+        find.text('No active recordings'),
+        findsOneWidget,
+        reason: 'In Progress tab empty state must read "No active recordings".',
+      );
 
       // Navigate to Completed.
       final completedTab = find.text('Completed');
-      if (completedTab.evaluate().isNotEmpty) {
-        await tester.tap(completedTab.first);
-        for (var i = 0; i < 15; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
-        expect(
-          find.text('No completed recordings'),
-          findsOneWidget,
-          reason:
-              'Completed tab empty state must read "No completed recordings".',
-        );
+      expect(
+        completedTab,
+        findsOneWidget,
+        reason: '"Completed" tab must be visible.',
+      );
+      await tester.tap(completedTab.first);
+      for (var i = 0; i < 15; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
+      _drainException(tester);
+      expect(
+        find.text('No completed recordings'),
+        findsOneWidget,
+        reason:
+            'Completed tab empty state must read "No completed recordings".',
+      );
     });
   });
 }

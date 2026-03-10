@@ -43,18 +43,21 @@ void main() {
       // "Sources" tab should exist.
       expect(find.text('Sources'), findsOneWidget);
 
-      // Additional tab headers should be present.
-      final hasGeneral = find.text('General').evaluate().isNotEmpty;
-      final hasPlayback = find.text('Playback').evaluate().isNotEmpty;
-      final hasData = find.text('Data').evaluate().isNotEmpty;
-
+      // All settings tabs must be present in the TabBar.
       expect(
-        hasGeneral || hasPlayback || hasData,
-        isTrue,
-        reason:
-            'Expected at least one additional '
-            'settings tab beyond Sources to '
-            'be visible.',
+        find.text('General'),
+        findsOneWidget,
+        reason: 'Settings "General" tab must be visible.',
+      );
+      expect(
+        find.text('Playback'),
+        findsOneWidget,
+        reason: 'Settings "Playback" tab must be visible.',
+      );
+      expect(
+        find.text('Data'),
+        findsOneWidget,
+        reason: 'Settings "Data" tab must be visible.',
       );
     });
 
@@ -108,12 +111,16 @@ void main() {
 
       // Scroll down through the settings list.
       // Each tab has its own scrollable content.
+      // Settings must have a scrollable list.
       final listView = find.byType(ListView);
-      if (listView.evaluate().isNotEmpty) {
-        await tester.fling(listView.first, const Offset(0, -500), 1000);
-        for (int i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
+      expect(
+        listView,
+        findsWidgets,
+        reason: 'Settings screen must contain a scrollable ListView.',
+      );
+      await tester.fling(listView.first, const Offset(0, -500), 1000);
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
 
       // No crash from scrolling.
@@ -121,11 +128,14 @@ void main() {
 
       // Scroll more to reach deeper sections.
       final listView2 = find.byType(ListView);
-      if (listView2.evaluate().isNotEmpty) {
-        await tester.fling(listView2.first, const Offset(0, -500), 1000);
-        for (int i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
+      expect(
+        listView2,
+        findsWidgets,
+        reason: 'Settings screen must still contain a scrollable ListView.',
+      );
+      await tester.fling(listView2.first, const Offset(0, -500), 1000);
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
 
       // Still no crash.

@@ -76,12 +76,9 @@ void main() {
         findsOneWidget,
         reason: 'Tab 1 "Recently Watched" must be visible.',
       );
-      // "Continue Watching" is localized — look for the tab text.
-      final hasContinueWatching =
-          find.text('Continue Watching').evaluate().isNotEmpty;
       expect(
-        hasContinueWatching,
-        isTrue,
+        find.text('Continue Watching'),
+        findsOneWidget,
         reason: 'Tab 2 "Continue Watching" must be visible.',
       );
       expect(
@@ -113,15 +110,12 @@ void main() {
       );
 
       // Phase 16 item 15: Pause/Resume history toggle icon must be present.
-      final hasPauseIcon =
-          find.byIcon(Icons.manage_history_outlined).evaluate().isNotEmpty ||
-          find.byIcon(Icons.history_toggle_off).evaluate().isNotEmpty;
       expect(
-        hasPauseIcon,
-        isTrue,
+        find.byIcon(Icons.manage_history_outlined),
+        findsOneWidget,
         reason:
-            'AppBar must contain the Pause/Resume history recording '
-            'toggle icon (FE-FAV-05).',
+            'AppBar must contain the history recording toggle icon '
+            '(manage_history_outlined) when history is active (FE-FAV-05).',
       );
     });
 
@@ -141,19 +135,12 @@ void main() {
       await _navigateToFavorites(tester);
 
       // Phase 16 item 20: empty-state message must match spec.
-      // "Add channels or shows to your favorites to see them here."
-      final hasEmptyMsg =
-          find
-              .textContaining('Add channels or shows to your favorites')
-              .evaluate()
-              .isNotEmpty ||
-          find.textContaining('favorites').evaluate().isNotEmpty;
       expect(
-        hasEmptyMsg,
-        isTrue,
+        find.textContaining('Add channels or shows to your favorites'),
+        findsOneWidget,
         reason:
-            'Tab 0 empty state must contain text about adding items to '
-            'favorites (FE-FAV spec).',
+            'Tab 0 empty state must show '
+            '"Add channels or shows to your favorites" text (FE-FAV spec).',
       );
     });
 
@@ -197,26 +184,29 @@ void main() {
 
       // Tap Tab 1 — Recently Watched.
       final recentTab = find.text('Recently Watched');
-      if (recentTab.evaluate().isNotEmpty) {
-        await tester.tap(recentTab.first);
-        for (var i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
-
-        // Phase 16 item 21: when history is non-empty the sort dropdown
-        // must be visible. When empty the empty-state message shows.
-        final hasSortLabel = find.text('Sort:').evaluate().isNotEmpty;
-        final hasEmptyState =
-            find.text('Nothing watched yet').evaluate().isNotEmpty;
-        expect(
-          hasSortLabel || hasEmptyState,
-          isTrue,
-          reason:
-              'Tab 1 must show either the sort dropdown (non-empty history) '
-              'or the "Nothing watched yet" empty state.',
-        );
+      expect(
+        recentTab,
+        findsOneWidget,
+        reason: 'Tab "Recently Watched" must be visible.',
+      );
+      await tester.tap(recentTab.first);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
+      _drainException(tester);
+
+      // Phase 16 item 21: when history is non-empty the sort dropdown
+      // must be visible. When empty the empty-state message shows.
+      final hasSortLabel = find.text('Sort:').evaluate().isNotEmpty;
+      final hasEmptyState =
+          find.text('Nothing watched yet').evaluate().isNotEmpty;
+      expect(
+        hasSortLabel || hasEmptyState,
+        isTrue,
+        reason:
+            'Tab 1 must show either the sort dropdown (non-empty history) '
+            'or the "Nothing watched yet" empty state.',
+      );
     });
 
     testWidgets('Tab 1 Recently Watched empty state shows correct message', (
@@ -235,22 +225,25 @@ void main() {
       await _navigateToFavorites(tester);
 
       final recentTab = find.text('Recently Watched');
-      if (recentTab.evaluate().isNotEmpty) {
-        await tester.tap(recentTab.first);
-        for (var i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
-
-        // Phase 16 item 24: empty-state text for Tab 1.
-        expect(
-          find.text('Nothing watched yet'),
-          findsOneWidget,
-          reason:
-              'Tab 1 empty state must show "Nothing watched yet" '
-              'when no channels have been watched.',
-        );
+      expect(
+        recentTab,
+        findsOneWidget,
+        reason: 'Tab "Recently Watched" must be visible.',
+      );
+      await tester.tap(recentTab.first);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
+      _drainException(tester);
+
+      // Phase 16 item 24: empty-state text for Tab 1.
+      expect(
+        find.text('Nothing watched yet'),
+        findsOneWidget,
+        reason:
+            'Tab 1 empty state must show "Nothing watched yet" '
+            'when no channels have been watched.',
+      );
     });
 
     testWidgets('Tab 2 Continue Watching shows filter chips', (tester) async {
@@ -266,31 +259,34 @@ void main() {
       await _navigateToFavorites(tester);
 
       final continueTab = find.text('Continue Watching');
-      if (continueTab.evaluate().isNotEmpty) {
-        await tester.tap(continueTab.first);
-        for (var i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
-
-        // Phase 16 item 25: filter chips All / Watching / Completed.
-        // These show only when continue-watching items exist; otherwise
-        // the empty state is shown. Accept either outcome.
-        final hasFilterChips =
-            find.text('All').evaluate().isNotEmpty ||
-            find.text('Watching').evaluate().isNotEmpty ||
-            find.text('Completed').evaluate().isNotEmpty;
-        final hasEmptyState =
-            find.text('No items to continue').evaluate().isNotEmpty;
-
-        expect(
-          hasFilterChips || hasEmptyState,
-          isTrue,
-          reason:
-              'Tab 2 must show filter chips (All/Watching/Completed) or '
-              'the empty state "No items to continue".',
-        );
+      expect(
+        continueTab,
+        findsOneWidget,
+        reason: 'Tab "Continue Watching" must be visible.',
+      );
+      await tester.tap(continueTab.first);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
+      _drainException(tester);
+
+      // Phase 16 item 25: filter chips All / Watching / Completed.
+      // These show only when continue-watching items exist; otherwise
+      // the empty state is shown. Accept either outcome.
+      final hasFilterChips =
+          find.text('All').evaluate().isNotEmpty ||
+          find.text('Watching').evaluate().isNotEmpty ||
+          find.text('Completed').evaluate().isNotEmpty;
+      final hasEmptyState =
+          find.text('No items to continue').evaluate().isNotEmpty;
+
+      expect(
+        hasFilterChips || hasEmptyState,
+        isTrue,
+        reason:
+            'Tab 2 must show filter chips (All/Watching/Completed) or '
+            'the empty state "No items to continue".',
+      );
     });
 
     testWidgets('Tab 2 Continue Watching empty state shows correct message', (
@@ -309,22 +305,25 @@ void main() {
       await _navigateToFavorites(tester);
 
       final continueTab = find.text('Continue Watching');
-      if (continueTab.evaluate().isNotEmpty) {
-        await tester.tap(continueTab.first);
-        for (var i = 0; i < 30; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
-
-        // Phase 16 item 28: empty state for Tab 2.
-        expect(
-          find.text('No items to continue'),
-          findsOneWidget,
-          reason:
-              'Tab 2 empty state must show "No items to continue" '
-              'when no partially-watched VOD items exist.',
-        );
+      expect(
+        continueTab,
+        findsOneWidget,
+        reason: 'Tab "Continue Watching" must be visible.',
+      );
+      await tester.tap(continueTab.first);
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
+      _drainException(tester);
+
+      // Phase 16 item 28: empty state for Tab 2.
+      expect(
+        find.text('No items to continue'),
+        findsOneWidget,
+        reason:
+            'Tab 2 empty state must show "No items to continue" '
+            'when no partially-watched VOD items exist.',
+      );
     });
 
     testWidgets('Tab 3 Up Next shows correct empty state message', (
@@ -343,22 +342,25 @@ void main() {
       await _navigateToFavorites(tester);
 
       final upNextTab = find.text('Up Next');
-      if (upNextTab.evaluate().isNotEmpty) {
-        await tester.tap(upNextTab.first);
-        for (var i = 0; i < 30; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
-
-        // Phase 16 item 31: empty state for Tab 3.
-        expect(
-          find.textContaining('Nothing queued up'),
-          findsOneWidget,
-          reason:
-              'Tab 3 empty state must show "Nothing queued up." message '
-              'when no watch history exists.',
-        );
+      expect(
+        upNextTab,
+        findsOneWidget,
+        reason: 'Tab "Up Next" must be visible.',
+      );
+      await tester.tap(upNextTab.first);
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
+      _drainException(tester);
+
+      // Phase 16 item 31: empty state for Tab 3.
+      expect(
+        find.textContaining('Nothing queued up'),
+        findsOneWidget,
+        reason:
+            'Tab 3 empty state must show "Nothing queued up." message '
+            'when no watch history exists.',
+      );
     });
 
     testWidgets('History pause toggle shows and hides PAUSED badge', (
@@ -377,49 +379,56 @@ void main() {
 
       // Phase 16 items 32/34: tapping the pause toggle shows "PAUSED" badge.
       final pauseToggle = find.byIcon(Icons.manage_history_outlined);
-      if (pauseToggle.evaluate().isNotEmpty) {
-        // Initially not paused — badge should NOT be visible.
-        expect(
-          find.text('PAUSED'),
-          findsNothing,
-          reason: 'PAUSED badge must not be visible before history is paused.',
-        );
+      expect(
+        pauseToggle,
+        findsOneWidget,
+        reason: 'History pause toggle must be visible.',
+      );
 
-        // Tap to pause.
-        await tester.tap(pauseToggle.first);
-        for (var i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        _drainException(tester);
+      // Initially not paused — badge should NOT be visible.
+      expect(
+        find.text('PAUSED'),
+        findsNothing,
+        reason: 'PAUSED badge must not be visible before history is paused.',
+      );
 
-        // Phase 16 item 32: PAUSED badge must now appear.
-        expect(
-          find.text('PAUSED'),
-          findsOneWidget,
-          reason:
-              'PAUSED badge must appear in the AppBar title row when '
-              'history recording is paused (FE-FAV-05).',
-        );
-
-        // Tap to resume.
-        final resumeToggle = find.byIcon(Icons.history_toggle_off);
-        if (resumeToggle.evaluate().isNotEmpty) {
-          await tester.tap(resumeToggle.first);
-          for (var i = 0; i < 20; i++) {
-            await tester.pump(const Duration(milliseconds: 100));
-          }
-          _drainException(tester);
-
-          // Phase 16 item 34: PAUSED badge must disappear after resume.
-          expect(
-            find.text('PAUSED'),
-            findsNothing,
-            reason:
-                'PAUSED badge must disappear after resuming history '
-                'recording.',
-          );
-        }
+      // Tap to pause.
+      await tester.tap(pauseToggle.first);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
       }
+      _drainException(tester);
+
+      // Phase 16 item 32: PAUSED badge must now appear.
+      expect(
+        find.text('PAUSED'),
+        findsOneWidget,
+        reason:
+            'PAUSED badge must appear in the AppBar title row when '
+            'history recording is paused (FE-FAV-05).',
+      );
+
+      // Tap to resume.
+      final resumeToggle = find.byIcon(Icons.history_toggle_off);
+      expect(
+        resumeToggle,
+        findsOneWidget,
+        reason:
+            'Resume toggle (history_toggle_off) must be visible after '
+            'pausing history recording.',
+      );
+      await tester.tap(resumeToggle.first);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      _drainException(tester);
+
+      // Phase 16 item 34: PAUSED badge must disappear after resume.
+      expect(
+        find.text('PAUSED'),
+        findsNothing,
+        reason: 'PAUSED badge must disappear after resuming history recording.',
+      );
     });
 
     testWidgets(
@@ -442,18 +451,21 @@ void main() {
         await _navigateToFavorites(tester);
 
         final recentTab = find.text('Recently Watched');
-        if (recentTab.evaluate().isNotEmpty) {
-          await tester.tap(recentTab.first);
-          for (var i = 0; i < 20; i++) {
-            await tester.pump(const Duration(milliseconds: 100));
-          }
-          _drainException(tester);
-
-          // Phase 16 item 22: if items exist a long-press should enter
-          // multi-select mode. With empty history the empty state renders.
-          // Assert no crash occurred either way.
-          expect(find.byType(Scaffold), findsWidgets);
+        expect(
+          recentTab,
+          findsOneWidget,
+          reason: 'Tab "Recently Watched" must be visible.',
+        );
+        await tester.tap(recentTab.first);
+        for (var i = 0; i < 20; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
         }
+        _drainException(tester);
+
+        // Phase 16 item 22: if items exist a long-press should enter
+        // multi-select mode. With empty history the empty state renders.
+        // Assert no crash occurred either way.
+        expect(find.byType(Scaffold), findsWidgets);
       },
     );
   });

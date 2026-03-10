@@ -65,19 +65,29 @@ void main() {
       // be visible.
       expect(find.text('Program Guide'), findsOneWidget);
 
-      // EPG programme titles from TestData.sampleEpg
-      // should be visible.
-      final hasMorningLive = find.text('Morning Live').evaluate().isNotEmpty;
-      final hasNewsroomLive = find.text('Newsroom Live').evaluate().isNotEmpty;
-      final hasLorraine = find.text('Lorraine').evaluate().isNotEmpty;
-      final hasBbcBreakfast = find.text('BBC Breakfast').evaluate().isNotEmpty;
+      // EPG programme titles from TestData.sampleEpg must be visible.
+      // Assert that at least the seeded programme names are rendered.
+      // The EPG is time-based so not all may be in viewport at once.
+      // At minimum, the current timeslot programmes must be visible.
+      final morningLive = find.text('Morning Live');
+      final newsroomLive = find.text('Newsroom Live');
+      final lorraine = find.text('Lorraine');
+      final bbcBreakfast = find.text('BBC Breakfast');
 
+      // At least 2 of the seeded programmes must be visible in the timeline.
+      final visibleCount =
+          [
+            morningLive,
+            newsroomLive,
+            lorraine,
+            bbcBreakfast,
+          ].where((f) => f.evaluate().isNotEmpty).length;
       expect(
-        hasMorningLive || hasNewsroomLive || hasLorraine || hasBbcBreakfast,
-        isTrue,
+        visibleCount,
+        greaterThanOrEqualTo(2),
         reason:
-            'Expected at least one EPG programme '
-            'title to be visible on the Guide tab.',
+            'At least 2 seeded EPG programme titles must be visible in the '
+            'Guide timeline. Found $visibleCount of 4.',
       );
     });
 
@@ -102,18 +112,21 @@ void main() {
       await navigateToTab(tester, 'Guide');
       _drainException(tester);
 
-      // Channel names should be visible in the EPG
-      // sidebar or channel column.
-      final hasBbc = find.text('BBC One').evaluate().isNotEmpty;
-      final hasCnn = find.text('CNN').evaluate().isNotEmpty;
-      final hasEspn = find.text('ESPN').evaluate().isNotEmpty;
-
+      // All seeded channels must be visible in the EPG sidebar.
       expect(
-        hasBbc || hasCnn || hasEspn,
-        isTrue,
-        reason:
-            'Expected at least one channel name '
-            'to be visible in the EPG sidebar.',
+        find.text('BBC One'),
+        findsWidgets,
+        reason: 'Seeded channel "BBC One" must be visible in EPG sidebar.',
+      );
+      expect(
+        find.text('CNN'),
+        findsWidgets,
+        reason: 'Seeded channel "CNN" must be visible in EPG sidebar.',
+      );
+      expect(
+        find.text('ESPN'),
+        findsWidgets,
+        reason: 'Seeded channel "ESPN" must be visible in EPG sidebar.',
       );
     });
 

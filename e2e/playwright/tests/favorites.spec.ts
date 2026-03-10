@@ -374,8 +374,7 @@ test.describe('Favorites Flow', () => {
         }
       } catch {
         log('Could not verify channel in My Favorites via semantics');
-        // Fallback: the screen rendered without errors is sufficient.
-        channelInFavorites = true;
+        // Do NOT set channelInFavorites = true — if verification fails, the test fails.
       }
       expect(channelInFavorites).toBe(true);
       await ss(page, '10-my-favorites-populated');

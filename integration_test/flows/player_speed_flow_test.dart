@@ -305,10 +305,11 @@ void main() {
       await navigateToTab(tester, 'VODs');
 
       final matrixFinder = find.text('The Matrix');
-      if (matrixFinder.evaluate().isEmpty) {
-        tester.takeException();
-        return;
-      }
+      expect(
+        matrixFinder,
+        findsWidgets,
+        reason: 'Seeded VOD "The Matrix" must be visible on VODs tab.',
+      );
       await tester.tap(matrixFinder.first);
       for (int i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
