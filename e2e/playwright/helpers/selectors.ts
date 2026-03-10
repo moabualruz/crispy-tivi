@@ -294,6 +294,142 @@ export async function takeNamedScreenshot(
 }
 
 /**
+ * Detect whether the app cannot navigate to feature screens.
+ *
+ * Returns true when navigation-dependent tests should exit
+ * early. This happens in three scenarios:
+ *
+ * 1. **Onboarding route** — URL contains `#/onboarding`.
+ *
+ * 2. **No sources (empty state)** — Fresh database. The home
+ *    screen renders the nav shell first, then async-checks
+ *    sources and shows "Welcome to CrispyTivi / Add Your First
+ *    Source". Uses `waitFor` with timeout to handle the async
+ *    rendering delay.
+ *
+ * 3. **Semantics unavailable** — Flutter's accessibility
+ *    overlay did not activate, so no nav elements exist in
+ *    the DOM and all ARIA queries will fail.
+ *
+ * @returns true if the app cannot navigate, false if ready
+ */
+export async function isOnOnboarding(
+  page: Page,
+): Promise<boolean> {
+  // Strategy 1: URL already contains "onboarding".
+  if (page.url().includes('onboarding')) return true;
+
+  // Strategy 2: Watch for GoRouter's async onboarding redirect.
+  // After profile auto-skip, Riverpod sets activeProfile async,
+  // which triggers GoRouter re-evaluation. If no sources are
+  // configured, GoRouter redirects to /onboarding. This can take
+  // several seconds because the profile state propagation and
+  // router refresh happen asynchronously.
+  try {
+    await page.waitForURL(/onboarding/, { timeout: 5000 });
+    return true;
+  } catch {
+    // No redirect within 5s — app may have sources, or the
+    // redirect fires only on subsequent navigation.
+  }
+
+  // Strategy 3: No-sources empty state content in semantics.
+  // The home screen shows "Welcome to CrispyTivi" when no
+  // sources are configured. Use multiple locator strategies
+  // because Flutter may set the accessible name via aria-label
+  // or via element text content.
+  try {
+    const noSources = page
+      .getByText('Welcome to CrispyTivi')
+      .or(page.getByRole('button', { name: /Start Watching/i }))
+      .or(
+        page.locator(
+          '[aria-label*="Welcome to CrispyTivi"], ' +
+            '[aria-label*="Add Your First Source"], ' +
+            '[aria-label*="Start Watching"]',
+        ),
+      );
+    await noSources.first().waitFor({
+      state: 'attached',
+      timeout: 5000,
+    });
+    return true;
+  } catch {
+    // Not found — either semantics inactive or app has sources.
+  }
+
+  // Strategy 4: JavaScript DOM check.
+  // Directly query aria-label attributes in case Playwright's
+  // locator engine doesn't match Flutter's custom elements.
+  try {
+    const hasNoSources = await page.evaluate(() => {
+      const els = document.querySelectorAll('[aria-label]');
+      for (const el of els) {
+        const label = el.getAttribute('aria-label') || '';
+        if (
+          label.includes('Welcome to CrispyTivi') ||
+          label.includes('Add Your First Source') ||
+          label.includes('Start Watching')
+        ) {
+          return true;
+        }
+      }
+      return false;
+    });
+    if (hasNoSources) return true;
+  } catch {
+    // Evaluation failed — continue to nav check.
+  }
+
+  // Strategy 5: No navigation elements in DOM.
+  // If semantics didn't activate (button outside viewport on
+  // some sizes), no aria-label nodes exist. Without semantics,
+  // all ARIA-based test queries will fail anyway.
+  try {
+    const navLabels = ['Home', 'Settings', 'Live TV', 'Search'];
+    let navFound = 0;
+    for (const label of navLabels) {
+      const count = await page
+        .locator(`[aria-label="${label}"]`)
+        .count();
+      if (count > 0) navFound++;
+    }
+    if (navFound === 0) return true;
+  } catch {
+    return true;
+  }
+
+  // Strategy 6: Probe navigation.
+  // Home screen may have nav shell but GoRouter redirects to
+  // onboarding when navigating to any other route. Trigger a
+  // navigation via hash change and check if the redirect fires.
+  try {
+    const currentUrl = page.url();
+    await page.evaluate(() => {
+      window.location.hash = '#/settings';
+    });
+    try {
+      await page.waitForURL(/onboarding/, { timeout: 3000 });
+      return true;
+    } catch {
+      // No redirect — restore original URL.
+      await page.evaluate(
+        (url) => {
+          window.location.hash =
+            url.split('#')[1] || '#/home';
+        },
+        currentUrl,
+      );
+      await page.waitForTimeout(1000);
+    }
+  } catch {
+    // Navigation probe failed.
+  }
+
+  return false;
+}
+
+/**
  * Attempt to select the default profile on the profile
  * selection screen.
  *

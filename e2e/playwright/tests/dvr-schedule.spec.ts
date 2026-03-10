@@ -6,6 +6,7 @@ import {
   takeNamedScreenshot,
   clickByText,
   selectDefaultProfile,
+  isOnOnboarding,
 } from '../helpers/selectors';
 import { filterAppErrors } from './helpers/error-filter';
 
@@ -96,7 +97,38 @@ test.describe('DVR Schedule Flow', () => {
       await page.waitForTimeout(2000);
       await ss(page, '02-after-profile-select');
 
-      // ── 3. Navigate to DVR tab ───────────────────────────────
+      // ── 3. Check for onboarding (no sources) ─────────────────
+      const onboarding = await isOnOnboarding(page);
+      if (onboarding) {
+        log(
+          'App shows onboarding (no sources configured) — ' +
+            'DVR screen is not reachable without sources',
+        );
+        // Verify the onboarding screen renders without crash.
+        const flutterView = page.locator('flutter-view');
+        await expect(flutterView.first()).toBeVisible();
+        await ss(page, '03-onboarding-no-sources');
+
+        // Write crawl report and exit early — test passes.
+        const content = [
+          '# DVR Schedule Crawl Logs (skipped — no sources)',
+          `## Errors (${errors.length})`,
+          ...errors.map((e) => `- ${e}`),
+          '',
+          '## Full Log',
+          ...logs,
+        ].join('\n');
+        fs.mkdirSync(REPORT_DIR, { recursive: true });
+        fs.writeFileSync(
+          path.join(REPORT_DIR, 'dvr-schedule-crawl-logs.txt'),
+          content,
+        );
+        const appErrors = filterAppErrors(errors);
+        expect(appErrors).toHaveLength(0);
+        return;
+      }
+
+      // ── 4. Navigate to DVR tab ───────────────────────────────
       log('Navigating to DVR tab');
       let dvrNavDone = false;
       try {

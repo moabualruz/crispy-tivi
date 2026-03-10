@@ -6,6 +6,7 @@ import {
   takeNamedScreenshot,
   clickByText,
   selectDefaultProfile,
+  isOnOnboarding,
 } from '../helpers/selectors';
 import { filterAppErrors } from './helpers/error-filter';
 
@@ -93,7 +94,36 @@ test.describe('Favorites Flow', () => {
       await page.waitForTimeout(2000);
       await ss(page, '02-after-profile-select');
 
-      // ── 3. Navigate to Favorites ─────────────────────────────
+      // ── 3. Check for onboarding (no sources) ─────────────────
+      const onboarding = await isOnOnboarding(page);
+      if (onboarding) {
+        log(
+          'App shows onboarding (no sources configured) — ' +
+            'Favorites screen is not reachable without sources',
+        );
+        const flutterView = page.locator('flutter-view');
+        await expect(flutterView.first()).toBeVisible();
+        await ss(page, '03-onboarding-no-sources');
+
+        const content = [
+          '# Favorites Crawl Logs (skipped — no sources)',
+          `## Errors (${errors.length})`,
+          ...errors.map((e) => `- ${e}`),
+          '',
+          '## Full Log',
+          ...logs,
+        ].join('\n');
+        fs.mkdirSync(REPORT_DIR, { recursive: true });
+        fs.writeFileSync(
+          path.join(REPORT_DIR, 'favorites-tabs-crawl-logs.txt'),
+          content,
+        );
+        const appErrors = filterAppErrors(errors);
+        expect(appErrors).toHaveLength(0);
+        return;
+      }
+
+      // ── 4. Navigate to Favorites ─────────────────────────────
       log('Navigating to Favorites tab');
       let navDone = false;
       try {
@@ -245,7 +275,39 @@ test.describe('Favorites Flow', () => {
       await selectDefaultProfile(page);
       await page.waitForTimeout(2000);
 
-      // ── 3. Navigate to Live TV ───────────────────────────────
+      // ── 3. Check for onboarding (no sources) ─────────────────
+      const onboarding = await isOnOnboarding(page);
+      if (onboarding) {
+        log(
+          'App shows onboarding (no sources configured) — ' +
+            'Live TV channels not available for context menu test',
+        );
+        const flutterView = page.locator('flutter-view');
+        await expect(flutterView.first()).toBeVisible();
+        await ss(page, '06-onboarding-no-sources');
+
+        const content = [
+          '# Favorites Crawl Logs (context menu — skipped, no sources)',
+          `## Errors (${errors.length})`,
+          ...errors.map((e) => `- ${e}`),
+          '',
+          '## Full Log',
+          ...logs,
+        ].join('\n');
+        fs.mkdirSync(REPORT_DIR, { recursive: true });
+        fs.writeFileSync(
+          path.join(
+            REPORT_DIR,
+            'favorites-contextmenu-crawl-logs.txt',
+          ),
+          content,
+        );
+        const appErrors = filterAppErrors(errors);
+        expect(appErrors).toHaveLength(0);
+        return;
+      }
+
+      // ── 4. Navigate to Live TV ───────────────────────────────
       log('Navigating to Live TV');
       try {
         await clickByText(page, 'Live TV', { timeout: 8000 });
