@@ -83,3 +83,9 @@ CLAUDE.md
 GEMINI.md
 .cursorrules
 .agent/
+
+# BMAD Method (per-project install, not committed)
+_bmad/
+_bmad-output/
+.gemini/
+.claude/
