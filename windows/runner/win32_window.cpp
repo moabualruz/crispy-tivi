@@ -150,7 +150,11 @@ bool Win32Window::Create(const std::wstring& title,
 }
 
 bool Win32Window::Show() {
-  return ShowWindow(window_handle_, SW_SHOWNORMAL);
+  // SW_SHOW preserves the window's current state (including
+  // maximized). SW_SHOWNORMAL would forcibly restore to normal
+  // size, racing with window_manager's maximize() call and
+  // causing a squished first frame on maximized startup.
+  return ShowWindow(window_handle_, SW_SHOW);
 }
 
 // static

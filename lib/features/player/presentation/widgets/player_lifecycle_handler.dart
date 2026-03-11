@@ -29,6 +29,8 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
   bool isInPip = false;
   VoidCallback? cancelFullscreenListener;
   bool _wasMaximizedBeforeFullscreen = false;
+  Offset? _windowPosBeforeFullscreen;
+  Size? _windowSizeBeforeFullscreen;
 
   /// Call from [initState] on the state that also mixes in
   /// [WindowListener].  Registers the window listener when on a
@@ -136,8 +138,12 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
     } else if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       final isFs = await windowManager.isFullScreen();
       if (!isFs) {
-        // Remember maximized state before entering fullscreen.
+        // Remember window state before entering fullscreen.
         _wasMaximizedBeforeFullscreen = await windowManager.isMaximized();
+        if (!_wasMaximizedBeforeFullscreen) {
+          _windowPosBeforeFullscreen = await windowManager.getPosition();
+          _windowSizeBeforeFullscreen = await windowManager.getSize();
+        }
         // Un-maximize first — Windows cannot transition
         // directly from maximized to true fullscreen.
         if (_wasMaximizedBeforeFullscreen) {
@@ -163,17 +169,48 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
     restorePlayerFocus();
   }
 
-  /// Restore maximized state after leaving fullscreen.
+  /// Restore window state after leaving fullscreen.
   /// Called from [onWindowLeaveFullScreen] to cover both
   /// the toggle button and OS-level exit (e.g. Esc key).
-  Future<void> restoreMaximizedState() async {
+  Future<void> restoreWindowState() async {
     if (_wasMaximizedBeforeFullscreen) {
       _wasMaximizedBeforeFullscreen = false;
+      _windowPosBeforeFullscreen = null;
+      _windowSizeBeforeFullscreen = null;
       await windowManager.maximize();
+    } else if (_windowSizeBeforeFullscreen != null) {
+      final size = _windowSizeBeforeFullscreen!;
+      final pos = _windowPosBeforeFullscreen;
+      _windowSizeBeforeFullscreen = null;
+      _windowPosBeforeFullscreen = null;
+      await windowManager.setSize(size);
+      if (pos != null) {
+        await windowManager.setPosition(pos);
+      }
     }
   }
 
   void onBack() {
+    // If in OS fullscreen, exit it before closing the player
+    // so the window restores smoothly (title bar reappears).
+    if (!kIsWeb &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      windowManager.isFullScreen().then((isFs) {
+        if (isFs) {
+          windowManager.setFullScreen(false).then((_) {
+            restoreWindowState();
+            if (mounted) _doExitToPreview();
+          });
+          return;
+        }
+        if (mounted) _doExitToPreview();
+      });
+      return;
+    }
+    _doExitToPreview();
+  }
+
+  void _doExitToPreview() {
     final screenSize = MediaQuery.sizeOf(context);
     ref.read(playerModeProvider.notifier).exitToPreview(screenSize: screenSize);
     ref.read(playerServiceProvider).forceStateEmit();

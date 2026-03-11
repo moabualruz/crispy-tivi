@@ -84,6 +84,16 @@ class _PlayerFullscreenOverlayState
   /// OSD content delays rendering until this is true.
   bool _isVideoExpanded = false;
 
+  // ── Mouse double-click detection ──
+  // Flutter's gesture arena uses a 300ms double-tap timeout,
+  // shorter than typical desktop double-click speed (400–500ms).
+  // Manual detection in Listener.onPointerDown bypasses the
+  // arena for reliable mouse double-click → fullscreen toggle.
+  DateTime? _lastMouseDownTime;
+  Offset? _lastMouseDownPos;
+  Timer? _singleClickTimer;
+  DateTime? _lastDoubleClickTime;
+
   @override
   void initState() {
     super.initState();
@@ -185,7 +195,7 @@ class _PlayerFullscreenOverlayState
   void onWindowLeaveFullScreen() {
     if (mounted) {
       ref.read(playerServiceProvider).setFullscreen(false);
-      restoreMaximizedState();
+      restoreWindowState();
     }
   }
 
@@ -196,6 +206,15 @@ class _PlayerFullscreenOverlayState
     WidgetsBinding.instance.removeObserver(this);
     if (isWindowListenerRegistered) {
       windowManager.removeListener(this);
+      // Exit OS fullscreen when overlay unmounts — the player is
+      // no longer visible so the window should restore its frame.
+      windowManager.isFullScreen().then((isFs) {
+        if (isFs) {
+          windowManager.setFullScreen(false).then((_) {
+            restoreWindowState();
+          });
+        }
+      });
     }
     if (isInPip) ref.read(pipProvider.notifier).exitPip();
 
@@ -219,6 +238,7 @@ class _PlayerFullscreenOverlayState
     }
 
     _zapOverlayTimer?.cancel();
+    _singleClickTimer?.cancel();
     FocusManager.instance.removeLateKeyEventHandler(_lateKeyHandler);
     _focusNode.dispose();
     disposeGestures();
@@ -397,6 +417,47 @@ class _PlayerFullscreenOverlayState
             ),
       );
       if (ep != null) playNextEpisode(ep);
+    }
+  }
+
+  // ────────────────────────────────────────────────
+  //  Mouse double-click detection
+  // ────────────────────────────────────────────────
+
+  /// Detects mouse double-clicks with a 400ms window.
+  ///
+  /// Flutter's [kDoubleTapTimeout] is 300ms — shorter than the
+  /// typical desktop double-click speed (400–500ms). Detecting
+  /// directly in [Listener.onPointerDown] bypasses the gesture
+  /// arena for reliable mouse double-click → fullscreen toggle.
+  void _handlePointerDown(PointerDownEvent e) {
+    if (e.kind != PointerDeviceKind.mouse) return;
+
+    final now = DateTime.now();
+    final pos = e.position;
+
+    if (_lastMouseDownTime != null &&
+        _lastMouseDownPos != null &&
+        now.difference(_lastMouseDownTime!) <
+            const Duration(milliseconds: 400) &&
+        (pos - _lastMouseDownPos!).distance < 20.0) {
+      // Double-click detected.
+      _lastMouseDownTime = null;
+      _lastMouseDownPos = null;
+      _singleClickTimer?.cancel();
+      _singleClickTimer = null;
+      _lastDoubleClickTime = now;
+      if (!isInPip && PlatformCapabilities.fullscreen) {
+        // Defer to next frame — calling windowManager.setFullScreen()
+        // during a pointer event handler conflicts with the native
+        // Windows message loop, leaving the title bar visible.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) toggleOsFullscreen();
+        });
+      }
+    } else {
+      _lastMouseDownTime = now;
+      _lastMouseDownPos = pos;
     }
   }
 
@@ -636,7 +697,10 @@ class _PlayerFullscreenOverlayState
         PlayerMouseRegion(
           child: Listener(
             onPointerSignal: (e) => onPointerSignal(e, isInPip),
-            onPointerDown: (e) => lastPointerKind = e.kind,
+            onPointerDown: (e) {
+              lastPointerKind = e.kind;
+              _handlePointerDown(e);
+            },
             child: Focus(
               focusNode: _focusNode,
               onKeyEvent: (_, event) {
@@ -645,19 +709,38 @@ class _PlayerFullscreenOverlayState
               },
               child: GestureDetector(
                 key: TestKeys.playerGestureDetector,
-                onTap: _onTap,
+                onTap: () {
+                  if (lastPointerKind == PointerDeviceKind.mouse) {
+                    // Suppress taps following a mouse double-click.
+                    if (_lastDoubleClickTime != null &&
+                        DateTime.now().difference(_lastDoubleClickTime!) <
+                            const Duration(milliseconds: 800)) {
+                      return;
+                    }
+                    // Delay mouse tap to allow double-click detection
+                    // (400ms vs Flutter's 300ms double-tap timeout).
+                    _singleClickTimer?.cancel();
+                    _singleClickTimer = Timer(
+                      const Duration(milliseconds: 400),
+                      () {
+                        _singleClickTimer = null;
+                        _onTap();
+                      },
+                    );
+                  } else {
+                    _onTap();
+                  }
+                },
                 onDoubleTapDown:
                     isInPip
                         ? null
                         : (details) {
-                          if (lastPointerKind == PointerDeviceKind.mouse) {
-                            // Mouse double-click → fullscreen toggle.
-                            if (PlatformCapabilities.fullscreen) {
-                              toggleOsFullscreen();
-                            }
-                          } else if (!isLiveStream) {
-                            // Touch double-tap → seek (VOD only).
-                            // FE-PS-19: resets zoom first if zoomed.
+                          // Mouse double-click handled via
+                          // Listener.onPointerDown for reliable
+                          // timing (400ms vs Flutter's 300ms).
+                          // Touch double-tap → seek (VOD only).
+                          if (lastPointerKind != PointerDeviceKind.mouse &&
+                              !isLiveStream) {
                             onDoubleTapDown(details);
                           }
                         },

@@ -174,16 +174,9 @@ Future<void> main() async {
   // provider reads (avoids calling setBackend inside a Provider).
   TimezoneUtils.setBackend(backend);
 
-  // Start the Flutter render loop immediately so the first
-  // frame paints without waiting for window_manager.
-  runApp(
-    ProviderScope(
-      overrides: [crispyBackendProvider.overrideWithValue(backend)],
-      child: const CrispyTiviApp(),
-    ),
-  );
-
-  // Desktop window setup AFTER runApp — non-blocking.
+  // Desktop window setup BEFORE runApp so the window is at its
+  // final size when Flutter renders the first frame. Without this,
+  // starting maximized shows squished UI until a manual resize.
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     await windowManager.ensureInitialized();
 
@@ -240,6 +233,13 @@ Future<void> main() async {
       await windowManager.focus();
     });
   }
+
+  runApp(
+    ProviderScope(
+      overrides: [crispyBackendProvider.overrideWithValue(backend)],
+      child: const CrispyTiviApp(),
+    ),
+  );
 }
 
 /// Root application widget.
