@@ -106,6 +106,7 @@ class _RecentChannelTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(right: CrispySpacing.sm),
       child: FocusWrapper(
+        focusStyle: FocusIndicatorStyle.card,
         onSelect: onTap,
         autofocus: autofocus,
         borderRadius: CrispyRadius.tv,

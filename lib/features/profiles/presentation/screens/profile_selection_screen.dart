@@ -218,54 +218,55 @@ class _ReorderableProfileGrid extends StatelessWidget {
             // ReorderableListView: avatar (80) + gap (8) + name (~20) +
             // role row (~16) + AnimatedSize expansion (~28) + padding.
             height: 170,
-            child: ReorderableListView.builder(
-              shrinkWrap: true,
-              scrollDirection: Axis.horizontal,
-              buildDefaultDragHandles: false,
-              physics: const ClampingScrollPhysics(),
-              onReorder: onReorder,
-              itemCount: profiles.length,
-              proxyDecorator:
-                  (child, index, animation) => Material(
-                    color: Colors.transparent,
-                    child: ScaleTransition(
-                      scale: animation.drive(
-                        Tween(
-                          begin: 1.0,
-                          end: 1.1,
-                        ).chain(CurveTween(curve: CrispyAnimation.enterCurve)),
-                      ),
-                      child: child,
-                    ),
-                  ),
-              itemBuilder: (context, index) {
-                final profile = profiles[index];
-                return Padding(
-                  key: ValueKey(profile.id),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: CrispySpacing.sm,
-                  ),
-                  // FE-PS-07: wrap in ReorderableDragStartListener so the
-                  // tile area acts as the drag handle.
-                  child: ReorderableDragStartListener(
-                    index: index,
-                    child: FocusTraversalOrder(
-                      order: NumericFocusOrder(index.toDouble()),
-                      child: _ProfileTile(
-                        profile: profile,
-                        icon:
-                            kProfileAvatarIcons[profile.avatarIndex %
-                                kProfileAvatarIcons.length],
-                        color:
-                            kProfileAvatarColors[profile.avatarIndex %
-                                kProfileAvatarColors.length],
-                        autofocus: index == 0,
-                        onTap: () => onProfileTap(profile),
+            child: ClipRect(
+              child: ReorderableListView.builder(
+                shrinkWrap: true,
+                scrollDirection: Axis.horizontal,
+                buildDefaultDragHandles: false,
+                physics: const ClampingScrollPhysics(),
+                onReorder: onReorder,
+                itemCount: profiles.length,
+                proxyDecorator:
+                    (child, index, animation) => Material(
+                      color: Colors.transparent,
+                      child: ScaleTransition(
+                        scale: animation.drive(
+                          Tween(begin: 1.0, end: 1.1).chain(
+                            CurveTween(curve: CrispyAnimation.enterCurve),
+                          ),
+                        ),
+                        child: child,
                       ),
                     ),
-                  ),
-                );
-              },
+                itemBuilder: (context, index) {
+                  final profile = profiles[index];
+                  return Padding(
+                    key: ValueKey(profile.id),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: CrispySpacing.sm,
+                    ),
+                    // FE-PS-07: wrap in ReorderableDragStartListener so the
+                    // tile area acts as the drag handle.
+                    child: ReorderableDragStartListener(
+                      index: index,
+                      child: FocusTraversalOrder(
+                        order: NumericFocusOrder(index.toDouble()),
+                        child: _ProfileTile(
+                          profile: profile,
+                          icon:
+                              kProfileAvatarIcons[profile.avatarIndex %
+                                  kProfileAvatarIcons.length],
+                          color:
+                              kProfileAvatarColors[profile.avatarIndex %
+                                  kProfileAvatarColors.length],
+                          autofocus: index == 0,
+                          onTap: () => onProfileTap(profile),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           const SizedBox(height: CrispySpacing.lg),

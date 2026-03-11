@@ -191,50 +191,52 @@ class _VodRowState extends ConsumerState<VodRow> {
             height: sectionH,
             child: Stack(
               children: [
-                ListView.builder(
-                  controller: _sc,
-                  scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: CrispySpacing.md,
-                    vertical: vertPad,
-                  ),
-                  itemCount: items.length,
-                  itemBuilder: (ctx, i) {
-                    final item = items[i];
-                    final rank = widget.showRank ? i + 1 : null;
-                    final tag = '${item.id}_home_${widget.title ?? 'row'}_$i';
-                    final numW =
-                        widget.showRank
-                            ? (rankFont * ((rank ?? 0) >= 10 ? 1.0 : 0.7))
-                            : 0.0;
-                    return Padding(
-                      key: ValueKey(item.id),
-                      padding: EdgeInsets.only(right: widget.itemSpacing),
-                      child: SizedBox(
-                        width: numW + cardW,
-                        height: cardH,
-                        child: VodPosterCard(
-                          item: item,
-                          heroTag: tag,
-                          onTap:
-                              widget.customOnTap != null
-                                  ? () => widget.customOnTap!(ctx, item, tag)
-                                  : () => _tap(ctx, item, tag),
-                          onLongPress:
-                              () => showVodRowContextMenu(
-                                context: ctx,
-                                ref: ref,
-                                item: item,
-                              ),
-                          showRank: widget.showRank,
-                          rank: rank,
-                          rankFontSize: rankFont,
-                          overlayBuilder: widget.overlayBuilder,
-                          badge: widget.badgeBuilder?.call(item),
+                ClipRect(
+                  child: ListView.builder(
+                    controller: _sc,
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: CrispySpacing.md,
+                      vertical: vertPad,
+                    ),
+                    itemCount: items.length,
+                    itemBuilder: (ctx, i) {
+                      final item = items[i];
+                      final rank = widget.showRank ? i + 1 : null;
+                      final tag = '${item.id}_home_${widget.title ?? 'row'}_$i';
+                      final numW =
+                          widget.showRank
+                              ? (rankFont * ((rank ?? 0) >= 10 ? 1.0 : 0.7))
+                              : 0.0;
+                      return Padding(
+                        key: ValueKey(item.id),
+                        padding: EdgeInsets.only(right: widget.itemSpacing),
+                        child: SizedBox(
+                          width: numW + cardW,
+                          height: cardH,
+                          child: VodPosterCard(
+                            item: item,
+                            heroTag: tag,
+                            onTap:
+                                widget.customOnTap != null
+                                    ? () => widget.customOnTap!(ctx, item, tag)
+                                    : () => _tap(ctx, item, tag),
+                            onLongPress:
+                                () => showVodRowContextMenu(
+                                  context: ctx,
+                                  ref: ref,
+                                  item: item,
+                                ),
+                            showRank: widget.showRank,
+                            rank: rank,
+                            rankFontSize: rankFont,
+                            overlayBuilder: widget.overlayBuilder,
+                            badge: widget.badgeBuilder?.call(item),
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
                 if (showArrows)
                   Positioned(

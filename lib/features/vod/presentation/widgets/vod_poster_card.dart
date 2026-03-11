@@ -92,6 +92,7 @@ class VodPosterCard extends ConsumerWidget {
       child: HoverBuilder(
         builder:
             (context, isHovered) => FocusWrapper(
+              focusStyle: FocusIndicatorStyle.card,
               autofocus: autofocus,
               scaleFactor: CrispyAnimation.hoverScale,
               onSelect:

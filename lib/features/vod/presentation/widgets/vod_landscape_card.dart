@@ -60,6 +60,7 @@ class VodLandscapeCard extends ConsumerWidget {
       child: HoverBuilder(
         builder:
             (context, isHovered) => FocusWrapper(
+              focusStyle: FocusIndicatorStyle.card,
               scaleFactor: CrispyAnimation.hoverScale,
               onSelect: onTap ?? () {},
               onLongPress: onLongPress,

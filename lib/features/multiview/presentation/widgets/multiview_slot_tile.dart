@@ -56,6 +56,7 @@ class _MultiviewSlotTileState extends State<MultiviewSlotTile> {
       // Double-tap maximizes the slot.
       onDoubleTap: widget.onMaximize,
       child: FocusWrapper(
+        focusStyle: FocusIndicatorStyle.card,
         autofocus: widget.index == 0,
         borderRadius: CrispyRadius.tv,
         scaleFactor: 1.0,

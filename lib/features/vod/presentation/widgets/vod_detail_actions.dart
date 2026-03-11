@@ -30,7 +30,6 @@ class CircularAction extends StatelessWidget {
       child: FocusWrapper(
         onSelect: onTap,
         borderRadius: 22.0,
-        scaleFactor: 1.08,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

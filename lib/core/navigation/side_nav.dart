@@ -176,7 +176,6 @@ class SideNav extends ConsumerWidget {
       key: TestKeys.navItem(dest.label),
       onSelect: () => onDestinationSelected(index),
       borderRadius: CrispyRadius.sm,
-      scaleFactor: 1.05,
       padding: EdgeInsets.zero,
       semanticLabel: displayLabel,
       child: Tooltip(

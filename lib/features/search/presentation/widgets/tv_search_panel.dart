@@ -148,9 +148,11 @@ class _TvSearchPanelState extends ConsumerState<TvSearchPanel> {
                   const SizedBox(height: CrispySpacing.md),
                   // QWERTY grid.
                   Expanded(
-                    child: _OnScreenKeyboard(
-                      onChar: _appendChar,
-                      onSpecial: _handleSpecial,
+                    child: ClipRect(
+                      child: _OnScreenKeyboard(
+                        onChar: _appendChar,
+                        onSpecial: _handleSpecial,
+                      ),
                     ),
                   ),
                 ],
@@ -317,7 +319,6 @@ class _LetterKey extends StatelessWidget {
     return FocusWrapper(
       onSelect: onTap,
       borderRadius: CrispyRadius.xs,
-      scaleFactor: 1.2,
       child: GestureDetector(
         onTap: onTap,
         child: Container(
@@ -410,7 +411,6 @@ class _SpecialKeyButton extends StatelessWidget {
       child: FocusWrapper(
         onSelect: onTap,
         borderRadius: CrispyRadius.xs,
-        scaleFactor: 1.1,
         child: GestureDetector(
           onTap: onTap,
           child: Container(

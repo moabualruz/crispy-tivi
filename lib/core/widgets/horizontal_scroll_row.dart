@@ -153,20 +153,22 @@ class _HorizontalScrollRowState<T> extends State<HorizontalScrollRow<T>> {
             height: widget.sectionHeight,
             child: Stack(
               children: [
-                ListView.builder(
-                  controller: _scrollController,
-                  scrollDirection: Axis.horizontal,
-                  padding: effectivePadding,
-                  itemCount: widget.items.length,
-                  itemBuilder: (ctx, i) {
-                    return Padding(
-                      padding: EdgeInsets.only(right: widget.itemSpacing),
-                      child: SizedBox(
-                        width: widget.itemWidth,
-                        child: widget.itemBuilder(ctx, widget.items[i], i),
-                      ),
-                    );
-                  },
+                ClipRect(
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    scrollDirection: Axis.horizontal,
+                    padding: effectivePadding,
+                    itemCount: widget.items.length,
+                    itemBuilder: (ctx, i) {
+                      return Padding(
+                        padding: EdgeInsets.only(right: widget.itemSpacing),
+                        child: SizedBox(
+                          width: widget.itemWidth,
+                          child: widget.itemBuilder(ctx, widget.items[i], i),
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 if (widget.showNavArrows && _isHovered)
                   Positioned(

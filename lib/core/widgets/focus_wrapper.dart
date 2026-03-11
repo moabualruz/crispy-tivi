@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,24 @@ import '../theme/crispy_animation.dart';
 import '../theme/crispy_elevation.dart';
 import '../theme/crispy_radius.dart';
 import 'input_mode_scope.dart';
+
+/// Focus indicator visual style.
+///
+/// Determines how focused/hovered state is displayed on a
+/// [FocusWrapper].
+enum FocusIndicatorStyle {
+  /// Gradient bottom-line: 50% of element width, aligned to the
+  /// leading edge (left in LTR, right in RTL). Solid from the
+  /// alignment edge, fading out over the last 15% of line length.
+  /// No scale. Used for nav items, buttons, text rows, pickers,
+  /// and all non-card widgets.
+  underline,
+
+  /// Scale + shadow: the card scales up on focus with a box shadow.
+  /// No border ring. Used for image cards (posters, channel tiles,
+  /// landscape cards).
+  card,
+}
 
 /// Default width (dp) of the focus-indicator border ring.
 ///
@@ -23,7 +42,7 @@ const double kFocusMaxScaleExpansion = 12.0;
 /// `.ai/docs/project-specs/design_system.md §2.2`.
 ///
 /// Provides:
-/// - Visual focus indicator (primary border + subtle scale)
+/// - Visual focus indicator (underline or card ring + scale)
 /// - Directional navigation (D-pad arrows)
 /// - Optional sound on select
 ///
@@ -41,6 +60,7 @@ class FocusWrapper extends StatefulWidget {
     this.onLongPress,
     this.focusNode,
     this.autofocus = false,
+    this.focusStyle = FocusIndicatorStyle.underline,
     this.borderRadius = CrispyRadius.md,
     this.scaleFactor = CrispyAnimation.hoverScale,
     this.maxScaleExpansion = kFocusMaxScaleExpansion,
@@ -73,18 +93,27 @@ class FocusWrapper extends StatefulWidget {
   /// Whether this widget requests focus on first build.
   final bool autofocus;
 
-  /// Focus indicator border radius.
+  /// Visual style of the focus indicator.
+  ///
+  /// [FocusIndicatorStyle.underline] (default) renders a gradient
+  /// bottom-line with no scaling.
+  /// [FocusIndicatorStyle.card] renders scale + glow ring for image cards.
+  final FocusIndicatorStyle focusStyle;
+
+  /// Focus indicator border radius (used by [FocusIndicatorStyle.card]).
   final double borderRadius;
 
-  /// Scale multiplier when focused. 1.0 = no scale.
+  /// Scale multiplier when focused (used by [FocusIndicatorStyle.card]).
+  /// Ignored for [FocusIndicatorStyle.underline].
   final double scaleFactor;
 
   /// Maximum absolute pixel expansion on either axis. If [scaleFactor]
   /// would cause the widget's width or height to grow by more than this
   /// value, the scale is dynamically capped. Default is 12.0 pixels.
+  /// Only applies to [FocusIndicatorStyle.card].
   final double? maxScaleExpansion;
 
-  /// Width of the focus border ring.
+  /// Width of the focus border ring (card style) or underline thickness.
   final double focusBorderWidth;
 
   /// Whether to show the overlay highlight on focus.
@@ -154,9 +183,9 @@ class _FocusWrapperState extends State<FocusWrapper> {
   Widget build(BuildContext context) {
     final showFocus = InputModeScope.of(context);
 
-    // In keyboard/gamepad mode: show focus border.
-    // In mouse mode: show hover border only.
-    // In touch mode: no border at all.
+    // In keyboard/gamepad mode: show focus indicator.
+    // In mouse mode: show hover indicator only.
+    // In touch mode: no indicator at all.
     final showFocusBorder = _isFocused && showFocus;
     final showHoverBorder = _isHovered && !showFocus && !_isFocused;
     final isHighlighted = showFocusBorder || showHoverBorder;
@@ -201,34 +230,83 @@ class _FocusWrapperState extends State<FocusWrapper> {
             widget.onSelect?.call();
           },
           onLongPress: widget.onLongPress,
-          // LayoutBuilder is only required when maxScaleExpansion is set
-          // (to read constraints and cap the scale). When null, we skip
-          // the extra layout pass for better performance.
-          child:
-              widget.maxScaleExpansion != null
-                  ? LayoutBuilder(
-                    builder: (context, constraints) {
-                      final activeScale = _computeScale(constraints);
-                      return _buildAnimated(
-                        context,
-                        isHighlighted,
-                        showFocusBorder,
-                        showHoverBorder,
-                        activeScale,
-                      );
-                    },
-                  )
-                  : _buildAnimated(
-                    context,
-                    isHighlighted,
-                    showFocusBorder,
-                    showHoverBorder,
-                    widget.scaleFactor,
-                  ),
+          child: _buildContent(
+            context,
+            isHighlighted,
+            showFocusBorder,
+            showHoverBorder,
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildContent(
+    BuildContext context,
+    bool isHighlighted,
+    bool showFocusBorder,
+    bool showHoverBorder,
+  ) {
+    if (widget.focusStyle == FocusIndicatorStyle.underline) {
+      return _buildUnderline(context, showFocusBorder, showHoverBorder);
+    }
+
+    // Card style — use LayoutBuilder when maxScaleExpansion is set.
+    if (widget.maxScaleExpansion != null) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final activeScale = _computeScale(constraints);
+          return _buildCardAnimated(
+            context,
+            isHighlighted,
+            showFocusBorder,
+            showHoverBorder,
+            activeScale,
+          );
+        },
+      );
+    }
+    return _buildCardAnimated(
+      context,
+      isHighlighted,
+      showFocusBorder,
+      showHoverBorder,
+      widget.scaleFactor,
+    );
+  }
+
+  // ── Underline style ──────────────────────────────────────
+
+  Widget _buildUnderline(
+    BuildContext context,
+    bool showFocusBorder,
+    bool showHoverBorder,
+  ) {
+    final color = Theme.of(context).colorScheme.primary;
+    final lineColor =
+        showFocusBorder
+            ? color
+            : showHoverBorder
+            ? color.withValues(alpha: 0.4)
+            : Colors.transparent;
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
+
+    return AnimatedContainer(
+      duration: CrispyAnimation.fast,
+      curve: CrispyAnimation.focusCurve,
+      padding: widget.padding,
+      child: CustomPaint(
+        foregroundPainter: _FocusUnderlinePainter(
+          color: lineColor,
+          strokeWidth: widget.focusBorderWidth,
+          isRtl: isRtl,
+        ),
+        child: widget.child,
+      ),
+    );
+  }
+
+  // ── Card style ───────────────────────────────────────────
 
   /// Computes the active scale factor, capping it so neither axis
   /// grows by more than [FocusWrapper.maxScaleExpansion] pixels.
@@ -252,8 +330,8 @@ class _FocusWrapperState extends State<FocusWrapper> {
     return activeScale;
   }
 
-  /// Builds the animated scale + container decoration.
-  Widget _buildAnimated(
+  /// Builds the animated scale + container decoration (card style).
+  Widget _buildCardAnimated(
     BuildContext context,
     bool isHighlighted,
     bool showFocusBorder,
@@ -270,15 +348,6 @@ class _FocusWrapperState extends State<FocusWrapper> {
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(widget.borderRadius),
-          border: Border.all(
-            color:
-                showFocusBorder
-                    ? Theme.of(context).focusColor
-                    : showHoverBorder
-                    ? Theme.of(context).focusColor.withValues(alpha: 0.4)
-                    : Colors.transparent,
-            width: widget.focusBorderWidth,
-          ),
           boxShadow: showFocusBorder ? CrispyElevation.level2 : null,
         ),
         padding: widget.padding,
@@ -286,6 +355,75 @@ class _FocusWrapperState extends State<FocusWrapper> {
       ),
     );
   }
+}
+
+// ── Underline painter ────────────────────────────────────────
+
+/// Paints a directional gradient bottom-line focus indicator.
+///
+/// The line spans 50% of the widget width:
+/// - **LTR**: left-aligned, solid from left edge, fading out at right end
+/// - **RTL**: right-aligned, solid from right edge, fading out at left end
+///
+/// The last 15% of the line length fades from solid to transparent.
+///
+/// When [color] is transparent, nothing is painted.
+class _FocusUnderlinePainter extends CustomPainter {
+  _FocusUnderlinePainter({
+    required this.color,
+    required this.strokeWidth,
+    required this.isRtl,
+  });
+
+  final Color color;
+  final double strokeWidth;
+  final bool isRtl;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (color == Colors.transparent || color.a == 0) return;
+
+    final w = size.width;
+    final lineLen = w * 0.5;
+    final y = size.height - (strokeWidth / 2);
+
+    // LTR: line starts at left edge (0) and extends 50% right.
+    // RTL: line starts at right edge (w) and extends 50% left.
+    final double solidStart;
+    final double fadeEnd;
+    if (isRtl) {
+      fadeEnd = w - lineLen; // left end (fade)
+      solidStart = w; // right end (solid)
+    } else {
+      solidStart = 0; // left end (solid)
+      fadeEnd = lineLen; // right end (fade)
+    }
+
+    // Gradient: solid for 85% of line, then fade to transparent
+    // over the last 15%.
+    final paint =
+        Paint()
+          ..strokeWidth = strokeWidth
+          ..style = PaintingStyle.stroke
+          ..shader = ui.Gradient.linear(
+            Offset(solidStart, y),
+            Offset(fadeEnd, y),
+            [color, color, color.withValues(alpha: 0)],
+            const [0.0, 0.85, 1.0],
+          );
+
+    canvas.drawLine(
+      Offset(math.min(solidStart, fadeEnd), y),
+      Offset(math.max(solidStart, fadeEnd), y),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_FocusUnderlinePainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.strokeWidth != strokeWidth ||
+      oldDelegate.isRtl != isRtl;
 }
 
 /// Intent for triggering context menus via keyboard/gamepad.

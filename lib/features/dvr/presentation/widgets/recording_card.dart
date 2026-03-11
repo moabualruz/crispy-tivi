@@ -60,6 +60,7 @@ class RecordingCard extends ConsumerWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: CrispySpacing.sm),
       child: FocusWrapper(
+        focusStyle: FocusIndicatorStyle.card,
         borderRadius: CrispyRadius.md,
         onSelect: () => _onCardTap(context, ref),
         child: Column(

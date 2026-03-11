@@ -210,6 +210,7 @@ class RemoteFileCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return FocusWrapper(
+      focusStyle: FocusIndicatorStyle.card,
       onSelect: onTap,
       borderRadius: CrispyRadius.none,
       scaleFactor: 1.02,
@@ -359,6 +360,7 @@ class RecentFilesRow extends StatelessWidget {
             itemBuilder: (_, index) {
               final file = recentFiles[index];
               return FocusWrapper(
+                focusStyle: FocusIndicatorStyle.card,
                 onSelect: () => onTap(file),
                 borderRadius: CrispyRadius.tv,
                 semanticLabel: 'Recent: ${file.name}',

@@ -52,6 +52,7 @@ class _ChannelGridItemState extends State<ChannelGridItem> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: FocusWrapper(
+        focusStyle: FocusIndicatorStyle.card,
         onSelect: widget.onTap,
         autofocus: widget.autofocus,
         borderRadius: CrispyRadius.tv,

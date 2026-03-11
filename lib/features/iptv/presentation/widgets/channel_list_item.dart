@@ -323,6 +323,7 @@ class _ChannelListItemState extends State<ChannelListItem> {
           },
           onExit: (_) => setState(() => _isHovered = false),
           child: FocusWrapper(
+            focusStyle: FocusIndicatorStyle.card,
             // When onDoubleTap is active, tap routing is handled by the
             // SerialTapGestureRecognizer inside; disable FocusWrapper tap.
             onSelect: widget.onDoubleTap != null ? null : widget.onTap,

@@ -124,19 +124,21 @@ class GroupSidebar extends ConsumerWidget {
 
             // Group list
             Expanded(
-              child: ListView.builder(
-                itemCount: groups.length,
-                padding: EdgeInsets.zero,
-                itemBuilder: (context, index) {
-                  final group = groups[index];
-                  return _GroupItem(
-                    label: group,
-                    icon: getGroupIcon(group, backend: backend),
-                    isSelected: selectedGroup == group,
-                    isCollapsed: isCollapsed,
-                    onTap: () => onGroupSelected(group),
-                  );
-                },
+              child: ClipRect(
+                child: ListView.builder(
+                  itemCount: groups.length,
+                  padding: EdgeInsets.zero,
+                  itemBuilder: (context, index) {
+                    final group = groups[index];
+                    return _GroupItem(
+                      label: group,
+                      icon: getGroupIcon(group, backend: backend),
+                      isSelected: selectedGroup == group,
+                      isCollapsed: isCollapsed,
+                      onTap: () => onGroupSelected(group),
+                    );
+                  },
+                ),
               ),
             ),
           ],

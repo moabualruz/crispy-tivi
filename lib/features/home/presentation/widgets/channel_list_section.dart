@@ -99,6 +99,7 @@ class ChannelListSection extends ConsumerWidget {
         final nowPlaying = epgData?[epgKey];
 
         return FocusWrapper(
+          focusStyle: FocusIndicatorStyle.card,
           onSelect: () {
             ref
                 .read(playbackSessionProvider.notifier)

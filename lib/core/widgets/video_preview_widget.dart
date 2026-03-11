@@ -76,6 +76,7 @@ class _VideoPreviewWidgetState extends ConsumerState<VideoPreviewWidget> {
             key: _key,
             aspectRatio: 16 / 9,
             child: FocusWrapper(
+              focusStyle: FocusIndicatorStyle.card,
               onSelect: isIdle ? null : widget.onTap,
               borderRadius: CrispyRadius.tv,
               child: Container(

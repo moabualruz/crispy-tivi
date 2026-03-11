@@ -201,6 +201,7 @@ class _SourceChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FocusWrapper(
+      focusStyle: FocusIndicatorStyle.card,
       onSelect: onTap,
       borderRadius: CrispyRadius.tv,
       scaleFactor: 1.05,

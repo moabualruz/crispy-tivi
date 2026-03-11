@@ -125,6 +125,7 @@ class _QuickAccessTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return FocusWrapper(
+      focusStyle: FocusIndicatorStyle.card,
       onSelect: onTap,
       autofocus: autofocus,
       borderRadius: CrispyRadius.tv,
