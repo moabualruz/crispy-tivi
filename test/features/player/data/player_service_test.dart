@@ -4,11 +4,32 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:crispy_tivi/features/player/data/os_media_session.dart';
 import 'package:crispy_tivi/features/player/data/player_service.dart';
 import 'package:crispy_tivi/features/player/domain/crispy_player.dart';
 
 // Mocks
 class MockCrispyPlayer extends Mock implements CrispyPlayer {}
+
+class _FakeOsMediaSession extends Fake implements OsMediaSession {
+  @override
+  Stream<MediaAction> get actions => const Stream.empty();
+  @override
+  Future<void> activate({
+    required String title,
+    String? artist,
+    String? artUrl,
+    Duration? duration,
+  }) async {}
+  @override
+  Future<void> updatePlaybackState(bool isPlaying, Duration position) async {}
+  @override
+  Future<void> deactivate() async {}
+  @override
+  Future<void> dispose() async {}
+}
+
+final _noOpMediaSession = _FakeOsMediaSession();
 
 /// Helper to stub all CrispyPlayer streams with empty defaults.
 void _stubEmptyStreams(MockCrispyPlayer mock) {
@@ -40,7 +61,10 @@ void main() {
     setUp(() {
       mockPlayer = MockCrispyPlayer();
       _stubEmptyStreams(mockPlayer);
-      playerService = PlayerService(player: mockPlayer);
+      playerService = PlayerService(
+        player: mockPlayer,
+        mediaSession: _noOpMediaSession,
+      );
     });
 
     tearDown(() {
@@ -75,6 +99,7 @@ void main() {
         final svc = PlayerService(
           player: mockPlayer,
           clock: () => baseTime.add(async.elapsed),
+          mediaSession: _noOpMediaSession,
         );
         addTearDown(() => svc.dispose());
         when(() => mockPlayer.stop()).thenAnswer((_) async {});
@@ -96,6 +121,7 @@ void main() {
         final svc = PlayerService(
           player: mockPlayer,
           clock: () => baseTime.add(async.elapsed),
+          mediaSession: _noOpMediaSession,
         );
         addTearDown(() => svc.dispose());
         when(() => mockPlayer.stop()).thenAnswer((_) async {});
@@ -116,6 +142,7 @@ void main() {
         final svc = PlayerService(
           player: mockPlayer,
           clock: () => baseTime.add(async.elapsed),
+          mediaSession: _noOpMediaSession,
         );
         addTearDown(() => svc.dispose());
         when(() => mockPlayer.stop()).thenAnswer((_) async {});
@@ -139,6 +166,7 @@ void main() {
         final svc = PlayerService(
           player: mockPlayer,
           clock: () => baseTime.add(async.elapsed),
+          mediaSession: _noOpMediaSession,
         );
         addTearDown(() => svc.dispose());
 
@@ -156,6 +184,7 @@ void main() {
         final svc = PlayerService(
           player: mockPlayer,
           clock: () => baseTime.add(async.elapsed),
+          mediaSession: _noOpMediaSession,
         );
         addTearDown(() => svc.dispose());
         when(() => mockPlayer.stop()).thenAnswer((_) async {});
@@ -184,7 +213,10 @@ void main() {
       _stubEmptyStreams(mockPlayer);
       when(() => mockPlayer.setVolume(any())).thenAnswer((_) async {});
 
-      playerService = PlayerService(player: mockPlayer);
+      playerService = PlayerService(
+        player: mockPlayer,
+        mediaSession: _noOpMediaSession,
+      );
     });
 
     tearDown(() {
@@ -233,7 +265,10 @@ void main() {
       _stubEmptyStreams(mockPlayer);
       when(() => mockPlayer.setRate(any())).thenAnswer((_) async {});
 
-      playerService = PlayerService(player: mockPlayer);
+      playerService = PlayerService(
+        player: mockPlayer,
+        mediaSession: _noOpMediaSession,
+      );
     });
 
     tearDown(() {
@@ -332,7 +367,7 @@ void main() {
 
     test('wasAutoPausedByWatchdog starts false', () {
       final mp = createMockPlayer();
-      final svc = PlayerService(player: mp);
+      final svc = PlayerService(player: mp, mediaSession: _noOpMediaSession);
       addTearDown(() => svc.dispose());
 
       expect(svc.wasAutoPausedByWatchdog, isFalse);
@@ -340,7 +375,7 @@ void main() {
 
     test('startWatchdog resets auto-pause flag', () {
       final mp = createMockPlayer();
-      final svc = PlayerService(player: mp);
+      final svc = PlayerService(player: mp, mediaSession: _noOpMediaSession);
       addTearDown(() => svc.dispose());
 
       svc.startWatchdog();
@@ -351,7 +386,7 @@ void main() {
 
     test('stopWatchdog resets auto-pause flag', () {
       final mp = createMockPlayer();
-      final svc = PlayerService(player: mp);
+      final svc = PlayerService(player: mp, mediaSession: _noOpMediaSession);
       addTearDown(() => svc.dispose());
 
       svc.startWatchdog();
@@ -371,7 +406,11 @@ void main() {
         return baseTime.add(const Duration(seconds: 10));
       }
 
-      final svc = PlayerService(player: mp, clock: fakeClock);
+      final svc = PlayerService(
+        player: mp,
+        clock: fakeClock,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       playingController.add(true);
@@ -392,7 +431,7 @@ void main() {
     test('watchdog does NOT pause when elapsed < 5s', () async {
       final mp = createMockPlayer();
 
-      final svc = PlayerService(player: mp);
+      final svc = PlayerService(player: mp, mediaSession: _noOpMediaSession);
       addTearDown(() => svc.dispose());
 
       playingController.add(true);
@@ -419,7 +458,11 @@ void main() {
         return baseTime.add(const Duration(seconds: 10));
       }
 
-      final svc = PlayerService(player: mp, clock: fakeClock);
+      final svc = PlayerService(
+        player: mp,
+        clock: fakeClock,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       playingController.add(true);
@@ -442,7 +485,7 @@ void main() {
     test('resumeFromWatchdog does nothing when not '
         'auto-paused', () {
       final mp = createMockPlayer();
-      final svc = PlayerService(player: mp);
+      final svc = PlayerService(player: mp, mediaSession: _noOpMediaSession);
       addTearDown(() => svc.dispose());
 
       svc.resumeFromWatchdog();
@@ -453,7 +496,7 @@ void main() {
       final mp = createMockPlayer();
       when(() => mp.stop()).thenAnswer((_) async {});
 
-      final svc = PlayerService(player: mp);
+      final svc = PlayerService(player: mp, mediaSession: _noOpMediaSession);
       addTearDown(() => svc.dispose());
 
       svc.startWatchdog();
@@ -501,7 +544,10 @@ void main() {
       when(() => mockPlayer.pause()).thenAnswer((_) async {});
       when(() => mockPlayer.dispose()).thenAnswer((_) async {});
 
-      playerService = PlayerService(player: mockPlayer);
+      playerService = PlayerService(
+        player: mockPlayer,
+        mediaSession: _noOpMediaSession,
+      );
     });
 
     tearDown(() {
@@ -595,7 +641,10 @@ void main() {
     setUp(() {
       mockPlayer = MockCrispyPlayer();
       _stubEmptyStreams(mockPlayer);
-      playerService = PlayerService(player: mockPlayer);
+      playerService = PlayerService(
+        player: mockPlayer,
+        mediaSession: _noOpMediaSession,
+      );
     });
 
     tearDown(() {

@@ -1,7 +1,33 @@
 import 'package:crispy_tivi/features/player/data/os_media_session.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  // Stub path_provider channels so AudioService.init() on
+  // non-Windows CI (Linux) doesn't throw
+  // MissingPluginException via DefaultCacheManager.
+  const pathProviderChannels = [
+    MethodChannel('plugins.flutter.io/path_provider'),
+    MethodChannel('plugins.flutter.io/path_provider_linux'),
+    MethodChannel('plugins.flutter.io/path_provider_macos'),
+  ];
+
+  setUp(() {
+    for (final ch in pathProviderChannels) {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(ch, (call) async => '/tmp');
+    }
+  });
+
+  tearDown(() {
+    for (final ch in pathProviderChannels) {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(ch, null);
+    }
+  });
+
   group('MediaAction', () {
     test('enum has all expected values', () {
       expect(MediaAction.values, hasLength(5));

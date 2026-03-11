@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:crispy_tivi/features/player/data/'
+    'os_media_session.dart';
+import 'package:crispy_tivi/features/player/data/'
     'player_service.dart';
 import 'package:crispy_tivi/features/player/domain/'
     'crispy_player.dart';
@@ -17,6 +19,26 @@ import 'package:crispy_tivi/features/player/domain/entities/'
 // ── Mocks ──────────────────────────────────────────
 
 class MockCrispyPlayer extends Mock implements CrispyPlayer {}
+
+class _FakeOsMediaSession extends Fake implements OsMediaSession {
+  @override
+  Stream<MediaAction> get actions => const Stream.empty();
+  @override
+  Future<void> activate({
+    required String title,
+    String? artist,
+    String? artUrl,
+    Duration? duration,
+  }) async {}
+  @override
+  Future<void> updatePlaybackState(bool isPlaying, Duration position) async {}
+  @override
+  Future<void> deactivate() async {}
+  @override
+  Future<void> dispose() async {}
+}
+
+final _noOpMediaSession = _FakeOsMediaSession();
 
 // ── Helpers ────────────────────────────────────────
 
@@ -88,7 +110,10 @@ void main() {
       final s = _setup(error: errorController.stream);
       _stubOpen(s.player);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() {
         svc.dispose();
         errorController.close();
@@ -110,7 +135,10 @@ void main() {
       final s = _setup(error: errorController.stream);
       _stubOpen(s.player);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() {
         svc.dispose();
         errorController.close();
@@ -133,7 +161,10 @@ void main() {
       final s = _setup(error: errorController.stream);
       _stubOpen(s.player);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() {
         svc.dispose();
         errorController.close();
@@ -163,7 +194,10 @@ void main() {
       );
       _stubOpen(s.player);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() {
         svc.dispose();
         errorController.close();
@@ -186,7 +220,10 @@ void main() {
       final s = _setup();
       _stubOpen(s.player);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       await svc.play(
@@ -208,7 +245,10 @@ void main() {
       final s = _setup();
       _stubOpen(s.player);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       await svc.play(
@@ -232,7 +272,10 @@ void main() {
 
     test('retry() is no-op when no URL has been played', () async {
       final s = _setup();
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       await svc.retry();
@@ -252,7 +295,10 @@ void main() {
   group('PlayerService — audio config', () {
     test('default hwdec mode is "auto-safe"', () {
       final s = _setup();
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       expect(svc.hwdecMode, 'auto-safe');
@@ -260,7 +306,10 @@ void main() {
 
     test('setHwdecMode updates mode', () {
       final s = _setup();
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       svc.setHwdecMode('nvdec');
@@ -269,7 +318,10 @@ void main() {
 
     test('default stream profile is auto', () {
       final s = _setup();
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       expect(svc.streamProfile, StreamProfile.auto);
@@ -277,7 +329,10 @@ void main() {
 
     test('setStreamProfile updates profile', () {
       final s = _setup();
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       svc.setStreamProfile(StreamProfile.high);
@@ -286,7 +341,10 @@ void main() {
 
     test('default audio output is "auto"', () {
       final s = _setup();
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       expect(svc.audioOutput, 'auto');
@@ -294,7 +352,10 @@ void main() {
 
     test('setAudioOutput updates output', () {
       final s = _setup();
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       svc.setAudioOutput('wasapi');
@@ -303,7 +364,10 @@ void main() {
 
     test('default audio passthrough is disabled', () {
       final s = _setup();
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       expect(svc.audioPassthroughEnabled, isFalse);
@@ -312,7 +376,10 @@ void main() {
 
     test('setAudioPassthrough updates config', () {
       final s = _setup();
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       svc.setAudioPassthrough(true, ['ac3', 'eac3', 'truehd']);
@@ -322,7 +389,10 @@ void main() {
 
     test('audioPassthroughCodecs returns unmodifiable copy', () {
       final s = _setup();
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       expect(
@@ -339,7 +409,10 @@ void main() {
       final s = _setup();
       _stubOpen(s.player);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       final states = <app.PlaybackStatus>[];
@@ -357,7 +430,10 @@ void main() {
       _stubOpen(s.player);
       when(() => s.player.stop()).thenAnswer((_) async {});
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       await svc.play('http://example.com/video.mp4', channelName: 'Test');
@@ -373,7 +449,10 @@ void main() {
       final playingController = StreamController<bool>.broadcast();
       final s = _setup(playing: playingController.stream);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() {
         svc.dispose();
         playingController.close();
@@ -405,6 +484,7 @@ void main() {
         final svc = PlayerService(
           player: s.player,
           clock: () => baseTime.add(async.elapsed),
+          mediaSession: _noOpMediaSession,
         );
 
         final emittedPositions = <Duration>[];
@@ -444,6 +524,7 @@ void main() {
         final svc = PlayerService(
           player: s.player,
           clock: () => baseTime.add(async.elapsed),
+          mediaSession: _noOpMediaSession,
         );
 
         final volumes = <double>[];
@@ -476,7 +557,10 @@ void main() {
         final bufferingController = StreamController<bool>.broadcast();
         final s = _setup(buffering: bufferingController.stream);
 
-        final svc = PlayerService(player: s.player);
+        final svc = PlayerService(
+          player: s.player,
+          mediaSession: _noOpMediaSession,
+        );
 
         bufferingController.add(true);
         async.flushMicrotasks();
@@ -498,7 +582,10 @@ void main() {
         final s = _setup(buffering: bufferingController.stream);
         when(() => s.player.isPlaying).thenReturn(true);
 
-        final svc = PlayerService(player: s.player);
+        final svc = PlayerService(
+          player: s.player,
+          mediaSession: _noOpMediaSession,
+        );
 
         bufferingController.add(true);
         async.flushMicrotasks();
@@ -522,7 +609,10 @@ void main() {
       final s = _setup();
       when(() => s.player.playOrPause()).thenAnswer((_) async {});
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       await svc.playOrPause();
@@ -533,7 +623,10 @@ void main() {
       final s = _setup();
       when(() => s.player.pause()).thenAnswer((_) async {});
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       await svc.pause();
@@ -544,7 +637,10 @@ void main() {
       final s = _setup();
       when(() => s.player.play()).thenAnswer((_) async {});
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       await svc.resume();
@@ -555,7 +651,10 @@ void main() {
       final s = _setup();
       when(() => s.player.seek(any())).thenAnswer((_) async {});
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       await svc.seek(const Duration(seconds: 30));
@@ -567,7 +666,10 @@ void main() {
       _stubOpen(s.player);
       when(() => s.player.stop()).thenAnswer((_) async {});
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       await svc.play(
@@ -587,7 +689,10 @@ void main() {
       final s = _setup();
       _stubOpen(s.player);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       await svc.play('http://example.com/video.mp4');
@@ -610,7 +715,10 @@ void main() {
   group('PlayerService — stream info mixin', () {
     test('initial aspect ratio is "Auto"', () {
       final s = _setup();
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       expect(svc.state.aspectRatioLabel, 'Auto');
@@ -618,7 +726,10 @@ void main() {
 
     test('cycleAspectRatio wraps from last to first', () {
       final s = _setup();
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       // Cycle through all 5 ratios.
@@ -641,7 +752,10 @@ void main() {
       final durController = StreamController<Duration>.broadcast();
       final s = _setup(duration: durController.stream);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() {
         svc.dispose();
         durController.close();
@@ -657,7 +771,10 @@ void main() {
       final rateController = StreamController<double>.broadcast();
       final s = _setup(rate: rateController.stream);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() {
         svc.dispose();
         rateController.close();
@@ -673,7 +790,10 @@ void main() {
       final volController = StreamController<double>.broadcast();
       final s = _setup(volume: volController.stream);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() {
         svc.dispose();
         volController.close();
@@ -698,6 +818,7 @@ void main() {
         final svc = PlayerService(
           player: s.player,
           clock: () => baseTime.add(async.elapsed),
+          mediaSession: _noOpMediaSession,
         );
 
         // Set 5s timer, then replace with 10s.
@@ -725,6 +846,7 @@ void main() {
         final svc = PlayerService(
           player: s.player,
           clock: () => baseTime.add(async.elapsed),
+          mediaSession: _noOpMediaSession,
         );
 
         expect(svc.sleepTimerEndTime, isNull);
@@ -748,6 +870,7 @@ void main() {
         final svc = PlayerService(
           player: s.player,
           clock: () => baseTime.add(async.elapsed),
+          mediaSession: _noOpMediaSession,
         );
 
         svc.setSleepTimer(const Duration(seconds: 5));
@@ -769,7 +892,10 @@ void main() {
       final s = _setup();
       _stubOpen(s.player);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       await svc.play('http://live.example.com/stream', isLive: true);
@@ -781,7 +907,10 @@ void main() {
       final s = _setup();
       _stubOpen(s.player);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() => svc.dispose());
 
       await svc.play('http://vod.example.com/movie.mp4');
@@ -794,7 +923,10 @@ void main() {
       final s = _setup(error: errorController.stream);
       _stubOpen(s.player);
 
-      final svc = PlayerService(player: s.player);
+      final svc = PlayerService(
+        player: s.player,
+        mediaSession: _noOpMediaSession,
+      );
       addTearDown(() {
         svc.dispose();
         errorController.close();

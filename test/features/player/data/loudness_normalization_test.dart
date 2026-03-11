@@ -1,11 +1,32 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:crispy_tivi/features/player/data/os_media_session.dart';
 import 'package:crispy_tivi/features/player/data/player_service.dart';
 import 'package:crispy_tivi/features/player/domain/crispy_player.dart';
 
 // Mocks
 class MockCrispyPlayer extends Mock implements CrispyPlayer {}
+
+class _FakeOsMediaSession extends Fake implements OsMediaSession {
+  @override
+  Stream<MediaAction> get actions => const Stream.empty();
+  @override
+  Future<void> activate({
+    required String title,
+    String? artist,
+    String? artUrl,
+    Duration? duration,
+  }) async {}
+  @override
+  Future<void> updatePlaybackState(bool isPlaying, Duration position) async {}
+  @override
+  Future<void> deactivate() async {}
+  @override
+  Future<void> dispose() async {}
+}
+
+final _noOpMediaSession = _FakeOsMediaSession();
 
 /// Helper to stub all CrispyPlayer streams with empty defaults.
 void _stubEmptyStreams(MockCrispyPlayer mock) {
@@ -40,7 +61,10 @@ void main() {
           extras: any(named: 'extras'),
         ),
       ).thenAnswer((_) async {});
-      playerService = PlayerService(player: mockPlayer);
+      playerService = PlayerService(
+        player: mockPlayer,
+        mediaSession: _noOpMediaSession,
+      );
     });
 
     tearDown(() {

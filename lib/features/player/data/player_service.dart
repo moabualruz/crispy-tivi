@@ -62,6 +62,7 @@ class PlayerService extends PlayerServiceBase
     super.clock,
     super.bufferManager,
     super.warmFailover,
+    super.mediaSession,
   }) {
     _handoffManager = PlayerHandoffManager(primaryPlayer: _player);
 

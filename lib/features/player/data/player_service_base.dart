@@ -14,10 +14,12 @@ abstract class PlayerServiceBase {
     DateTime Function()? clock,
     AdaptiveBufferManager? bufferManager,
     WarmFailoverEngine? warmFailover,
+    OsMediaSession? mediaSession,
   }) : _player = player ?? MediaKitPlayer(),
        _clock = clock ?? DateTime.now,
        _bufferManager = bufferManager,
-       _warmFailover = warmFailover;
+       _warmFailover = warmFailover,
+       _mediaSession = mediaSession ?? OsMediaSession();
 
   // ── Core Player ──────────────────────────────────────
   // Mutable — PlayerHandoffManager swaps backends at runtime.
@@ -157,7 +159,7 @@ abstract class PlayerServiceBase {
   bool _autoPausedByInterruption = false;
 
   // ── OS Media Session ─────────────────────────────────
-  final OsMediaSession _mediaSession = OsMediaSession();
+  final OsMediaSession _mediaSession;
 
   // ── Subscriptions ────────────────────────────────────
   final List<StreamSubscription<dynamic>> _subs = [];
