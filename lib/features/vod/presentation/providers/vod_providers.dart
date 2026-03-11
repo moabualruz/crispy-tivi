@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/data/dart_algorithm_fallbacks.dart';
 import '../../../../core/providers/source_filter_provider.dart';
 import '../../domain/entities/vod_item.dart';
 import '../../domain/utils/vod_utils.dart';
@@ -85,7 +86,7 @@ class VodState {
         cats.add(item.category!);
       }
     }
-    return cats.toList()..sort();
+    return cats.toList()..sort(categoryBucketCompare);
   }
 
   VodState copyWith({
@@ -161,7 +162,7 @@ class VodNotifier extends Notifier<VodState> {
     }
     state = state.copyWith(
       items: items,
-      categories: cats.toList()..sort(),
+      categories: cats.toList()..sort(categoryBucketCompare),
       isLoading: false,
       clearError: true,
     );

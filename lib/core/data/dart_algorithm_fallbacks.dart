@@ -294,10 +294,58 @@ String dartSortFavorites(String channelsJson, String sortMode) {
 
 // ── Category Sort ─────────────────────────────────────────────────
 
-/// Sort [categoriesJson] with [favoritesJson] items first (both groups
-/// sorted alphabetically within themselves).
+/// Sort bucket for a category name: Arabic/Persian/Urdu (0) →
+/// Symbols (1) → Latin (2) → Other scripts (3).
 ///
-/// Mirrors `crispy-core::algorithms::sorting::sort_categories_with_favorites`.
+/// Mirrors `crispy-core::algorithms::categories::group_sort_bucket`.
+int _groupSortBucket(String s) {
+  final first = s.runes.cast<int?>().firstWhere(
+    (cp) =>
+        cp != null &&
+        !(cp >= 0x09 && cp <= 0x0D) && // whitespace
+        !(cp == 0x20) &&
+        !(cp >= 0x30 && cp <= 0x39), // digits
+    orElse: () => null,
+  );
+  if (first == null) return 1; // all digits/whitespace → symbols
+  // Arabic / Persian / Urdu
+  if ((first >= 0x0600 && first <= 0x06FF) ||
+      (first >= 0x0750 && first <= 0x077F) ||
+      (first >= 0x08A0 && first <= 0x08FF) ||
+      (first >= 0xFB50 && first <= 0xFDFF) ||
+      (first >= 0xFE70 && first <= 0xFEFF)) {
+    return 0;
+  }
+  // Latin
+  if ((first >= 0x0041 && first <= 0x007A) ||
+      (first >= 0x00C0 && first <= 0x024F) ||
+      (first >= 0x1E00 && first <= 0x1EFF)) {
+    return 2;
+  }
+  // Check if alphabetic (other scripts like Cyrillic, CJK, etc.)
+  final char = String.fromCharCode(first);
+  if (RegExp(r'\p{L}', unicode: true).hasMatch(char)) return 3;
+  return 1; // symbols / punctuation
+}
+
+/// Comparator implementing the standard bucket ordering:
+/// Arabic/Persian/Urdu → Symbols → Latin → Other.
+/// Each bucket is sorted case-insensitively.
+///
+/// Public so screens (e.g. EPG) that build group lists in Dart
+/// can use the same ordering as Rust `sort_categories()`.
+int categoryBucketCompare(String a, String b) {
+  final ba = _groupSortBucket(a);
+  final bb = _groupSortBucket(b);
+  final cmp = ba.compareTo(bb);
+  if (cmp != 0) return cmp;
+  return a.toLowerCase().compareTo(b.toLowerCase());
+}
+
+/// Sort [categoriesJson] with [favoritesJson] items first (both groups
+/// sorted by script bucket within themselves).
+///
+/// Mirrors `crispy-core::algorithms::categories::sort_categories_with_favorites`.
 String dartSortCategoriesWithFavorites(
   String categoriesJson,
   String favoritesJson,
@@ -305,8 +353,12 @@ String dartSortCategoriesWithFavorites(
   final categories = (jsonDecode(categoriesJson) as List).cast<String>();
   final favorites = (jsonDecode(favoritesJson) as List).cast<String>();
   final favSet = favorites.toSet();
-  final favs = categories.where((c) => favSet.contains(c)).toList()..sort();
-  final rest = categories.where((c) => !favSet.contains(c)).toList()..sort();
+  final favs =
+      categories.where((c) => favSet.contains(c)).toList()
+        ..sort(categoryBucketCompare);
+  final rest =
+      categories.where((c) => !favSet.contains(c)).toList()
+        ..sort(categoryBucketCompare);
   return jsonEncode([...favs, ...rest]);
 }
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/data/dart_algorithm_fallbacks.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../../core/domain/entities/playlist_source_type_ext.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -258,7 +259,7 @@ class ContentFilterSettingsSection extends ConsumerWidget {
     for (final list in catMap.values) {
       allGroups.addAll(list);
     }
-    final sortedGroups = allGroups.toList()..sort();
+    final sortedGroups = allGroups.toList()..sort(categoryBucketCompare);
 
     if (!context.mounted || sortedGroups.isEmpty) {
       // ignore: use_build_context_synchronously

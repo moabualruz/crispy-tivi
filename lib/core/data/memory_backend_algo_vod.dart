@@ -67,9 +67,9 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
       if (type == 'series') series.add(cat);
     }
     return jsonEncode({
-      'categories': (all.toList()..sort()),
-      'movie_categories': (movies.toList()..sort()),
-      'series_categories': (series.toList()..sort()),
+      'categories': (all.toList()..sort(categoryBucketCompare)),
+      'movie_categories': (movies.toList()..sort(categoryBucketCompare)),
+      'series_categories': (series.toList()..sort(categoryBucketCompare)),
     });
   }
 
@@ -197,7 +197,7 @@ mixin _MemoryAlgoVodMixin on _MemoryStorage {
         cats.add(cat);
       }
     }
-    return jsonEncode(cats.toList()..sort());
+    return jsonEncode(cats.toList()..sort(categoryBucketCompare));
   }
 
   Future<String> filterRecentlyAdded(

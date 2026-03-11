@@ -89,34 +89,82 @@ pub fn resolve_vod_categories(
         .collect()
 }
 
-/// Returns `true` when the first non-whitespace, non-digit
-/// character of `s` falls in the Basic Latin (A-Z / a-z) or
-/// Latin Extended (U+00C0–U+024F) ranges.
+/// Returns `true` when `c` is in an Arabic / Persian / Urdu
+/// Unicode block.
+fn is_arabic_script(c: char) -> bool {
+    let cp = c as u32;
+    (0x0600..=0x06FF).contains(&cp) // Arabic (includes Persian, Urdu)
+        || (0x0750..=0x077F).contains(&cp) // Arabic Supplement
+        || (0x08A0..=0x08FF).contains(&cp) // Arabic Extended-A
+        || (0xFB50..=0xFDFF).contains(&cp) // Arabic Presentation Forms-A
+        || (0xFE70..=0xFEFF).contains(&cp) // Arabic Presentation Forms-B
+}
+
+/// Returns `true` when `c` is in a Latin Unicode block.
+fn is_latin_char(c: char) -> bool {
+    let cp = c as u32;
+    (0x0041..=0x007A).contains(&cp) // Basic Latin (A-Z, a-z)
+        || (0x00C0..=0x024F).contains(&cp) // Latin Extended-A/B
+        || (0x1E00..=0x1EFF).contains(&cp) // Latin Extended Additional
+}
+
+/// Assigns a sort priority bucket based on the first
+/// significant character of a category/group name:
 ///
-/// Non-Latin scripts (Arabic, Cyrillic, CJK, etc.) return
-/// `false`. An empty or all-digit/whitespace string returns
-/// `true` (treated as Latin for sorting purposes).
-fn is_latin(s: &str) -> bool {
+/// * `0` — Arabic / Persian / Urdu scripts
+/// * `1` — Symbols, punctuation, digits-only
+/// * `2` — Latin scripts (English, German, French, etc.)
+/// * `3` — All other scripts (Cyrillic, CJK, Devanagari…)
+///
+/// Each bucket is then sorted case-insensitively.
+fn group_sort_bucket(s: &str) -> u8 {
     let first = s
         .chars()
         .find(|c| !c.is_ascii_whitespace() && !c.is_ascii_digit());
     match first {
-        None => true,
+        None => 1, // All digits/whitespace → symbols bucket
         Some(c) => {
-            let cp = c as u32;
-            (0x0041..=0x007A).contains(&cp) || (0x00C0..=0x024F).contains(&cp)
+            if is_arabic_script(c) {
+                0
+            } else if is_latin_char(c) {
+                2
+            } else if c.is_alphabetic() {
+                3 // Other scripts (Cyrillic, CJK, etc.)
+            } else {
+                1 // Symbols / punctuation
+            }
         }
     }
+}
+
+/// Sorts category names in-place using the standard bucket
+/// ordering: Arabic/Persian/Urdu → Symbols → Latin → Other.
+/// Each bucket is sorted case-insensitively.
+fn sort_categories(categories: &mut [String]) {
+    categories.sort_by(|a, b| {
+        let ba = group_sort_bucket(a);
+        let bb = group_sort_bucket(b);
+        ba.cmp(&bb)
+            .then_with(|| a.to_lowercase().cmp(&b.to_lowercase()))
+    });
+}
+
+/// Same as [`sort_categories`] but for borrowed string slices.
+fn sort_categories_ref(categories: &mut [&String]) {
+    categories.sort_by(|a, b| {
+        let ba = group_sort_bucket(a);
+        let bb = group_sort_bucket(b);
+        ba.cmp(&bb)
+            .then_with(|| a.to_lowercase().cmp(&b.to_lowercase()))
+    });
 }
 
 /// Extract unique, sorted group names from channels.
 ///
 /// Filters out `None` and empty groups, deduplicates,
-/// and returns a sorted `Vec` where non-Latin groups
-/// (Arabic, Cyrillic, CJK, etc.) come first, followed
-/// by Latin groups. Each bucket is sorted
-/// case-insensitively. This matches the Dart reference
-/// implementation in `channel_utils.dart`.
+/// and returns a sorted `Vec` ordered by script bucket:
+/// Arabic/Persian/Urdu → Symbols → Latin → Other.
+/// Each bucket is sorted case-insensitively.
 pub fn extract_sorted_groups(channels: &[Channel]) -> Vec<String> {
     let set: HashSet<&str> = channels
         .iter()
@@ -124,22 +172,9 @@ pub fn extract_sorted_groups(channels: &[Channel]) -> Vec<String> {
         .filter(|g| !g.is_empty())
         .collect();
 
-    let mut non_latin: Vec<String> = set
-        .iter()
-        .filter(|g| !is_latin(g))
-        .map(|g| g.to_string())
-        .collect();
-    let mut latin: Vec<String> = set
-        .iter()
-        .filter(|g| is_latin(g))
-        .map(|g| g.to_string())
-        .collect();
-
-    non_latin.sort_by_key(|a: &String| a.to_lowercase());
-    latin.sort_by_key(|a: &String| a.to_lowercase());
-
-    non_latin.extend(latin);
-    non_latin
+    let mut groups: Vec<String> = set.into_iter().map(String::from).collect();
+    sort_categories(&mut groups);
+    groups
 }
 
 /// Extract unique, sorted category names from VOD items.
@@ -153,7 +188,7 @@ pub fn extract_sorted_vod_categories(items: &[VodItem]) -> Vec<String> {
         .filter(|c| !c.is_empty())
         .collect();
     let mut sorted: Vec<String> = set.into_iter().map(String::from).collect();
-    sorted.sort();
+    sort_categories(&mut sorted);
     sorted
 }
 
@@ -196,8 +231,8 @@ pub fn sort_categories_with_favorites(categories_json: &str, favorites_json: &st
         .filter(|c| !favorites.contains(*c))
         .collect();
 
-    favs.sort();
-    rest.sort();
+    sort_categories_ref(&mut favs);
+    sort_categories_ref(&mut rest);
 
     let mut result: Vec<&String> = favs;
     result.extend(rest);
@@ -236,7 +271,7 @@ pub fn build_type_categories(items_json: &str, vod_type: &str) -> String {
         .collect();
 
     let mut sorted: Vec<String> = set.into_iter().map(String::from).collect();
-    sorted.sort();
+    sort_categories(&mut sorted);
 
     serde_json::to_string(&sorted).unwrap_or_else(|_| "[]".to_string())
 }
@@ -272,7 +307,7 @@ pub fn build_search_categories(vod_categories_json: &str, channel_groups_json: &
     }
 
     let mut sorted: Vec<String> = set.into_iter().collect();
-    sorted.sort();
+    sort_categories(&mut sorted);
 
     serde_json::to_string(&sorted).unwrap_or_else(|_| "[]".to_string())
 }
@@ -510,33 +545,36 @@ mod tests {
             make_channel("d", Some("ترفيه")),
         ];
         let groups = extract_sorted_groups(&channels);
-        // Non-Latin (Arabic) groups first, then Latin groups.
+        // Bucket order: Arabic → Symbols → Latin → Other.
+        // Arabic first (أخبار, ترفيه), then Latin (News, Sports).
         assert_eq!(groups.len(), 4);
-        // First two must be Arabic groups.
-        assert!(
-            !is_latin(&groups[0]),
-            "expected non-Latin first, got: {}",
-            groups[0]
-        );
-        assert!(
-            !is_latin(&groups[1]),
-            "expected non-Latin second, got: {}",
-            groups[1]
-        );
-        // Last two must be Latin groups.
-        assert!(
-            is_latin(&groups[2]),
-            "expected Latin third, got: {}",
-            groups[2]
-        );
-        assert!(
-            is_latin(&groups[3]),
-            "expected Latin fourth, got: {}",
-            groups[3]
-        );
-        // Verify specific ordering within each bucket.
+        assert_eq!(group_sort_bucket(&groups[0]), 0, "expected Arabic first");
+        assert_eq!(group_sort_bucket(&groups[1]), 0, "expected Arabic second");
+        assert_eq!(group_sort_bucket(&groups[2]), 2, "expected Latin third");
+        assert_eq!(group_sort_bucket(&groups[3]), 2, "expected Latin fourth");
         assert_eq!(groups[2], "News");
         assert_eq!(groups[3], "Sports");
+    }
+
+    #[test]
+    fn extract_sorted_groups_full_bucket_order() {
+        let channels = vec![
+            make_channel("a", Some("News")),
+            make_channel("b", Some("أخبار")),
+            make_channel("c", Some("*** Special ***")),
+            make_channel("d", Some("Новости")),
+            make_channel("e", Some("فارسی")),
+            make_channel("f", Some("123")),
+        ];
+        let groups = extract_sorted_groups(&channels);
+        // Arabic (أخبار, فارسی) → Symbols (*** Special ***, 123) → Latin (News) → Other (Новости)
+        assert_eq!(groups.len(), 6);
+        assert_eq!(group_sort_bucket(&groups[0]), 0);
+        assert_eq!(group_sort_bucket(&groups[1]), 0);
+        assert_eq!(group_sort_bucket(&groups[2]), 1);
+        assert_eq!(group_sort_bucket(&groups[3]), 1);
+        assert_eq!(group_sort_bucket(&groups[4]), 2);
+        assert_eq!(group_sort_bucket(&groups[5]), 3);
     }
 
     // ── extract_sorted_vod_categories ────────────
@@ -575,18 +613,19 @@ mod tests {
     }
 
     #[test]
-    fn scwf_favorites_first_alphabetically() {
+    fn scwf_favorites_first_with_bucket_order() {
         let result = run_sort_cats(
             vec!["Zoning", "Action", "Comedy", "Drama"],
             vec!["Zoning", "Comedy"],
         );
+        // Favs bucket-sorted first, then rest bucket-sorted.
+        // All Latin → bucket 2, so case-insensitive alpha within.
         assert_eq!(result, vec!["Comedy", "Zoning", "Action", "Drama"]);
     }
 
     #[test]
     fn scwf_no_favorites() {
         let result = run_sort_cats(vec!["Zoning", "Action", "Comedy"], vec![]);
-        // All non-favorites sorted alphabetically.
         assert_eq!(result, vec!["Action", "Comedy", "Zoning"]);
     }
 
@@ -597,6 +636,17 @@ mod tests {
             vec!["Zoning", "Action", "Comedy"],
         );
         assert_eq!(result, vec!["Action", "Comedy", "Zoning"]);
+    }
+
+    #[test]
+    fn scwf_mixed_scripts_with_favorites() {
+        let result = run_sort_cats(
+            vec!["Sports", "أخبار", "News", "ترفيه"],
+            vec!["News", "أخبار"],
+        );
+        // Favs: أخبار (Arabic/0) then News (Latin/2).
+        // Rest: ترفيه (Arabic/0) then Sports (Latin/2).
+        assert_eq!(result, vec!["أخبار", "News", "ترفيه", "Sports"]);
     }
 
     #[test]
@@ -668,7 +718,10 @@ mod tests {
         ];
         let cats = run_build_type_cats(items, "movie");
         // Exact string dedup — "Action" and "action" are distinct.
-        assert_eq!(cats, vec!["Action", "action"]);
+        // Both are Latin bucket → case-insensitive sort groups them.
+        assert_eq!(cats.len(), 2);
+        assert!(cats.contains(&"Action".to_string()));
+        assert!(cats.contains(&"action".to_string()));
     }
 
     #[test]
@@ -712,7 +765,7 @@ mod tests {
             vec![Some("Action"), Some("Drama"), Some("Action")],
             vec!["Sports", "Drama", "News"],
         );
-        // Deduplicated + sorted: Action, Drama, News, Sports.
+        // All Latin → bucket 2, case-insensitive alpha.
         assert_eq!(result, vec!["Action", "Drama", "News", "Sports"]);
     }
 

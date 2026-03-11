@@ -144,7 +144,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
         groups.add(g);
       }
     }
-    return groups.toList()..sort();
+    return groups.toList()..sort(categoryBucketCompare);
   }
 
   Future<List<String>> extractSortedVodCategories(String itemsJson) async {
@@ -156,7 +156,7 @@ mixin _MemoryAlgoCoreMixin on _MemoryStorage {
         cats.add(c);
       }
     }
-    return cats.toList()..sort();
+    return cats.toList()..sort(categoryBucketCompare);
   }
 
   // ── Dedup ──────────────────────────────────────

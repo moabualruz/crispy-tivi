@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/data/dart_algorithm_fallbacks.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -62,7 +63,7 @@ class _ChannelZapOverlayState extends State<ChannelZapOverlay> {
           groups.add(ch.group!);
         }
       }
-      _cachedGroups = groups.toList()..sort();
+      _cachedGroups = groups.toList()..sort(categoryBucketCompare);
     }
     return _cachedGroups!;
   }

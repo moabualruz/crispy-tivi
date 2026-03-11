@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/data/dart_algorithm_fallbacks.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../data/epg_json_codec.dart';
@@ -78,7 +79,7 @@ class EpgState {
             .cast<String>()
             .toSet()
             .toList()
-          ..sort();
+          ..sort(categoryBucketCompare);
     return g;
   }
 
