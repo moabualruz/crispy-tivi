@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		CF3FC2DE2C6ABCDE00123456 /* AirPlayPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3FC2DE2C6ABCDE00654321 /* AirPlayPlugin.swift */; };
+		CF4A01020000000000000001 /* CrispyPipPlayerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF4A01010000000000000001 /* CrispyPipPlayerPlugin.swift */; };
+		CF4A01020000000000000002 /* CrispyPipPlayerFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF4A01010000000000000002 /* CrispyPipPlayerFactory.swift */; };
+		CF4A01020000000000000003 /* CrispyPipPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF4A01010000000000000003 /* CrispyPipPlayerView.swift */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
@@ -42,6 +45,9 @@
 
 /* Begin PBXFileReference section */
 		CF3FC2DE2C6ABCDE00654321 /* AirPlayPlugin.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AirPlayPlugin.swift; sourceTree = "<group>"; };
+		CF4A01010000000000000001 /* CrispyPipPlayerPlugin.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrispyPipPlayerPlugin.swift; sourceTree = "<group>"; };
+		CF4A01010000000000000002 /* CrispyPipPlayerFactory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrispyPipPlayerFactory.swift; sourceTree = "<group>"; };
+		CF4A01010000000000000003 /* CrispyPipPlayerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrispyPipPlayerView.swift; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
@@ -108,9 +114,20 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		CF4A01030000000000000001 /* PipPlayer */ = {
+			isa = PBXGroup;
+			children = (
+				CF4A01010000000000000001 /* CrispyPipPlayerPlugin.swift */,
+				CF4A01010000000000000002 /* CrispyPipPlayerFactory.swift */,
+				CF4A01010000000000000003 /* CrispyPipPlayerView.swift */,
+			);
+			path = PipPlayer;
+			sourceTree = "<group>";
+		};
 		97C146F01CF9000F007C117D /* Runner */ = {
 			isa = PBXGroup;
 			children = (
+				CF4A01030000000000000001 /* PipPlayer */,
 				CF3FC2DE2C6ABCDE00654321 /* AirPlayPlugin.swift */,
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
@@ -272,6 +289,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				CF3FC2DE2C6ABCDE00123456 /* AirPlayPlugin.swift in Sources */,
+				CF4A01020000000000000001 /* CrispyPipPlayerPlugin.swift in Sources */,
+				CF4A01020000000000000002 /* CrispyPipPlayerFactory.swift in Sources */,
+				CF4A01020000000000000003 /* CrispyPipPlayerView.swift in Sources */,
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 			);
