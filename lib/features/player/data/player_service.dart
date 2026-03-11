@@ -136,8 +136,12 @@ class PlayerService extends PlayerServiceBase
     }
 
     // Reset warm failover state for the new channel.
+    // Must await to ensure the warm player's mpv instance
+    // is fully quiesced before opening the new stream —
+    // fire-and-forget causes native crashes on rapid
+    // channel switches.
     if (_warmFailover != null) {
-      unawaited(_warmFailover.onChannelChange());
+      await _warmFailover.onChannelChange();
     }
 
     // Detect VOD → Live transition for logging. player.open() handles
@@ -232,31 +236,45 @@ class PlayerService extends PlayerServiceBase
 
     final extras = <String, dynamic>{};
 
-    if (isLive && !kIsWeb) {
-      // mpv/libmpv options optimized for live MPEG-TS.
-      extras['demuxer-lavf-o'] =
-          'reconnect=1,reconnect_streamed=1,'
-          'reconnect_delay_max=5';
+    if (!kIsWeb) {
+      if (isLive) {
+        // mpv/libmpv options optimized for live MPEG-TS.
+        extras['demuxer-lavf-o'] =
+            'reconnect=1,reconnect_streamed=1,'
+            'reconnect_delay_max=5';
 
-      // Adaptive buffer: use persisted tier if available,
-      // otherwise default to normal (120s readahead).
-      if (_bufferManager != null) {
-        final tier = await _bufferManager.getTierForUrl(effectiveUrl);
-        extras.addAll(AdaptiveBufferManager.mpvOptionsForTier(tier));
-        debugPrint(
-          'PlayerService: adaptive buffer tier=${tier.name} '
-          '(readahead=${tier.readaheadSecs}s)',
-        );
+        // Adaptive buffer: use persisted tier if available,
+        // otherwise default to normal (120s readahead).
+        if (_bufferManager != null) {
+          final tier = await _bufferManager.getTierForUrl(effectiveUrl);
+          extras.addAll(AdaptiveBufferManager.mpvOptionsForTier(tier));
+          debugPrint(
+            'PlayerService: adaptive buffer tier=${tier.name} '
+            '(readahead=${tier.readaheadSecs}s)',
+          );
+        } else {
+          extras['cache'] = 'yes';
+          extras['cache-pause'] = 'no';
+          extras['demuxer-readahead-secs'] = '120';
+        }
+
+        extras['untimed'] = '';
+        // Reduce audio/video drift on live streams with variable
+        // frame rates. For VOD the default 'audio' sync is better.
+        extras['video-sync'] = 'display-resample';
       } else {
-        extras['cache'] = 'yes';
-        extras['cache-pause'] = 'no';
-        extras['demuxer-readahead-secs'] = '120';
+        // VOD: explicitly reset live-specific mpv options to
+        // defaults. mpv carries options across open() calls —
+        // without this, live reconnect/cache/untimed options
+        // persist into VOD playback and cause native crashes
+        // (e.g. reconnect loop on Jellyfin static endpoints).
+        extras['demuxer-lavf-o'] = '';
+        extras['cache'] = 'no';
+        extras['cache-pause'] = 'yes';
+        extras['demuxer-readahead-secs'] = '0';
+        extras['untimed'] = 'no';
+        extras['video-sync'] = 'audio';
       }
-
-      extras['untimed'] = '';
-      // Reduce audio/video drift on live streams with variable
-      // frame rates. For VOD the default 'audio' sync is better.
-      extras['video-sync'] = 'display-resample';
     }
 
     // Apply stream profile / audio / hwdec.
@@ -544,7 +562,12 @@ class PlayerService extends PlayerServiceBase
     _sleepTimer?.cancel();
     _sleepTimer = null;
     _sleepTimerEndTime = null;
-    _warmFailover?.dispose();
+    // Reset warm failover state (not dispose — dispose is
+    // only in PlayerService.dispose()). Prevents double-dispose
+    // when stop() is followed by dispose().
+    if (_warmFailover != null) {
+      await _warmFailover.onChannelChange();
+    }
     _audioCheckTimer?.cancel();
     _proxyActive = false;
     unawaited(_streamProxy.stop());
@@ -576,7 +599,7 @@ class PlayerService extends PlayerServiceBase
     _sleepTimer?.cancel();
     _positionFlushTimer?.cancel();
     _audioCheckTimer?.cancel();
-    _warmFailover?.dispose();
+    await _warmFailover?.dispose();
     await _streamProxy.stop();
     _webBridge?.dispose();
     _webBridge = null;

@@ -187,9 +187,16 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
     try {
       // Resolve synthetic media server URLs (plex://, emby://, jellyfin://)
       // to real HTTP(S) playback URLs before passing to PlayerService.
-      // Falls back to the original URL if resolution fails.
+      // If resolution fails for a synthetic URL, abort — mpv cannot
+      // open plex://, emby://, or jellyfin:// schemes directly and
+      // will crash with a native error.
       String effectiveUrl = streamUrl;
       Map<String, String>? effectiveHeaders = headers;
+      final isSynthetic = const [
+        'plex',
+        'emby',
+        'jellyfin',
+      ].contains(Uri.tryParse(streamUrl)?.scheme);
       try {
         final sources = ref.read(settingsNotifierProvider).value?.sources ?? [];
         final resolved = await StreamUrlResolver(sources).resolve(streamUrl);
@@ -199,6 +206,12 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
         }
       } catch (e) {
         debugPrint('StreamUrlResolver: failed to resolve $streamUrl: $e');
+        if (isSynthetic) {
+          debugPrint(
+            'StreamUrlResolver: aborting — synthetic URL unresolvable',
+          );
+          return;
+        }
       }
 
       state = PlaybackSessionState(

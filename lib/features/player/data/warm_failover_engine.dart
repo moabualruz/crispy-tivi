@@ -101,7 +101,7 @@ class WarmFailoverEngine {
     );
     final action = _parseAction(resultJson);
 
-    if (action == 'start_warming' && _state == WarmFailoverState.idle) {
+    if (action == 'start_warming') {
       await _startWarming();
     }
   }
@@ -129,7 +129,7 @@ class WarmFailoverEngine {
       if (_state == WarmFailoverState.ready && _warmUrl != null) {
         final url = _warmUrl!;
         _triedUrls.add(url);
-        _disposeWarmPlayer();
+        await _disposeWarmPlayer();
         return url;
       }
       // No warm player ready — cold failover.
@@ -145,7 +145,7 @@ class WarmFailoverEngine {
   /// resets failover counters in Rust.
   Future<void> onChannelChange() async {
     final urlHash = _currentUrlHash;
-    _disposeWarmPlayer();
+    await _disposeWarmPlayer();
     _triedUrls.clear();
     _currentUrlHash = null;
     _channelId = null;
@@ -156,9 +156,13 @@ class WarmFailoverEngine {
     }
   }
 
+  /// Whether the engine has been permanently disposed.
+  bool _disposed = false;
+
   /// Dispose all resources.
-  void dispose() {
-    _disposeWarmPlayer();
+  Future<void> dispose() async {
+    _disposed = true;
+    await _disposeWarmPlayer();
     _triedUrls.clear();
   }
 
@@ -166,13 +170,24 @@ class WarmFailoverEngine {
 
   /// Start pre-buffering the best alternative stream.
   Future<void> _startWarming() async {
+    // Guard: set state before async gap to prevent
+    // concurrent invocations from both entering.
+    if (_state != WarmFailoverState.idle || _disposed) return;
+    _state = WarmFailoverState.warming;
+
     final bestUrl = await _findBestAlternativeUrl();
-    if (bestUrl == null) {
-      debugPrint('WarmFailover: no alternative available');
+    // Re-check state after the async gap: onChannelChange() may
+    // have reset state to idle while we were awaiting. Without
+    // this guard, we'd create an orphaned Player that is never
+    // disposed (leaking native decoder handles).
+    if (bestUrl == null || _disposed || _state != WarmFailoverState.warming) {
+      if (_state == WarmFailoverState.warming) {
+        _state = WarmFailoverState.idle;
+      }
+      debugPrint('WarmFailover: no alternative available or state changed');
       return;
     }
 
-    _state = WarmFailoverState.warming;
     _warmUrl = bestUrl;
     _triedUrls.add(bestUrl);
 
@@ -207,7 +222,7 @@ class WarmFailoverEngine {
     _readyTimer = Timer(const Duration(seconds: 10), () {
       if (_state == WarmFailoverState.ready) {
         debugPrint('WarmFailover: 10s unused, disposing warm player');
-        _disposeWarmPlayer();
+        unawaited(_disposeWarmPlayer());
       }
     });
   }
@@ -298,15 +313,28 @@ class WarmFailoverEngine {
   }
 
   /// Dispose the warm player and reset state to idle.
-  void _disposeWarmPlayer() {
+  ///
+  /// Awaits the mpv quiesce cycle (pause + 200ms delay)
+  /// before disposing to avoid the `free_option_data`
+  /// crash on rapid channel switches (media-kit#1361).
+  Future<void> _disposeWarmPlayer() async {
     _readyTimer?.cancel();
     _readyTimer = null;
     _playingSub?.cancel();
     _playingSub = null;
-    _warmPlayer?.dispose();
+    final player = _warmPlayer;
     _warmPlayer = null;
     _warmUrl = null;
     _state = WarmFailoverState.idle;
+    if (player != null) {
+      try {
+        await player.pause();
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      } catch (_) {
+        // Player may already be in a bad state — proceed to dispose.
+      }
+      await player.dispose();
+    }
   }
 
   /// Parse the action field from Rust's JSON response.
