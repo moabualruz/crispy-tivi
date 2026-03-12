@@ -84,6 +84,9 @@ GEMINI.md
 .cursorrules
 .agent/
 
+# GSD planning docs (local-only)
+.planning/
+
 # BMAD Method (per-project install, not committed)
 _bmad/
 _bmad-output/
