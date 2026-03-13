@@ -4,6 +4,7 @@ import 'responsive_layout.dart';
 import 'safe_focus_scope.dart';
 import 'tv_color_button_handler.dart';
 import 'tv_color_button_legend.dart';
+import 'tv_scale_factor.dart';
 
 /// Reusable screen wrapper that composes all infrastructure layers.
 ///
@@ -81,7 +82,7 @@ class ScreenTemplate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Build the large body, optionally wrapping with color button support.
+    // Build the large body with TV auto-scaling and optional color buttons.
     Widget effectiveLargeBody = largeBody;
     if (colorButtonMap != null && colorButtonMap!.isNotEmpty) {
       effectiveLargeBody = TvColorButtonHandler(
@@ -94,6 +95,8 @@ class ScreenTemplate extends StatelessWidget {
         ),
       );
     }
+    // Apply resolution-based auto-scaling on TV/large layout only.
+    effectiveLargeBody = TvScaleFactor(child: effectiveLargeBody);
 
     return SafeFocusScope(
       restorationKey: focusRestorationKey,
