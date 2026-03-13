@@ -10,6 +10,7 @@ import '../../../../core/widgets/glass_surface.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../../core/widgets/watch_progress_bar.dart';
 import '../../domain/entities/playback_state.dart';
+import '../../domain/player_lifecycle_coordinator.dart';
 import '../providers/player_providers.dart';
 
 /// Persistent mini-player bar shown in [AppShell] when
@@ -109,11 +110,11 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar>
     final mode = ref.watch(playerModeProvider.select((s) => s.mode));
 
     final state = data.value;
+    final status = state?.status ?? PlaybackStatus.idle;
     final shouldShow =
         state != null &&
-        state.status != PlaybackStatus.idle &&
         state.channelName != null &&
-        mode != PlayerMode.fullscreen;
+        PlayerLifecycleCoordinator.shouldShowMiniPlayer(mode, status);
 
     // Schedule visibility update after build to avoid
     // setState-during-build errors.
