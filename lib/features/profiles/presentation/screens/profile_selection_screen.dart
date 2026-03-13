@@ -8,7 +8,7 @@ import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import 'package:crispy_tivi/l10n/l10n_extension.dart';
 
-import '../../../../core/widgets/loading_state_widget.dart';
+import '../../../../core/widgets/async_value_ui.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -44,17 +44,8 @@ class ProfileSelectionScreen extends ConsumerWidget {
     return Scaffold(
       key: TestKeys.profileSelectionScreen,
       backgroundColor: Theme.of(context).colorScheme.surface,
-      body: stateAsync.when(
-        loading: () => const LoadingStateWidget(),
-        error:
-            (err, stack) => Center(
-              child: Text(
-                'Error loading profiles: $err',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-            ),
+      body: stateAsync.whenUi(
+        onRetry: () => ref.invalidate(profileServiceProvider),
         data:
             (state) => FocusTraversalGroup(
               policy: OrderedTraversalPolicy(),

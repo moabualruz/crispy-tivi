@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:crispy_tivi/l10n/l10n_extension.dart';
 
 import '../../../../core/testing/test_keys.dart';
-import '../../../../core/widgets/loading_state_widget.dart';
+import '../../../../core/widgets/async_value_ui.dart';
+import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../data/profile_service.dart';
 import '../profile_constants.dart';
@@ -31,15 +32,8 @@ class ProfileManagementScreen extends ConsumerWidget {
     return Scaffold(
       key: TestKeys.profileManagementScreen,
       appBar: AppBar(title: Text(context.l10n.profilesManage)),
-      body: stateAsync.when(
-        loading: () => const LoadingStateWidget(),
-        error:
-            (err, stack) => Center(
-              child: Text(
-                'Error loading profiles: $err',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
+      body: stateAsync.whenUi(
+        onRetry: () => ref.invalidate(profileServiceProvider),
         data: (state) => _buildBody(context, ref, state),
       ),
     );
@@ -70,6 +64,15 @@ class ProfileManagementScreen extends ConsumerWidget {
             ),
           ],
         ),
+      );
+    }
+
+    if (state.profiles.isEmpty) {
+      return EmptyStateWidget(
+        icon: Icons.people_outline,
+        title: 'No profiles found',
+        description: 'Create a profile to get started.',
+        onRefresh: () => ref.invalidate(profileServiceProvider),
       );
     }
 

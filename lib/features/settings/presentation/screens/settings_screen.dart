@@ -10,6 +10,7 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
+import '../../../../core/widgets/error_boundary.dart';
 import '../../../cloud_sync/presentation/widgets/cloud_sync_section.dart';
 import '../widgets/about_settings.dart';
 // FE-S-05
@@ -273,24 +274,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             skipLoadingOnRefresh: true,
             // S-10: skeleton shimmer replaces spinner while settings load.
             loading: () => const _SettingsShimmer(),
-            // S-07: error state includes a retry button.
+            // S-07: error state includes a retry button via ErrorBoundary.
             error:
-                (e, _) => Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48),
-                      const SizedBox(height: CrispySpacing.md),
-                      Text(context.l10n.commonError(e.toString())),
-                      const SizedBox(height: CrispySpacing.lg),
-                      FilledButton.icon(
-                        onPressed:
-                            () => ref.invalidate(settingsNotifierProvider),
-                        icon: const Icon(Icons.refresh),
-                        label: Text(context.l10n.commonRetry),
-                      ),
-                    ],
-                  ),
+                (e, _) => ErrorBoundary(
+                  error: e,
+                  onRetry: () => ref.invalidate(settingsNotifierProvider),
                 ),
             data: (settings) => _buildBody(context, settings),
           ),
