@@ -23,6 +23,7 @@ import '../widgets/epg_channel_row.dart';
 import '../widgets/epg_program_block.dart';
 import '../widgets/epg_state_helpers.dart';
 import '../widgets/epg_timeline_layout.dart';
+import '../../../../core/utils/focus_restoration_service.dart';
 import '../../../../core/widgets/safe_focus_scope.dart';
 import '../widgets/virtual_epg_grid.dart';
 
@@ -43,8 +44,10 @@ class EpgTimelineScreen extends ConsumerStatefulWidget {
 
 class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
     with EpgActionsMixin {
+  static const _routePath = 'epg_timeline';
   late final ScrollController _horizontalScroll;
   late final ScrollController _gridScroll;
+  bool _focusRestored = false;
 
   late DateTime _selectedDate;
 
@@ -79,6 +82,21 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
         previewChannel(state.filteredChannels.first);
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_focusRestored) {
+      _focusRestored = true;
+      restoreFocus(ref, _routePath, context);
+    }
+  }
+
+  @override
+  void deactivate() {
+    saveFocusKey(ref, _routePath);
+    super.deactivate();
   }
 
   @override

@@ -6,6 +6,7 @@ import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/core/providers/source_filter_provider.dart';
+import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/widgets/safe_focus_scope.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
 import 'package:crispy_tivi/features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -15,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 /// Minimal settings notifier for test isolation.
 class _FakeSettingsNotifier extends SettingsNotifier {
@@ -237,6 +239,92 @@ void main() {
 
       // Focus should be on a form field (not null).
       expect(FocusManager.instance.primaryFocus, isNotNull);
+    });
+  });
+
+  group('Sub-page sidebar persistence', () {
+    testWidgets('ShellRoute scaffold persists on sub-page routes', (
+      tester,
+    ) async {
+      // Uses a simplified ShellRoute with a Scaffold keyed by
+      // TestKeys.appShell and a NavigationRail — mirroring the real
+      // AppShell pattern without its heavy provider dependencies.
+      final router = GoRouter(
+        initialLocation: '/home',
+        routes: [
+          ShellRoute(
+            builder: (context, state, child) {
+              return Scaffold(
+                key: TestKeys.appShell,
+                body: Row(
+                  children: [
+                    NavigationRail(
+                      selectedIndex: 0,
+                      destinations: const [
+                        NavigationRailDestination(
+                          icon: Icon(Icons.home),
+                          label: Text('Home'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.settings),
+                          label: Text('Settings'),
+                        ),
+                      ],
+                      onDestinationSelected: (_) {},
+                    ),
+                    Expanded(child: child),
+                  ],
+                ),
+              );
+            },
+            routes: [
+              GoRoute(
+                path: '/home',
+                builder:
+                    (context, state) => const Center(child: Text('Home Page')),
+              ),
+              GoRoute(
+                path: '/settings',
+                builder:
+                    (context, state) =>
+                        const Center(child: Text('Settings Page')),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            crispyBackendProvider.overrideWithValue(MemoryBackend()),
+            settingsNotifierProvider.overrideWith(
+              () => _FakeSettingsNotifier(),
+            ),
+            effectiveSourceIdsProvider.overrideWithValue(const []),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Shell scaffold present on initial route.
+      expect(find.byKey(TestKeys.appShell), findsOneWidget);
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.text('Home Page'), findsOneWidget);
+
+      // Navigate to a sub-page route within the same shell.
+      router.go('/settings');
+      await tester.pumpAndSettle();
+
+      // Shell scaffold and NavigationRail persist after navigation.
+      expect(find.byKey(TestKeys.appShell), findsOneWidget);
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.text('Settings Page'), findsOneWidget);
     });
   });
 }

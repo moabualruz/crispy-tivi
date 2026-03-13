@@ -36,6 +36,7 @@ import '../widgets/sources_settings.dart';
 import '../widgets/network_diagnostics_settings.dart';
 import '../widgets/quick_access_strip.dart';
 import '../widgets/storage_settings.dart';
+import '../../../../core/utils/focus_restoration_service.dart';
 import '../../../../core/widgets/safe_focus_scope.dart';
 import '../widgets/sync_settings.dart';
 
@@ -55,7 +56,9 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen>
     with SingleTickerProviderStateMixin {
+  static const _routePath = 'settings';
   late final TabController _tabController;
+  bool _focusRestored = false;
 
   /// Section keys for scroll-to anchoring.
   ///
@@ -76,6 +79,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       _checkAutoOpenDialog();
       _checkScrollToSection();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_focusRestored) {
+      _focusRestored = true;
+      restoreFocus(ref, _routePath, context);
+    }
+  }
+
+  @override
+  void deactivate() {
+    saveFocusKey(ref, _routePath);
+    super.deactivate();
   }
 
   @override

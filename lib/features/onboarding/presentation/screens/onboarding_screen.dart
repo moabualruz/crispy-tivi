@@ -9,6 +9,7 @@ import '../widgets/onboarding_form_step.dart';
 import '../widgets/onboarding_step_indicator.dart';
 import '../widgets/onboarding_sync_step.dart';
 import '../widgets/onboarding_type_picker_step.dart';
+import '../../../../core/utils/focus_restoration_service.dart';
 import '../../../../core/widgets/safe_focus_scope.dart';
 import '../widgets/onboarding_welcome_step.dart';
 
@@ -25,7 +26,9 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+  static const _routePath = 'onboarding';
   late final PageController _pageController;
+  bool _focusRestored = false;
 
   /// Maps [OnboardingStep] to a page index in the [PageView].
   ///
@@ -58,6 +61,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void initState() {
     super.initState();
     _pageController = PageController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_focusRestored) {
+      _focusRestored = true;
+      restoreFocus(ref, _routePath, context);
+    }
+  }
+
+  @override
+  void deactivate() {
+    saveFocusKey(ref, _routePath);
+    super.deactivate();
   }
 
   @override

@@ -31,6 +31,7 @@ import '../widgets/channel_search_bar_sliver.dart';
 import '../widgets/channel_sync_utils.dart';
 import '../widgets/channel_sliver.dart';
 import '../widgets/channel_sort_menu.dart';
+import '../../../../core/utils/focus_restoration_service.dart';
 import '../../../../core/widgets/safe_focus_scope.dart';
 import '../widgets/channel_tv_layout.dart';
 
@@ -47,9 +48,11 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
   final _searchController = TextEditingController();
   final _searchDebouncer = Debouncer(duration: CrispyAnimation.normal);
   final _channelScrollController = ScrollController();
+  static const _routePath = 'channel_list';
   bool _showSearchBar = false;
   String? _lastKnownRoute;
   bool _autoResumeRan = false;
+  bool _focusRestored = false;
 
   @override
   void initState() {
@@ -69,8 +72,18 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
   }
 
   @override
+  void deactivate() {
+    saveFocusKey(ref, _routePath);
+    super.deactivate();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (!_focusRestored) {
+      _focusRestored = true;
+      restoreFocus(ref, _routePath, context);
+    }
     // GoRouterState is absent in golden/unit tests that use
     // plain MaterialApp — guard with try/catch.
     String? route;
