@@ -88,6 +88,7 @@ void _stubOpen(MockCrispyPlayer mp) {
   when(() => mp.rateStream).thenAnswer((_) => rate ?? const Stream.empty());
   when(() => mp.errorStream).thenAnswer((_) => error ?? const Stream.empty());
   when(() => mp.tracksStream).thenAnswer((_) => tracks ?? const Stream.empty());
+  when(() => mp.stop()).thenAnswer((_) async {});
   when(() => mp.pause()).thenAnswer((_) async {});
   when(() => mp.dispose()).thenAnswer((_) async {});
 

@@ -130,6 +130,23 @@ class PlayerService extends PlayerServiceBase
 
     final normalizedUrl = normalizeStreamUrl(url);
 
+    // Guard: skip re-opening when the same URL and source type are already
+    // playing. Prevents spurious "Reconnecting..." flicker on tab-switch-back
+    // and redundant network round-trips.
+    if (normalizedUrl == _lastUrl &&
+        isLive == _lastIsLive &&
+        _state.status == app.PlaybackStatus.playing) {
+      debugPrint('PlayerService: same URL already playing — skipping reopen');
+      return;
+    }
+
+    // Stop-before-play invariant: ensure previous stream is fully torn down
+    // before opening a new one. Prevents resource leaks during content
+    // switching (live->VOD, channel zap, etc.).
+    if (_lastUrl != null && normalizedUrl != _lastUrl) {
+      await stop();
+    }
+
     // Notify adaptive buffer manager of channel change
     // so in-memory health counters are reset for the new URL.
     if (isLive && _bufferManager != null) {
@@ -143,21 +160,6 @@ class PlayerService extends PlayerServiceBase
     // channel switches.
     if (_warmFailover != null) {
       await _warmFailover.onChannelChange();
-    }
-
-    // Detect VOD → Live transition for logging. player.open() handles
-    // the transition in-place — no explicit stop() needed.
-    final wasPlayingVod =
-        _webBridge == null && _lastUrl != null && !_lastIsLive && isLive;
-
-    // Guard: skip re-opening when the same URL and source type are already
-    // playing. Prevents spurious "Reconnecting…" flicker on tab-switch-back
-    // and redundant network round-trips (FIX-11: URL guard).
-    if (normalizedUrl == _lastUrl &&
-        isLive == _lastIsLive &&
-        _state.status == app.PlaybackStatus.playing) {
-      debugPrint('PlayerService: same URL already playing — skipping reopen');
-      return;
     }
     // Store for reconnection.
     _lastUrl = normalizedUrl;
@@ -206,14 +208,6 @@ class PlayerService extends PlayerServiceBase
         'skipping media_kit open',
       );
       return;
-    }
-
-    // VOD → Live: player.open() replaces the current media in-place,
-    // including codec/demuxer reset. No explicit stop() is needed — it
-    // would create a timing gap where mpv is mid-teardown when open()
-    // fires, causing the first connection attempt to fail.
-    if (wasPlayingVod) {
-      debugPrint('PlayerService: VOD→Live transition — opening in-place');
     }
 
     // Reset proxy state for the new channel.
@@ -555,20 +549,37 @@ class PlayerService extends PlayerServiceBase
   }
 
   /// Stop playback and reset state.
+  ///
+  /// Dispose cascade order (guaranteed):
+  /// 1. Cancel watchdog + retry/sleep timers
+  /// 2. Reset warm failover state
+  /// 3. Stop stream proxy
+  /// 4. Deactivate media session
+  /// 5. Stop CrispyPlayer (or web bridge)
+  /// 6. Reset PlaybackState to idle
+  /// 7. Emit idle state on stream
+  ///
+  /// Idempotent: safe to call multiple times. Each
+  /// step is individually guarded so double-stop does not
+  /// crash or double-dispose resources.
   @override
   Future<void> stop() async {
+    // 1. Cancel watchdog + retry/sleep timers.
     stopWatchdog();
     _retryTimer?.cancel();
     _retryTimer = null;
     _sleepTimer?.cancel();
     _sleepTimer = null;
     _sleepTimerEndTime = null;
-    // Reset warm failover state (not dispose — dispose is
+
+    // 2. Reset warm failover state (not dispose — dispose is
     // only in PlayerService.dispose()). Prevents double-dispose
     // when stop() is followed by dispose().
     if (_warmFailover != null) {
       await _warmFailover.onChannelChange();
     }
+
+    // 3. Stop stream proxy.
     _audioCheckTimer?.cancel();
     _proxyActive = false;
     unawaited(_streamProxy.stop());
@@ -576,13 +587,17 @@ class PlayerService extends PlayerServiceBase
     _lastUrl = null;
     _retryCount = 0;
 
+    // 4. Deactivate media session.
     unawaited(_mediaSession.deactivate());
 
+    // 5. Stop CrispyPlayer (or web bridge).
     if (_webBridge != null) {
       _webBridge!.stop();
     } else {
       await _player.stop();
     }
+
+    // 6–7. Reset PlaybackState to idle and emit.
     _state = const app.PlaybackState();
     _stateController.add(_state);
   }
@@ -593,7 +608,12 @@ class PlayerService extends PlayerServiceBase
     _updateState(isFullscreen: value);
   }
 
-  /// Dispose the player and clean up subscriptions.
+  /// Full disposal cascade (extends [stop]):
+  /// 1. All stop() cleanup (timers, proxy, media session, player)
+  /// 2. Close state stream controller
+  /// 3. Cancel position flush timer
+  /// 4. Dispose CrispyPlayer instance
+  /// 5. Dispose handoff manager
   Future<void> dispose() async {
     stopWatchdog();
     _retryTimer?.cancel();
