@@ -133,6 +133,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             (state.extra as Map<String, dynamic>)['explicit'] == true;
         final profiles = profileState.profiles;
         if (!isExplicit && profiles.length == 1 && !profiles.first.hasPIN) {
+          // First-run: no sources configured → go directly to
+          // onboarding instead of home. This avoids a redirect
+          // hop through /home that GoRouter may not re-evaluate.
+          if (settings.sources.isEmpty) {
+            return AppRoutes.onboarding;
+          }
           // The single profile is already active (ProfileService.build
           // sets activeProfileId to profiles.first.id). Just redirect
           // to the user's preferred default screen — no state mutation
