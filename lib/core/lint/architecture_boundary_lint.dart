@@ -74,13 +74,18 @@ class ArchitectureBoundaryLint {
   static List<LintViolation> scanFile(String filePath) {
     final file = File(filePath);
     if (!file.existsSync()) return [];
-    return scanSource(file.readAsStringSync(), filePath);
+    // Normalize path separators for cross-platform compatibility
+    final normalizedPath = filePath.replaceAll(r'\', '/');
+    return scanSource(file.readAsStringSync(), normalizedPath);
   }
 
   /// Scans Dart [source] code and returns architecture boundary violations.
   ///
   /// Only enforced when [filePath] contains `features/`. Files in `core/`,
   /// `src/`, or other directories are exempt.
+  ///
+  /// Note: [filePath] should use forward slashes. [scanFile] normalizes
+  /// automatically; callers of [scanSource] should normalize if needed.
   static List<LintViolation> scanSource(String source, [String? filePath]) {
     // Only enforce on files under features/
     if (filePath == null || !filePath.contains('features/')) return [];

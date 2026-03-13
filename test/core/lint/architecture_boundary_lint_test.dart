@@ -177,6 +177,19 @@ class RustBinding {}
       });
     });
 
+    group('scanSource() with backslash paths (Windows)', () {
+      test('should detect violations when path uses backslashes', () {
+        // scanSource requires callers to normalize; scanFile does it
+        // automatically. This tests that callers who pre-normalize work.
+        const source = "import 'dart:io';";
+        final violations = ArchitectureBoundaryLint.scanSource(
+          source,
+          r'lib\features\dvr\data\dvr_service.dart'.replaceAll(r'\', '/'),
+        );
+        expect(violations, hasLength(1));
+      });
+    });
+
     group('scanFile()', () {
       test('should return empty list for non-existent path', () {
         final violations = ArchitectureBoundaryLint.scanFile(
