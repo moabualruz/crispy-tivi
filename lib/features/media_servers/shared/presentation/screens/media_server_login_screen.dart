@@ -13,7 +13,7 @@ import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/widgets/async_filled_button.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/sync_progress_dialog.dart';
-import 'package:crispy_tivi/core/widgets/safe_focus_scope.dart';
+import 'package:crispy_tivi/core/widgets/screen_template.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/error_sanitizer.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
 
@@ -334,132 +334,120 @@ class _MediaServerLoginScreenState
     return Scaffold(
       key: TestKeys.mediaServerLoginScreen,
       appBar: AppBar(title: Text('Connect ${widget.serverName}')),
-      body: FocusTraversalGroup(
-        policy: OrderedTraversalPolicy(),
-        child: SafeFocusScope(
-          restorationKey: 'media_server_login',
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    constraints: const BoxConstraints(
-                      maxWidth: kLoginFormMaxWidth,
-                    ),
-                    padding: const EdgeInsets.all(CrispySpacing.lg),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (_error != null)
-                            Container(
-                              padding: const EdgeInsets.all(CrispySpacing.sm),
-                              margin: const EdgeInsets.only(
-                                bottom: CrispySpacing.md,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.errorContainer,
-                                borderRadius: BorderRadius.zero,
-                              ),
-                              child: Text(
-                                _error!,
-                                style: TextStyle(
-                                  color:
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.onErrorContainer,
-                                ),
-                              ),
-                            ),
-                          TextFormField(
-                            controller: _urlCtrl,
-                            decoration: InputDecoration(
-                              labelText: 'Server URL',
-                              hintText: widget.urlHint,
-                              prefixIcon: const Icon(Icons.dns),
-                              border: const OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.url,
-                            textInputAction: TextInputAction.next,
-                            onChanged: (value) {
-                              // Reset test-connection indicator when URL changes.
-                              if (widget.testConnection != null &&
-                                  _testState != _TestState.idle) {
-                                setState(() => _testState = _TestState.idle);
-                              }
-                              // Notify parent of URL change (e.g. for user picker).
-                              widget.onUrlChanged?.call(value);
-                            },
-                            validator:
-                                (v) =>
-                                    v == null || v.isEmpty ? 'Required' : null,
+      body: ScreenTemplate(
+        hasRail: false,
+        hasMiniPlayer: false,
+        focusRestorationKey: 'media_server_login',
+        traversalPolicy: OrderedTraversalPolicy(),
+        compactBody: _buildLoginForm(context),
+        largeBody: _buildLoginForm(context),
+      ),
+    );
+  }
+
+  Widget _buildLoginForm(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: kLoginFormMaxWidth),
+              padding: const EdgeInsets.all(CrispySpacing.lg),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_error != null)
+                      Container(
+                        padding: const EdgeInsets.all(CrispySpacing.sm),
+                        margin: const EdgeInsets.only(bottom: CrispySpacing.md),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.errorContainer,
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        child: Text(
+                          _error!,
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onErrorContainer,
                           ),
-                          if (widget.testConnection != null) ...[
-                            const SizedBox(height: CrispySpacing.sm),
-                            _TestConnectionButton(
-                              state: _testState,
-                              serverInfo: _serverInfo,
-                              testError: _testError,
-                              onTest: _testConnectionTap,
-                            ),
-                          ],
-                          if (widget.showUsernameField) ...[
-                            const SizedBox(height: CrispySpacing.md),
-                            TextFormField(
-                              controller: _userCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Username',
-                                prefixIcon: Icon(Icons.person),
-                                border: OutlineInputBorder(),
-                              ),
-                              textInputAction: TextInputAction.next,
-                              validator:
-                                  (v) =>
-                                      v == null || v.isEmpty
-                                          ? 'Required'
-                                          : null,
-                            ),
-                          ],
-                          const SizedBox(height: CrispySpacing.md),
-                          TextFormField(
-                            controller: _credCtrl,
-                            decoration: InputDecoration(
-                              labelText: widget.credentialLabel,
-                              hintText: widget.credentialHint,
-                              helperText: widget.credentialHelperText,
-                              prefixIcon: Icon(widget.credentialIcon),
-                              border: const OutlineInputBorder(),
-                            ),
-                            obscureText: widget.obscureCredential,
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (_) => _connect(),
-                            validator:
-                                (v) =>
-                                    v == null || v.isEmpty ? 'Required' : null,
-                          ),
-                          const SizedBox(height: CrispySpacing.lg),
-                          AsyncFilledButton(
-                            isLoading: _isLoading,
-                            label: 'Connect',
-                            onPressed: _connect,
-                          ),
-                        ],
+                        ),
                       ),
+                    TextFormField(
+                      controller: _urlCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Server URL',
+                        hintText: widget.urlHint,
+                        prefixIcon: const Icon(Icons.dns),
+                        border: const OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.url,
+                      textInputAction: TextInputAction.next,
+                      onChanged: (value) {
+                        if (widget.testConnection != null &&
+                            _testState != _TestState.idle) {
+                          setState(() => _testState = _TestState.idle);
+                        }
+                        widget.onUrlChanged?.call(value);
+                      },
+                      validator:
+                          (v) => v == null || v.isEmpty ? 'Required' : null,
                     ),
-                  ),
+                    if (widget.testConnection != null) ...[
+                      const SizedBox(height: CrispySpacing.sm),
+                      _TestConnectionButton(
+                        state: _testState,
+                        serverInfo: _serverInfo,
+                        testError: _testError,
+                        onTest: _testConnectionTap,
+                      ),
+                    ],
+                    if (widget.showUsernameField) ...[
+                      const SizedBox(height: CrispySpacing.md),
+                      TextFormField(
+                        controller: _userCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Username',
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        ),
+                        textInputAction: TextInputAction.next,
+                        validator:
+                            (v) => v == null || v.isEmpty ? 'Required' : null,
+                      ),
+                    ],
+                    const SizedBox(height: CrispySpacing.md),
+                    TextFormField(
+                      controller: _credCtrl,
+                      decoration: InputDecoration(
+                        labelText: widget.credentialLabel,
+                        hintText: widget.credentialHint,
+                        helperText: widget.credentialHelperText,
+                        prefixIcon: Icon(widget.credentialIcon),
+                        border: const OutlineInputBorder(),
+                      ),
+                      obscureText: widget.obscureCredential,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _connect(),
+                      validator:
+                          (v) => v == null || v.isEmpty ? 'Required' : null,
+                    ),
+                    const SizedBox(height: CrispySpacing.lg),
+                    AsyncFilledButton(
+                      isLoading: _isLoading,
+                      label: 'Connect',
+                      onPressed: _connect,
+                    ),
+                  ],
                 ),
-                // Optional slot for server-specific content below the form.
-                if (widget.bodyFooter != null) widget.bodyFooter!(context),
-              ],
+              ),
             ),
           ),
-        ),
+          if (widget.bodyFooter != null) widget.bodyFooter!(context),
+        ],
       ),
     );
   }

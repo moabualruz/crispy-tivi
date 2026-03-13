@@ -10,7 +10,7 @@ import '../widgets/onboarding_step_indicator.dart';
 import '../widgets/onboarding_sync_step.dart';
 import '../widgets/onboarding_type_picker_step.dart';
 import '../../../../core/utils/focus_restoration_service.dart';
-import '../../../../core/widgets/safe_focus_scope.dart';
+import '../../../../core/widgets/screen_template.dart';
 import '../widgets/onboarding_welcome_step.dart';
 
 /// Root screen for the first-run onboarding wizard.
@@ -108,41 +108,51 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: Scaffold(
         key: TestKeys.onboardingScreen,
         backgroundColor: colorScheme.surface,
-        body: FocusTraversalGroup(
-          policy: OrderedTraversalPolicy(),
-          child: SafeFocusScope(
-            restorationKey: 'onboarding',
-            child: Stack(
-              children: [
-                const _GlassmorphicBackground(),
-                SafeArea(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: CrispySpacing.lg),
-                      OnboardingStepIndicator(
-                        currentStep: _stepToIndicatorIndex(currentStep),
-                      ),
-                      const SizedBox(height: CrispySpacing.lg),
-                      Expanded(
-                        child: PageView(
-                          controller: _pageController,
-                          physics: const NeverScrollableScrollPhysics(),
-                          children: const [
-                            OnboardingWelcomeStep(),
-                            OnboardingTypePickerStep(),
-                            OnboardingFormStep(),
-                            OnboardingSyncStep(),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+        body: ScreenTemplate(
+          hasRail: false,
+          hasMiniPlayer: false,
+          focusRestorationKey: 'onboarding',
+          traversalPolicy: OrderedTraversalPolicy(),
+          compactBody: _buildOnboardingBody(currentStep),
+          largeBody: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: _buildOnboardingBody(currentStep),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildOnboardingBody(OnboardingStep currentStep) {
+    return Stack(
+      children: [
+        const _GlassmorphicBackground(),
+        SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: CrispySpacing.lg),
+              OnboardingStepIndicator(
+                currentStep: _stepToIndicatorIndex(currentStep),
+              ),
+              const SizedBox(height: CrispySpacing.lg),
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: const [
+                    OnboardingWelcomeStep(),
+                    OnboardingTypePickerStep(),
+                    OnboardingFormStep(),
+                    OnboardingSyncStep(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
