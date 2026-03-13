@@ -45,6 +45,9 @@ flutter-test: ## Run Flutter tests
 analyze: ## Run Flutter static analysis
 	flutter analyze
 
+check-boundary: ## Check architecture boundary violations
+	dart run scripts/check_boundary.dart
+
 # ── Rust ───────────────────────────────────────────
 
 rust-build: ## Build Rust FFI for current platform

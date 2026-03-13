@@ -4,11 +4,13 @@ import 'min_touch_target_lint.dart';
 
 /// Regex-based source scanner that detects forbidden imports in `lib/features/`.
 ///
-/// Architecture boundary rule: files under `features/` must not import
-/// platform I/O (`dart:io`, `dart:convert`), HTTP packages (`dio`, `http`),
-/// direct FFI bindings (`src/rust/`), or database packages (`drift`, `sqlite`).
+/// Architecture boundary rule: files under `features/` in **presentation/**,
+/// **domain/**, or **application/** layers must not import platform I/O
+/// (`dart:io`, `dart:convert`), HTTP packages (`dio`, `http`), direct FFI
+/// bindings (`src/rust/`), or database packages (`drift`, `sqlite`).
 ///
-/// These imports belong in `lib/core/` or `lib/src/` — never in feature code.
+/// Files in `features/*/data/` (infrastructure layer) are **exempt** — they
+/// are the legitimate place for these imports per Clean Architecture.
 ///
 /// Run via test:
 /// `flutter test test/core/lint/architecture_boundary_lint_test.dart`
@@ -81,14 +83,20 @@ class ArchitectureBoundaryLint {
 
   /// Scans Dart [source] code and returns architecture boundary violations.
   ///
-  /// Only enforced when [filePath] contains `features/`. Files in `core/`,
-  /// `src/`, or other directories are exempt.
+  /// Only enforced when [filePath] is in `features/` AND in a non-data layer
+  /// (`presentation/`, `domain/`, `application/`, or `utils/`). Files in
+  /// `features/*/data/` are exempt (legitimate infrastructure layer).
+  ///
+  /// Files in `core/`, `src/`, or other top-level directories are also exempt.
   ///
   /// Note: [filePath] should use forward slashes. [scanFile] normalizes
   /// automatically; callers of [scanSource] should normalize if needed.
   static List<LintViolation> scanSource(String source, [String? filePath]) {
     // Only enforce on files under features/
     if (filePath == null || !filePath.contains('features/')) return [];
+
+    // Exempt data/ layer — infrastructure imports are legitimate there
+    if (_isDataLayer(filePath)) return [];
 
     final violations = <LintViolation>[];
     final lines = source.split('\n');
@@ -110,6 +118,20 @@ class ArchitectureBoundaryLint {
     }
 
     return violations;
+  }
+
+  /// Returns `true` if [filePath] is in the `data/` infrastructure layer.
+  ///
+  /// Matches paths like `features/iptv/data/...` or
+  /// `features/media_servers/plex/data/...` — any `data/` segment after
+  /// the feature root is considered infrastructure.
+  static bool _isDataLayer(String filePath) {
+    // Find the features/ prefix, then check if any subsequent segment is data/
+    final featuresIndex = filePath.indexOf('features/');
+    if (featuresIndex < 0) return false;
+    final afterFeatures = filePath.substring(featuresIndex);
+    // Match: features/<name>/data/ or features/<name>/<sub>/data/
+    return RegExp(r'features/[^/]+(/[^/]+)*/data/').hasMatch(afterFeatures);
   }
 }
 

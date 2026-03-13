@@ -4,8 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('ArchitectureBoundaryLint', () {
-    group('scanSource() with features/ path', () {
-      const featuresPath = 'lib/features/iptv/data/iptv_repository.dart';
+    group('scanSource() with features/ presentation path', () {
+      const presentationPath =
+          'lib/features/iptv/presentation/screens/channel_screen.dart';
 
       test('should detect dart:io import as violation', () {
         const source = '''
@@ -15,12 +16,12 @@ class Foo {}
 ''';
         final violations = ArchitectureBoundaryLint.scanSource(
           source,
-          featuresPath,
+          presentationPath,
         );
         expect(violations, hasLength(1));
         expect(violations.first.line, 1);
         expect(violations.first.message, contains('dart:io'));
-        expect(violations.first.file, featuresPath);
+        expect(violations.first.file, presentationPath);
       });
 
       test('should detect dart:convert import as violation', () {
@@ -31,7 +32,7 @@ class Foo {}
 ''';
         final violations = ArchitectureBoundaryLint.scanSource(
           source,
-          featuresPath,
+          presentationPath,
         );
         expect(violations, hasLength(1));
         expect(violations.first.message, contains('dart:convert'));
@@ -45,7 +46,7 @@ class Foo {}
 ''';
         final violations = ArchitectureBoundaryLint.scanSource(
           source,
-          featuresPath,
+          presentationPath,
         );
         expect(violations, hasLength(1));
         expect(violations.first.message, contains('dio'));
@@ -59,7 +60,7 @@ class Foo {}
 ''';
         final violations = ArchitectureBoundaryLint.scanSource(
           source,
-          featuresPath,
+          presentationPath,
         );
         expect(violations, hasLength(1));
         expect(violations.first.message, contains('http'));
@@ -73,7 +74,7 @@ class Foo {}
 ''';
         final violations = ArchitectureBoundaryLint.scanSource(
           source,
-          featuresPath,
+          presentationPath,
         );
         expect(violations, hasLength(1));
         expect(violations.first.message, contains('FFI'));
@@ -87,7 +88,7 @@ class Foo {}
 ''';
         final violations = ArchitectureBoundaryLint.scanSource(
           source,
-          featuresPath,
+          presentationPath,
         );
         expect(violations, hasLength(1));
         expect(violations.first.message, contains('drift'));
@@ -101,7 +102,7 @@ class Foo {}
 ''';
         final violations = ArchitectureBoundaryLint.scanSource(
           source,
-          featuresPath,
+          presentationPath,
         );
         expect(violations, hasLength(1));
         expect(violations.first.message, contains('sqlite'));
@@ -118,7 +119,7 @@ class MyWidget extends ConsumerWidget {}
 ''';
         final violations = ArchitectureBoundaryLint.scanSource(
           source,
-          featuresPath,
+          presentationPath,
         );
         expect(violations, isEmpty);
       });
@@ -134,7 +135,7 @@ class Foo {}
 ''';
         final violations = ArchitectureBoundaryLint.scanSource(
           source,
-          featuresPath,
+          presentationPath,
         );
         expect(violations, hasLength(3));
         expect(violations[0].line, 1);
@@ -143,6 +144,89 @@ class Foo {}
         expect(violations[1].message, contains('dart:convert'));
         expect(violations[2].line, 4);
         expect(violations[2].message, contains('dio'));
+      });
+    });
+
+    group('scanSource() with features/ domain path', () {
+      const domainPath =
+          'lib/features/player/domain/entities/audio_output.dart';
+
+      test('should detect dart:io in domain as violation', () {
+        const source = "import 'dart:io' show Platform;";
+        final violations = ArchitectureBoundaryLint.scanSource(
+          source,
+          domainPath,
+        );
+        expect(violations, hasLength(1));
+        expect(violations.first.message, contains('dart:io'));
+      });
+
+      test('should detect dart:convert in domain as violation', () {
+        const source = "import 'dart:convert';";
+        final violations = ArchitectureBoundaryLint.scanSource(
+          source,
+          domainPath,
+        );
+        expect(violations, hasLength(1));
+        expect(violations.first.message, contains('dart:convert'));
+      });
+    });
+
+    group('scanSource() with features/ data path (exempt)', () {
+      const dataPath = 'lib/features/iptv/data/iptv_repository.dart';
+
+      test('should allow dart:io in data layer', () {
+        const source = "import 'dart:io';";
+        final violations = ArchitectureBoundaryLint.scanSource(
+          source,
+          dataPath,
+        );
+        expect(violations, isEmpty);
+      });
+
+      test('should allow dart:convert in data layer', () {
+        const source = "import 'dart:convert';";
+        final violations = ArchitectureBoundaryLint.scanSource(
+          source,
+          dataPath,
+        );
+        expect(violations, isEmpty);
+      });
+
+      test('should allow package:dio in data layer', () {
+        const source = "import 'package:dio/dio.dart';";
+        final violations = ArchitectureBoundaryLint.scanSource(
+          source,
+          dataPath,
+        );
+        expect(violations, isEmpty);
+      });
+
+      test('should allow package:http in data layer', () {
+        const source = "import 'package:http/http.dart';";
+        final violations = ArchitectureBoundaryLint.scanSource(
+          source,
+          dataPath,
+        );
+        expect(violations, isEmpty);
+      });
+
+      test('should allow FFI imports in data layer', () {
+        const source = "import '../../src/rust/api/display.dart';";
+        final violations = ArchitectureBoundaryLint.scanSource(
+          source,
+          dataPath,
+        );
+        expect(violations, isEmpty);
+      });
+
+      test('should allow nested data layer (media_servers/plex/data/)', () {
+        const source = "import 'package:dio/dio.dart';";
+        final violations = ArchitectureBoundaryLint.scanSource(
+          source,
+          'lib/features/media_servers/plex/data/datasources/plex_api.dart',
+        );
+        expect(violations, isEmpty);
       });
     });
 
@@ -184,7 +268,10 @@ class RustBinding {}
         const source = "import 'dart:io';";
         final violations = ArchitectureBoundaryLint.scanSource(
           source,
-          r'lib\features\dvr\data\dvr_service.dart'.replaceAll(r'\', '/'),
+          r'lib\features\dvr\presentation\screens\dvr_screen.dart'.replaceAll(
+            r'\',
+            '/',
+          ),
         );
         expect(violations, hasLength(1));
       });
