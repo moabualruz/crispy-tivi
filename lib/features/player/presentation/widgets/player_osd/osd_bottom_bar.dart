@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -709,12 +707,10 @@ String _orientationLabel(DeviceOrientation o, BuildContext context) =>
 /// Loads the persisted allowed-orientation set from [CacheService].
 /// Returns all orientations if no preference is stored.
 Future<Set<DeviceOrientation>> loadRotationLock(WidgetRef ref) async {
-  final json = await ref
-      .read(cacheServiceProvider)
-      .getSetting(kRotationLockKey);
-  if (json == null || json.isEmpty) return Set.from(DeviceOrientation.values);
-  final list = (jsonDecode(json) as List).cast<int>();
-  return list.map((i) => DeviceOrientation.values[i]).toSet();
+  final cache = ref.read(cacheServiceProvider);
+  final indices = await cache.getSettingIntList(kRotationLockKey);
+  if (indices == null) return Set.from(DeviceOrientation.values);
+  return indices.map((i) => DeviceOrientation.values[i]).toSet();
 }
 
 /// Persists the allowed-orientation set and applies it immediately.
@@ -725,7 +721,7 @@ Future<void> saveRotationLock(
   final indices = orientations.map((o) => o.index).toList()..sort();
   await ref
       .read(cacheServiceProvider)
-      .setSetting(kRotationLockKey, jsonEncode(indices));
+      .setSettingIntList(kRotationLockKey, indices);
   SystemChrome.setPreferredOrientations(orientations.toList());
 }
 

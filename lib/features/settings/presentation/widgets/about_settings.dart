@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
@@ -57,14 +55,14 @@ class _AboutSettingsSectionState extends ConsumerState<AboutSettingsSection> {
     final interval =
         freq == 'weekly' ? const Duration(days: 7) : const Duration(days: 1);
     try {
-      final json = await cache.checkForUpdate(
+      final result = await cache.checkForUpdateParsed(
         widget.appVersion,
         _defaultRepoUrl,
         checkInterval: interval,
       );
       if (mounted) {
         setState(() {
-          _updateResult = jsonDecode(json) as Map<String, dynamic>;
+          _updateResult = result;
         });
       }
     } catch (_) {}
@@ -74,13 +72,13 @@ class _AboutSettingsSectionState extends ConsumerState<AboutSettingsSection> {
     setState(() => _isChecking = true);
     try {
       final cache = ref.read(cacheServiceProvider);
-      final json = await cache.checkForUpdate(
+      final result = await cache.checkForUpdateParsed(
         widget.appVersion,
         _defaultRepoUrl,
       );
       if (mounted) {
         setState(() {
-          _updateResult = jsonDecode(json) as Map<String, dynamic>;
+          _updateResult = result;
           _isChecking = false;
         });
         if (_updateResult?['has_update'] == true) {

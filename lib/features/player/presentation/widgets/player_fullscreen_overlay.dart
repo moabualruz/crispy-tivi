@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -164,16 +163,14 @@ class _PlayerFullscreenOverlayState
   /// Reads the persisted rotation lock preference. Falls back to
   /// landscape-only when no preference has been saved.
   Future<List<DeviceOrientation>> _loadRotationLock() async {
-    final json = await ref
-        .read(cacheServiceProvider)
-        .getSetting(kRotationLockKey);
-    if (json == null || json.isEmpty) {
+    final cache = ref.read(cacheServiceProvider);
+    final indices = await cache.getSettingIntList(kRotationLockKey);
+    if (indices == null) {
       return [
         DeviceOrientation.landscapeLeft,
         DeviceOrientation.landscapeRight,
       ];
     }
-    final indices = (jsonDecode(json) as List).cast<int>();
     return indices.map((i) => DeviceOrientation.values[i]).toList();
   }
 

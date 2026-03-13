@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,17 +14,12 @@ import '../../domain/utils/profile_stats.dart';
 final profileViewingStatsProvider =
     FutureProvider.family<ProfileViewingStats, String>((ref, profileId) async {
       final service = ref.watch(watchHistoryServiceProvider);
-      final backend = ref.read(crispyBackendProvider);
+      final cache = ref.read(cacheServiceProvider);
       final all = await service.getAll();
       final entries = all.where((e) => e.profileId == profileId).toList();
-      final historyJson = jsonEncode(
-        entries.map(watchHistoryEntryToMap).toList(),
-      );
       final nowMs = DateTime.now().toUtc().millisecondsSinceEpoch;
-      final resultJson = await backend.computeProfileStats(historyJson, nowMs);
-      return ProfileViewingStats.fromJson(
-        jsonDecode(resultJson) as Map<String, dynamic>,
-      );
+      final map = await cache.computeProfileStats(entries, nowMs);
+      return ProfileViewingStats.fromJson(map);
     });
 
 /// A card tile showing viewing statistics for a profile (FE-PM-09).

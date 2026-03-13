@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -211,6 +209,7 @@ class _CloudBrowserScreenState extends ConsumerState<CloudBrowserScreen>
     setState(() => _sorting = true);
 
     try {
+      final cache = ref.read(cacheServiceProvider);
       final backend = ref.read(crispyBackendProvider);
 
       // 1. Filter using sync classifyFileType.
@@ -221,19 +220,17 @@ class _CloudBrowserScreenState extends ConsumerState<CloudBrowserScreen>
             return _classifiedMatchesFilter(fileType, filter);
           }).toList();
 
-      // 2. Serialize for Rust sort.
-      final filesJson = jsonEncode(filtered.map(_remoteFileToJson).toList());
+      // 2. Build maps for Rust sort.
+      final fileMaps = filtered.map(_remoteFileToJson).toList();
       final orderStr = _sortOrderToString(order);
 
-      // 3. Sort via backend.
-      final resultJson = await backend.sortRemoteFiles(filesJson, orderStr);
+      // 3. Sort via CacheService (JSON handled internally).
+      final sortedMaps = await cache.sortRemoteFilesParsed(fileMaps, orderStr);
 
       if (!mounted) return;
 
       // 4. Deserialize — preserve original RemoteFile instances by name.
       final byName = {for (final f in filtered) f.name: f};
-      final sortedMaps =
-          (jsonDecode(resultJson) as List).cast<Map<String, dynamic>>();
       final sorted =
           sortedMaps.map((m) => _remoteFileFromJson(m, byName)).toList();
 

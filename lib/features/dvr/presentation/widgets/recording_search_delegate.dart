@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,7 +11,6 @@ import '../../../../core/widgets/loading_state_widget.dart';
 import '../../data/dvr_service.dart';
 import '../../domain/entities/recording.dart';
 import '../../domain/entities/recording_profile.dart';
-import '../../domain/utils/dvr_payload.dart';
 
 /// Opens the [RecordingSearchDelegate] for DVR-internal search.
 void showRecordingSearch(BuildContext context, WidgetRef ref) {
@@ -111,14 +108,9 @@ class RecordingSearchDelegate extends SearchDelegate<void> {
   /// Delegates to [CrispyBackend.filterDvrRecordings].
   Future<List<Recording>> _filter(List<Recording> recordings, String q) async {
     if (q.isEmpty) return recordings;
-    final backend = ref.read(crispyBackendProvider);
-    final recordingsJson = jsonEncode(recordings.map(recordingToMap).toList());
-    final resultJson = await backend.filterDvrRecordings(recordingsJson, q);
-    final List<dynamic> maps = jsonDecode(resultJson);
-    return maps
-        .cast<Map<String, dynamic>>()
-        .map(_mapToRecordingFromJson)
-        .toList();
+    final cache = ref.read(cacheServiceProvider);
+    final maps = await cache.filterDvrRecordingsParsed(recordings, q);
+    return maps.map(_mapToRecordingFromJson).toList();
   }
 }
 

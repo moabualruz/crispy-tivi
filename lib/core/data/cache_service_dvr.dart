@@ -109,10 +109,14 @@ mixin _CacheDvrMixin on _CacheServiceBase {
   }
 
   /// Sorts remote files via the Rust backend.
+  ///
+  /// Accepts pre-built maps (not domain entities) because
+  /// [RemoteFile] is a presentation-layer type.
   Future<List<Map<String, dynamic>>> sortRemoteFilesParsed(
-    String filesJson,
+    List<Map<String, dynamic>> fileMaps,
     String orderStr,
   ) async {
+    final filesJson = jsonEncode(fileMaps);
     final resultJson = await _backend.sortRemoteFiles(filesJson, orderStr);
     return (jsonDecode(resultJson) as List).cast<Map<String, dynamic>>();
   }

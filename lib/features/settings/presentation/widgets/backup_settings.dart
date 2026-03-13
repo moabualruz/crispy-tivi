@@ -1,8 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../core/data/codecs/json_prefs_codec.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/theme/crispy_animation.dart';
@@ -305,7 +305,7 @@ class _SettingsImportExportSectionState
       },
     };
 
-    final jsonText = const JsonEncoder.withIndent('  ').convert(exportMap);
+    final jsonText = JsonPrefsCodec.prettyEncode(exportMap);
     await Clipboard.setData(ClipboardData(text: jsonText));
 
     if (!context.mounted) return;
@@ -362,7 +362,7 @@ class _SettingsImportExportSectionState
       }
 
       // Parse and validate.
-      final decoded = json.decode(text) as Map<String, dynamic>?;
+      final decoded = JsonPrefsCodec.tryDecodeMap(text);
       if (decoded == null || decoded['preferences'] == null) {
         messenger.showSnackBar(
           const SnackBar(content: Text('Invalid settings file')),

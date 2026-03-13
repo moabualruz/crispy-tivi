@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,7 +10,6 @@ import '../../../../core/widgets/error_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../data/dvr_service.dart';
 import '../../domain/entities/recording.dart';
-import '../../domain/utils/dvr_payload.dart';
 import '../../domain/utils/storage_breakdown.dart';
 import 'storage_bar.dart';
 
@@ -147,14 +144,9 @@ class StorageBreakdownSheet extends ConsumerWidget {
     WidgetRef ref,
     List<Recording> recordings,
   ) async {
-    final backend = ref.read(crispyBackendProvider);
-    final recordingsJson = jsonEncode(recordings.map(recordingToMap).toList());
+    final cache = ref.read(cacheServiceProvider);
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final resultJson = await backend.computeStorageBreakdown(
-      recordingsJson,
-      nowMs,
-    );
-    final map = jsonDecode(resultJson) as Map<String, dynamic>;
+    final map = await cache.computeStorageBreakdownParsed(recordings, nowMs);
     return StorageBreakdownData.fromJson(map);
   }
 }
