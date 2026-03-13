@@ -31,7 +31,10 @@ class ErrorBoundary extends StatelessWidget {
   final Object error;
 
   /// Called when the user taps the retry button.
-  final VoidCallback onRetry;
+  ///
+  /// When `null`, the retry button is hidden (e.g. inside
+  /// [ErrorWidget.builder] where no provider context is available).
+  final VoidCallback? onRetry;
 
   /// If `true`, renders a single-row compact layout.
   final bool compact;
@@ -62,11 +65,12 @@ class ErrorBoundary extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: onRetry,
-            tooltip: context.l10n.commonRetry,
-          ),
+          if (onRetry != null)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: onRetry,
+              tooltip: context.l10n.commonRetry,
+            ),
         ],
       ),
     );
@@ -93,12 +97,14 @@ class ErrorBoundary extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: CrispySpacing.lg),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: Text(context.l10n.commonRetry),
-            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: CrispySpacing.lg),
+              OutlinedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: Text(context.l10n.commonRetry),
+              ),
+            ],
           ],
         ),
       ),

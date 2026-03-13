@@ -29,6 +29,7 @@ import 'core/utils/timezone_utils.dart';
 import 'core/widgets/media_query_scaler.dart';
 import 'core/widgets/responsive_layout.dart';
 import 'core/widgets/smart_image.dart';
+import 'core/widgets/error_boundary.dart';
 import 'core/widgets/splash_screen.dart';
 import 'core/utils/window_config.dart';
 import 'core/widgets/ui_auto_scale.dart';
@@ -233,6 +234,25 @@ Future<void> main() async {
       await windowManager.focus();
     });
   }
+
+  // ── Global error overrides ──────────────────────────────
+  // Catch Flutter framework errors (widget build, layout, etc.)
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('FlutterError: ${details.exception}\n${details.stack}');
+  };
+
+  // Replace the red error screen with a recoverable ErrorBoundary.
+  ErrorWidget.builder =
+      (details) => Material(
+        child: ErrorBoundary(error: details.exception, onRetry: null),
+      );
+
+  // Catch uncaught async errors (unhandled Future rejections, etc.)
+  WidgetsBinding.instance.platformDispatcher.onError = (error, stack) {
+    debugPrint('Uncaught error: $error\n$stack');
+    return true;
+  };
 
   runApp(
     ProviderScope(
