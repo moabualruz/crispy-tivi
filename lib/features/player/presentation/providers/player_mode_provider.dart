@@ -102,11 +102,46 @@ class PlayerModeState {
 /// [PermanentVideoLayer] in AppShell reads this state to
 /// position/size the Video widget via AnimatedPositioned.
 class PlayerModeNotifier extends Notifier<PlayerModeState> {
+  /// Valid transitions between player modes.
+  ///
+  /// Every mode except [PlayerMode.idle] as a target from idle
+  /// requires active media. The only invalid transition is
+  /// idle -> background (no media to background).
+  static const _validTransitions = {
+    PlayerMode.idle: {PlayerMode.preview, PlayerMode.fullscreen},
+    PlayerMode.preview: {
+      PlayerMode.fullscreen,
+      PlayerMode.background,
+      PlayerMode.idle,
+    },
+    PlayerMode.fullscreen: {
+      PlayerMode.preview,
+      PlayerMode.background,
+      PlayerMode.idle,
+    },
+    PlayerMode.background: {
+      PlayerMode.preview,
+      PlayerMode.fullscreen,
+      PlayerMode.idle,
+    },
+  };
+
+  /// Throws [StateError] if transitioning from [from] to [to]
+  /// is not a valid player mode transition.
+  void _validateTransition(PlayerMode from, PlayerMode to) {
+    if (from == to) return;
+    final allowed = _validTransitions[from] ?? const {};
+    if (!allowed.contains(to)) {
+      throw StateError('Invalid PlayerMode transition: $from -> $to');
+    }
+  }
+
   @override
   PlayerModeState build() => const PlayerModeState();
 
   /// Show video in a screen-specific preview area.
   void enterPreview(Rect rect, {String? hostRoute}) {
+    _validateTransition(state.mode, PlayerMode.preview);
     state = PlayerModeState(
       mode: PlayerMode.preview,
       previewRect: rect,
@@ -127,6 +162,7 @@ class PlayerModeNotifier extends Notifier<PlayerModeState> {
         (hostRoute == null || hostRoute == state.hostRoute)) {
       return;
     }
+    _validateTransition(state.mode, PlayerMode.fullscreen);
     state = state.copyWith(
       mode: PlayerMode.fullscreen,
       hostRoute: hostRoute,
@@ -147,11 +183,14 @@ class PlayerModeNotifier extends Notifier<PlayerModeState> {
   /// to [PlayerMode.background] (audio only, MiniPlayerBar shows).
   void exitToPreview({Size? screenSize}) {
     if (state.previewRect != null) {
+      _validateTransition(state.mode, PlayerMode.preview);
       state = state.copyWith(mode: PlayerMode.preview, clearOriginRoute: true);
     } else if (screenSize != null &&
         _kPreviewRoutes.contains(state.hostRoute)) {
+      _validateTransition(state.mode, PlayerMode.preview);
       _enterMiniPipCorner(screenSize);
     } else {
+      _validateTransition(state.mode, PlayerMode.background);
       state = state.copyWith(
         mode: PlayerMode.background,
         clearOriginRoute: true,
@@ -184,6 +223,7 @@ class PlayerModeNotifier extends Notifier<PlayerModeState> {
 
   /// Keep audio playing but hide the video surface.
   void exitToBackground() {
+    _validateTransition(state.mode, PlayerMode.background);
     state = state.copyWith(mode: PlayerMode.background);
   }
 
