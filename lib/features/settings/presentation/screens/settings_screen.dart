@@ -38,7 +38,8 @@ import '../widgets/network_diagnostics_settings.dart';
 import '../widgets/quick_access_strip.dart';
 import '../widgets/storage_settings.dart';
 import '../../../../core/utils/focus_restoration_service.dart';
-import '../../../../core/widgets/safe_focus_scope.dart';
+import '../../../../core/widgets/screen_template.dart';
+import '../widgets/settings_tv_layout.dart';
 import '../widgets/sync_settings.dart';
 
 /// Tab categories for the settings screen.
@@ -263,25 +264,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           ],
         ),
       ),
-      body: FocusTraversalGroup(
-        policy: ReadingOrderTraversalPolicy(),
-        child: SafeFocusScope(
-          restorationKey: 'settings',
-          child: settingsAsync.when(
-            // Keep current UI during background reloads (e.g. BulkDataRefresh)
-            // to avoid destroying TabBarView and resetting the active tab.
-            skipLoadingOnReload: true,
-            skipLoadingOnRefresh: true,
-            // S-10: skeleton shimmer replaces spinner while settings load.
-            loading: () => const _SettingsShimmer(),
-            // S-07: error state includes a retry button via ErrorBoundary.
-            error:
-                (e, _) => ErrorBoundary(
-                  error: e,
-                  onRetry: () => ref.invalidate(settingsNotifierProvider),
-                ),
-            data: (settings) => _buildBody(context, settings),
-          ),
+      body: ScreenTemplate(
+        focusRestorationKey: 'settings',
+        compactBody: settingsAsync.when(
+          skipLoadingOnReload: true,
+          skipLoadingOnRefresh: true,
+          loading: () => const _SettingsShimmer(),
+          error:
+              (e, _) => ErrorBoundary(
+                error: e,
+                onRetry: () => ref.invalidate(settingsNotifierProvider),
+              ),
+          data: (settings) => _buildBody(context, settings),
+        ),
+        largeBody: settingsAsync.when(
+          skipLoadingOnReload: true,
+          skipLoadingOnRefresh: true,
+          loading: () => const _SettingsShimmer(),
+          error:
+              (e, _) => ErrorBoundary(
+                error: e,
+                onRetry: () => ref.invalidate(settingsNotifierProvider),
+              ),
+          data:
+              (settings) => SettingsTvLayout(
+                tabController: _tabController,
+                settings: settings,
+                sectionKeys: _sectionKeys,
+                onScrollToSection: scrollToSection,
+              ),
         ),
       ),
     );

@@ -18,6 +18,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/widgets/screen_template.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -251,127 +252,135 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
       child: Scaffold(
         key: TestKeys.multiViewScreen,
         backgroundColor: Colors.black,
-        body: FocusTraversalGroup(
-          child: Stack(
-            children: [
-              // ── Video grid / list ──
-              _buildGrid(context, ref, session, isPortrait),
-
-              // ── Maximized slot overlay ──
-              if (_maximizedSlotIndex != null)
-                _buildMaximizedOverlay(context, session),
-
-              // FE-MV-08: Numeric quick-swap overlay — shown while
-              // the user types a channel number on the remote/keyboard.
-              if (_dialDigits.isNotEmpty)
-                Positioned(
-                  top: CrispySpacing.xl,
-                  right: CrispySpacing.xl,
-                  child: ChannelNumberJumpOverlay(digits: _dialDigits),
-                ),
-
-              // ── Controls overlay (hidden when a slot is maximized) ──
-              if (_maximizedSlotIndex == null)
-                Positioned(
-                  top: CrispySpacing.md,
-                  right: CrispySpacing.md,
-                  child: FocusTraversalGroup(
-                    child: GlassSurface(
-                      borderRadius: CrispyRadius.none,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: CrispySpacing.sm,
-                          vertical: CrispySpacing.xs,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // ── Named preset chips (FE-MV-01) ──
-                            // Hide chips in portrait to save space.
-                            if (!isPortrait)
-                              MultiviewPresetChipRow(session: session),
-                            if (!isPortrait)
-                              const VerticalDivider(
-                                width: CrispySpacing.lg,
-                                color: Colors.white24,
-                              ),
-                            // FE-MV-05: EPG mini-guide button.
-                            IconButton(
-                              onPressed:
-                                  () => showMultiViewEpgSheet(
-                                    context,
-                                    session.slots,
-                                  ),
-                              icon: const Icon(
-                                Icons.tv_outlined,
-                                color: Colors.white70,
-                              ),
-                              tooltip: 'Now & Next guide',
-                            ),
-                            // Save layout button
-                            IconButton(
-                              onPressed: () => _showSaveDialog(context, ref),
-                              icon: const Icon(
-                                Icons.save_outlined,
-                                color: Colors.white70,
-                              ),
-                              tooltip: 'Save layout',
-                            ),
-                            // Load layout button
-                            IconButton(
-                              onPressed: () => _showLoadSheet(context, ref),
-                              icon: const Icon(
-                                Icons.folder_open_outlined,
-                                color: Colors.white70,
-                              ),
-                              tooltip: 'Load layout',
-                            ),
-                            // FE-MV-02: Picture-in-Picture button —
-                            // only visible on Android and iOS.
-                            if (Platform.isAndroid || Platform.isIOS)
-                              MultiviewPipButton(
-                                focusedSlotIndex: _dialSlotIndex,
-                              ),
-                            const SizedBox(width: CrispySpacing.sm),
-                            IconButton(
-                              onPressed: () => Navigator.pop(context),
-                              icon: const Icon(
-                                Icons.close,
-                                color: Colors.white,
-                              ),
-                              tooltip: 'Close',
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-              // In portrait mode, show preset chips in a separate
-              // bottom bar so they're not hidden in the controls row.
-              if (isPortrait && _maximizedSlotIndex == null)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: GlassSurface(
-                    borderRadius: CrispyRadius.none,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: CrispySpacing.sm,
-                        vertical: CrispySpacing.xs,
-                      ),
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: MultiviewPresetChipRow(session: session),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+        body: ScreenTemplate(
+          focusRestorationKey: 'multiview',
+          compactBody: _buildContent(context, ref, session, isPortrait),
+          largeBody: _buildContent(context, ref, session, isPortrait),
         ),
+      ),
+    );
+  }
+
+  // ── Content (shared between compact and large) ──────────────
+
+  Widget _buildContent(
+    BuildContext context,
+    WidgetRef ref,
+    MultiViewSession session,
+    bool isPortrait,
+  ) {
+    return FocusTraversalGroup(
+      child: Stack(
+        children: [
+          // ── Video grid / list ──
+          _buildGrid(context, ref, session, isPortrait),
+
+          // ── Maximized slot overlay ──
+          if (_maximizedSlotIndex != null)
+            _buildMaximizedOverlay(context, session),
+
+          // FE-MV-08: Numeric quick-swap overlay — shown while
+          // the user types a channel number on the remote/keyboard.
+          if (_dialDigits.isNotEmpty)
+            Positioned(
+              top: CrispySpacing.xl,
+              right: CrispySpacing.xl,
+              child: ChannelNumberJumpOverlay(digits: _dialDigits),
+            ),
+
+          // ── Controls overlay (hidden when a slot is maximized) ──
+          if (_maximizedSlotIndex == null)
+            Positioned(
+              top: CrispySpacing.md,
+              right: CrispySpacing.md,
+              child: FocusTraversalGroup(
+                child: GlassSurface(
+                  borderRadius: CrispyRadius.none,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: CrispySpacing.sm,
+                      vertical: CrispySpacing.xs,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // ── Named preset chips (FE-MV-01) ──
+                        // Hide chips in portrait to save space.
+                        if (!isPortrait)
+                          MultiviewPresetChipRow(session: session),
+                        if (!isPortrait)
+                          const VerticalDivider(
+                            width: CrispySpacing.lg,
+                            color: Colors.white24,
+                          ),
+                        // FE-MV-05: EPG mini-guide button.
+                        IconButton(
+                          onPressed:
+                              () =>
+                                  showMultiViewEpgSheet(context, session.slots),
+                          icon: const Icon(
+                            Icons.tv_outlined,
+                            color: Colors.white70,
+                          ),
+                          tooltip: 'Now & Next guide',
+                        ),
+                        // Save layout button
+                        IconButton(
+                          onPressed: () => _showSaveDialog(context, ref),
+                          icon: const Icon(
+                            Icons.save_outlined,
+                            color: Colors.white70,
+                          ),
+                          tooltip: 'Save layout',
+                        ),
+                        // Load layout button
+                        IconButton(
+                          onPressed: () => _showLoadSheet(context, ref),
+                          icon: const Icon(
+                            Icons.folder_open_outlined,
+                            color: Colors.white70,
+                          ),
+                          tooltip: 'Load layout',
+                        ),
+                        // FE-MV-02: Picture-in-Picture button —
+                        // only visible on Android and iOS.
+                        if (Platform.isAndroid || Platform.isIOS)
+                          MultiviewPipButton(focusedSlotIndex: _dialSlotIndex),
+                        const SizedBox(width: CrispySpacing.sm),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          tooltip: 'Close',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          // In portrait mode, show preset chips in a separate
+          // bottom bar so they're not hidden in the controls row.
+          if (isPortrait && _maximizedSlotIndex == null)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: GlassSurface(
+                borderRadius: CrispyRadius.none,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: CrispySpacing.sm,
+                    vertical: CrispySpacing.xs,
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: MultiviewPresetChipRow(session: session),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

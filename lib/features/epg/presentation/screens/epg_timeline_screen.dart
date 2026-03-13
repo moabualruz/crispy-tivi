@@ -9,7 +9,7 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/error_boundary.dart';
 import '../../../../core/widgets/skeleton_loader.dart';
-import '../../../../core/widgets/responsive_layout.dart';
+import '../../../../core/widgets/screen_template.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
@@ -24,7 +24,6 @@ import '../widgets/epg_program_block.dart';
 import '../widgets/epg_state_helpers.dart';
 import '../widgets/epg_timeline_layout.dart';
 import '../../../../core/utils/focus_restoration_service.dart';
-import '../../../../core/widgets/safe_focus_scope.dart';
 import '../widgets/virtual_epg_grid.dart';
 
 /// EPG timeline screen per `.ai/docs/project-specs/ui_ux_spec.md §3.3`.
@@ -333,28 +332,23 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
 
     return Scaffold(
       key: TestKeys.epgScreen,
-      body: FocusTraversalGroup(
-        policy: ReadingOrderTraversalPolicy(),
-        child: SafeFocusScope(
-          restorationKey: 'epg_timeline',
-          child: ResponsiveLayout(
-            compactBody: EpgMobileLayout(
-              state: state,
-              appBar: _buildAppBar(state, showGroupDropdown: true),
-              epgGrid: epgGrid,
-              onScrollToChannel: _scrollToChannel,
-              onExpandPlayer: expandPlayer,
-            ),
-            largeBody: EpgTvLayout(
-              state: state,
-              appBar: _buildAppBar(state, showGroupDropdown: false),
-              epgGrid: epgGrid,
-              onScrollToChannel: _scrollToChannel,
-              onExpandPlayer: expandPlayer,
-              onPlayEntry: playSelectedEntry,
-              onRecordEntry: recordSelectedEntry,
-            ),
-          ),
+      body: ScreenTemplate(
+        focusRestorationKey: 'epg_timeline',
+        compactBody: EpgMobileLayout(
+          state: state,
+          appBar: _buildAppBar(state, showGroupDropdown: true),
+          epgGrid: epgGrid,
+          onScrollToChannel: _scrollToChannel,
+          onExpandPlayer: expandPlayer,
+        ),
+        largeBody: EpgTvLayout(
+          state: state,
+          appBar: _buildAppBar(state, showGroupDropdown: false),
+          epgGrid: epgGrid,
+          onScrollToChannel: _scrollToChannel,
+          onExpandPlayer: expandPlayer,
+          onPlayEntry: playSelectedEntry,
+          onRecordEntry: recordSelectedEntry,
         ),
       ),
     );
