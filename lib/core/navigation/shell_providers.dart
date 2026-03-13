@@ -7,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///
 /// When the user presses Escape/Back, focus escalates through zones
 /// before performing navigation:
-///   content → [sidebarNode] → [railNode] → pop/home
+///   content → [sourceSelectorNode] → [sidebarNode] → [railNode] → pop/home
+///
+/// Zone D ([miniPlayerNode]) handles Escape by restoring prior focus.
 ///
 /// Screens with a sidebar (e.g. channel list with [GroupSidebar])
 /// register their sidebar node. [AppShell] always registers the rail.
@@ -23,11 +25,32 @@ class FocusEscalationNotifier extends Notifier<FocusEscalationState> {
   /// Pass `null` when the screen is disposed.
   void setSidebarNode(FocusNode? node) =>
       state = state.copyWith(sidebarNode: node);
+
+  /// Register the source selector bar focus node (Zone B.5).
+  /// Pass `null` when the widget is disposed.
+  void setSourceSelectorNode(FocusNode? node) =>
+      state =
+          node == null
+              ? state.copyWith(clearSourceSelector: true)
+              : state.copyWith(sourceSelectorNode: node);
+
+  /// Register the mini player bar focus node (Zone D).
+  /// Pass `null` when the widget is disposed.
+  void setMiniPlayerNode(FocusNode? node) =>
+      state =
+          node == null
+              ? state.copyWith(clearMiniPlayer: true)
+              : state.copyWith(miniPlayerNode: node);
 }
 
 /// Immutable state for [FocusEscalationNotifier].
 class FocusEscalationState {
-  const FocusEscalationState({this.railNode, this.sidebarNode});
+  const FocusEscalationState({
+    this.railNode,
+    this.sidebarNode,
+    this.sourceSelectorNode,
+    this.miniPlayerNode,
+  });
 
   /// The navigation rail's [FocusScopeNode].
   final FocusScopeNode? railNode;
@@ -35,13 +58,30 @@ class FocusEscalationState {
   /// The current screen's sidebar [FocusNode] (if any).
   final FocusNode? sidebarNode;
 
+  /// The source selector bar [FocusNode] (Zone B.5, if visible).
+  final FocusNode? sourceSelectorNode;
+
+  /// The mini player bar [FocusNode] (Zone D, if visible).
+  final FocusNode? miniPlayerNode;
+
+  /// Creates a copy with the given fields replaced.
   FocusEscalationState copyWith({
     FocusScopeNode? railNode,
     FocusNode? sidebarNode,
     bool clearSidebar = false,
+    FocusNode? sourceSelectorNode,
+    bool clearSourceSelector = false,
+    FocusNode? miniPlayerNode,
+    bool clearMiniPlayer = false,
   }) => FocusEscalationState(
     railNode: railNode ?? this.railNode,
     sidebarNode: clearSidebar ? null : (sidebarNode ?? this.sidebarNode),
+    sourceSelectorNode:
+        clearSourceSelector
+            ? null
+            : (sourceSelectorNode ?? this.sourceSelectorNode),
+    miniPlayerNode:
+        clearMiniPlayer ? null : (miniPlayerNode ?? this.miniPlayerNode),
   );
 }
 

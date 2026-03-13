@@ -1,4 +1,5 @@
-import 'package:flutter/scheduler.dart';
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -84,9 +85,7 @@ void saveFocusKey(WidgetRef ref, String routePath) {
     // Defer the state mutation so it never fires during the
     // build phase, which would trigger "modified a provider while
     // the widget tree was building".
-    SchedulerBinding.instance.addPostFrameCallback(
-      (_) => notifier.setKey(routePath, directKey),
-    );
+    scheduleMicrotask(() => notifier.setKey(routePath, directKey));
     return;
   }
 
@@ -103,9 +102,7 @@ void saveFocusKey(WidgetRef ref, String routePath) {
 
   if (found != null) {
     final key = found!;
-    SchedulerBinding.instance.addPostFrameCallback(
-      (_) => notifier.setKey(routePath, key),
-    );
+    scheduleMicrotask(() => notifier.setKey(routePath, key));
   }
 }
 
