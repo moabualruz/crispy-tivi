@@ -24,6 +24,7 @@ import '../utils/device_form_factor.dart';
 import '../utils/keyboard_utils.dart';
 import '../widgets/keyboard_shortcuts_overlay.dart';
 import '../widgets/responsive_layout.dart';
+import '../widgets/tv_remote_key_handler.dart';
 import 'app_routes.dart';
 import 'breadcrumb_bar.dart';
 import '../testing/test_keys.dart';
@@ -602,52 +603,63 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: Focus(
           autofocus: true,
           onKeyEvent: _onKeyEvent,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // ── Black backdrop ──
-              // Prevents the white window background from
-              // bleeding through during the crossfade between
-              // content fading out and video fading in.
-              if (isFullscreen) const ColoredBox(color: Colors.black),
+          child: TvRemoteKeyHandler(
+            onPlayPause: () {
+              final player = ref.read(playerServiceProvider);
+              if (player.state.isPlaying) {
+                player.pause();
+              } else {
+                player.resume();
+              }
+            },
+            onStop: () => ref.read(playerServiceProvider).stop(),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // ── Black backdrop ──
+                // Prevents the white window background from
+                // bleeding through during the crossfade between
+                // content fading out and video fading in.
+                if (isFullscreen) const ColoredBox(color: Colors.black),
 
-              // ── Layer 0: Screen content ──
-              // Offstage after fade-out completes — zero layout
-              // + zero paint during fullscreen playback.
-              // RepaintBoundary isolates content repaints from
-              // video compositing layer.
-              RepaintBoundary(
-                child: Offstage(
-                  offstage: _contentOffstage,
-                  child: AnimatedOpacity(
-                    duration: CrispyAnimation.normal,
-                    opacity: isFullscreen ? 0.0 : 1.0,
-                    child: IgnorePointer(
-                      ignoring: isFullscreen,
-                      child:
-                          usesSideNav
-                              ? _buildRailLayout(context, colorScheme)
-                              : _buildBottomNavLayout(context, colorScheme),
+                // ── Layer 0: Screen content ──
+                // Offstage after fade-out completes — zero layout
+                // + zero paint during fullscreen playback.
+                // RepaintBoundary isolates content repaints from
+                // video compositing layer.
+                RepaintBoundary(
+                  child: Offstage(
+                    offstage: _contentOffstage,
+                    child: AnimatedOpacity(
+                      duration: CrispyAnimation.normal,
+                      opacity: isFullscreen ? 0.0 : 1.0,
+                      child: IgnorePointer(
+                        ignoring: isFullscreen,
+                        child:
+                            usesSideNav
+                                ? _buildRailLayout(context, colorScheme)
+                                : _buildBottomNavLayout(context, colorScheme),
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              // ── Layer 1: Video (always mounted, on top of content) ──
-              const PermanentVideoLayer(),
+                // ── Layer 1: Video (always mounted, on top of content) ──
+                const PermanentVideoLayer(),
 
-              // ── Layer 2: Fullscreen overlay (OSD + gestures + keyboard) ──
-              // Material ancestor required to prevent yellow double-underline
-              // on Text widgets (Flutter's missing-Material debug signal).
-              // RepaintBoundary isolates OSD repaints from video layer.
-              if (isFullscreen)
-                const RepaintBoundary(
-                  child: Material(
-                    type: MaterialType.transparency,
-                    child: PlayerFullscreenOverlay(),
+                // ── Layer 2: Fullscreen overlay (OSD + gestures + keyboard) ──
+                // Material ancestor required to prevent yellow double-underline
+                // on Text widgets (Flutter's missing-Material debug signal).
+                // RepaintBoundary isolates OSD repaints from video layer.
+                if (isFullscreen)
+                  const RepaintBoundary(
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: PlayerFullscreenOverlay(),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
