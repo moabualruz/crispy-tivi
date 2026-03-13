@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/screen_template.dart';
+import '../../../../core/widgets/smart_image.dart';
 import '../../../../core/utils/stream_url_actions.dart';
 import '../../../../core/widgets/context_menu_builders.dart';
 import '../../../../core/widgets/context_menu_panel.dart';
@@ -83,88 +85,201 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       vodFavoritesProvider.select((st) => st.value?.contains(s.id) ?? false),
     );
 
+    // Shared compact body: the existing tabbed layout.
+    Widget buildCompactBody() {
+      return NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SeriesHeroHeader(
+              series: s,
+              isFavorite: isFav,
+              onBack: () => context.pop(),
+              onToggleFavorite:
+                  () => ref
+                      .read(vodFavoritesProvider.notifier)
+                      .toggleFavorite(s.id),
+            ),
+            _synopsis(s, isFav, tt, cs),
+            if (episodesAsync.hasValue && allEpisodes.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: CrispySpacing.md,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PlayNextEpisodeButton(
+                        episodes: filtered,
+                        seriesId: s.id,
+                        onPlay: _play,
+                      ),
+                      const SizedBox(height: CrispySpacing.xs),
+                      _AutoplayToggle(),
+                    ],
+                  ),
+                ),
+              ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: SeriesTabBarDelegate(
+                TabBar(
+                  indicatorColor: cs.primary,
+                  indicatorWeight: 3,
+                  labelColor: cs.onSurface,
+                  labelStyle: tt.labelLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  unselectedLabelColor: cs.onSurfaceVariant,
+                  unselectedLabelStyle: tt.labelLarge,
+                  dividerColor: cs.outline.withValues(alpha: 0.12),
+                  tabs: const [
+                    Tab(text: 'Episodes'),
+                    Tab(text: 'More Like This'),
+                    Tab(text: 'Details'),
+                  ],
+                ),
+              ),
+            ),
+          ];
+        },
+        body: TabBarView(
+          children: [
+            SeriesEpisodesTab(
+              series: s,
+              episodesAsync: episodesAsync,
+              seasons: seasons,
+              selectedSeason: _selectedSeason,
+              filtered: filtered,
+              onSeasonChanged: (v) => setState(() => _selectedSeason = v),
+              onPlay: _play,
+              onEpMenu: _epMenu,
+              cs: cs,
+              tt: tt,
+            ),
+            SeriesMoreLikeThisTab(currentSeries: widget.series),
+            SeriesDetailsTab(series: widget.series),
+          ],
+        ),
+      );
+    }
+
+    // TV wide layout: poster on left, series info + episodes on right.
+    Widget buildTvWideBody() {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Left: poster + actions
+          SizedBox(
+            width: 300,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(CrispySpacing.lg),
+              child: Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SmartImage(
+                      itemId: s.id,
+                      title: s.name,
+                      imageUrl: s.posterUrl,
+                      imageKind: 'poster',
+                      icon: Icons.tv,
+                    ),
+                  ),
+                  const SizedBox(height: CrispySpacing.md),
+                  Text(
+                    s.name,
+                    style: tt.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: CrispySpacing.sm),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularAction(
+                        icon: isFav ? Icons.check : Icons.add,
+                        label: 'My List',
+                        onTap:
+                            () => ref
+                                .read(vodFavoritesProvider.notifier)
+                                .toggleFavorite(s.id),
+                      ),
+                      const SizedBox(width: CrispySpacing.xl),
+                      RateAction(itemId: s.id),
+                    ],
+                  ),
+                  if (s.description != null && s.description!.isNotEmpty) ...[
+                    const SizedBox(height: CrispySpacing.md),
+                    Text(
+                      s.description!,
+                      style: tt.bodyMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        height: 1.5,
+                      ),
+                      maxLines: 5,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const VerticalDivider(width: 1),
+          // Right: season selector + episode list
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (episodesAsync.hasValue && allEpisodes.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(CrispySpacing.md),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PlayNextEpisodeButton(
+                          episodes: filtered,
+                          seriesId: s.id,
+                          onPlay: _play,
+                        ),
+                        const SizedBox(height: CrispySpacing.xs),
+                        _AutoplayToggle(),
+                      ],
+                    ),
+                  ),
+                Expanded(
+                  child: SeriesEpisodesTab(
+                    series: s,
+                    episodesAsync: episodesAsync,
+                    seasons: seasons,
+                    selectedSeason: _selectedSeason,
+                    filtered: filtered,
+                    onSeasonChanged: (v) => setState(() => _selectedSeason = v),
+                    onPlay: _play,
+                    onEpMenu: _epMenu,
+                    cs: cs,
+                    tt: tt,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         key: TestKeys.seriesDetailScreen,
         backgroundColor: cs.surface,
-        body: FocusTraversalGroup(
-          child: NestedScrollView(
-            headerSliverBuilder: (context, innerBoxIsScrolled) {
-              return [
-                SeriesHeroHeader(
-                  series: s,
-                  isFavorite: isFav,
-                  onBack: () => context.pop(),
-                  onToggleFavorite:
-                      () => ref
-                          .read(vodFavoritesProvider.notifier)
-                          .toggleFavorite(s.id),
-                ),
-                _synopsis(s, isFav, tt, cs),
-                if (episodesAsync.hasValue && allEpisodes.isNotEmpty)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: CrispySpacing.md,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          PlayNextEpisodeButton(
-                            episodes: filtered,
-                            seriesId: s.id,
-                            onPlay: _play,
-                          ),
-                          const SizedBox(height: CrispySpacing.xs),
-                          _AutoplayToggle(),
-                        ],
-                      ),
-                    ),
-                  ),
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: SeriesTabBarDelegate(
-                    TabBar(
-                      indicatorColor: cs.primary,
-                      indicatorWeight: 3,
-                      labelColor: cs.onSurface,
-                      labelStyle: tt.labelLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      unselectedLabelColor: cs.onSurfaceVariant,
-                      unselectedLabelStyle: tt.labelLarge,
-                      dividerColor: cs.outline.withValues(alpha: 0.12),
-                      tabs: const [
-                        Tab(text: 'Episodes'),
-                        Tab(text: 'More Like This'),
-                        Tab(text: 'Details'),
-                      ],
-                    ),
-                  ),
-                ),
-              ];
-            },
-            body: TabBarView(
-              children: [
-                SeriesEpisodesTab(
-                  series: s,
-                  episodesAsync: episodesAsync,
-                  seasons: seasons,
-                  selectedSeason: _selectedSeason,
-                  filtered: filtered,
-                  onSeasonChanged: (v) => setState(() => _selectedSeason = v),
-                  onPlay: _play,
-                  onEpMenu: _epMenu,
-                  cs: cs,
-                  tt: tt,
-                ),
-                SeriesMoreLikeThisTab(currentSeries: widget.series),
-                SeriesDetailsTab(series: widget.series),
-              ],
-            ),
-          ),
+        body: ScreenTemplate(
+          focusRestorationKey: 'series-detail-${s.id}',
+          compactBody: buildCompactBody(),
+          largeBody: buildTvWideBody(),
         ),
       ),
     );
