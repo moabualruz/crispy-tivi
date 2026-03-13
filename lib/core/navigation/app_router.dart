@@ -120,6 +120,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       if (profileState == null || settings == null) return null;
 
       final path = state.matchedLocation;
+      final hasSources = settings.sources.isNotEmpty;
+
+      // ── Onboarding guard (checked first) ──
+      // Block all non-onboarding routes when no sources configured.
+      // Must run before auto-skip so first-run users go straight
+      // to onboarding without passing through home.
+      final isOnboarding = path == AppRoutes.onboarding;
+      final isProfiles = path == AppRoutes.profiles;
+
+      if (!hasSources && !isOnboarding && !isProfiles) {
+        return AppRoutes.onboarding;
+      }
+      if (hasSources && isOnboarding) {
+        final defaultScreen = settings.defaultScreen;
+        return defaultScreen == 'live_tv' ? AppRoutes.tv : AppRoutes.home;
+      }
 
       // ── Auto-skip profile selection for single profile ──
       // When navigating to /profiles (initial location on app
@@ -133,10 +149,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             (state.extra as Map<String, dynamic>)['explicit'] == true;
         final profiles = profileState.profiles;
         if (!isExplicit && profiles.length == 1 && !profiles.first.hasPIN) {
-          // First-run: no sources configured → go directly to
-          // onboarding instead of home. This avoids a redirect
-          // hop through /home that GoRouter may not re-evaluate.
-          if (settings.sources.isEmpty) {
+          // First-run with no sources: go to onboarding directly
+          // instead of home. This avoids a redirect hop that
+          // GoRouter may not re-evaluate.
+          if (!hasSources) {
             return AppRoutes.onboarding;
           }
           // The single profile is already active (ProfileService.build
@@ -160,22 +176,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         if (path == AppRoutes.settings && !profile.canAccessSettings) {
           return AppRoutes.home;
         }
-      }
-
-      // ── Onboarding guard ──
-      // Block all non-onboarding routes when no sources configured.
-      final hasSources = settings.sources.isNotEmpty;
-      final isOnboarding = path == AppRoutes.onboarding;
-      final isProfiles = path == AppRoutes.profiles;
-
-      if (!hasSources && !isOnboarding && !isProfiles) {
-        if (profile != null) {
-          return AppRoutes.onboarding;
-        }
-      }
-      if (hasSources && isOnboarding) {
-        final defaultScreen = settings.defaultScreen;
-        return defaultScreen == 'live_tv' ? AppRoutes.tv : AppRoutes.home;
       }
 
       return null;
