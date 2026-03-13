@@ -87,6 +87,8 @@ jobs:
       - name: Dart format check
         run: dart format --set-exit-if-changed lib/ test/
       - run: flutter analyze
+      - name: Architecture boundary check
+        run: dart run scripts/check_boundary.dart
 
   # ── Flutter Tests ───────────────────────────────
   flutter-test:
