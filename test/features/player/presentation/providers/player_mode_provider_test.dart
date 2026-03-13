@@ -65,6 +65,8 @@ void main() {
     test('exitToBackground state', () {
       final notifier = container.read(playerModeProvider.notifier);
 
+      // Must be in a non-idle mode first (idle -> background is invalid).
+      notifier.enterFullscreen();
       notifier.exitToBackground();
 
       final state = container.read(playerModeProvider);
