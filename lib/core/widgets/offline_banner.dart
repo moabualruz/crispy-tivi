@@ -68,10 +68,27 @@ bool _isConnected(List<ConnectivityResult> results) =>
 /// content column — so it appears beneath the navigation chrome.
 class OfflineBanner extends ConsumerWidget {
   /// Creates the offline banner.
-  const OfflineBanner({super.key});
+  ///
+  /// [onReconnect] is called once when connectivity transitions from
+  /// offline to restored. Use it to invalidate stale data providers
+  /// so screens auto-refresh with fresh data.
+  const OfflineBanner({super.key, this.onReconnect});
+
+  /// Called when connectivity is restored after being offline.
+  final VoidCallback? onReconnect;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Fire onReconnect callback on offline -> restored transition.
+    ref.listen(_connectivityStatusProvider, (prev, next) {
+      final prevStatus = prev?.whenData((s) => s).value;
+      final nextStatus = next.whenData((s) => s).value;
+      if (prevStatus == _ConnectivityStatus.offline &&
+          nextStatus == _ConnectivityStatus.restored) {
+        onReconnect?.call();
+      }
+    });
+
     final statusAsync = ref.watch(_connectivityStatusProvider);
 
     // While the stream initialises assume online to avoid a flash.

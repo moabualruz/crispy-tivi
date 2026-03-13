@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/iptv/application/playlist_sync_service.dart';
 import '../../features/notifications/presentation/widgets/toast_overlay.dart';
 import '../../features/player/presentation/providers/player_providers.dart';
 import '../../features/player/presentation/widgets/mini_player_bar.dart';
@@ -683,7 +684,13 @@ class _AppShellState extends ConsumerState<AppShell> {
                     child: Column(
                       children: [
                         // ── FE-AS-07: Offline banner ───────────
-                        const OfflineBanner(),
+                        OfflineBanner(
+                          onReconnect:
+                              () =>
+                                  ref
+                                      .read(playlistSyncServiceProvider)
+                                      .syncAll(),
+                        ),
                         // ── FE-AS-13: Breadcrumb bar ───────────
                         const BreadcrumbBar(),
                         Expanded(child: ToastOverlay(child: widget.child)),
