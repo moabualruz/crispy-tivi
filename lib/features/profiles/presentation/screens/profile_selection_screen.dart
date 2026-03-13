@@ -9,6 +9,7 @@ import '../../../../core/testing/test_keys.dart';
 import 'package:crispy_tivi/l10n/l10n_extension.dart';
 
 import '../../../../core/widgets/async_value_ui.dart';
+import '../../../../core/widgets/screen_template.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -17,6 +18,7 @@ import '../../../../core/widgets/pin_input_dialog.dart';
 import '../../data/profile_service.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/user_role.dart';
+import '../widgets/profile_selection_tv_layout.dart';
 import '../profile_constants.dart';
 import '../widgets/add_profile_dialog.dart';
 import '../widgets/role_badge.dart';
@@ -46,40 +48,38 @@ class ProfileSelectionScreen extends ConsumerWidget {
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: stateAsync.whenUi(
         onRetry: () => ref.invalidate(profileServiceProvider),
-        data:
-            (state) => FocusTraversalGroup(
-              policy: OrderedTraversalPolicy(),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      context.l10n.profilesWhoIsWatching,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.headlineMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: CrispySpacing.xl),
-
-                    // FE-PS-07: Reorderable profile grid.
-                    // Wrap ReorderableListView in a constrained box so it
-                    // lays out horizontally at a capped width.
-                    _ReorderableProfileGrid(
-                      profiles: state.profiles,
-                      onReorder:
-                          (oldIndex, newIndex) => ref
-                              .read(profileServiceProvider.notifier)
-                              .reorderProfiles(oldIndex, newIndex),
-                      onProfileTap:
-                          (profile) => _onProfileTap(context, ref, profile),
-                    ),
-                  ],
+        data: (state) {
+          final profileGrid = Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                context.l10n.profilesWhoIsWatching,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
+              const SizedBox(height: CrispySpacing.xl),
+
+              // FE-PS-07: Reorderable profile grid.
+              _ReorderableProfileGrid(
+                profiles: state.profiles,
+                onReorder:
+                    (oldIndex, newIndex) => ref
+                        .read(profileServiceProvider.notifier)
+                        .reorderProfiles(oldIndex, newIndex),
+                onProfileTap: (profile) => _onProfileTap(context, ref, profile),
+              ),
+            ],
+          );
+
+          return ScreenTemplate(
+            focusRestorationKey: 'profile-selection',
+            traversalPolicy: OrderedTraversalPolicy(),
+            compactBody: Center(child: profileGrid),
+            largeBody: ProfileSelectionTvLayout(profileGrid: profileGrid),
+          );
+        },
       ),
     );
   }

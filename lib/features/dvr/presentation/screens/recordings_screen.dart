@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/widgets/error_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
+import '../../../../core/widgets/screen_template.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../data/dvr_service.dart';
 import '../widgets/keyword_rule_dialog.dart';
 import '../widgets/recording_list.dart';
 import '../widgets/recording_search_delegate.dart';
+import '../widgets/recordings_tv_layout.dart';
 import '../widgets/schedule_dialog.dart';
 import '../widgets/storage_bar.dart';
 import '../widgets/storage_breakdown_sheet.dart';
@@ -112,8 +114,9 @@ class _DvrScaffoldState extends ConsumerState<_DvrScaffold> {
             ),
           ],
         ),
-        body: FocusTraversalGroup(
-          child: Column(
+        body: ScreenTemplate(
+          focusRestorationKey: 'recordings',
+          compactBody: Column(
             children: [
               // FE-DVR-10: Storage bar — tapping opens the breakdown sheet.
               if (state.totalStorageBytes > 0)
@@ -151,6 +154,10 @@ class _DvrScaffoldState extends ConsumerState<_DvrScaffold> {
                 ),
               ),
             ],
+          ),
+          largeBody: RecordingsTvLayout(
+            state: state,
+            groupedView: _groupedView,
           ),
         ),
         floatingActionButton: _DvrSpeedDial(state: state),

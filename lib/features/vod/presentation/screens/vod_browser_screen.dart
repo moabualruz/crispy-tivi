@@ -7,9 +7,11 @@ import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
+import '../../../../core/widgets/screen_template.dart';
 import '../providers/vod_providers.dart';
 import '../widgets/vod_browser_shell.dart';
 import '../widgets/vod_movies_tab.dart';
+import '../widgets/vod_tv_layout.dart';
 
 /// VOD movies browser screen.
 ///
@@ -58,8 +60,13 @@ class VodBrowserScreen extends ConsumerWidget {
             const AppBarSearchButton(),
           ],
         ),
-        body: FocusTraversalGroup(
-          child: VodMoviesTab(
+        body: ScreenTemplate(
+          focusRestorationKey: 'vod-browser',
+          compactBody: VodMoviesTab(
+            movieCategories: movieCategories,
+            newReleases: newReleases,
+          ),
+          largeBody: VodTvLayout(
             movieCategories: movieCategories,
             newReleases: newReleases,
           ),

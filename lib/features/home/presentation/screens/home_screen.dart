@@ -9,11 +9,13 @@ import '../../../../core/utils/device_form_factor.dart';
 import 'package:crispy_tivi/l10n/l10n_extension.dart';
 
 import '../../../../core/widgets/app_bar_search_button.dart';
+import '../../../../core/widgets/screen_template.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../../vod/presentation/widgets/vod_hero_banner.dart';
 import '../widgets/home_sections.dart';
+import '../widgets/home_tv_layout.dart';
 import '../widgets/my_list_section.dart';
 import '../widgets/quick_access_row.dart';
 
@@ -43,8 +45,9 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: FocusTraversalGroup(
-        child: _wrapRefresh(
+      body: ScreenTemplate(
+        focusRestorationKey: 'home',
+        compactBody: _wrapRefresh(
           ref,
           CustomScrollView(
             key: const PageStorageKey('home'),
@@ -92,6 +95,7 @@ class HomeScreen extends ConsumerWidget {
             ],
           ),
         ),
+        largeBody: const HomeTvLayout(),
       ),
     );
   }
