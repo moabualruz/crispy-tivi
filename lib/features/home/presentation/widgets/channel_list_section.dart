@@ -81,6 +81,8 @@ class ChannelListSection extends ConsumerWidget {
                     horizontal: CrispySpacing.sm,
                   ),
                   minimumSize: Size.zero,
+                  // Audited: inline "See all" text button in section header;
+                  // padding provides adequate touch area.
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: Text(

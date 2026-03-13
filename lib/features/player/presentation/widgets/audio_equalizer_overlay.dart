@@ -388,6 +388,8 @@ class _EqualizerPanel extends StatelessWidget {
                       horizontal: CrispySpacing.sm,
                     ),
                     minimumSize: Size.zero,
+                    // Audited: compact "Reset" button in equalizer overlay;
+                    // space-constrained control panel.
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: Text(

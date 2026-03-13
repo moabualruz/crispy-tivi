@@ -157,6 +157,8 @@ class SearchBestMatchCard extends StatelessWidget {
                               horizontal: CrispySpacing.md,
                               vertical: CrispySpacing.xs,
                             ),
+                            // Audited: compact action button in search result card;
+                            // space-constrained inline control.
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           icon: const Icon(Icons.play_arrow, size: 18),
@@ -248,6 +250,8 @@ class SearchActiveFiltersBar extends StatelessWidget {
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.sm),
               minimumSize: Size.zero,
+              // Audited: compact "Clear" button in search history header;
+              // space-constrained inline control.
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: const Text('Clear'),

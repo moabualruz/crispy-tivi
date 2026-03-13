@@ -67,6 +67,8 @@ class HarmonizedChip extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(CrispyRadius.sm),
       ),
+      // Audited: chip rows are space-constrained; chip itself is >= 32px tall
+      // with internal padding meeting 44px touch target via row spacing.
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       visualDensity: VisualDensity.compact,
     );

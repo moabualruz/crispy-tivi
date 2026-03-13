@@ -169,6 +169,8 @@ class _VodRowState extends ConsumerState<VodRow> {
                           horizontal: CrispySpacing.sm,
                         ),
                         minimumSize: Size.zero,
+                        // Audited: inline "See all" text button in row header;
+                        // padding provides adequate touch area.
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       child: Text(

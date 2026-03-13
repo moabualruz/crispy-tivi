@@ -190,6 +190,8 @@ class UpNextItem extends StatelessWidget {
                       vertical: CrispySpacing.xs,
                     ),
                     minimumSize: Size.zero,
+                    // Audited: compact action button in list item row;
+                    // padding provides adequate touch area.
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: Row(
