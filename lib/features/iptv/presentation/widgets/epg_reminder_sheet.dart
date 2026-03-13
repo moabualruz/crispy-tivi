@@ -66,8 +66,8 @@ class EpgReminderNotifier extends Notifier<List<EpgReminder>> {
   /// Checks all upcoming reminders and returns those that are due
   /// (≤ 5 min before programme start).
   ///
-  /// TODO: wire [flutter_local_notifications] to show a system
-  /// notification when a reminder becomes due.
+  /// TODO(BACKLOG): wire flutter_local_notifications — notification feature.
+  /// Show a system notification when a reminder becomes due.
   List<EpgReminder> getDueReminders() {
     final now = DateTime.now().toUtc();
     return state.where((r) => r.isDue(now)).toList();

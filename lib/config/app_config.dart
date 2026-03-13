@@ -178,7 +178,8 @@ class PlayerConfig {
   /// Deinterlace mode for live TV playback.
   ///
   /// Values: 'off' (disabled), 'auto' (media_kit auto-detect).
-  /// Actual media_kit property apply is deferred (TODO).
+  /// Actual media_kit property apply is deferred.
+  /// TODO(BACKLOG): media_kit config property apply — aspirational feature, not blocking shipped paths.
   final String deinterlaceMode;
 
   /// Whether to show Skip Intro / Skip Credits buttons

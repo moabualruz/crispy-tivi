@@ -25,7 +25,8 @@ const _kNoProfileId = '__global__';
 ///
 /// FE-PS-05: When [showBiometric] is true and biometric auth is
 /// enabled for the profile, shows a fingerprint icon button. On tap
-/// it attempts biometric authentication (via `local_auth` — see TODO).
+/// it attempts biometric authentication (via `local_auth`).
+/// TODO(BACKLOG): biometric auth via local_auth — aspirational feature.
 // FE-PM-03
 class PinInputDialog extends ConsumerStatefulWidget {
   const PinInputDialog({
