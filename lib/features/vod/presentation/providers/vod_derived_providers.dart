@@ -7,7 +7,7 @@ import '../../../dvr/domain/utils/dvr_payload.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../profiles/data/profile_service.dart';
 import '../../domain/entities/vod_item.dart';
-import '../../domain/utils/episode_utils.dart';
+import '../../data/episode_progress_codec.dart';
 import '../../domain/utils/vod_utils.dart';
 import '../widgets/series_episode_fetcher.dart';
 import '../widgets/vod_source_picker.dart';

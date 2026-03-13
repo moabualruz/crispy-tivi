@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +6,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/utils/platform_info.dart';
 import '../../../iptv/domain/entities/channel.dart';
 
 /// Multi-view player — shows 1-9 live streams in a flexible grid.
@@ -57,7 +56,7 @@ class _MultiViewScreenState extends State<MultiViewScreen> {
   void _configurePlayer(Player player) {
     if (kIsWeb) return;
     final np = player.platform;
-    if (np is NativePlayer && Platform.isAndroid) {
+    if (np is NativePlayer && PlatformInfo.instance.isAndroid) {
       final dynamic dnp = np;
       dnp.setProperty('hwdec', 'mediacodec-copy');
       dnp.setProperty('vo', 'gpu');

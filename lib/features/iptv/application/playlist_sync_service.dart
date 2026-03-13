@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +8,7 @@ import '../../../core/data/cache_service.dart';
 import '../../../core/data/crispy_backend.dart';
 import '../../../core/domain/entities/playlist_source.dart';
 import '../../vod/presentation/providers/vod_providers.dart';
+import '../data/sync_report_codec.dart';
 import 'media_server_sync.dart';
 import 'playlist_epg_helper.dart';
 import 'playlist_sync_helpers.dart';
@@ -32,19 +32,6 @@ class SyncReport {
     this.vodCategories = const [],
     this.epgUrl,
   });
-
-  factory SyncReport.fromJson(String json) {
-    final map = jsonDecode(json) as Map<String, dynamic>;
-    return SyncReport(
-      channelsCount: map['channels_count'] as int? ?? 0,
-      channelGroups:
-          (map['channel_groups'] as List?)?.cast<String>() ?? const [],
-      vodCount: map['vod_count'] as int? ?? 0,
-      vodCategories:
-          (map['vod_categories'] as List?)?.cast<String>() ?? const [],
-      epgUrl: map['epg_url'] as String?,
-    );
-  }
 
   final int channelsCount;
   final List<String> channelGroups;
@@ -356,7 +343,7 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
         '{"channels_count":0,"channel_groups":[],'
             '"vod_count":0,"vod_categories":[],"epg_url":null}',
     };
-    return SyncReport.fromJson(json);
+    return decodeSyncReport(json);
   }
 
   /// Schedules a one-shot timer to call [syncAll]

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:crispy_tivi/features/player/domain/entities/watch_history_entry.dart';
 import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
+import 'package:crispy_tivi/features/vod/data/episode_progress_codec.dart';
 import 'package:crispy_tivi/features/vod/domain/utils/episode_utils.dart';
 
 // ── Helpers ────────────────────────────────────────────

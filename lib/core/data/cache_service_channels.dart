@@ -234,6 +234,29 @@ mixin _CacheChannelsMixin on _CacheServiceBase {
     return (jsonDecode(resultJson) as List).cast<String>();
   }
 
+  // ── Typed JSON Helpers ─────────────────────────────
+
+  /// Filters channels by source access for the current profile
+  /// via the Rust backend.
+  ///
+  /// Returns all channels if [isAdmin] is true (accessibleSources
+  /// is null). Otherwise returns only channels from [sourceIds].
+  Future<List<Channel>> filterChannelsBySourceTyped(
+    List<Channel> channels,
+    List<String>? sourceIds,
+    bool isAdmin,
+  ) async {
+    final channelsJson = encodeChannelsJson(channels);
+    final sourceIdsJson = jsonEncode(sourceIds ?? <String>[]);
+    final resultJson = await _backend.filterChannelsBySource(
+      channelsJson,
+      sourceIdsJson,
+      isAdmin,
+    );
+    final list = jsonDecode(resultJson) as List<dynamic>;
+    return list.map((m) => mapToChannel(m as Map<String, dynamic>)).toList();
+  }
+
   // ── Sync Cleanup ──────────────────────────────────
 
   /// Deletes channels for [sourceId] not in
@@ -273,6 +296,17 @@ mixin _CacheChannelsMixin on _CacheServiceBase {
     );
     return deleted;
   }
+}
+
+// ── Channel JSON helpers (top-level) ──────────────
+
+/// Encodes a list of [Channel]s to the JSON string expected by
+/// Rust backend methods.
+///
+/// Application-layer code should call this instead of importing
+/// `dart:convert` directly.
+String encodeChannelsJson(List<Channel> channels) {
+  return jsonEncode(channels.map(channelToMap).toList());
 }
 
 // ── Channel converters (top-level) ────────────────

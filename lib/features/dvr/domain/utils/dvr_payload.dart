@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import '../../../../core/utils/date_format_utils.dart';
 import '../entities/recording.dart';
 
@@ -34,26 +32,6 @@ Map<String, dynamic> recordingToMap(Recording r) {
     'auto_delete_policy': r.autoDeletePolicy.name,
     'keep_episode_count': r.keepEpisodeCount,
   };
-}
-
-/// Serialises [recordings] into the JSON string expected by the
-/// Rust `get_recordings_to_start` handler.
-///
-/// Each entry is a minimal map with `id`, `status`, `startTime`,
-/// and `endTime` (epoch-ms integers).
-String buildRecordingsCheckJson(List<Recording> recordings) {
-  return jsonEncode(
-    recordings
-        .map(
-          (r) => {
-            'id': r.id,
-            'status': r.status.name,
-            'startTime': r.startTime.millisecondsSinceEpoch,
-            'endTime': r.endTime.millisecondsSinceEpoch,
-          },
-        )
-        .toList(),
-  );
 }
 
 /// Returns the IDs of series items whose [updatedAt] is more recent

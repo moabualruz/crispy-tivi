@@ -1,12 +1,92 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/network/network_timeouts.dart';
+import 'package:crispy_tivi/core/utils/platform_info.dart';
 import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_auth_service.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
-import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
+
+/// Result of a server connectivity test.
+///
+/// Returned by [testMediaServerConnection] on success. Carries the
+/// server name and version string to display to the user.
+class ServerConnectionInfo {
+  const ServerConnectionInfo({required this.serverName, required this.version});
+
+  /// Human-readable server name (e.g. "My Emby Server").
+  final String serverName;
+
+  /// Server version string (e.g. "4.8.7.0").
+  final String version;
+}
+
+/// Device identifier sent in the MediaBrowser auth header and stored
+/// in [PlaylistSource.deviceId].
+///
+/// Varies by platform so the media server can distinguish clients
+/// (e.g. Android TV vs. web browser vs. Windows desktop).
+String get mediaServerDeviceId {
+  if (kIsWeb) return 'crispy_tivi_web';
+  final p = PlatformInfo.instance;
+  if (p.isAndroid) return 'crispy_tivi_android';
+  if (p.isIOS) return 'crispy_tivi_ios';
+  if (p.isWindows) return 'crispy_tivi_windows';
+  if (p.isLinux) return 'crispy_tivi_linux';
+  if (p.isMacOS) return 'crispy_tivi_macos';
+  return 'crispy_tivi';
+}
+
+/// Callback that performs server-specific authentication.
+///
+/// Receives a pre-configured [Dio] instance (base URL + auth header set)
+/// and raw field values. Must return a [PlaylistSource] on success or
+/// throw on failure.
+///
+/// When the login screen's `showUsernameField` is `false`, [username]
+/// is always an empty string.
+typedef MediaServerAuthenticate =
+    Future<PlaylistSource> Function(
+      Dio dio,
+      String url,
+      String username,
+      String password,
+    );
+
+/// Shared authentication logic for Emby and Jellyfin servers.
+///
+/// Both servers expose an identical wire protocol -- this function
+/// handles the common authenticate-by-name flow. Callers supply the
+/// [type] to distinguish the resulting [PlaylistSource].
+Future<PlaylistSource> authenticateMediaServer(
+  Dio dio,
+  String url,
+  String username,
+  String password,
+  PlaylistSourceType type,
+) async {
+  final client = MediaServerApiClient(dio, baseUrl: url);
+  final systemInfo = await client.getPublicSystemInfo();
+  final authResult = await client.authenticateByName({
+    'Username': username,
+    'Pw': password,
+  });
+  return PlaylistSource(
+    id: systemInfo.id,
+    name: systemInfo.serverName,
+    url: url,
+    type: type,
+    username: authResult.user.name,
+    userId: authResult.user.id,
+    accessToken: authResult.accessToken,
+    deviceId: mediaServerDeviceId,
+  );
+}
 
 /// Creates a pre-configured [Dio] instance for media server communication.
 ///
@@ -17,7 +97,7 @@ Dio createMediaServerDio(String baseUrl, {Duration? connectTimeout}) {
     BaseOptions(baseUrl: baseUrl, connectTimeout: connectTimeout),
   );
   dio.options.headers['X-Emby-Authorization'] = embyAuthHeader(
-    MediaServerLoginScreen.kDeviceId,
+    mediaServerDeviceId,
   );
   return dio;
 }
@@ -88,11 +168,7 @@ Dio createQuickConnectDio() {
     BaseOptions(
       connectTimeout: NetworkTimeouts.fastConnectTimeout,
       receiveTimeout: NetworkTimeouts.fastReceiveTimeout,
-      headers: {
-        'X-Emby-Authorization': embyAuthHeader(
-          MediaServerLoginScreen.kDeviceId,
-        ),
-      },
+      headers: {'X-Emby-Authorization': embyAuthHeader(mediaServerDeviceId)},
     ),
   );
 }
@@ -183,8 +259,81 @@ Future<PlaylistSource> exchangeQuickConnect(
     username: user['Name'] as String?,
     userId: user['Id'] as String?,
     accessToken: token,
-    deviceId: MediaServerLoginScreen.kDeviceId,
+    deviceId: mediaServerDeviceId,
   );
+}
+
+/// Threshold in bytes above which JSON decoding is offloaded to a
+/// background isolate to avoid UI jank during large library syncs.
+const int kMediaServerOffloadThresholdBytes = 50 * 1024;
+
+/// Decodes UTF-8 response bytes, offloading to a background isolate
+/// for payloads larger than [kMediaServerOffloadThresholdBytes].
+///
+/// Used as [BaseOptions.responseDecoder] for media server Dio instances.
+FutureOr<String> lenientUtf8Decoder(
+  List<int> responseBytes,
+  RequestOptions options,
+  ResponseBody responseBody,
+) {
+  if (responseBytes.length > kMediaServerOffloadThresholdBytes) {
+    return compute(_decodeUtf8Isolate, responseBytes);
+  }
+  return utf8.decode(responseBytes, allowMalformed: true);
+}
+
+String _decodeUtf8Isolate(List<int> bytes) =>
+    utf8.decode(bytes, allowMalformed: true);
+
+/// Creates a [Dio] for Emby/Jellyfin sync with extended timeouts.
+///
+/// Sets the access token header and authorization header.
+/// Callers should close the instance when done.
+Dio createEmbyJellyfinSyncDio(
+  String baseUrl, {
+  String? accessToken,
+  String? deviceId,
+}) {
+  final dio = Dio(
+    BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 120),
+    ),
+  );
+  if (accessToken != null) {
+    dio.options.headers['X-Emby-Token'] = accessToken;
+  }
+  dio.options.headers['X-Emby-Authorization'] = embyAuthHeader(deviceId);
+  return dio;
+}
+
+/// Creates a [Dio] for Plex sync with lenient UTF-8 decoding.
+///
+/// Large payloads are decoded in a background isolate.
+/// Callers should close the instance when done.
+Dio createPlexSyncDio() {
+  return Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 30),
+      responseDecoder: lenientUtf8Decoder,
+    ),
+  );
+}
+
+/// Returns true if the given [error] is a retryable server/timeout error.
+///
+/// Only 5xx status codes and connection/receive timeouts are retryable.
+/// Client errors (4xx) should not be retried.
+bool isRetryableNetworkError(Object error) {
+  if (error is DioException) {
+    return error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout ||
+        (error.response?.statusCode != null &&
+            error.response!.statusCode! >= 500);
+  }
+  return false;
 }
 
 /// Authenticates against a Plex server using a pre-existing token.

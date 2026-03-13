@@ -1,7 +1,3 @@
-import 'dart:io';
-
-import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,25 +7,10 @@ import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/widgets/async_filled_button.dart';
-import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
+import 'package:crispy_tivi/features/media_servers/shared/data/media_server_dio_factory.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/sync_progress_dialog.dart';
 import 'package:crispy_tivi/core/widgets/screen_template.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/error_sanitizer.dart';
-import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
-
-/// Result of a server connectivity test.
-///
-/// Returned by [TestConnectionCallback] on success. Carries the
-/// server name and version string to display to the user.
-class ServerConnectionInfo {
-  const ServerConnectionInfo({required this.serverName, required this.version});
-
-  /// Human-readable server name (e.g. "My Emby Server").
-  final String serverName;
-
-  /// Server version string (e.g. "4.8.7.0").
-  final String version;
-}
 
 /// Callback that probes the server at [url] without authenticating.
 ///
@@ -39,55 +20,6 @@ typedef TestConnectionCallback =
 
 /// Visual state of the test-connection indicator.
 enum _TestState { idle, loading, success, failure }
-
-/// Shared authentication logic for Emby and Jellyfin servers.
-///
-/// Both servers expose an identical wire protocol — this function
-/// handles the common authenticate-by-name flow. Callers supply the
-/// [type] to distinguish the resulting [PlaylistSource].
-///
-/// Used by [EmbyLoginScreen] and [JellyfinLoginScreen] to avoid
-/// duplicating the same 15-line authenticate body in each file.
-Future<PlaylistSource> authenticateMediaServer(
-  Dio dio,
-  String url,
-  String username,
-  String password,
-  PlaylistSourceType type,
-) async {
-  final client = MediaServerApiClient(dio, baseUrl: url);
-  final systemInfo = await client.getPublicSystemInfo();
-  final authResult = await client.authenticateByName({
-    'Username': username,
-    'Pw': password,
-  });
-  return PlaylistSource(
-    id: systemInfo.id,
-    name: systemInfo.serverName,
-    url: url,
-    type: type,
-    username: authResult.user.name,
-    userId: authResult.user.id,
-    accessToken: authResult.accessToken,
-    deviceId: MediaServerLoginScreen.kDeviceId,
-  );
-}
-
-/// Callback that performs server-specific authentication.
-///
-/// Receives a pre-configured [Dio] instance (base URL + auth header set)
-/// and raw field values. Must return a [PlaylistSource] on success or
-/// throw on failure.
-///
-/// When [MediaServerLoginScreen.showUsernameField] is `false`, [username]
-/// is always an empty string.
-typedef MediaServerAuthenticate =
-    Future<PlaylistSource> Function(
-      Dio dio,
-      String url,
-      String username,
-      String password,
-    );
 
 /// Maximum width of the login form.
 const double kLoginFormMaxWidth = 400;
@@ -119,20 +51,11 @@ class MediaServerLoginScreen extends ConsumerStatefulWidget {
     this.bodyFooter,
   });
 
-  /// Device identifier sent in the MediaBrowser auth header and stored
-  /// in [PlaylistSource.deviceId].
+  /// Device identifier sent in the MediaBrowser auth header.
   ///
-  /// Varies by platform so the media server can distinguish clients
-  /// (e.g. Android TV vs. web browser vs. Windows desktop).
-  static String get kDeviceId {
-    if (kIsWeb) return 'crispy_tivi_web';
-    if (Platform.isAndroid) return 'crispy_tivi_android';
-    if (Platform.isIOS) return 'crispy_tivi_ios';
-    if (Platform.isWindows) return 'crispy_tivi_windows';
-    if (Platform.isLinux) return 'crispy_tivi_linux';
-    if (Platform.isMacOS) return 'crispy_tivi_macos';
-    return 'crispy_tivi';
-  }
+  /// Delegates to the data-layer [mediaServerDeviceId] getter
+  /// which uses [PlatformInfo] for web-safe platform detection.
+  static String get kDeviceId => mediaServerDeviceId;
 
   /// Display name shown in the AppBar, e.g. `'Emby'` or `'Jellyfin'`.
   final String serverName;
@@ -289,10 +212,7 @@ class _MediaServerLoginScreenState
           .read(crispyBackendProvider)
           .normalizeServerUrl(_urlCtrl.text);
 
-      final dio = Dio(BaseOptions(baseUrl: url));
-      dio.options.headers['X-Emby-Authorization'] = embyAuthHeader(
-        MediaServerLoginScreen.kDeviceId,
-      );
+      final dio = createMediaServerDio(url);
 
       final source = await widget.authenticate(
         dio,

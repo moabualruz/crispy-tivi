@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:crispy_tivi/features/player/data/segment_skip_codec.dart';
 import 'package:crispy_tivi/features/player/domain/segment_skip_config.dart';
 import 'package:crispy_tivi/features/player/domain/entities/playback_state.dart';
 import 'package:crispy_tivi/features/player/domain/utils/skip_segment_utils.dart';

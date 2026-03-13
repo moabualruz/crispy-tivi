@@ -423,7 +423,7 @@ class DvrService extends AsyncNotifier<DvrState> {
 
     final now = DateTime.now();
     // Serialize in the camelCase epoch-ms format expected by Rust.
-    final recordingsJson = buildRecordingsCheckJson(recordings);
+    final recordingsJson = _buildRecordingsCheckJson(recordings);
 
     _backend
         .getRecordingsToStart(recordingsJson, now.millisecondsSinceEpoch)
@@ -536,3 +536,23 @@ class DvrService extends AsyncNotifier<DvrState> {
 final dvrServiceProvider = AsyncNotifierProvider<DvrService, DvrState>(
   DvrService.new,
 );
+
+/// Serialises [recordings] into the JSON string expected by the
+/// Rust `get_recordings_to_start` handler.
+///
+/// Each entry is a minimal map with `id`, `status`, `startTime`,
+/// and `endTime` (epoch-ms integers).
+String _buildRecordingsCheckJson(List<Recording> recordings) {
+  return jsonEncode(
+    recordings
+        .map(
+          (r) => {
+            'id': r.id,
+            'status': r.status.name,
+            'startTime': r.startTime.millisecondsSinceEpoch,
+            'endTime': r.endTime.millisecondsSinceEpoch,
+          },
+        )
+        .toList(),
+  );
+}

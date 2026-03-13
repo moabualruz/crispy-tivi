@@ -1,58 +1,36 @@
-import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/network/network_timeouts.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../../core/utils/format_utils.dart';
 import '../../../../core/widgets/section_header.dart';
+import '../../data/network_diagnostics_service.dart';
 import 'settings_shared_widgets.dart';
 
 // FE-S-11: Network Diagnostics — tile + bottom sheet with live checks.
-// ── Diagnostic result types ─────────────────────────────────────
 
-enum _DiagStatus { pending, running, pass, warn, fail }
-
-class _DiagResult {
-  const _DiagResult({
-    required this.label,
-    required this.status,
-    this.value,
-    this.detail,
-  });
-
-  final String label;
-  final _DiagStatus status;
-  final String? value;
-  final String? detail;
-}
-
-// ── State notifier ──────────────────────────────────────────────
+// ── State ────────────────────────────────────────────────────────
 
 class _DiagState {
   const _DiagState({required this.results, required this.running});
 
-  final List<_DiagResult> results;
+  final List<DiagResult> results;
   final bool running;
 
   static _DiagState initial() => _DiagState(
     results: [
-      const _DiagResult(label: 'Connection Type', status: _DiagStatus.pending),
-      const _DiagResult(label: 'DNS Resolution', status: _DiagStatus.pending),
-      const _DiagResult(label: 'Latency', status: _DiagStatus.pending),
-      const _DiagResult(label: 'Download Speed', status: _DiagStatus.pending),
+      const DiagResult(label: 'Connection Type', status: DiagStatus.pending),
+      const DiagResult(label: 'DNS Resolution', status: DiagStatus.pending),
+      const DiagResult(label: 'Latency', status: DiagStatus.pending),
+      const DiagResult(label: 'Download Speed', status: DiagStatus.pending),
     ],
     running: false,
   );
 
-  _DiagState copyWith({List<_DiagResult>? results, bool? running}) =>
-      _DiagState(
-        results: results ?? this.results,
-        running: running ?? this.running,
-      );
+  _DiagState copyWith({List<DiagResult>? results, bool? running}) => _DiagState(
+    results: results ?? this.results,
+    running: running ?? this.running,
+  );
 }
 
 // ── Settings tile (shown inline in SettingsScreen) ──────────────
@@ -121,6 +99,7 @@ class NetworkDiagnosticsSheet extends ConsumerStatefulWidget {
 class _NetworkDiagnosticsSheetState
     extends ConsumerState<NetworkDiagnosticsSheet> {
   _DiagState _state = _DiagState.initial();
+  final _service = NetworkDiagnosticsService();
 
   @override
   void initState() {
@@ -134,247 +113,43 @@ class _NetworkDiagnosticsSheetState
   Future<void> _runAll() async {
     setState(() => _state = _DiagState.initial().copyWith(running: true));
 
-    final results = List<_DiagResult>.from(_state.results);
+    final results = List<DiagResult>.from(_state.results);
 
     // 1. Connection type
-    results[0] = const _DiagResult(
+    results[0] = const DiagResult(
       label: 'Connection Type',
-      status: _DiagStatus.running,
+      status: DiagStatus.running,
     );
     setState(() => _state = _state.copyWith(results: List.from(results)));
-    results[0] = await _checkConnectionType();
+    results[0] = await _service.checkConnectionType();
     setState(() => _state = _state.copyWith(results: List.from(results)));
 
     // 2. DNS
-    results[1] = const _DiagResult(
+    results[1] = const DiagResult(
       label: 'DNS Resolution',
-      status: _DiagStatus.running,
+      status: DiagStatus.running,
     );
     setState(() => _state = _state.copyWith(results: List.from(results)));
-    results[1] = await _checkDns();
+    results[1] = await _service.checkDns();
     setState(() => _state = _state.copyWith(results: List.from(results)));
 
     // 3. Latency
-    results[2] = const _DiagResult(
-      label: 'Latency',
-      status: _DiagStatus.running,
-    );
+    results[2] = const DiagResult(label: 'Latency', status: DiagStatus.running);
     setState(() => _state = _state.copyWith(results: List.from(results)));
-    results[2] = await _checkLatency();
+    results[2] = await _service.checkLatency();
     setState(() => _state = _state.copyWith(results: List.from(results)));
 
     // 4. Download speed
-    results[3] = const _DiagResult(
+    results[3] = const DiagResult(
       label: 'Download Speed',
-      status: _DiagStatus.running,
+      status: DiagStatus.running,
     );
     setState(() => _state = _state.copyWith(results: List.from(results)));
-    results[3] = await _checkDownloadSpeed();
+    results[3] = await _service.checkDownloadSpeed();
     setState(
       () =>
           _state = _state.copyWith(results: List.from(results), running: false),
     );
-  }
-
-  // ── Individual checks ────────────────────────────────────────
-
-  Future<_DiagResult> _checkConnectionType() async {
-    try {
-      final interfaces = await NetworkInterface.list(
-        type: InternetAddressType.any,
-      );
-
-      if (interfaces.isEmpty) {
-        return const _DiagResult(
-          label: 'Connection Type',
-          status: _DiagStatus.fail,
-          value: 'No interfaces',
-          detail: 'No network interfaces detected',
-        );
-      }
-
-      // Heuristic: look for well-known interface name patterns.
-      String? type;
-      for (final iface in interfaces) {
-        final name = iface.name.toLowerCase();
-        if (name.contains('eth') ||
-            name.contains('en0') && !name.contains('wl')) {
-          type = 'Ethernet';
-          break;
-        }
-        if (name.contains('wl') ||
-            name.contains('wlan') ||
-            name.contains('wi')) {
-          type = 'WiFi';
-          break;
-        }
-        if (name.contains('rmnet') ||
-            name.contains('ppp') ||
-            name.contains('ccmni')) {
-          type = 'Cellular';
-          break;
-        }
-      }
-      type ??= 'Connected (${interfaces.first.name})';
-
-      return _DiagResult(
-        label: 'Connection Type',
-        status: _DiagStatus.pass,
-        value: type,
-        detail: '${interfaces.length} interface(s) found',
-      );
-    } catch (e) {
-      return _DiagResult(
-        label: 'Connection Type',
-        status: _DiagStatus.fail,
-        value: 'Error',
-        detail: e.toString(),
-      );
-    }
-  }
-
-  Future<_DiagResult> _checkDns() async {
-    const host = 'dns.google';
-    try {
-      final sw = Stopwatch()..start();
-      final addresses = await InternetAddress.lookup(
-        host,
-      ).timeout(NetworkTimeouts.diagCheckTimeout);
-      sw.stop();
-      if (addresses.isEmpty) {
-        return const _DiagResult(
-          label: 'DNS Resolution',
-          status: _DiagStatus.fail,
-          value: 'No results',
-          detail: 'dns.google returned no addresses',
-        );
-      }
-      return _DiagResult(
-        label: 'DNS Resolution',
-        status: _DiagStatus.pass,
-        value: '${sw.elapsedMilliseconds} ms',
-        detail: addresses.first.address,
-      );
-    } on TimeoutException {
-      return const _DiagResult(
-        label: 'DNS Resolution',
-        status: _DiagStatus.fail,
-        value: 'Timeout',
-        detail: 'DNS lookup timed out after 5 s',
-      );
-    } catch (e) {
-      return _DiagResult(
-        label: 'DNS Resolution',
-        status: _DiagStatus.fail,
-        value: 'Error',
-        detail: e.toString(),
-      );
-    }
-  }
-
-  Future<_DiagResult> _checkLatency() async {
-    const host = '1.1.1.1';
-    const port = 443;
-    try {
-      final sw = Stopwatch()..start();
-      final socket = await Socket.connect(
-        host,
-        port,
-        timeout: NetworkTimeouts.diagCheckTimeout,
-      );
-      sw.stop();
-      socket.destroy();
-
-      final ms = sw.elapsedMilliseconds;
-      final status =
-          ms < 100
-              ? _DiagStatus.pass
-              : ms < 300
-              ? _DiagStatus.warn
-              : _DiagStatus.fail;
-
-      return _DiagResult(
-        label: 'Latency',
-        status: status,
-        value: '$ms ms',
-        detail: 'TCP connect to $host:$port',
-      );
-    } on TimeoutException {
-      return const _DiagResult(
-        label: 'Latency',
-        status: _DiagStatus.fail,
-        value: 'Timeout',
-        detail: 'Connection timed out after 5 s',
-      );
-    } catch (e) {
-      return _DiagResult(
-        label: 'Latency',
-        status: _DiagStatus.fail,
-        value: 'Error',
-        detail: e.toString(),
-      );
-    }
-  }
-
-  Future<_DiagResult> _checkDownloadSpeed() async {
-    // Download a ~1 MB test file from Cloudflare's speed endpoint.
-    const url = 'https://speed.cloudflare.com/__down?bytes=1048576';
-    try {
-      final client = HttpClient();
-      final sw = Stopwatch()..start();
-      final request = await client
-          .getUrl(Uri.parse(url))
-          .timeout(NetworkTimeouts.diagDownloadTimeout);
-      final response = await request.close().timeout(
-        NetworkTimeouts.diagDownloadTimeout,
-      );
-
-      var bytes = 0;
-      await response.forEach((chunk) => bytes += chunk.length);
-      sw.stop();
-      client.close();
-
-      if (bytes == 0) {
-        return const _DiagResult(
-          label: 'Download Speed',
-          status: _DiagStatus.fail,
-          value: 'No data',
-          detail: 'Speed test returned 0 bytes',
-        );
-      }
-
-      final seconds = sw.elapsedMilliseconds / 1000.0;
-      final mbps = (bytes * 8) / (seconds * 1_000_000);
-      final mbpsStr = mbps.toStringAsFixed(1);
-
-      final status =
-          mbps >= 5.0
-              ? _DiagStatus.pass
-              : mbps >= 1.0
-              ? _DiagStatus.warn
-              : _DiagStatus.fail;
-
-      return _DiagResult(
-        label: 'Download Speed',
-        status: status,
-        value: '$mbpsStr Mbps',
-        detail: '${formatBytes(bytes)} in ${seconds.toStringAsFixed(1)} s',
-      );
-    } on TimeoutException {
-      return const _DiagResult(
-        label: 'Download Speed',
-        status: _DiagStatus.fail,
-        value: 'Timeout',
-        detail: 'Speed test timed out after 15 s',
-      );
-    } catch (e) {
-      return _DiagResult(
-        label: 'Download Speed',
-        status: _DiagStatus.warn,
-        value: 'Unavailable',
-        detail: e.toString(),
-      );
-    }
   }
 
   // ── Build ────────────────────────────────────────────────────
@@ -461,7 +236,7 @@ class _NetworkDiagnosticsSheetState
 class _DiagCard extends StatelessWidget {
   const _DiagCard({required this.result});
 
-  final _DiagResult result;
+  final DiagResult result;
 
   @override
   Widget build(BuildContext context) {
@@ -469,27 +244,27 @@ class _DiagCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     final (iconData, iconColor, bgColor) = switch (result.status) {
-      _DiagStatus.pending => (
+      DiagStatus.pending => (
         Icons.hourglass_empty,
         colorScheme.onSurfaceVariant,
         colorScheme.surfaceContainer,
       ),
-      _DiagStatus.running => (
+      DiagStatus.running => (
         Icons.sync,
         colorScheme.primary,
         colorScheme.primaryContainer,
       ),
-      _DiagStatus.pass => (
+      DiagStatus.pass => (
         Icons.check_circle_outline,
         colorScheme.primary,
         colorScheme.primaryContainer,
       ),
-      _DiagStatus.warn => (
+      DiagStatus.warn => (
         Icons.warning_amber_outlined,
         colorScheme.tertiary,
         colorScheme.tertiaryContainer,
       ),
-      _DiagStatus.fail => (
+      DiagStatus.fail => (
         Icons.error_outline,
         colorScheme.error,
         colorScheme.errorContainer,
@@ -516,7 +291,7 @@ class _DiagCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(CrispyRadius.tv),
               ),
               child:
-                  result.status == _DiagStatus.running
+                  result.status == DiagStatus.running
                       ? const Padding(
                         padding: EdgeInsets.all(CrispySpacing.sm),
                         child: CircularProgressIndicator(strokeWidth: 2),

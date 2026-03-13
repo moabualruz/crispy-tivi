@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -59,7 +57,7 @@ mixin PlaylistEpgHelper {
       final backend = ref.read(crispyBackendProvider);
       final cache = ref.read(cacheServiceProvider);
       final channels = await cache.loadChannels();
-      final channelsJson = jsonEncode(channels.map(channelToMap).toList());
+      final channelsJson = encodeChannelsJson(channels);
 
       // Pass 1: XMLTV EPG Sync (Full async backend operation)
       for (final url in epgUrls) {

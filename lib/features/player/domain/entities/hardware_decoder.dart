@@ -1,6 +1,6 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/foundation.dart' show kIsWeb;
+
+import '../../../../core/utils/platform_info.dart';
 
 /// Hardware decoder options for video playback.
 ///
@@ -104,25 +104,25 @@ enum HardwareDecoder {
       case nvdec:
       case cuda:
         // NVIDIA decoders: Windows and Linux only
-        return Platform.isWindows || Platform.isLinux;
+        return PlatformInfo.instance.isWindows || PlatformInfo.instance.isLinux;
 
       case d3d11va:
       case dxva2:
         // DirectX: Windows only
-        return Platform.isWindows;
+        return PlatformInfo.instance.isWindows;
 
       case vaapi:
       case vdpau:
         // Linux-specific APIs
-        return Platform.isLinux;
+        return PlatformInfo.instance.isLinux;
 
       case videotoolbox:
         // Apple platforms
-        return Platform.isMacOS || Platform.isIOS;
+        return PlatformInfo.instance.isMacOS || PlatformInfo.instance.isIOS;
 
       case mediacodec:
         // Android only
-        return Platform.isAndroid;
+        return PlatformInfo.instance.isAndroid;
     }
   }
 

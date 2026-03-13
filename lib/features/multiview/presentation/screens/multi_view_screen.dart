@@ -11,13 +11,13 @@
 library;
 
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/utils/platform_info.dart';
 import '../../../../core/widgets/screen_template.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
@@ -344,7 +344,8 @@ class _MultiViewScreenState extends ConsumerState<MultiViewScreen>
                         ),
                         // FE-MV-02: Picture-in-Picture button —
                         // only visible on Android and iOS.
-                        if (Platform.isAndroid || Platform.isIOS)
+                        if (PlatformInfo.instance.isAndroid ||
+                            PlatformInfo.instance.isIOS)
                           MultiviewPipButton(focusedSlotIndex: _dialSlotIndex),
                         const SizedBox(width: CrispySpacing.sm),
                         IconButton(

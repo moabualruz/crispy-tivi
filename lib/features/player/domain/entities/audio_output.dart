@@ -1,6 +1,6 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/foundation.dart' show kIsWeb;
+
+import '../../../../core/utils/platform_info.dart';
 
 /// Audio output driver options for mpv player.
 ///
@@ -103,11 +103,12 @@ enum AudioOutput {
     if (platforms.contains(AudioPlatform.all)) return true;
     if (kIsWeb) return false;
 
-    if (Platform.isWindows) return platforms.contains(AudioPlatform.windows);
-    if (Platform.isLinux) return platforms.contains(AudioPlatform.linux);
-    if (Platform.isMacOS) return platforms.contains(AudioPlatform.macos);
-    if (Platform.isAndroid) return platforms.contains(AudioPlatform.android);
-    if (Platform.isIOS) return platforms.contains(AudioPlatform.ios);
+    final p = PlatformInfo.instance;
+    if (p.isWindows) return platforms.contains(AudioPlatform.windows);
+    if (p.isLinux) return platforms.contains(AudioPlatform.linux);
+    if (p.isMacOS) return platforms.contains(AudioPlatform.macos);
+    if (p.isAndroid) return platforms.contains(AudioPlatform.android);
+    if (p.isIOS) return platforms.contains(AudioPlatform.ios);
 
     return false;
   }

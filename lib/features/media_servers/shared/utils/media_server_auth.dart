@@ -1,6 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
+
+import '../../../../core/utils/platform_info.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/core/data/cache_service.dart';
@@ -21,7 +21,7 @@ const String kDefaultDeviceId = 'crispy_tivi_web';
 /// (e.g. `'Android'`, `'Windows'`, `'Linux'`).
 String _platformDeviceName() {
   if (kIsWeb) return 'Web';
-  final os = Platform.operatingSystem; // e.g. "android", "windows"
+  final os = PlatformInfo.instance.operatingSystem; // e.g. "android", "windows"
   return '${os[0].toUpperCase()}${os.substring(1)}';
 }
 

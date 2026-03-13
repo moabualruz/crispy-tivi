@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,6 +13,7 @@ import '../../../core/domain/media_source.dart';
 import '../../media_servers/plex/data/datasources/plex_api_client.dart';
 import '../../media_servers/plex/domain/plex_source.dart';
 import '../../media_servers/shared/data/media_server_api_client.dart';
+import '../../media_servers/shared/data/media_server_dio_factory.dart';
 import '../../media_servers/shared/data/media_server_source.dart';
 import '../../media_servers/shared/utils/media_item_vod_adapter.dart';
 import '../../media_servers/shared/utils/media_server_auth.dart';
@@ -29,26 +28,6 @@ import 'playlist_sync_service.dart';
 class MediaServerSyncService {
   MediaServerSyncService(this._ref);
   final Ref _ref;
-
-  /// Threshold in bytes above which JSON decoding is offloaded to a
-  /// background isolate to avoid UI jank during large library syncs.
-  static const int _offloadThresholdBytes = 50 * 1024;
-
-  /// Decodes UTF-8 response bytes, offloading to a background isolate
-  /// for payloads larger than [_offloadThresholdBytes].
-  static FutureOr<String> _lenientUtf8Decoder(
-    List<int> responseBytes,
-    RequestOptions options,
-    ResponseBody responseBody,
-  ) {
-    if (responseBytes.length > _offloadThresholdBytes) {
-      return compute(_decodeUtf8, responseBytes);
-    }
-    return utf8.decode(responseBytes, allowMalformed: true);
-  }
-
-  static String _decodeUtf8(List<int> bytes) =>
-      utf8.decode(bytes, allowMalformed: true);
 
   /// Syncs a single media server source and returns a [SyncReport].
   ///
@@ -91,12 +70,11 @@ class MediaServerSyncService {
   /// or `null` if re-authentication fails.
   Future<PlaylistSource?> _reAuthEmbyJellyfin(
     PlaylistSource source,
-    Dio dio,
+    MediaServerApiClient client,
   ) async {
     if (source.username == null || source.password == null) return null;
 
     try {
-      final client = MediaServerApiClient(dio, baseUrl: source.url);
       final authResult = await client.authenticateByName({
         'Username': source.username!,
         'Pw': source.password!,
@@ -117,25 +95,18 @@ class MediaServerSyncService {
 
   /// Syncs an Emby or Jellyfin source.
   Future<SyncReport> _syncEmbyJellyfin(PlaylistSource source) async {
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: source.url,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 120),
-      ),
+    final dio = createEmbyJellyfinSyncDio(
+      source.url,
+      accessToken: source.accessToken,
+      deviceId: source.deviceId,
     );
     try {
-      if (source.accessToken != null) {
-        dio.options.headers['X-Emby-Token'] = source.accessToken;
-      }
-      dio.options.headers['X-Emby-Authorization'] = embyAuthHeader(
-        source.deviceId,
-      );
+      var client = MediaServerApiClient(dio, baseUrl: source.url);
 
       // Re-authenticate if userId is missing instead of silently skipping.
       var activeSource = source;
       if (activeSource.userId == null) {
-        final refreshed = await _reAuthEmbyJellyfin(activeSource, dio);
+        final refreshed = await _reAuthEmbyJellyfin(activeSource, client);
         if (refreshed == null) {
           throw StateError(
             '${activeSource.name}: no userId and re-authentication failed '
@@ -143,14 +114,18 @@ class MediaServerSyncService {
           );
         }
         activeSource = refreshed;
-        // Update Dio headers with fresh token.
-        if (activeSource.accessToken != null) {
-          dio.options.headers['X-Emby-Token'] = activeSource.accessToken;
-        }
+        // Recreate client with fresh token via a new Dio instance.
+        dio.close();
+        final freshDio = createEmbyJellyfinSyncDio(
+          activeSource.url,
+          accessToken: activeSource.accessToken,
+          deviceId: activeSource.deviceId,
+        );
+        client = MediaServerApiClient(freshDio, baseUrl: activeSource.url);
       }
 
       final server = MediaServerSource(
-        apiClient: MediaServerApiClient(dio, baseUrl: activeSource.url),
+        apiClient: client,
         serverUrl: activeSource.url,
         userId: activeSource.userId!,
         deviceId: activeSource.deviceId ?? kDefaultDeviceId,
@@ -184,13 +159,7 @@ class MediaServerSyncService {
 
   /// Syncs a Plex source.
   Future<SyncReport> _syncPlex(PlaylistSource source) async {
-    final dio = Dio(
-      BaseOptions(
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 30),
-        responseDecoder: _lenientUtf8Decoder,
-      ),
-    );
+    final dio = createPlexSyncDio();
     try {
       final apiClient = PlexApiClient(dio: dio);
       final server = PlexSource(
@@ -325,12 +294,8 @@ class MediaServerSyncService {
     for (var attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         return await fn();
-      } on DioException catch (e) {
-        final isRetryable =
-            e.type == DioExceptionType.connectionTimeout ||
-            e.type == DioExceptionType.receiveTimeout ||
-            (e.response?.statusCode != null && e.response!.statusCode! >= 500);
-        if (attempt == maxAttempts || !isRetryable) rethrow;
+      } catch (e) {
+        if (attempt == maxAttempts || !isRetryableNetworkError(e)) rethrow;
         await Future<void>.delayed(Duration(seconds: attempt * 2));
       }
     }

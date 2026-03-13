@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../data/segment_skip_codec.dart';
 import '../../domain/segment_skip_config.dart';
 import '../../domain/entities/gpu_info.dart';
 import '../../domain/entities/hardware_decoder.dart';

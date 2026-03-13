@@ -1,9 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/data/cache_service.dart';
 import '../../../core/data/crispy_backend.dart';
+import '../data/duplicate_group_codec.dart';
 import '../domain/entities/channel.dart';
 import '../domain/entities/duplicate_group.dart';
 
@@ -25,9 +24,9 @@ class DuplicateDetectionService {
   Future<List<DuplicateGroup>> detectDuplicates(List<Channel> channels) async {
     if (channels.isEmpty) return const [];
 
-    final json = jsonEncode(channels.map(channelToMap).toList());
+    final channelsJson = encodeChannelsJson(channels);
 
-    final results = await _backend.detectDuplicateChannels(json);
+    final results = await _backend.detectDuplicateChannels(channelsJson);
 
     return results.map((m) {
       final streamUrl = m['stream_url'] as String? ?? '';
@@ -45,7 +44,7 @@ class DuplicateDetectionService {
   /// duplicates.
   Future<Set<String>> getDuplicateIds(List<DuplicateGroup> groups) async {
     if (groups.isEmpty) return const {};
-    final json = _encodeGroups(groups);
+    final json = encodeDuplicateGroups(groups);
     final ids = await _backend.getAllDuplicateIds(json);
     return ids.toSet();
   }
@@ -54,7 +53,7 @@ class DuplicateDetectionService {
   /// via the Rust backend.
   bool isDuplicate(String channelId, List<DuplicateGroup> groups) {
     if (groups.isEmpty) return false;
-    final json = _encodeGroups(groups);
+    final json = encodeDuplicateGroups(groups);
     return _backend.isDuplicate(json, channelId);
   }
 
@@ -65,30 +64,9 @@ class DuplicateDetectionService {
     List<DuplicateGroup> groups,
   ) async {
     if (groups.isEmpty) return null;
-    final json = _encodeGroups(groups);
+    final json = encodeDuplicateGroups(groups);
     final result = await _backend.findGroupForChannel(json, channelId);
-    if (result == null || result.isEmpty) return null;
-    final m = jsonDecode(result) as Map<String, dynamic>;
-    final streamUrl = m['stream_url'] as String? ?? '';
-    final channelIds =
-        (m['channel_ids'] as List<dynamic>?)?.cast<String>() ?? [];
-    return DuplicateGroup(streamUrl: streamUrl, channelIds: channelIds);
-  }
-
-  /// Serializes [DuplicateGroup] list to JSON for
-  /// the Rust backend.
-  String _encodeGroups(List<DuplicateGroup> groups) {
-    return jsonEncode(
-      groups
-          .map(
-            (g) => {
-              'stream_url': g.streamUrl,
-              'channel_ids': g.channelIds,
-              if (g.preferredId != null) 'preferred_id': g.preferredId,
-            },
-          )
-          .toList(),
-    );
+    return decodeDuplicateGroup(result);
   }
 }
 

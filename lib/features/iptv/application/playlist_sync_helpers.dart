@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -36,18 +34,8 @@ mixin PlaylistSyncHelpers {
       final accessible = await ref.read(accessibleSourcesProvider.future);
       final isAdmin = accessible == null;
 
-      final backend = ref.read(crispyBackendProvider);
-      final channelsJson = jsonEncode(channels.map(channelToMap).toList());
-      final sourceIdsJson = jsonEncode(accessible ?? <String>[]);
-
-      final resultJson = await backend.filterChannelsBySource(
-        channelsJson,
-        sourceIdsJson,
-        isAdmin,
-      );
-
-      final list = jsonDecode(resultJson) as List<dynamic>;
-      return list.map((m) => mapToChannel(m as Map<String, dynamic>)).toList();
+      final cache = ref.read(cacheServiceProvider);
+      return cache.filterChannelsBySourceTyped(channels, accessible, isAdmin);
     } catch (e) {
       debugPrint(
         'PlaylistSync: source access filter '

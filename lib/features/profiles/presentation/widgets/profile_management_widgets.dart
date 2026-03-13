@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import '../../../../core/data/codecs/json_prefs_codec.dart';
+import '../../../../core/utils/platform_info.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -392,7 +391,8 @@ class ProfileManagementTile extends ConsumerWidget {
             // on mobile platforms (iOS / Android) where local_auth is available.
             if (profile.hasPIN &&
                 !kIsWeb &&
-                (Platform.isIOS || Platform.isAndroid)) ...[
+                (PlatformInfo.instance.isIOS ||
+                    PlatformInfo.instance.isAndroid)) ...[
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 secondary: const Icon(Icons.fingerprint),
