@@ -13,7 +13,9 @@ import '../../../../core/widgets/alpha_jump_bar.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../../core/widgets/content_badge.dart';
 import '../../../../core/widgets/genre_pill_row.dart';
+import '../../../../core/widgets/screen_template.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
+import '../../../../core/widgets/tv_color_button_legend.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
 import '../../../player/data/watch_history_service.dart';
@@ -25,6 +27,7 @@ import '../widgets/continue_watching_section.dart';
 import '../widgets/recently_added_section.dart';
 import '../widgets/series_featured_banner.dart';
 import '../widgets/series_movies_grid.dart';
+import '../widgets/series_tv_layout.dart';
 import '../widgets/vod_search_sort_bar.dart';
 
 /// Top-level Series browser screen (V2 navigation).
@@ -124,7 +127,29 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
         // T09: add Semantics label for screen reader accessibility.
         body: Semantics(
           label: 'Series browser',
-          child: FocusTraversalGroup(child: _buildBody(context, allSeries)),
+          child: ScreenTemplate(
+            focusRestorationKey: 'series-browser',
+            colorButtonMap: {
+              TvColorButton.red: ColorButtonAction(
+                label: 'Filter',
+                onPressed: () {},
+              ),
+              TvColorButton.green: ColorButtonAction(
+                label: 'Search',
+                onPressed: () => context.go(AppRoutes.customSearch),
+              ),
+              TvColorButton.yellow: ColorButtonAction(
+                label: 'Sort',
+                onPressed: () {},
+              ),
+              TvColorButton.blue: ColorButtonAction(
+                label: 'My List',
+                onPressed: () => context.go(AppRoutes.favorites),
+              ),
+            },
+            compactBody: _buildBody(context, allSeries),
+            largeBody: const SeriesTvLayout(),
+          ),
         ),
       ),
     );

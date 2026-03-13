@@ -7,7 +7,8 @@ import '../../../../core/domain/entities/media_type.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
-import '../../../../core/widgets/responsive_layout.dart';
+import '../../../../core/widgets/screen_template.dart';
+import '../../../../core/widgets/tv_color_button_legend.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../favorites/presentation/providers/favorites_controller.dart';
 import '../../../iptv/domain/entities/channel.dart';
@@ -179,19 +180,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    // FE-SR-08: On TV (large layout) render the two-panel keyboard+results
-    // layout instead of the standard search bar + body.
-    if (context.isLarge) {
-      return Scaffold(
-        key: TestKeys.searchScreen,
-        body: TvSearchPanel(
-          onItemTap: _onItemTap,
-          onItemFavorite: _onItemFavorite,
-          onItemDetails: _onItemDetails,
-        ),
-      );
-    }
-
     return Scaffold(
       key: TestKeys.searchScreen,
       appBar: AppBar(
@@ -248,8 +236,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ],
       ),
       // S-07: body content extracted to SearchBody
-      body: FocusTraversalGroup(
-        child: SearchBody(
+      body: ScreenTemplate(
+        focusRestorationKey: 'search',
+        colorButtonMap: {
+          TvColorButton.red: ColorButtonAction(
+            label: 'Clear',
+            onPressed: _clearSearch,
+          ),
+          TvColorButton.yellow: ColorButtonAction(
+            label: 'Filter',
+            onPressed: _showFilterSheet,
+          ),
+        },
+        compactBody: SearchBody(
           state: state,
           isContentLoaded:
               ref.watch(
@@ -274,6 +273,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           onClearHistory: () {
             ref.read(searchControllerProvider.notifier).clearHistory();
           },
+          onItemTap: _onItemTap,
+          onItemFavorite: _onItemFavorite,
+          onItemDetails: _onItemDetails,
+        ),
+        // FE-SR-08: TV two-panel keyboard + results layout.
+        largeBody: TvSearchPanel(
           onItemTap: _onItemTap,
           onItemFavorite: _onItemFavorite,
           onItemDetails: _onItemDetails,

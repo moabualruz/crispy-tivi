@@ -7,12 +7,14 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/widgets/screen_template.dart';
 import '../../data/transfer_service.dart';
 import '../../domain/entities/storage_backend.dart';
 import '../../domain/storage_provider.dart';
 import '../../domain/utils/file_filter.dart';
 import '../widgets/cloud_browser_actions_mixin.dart';
 import '../widgets/cloud_browser_body.dart';
+import '../widgets/cloud_tv_layout.dart';
 import 'cloud_browser_providers.dart';
 import 'cloud_file_grid.dart';
 
@@ -320,8 +322,9 @@ class _CloudBrowserScreenState extends ConsumerState<CloudBrowserScreen>
           sortOrder: sortOrder,
         ),
       ),
-      body: FocusTraversalGroup(
-        child:
+      body: ScreenTemplate(
+        focusRestorationKey: 'cloud-browser',
+        compactBody:
             backends.isEmpty
                 ? EmptyBackendsPlaceholder(
                   onOpenSettings:
@@ -382,6 +385,16 @@ class _CloudBrowserScreenState extends ConsumerState<CloudBrowserScreen>
                     ),
                   ],
                 ),
+        largeBody: CloudTvLayout(
+          files: _sortedFiles ?? _files,
+          onTapFile: (file) {
+            if (file.isDirectory) {
+              _loadFiles(file.path);
+            } else {
+              ref.read(recentFilesProvider.notifier).add(file);
+            }
+          },
+        ),
       ),
       bottomNavigationBar:
           isMultiSelect
