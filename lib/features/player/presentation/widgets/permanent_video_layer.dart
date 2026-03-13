@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../domain/entities/playback_state.dart';
 import '../../domain/player_lifecycle_coordinator.dart';
+import '../../domain/video_surface_manager.dart';
 import '../providers/player_providers.dart';
 import 'web_hls_video.dart';
 
@@ -49,6 +50,14 @@ class PermanentVideoLayer extends ConsumerWidget {
       modeState.mode,
       playbackStatus,
     );
+
+    // Enforce single-surface invariant via VideoSurfaceManager.
+    final surfaceManager = ref.read(videoSurfaceManagerProvider);
+    if (shouldMount) {
+      surfaceManager.activateSurface('permanent');
+    } else {
+      surfaceManager.deactivateSurface('permanent');
+    }
 
     final screenSize = MediaQuery.sizeOf(context);
     final fullRect = Rect.fromLTWH(0, 0, screenSize.width, screenSize.height);
