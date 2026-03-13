@@ -1,3 +1,4 @@
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,8 +29,16 @@ class FocusRestorationNotifier extends Notifier<Map<String, Key>> {
   Map<String, Key> build() => {};
 
   /// Stores [key] for the given [routePath].
+  ///
+  /// No-ops if the notifier has already been disposed (e.g., when
+  /// a deferred callback fires after the Riverpod scope tears down).
   void setKey(String routePath, Key key) {
-    state = {...state, routePath: key};
+    try {
+      state = {...state, routePath: key};
+    } catch (_) {
+      // Notifier or Ref disposed — ignore (deferred callback
+      // fired after Riverpod scope teardown).
+    }
   }
 
   /// Returns the saved key for [routePath], or `null`.
@@ -49,6 +58,9 @@ class FocusRestorationNotifier extends Notifier<Map<String, Key>> {
 /// stores it in [focusRestorationProvider].
 ///
 /// If no [ValueKey] ancestor is found, does nothing.
+///
+/// Safe to call from [State.deactivate] — the provider mutation
+/// is deferred to avoid modifying state during the build phase.
 void saveFocusKey(WidgetRef ref, String routePath) {
   final primaryFocus = FocusManager.instance.primaryFocus;
   if (primaryFocus == null) return;
@@ -58,8 +70,23 @@ void saveFocusKey(WidgetRef ref, String routePath) {
 
   // Check the focus node's own widget first.
   final directKey = context.widget.key;
+  // Capture the notifier synchronously (safe during deactivate).
+  // Guard with try-catch: ref.read() may throw if the Riverpod
+  // scope is already tearing down (e.g., test teardown).
+  final FocusRestorationNotifier notifier;
+  try {
+    notifier = ref.read(focusRestorationProvider.notifier);
+  } catch (_) {
+    return; // Widget/scope already disposed — nothing to save.
+  }
+
   if (directKey is ValueKey) {
-    ref.read(focusRestorationProvider.notifier).setKey(routePath, directKey);
+    // Defer the state mutation so it never fires during the
+    // build phase, which would trigger "modified a provider while
+    // the widget tree was building".
+    SchedulerBinding.instance.addPostFrameCallback(
+      (_) => notifier.setKey(routePath, directKey),
+    );
     return;
   }
 
@@ -75,7 +102,10 @@ void saveFocusKey(WidgetRef ref, String routePath) {
   });
 
   if (found != null) {
-    ref.read(focusRestorationProvider.notifier).setKey(routePath, found!);
+    final key = found!;
+    SchedulerBinding.instance.addPostFrameCallback(
+      (_) => notifier.setKey(routePath, key),
+    );
   }
 }
 

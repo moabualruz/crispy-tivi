@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../core/data/dart_algorithm_fallbacks.dart';
 import '../../../../core/theme/crispy_animation.dart';
@@ -133,171 +134,193 @@ class _ChannelZapOverlayState extends State<ChannelZapOverlay> {
       top: 0,
       bottom: 0,
       width: constrainedWidth,
-      child: GlassSurface(
-        borderRadius: 0,
-        padding: EdgeInsets.only(
-          top: MediaQuery.paddingOf(context).top + CrispySpacing.md,
-          bottom: MediaQuery.paddingOf(context).bottom + CrispySpacing.md,
-        ),
-        child: FocusTraversalGroup(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Header ──
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: CrispySpacing.md,
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      'Channels',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                      ),
+      child: Shortcuts(
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
+        },
+        child: Actions(
+          actions: <Type, Action<Intent>>{
+            DismissIntent: CallbackAction<DismissIntent>(
+              onInvoke: (_) {
+                widget.onDismiss();
+                return null;
+              },
+            ),
+          },
+          child: GlassSurface(
+            borderRadius: 0,
+            padding: EdgeInsets.only(
+              top: MediaQuery.paddingOf(context).top + CrispySpacing.md,
+              bottom: MediaQuery.paddingOf(context).bottom + CrispySpacing.md,
+            ),
+            child: FocusTraversalGroup(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Header ──
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: CrispySpacing.md,
                     ),
-                    const Spacer(),
-                    IconButton(
-                      tooltip: 'Close',
-                      icon: Icon(
-                        Icons.close,
-                        color: colorScheme.onSurfaceVariant,
+                    child: Row(
+                      children: [
+                        Text(
+                          'Channels',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onSurface,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          tooltip: 'Close',
+                          icon: Icon(
+                            Icons.close,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          onPressed: widget.onDismiss,
+                          iconSize: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Group filter tabs ──
+                  if (groups.length > 1) ...[
+                    const SizedBox(height: CrispySpacing.xs),
+                    SizedBox(
+                      height: 32,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: CrispySpacing.sm,
+                        ),
+                        children: [
+                          _GroupChip(
+                            label: 'All',
+                            isSelected: _selectedGroup == null,
+                            onTap: () {
+                              setState(() => _selectedGroup = null);
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                _scrollToCurrentChannel();
+                              });
+                            },
+                          ),
+                          ...groups.map(
+                            (g) => _GroupChip(
+                              label: g,
+                              isSelected: _selectedGroup == g,
+                              onTap: () {
+                                setState(() => _selectedGroup = g);
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  _scrollToCurrentChannel();
+                                });
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                      onPressed: widget.onDismiss,
-                      iconSize: 20,
                     ),
                   ],
-                ),
-              ),
+                  const SizedBox(height: CrispySpacing.sm),
 
-              // ── Group filter tabs ──
-              if (groups.length > 1) ...[
-                const SizedBox(height: CrispySpacing.xs),
-                SizedBox(
-                  height: 32,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: CrispySpacing.sm,
-                    ),
-                    children: [
-                      _GroupChip(
-                        label: 'All',
-                        isSelected: _selectedGroup == null,
-                        onTap: () {
-                          setState(() => _selectedGroup = null);
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            _scrollToCurrentChannel();
-                          });
-                        },
-                      ),
-                      ...groups.map(
-                        (g) => _GroupChip(
-                          label: g,
-                          isSelected: _selectedGroup == g,
-                          onTap: () {
-                            setState(() => _selectedGroup = g);
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              _scrollToCurrentChannel();
-                            });
-                          },
+                  // ── Channel list ──
+                  Expanded(
+                    child: FocusTraversalGroup(
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: CrispySpacing.sm,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: CrispySpacing.sm),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) {
+                          final ch = filtered[index];
+                          final isCurrent = ch.id == widget.currentChannelId;
 
-              // ── Channel list ──
-              Expanded(
-                child: FocusTraversalGroup(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: CrispySpacing.sm,
-                    ),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final ch = filtered[index];
-                      final isCurrent = ch.id == widget.currentChannelId;
+                          return FocusWrapper(
+                            autofocus: isCurrent,
+                            onSelect: () => widget.onChannelSelected(ch),
+                            borderRadius: CrispyRadius.sm,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: CrispySpacing.sm,
+                                vertical: CrispySpacing.xs,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.zero,
+                                color:
+                                    isCurrent
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.15)
+                                        : Colors.transparent,
+                              ),
+                              child: Row(
+                                children: [
+                                  // Number
+                                  if (ch.number != null)
+                                    SizedBox(
+                                      width: 36,
+                                      child: Text(
+                                        '${ch.number}',
+                                        style: TextStyle(
+                                          color:
+                                              isCurrent
+                                                  ? colorScheme.onSurface
+                                                  : colorScheme
+                                                      .onSurfaceVariant,
+                                          fontWeight:
+                                              isCurrent
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
 
-                      return FocusWrapper(
-                        autofocus: isCurrent,
-                        onSelect: () => widget.onChannelSelected(ch),
-                        borderRadius: CrispyRadius.sm,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: CrispySpacing.sm,
-                            vertical: CrispySpacing.xs,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.zero,
-                            color:
-                                isCurrent
-                                    ? Theme.of(context).colorScheme.onSurface
-                                        .withValues(alpha: 0.15)
-                                    : Colors.transparent,
-                          ),
-                          child: Row(
-                            children: [
-                              // Number
-                              if (ch.number != null)
-                                SizedBox(
-                                  width: 36,
-                                  child: Text(
-                                    '${ch.number}',
-                                    style: TextStyle(
-                                      color:
-                                          isCurrent
-                                              ? colorScheme.onSurface
-                                              : colorScheme.onSurfaceVariant,
-                                      fontWeight:
-                                          isCurrent
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
-                                      fontSize: 13,
+                                  // Name
+                                  Expanded(
+                                    child: Text(
+                                      ch.name,
+                                      style: TextStyle(
+                                        color:
+                                            isCurrent
+                                                ? colorScheme.onSurface
+                                                : colorScheme.onSurfaceVariant,
+                                        fontWeight:
+                                            isCurrent
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                        fontSize: 14,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                ),
 
-                              // Name
-                              Expanded(
-                                child: Text(
-                                  ch.name,
-                                  style: TextStyle(
-                                    color:
-                                        isCurrent
-                                            ? colorScheme.onSurface
-                                            : colorScheme.onSurfaceVariant,
-                                    fontWeight:
-                                        isCurrent
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                    fontSize: 14,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                                  // Now playing indicator
+                                  if (isCurrent)
+                                    Icon(
+                                      Icons.play_arrow,
+                                      color: colorScheme.onSurface,
+                                      size: 18,
+                                    ),
+                                ],
                               ),
-
-                              // Now playing indicator
-                              if (isCurrent)
-                                Icon(
-                                  Icons.play_arrow,
-                                  color: colorScheme.onSurface,
-                                  size: 18,
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

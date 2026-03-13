@@ -181,6 +181,7 @@ class SideNav extends ConsumerWidget {
       child: Tooltip(
         message: extended ? '' : displayLabel,
         waitDuration: CrispyAnimation.normal,
+        triggerMode: TooltipTriggerMode.longPress,
         child: Container(
           width: double.infinity,
           height: _kNavItemHeight,
@@ -316,6 +317,7 @@ class _ProfileIndicatorRow extends ConsumerWidget {
                       ? context.l10n.sideNavSwitchProfile
                       : context.l10n.sideNavManageProfiles,
               waitDuration: CrispyAnimation.normal,
+              triggerMode: TooltipTriggerMode.longPress,
               child: Container(
                 height: _kNavItemHeight,
                 padding: EdgeInsets.symmetric(

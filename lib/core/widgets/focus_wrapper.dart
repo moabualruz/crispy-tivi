@@ -156,17 +156,24 @@ class _FocusWrapperState extends State<FocusWrapper> {
       widget.onFocusChange?.call(hasFocus);
       if (hasFocus) {
         // Defer scroll to next frame so the widget tree
-        // is stable. Guard with `mounted` to avoid null
-        // context when focus traversal disposes this widget
-        // before the callback fires (BUG-001).
+        // is stable. Guard with `mounted` and verify the
+        // nearest Scrollable is still attached to avoid
+        // "object.attached is not true" assertions when
+        // rapid focus traversal detaches the scroll position
+        // before this callback fires.
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            Scrollable.ensureVisible(
-              context,
-              alignment: 0.5,
-              duration: CrispyAnimation.fast,
-              curve: CrispyAnimation.focusCurve,
-            );
+          if (mounted && Scrollable.maybeOf(context) != null) {
+            try {
+              Scrollable.ensureVisible(
+                context,
+                alignment: 0.5,
+                duration: CrispyAnimation.fast,
+                curve: CrispyAnimation.focusCurve,
+              );
+            } on AssertionError catch (_) {
+              // ScrollPosition detached between the check and the call —
+              // safe to ignore; the widget is leaving the tree.
+            }
           }
         });
       }
@@ -338,20 +345,49 @@ class _FocusWrapperState extends State<FocusWrapper> {
     bool showHoverBorder,
     double activeScale,
   ) {
+    final accentColor = Theme.of(context).colorScheme.inversePrimary;
+    final borderColor =
+        showFocusBorder
+            ? accentColor
+            : showHoverBorder
+            ? accentColor.withValues(alpha: 0.4)
+            : Colors.transparent;
+
+    final radius = BorderRadius.circular(widget.borderRadius);
+
     return AnimatedScale(
       scale: isHighlighted ? activeScale : 1.0,
       duration: CrispyAnimation.fast,
       curve: CrispyAnimation.focusCurve,
+      // Outer container: shadow + border only — no clip so
+      // the glow and shadow paint outside the card bounds.
       child: AnimatedContainer(
         duration: CrispyAnimation.fast,
         curve: CrispyAnimation.focusCurve,
-        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(widget.borderRadius),
-          boxShadow: showFocusBorder ? CrispyElevation.level2 : null,
+          borderRadius: radius,
+          border: Border.all(
+            color: borderColor,
+            width: isHighlighted ? widget.focusBorderWidth : 0,
+            strokeAlign: BorderSide.strokeAlignOutside,
+          ),
+          boxShadow:
+              showFocusBorder
+                  ? [
+                    ...CrispyElevation.level2,
+                    BoxShadow(
+                      color: accentColor.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                    ),
+                  ]
+                  : null,
         ),
-        padding: widget.padding,
-        child: widget.child,
+        // Inner clip: rounds the child content without
+        // clipping the outer shadow/border.
+        child: ClipRRect(
+          borderRadius: radius,
+          child: Padding(padding: widget.padding, child: widget.child),
+        ),
       ),
     );
   }

@@ -87,18 +87,20 @@ class EpgTvLayout extends ConsumerWidget {
     return Row(
       children: [
         // ── Group Sidebar ──
-        GroupSidebar(
-          groups: state.groups,
-          selectedGroup: state.selectedGroup,
-          onGroupSelected: (group) {
-            ref.read(epgProvider.notifier).selectGroup(group);
-          },
-          header: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.sm),
-            child: Text(
-              'Groups',
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+        SidebarFocusScope(
+          child: GroupSidebar(
+            groups: state.groups,
+            selectedGroup: state.selectedGroup,
+            onGroupSelected: (group) {
+              ref.read(epgProvider.notifier).selectGroup(group);
+            },
+            header: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.sm),
+              child: Text(
+                'Groups',
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),

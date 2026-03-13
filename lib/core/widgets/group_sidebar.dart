@@ -2,12 +2,67 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/cache_service.dart';
+import '../navigation/shell_providers.dart';
 import '../theme/crispy_animation.dart';
 import '../theme/crispy_radius.dart';
 import '../theme/crispy_spacing.dart';
 import '../utils/group_icon_helper.dart';
 import 'focus_wrapper.dart';
 import 'glass_surface.dart';
+
+/// Wraps a sidebar widget (typically [GroupSidebar]) with a
+/// [FocusTraversalGroup] and registers its [FocusNode] with
+/// [focusEscalationProvider] so Escape/Back escalates through:
+///   content → sidebar → nav rail
+///
+/// Usage:
+/// ```dart
+/// SidebarFocusScope(
+///   child: GroupSidebar(...),
+/// )
+/// ```
+class SidebarFocusScope extends ConsumerStatefulWidget {
+  const SidebarFocusScope({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  ConsumerState<SidebarFocusScope> createState() => _SidebarFocusScopeState();
+}
+
+class _SidebarFocusScopeState extends ConsumerState<SidebarFocusScope> {
+  final FocusNode _sidebarNode = FocusNode(debugLabel: 'SidebarFocusScope');
+  late final FocusEscalationNotifier _escalation;
+
+  @override
+  void initState() {
+    super.initState();
+    _escalation = ref.read(focusEscalationProvider.notifier);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _escalation.setSidebarNode(_sidebarNode);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _escalation.setSidebarNode(null);
+    _sidebarNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusTraversalGroup(
+      child: Focus(
+        focusNode: _sidebarNode,
+        skipTraversal: true,
+        child: widget.child,
+      ),
+    );
+  }
+}
 
 /// Width of the expanded sidebar on large screens.
 const kSidebarWidth = 240.0;
@@ -233,13 +288,11 @@ class _SidebarIconButton extends StatelessWidget {
       onSelect: onTap,
       borderRadius: CrispyRadius.sm,
       padding: EdgeInsets.zero,
-      child: Tooltip(
-        message: tooltip ?? '',
-        child: Container(
-          padding: const EdgeInsets.all(CrispySpacing.sm),
-          alignment: Alignment.center,
-          child: Icon(icon, size: 20, color: colorScheme.onSurfaceVariant),
-        ),
+      semanticLabel: tooltip,
+      child: Container(
+        padding: const EdgeInsets.all(CrispySpacing.sm),
+        alignment: Alignment.center,
+        child: Icon(icon, size: 20, color: colorScheme.onSurfaceVariant),
       ),
     );
   }

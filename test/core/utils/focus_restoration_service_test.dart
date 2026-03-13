@@ -88,6 +88,11 @@ void main() {
         await tester.pumpAndSettle();
 
         saveFocusKey(widgetRef, '/test');
+        // saveFocusKey defers the state mutation via
+        // addPostFrameCallback — schedule a frame and pump
+        // to execute the callback.
+        tester.binding.scheduleFrame();
+        await tester.pump();
 
         final saved = widgetRef
             .read(focusRestorationProvider.notifier)

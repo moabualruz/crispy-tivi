@@ -42,6 +42,7 @@ final _selectKeys = {
 
 final _backKeys = {
   LogicalKeyboardKey.escape,
+  LogicalKeyboardKey.backspace,
   LogicalKeyboardKey.goBack,
   LogicalKeyboardKey.browserBack,
   LogicalKeyboardKey.gameButtonB,

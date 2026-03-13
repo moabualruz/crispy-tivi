@@ -92,14 +92,10 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode();
-    // Ensure the root keyboard listener can capture digit keys
-    // even if no child has focus yet.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_focusNode.hasPrimaryFocus) {
-        _focusNode.requestFocus();
-      }
-    });
+    // canRequestFocus: false lets the KeyboardListener receive
+    // key events that bubble up from descendants without stealing
+    // primary focus away from child FocusTraversalGroups.
+    _focusNode = FocusNode(canRequestFocus: false);
   }
 
   @override
@@ -111,12 +107,18 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
     super.dispose();
   }
 
-  /// Restore keyboard focus to the root node after interactions
-  /// that may steal it (navigation, dialogs, etc.).
+  /// Restore keyboard focus to the first focusable child after
+  /// interactions that may steal it (navigation, dialogs, etc.).
   void _restoreFocus() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_focusNode.hasPrimaryFocus) {
-        _focusNode.requestFocus();
+      if (mounted) {
+        // Push focus into the first traversable child rather than
+        // the root KeyboardListener node (which has
+        // canRequestFocus: false).
+        final scope = FocusScope.of(context);
+        if (!scope.hasFocus) {
+          scope.nextFocus();
+        }
       }
     });
   }
@@ -245,7 +247,7 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
 
     final layout = Row(
       children: [
-        FocusTraversalGroup(
+        SidebarFocusScope(
           child: GroupSidebar(
             groups: widget.state.displayGroups,
             selectedGroup: widget.state.effectiveGroup,

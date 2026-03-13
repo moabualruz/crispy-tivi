@@ -52,7 +52,6 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  final FocusScopeNode _contentFocusScope = FocusScopeNode();
   String? _lastReportedPath;
 
   /// When true, screen content subtree is fully offstage
@@ -74,7 +73,6 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   void dispose() {
-    _contentFocusScope.dispose();
     super.dispose();
   }
 
@@ -152,10 +150,14 @@ class _AppShellState extends ConsumerState<AppShell> {
           !DeviceFormFactorService.current.isMobile)
         const SingleActivator(LogicalKeyboardKey.slash, shift: true):
             () => showKeyboardShortcutsOverlay(context),
-      // Back: Escape, GoBack, Gamepad B
+      // Back: Escape, GoBack, BrowserBack, Gamepad B
+      // NOTE: Backspace is handled in _onKeyEvent (not here) so it
+      // doesn't get swallowed when a TextField is focused.
       const SingleActivator(LogicalKeyboardKey.escape):
           () => _handleBack(context),
       const SingleActivator(LogicalKeyboardKey.goBack):
+          () => _handleBack(context),
+      const SingleActivator(LogicalKeyboardKey.browserBack):
           () => _handleBack(context),
       const SingleActivator(LogicalKeyboardKey.gameButtonB):
           () => _handleBack(context),
@@ -255,10 +257,36 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
+  /// Handles Backspace as back-navigation only when no text field is focused.
+  ///
+  /// This is handled here (instead of in [CallbackShortcuts]) because
+  /// [CallbackShortcuts] would swallow the Backspace event before the
+  /// child [TextField] can process it for text editing.
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey != LogicalKeyboardKey.backspace) {
+      return KeyEventResult.ignored;
+    }
+    // Let text fields handle their own Backspace.
+    final primaryFocus = FocusManager.instance.primaryFocus;
+    if (primaryFocus != null &&
+        primaryFocus.context?.findAncestorWidgetOfExactType<EditableText>() !=
+            null) {
+      return KeyEventResult.ignored;
+    }
+    _handleBack(node.context!);
+    return KeyEventResult.handled;
+  }
+
   /// Handle Escape / Back / Gamepad-B.
   ///
-  /// In fullscreen: exit to preview/background.
-  /// Otherwise: pop navigation or go Home.
+  /// Focus escalation order (large-screen layouts with side nav):
+  ///   content → sidebar (if registered) → rail → pop/home
+  ///
+  /// On compact layouts (bottom nav) or when the rail already has
+  /// focus, falls through to normal pop/home navigation.
   void _handleBack(BuildContext context) {
     final mode = ref.read(playerModeProvider).mode;
     if (mode == PlayerMode.fullscreen) {
@@ -272,6 +300,10 @@ class _AppShellState extends ConsumerState<AppShell> {
     // Two-stage escape: first unfocus any active text field,
     // second press pops the screen.
     if (tryUnfocusTextFieldFirst()) return;
+
+    // Focus escalation on large-screen layouts.
+    if (context.usesSideNav && _tryEscalateFocus()) return;
+
     // Defer navigation to avoid "pop during build" on rapid key presses.
     Future.microtask(() {
       if (!context.mounted) return;
@@ -284,6 +316,42 @@ class _AppShellState extends ConsumerState<AppShell> {
         }
       }
     });
+  }
+
+  /// Attempts to escalate focus toward the navigation rail.
+  ///
+  /// Returns `true` if focus was moved (caller should not pop).
+  bool _tryEscalateFocus() {
+    final escalation = ref.read(focusEscalationProvider);
+    final primaryFocus = FocusManager.instance.primaryFocus;
+    if (primaryFocus == null) return false;
+
+    final railNode = escalation.railNode;
+    final sidebarNode = escalation.sidebarNode;
+
+    // Already in the rail → don't escalate, let pop/home proceed.
+    if (railNode != null && railNode.hasFocus) return false;
+
+    // In the sidebar → escalate to rail.
+    if (sidebarNode != null &&
+        sidebarNode.hasFocus &&
+        railNode != null &&
+        railNode.canRequestFocus) {
+      railNode.requestFocus();
+      return true;
+    }
+
+    // In content → escalate to sidebar if registered, otherwise rail.
+    if (sidebarNode != null && sidebarNode.canRequestFocus) {
+      sidebarNode.requestFocus();
+      return true;
+    }
+    if (railNode != null && railNode.canRequestFocus) {
+      railNode.requestFocus();
+      return true;
+    }
+
+    return false;
   }
 
   /// Wraps [icon] in a Material 3 [Badge] when [badge] warrants one.
@@ -374,6 +442,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         bindings: shortcuts,
         child: Focus(
           autofocus: true,
+          onKeyEvent: _onKeyEvent,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -453,18 +522,15 @@ class _AppShellState extends ConsumerState<AppShell> {
                     start: kRailCollapsedWidth,
                   ),
                   child: FocusTraversalGroup(
-                    child: FocusScope(
-                      node: _contentFocusScope,
-                      child: Column(
-                        children: [
-                          // ── FE-AS-07: Offline banner ───────────
-                          const OfflineBanner(),
-                          // ── FE-AS-13: Breadcrumb bar ───────────
-                          const BreadcrumbBar(),
-                          Expanded(child: ToastOverlay(child: widget.child)),
-                          const MiniPlayerBar(),
-                        ],
-                      ),
+                    child: Column(
+                      children: [
+                        // ── FE-AS-07: Offline banner ───────────
+                        const OfflineBanner(),
+                        // ── FE-AS-13: Breadcrumb bar ───────────
+                        const BreadcrumbBar(),
+                        Expanded(child: ToastOverlay(child: widget.child)),
+                        const MiniPlayerBar(),
+                      ],
                     ),
                   ),
                 ),
@@ -752,7 +818,7 @@ class _CompactProfileAvatar extends ConsumerWidget {
 
 /// Encapsulates rail hover/focus state so changes rebuild only
 /// the rail — not the entire [AppShell] subtree.
-class _RailNavWidget extends StatefulWidget {
+class _RailNavWidget extends ConsumerStatefulWidget {
   const _RailNavWidget({
     required this.selectedIndex,
     required this.onDestinationSelected,
@@ -766,23 +832,31 @@ class _RailNavWidget extends StatefulWidget {
   final ValueChanged<bool>? onExtendedChanged;
 
   @override
-  State<_RailNavWidget> createState() => _RailNavWidgetState();
+  ConsumerState<_RailNavWidget> createState() => _RailNavWidgetState();
 }
 
-class _RailNavWidgetState extends State<_RailNavWidget> {
+class _RailNavWidgetState extends ConsumerState<_RailNavWidget> {
   final FocusScopeNode _railFocusScope = FocusScopeNode();
   bool _isHovering = false;
   bool _isFocused = false;
   bool get _isExtended => _isHovering || _isFocused;
 
+  late final FocusEscalationNotifier _escalation;
+
   @override
   void initState() {
     super.initState();
+    _escalation = ref.read(focusEscalationProvider.notifier);
     _railFocusScope.addListener(_onFocusChange);
+    // Register the rail node for focus escalation.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _escalation.setRailNode(_railFocusScope);
+    });
   }
 
   @override
   void dispose() {
+    _escalation.setRailNode(null);
     _railFocusScope.removeListener(_onFocusChange);
     _railFocusScope.dispose();
     super.dispose();
