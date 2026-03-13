@@ -64,8 +64,9 @@ class FfiBackend extends _FfiBackendBase
 
     try {
       await rust_api.initBackend(dbPath: dbPath);
-    } catch (_) {
-      // Tolerate repeat initializations.
+    } catch (e) {
+      // Intentional: tolerate repeat initializations.
+      debugPrint('[FfiBackend] init skipped (likely repeat): $e');
     }
     _eventStream ??= rust_api.subscribeDataEvents();
   }

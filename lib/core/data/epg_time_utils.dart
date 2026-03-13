@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import 'timezone_offsets.dart';
 
 /// Pure-Dart EPG time formatting and timezone utilities.
@@ -133,12 +135,16 @@ Future<String> dartMergeEpgWindow(String existingJson, String newJson) async {
   Map<String, dynamic> incoming;
   try {
     existing = jsonDecode(existingJson) as Map<String, dynamic>;
-  } catch (_) {
+  } catch (e) {
+    // Intentional: malformed JSON falls back to empty map for merge.
+    debugPrint('[EpgTimeUtils] existing JSON parse failed: $e');
     existing = {};
   }
   try {
     incoming = jsonDecode(newJson) as Map<String, dynamic>;
-  } catch (_) {
+  } catch (e) {
+    // Intentional: malformed JSON falls back to empty map for merge.
+    debugPrint('[EpgTimeUtils] incoming JSON parse failed: $e');
     incoming = {};
   }
   final merged = Map<String, dynamic>.from(existing);

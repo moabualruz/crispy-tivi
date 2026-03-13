@@ -217,7 +217,9 @@ class MediaKitPlayer implements CrispyPlayer {
   void setProperty(String key, String value) {
     try {
       (_player.platform as dynamic).setProperty(key, value);
-    } catch (_) {}
+    } catch (
+      _
+    ) {} // Intentional: dynamic dispatch may not exist on all platforms.
   }
 
   @override
@@ -225,6 +227,7 @@ class MediaKitPlayer implements CrispyPlayer {
     try {
       return (_player.platform as dynamic).getProperty(key) as String?;
     } catch (_) {
+      // Intentional: dynamic dispatch may not exist on all platforms.
       return null;
     }
   }
