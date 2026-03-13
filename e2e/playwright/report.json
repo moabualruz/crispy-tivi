@@ -26,9 +26,7 @@
         "name": "mobile",
         "testDir": "F:/work/crispy-tivi/e2e/playwright/tests",
         "testIgnore": [],
-        "testMatch": [
-          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
-        ],
+        "testMatch": ["**/*.@(spec|test).?(c|m)[jt]s?(x)"],
         "timeout": 90000
       },
       {
@@ -42,9 +40,7 @@
         "name": "tablet",
         "testDir": "F:/work/crispy-tivi/e2e/playwright/tests",
         "testIgnore": [],
-        "testMatch": [
-          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
-        ],
+        "testMatch": ["**/*.@(spec|test).?(c|m)[jt]s?(x)"],
         "timeout": 90000
       },
       {
@@ -58,9 +54,7 @@
         "name": "desktop",
         "testDir": "F:/work/crispy-tivi/e2e/playwright/tests",
         "testIgnore": [],
-        "testMatch": [
-          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
-        ],
+        "testMatch": ["**/*.@(spec|test).?(c|m)[jt]s?(x)"],
         "timeout": 90000
       },
       {
@@ -74,18 +68,12 @@
         "name": "tv",
         "testDir": "F:/work/crispy-tivi/e2e/playwright/tests",
         "testIgnore": [],
-        "testMatch": [
-          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
-        ],
+        "testMatch": ["**/*.@(spec|test).?(c|m)[jt]s?(x)"],
         "timeout": 90000
       }
     ],
     "quiet": false,
-    "reporter": [
-      [
-        "json"
-      ]
-    ],
+    "reporter": [["json"]],
     "reportSlowTests": {
       "max": 5,
       "threshold": 300000

@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import * as path from "path";
 import * as fs from "fs";
 import { filterAppErrors } from "./helpers/error-filter";

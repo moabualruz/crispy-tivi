@@ -121,15 +121,15 @@ We enforce **Conventional Commits**:
 
 ### Types
 
-| Type       | Purpose                              |
-| ---------- | ------------------------------------ |
-| `feat`     | New feature                          |
-| `fix`      | Bug fix                              |
-| `refactor` | Code restructure (no behavior change)|
-| `test`     | Adding or updating tests             |
-| `docs`     | Documentation only                   |
-| `chore`    | Build, CI, tooling changes           |
-| `perf`     | Performance improvement              |
+| Type       | Purpose                               |
+| ---------- | ------------------------------------- |
+| `feat`     | New feature                           |
+| `fix`      | Bug fix                               |
+| `refactor` | Code restructure (no behavior change) |
+| `test`     | Adding or updating tests              |
+| `docs`     | Documentation only                    |
+| `chore`    | Build, CI, tooling changes            |
+| `perf`     | Performance improvement               |
 
 ### Scopes
 

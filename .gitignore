@@ -92,3 +92,6 @@ _bmad/
 _bmad-output/
 .gemini/
 .claude/
+
+# riceguard reports
+reports/

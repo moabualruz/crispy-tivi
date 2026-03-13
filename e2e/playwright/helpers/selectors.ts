@@ -1,6 +1,6 @@
-import { Page } from '@playwright/test';
-import * as path from 'path';
-import * as fs from 'fs';
+import type { Page } from "@playwright/test";
+import * as path from "path";
+import * as fs from "fs";
 
 // ─── Selector Architecture ───────────────────────────────────
 //
@@ -65,33 +65,33 @@ import * as fs from 'fs';
  * breakpoints (< 840dp).
  */
 export const NAV_TABS = [
-  'Home',
-  'Search',
-  'Live TV',
-  'Guide',
-  'Movies',
-  'Series',
-  'DVR',
-  'Favorites',
-  'Settings',
+  "Home",
+  "Search",
+  "Live TV",
+  "Guide",
+  "Movies",
+  "Series",
+  "DVR",
+  "Favorites",
+  "Settings",
 ] as const;
 
 /** Bottom bar tabs for compact/medium viewports (< 840dp).
  * Source: `lib/core/navigation/nav_destinations.dart` — `bottomDestinations`.
  */
 export const BOTTOM_NAV_TABS = [
-  'Home',
-  'Live TV',
-  'Search',
-  'Movies',
-  'Settings',
+  "Home",
+  "Live TV",
+  "Search",
+  "Movies",
+  "Settings",
 ] as const;
 
 /** Profile selection screen text. */
 export const PROFILE_SCREEN = {
   title: "Who's watching?",
-  addProfile: 'Add Profile',
-  defaultProfile: 'Default',
+  addProfile: "Add Profile",
+  defaultProfile: "Default",
 } as const;
 
 /** Responsive breakpoint thresholds (from responsive_layout.dart). */
@@ -117,25 +117,22 @@ export const BREAKPOINTS = {
  * After this returns, ARIA-based selectors (getByRole,
  * getByText) should work against Flutter's semantics tree.
  */
-export async function waitForFlutterReady(
-  page: Page,
-): Promise<void> {
+export async function waitForFlutterReady(page: Page): Promise<void> {
   // Wait for initial DOM content — don't use 'networkidle'
   // because Flutter web continuously fetches fonts/WASM.
-  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState("domcontentloaded");
 
   // Wait for Flutter to create the <flutter-view>.
   // Large viewports (e.g. 1920×1080 TV) render more widgets
   // and need extra time for Flutter to initialize.
-  await page.waitForSelector('flutter-view', { timeout: 30_000 });
+  await page.waitForSelector("flutter-view", { timeout: 30_000 });
 
   // Allow time for the widget tree to render and settle.
   // Flutter web startup involves deferred loading, font
   // resolution, and Riverpod provider initialization.
   // Larger viewports need more settle time.
   const viewport = page.viewportSize();
-  const settleMs =
-    viewport != null && viewport.width >= 1920 ? 5000 : 3000;
+  const settleMs = viewport != null && viewport.width >= 1920 ? 5000 : 3000;
   await page.waitForTimeout(settleMs);
 
   // Activate the Flutter semantics overlay. Flutter web
@@ -154,12 +151,10 @@ export async function waitForFlutterReady(
  * mirrors the widget tree as invisible DOM nodes with ARIA
  * attributes, enabling getByRole() and getByText() queries.
  */
-async function enableSemanticsOverlay(
-  page: Page,
-): Promise<void> {
+async function enableSemanticsOverlay(page: Page): Promise<void> {
   try {
-    const accessBtn = page.getByRole('button', {
-      name: 'Enable accessibility',
+    const accessBtn = page.getByRole("button", {
+      name: "Enable accessibility",
     });
     await accessBtn.waitFor({ timeout: 3000 });
     // Force-click: the button is positioned offscreen by
@@ -200,7 +195,7 @@ export async function clickByText(
   const textLocator = page.getByText(text, { exact: false });
   try {
     await textLocator.first().waitFor({
-      state: 'visible',
+      state: "visible",
       timeout: timeout / 2,
     });
     await textLocator.first().click({ timeout });
@@ -210,10 +205,10 @@ export async function clickByText(
   }
 
   // Strategy 2: Button with accessible name.
-  const btnLocator = page.getByRole('button', { name: text });
+  const btnLocator = page.getByRole("button", { name: text });
   try {
     await btnLocator.first().waitFor({
-      state: 'visible',
+      state: "visible",
       timeout: timeout / 3,
     });
     await btnLocator.first().click({ timeout });
@@ -226,12 +221,11 @@ export async function clickByText(
   // Flutter creates `flt-semantics` custom elements in the
   // semantics overlay with aria-label attributes.
   const semanticsLocator = page.locator(
-    `flt-semantics[aria-label*="${text}"], ` +
-    `[aria-label*="${text}"]`,
+    `flt-semantics[aria-label*="${text}"], ` + `[aria-label*="${text}"]`,
   );
   try {
     await semanticsLocator.first().waitFor({
-      state: 'attached',
+      state: "attached",
       timeout: timeout / 3,
     });
     await semanticsLocator.first().click({ force: true });
@@ -240,9 +234,9 @@ export async function clickByText(
     // All strategies failed.
     throw new Error(
       `clickByText: Could not find or click element ` +
-      `with text "${text}" within ${timeout}ms. ` +
-      `Flutter CanvasKit may not have rendered semantics ` +
-      `for this element.`,
+        `with text "${text}" within ${timeout}ms. ` +
+        `Flutter CanvasKit may not have rendered semantics ` +
+        `for this element.`,
     );
   }
 }
@@ -261,24 +255,19 @@ export async function takeNamedScreenshot(
   page: Page,
   name: string,
 ): Promise<Buffer> {
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[:.]/g, '-')
-    .slice(0, 19);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 
   // Derive viewport label from page dimensions.
   const viewport = page.viewportSize();
-  const vpLabel = viewport
-    ? `${viewport.width}x${viewport.height}`
-    : 'unknown';
+  const vpLabel = viewport ? `${viewport.width}x${viewport.height}` : "unknown";
 
   const filename = `${name}-${vpLabel}-${timestamp}.png`;
   const screenshotDir = path.join(
     __dirname,
-    '..',
-    '..',
-    'reports',
-    'screenshots',
+    "..",
+    "..",
+    "reports",
+    "screenshots",
   );
 
   // Ensure the output directory exists.
@@ -313,11 +302,9 @@ export async function takeNamedScreenshot(
  *
  * @returns true if the app cannot navigate, false if ready
  */
-export async function isOnOnboarding(
-  page: Page,
-): Promise<boolean> {
+export async function isOnOnboarding(page: Page): Promise<boolean> {
   // Strategy 1: URL already contains "onboarding".
-  if (page.url().includes('onboarding')) return true;
+  if (page.url().includes("onboarding")) return true;
 
   // Strategy 2: Watch for GoRouter's async onboarding redirect.
   // After profile auto-skip, Riverpod sets activeProfile async,
@@ -340,8 +327,8 @@ export async function isOnOnboarding(
   // or via element text content.
   try {
     const noSources = page
-      .getByText('Welcome to CrispyTivi')
-      .or(page.getByRole('button', { name: /Start Watching/i }))
+      .getByText("Welcome to CrispyTivi")
+      .or(page.getByRole("button", { name: /Start Watching/i }))
       .or(
         page.locator(
           '[aria-label*="Welcome to CrispyTivi"], ' +
@@ -350,7 +337,7 @@ export async function isOnOnboarding(
         ),
       );
     await noSources.first().waitFor({
-      state: 'attached',
+      state: "attached",
       timeout: 5000,
     });
     return true;
@@ -363,13 +350,13 @@ export async function isOnOnboarding(
   // locator engine doesn't match Flutter's custom elements.
   try {
     const hasNoSources = await page.evaluate(() => {
-      const els = document.querySelectorAll('[aria-label]');
+      const els = document.querySelectorAll("[aria-label]");
       for (const el of els) {
-        const label = el.getAttribute('aria-label') || '';
+        const label = el.getAttribute("aria-label") || "";
         if (
-          label.includes('Welcome to CrispyTivi') ||
-          label.includes('Add Your First Source') ||
-          label.includes('Start Watching')
+          label.includes("Welcome to CrispyTivi") ||
+          label.includes("Add Your First Source") ||
+          label.includes("Start Watching")
         ) {
           return true;
         }
@@ -386,12 +373,10 @@ export async function isOnOnboarding(
   // some sizes), no aria-label nodes exist. Without semantics,
   // all ARIA-based test queries will fail anyway.
   try {
-    const navLabels = ['Home', 'Settings', 'Live TV', 'Search'];
+    const navLabels = ["Home", "Settings", "Live TV", "Search"];
     let navFound = 0;
     for (const label of navLabels) {
-      const count = await page
-        .locator(`[aria-label="${label}"]`)
-        .count();
+      const count = await page.locator(`[aria-label="${label}"]`).count();
       if (count > 0) navFound++;
     }
     if (navFound === 0) return true;
@@ -406,20 +391,16 @@ export async function isOnOnboarding(
   try {
     const currentUrl = page.url();
     await page.evaluate(() => {
-      window.location.hash = '#/settings';
+      window.location.hash = "#/settings";
     });
     try {
       await page.waitForURL(/onboarding/, { timeout: 3000 });
       return true;
     } catch {
       // No redirect — restore original URL.
-      await page.evaluate(
-        (url) => {
-          window.location.hash =
-            url.split('#')[1] || '#/home';
-        },
-        currentUrl,
-      );
+      await page.evaluate((url) => {
+        window.location.hash = url.split("#")[1] || "#/home";
+      }, currentUrl);
       await page.waitForTimeout(1000);
     }
   } catch {
@@ -439,14 +420,12 @@ export async function isOnOnboarding(
  *
  * @returns true if a profile was selected, false otherwise
  */
-export async function selectDefaultProfile(
-  page: Page,
-): Promise<boolean> {
+export async function selectDefaultProfile(page: Page): Promise<boolean> {
   try {
     // Wait for the profile screen to appear.
     const profileTitle = page.getByText(PROFILE_SCREEN.title);
     await profileTitle.waitFor({
-      state: 'visible',
+      state: "visible",
       timeout: 8000,
     });
 
@@ -463,9 +442,7 @@ export async function selectDefaultProfile(
 
     // Fall back: click any profile tile (not "Add Profile").
     // Flutter semantics may expose profile names as buttons.
-    const anyProfile = page.locator(
-      '[aria-label]:not([aria-label*="Add"])',
-    );
+    const anyProfile = page.locator('[aria-label]:not([aria-label*="Add"])');
     const count = await anyProfile.count();
     if (count > 0) {
       await anyProfile.first().click({ force: true });

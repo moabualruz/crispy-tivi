@@ -1030,7 +1030,7 @@
   "onboardingSyncing": "Connecting and loading channels\u2026",
   "@onboardingSyncing": {},
   "onboardingChannelsLoaded": "{count} channels loaded!",
-  "@onboardingChannelsLoaded": {"placeholders": {"count": {"type": "int"}}},
+  "@onboardingChannelsLoaded": { "placeholders": { "count": { "type": "int" } } },
   "onboardingEnterApp": "Enter App",
   "@onboardingEnterApp": {},
   "onboardingEnterAppLabel": "Enter the app",

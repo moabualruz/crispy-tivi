@@ -56,9 +56,9 @@ post_install do |installer|
   # Injects a Run Script phase that compiles
   # crispy-ffi as a static library for iOS.
   main_project = installer.aggregate_targets
-    .first.user_project
+                          .first.user_project
   runner = main_project.targets
-    .find { |t| t.name == 'Runner' }
+                       .find { |t| t.name == 'Runner' }
   if runner
     phase = runner.new_shell_script_build_phase(
       'Build Rust FFI',

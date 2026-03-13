@@ -42,14 +42,14 @@ fi
 # ── Auto-detect platform ──────────────────────────
 if [ "$PLATFORM" = "auto" ]; then
   case "$(uname -s)" in
-    Darwin)  PLATFORM="macos" ;;
-    Linux)   PLATFORM="linux" ;;
-    MINGW*|MSYS*|CYGWIN*) PLATFORM="windows" ;;
-    *)
-      echo "ERROR: Cannot auto-detect platform."
-      echo "Specify: windows, linux, macos, android, ios"
-      exit 1
-      ;;
+  Darwin) PLATFORM="macos" ;;
+  Linux) PLATFORM="linux" ;;
+  MINGW* | MSYS* | CYGWIN*) PLATFORM="windows" ;;
+  *)
+    echo "ERROR: Cannot auto-detect platform."
+    echo "Specify: windows, linux, macos, android, ios"
+    exit 1
+    ;;
   esac
   echo "Auto-detected platform: $PLATFORM"
 fi
@@ -155,25 +155,25 @@ build_server() {
 # ── Execute ────────────────────────────────────────
 
 case "$PLATFORM" in
-  windows) build_windows ;;
-  linux)   build_linux ;;
-  macos)   build_macos ;;
-  ios)     build_ios ;;
-  android) build_android ;;
-  server)  build_server ;;
-  all)
-    build_windows
-    build_linux
-    build_server
-    echo ""
-    echo "NOTE: macOS, iOS, and Android require"
-    echo "platform-specific hosts to build."
-    ;;
-  *)
-    echo "ERROR: Unknown platform '$PLATFORM'"
-    echo "Valid: windows, linux, macos, ios, android, server, all"
-    exit 1
-    ;;
+windows) build_windows ;;
+linux) build_linux ;;
+macos) build_macos ;;
+ios) build_ios ;;
+android) build_android ;;
+server) build_server ;;
+all)
+  build_windows
+  build_linux
+  build_server
+  echo ""
+  echo "NOTE: macOS, iOS, and Android require"
+  echo "platform-specific hosts to build."
+  ;;
+*)
+  echo "ERROR: Unknown platform '$PLATFORM'"
+  echo "Valid: windows, linux, macos, ios, android, server, all"
+  exit 1
+  ;;
 esac
 
 echo ""

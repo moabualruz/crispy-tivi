@@ -16,10 +16,7 @@ async function globalSetup(_config: FullConfig) {
   const MAX_RETRIES = 5;
   const RETRY_DELAY_MS = 2000;
 
-  async function checkService(
-    url: string,
-    label: string,
-  ): Promise<void> {
+  async function checkService(url: string, label: string): Promise<void> {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         const res = await fetch(url, { signal: AbortSignal.timeout(5000) });

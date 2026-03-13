@@ -1,0 +1,10 @@
+# ast-grep patterns for crispy-tivi (dart)
+# Reference: https://ast-grep.github.io/reference/yaml.html
+
+rules:
+  - id: crispy-tivi-no-todo-comments
+    language: dart
+    rule:
+      pattern: "// TODO: $MSG"
+    message: "TODO comment found: $MSG — create a tracked issue instead."
+    severity: info

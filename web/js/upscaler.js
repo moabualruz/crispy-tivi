@@ -19,8 +19,8 @@
  *
  * See .ai/docs/project-specs/video_upscaling_spec.md section 3.3.
  */
-(function () {
-  'use strict';
+(() => {
+  
 
   // ── Configuration ────────────────────────────
   var SHARPEN = {
@@ -51,19 +51,17 @@
   // WebHlsVideo._findVideoJs.
   function findVideo() {
     // 1. Direct lookup — any video with content.
-    var videos = document.querySelectorAll('video');
+    var videos = document.querySelectorAll("video");
     for (var i = 0; i < videos.length; i++) {
       if (videos[i].src || videos[i]._hls) return videos[i];
     }
     if (videos.length > 0) return videos[0];
     // 2. Shadow DOM (Flutter platform views).
-    var hosts = document.querySelectorAll(
-      'flt-platform-view',
-    );
+    var hosts = document.querySelectorAll("flt-platform-view");
     for (var j = 0; j < hosts.length; j++) {
       var sr = hosts[j].shadowRoot;
       if (sr) {
-        var v = sr.querySelector('video');
+        var v = sr.querySelector("video");
         if (v) return v;
       }
     }
@@ -75,22 +73,22 @@
     var container = video.parentElement;
     if (!container) return null;
 
-    var c = document.createElement('canvas');
-    c.style.position = 'absolute';
-    c.style.top = '0';
-    c.style.left = '0';
-    c.style.width = '100%';
-    c.style.height = '100%';
-    c.style.pointerEvents = 'none';
-    c.style.zIndex = '1';
-    c.setAttribute('data-crispy-upscaler', 'true');
+    var c = document.createElement("canvas");
+    c.style.position = "absolute";
+    c.style.top = "0";
+    c.style.left = "0";
+    c.style.width = "100%";
+    c.style.height = "100%";
+    c.style.pointerEvents = "none";
+    c.style.zIndex = "1";
+    c.setAttribute("data-crispy-upscaler", "true");
 
     sizeCanvas(c, container);
     container.appendChild(c);
 
     // Resize canvas when container changes size.
-    if (typeof ResizeObserver !== 'undefined') {
-      _resizeObs = new ResizeObserver(function () {
+    if (typeof ResizeObserver !== "undefined") {
+      _resizeObs = new ResizeObserver(() => {
         sizeCanvas(c, container);
       });
       _resizeObs.observe(container);
@@ -204,10 +202,7 @@ void main() {
     gl.shaderSource(s, src);
     gl.compileShader(s);
     if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-      console.error(
-        '[CrispyUpscaler] shader:',
-        gl.getShaderInfoLog(s),
-      );
+      console.error("[CrispyUpscaler] shader:", gl.getShaderInfoLog(s));
       gl.deleteShader(s);
       return null;
     }
@@ -220,10 +215,7 @@ void main() {
     gl.attachShader(p, fs);
     gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
-      console.error(
-        '[CrispyUpscaler] link:',
-        gl.getProgramInfoLog(p),
-      );
+      console.error("[CrispyUpscaler] link:", gl.getProgramInfoLog(p));
       gl.deleteProgram(p);
       return null;
     }
@@ -234,7 +226,7 @@ void main() {
     _canvas = createCanvas(video);
     if (!_canvas) return false;
 
-    _gl = _canvas.getContext('webgl2', {
+    _gl = _canvas.getContext("webgl2", {
       alpha: false,
       antialias: false,
       premultipliedAlpha: false,
@@ -250,11 +242,7 @@ void main() {
 
     // Compile shaders.
     var vs = compileShader(gl, gl.VERTEX_SHADER, VERT_SRC);
-    var fs = compileShader(
-      gl,
-      gl.FRAGMENT_SHADER,
-      FRAG_SRC,
-    );
+    var fs = compileShader(gl, gl.FRAGMENT_SHADER, FRAG_SRC);
     if (!vs || !fs) {
       cleanup();
       return false;
@@ -268,22 +256,10 @@ void main() {
     }
 
     // Uniform locations.
-    _locs.uVideo = gl.getUniformLocation(
-      _program,
-      'uVideo',
-    );
-    _locs.uVideoSize = gl.getUniformLocation(
-      _program,
-      'uVideoSize',
-    );
-    _locs.uOutputSize = gl.getUniformLocation(
-      _program,
-      'uOutputSize',
-    );
-    _locs.uSharpen = gl.getUniformLocation(
-      _program,
-      'uSharpen',
-    );
+    _locs.uVideo = gl.getUniformLocation(_program, "uVideo");
+    _locs.uVideoSize = gl.getUniformLocation(_program, "uVideoSize");
+    _locs.uOutputSize = gl.getUniformLocation(_program, "uOutputSize");
+    _locs.uSharpen = gl.getUniformLocation(_program, "uSharpen");
 
     // Fullscreen quad VAO.
     _vao = gl.createVertexArray();
@@ -292,13 +268,11 @@ void main() {
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     // prettier-ignore
     gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([
-        -1, -1, 1, -1, -1, 1, 1, 1,
-      ]),
-      gl.STATIC_DRAW,
-    );
-    var aPos = gl.getAttribLocation(_program, 'aPos');
+			gl.ARRAY_BUFFER,
+			new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+			gl.STATIC_DRAW,
+		);
+    var aPos = gl.getAttribLocation(_program, "aPos");
     gl.enableVertexAttribArray(aPos);
     gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
     gl.bindVertexArray(null);
@@ -307,43 +281,23 @@ void main() {
     _videoTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, _videoTex);
-    gl.texParameteri(
-      gl.TEXTURE_2D,
-      gl.TEXTURE_WRAP_S,
-      gl.CLAMP_TO_EDGE,
-    );
-    gl.texParameteri(
-      gl.TEXTURE_2D,
-      gl.TEXTURE_WRAP_T,
-      gl.CLAMP_TO_EDGE,
-    );
-    gl.texParameteri(
-      gl.TEXTURE_2D,
-      gl.TEXTURE_MIN_FILTER,
-      gl.LINEAR,
-    );
-    gl.texParameteri(
-      gl.TEXTURE_2D,
-      gl.TEXTURE_MAG_FILTER,
-      gl.LINEAR,
-    );
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     // Flip Y so UV (0,0) = bottom-left = bottom of
     // video (matching WebGL clip space).
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
     _video = video;
     _quality = quality;
-    _method = 'WebGL Bicubic';
+    _method = "WebGL Bicubic";
 
-    console.log(
-      '[CrispyUpscaler] WebGL 2 initialized',
-      {
-        video:
-          video.videoWidth + 'x' + video.videoHeight,
-        canvas: _canvas.width + 'x' + _canvas.height,
-        quality: quality,
-      },
-    );
+    console.log("[CrispyUpscaler] WebGL 2 initialized", {
+      video: video.videoWidth + "x" + video.videoHeight,
+      canvas: _canvas.width + "x" + _canvas.height,
+      quality: quality,
+    });
     return true;
   }
 
@@ -396,20 +350,9 @@ void main() {
     gl.viewport(0, 0, _canvas.width, _canvas.height);
     gl.useProgram(_program);
     gl.uniform1i(_locs.uVideo, 0);
-    gl.uniform2f(
-      _locs.uVideoSize,
-      video.videoWidth,
-      video.videoHeight,
-    );
-    gl.uniform2f(
-      _locs.uOutputSize,
-      _canvas.width,
-      _canvas.height,
-    );
-    gl.uniform1f(
-      _locs.uSharpen,
-      SHARPEN[_quality] || 0.0,
-    );
+    gl.uniform2f(_locs.uVideoSize, video.videoWidth, video.videoHeight);
+    gl.uniform2f(_locs.uOutputSize, _canvas.width, _canvas.height);
+    gl.uniform1f(_locs.uSharpen, SHARPEN[_quality] || 0.0);
 
     gl.bindVertexArray(_vao);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -420,11 +363,7 @@ void main() {
 
   function scheduleNext() {
     if (!_running) return;
-    if (
-      _video &&
-      typeof _video.requestVideoFrameCallback ===
-        'function'
-    ) {
+    if (_video && typeof _video.requestVideoFrameCallback === "function") {
       _video.requestVideoFrameCallback(renderFrame);
     } else {
       requestAnimationFrame(renderFrame);
@@ -445,7 +384,7 @@ void main() {
       if (_program) _gl.deleteProgram(_program);
       if (_vao) _gl.deleteVertexArray(_vao);
       if (_videoTex) _gl.deleteTexture(_videoTex);
-      var ext = _gl.getExtension('WEBGL_lose_context');
+      var ext = _gl.getExtension("WEBGL_lose_context");
       if (ext) ext.loseContext();
     }
 
@@ -486,18 +425,19 @@ void main() {
       if (!video) {
         // Video not in DOM yet — retry.
         var retries = 0;
-        var self = this;
-        var timer = setInterval(function () {
+        var timer = setInterval(() => {
           retries++;
           video = findVideo();
           if (video) {
             clearInterval(timer);
-            self._start(video, quality);
+            this._start(video, quality);
           } else if (retries >= MAX_RETRIES) {
             clearInterval(timer);
             console.warn(
-              '[CrispyUpscaler] video not found '
-              + 'after ' + MAX_RETRIES + ' retries',
+              "[CrispyUpscaler] video not found " +
+                "after " +
+                MAX_RETRIES +
+                " retries",
             );
           }
         }, RETRY_MS);
@@ -510,11 +450,10 @@ void main() {
     _start: function (video, quality) {
       // Wait for video metadata if needed.
       if (video.videoWidth === 0) {
-        var self = this;
         video.addEventListener(
-          'loadedmetadata',
-          function () {
-            self._init(video, quality);
+          "loadedmetadata",
+          () => {
+            this._init(video, quality);
           },
           { once: true },
         );
@@ -523,7 +462,7 @@ void main() {
       this._init(video, quality);
     },
 
-    _init: function (video, quality) {
+    _init: (video, quality) => {
       // Check if upscaling is needed.
       var container = video.parentElement;
       if (!container) return;
@@ -540,28 +479,34 @@ void main() {
 
       if (scale <= 1.05) {
         console.log(
-          '[CrispyUpscaler] no upscaling needed '
-          + '(scale=' + scale.toFixed(2) + ')',
+          "[CrispyUpscaler] no upscaling needed " +
+            "(scale=" +
+            scale.toFixed(2) +
+            ")",
         );
         return;
       }
 
       console.log(
-        '[CrispyUpscaler] scale factor: '
-        + scale.toFixed(2) + 'x ('
-        + vW + 'x' + vH
-        + ' → ' + Math.round(outW) + 'x'
-        + Math.round(outH) + ')',
+        "[CrispyUpscaler] scale factor: " +
+          scale.toFixed(2) +
+          "x (" +
+          vW +
+          "x" +
+          vH +
+          " → " +
+          Math.round(outW) +
+          "x" +
+          Math.round(outH) +
+          ")",
       );
 
       // Try WebGL 2.
-      var testCanvas = document.createElement('canvas');
-      var testGl = testCanvas.getContext('webgl2');
+      var testCanvas = document.createElement("canvas");
+      var testGl = testCanvas.getContext("webgl2");
       if (testGl) {
         // Clean up test context.
-        var ext = testGl.getExtension(
-          'WEBGL_lose_context',
-        );
+        var ext = testGl.getExtension("WEBGL_lose_context");
         if (ext) ext.loseContext();
 
         if (initWebGL(video, quality)) {
@@ -572,24 +517,21 @@ void main() {
       }
 
       // No GPU acceleration available.
-      console.log(
-        '[CrispyUpscaler] no WebGL 2 — '
-        + 'unprocessed playback',
-      );
+      console.log("[CrispyUpscaler] no WebGL 2 — " + "unprocessed playback");
       _method = null;
     },
 
     /**
      * Remove upscaling and show raw video.
      */
-    removeUpscaling: function () {
+    removeUpscaling: () => {
       cleanup();
     },
 
     /**
      * Dispose all resources.
      */
-    dispose: function () {
+    dispose: () => {
       cleanup();
     },
 
@@ -597,8 +539,6 @@ void main() {
      * Returns the active upscaling method name.
      * @returns {string|null}
      */
-    getActiveMethod: function () {
-      return _method;
-    },
+    getActiveMethod: () => _method,
   };
 })();
