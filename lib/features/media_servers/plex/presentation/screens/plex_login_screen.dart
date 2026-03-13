@@ -14,6 +14,7 @@ import 'package:crispy_tivi/core/utils/date_format_utils.dart' show formatMmss;
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
 import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_auth_service.dart';
+import 'package:crispy_tivi/core/widgets/safe_focus_scope.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/media_server_action_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/error_sanitizer.dart';
@@ -341,7 +342,13 @@ class _PlexOAuthScreenState extends State<_PlexOAuthScreen> {
           onPressed: widget.onCancel,
         ),
       ),
-      body: _buildBody(context),
+      body: FocusTraversalGroup(
+        policy: OrderedTraversalPolicy(),
+        child: SafeFocusScope(
+          restorationKey: 'plex_login',
+          child: _buildBody(context),
+        ),
+      ),
     );
   }
 
