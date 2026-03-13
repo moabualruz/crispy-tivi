@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_colors.dart';
+import '../../../../core/widgets/screen_template.dart';
+import '../../../../core/widgets/tv_master_detail_layout.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/relative_time_formatter.dart';
@@ -89,7 +91,12 @@ class ProfileWatchHistoryScreen extends ConsumerWidget {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
-        data: (entries) => _buildList(context, ref, entries),
+        data:
+            (entries) => ScreenTemplate(
+              focusRestorationKey: 'profile-watch-history',
+              compactBody: _buildList(context, ref, entries),
+              largeBody: _buildTvLayout(context, ref, entries),
+            ),
       ),
     );
   }
@@ -115,6 +122,66 @@ class ProfileWatchHistoryScreen extends ConsumerWidget {
           onDelete: () => _deleteEntry(ref, entries[index].id),
         );
       },
+    );
+  }
+
+  Widget _buildTvLayout(
+    BuildContext context,
+    WidgetRef ref,
+    List<WatchHistoryEntry> entries,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return TvMasterDetailLayout(
+      masterPanel: _buildList(context, ref, entries),
+      detailPanel:
+          entries.isEmpty
+              ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.history,
+                      size: 64,
+                      color: colorScheme.onSurface.withValues(alpha: 0.3),
+                    ),
+                    const SizedBox(height: CrispySpacing.md),
+                    Text(
+                      'No watch history yet',
+                      style: textTheme.headlineSmall?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+              : Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.history,
+                      size: 64,
+                      color: colorScheme.onSurface.withValues(alpha: 0.3),
+                    ),
+                    const SizedBox(height: CrispySpacing.md),
+                    Text(
+                      'Select an entry',
+                      style: textTheme.headlineSmall?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    const SizedBox(height: CrispySpacing.sm),
+                    Text(
+                      'Choose an item to see details',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
     );
   }
 

@@ -8,8 +8,10 @@ import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
+import '../../../../core/widgets/screen_template.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
 import '../providers/favorites_history_provider.dart';
+import '../widgets/favorites_tv_layout.dart';
 import 'favorites_continue_watching.dart';
 import 'favorites_my_list.dart';
 import 'favorites_recently_watched.dart';
@@ -84,11 +86,12 @@ class HistoryScreen extends ConsumerWidget {
               ),
           ],
         ),
-        body: Column(
-          children: [
-            const SourceSelectorBar(),
-            Expanded(
-              child: FocusTraversalGroup(
+        body: ScreenTemplate(
+          focusRestorationKey: 'favorites',
+          compactBody: Column(
+            children: [
+              const SourceSelectorBar(),
+              Expanded(
                 child: TabBarView(
                   children: [
                     const MyFavoritesTab(),
@@ -98,8 +101,9 @@ class HistoryScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
+          largeBody: FavoritesTvLayout(state: state),
         ),
       ),
     );

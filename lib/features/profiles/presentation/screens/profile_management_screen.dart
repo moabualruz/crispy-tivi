@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:crispy_tivi/l10n/l10n_extension.dart';
 
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/async_value_ui.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
-import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/screen_template.dart';
+import '../../../../core/widgets/tv_master_detail_layout.dart';
 import '../../data/profile_service.dart';
 import '../profile_constants.dart';
 import '../../domain/entities/user_profile.dart';
@@ -34,16 +36,56 @@ class ProfileManagementScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(context.l10n.profilesManage)),
       body: stateAsync.whenUi(
         onRetry: () => ref.invalidate(profileServiceProvider),
-        data: (state) => _buildBody(context, ref, state),
+        data: (state) {
+          final compactBody = _buildCompactBody(context, ref, state);
+          return ScreenTemplate(
+            focusRestorationKey: 'profile-management',
+            compactBody: compactBody,
+            largeBody: _buildTvBody(context, ref, state),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, WidgetRef ref, ProfileState state) {
+  Widget _buildProfileList(
+    BuildContext context,
+    WidgetRef ref,
+    ProfileState state,
+    UserProfile currentProfile,
+  ) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(CrispySpacing.md),
+      itemCount: state.profiles.length,
+      itemBuilder: (context, index) {
+        final profile = state.profiles[index];
+        return ProfileManagementTile(
+          profile: profile,
+          isCurrentUser: profile.id == currentProfile.id,
+          icon:
+              kProfileAvatarIcons[profile.avatarIndex %
+                  kProfileAvatarIcons.length],
+          color:
+              kProfileAvatarColors[profile.avatarIndex %
+                  kProfileAvatarColors.length],
+          onRoleChanged:
+              (newRole) => _changeRole(context, ref, profile, newRole),
+          onDvrPermissionChanged:
+              (newPerm) => _changeDvrPermission(context, ref, profile, newPerm),
+          onManageSources: () => _showSourceAccessDialog(context, profile),
+        );
+      },
+    );
+  }
+
+  Widget? _buildGuardOrEmpty(
+    BuildContext context,
+    WidgetRef ref,
+    ProfileState state,
+  ) {
     final currentProfile = state.activeProfile;
     final colorScheme = Theme.of(context).colorScheme;
 
-    // Only admins should see this screen
     if (currentProfile == null || !currentProfile.isAdmin) {
       return Center(
         child: Column(
@@ -76,36 +118,52 @@ class ProfileManagementScreen extends ConsumerWidget {
       );
     }
 
-    // PM-07: constrain content width for TV/large screens.
-    return FocusTraversalGroup(
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: ListView.builder(
-            padding: const EdgeInsets.all(CrispySpacing.md),
-            itemCount: state.profiles.length,
-            itemBuilder: (context, index) {
-              final profile = state.profiles[index];
-              return ProfileManagementTile(
-                profile: profile,
-                isCurrentUser: profile.id == currentProfile.id,
-                icon:
-                    kProfileAvatarIcons[profile.avatarIndex %
-                        kProfileAvatarIcons.length],
-                color:
-                    kProfileAvatarColors[profile.avatarIndex %
-                        kProfileAvatarColors.length],
-                onRoleChanged:
-                    (newRole) => _changeRole(context, ref, profile, newRole),
-                onDvrPermissionChanged:
-                    (newPerm) =>
-                        _changeDvrPermission(context, ref, profile, newPerm),
-                onManageSources:
-                    () => _showSourceAccessDialog(context, profile),
-              );
-            },
-          ),
+    return null;
+  }
+
+  Widget _buildCompactBody(
+    BuildContext context,
+    WidgetRef ref,
+    ProfileState state,
+  ) {
+    final guard = _buildGuardOrEmpty(context, ref, state);
+    if (guard != null) return guard;
+
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 720),
+        child: _buildProfileList(context, ref, state, state.activeProfile!),
+      ),
+    );
+  }
+
+  Widget _buildTvBody(BuildContext context, WidgetRef ref, ProfileState state) {
+    final guard = _buildGuardOrEmpty(context, ref, state);
+    if (guard != null) return guard;
+
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return TvMasterDetailLayout(
+      masterPanel: _buildProfileList(context, ref, state, state.activeProfile!),
+      detailPanel: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.manage_accounts_outlined,
+              size: 64,
+              color: colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: CrispySpacing.md),
+            Text(
+              'Select a profile to edit',
+              style: textTheme.headlineSmall?.copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
         ),
       ),
     );
