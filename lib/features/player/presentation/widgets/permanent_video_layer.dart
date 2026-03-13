@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
+import '../../domain/entities/playback_state.dart';
+import '../../domain/player_lifecycle_coordinator.dart';
 import '../providers/player_providers.dart';
 import 'web_hls_video.dart';
 
@@ -36,6 +38,18 @@ class PermanentVideoLayer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final modeState = ref.watch(playerModeProvider);
+    final playbackStatus = ref.watch(
+      playbackStateProvider.select(
+        (a) => a.whenData((s) => s.status).value ?? PlaybackStatus.idle,
+      ),
+    );
+
+    // Use coordinator to decide whether to mount the video surface.
+    final shouldMount = PlayerLifecycleCoordinator.shouldMountSurface(
+      modeState.mode,
+      playbackStatus,
+    );
+
     final screenSize = MediaQuery.sizeOf(context);
     final fullRect = Rect.fromLTWH(0, 0, screenSize.width, screenSize.height);
 
@@ -110,25 +124,32 @@ class PermanentVideoLayer extends ConsumerWidget {
       child: AnimatedOpacity(
         duration: CrispyAnimation.normal,
         opacity: opacity,
-        child: IgnorePointer(
-          // Video surface never captures taps — OSD layer
-          // and screen content handle all interaction.
-          child: Container(
-            color: Colors.black,
-            // Mount the video surface for all active modes.
-            // Only skip in idle (no playback) — this avoids
-            // pulling in MediaKit during golden tests while
-            // keeping the surface alive across preview ↔
-            // fullscreen ↔ background transitions.
-            child:
-                modeState.mode == PlayerMode.idle
-                    ? const SizedBox.shrink()
-                    // FE-PS-19: wrap video in Transform.scale for
-                    // pinch-to-zoom support. Scale is managed by
-                    // [videoZoomScaleProvider] (1.0–3.0).
-                    : _ZoomedVideoSurface(
-                      child: _buildVideoSurface(context, ref),
-                    ),
+        child: Visibility(
+          // Hard-hide the element on web — AnimatedOpacity alone
+          // doesn't reliably hide HTML platform views.
+          visible: opacity > 0,
+          maintainState: true,
+          maintainSize: false,
+          child: IgnorePointer(
+            // Video surface never captures taps — OSD layer
+            // and screen content handle all interaction.
+            child: Container(
+              color: Colors.black,
+              // Mount the video surface only when the coordinator
+              // says so (mode is preview or fullscreen). This avoids
+              // pulling in MediaKit during golden tests while
+              // keeping the surface alive across preview ↔
+              // fullscreen transitions.
+              child:
+                  !shouldMount
+                      ? const SizedBox.shrink()
+                      // FE-PS-19: wrap video in Transform.scale for
+                      // pinch-to-zoom support. Scale is managed by
+                      // [videoZoomScaleProvider] (1.0–3.0).
+                      : _ZoomedVideoSurface(
+                        child: _buildVideoSurface(context, ref),
+                      ),
+            ),
           ),
         ),
       ),
