@@ -55,11 +55,7 @@ class _SidebarFocusScopeState extends ConsumerState<SidebarFocusScope> {
   @override
   Widget build(BuildContext context) {
     return FocusTraversalGroup(
-      child: Focus(
-        focusNode: _sidebarNode,
-        skipTraversal: true,
-        child: widget.child,
-      ),
+      child: Focus(focusNode: _sidebarNode, child: widget.child),
     );
   }
 }

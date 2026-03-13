@@ -147,73 +147,64 @@ class _ChannelZapOverlayState extends State<ChannelZapOverlay> {
               },
             ),
           },
-          child: GlassSurface(
-            borderRadius: 0,
-            padding: EdgeInsets.only(
-              top: MediaQuery.paddingOf(context).top + CrispySpacing.md,
-              bottom: MediaQuery.paddingOf(context).bottom + CrispySpacing.md,
-            ),
-            child: FocusTraversalGroup(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Header ──
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: CrispySpacing.md,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          'Channels',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleMedium?.copyWith(
-                            color: colorScheme.onSurface,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          tooltip: 'Close',
-                          icon: Icon(
-                            Icons.close,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          onPressed: widget.onDismiss,
-                          iconSize: 20,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ── Group filter tabs ──
-                  if (groups.length > 1) ...[
-                    const SizedBox(height: CrispySpacing.xs),
-                    SizedBox(
-                      height: 32,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: CrispySpacing.sm,
-                        ),
+          child: FocusScope(
+            autofocus: true,
+            child: GlassSurface(
+              borderRadius: 0,
+              padding: EdgeInsets.only(
+                top: MediaQuery.paddingOf(context).top + CrispySpacing.md,
+                bottom: MediaQuery.paddingOf(context).bottom + CrispySpacing.md,
+              ),
+              child: FocusTraversalGroup(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Header ──
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: CrispySpacing.md,
+                      ),
+                      child: Row(
                         children: [
-                          _GroupChip(
-                            label: 'All',
-                            isSelected: _selectedGroup == null,
-                            onTap: () {
-                              setState(() => _selectedGroup = null);
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                _scrollToCurrentChannel();
-                              });
-                            },
+                          Text(
+                            'Channels',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(
+                              color: colorScheme.onSurface,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          ...groups.map(
-                            (g) => _GroupChip(
-                              label: g,
-                              isSelected: _selectedGroup == g,
+                          const Spacer(),
+                          IconButton(
+                            tooltip: 'Close',
+                            icon: Icon(
+                              Icons.close,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            onPressed: widget.onDismiss,
+                            iconSize: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ── Group filter tabs ──
+                    if (groups.length > 1) ...[
+                      const SizedBox(height: CrispySpacing.xs),
+                      SizedBox(
+                        height: 32,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: CrispySpacing.sm,
+                          ),
+                          children: [
+                            _GroupChip(
+                              label: 'All',
+                              isSelected: _selectedGroup == null,
                               onTap: () {
-                                setState(() => _selectedGroup = g);
+                                setState(() => _selectedGroup = null);
                                 WidgetsBinding.instance.addPostFrameCallback((
                                   _,
                                 ) {
@@ -221,53 +212,85 @@ class _ChannelZapOverlayState extends State<ChannelZapOverlay> {
                                 });
                               },
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: CrispySpacing.sm),
-
-                  // ── Channel list ──
-                  Expanded(
-                    child: FocusTraversalGroup(
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: CrispySpacing.sm,
+                            ...groups.map(
+                              (g) => _GroupChip(
+                                label: g,
+                                isSelected: _selectedGroup == g,
+                                onTap: () {
+                                  setState(() => _selectedGroup = g);
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    _scrollToCurrentChannel();
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
                         ),
-                        itemCount: filtered.length,
-                        itemBuilder: (context, index) {
-                          final ch = filtered[index];
-                          final isCurrent = ch.id == widget.currentChannelId;
+                      ),
+                    ],
+                    const SizedBox(height: CrispySpacing.sm),
 
-                          return FocusWrapper(
-                            autofocus: isCurrent,
-                            onSelect: () => widget.onChannelSelected(ch),
-                            borderRadius: CrispyRadius.sm,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: CrispySpacing.sm,
-                                vertical: CrispySpacing.xs,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.zero,
-                                color:
-                                    isCurrent
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.15)
-                                        : Colors.transparent,
-                              ),
-                              child: Row(
-                                children: [
-                                  // Number
-                                  if (ch.number != null)
-                                    SizedBox(
-                                      width: 36,
+                    // ── Channel list ──
+                    Expanded(
+                      child: FocusTraversalGroup(
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: CrispySpacing.sm,
+                          ),
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) {
+                            final ch = filtered[index];
+                            final isCurrent = ch.id == widget.currentChannelId;
+
+                            return FocusWrapper(
+                              autofocus: isCurrent,
+                              onSelect: () => widget.onChannelSelected(ch),
+                              borderRadius: CrispyRadius.sm,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: CrispySpacing.sm,
+                                  vertical: CrispySpacing.xs,
+                                ),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.zero,
+                                  color:
+                                      isCurrent
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.15)
+                                          : Colors.transparent,
+                                ),
+                                child: Row(
+                                  children: [
+                                    // Number
+                                    if (ch.number != null)
+                                      SizedBox(
+                                        width: 36,
+                                        child: Text(
+                                          '${ch.number}',
+                                          style: TextStyle(
+                                            color:
+                                                isCurrent
+                                                    ? colorScheme.onSurface
+                                                    : colorScheme
+                                                        .onSurfaceVariant,
+                                            fontWeight:
+                                                isCurrent
+                                                    ? FontWeight.bold
+                                                    : FontWeight.normal,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ),
+
+                                    // Name
+                                    Expanded(
                                       child: Text(
-                                        '${ch.number}',
+                                        ch.name,
                                         style: TextStyle(
                                           color:
                                               isCurrent
@@ -278,47 +301,30 @@ class _ChannelZapOverlayState extends State<ChannelZapOverlay> {
                                               isCurrent
                                                   ? FontWeight.bold
                                                   : FontWeight.normal,
-                                          fontSize: 13,
+                                          fontSize: 14,
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
 
-                                  // Name
-                                  Expanded(
-                                    child: Text(
-                                      ch.name,
-                                      style: TextStyle(
-                                        color:
-                                            isCurrent
-                                                ? colorScheme.onSurface
-                                                : colorScheme.onSurfaceVariant,
-                                        fontWeight:
-                                            isCurrent
-                                                ? FontWeight.bold
-                                                : FontWeight.normal,
-                                        fontSize: 14,
+                                    // Now playing indicator
+                                    if (isCurrent)
+                                      Icon(
+                                        Icons.play_arrow,
+                                        color: colorScheme.onSurface,
+                                        size: 18,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-
-                                  // Now playing indicator
-                                  if (isCurrent)
-                                    Icon(
-                                      Icons.play_arrow,
-                                      color: colorScheme.onSurface,
-                                      size: 18,
-                                    ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

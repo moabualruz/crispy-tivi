@@ -6,6 +6,7 @@ import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/favorite_star_overlay.dart';
+import '../../../../core/widgets/input_mode_scope.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../../core/widgets/watch_progress_bar.dart';
@@ -233,24 +234,30 @@ class _ChannelListItemState extends State<ChannelListItem> {
           if (channel.hasCatchup)
             Padding(
               padding: const EdgeInsets.only(right: CrispySpacing.xs),
-              child: Tooltip(
-                message:
-                    channel.catchupDays > 0
-                        ? 'Catch-up: ${channel.catchupDays}d'
-                        : 'Catch-up available',
-                child: Icon(
-                  Icons.history,
-                  size: 15,
-                  color: colorScheme.tertiary,
+              child: TooltipVisibility(
+                visible: !InputModeScope.of(context),
+                child: Tooltip(
+                  message:
+                      channel.catchupDays > 0
+                          ? 'Catch-up: ${channel.catchupDays}d'
+                          : 'Catch-up available',
+                  child: Icon(
+                    Icons.history,
+                    size: 15,
+                    color: colorScheme.tertiary,
+                  ),
                 ),
               ),
             ),
           if (widget.isInSmartGroup)
             Padding(
               padding: const EdgeInsets.only(right: CrispySpacing.xs),
-              child: Tooltip(
-                message: 'Smart group',
-                child: Icon(Icons.bolt, size: 15, color: colorScheme.primary),
+              child: TooltipVisibility(
+                visible: !InputModeScope.of(context),
+                child: Tooltip(
+                  message: 'Smart group',
+                  child: Icon(Icons.bolt, size: 15, color: colorScheme.primary),
+                ),
               ),
             ),
           if (widget.isDuplicate)
