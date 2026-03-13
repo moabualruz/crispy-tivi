@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
+import '../../../../core/widgets/grid_focus_traveler.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../domain/entities/channel.dart';
@@ -49,29 +50,32 @@ class ChannelGridSliver extends ConsumerWidget {
         final crossCount = _crossAxisCount(width);
         const itemHeight = 110.0;
 
-        return SliverPadding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: CrispySpacing.md,
-            vertical: CrispySpacing.sm,
-          ),
-          sliver: SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossCount,
-              mainAxisExtent: itemHeight,
-              crossAxisSpacing: CrispySpacing.sm,
-              mainAxisSpacing: CrispySpacing.sm,
+        return FocusTraversalGroup(
+          policy: GridFocusTravelerPolicy(crossAxisCount: crossCount),
+          child: SliverPadding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: CrispySpacing.md,
+              vertical: CrispySpacing.sm,
             ),
-            delegate: SliverChildBuilderDelegate((ctx, i) {
-              final ch = channels[i];
-              final nowPlaying = epgState.getNowPlaying(ch.id);
-              return ChannelGridItem(
-                channel: ch,
-                onTap: () => onTap(ch),
-                currentProgram: nowPlaying?.title,
-                isPlaying: ch.streamUrl == playingUrl,
-                autofocus: i == 0,
-              );
-            }, childCount: channels.length),
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossCount,
+                mainAxisExtent: itemHeight,
+                crossAxisSpacing: CrispySpacing.sm,
+                mainAxisSpacing: CrispySpacing.sm,
+              ),
+              delegate: SliverChildBuilderDelegate((ctx, i) {
+                final ch = channels[i];
+                final nowPlaying = epgState.getNowPlaying(ch.id);
+                return ChannelGridItem(
+                  channel: ch,
+                  onTap: () => onTap(ch),
+                  currentProgram: nowPlaying?.title,
+                  isPlaying: ch.streamUrl == playingUrl,
+                  autofocus: i == 0,
+                );
+              }, childCount: channels.length),
+            ),
           ),
         );
       },
