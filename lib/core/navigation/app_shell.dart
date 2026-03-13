@@ -13,9 +13,11 @@ import '../../features/profiles/data/profile_service.dart';
 import '../../features/profiles/presentation/profile_constants.dart';
 import '../../features/profiles/presentation/providers/profile_theme_provider.dart';
 import '../theme/crispy_animation.dart';
+import '../utils/focus_restoration_service.dart';
 import '../widgets/async_value_ui.dart';
 import '../theme/crispy_radius.dart';
 import '../widgets/crispy_title_bar.dart';
+import '../widgets/focus_restoring_dialog.dart';
 import '../widgets/offline_banner.dart';
 import '../utils/device_form_factor.dart';
 import '../utils/keyboard_utils.dart';
@@ -139,6 +141,15 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     final navDests = usesSideNav ? sideDestinations : bottomDestinations;
     final map = <ShortcutActivator, VoidCallback>{
+      // Home key: panic shortcut — navigate to Home from anywhere.
+      const SingleActivator(LogicalKeyboardKey.home): () {
+        Future.microtask(() {
+          if (context.mounted) {
+            _stopPreviewIfLeaving(AppRoutes.home);
+            context.go(AppRoutes.home);
+          }
+        });
+      },
       // Search: / or Ctrl+K
       const SingleActivator(LogicalKeyboardKey.slash):
           () => _openSearch(context),
@@ -266,18 +277,31 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
     }
-    if (event.logicalKey != LogicalKeyboardKey.backspace) {
-      return KeyEventResult.ignored;
+
+    // Backspace as back-navigation (only when no text field is focused).
+    if (event.logicalKey == LogicalKeyboardKey.backspace) {
+      final primaryFocus = FocusManager.instance.primaryFocus;
+      if (primaryFocus != null &&
+          primaryFocus.context?.findAncestorWidgetOfExactType<EditableText>() !=
+              null) {
+        return KeyEventResult.ignored;
+      }
+      _handleBack(node.context!);
+      return KeyEventResult.handled;
     }
-    // Let text fields handle their own Backspace.
-    final primaryFocus = FocusManager.instance.primaryFocus;
-    if (primaryFocus != null &&
-        primaryFocus.context?.findAncestorWidgetOfExactType<EditableText>() !=
-            null) {
-      return KeyEventResult.ignored;
+
+    // Cross-zone arrow navigation (fires ONLY after descendants ignore).
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      if (_handleArrowLeft()) return KeyEventResult.handled;
     }
-    _handleBack(node.context!);
-    return KeyEventResult.handled;
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      if (_handleArrowRight()) return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      if (_handleArrowDown()) return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   /// Handle Escape / Back / Gamepad-B.
@@ -313,6 +337,28 @@ class _AppShellState extends ConsumerState<AppShell> {
         final location = GoRouterState.of(context).uri.path;
         if (location != AppRoutes.home) {
           context.go(AppRoutes.home);
+        } else if (DeviceFormFactorService.current.isMobile ||
+            DeviceFormFactorService.current.isTV) {
+          // At Home with nothing to pop — show exit confirmation.
+          showFocusRestoringDialog<bool>(
+            context: context,
+            builder:
+                (ctx) => AlertDialog(
+                  title: Text(context.l10n.commonClose),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: Text(context.l10n.commonCancel),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: Text(context.l10n.commonConfirm),
+                    ),
+                  ],
+                ),
+          ).then((confirmed) {
+            if (confirmed == true) SystemNavigator.pop();
+          });
         }
       }
     });
@@ -320,7 +366,9 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   /// Attempts to escalate focus toward the navigation rail.
   ///
-  /// Returns `true` if focus was moved (caller should not pop).
+  /// Handles all 4 zones: D (MiniPlayer) → B.5 (SourceSelector) →
+  /// B (Sidebar) → A (Rail). Returns `true` if focus was moved
+  /// (caller should not pop).
   bool _tryEscalateFocus() {
     final escalation = ref.read(focusEscalationProvider);
     final primaryFocus = FocusManager.instance.primaryFocus;
@@ -328,11 +376,29 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     final railNode = escalation.railNode;
     final sidebarNode = escalation.sidebarNode;
+    final sourceSelectorNode = escalation.sourceSelectorNode;
+    final miniPlayerNode = escalation.miniPlayerNode;
 
-    // Already in the rail → don't escalate, let pop/home proceed.
+    // Already in the rail — don't escalate, let pop/home proceed.
     if (railNode != null && railNode.hasFocus) return false;
 
-    // In the sidebar → escalate to rail.
+    // In MiniPlayer (Zone D) — restore prior focus.
+    if (miniPlayerNode != null && miniPlayerNode.hasFocus) {
+      final routePath = GoRouterState.of(context).uri.path;
+      final savedKey = ref
+          .read(focusRestorationProvider.notifier)
+          .getKey(routePath);
+      if (savedKey != null) {
+        restoreFocus(ref, routePath, context);
+        return true;
+      }
+      if (railNode != null && railNode.canRequestFocus) {
+        railNode.requestFocus();
+        return true;
+      }
+    }
+
+    // In sidebar — escalate to rail.
     if (sidebarNode != null &&
         sidebarNode.hasFocus &&
         railNode != null &&
@@ -341,7 +407,23 @@ class _AppShellState extends ConsumerState<AppShell> {
       return true;
     }
 
-    // In content → escalate to sidebar if registered, otherwise rail.
+    // In source selector (Zone B.5) — escalate to sidebar or rail.
+    if (sourceSelectorNode != null && sourceSelectorNode.hasFocus) {
+      if (sidebarNode != null && sidebarNode.canRequestFocus) {
+        sidebarNode.requestFocus();
+        return true;
+      }
+      if (railNode != null && railNode.canRequestFocus) {
+        railNode.requestFocus();
+        return true;
+      }
+    }
+
+    // In content — escalate to nearest left zone.
+    if (sourceSelectorNode != null && sourceSelectorNode.canRequestFocus) {
+      sourceSelectorNode.requestFocus();
+      return true;
+    }
     if (sidebarNode != null && sidebarNode.canRequestFocus) {
       sidebarNode.requestFocus();
       return true;
@@ -351,6 +433,101 @@ class _AppShellState extends ConsumerState<AppShell> {
       return true;
     }
 
+    return false;
+  }
+
+  /// Handles D-pad Left: cross-zone navigation toward the rail.
+  ///
+  /// Only fires when the event has propagated up from descendants
+  /// (intra-zone traversal already handled). Returns `true` if a
+  /// cross-zone move occurred.
+  bool _handleArrowLeft() {
+    final escalation = ref.read(focusEscalationProvider);
+    final railNode = escalation.railNode;
+    final sidebarNode = escalation.sidebarNode;
+    final sourceSelectorNode = escalation.sourceSelectorNode;
+
+    // Already in rail — nowhere left to go.
+    if (railNode != null && railNode.hasFocus) return false;
+
+    // In sidebar — go to rail.
+    if (sidebarNode != null && sidebarNode.hasFocus) {
+      if (railNode != null && railNode.canRequestFocus) {
+        railNode.requestFocus();
+        return true;
+      }
+    }
+
+    // In source selector — go to sidebar or rail.
+    if (sourceSelectorNode != null && sourceSelectorNode.hasFocus) {
+      if (sidebarNode != null && sidebarNode.canRequestFocus) {
+        sidebarNode.requestFocus();
+        return true;
+      }
+      if (railNode != null && railNode.canRequestFocus) {
+        railNode.requestFocus();
+        return true;
+      }
+    }
+
+    // In content — cross to nearest left zone.
+    final bool inRail = railNode?.hasFocus ?? false;
+    final bool inSidebar = sidebarNode?.hasFocus ?? false;
+    final bool inSourceSelector = sourceSelectorNode?.hasFocus ?? false;
+    if (!inRail && !inSidebar && !inSourceSelector) {
+      if (sourceSelectorNode != null && sourceSelectorNode.canRequestFocus) {
+        sourceSelectorNode.requestFocus();
+        return true;
+      }
+      if (sidebarNode != null && sidebarNode.canRequestFocus) {
+        sidebarNode.requestFocus();
+        return true;
+      }
+      if (railNode != null && railNode.canRequestFocus) {
+        railNode.requestFocus();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Handles D-pad Right: cross-zone navigation toward content.
+  ///
+  /// If focus is in the rail, moves to the nearest right zone
+  /// (sidebar, source selector, or content).
+  bool _handleArrowRight() {
+    final escalation = ref.read(focusEscalationProvider);
+    final railNode = escalation.railNode;
+    final sidebarNode = escalation.sidebarNode;
+    final sourceSelectorNode = escalation.sourceSelectorNode;
+
+    if (railNode != null && railNode.hasFocus) {
+      if (sidebarNode != null && sidebarNode.canRequestFocus) {
+        sidebarNode.requestFocus();
+        return true;
+      }
+      if (sourceSelectorNode != null && sourceSelectorNode.canRequestFocus) {
+        sourceSelectorNode.requestFocus();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Handles D-pad Down: cross-zone navigation to MiniPlayer.
+  ///
+  /// Only fires when descendants have exhausted their own traversal
+  /// (event propagated up with [KeyEventResult.ignored]).
+  bool _handleArrowDown() {
+    final escalation = ref.read(focusEscalationProvider);
+    final miniPlayerNode = escalation.miniPlayerNode;
+
+    if (miniPlayerNode != null &&
+        miniPlayerNode.canRequestFocus &&
+        !miniPlayerNode.hasFocus) {
+      miniPlayerNode.requestFocus();
+      return true;
+    }
     return false;
   }
 

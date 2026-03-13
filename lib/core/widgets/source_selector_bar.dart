@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/settings_notifier.dart';
 import '../../core/domain/entities/playlist_source_type_ext.dart';
+import '../navigation/shell_providers.dart';
 import '../providers/source_filter_provider.dart';
 import '../theme/crispy_animation.dart';
 import '../theme/crispy_radius.dart';
@@ -20,15 +21,46 @@ import '../theme/crispy_spacing.dart';
 /// - Empty set → "All Sources" selected.
 /// - Non-empty set → specific sources selected.
 ///
+/// Registers its [FocusNode] with [focusEscalationProvider]
+/// as Zone B.5 for cross-zone D-pad navigation.
+///
 /// Usage:
 /// ```dart
 /// const SourceSelectorBar()
 /// ```
-class SourceSelectorBar extends ConsumerWidget {
+class SourceSelectorBar extends ConsumerStatefulWidget {
   const SourceSelectorBar({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SourceSelectorBar> createState() => _SourceSelectorBarState();
+}
+
+class _SourceSelectorBarState extends ConsumerState<SourceSelectorBar> {
+  final FocusNode _sourceSelectorNode = FocusNode(
+    debugLabel: 'SourceSelectorZone',
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref
+            .read(focusEscalationProvider.notifier)
+            .setSourceSelectorNode(_sourceSelectorNode);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    ref.read(focusEscalationProvider.notifier).setSourceSelectorNode(null);
+    _sourceSelectorNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final sources =
         ref.watch(settingsNotifierProvider).asData?.value.sources ?? const [];
 
@@ -61,17 +93,20 @@ class SourceSelectorBar extends ConsumerWidget {
       ),
     ];
 
-    return SizedBox(
-      height: _kBarHeight,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(
-          horizontal: CrispySpacing.md,
-          vertical: CrispySpacing.xs,
+    return Focus(
+      focusNode: _sourceSelectorNode,
+      child: SizedBox(
+        height: _kBarHeight,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(
+            horizontal: CrispySpacing.md,
+            vertical: CrispySpacing.xs,
+          ),
+          itemCount: chips.length,
+          separatorBuilder: (_, _) => const SizedBox(width: CrispySpacing.sm),
+          itemBuilder: (_, index) => chips[index],
         ),
-        itemCount: chips.length,
-        separatorBuilder: (_, _) => const SizedBox(width: CrispySpacing.sm),
-        itemBuilder: (_, index) => chips[index],
       ),
     );
   }

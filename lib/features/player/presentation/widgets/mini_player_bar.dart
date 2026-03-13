@@ -2,6 +2,7 @@ import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/navigation/shell_providers.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
@@ -35,6 +36,26 @@ class MiniPlayerBar extends ConsumerStatefulWidget {
 class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar>
     with SingleTickerProviderStateMixin {
   bool _visible = false;
+  final FocusNode _miniPlayerNode = FocusNode(debugLabel: 'MiniPlayerZone');
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref
+            .read(focusEscalationProvider.notifier)
+            .setMiniPlayerNode(_miniPlayerNode);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    ref.read(focusEscalationProvider.notifier).setMiniPlayerNode(null);
+    _miniPlayerNode.dispose();
+    super.dispose();
+  }
 
   // ── Swipe gesture state ─────────────────────────────────────
 
@@ -131,186 +152,190 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar>
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return AnimatedSlide(
-      offset: _visible ? Offset.zero : const Offset(0, 1),
-      duration: CrispyAnimation.normal,
-      curve: _visible ? CrispyAnimation.enterCurve : CrispyAnimation.exitCurve,
-      child: AnimatedOpacity(
-        opacity: _visible ? 1.0 : 0.0,
+    return Focus(
+      focusNode: _miniPlayerNode,
+      child: AnimatedSlide(
+        offset: _visible ? Offset.zero : const Offset(0, 1),
         duration: CrispyAnimation.normal,
-        child: Semantics(
-          button: true,
-          label: context.l10n.playerExpandToFullscreen,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _enterFullscreen,
-            onVerticalDragEnd: _onVerticalDragEnd,
-            child: Material(
-              color: Colors.transparent,
-              child: GlassSurface(
-                borderRadius: CrispyRadius.md,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // ── 2 dp progress bar ───────────────────
-                    SizedBox(
-                      height: CrispySpacing.xxs,
-                      child:
-                          isLiveBar
-                              // Live: solid primary colour, no progress.
-                              ? LinearProgressIndicator(
-                                value: 1.0,
-                                backgroundColor: Colors.transparent,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  colorScheme.primary,
+        curve:
+            _visible ? CrispyAnimation.enterCurve : CrispyAnimation.exitCurve,
+        child: AnimatedOpacity(
+          opacity: _visible ? 1.0 : 0.0,
+          duration: CrispyAnimation.normal,
+          child: Semantics(
+            button: true,
+            label: context.l10n.playerExpandToFullscreen,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _enterFullscreen,
+              onVerticalDragEnd: _onVerticalDragEnd,
+              child: Material(
+                color: Colors.transparent,
+                child: GlassSurface(
+                  borderRadius: CrispyRadius.md,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ── 2 dp progress bar ───────────────────
+                      SizedBox(
+                        height: CrispySpacing.xxs,
+                        child:
+                            isLiveBar
+                                // Live: solid primary colour, no progress.
+                                ? LinearProgressIndicator(
+                                  value: 1.0,
+                                  backgroundColor: Colors.transparent,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    colorScheme.primary,
+                                  ),
+                                  minHeight: CrispySpacing.xxs,
+                                )
+                                // VOD: track position / duration.
+                                : WatchProgressBar(
+                                  value: progress,
+                                  height: CrispySpacing.xxs,
+                                  backgroundColor: colorScheme.outlineVariant
+                                      .withValues(alpha: 0.3),
                                 ),
-                                minHeight: CrispySpacing.xxs,
-                              )
-                              // VOD: track position / duration.
-                              : WatchProgressBar(
-                                value: progress,
-                                height: CrispySpacing.xxs,
-                                backgroundColor: colorScheme.outlineVariant
-                                    .withValues(alpha: 0.3),
-                              ),
-                    ),
-
-                    // ── Main bar row ────────────────────────
-                    Container(
-                      height: 60,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: CrispySpacing.md,
                       ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.zero,
-                        border: Border(
-                          top: BorderSide(
-                            color: colorScheme.outlineVariant.withValues(
-                              alpha: 0.3,
+
+                      // ── Main bar row ────────────────────────
+                      Container(
+                        height: 60,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: CrispySpacing.md,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.zero,
+                          border: Border(
+                            top: BorderSide(
+                              color: colorScheme.outlineVariant.withValues(
+                                alpha: 0.3,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          // Channel logo
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              right: CrispySpacing.sm,
-                            ),
-                            child: SizedBox(
-                              width: 36,
-                              height: 36,
-                              child: SmartImage(
-                                title: state.channelName ?? '',
-                                imageUrl: state.channelLogoUrl,
-                                imageKind: 'logo',
-                                fit: BoxFit.contain,
-                                icon: Icons.live_tv,
-                                memCacheWidth: 72,
-                                memCacheHeight: 72,
+                        child: Row(
+                          children: [
+                            // Channel logo
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                right: CrispySpacing.sm,
+                              ),
+                              child: SizedBox(
+                                width: 36,
+                                height: 36,
+                                child: SmartImage(
+                                  title: state.channelName ?? '',
+                                  imageUrl: state.channelLogoUrl,
+                                  imageKind: 'logo',
+                                  fit: BoxFit.contain,
+                                  icon: Icons.live_tv,
+                                  memCacheWidth: 72,
+                                  memCacheHeight: 72,
+                                ),
                               ),
                             ),
-                          ),
 
-                          // Channel name + LIVE badge / program title
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  state.channelName ?? '',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                if (state.isLive)
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 6,
-                                        height: 6,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.rectangle,
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).crispyColors.liveRed,
-                                        ),
-                                      ),
-                                      const SizedBox(width: CrispySpacing.xs),
-                                      Text(
-                                        'LIVE',
-                                        style: textTheme.labelSmall?.copyWith(
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).crispyColors.liveRed,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                else if (state.currentProgram != null)
+                            // Channel name + LIVE badge / program title
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text(
-                                    state.currentProgram!,
-                                    style: textTheme.labelSmall?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
+                                    state.channelName ?? '',
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                              ],
+                                  if (state.isLive)
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 6,
+                                          height: 6,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.rectangle,
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).crispyColors.liveRed,
+                                          ),
+                                        ),
+                                        const SizedBox(width: CrispySpacing.xs),
+                                        Text(
+                                          'LIVE',
+                                          style: textTheme.labelSmall?.copyWith(
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).crispyColors.liveRed,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  else if (state.currentProgram != null)
+                                    Text(
+                                      state.currentProgram!,
+                                      style: textTheme.labelSmall?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
+                              ),
                             ),
-                          ),
 
-                          // Play/Pause button
-                          IconButton(
-                            onPressed: () {
-                              ref.read(playerServiceProvider).playOrPause();
-                            },
-                            icon: Icon(
-                              state.isPlaying
-                                  ? Icons.pause_rounded
-                                  : Icons.play_arrow_rounded,
-                              size: 28,
-                            ),
-                            tooltip:
+                            // Play/Pause button
+                            IconButton(
+                              onPressed: () {
+                                ref.read(playerServiceProvider).playOrPause();
+                              },
+                              icon: Icon(
                                 state.isPlaying
-                                    ? context.l10n.commonPause
-                                    : context.l10n.commonPlay,
-                          ),
-
-                          // Mute/Unmute button
-                          IconButton(
-                            onPressed:
-                                () =>
-                                    ref
-                                        .read(playerServiceProvider)
-                                        .toggleMute(),
-                            icon: Icon(
-                              _volumeIcon(state.volume, state.isMuted),
-                              size: 22,
+                                    ? Icons.pause_rounded
+                                    : Icons.play_arrow_rounded,
+                                size: 28,
+                              ),
+                              tooltip:
+                                  state.isPlaying
+                                      ? context.l10n.commonPause
+                                      : context.l10n.commonPlay,
                             ),
-                            tooltip:
-                                state.isMuted
-                                    ? context.l10n.playerUnmute
-                                    : context.l10n.playerMute,
-                          ),
 
-                          // Close button
-                          IconButton(
-                            onPressed: _dismiss,
-                            icon: const Icon(Icons.close_rounded, size: 22),
-                            tooltip: context.l10n.playerStopPlayback,
-                          ),
-                        ],
+                            // Mute/Unmute button
+                            IconButton(
+                              onPressed:
+                                  () =>
+                                      ref
+                                          .read(playerServiceProvider)
+                                          .toggleMute(),
+                              icon: Icon(
+                                _volumeIcon(state.volume, state.isMuted),
+                                size: 22,
+                              ),
+                              tooltip:
+                                  state.isMuted
+                                      ? context.l10n.playerUnmute
+                                      : context.l10n.playerMute,
+                            ),
+
+                            // Close button
+                            IconButton(
+                              onPressed: _dismiss,
+                              icon: const Icon(Icons.close_rounded, size: 22),
+                              tooltip: context.l10n.playerStopPlayback,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
