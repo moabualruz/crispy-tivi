@@ -21,8 +21,8 @@ env:
   #   1. Run the test suite locally to get current count
   #   2. Set threshold ~5-10% below actual count
   #   3. Commit the updated threshold
-  RUST_TEST_THRESHOLD: 790 # actual ~830
-  FLUTTER_TEST_THRESHOLD: 1700 # actual ~1933
+  RUST_TEST_THRESHOLD: 1195 # actual ~1258 as of 2026-03-13
+  FLUTTER_TEST_THRESHOLD: 3120 # actual ~3285 as of 2026-03-13
 
 jobs:
   # ── Rust Tests ──────────────────────────────────
