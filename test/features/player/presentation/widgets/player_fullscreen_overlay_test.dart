@@ -312,7 +312,6 @@ void main() {
       when(
         () => mockPlayerService.stateStream,
       ).thenAnswer((_) => const Stream<app.PlaybackState>.empty());
-      when(() => mockPlayerService.setFullscreen(any())).thenReturn(null);
       when(() => mockPlayerService.setHwdecMode(any())).thenReturn(null);
       when(() => mockPlayerService.setAudioOutput(any())).thenReturn(null);
       when(

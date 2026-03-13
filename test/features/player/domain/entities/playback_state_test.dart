@@ -12,7 +12,6 @@ void main() {
       expect(state.volume, 1.0);
       expect(state.isMuted, isFalse);
       expect(state.speed, 1.0);
-      expect(state.isFullscreen, isFalse);
       expect(state.isLive, isFalse);
       expect(state.aspectRatioLabel, 'Auto');
       expect(state.audioTracks, isEmpty);

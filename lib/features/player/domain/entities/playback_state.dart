@@ -129,7 +129,6 @@ class PlaybackState {
     this.volume = 1.0,
     this.isMuted = false,
     this.speed = 1.0,
-    this.isFullscreen = false,
     this.isLive = false,
     this.aspectRatioLabel = 'Auto',
     this.channelName,
@@ -156,7 +155,6 @@ class PlaybackState {
   final double volume;
   final bool isMuted;
   final double speed;
-  final bool isFullscreen;
 
   /// Whether the current stream is live (vs VOD).
   final bool isLive;
@@ -249,7 +247,6 @@ class PlaybackState {
           volume == other.volume &&
           isMuted == other.isMuted &&
           speed == other.speed &&
-          isFullscreen == other.isFullscreen &&
           isLive == other.isLive &&
           aspectRatioLabel == other.aspectRatioLabel &&
           channelName == other.channelName &&
@@ -278,7 +275,6 @@ class PlaybackState {
     volume,
     isMuted,
     speed,
-    isFullscreen,
     isLive,
     aspectRatioLabel,
     channelName,
@@ -306,7 +302,6 @@ class PlaybackState {
     double? volume,
     bool? isMuted,
     double? speed,
-    bool? isFullscreen,
     bool? isLive,
     String? aspectRatioLabel,
     String? channelName,
@@ -338,7 +333,6 @@ class PlaybackState {
       volume: volume ?? this.volume,
       isMuted: isMuted ?? this.isMuted,
       speed: speed ?? this.speed,
-      isFullscreen: isFullscreen ?? this.isFullscreen,
       isLive: isLive ?? this.isLive,
       aspectRatioLabel: aspectRatioLabel ?? this.aspectRatioLabel,
       channelName: channelName ?? this.channelName,

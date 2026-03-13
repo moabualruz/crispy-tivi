@@ -139,15 +139,9 @@ void main() {
     });
   });
 
-  // ── copyWith — Fullscreen / Live ────────────────
+  // ── copyWith — Live ────────────────
 
-  group('PlaybackState — copyWith fullscreen/live', () {
-    test('updates isFullscreen', () {
-      const state = PlaybackState(isFullscreen: false);
-      final copy = state.copyWith(isFullscreen: true);
-      expect(copy.isFullscreen, isTrue);
-    });
-
+  group('PlaybackState — copyWith live', () {
     test('updates isLive', () {
       const state = PlaybackState(isLive: false);
       final copy = state.copyWith(isLive: true);

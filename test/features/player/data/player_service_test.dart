@@ -634,67 +634,8 @@ void main() {
     });
   });
 
-  group('PlayerService — fullscreen state', () {
-    late MockCrispyPlayer mockPlayer;
-    late PlayerService playerService;
-
-    setUp(() {
-      mockPlayer = MockCrispyPlayer();
-      _stubEmptyStreams(mockPlayer);
-      playerService = PlayerService(
-        player: mockPlayer,
-        mediaSession: _noOpMediaSession,
-      );
-    });
-
-    tearDown(() {
-      playerService.dispose();
-    });
-
-    test('default isFullscreen is false', () {
-      expect(playerService.state.isFullscreen, isFalse);
-    });
-
-    test('setFullscreen(true) updates state to true', () async {
-      playerService.setFullscreen(true);
-
-      expect(playerService.state.isFullscreen, isTrue);
-    });
-
-    test('setFullscreen(false) updates state to false', () async {
-      playerService.setFullscreen(true);
-      expect(playerService.state.isFullscreen, isTrue);
-
-      playerService.setFullscreen(false);
-      expect(playerService.state.isFullscreen, isFalse);
-    });
-
-    test('setFullscreen emits state via stateStream', () async {
-      final states = <bool>[];
-      final sub = playerService.stateStream.listen(
-        (s) => states.add(s.isFullscreen),
-      );
-
-      playerService.setFullscreen(true);
-      playerService.setFullscreen(false);
-      playerService.setFullscreen(true);
-
-      await Future.delayed(Duration.zero);
-      await sub.cancel();
-
-      expect(states, [true, false, true]);
-    });
-
-    test('stop() resets isFullscreen to default (false)', () async {
-      when(() => mockPlayer.stop()).thenAnswer((_) async {});
-
-      playerService.setFullscreen(true);
-      expect(playerService.state.isFullscreen, isTrue);
-
-      await playerService.stop();
-      expect(playerService.state.isFullscreen, isFalse);
-    });
-  });
+  // Fullscreen state tests removed — isFullscreen moved from
+  // PlaybackState to PlayerMode (playerModeProvider).
 
   group('PlayerService — cssObjectFitFromLabel', () {
     test('maps Fill to cover', () {

@@ -576,8 +576,8 @@ class OsdBottomBar extends ConsumerWidget {
             Consumer(
               builder: (context, ref, _) {
                 final isFullscreen = ref.watch(
-                  playbackStateProvider.select(
-                    (s) => s.value?.isFullscreen ?? false,
+                  playerModeProvider.select(
+                    (s) => s.mode == PlayerMode.fullscreen,
                   ),
                 );
                 return OsdIconButton(

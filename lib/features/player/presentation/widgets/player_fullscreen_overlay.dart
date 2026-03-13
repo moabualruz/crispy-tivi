@@ -188,13 +188,12 @@ class _PlayerFullscreenOverlayState
 
   @override
   void onWindowEnterFullScreen() {
-    if (mounted) ref.read(playerServiceProvider).setFullscreen(true);
+    // OS fullscreen state tracked via PlayerMode, not PlaybackState.
   }
 
   @override
   void onWindowLeaveFullScreen() {
     if (mounted) {
-      ref.read(playerServiceProvider).setFullscreen(false);
       restoreWindowState();
     }
   }

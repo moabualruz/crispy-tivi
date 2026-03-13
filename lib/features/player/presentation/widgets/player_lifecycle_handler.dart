@@ -40,31 +40,14 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
         (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       windowManager.addListener(this as WindowListener);
       isWindowListenerRegistered = true;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (!mounted) return;
-        final isFs = await windowManager.isFullScreen();
-        if (mounted) {
-          ref.read(playerServiceProvider).setFullscreen(isFs);
-        }
-      });
     }
   }
 
   void initFullscreenSync() {
-    cancelFullscreenListener = onWebFullscreenChange((isFullscreen) {
-      if (mounted) {
-        ref.read(playerServiceProvider).setFullscreen(isFullscreen);
-      }
+    cancelFullscreenListener = onWebFullscreenChange((_) {
+      // OS-level fullscreen is tracked by PlayerMode, not
+      // PlaybackState. This listener is kept for future use.
     });
-
-    if (kIsWeb) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ref.read(playerServiceProvider).setFullscreen(isWebFullscreen());
-        }
-      });
-    }
   }
 
   void handleAppLifecycleChange(AppLifecycleState state) {
@@ -159,9 +142,8 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
       }
       await windowManager.setFullScreen(!isFs);
     } else {
-      final service = ref.read(playerServiceProvider);
-      final isFullscreen = !service.state.isFullscreen;
-      service.setFullscreen(isFullscreen);
+      final mode = ref.read(playerModeProvider).mode;
+      final isFullscreen = mode != PlayerMode.fullscreen;
       SystemChrome.setEnabledSystemUIMode(
         isFullscreen ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
       );

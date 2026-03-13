@@ -206,7 +206,6 @@ abstract class PlayerServiceBase {
     int? selectedSecondarySubtitleTrackId,
     bool clearSecondarySubtitle = false,
     String? aspectRatioLabel,
-    bool? isFullscreen,
     int? retryCount,
     List<app.AudioTrack>? audioTracks,
     List<app.SubtitleTrack>? subtitleTracks,
@@ -226,7 +225,6 @@ abstract class PlayerServiceBase {
       volume: volume,
       isMuted: isMuted,
       speed: speed,
-      isFullscreen: isFullscreen,
       errorMessage: errorMessage,
       selectedAudioTrackId: selectedAudioTrackId,
       selectedSubtitleTrackId: selectedSubtitleTrackId,
@@ -256,7 +254,6 @@ abstract class PlayerServiceBase {
         selectedSecondarySubtitleTrackId == null &&
         !clearSecondarySubtitle &&
         aspectRatioLabel == null &&
-        isFullscreen == null &&
         retryCount == null &&
         audioTracks == null &&
         subtitleTracks == null &&

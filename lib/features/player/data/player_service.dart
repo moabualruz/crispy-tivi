@@ -602,12 +602,6 @@ class PlayerService extends PlayerServiceBase
     _stateController.add(_state);
   }
 
-  /// Set fullscreen state manually (for tracking UI
-  /// state).
-  void setFullscreen(bool value) {
-    _updateState(isFullscreen: value);
-  }
-
   /// Full disposal cascade (extends [stop]):
   /// 1. All stop() cleanup (timers, proxy, media session, player)
   /// 2. Close state stream controller
