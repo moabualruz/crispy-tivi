@@ -19,7 +19,7 @@ import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../domain/entities/channel.dart';
 import '../providers/channel_providers.dart';
 import 'channel_epg_overlay.dart';
-import 'channel_genre_chips_sliver.dart';
+
 import 'channel_list_helpers.dart';
 import 'channel_preview_mixin.dart';
 import 'channel_resume_banner.dart';
@@ -351,10 +351,9 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
                           onChanged: widget.onSearchChanged,
                           onClose: widget.onSearchClose,
                         ),
-                        // FE-TV-09: genre filter chips — hidden while
-                        // search bar is open.
-                        if (!widget.showSearchBar)
-                          const ChannelGenreChipsSliver(),
+                        // Genre chips removed from TV layout — the
+                        // GroupSidebar on the left provides group
+                        // filtering already.
                         ChannelResumeBanner(
                           state: widget.state,
                           onResume: widget.onChannelTap,

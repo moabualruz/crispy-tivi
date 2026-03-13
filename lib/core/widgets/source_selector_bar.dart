@@ -93,19 +93,21 @@ class _SourceSelectorBarState extends ConsumerState<SourceSelectorBar> {
       ),
     ];
 
-    return Focus(
-      focusNode: _sourceSelectorNode,
-      child: SizedBox(
-        height: _kBarHeight,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(
-            horizontal: CrispySpacing.md,
-            vertical: CrispySpacing.xs,
+    return FocusTraversalGroup(
+      child: Focus(
+        focusNode: _sourceSelectorNode,
+        child: SizedBox(
+          height: _kBarHeight,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(
+              horizontal: CrispySpacing.md,
+              vertical: CrispySpacing.xs,
+            ),
+            itemCount: chips.length,
+            separatorBuilder: (_, _) => const SizedBox(width: CrispySpacing.sm),
+            itemBuilder: (_, index) => chips[index],
           ),
-          itemCount: chips.length,
-          separatorBuilder: (_, _) => const SizedBox(width: CrispySpacing.sm),
-          itemBuilder: (_, index) => chips[index],
         ),
       ),
     );

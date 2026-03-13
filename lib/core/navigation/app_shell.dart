@@ -290,15 +290,17 @@ class _AppShellState extends ConsumerState<AppShell> {
       return KeyEventResult.handled;
     }
 
-    // Cross-zone arrow navigation (fires ONLY after descendants ignore).
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      if (_handleArrowLeft()) return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      if (_handleArrowRight()) return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      if (_handleArrowDown()) return KeyEventResult.handled;
+    // Cross-zone arrow navigation — only between registered zone
+    // nodes (rail ↔ sidebar ↔ content). Do NOT intercept arrows
+    // when focus is inside the content area — that breaks
+    // intra-screen list/grid/chip navigation.
+    if (context.usesSideNav) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        if (_handleArrowLeft()) return KeyEventResult.handled;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        if (_handleArrowRight()) return KeyEventResult.handled;
+      }
     }
 
     return KeyEventResult.ignored;
@@ -438,9 +440,11 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   /// Handles D-pad Left: cross-zone navigation toward the rail.
   ///
-  /// Only fires when the event has propagated up from descendants
-  /// (intra-zone traversal already handled). Returns `true` if a
-  /// cross-zone move occurred.
+  /// Only handles transitions between registered zone nodes
+  /// (sidebar → rail, source selector → sidebar/rail). Does NOT
+  /// intercept ArrowLeft from general content — that would break
+  /// intra-screen horizontal navigation (genre chips, grids, etc.).
+  /// Content → sidebar is handled by Escape escalation instead.
   bool _handleArrowLeft() {
     final escalation = ref.read(focusEscalationProvider);
     final railNode = escalation.railNode;
@@ -470,64 +474,41 @@ class _AppShellState extends ConsumerState<AppShell> {
       }
     }
 
-    // In content — cross to nearest left zone.
-    final bool inRail = railNode?.hasFocus ?? false;
-    final bool inSidebar = sidebarNode?.hasFocus ?? false;
-    final bool inSourceSelector = sourceSelectorNode?.hasFocus ?? false;
-    if (!inRail && !inSidebar && !inSourceSelector) {
-      if (sourceSelectorNode != null && sourceSelectorNode.canRequestFocus) {
-        sourceSelectorNode.requestFocus();
-        return true;
-      }
-      if (sidebarNode != null && sidebarNode.canRequestFocus) {
-        sidebarNode.requestFocus();
-        return true;
-      }
-      if (railNode != null && railNode.canRequestFocus) {
-        railNode.requestFocus();
-        return true;
-      }
-    }
     return false;
   }
 
   /// Handles D-pad Right: cross-zone navigation toward content.
   ///
-  /// If focus is in the rail, moves to the nearest right zone
-  /// (sidebar, source selector, or content).
+  /// Moves between registered zone nodes only:
+  /// rail → sidebar → content (first focusable child).
   bool _handleArrowRight() {
     final escalation = ref.read(focusEscalationProvider);
     final railNode = escalation.railNode;
     final sidebarNode = escalation.sidebarNode;
-    final sourceSelectorNode = escalation.sourceSelectorNode;
-
+    // In rail — go to sidebar (or content if no sidebar).
     if (railNode != null && railNode.hasFocus) {
       if (sidebarNode != null && sidebarNode.canRequestFocus) {
+        // Focus the first traversable child inside the sidebar
+        // so focus indicators show on the actual item.
         sidebarNode.requestFocus();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          sidebarNode.nextFocus();
+        });
         return true;
       }
-      if (sourceSelectorNode != null && sourceSelectorNode.canRequestFocus) {
-        sourceSelectorNode.requestFocus();
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /// Handles D-pad Down: cross-zone navigation to MiniPlayer.
-  ///
-  /// Only fires when descendants have exhausted their own traversal
-  /// (event propagated up with [KeyEventResult.ignored]).
-  bool _handleArrowDown() {
-    final escalation = ref.read(focusEscalationProvider);
-    final miniPlayerNode = escalation.miniPlayerNode;
-
-    if (miniPlayerNode != null &&
-        miniPlayerNode.canRequestFocus &&
-        !miniPlayerNode.hasFocus) {
-      miniPlayerNode.requestFocus();
+      // No sidebar — push focus into content via traversal.
+      final primaryFocus = FocusManager.instance.primaryFocus;
+      primaryFocus?.focusInDirection(TraversalDirection.right);
       return true;
     }
+
+    // In sidebar — go to content.
+    if (sidebarNode != null && sidebarNode.hasFocus) {
+      final primaryFocus = FocusManager.instance.primaryFocus;
+      primaryFocus?.focusInDirection(TraversalDirection.right);
+      return true;
+    }
+
     return false;
   }
 
