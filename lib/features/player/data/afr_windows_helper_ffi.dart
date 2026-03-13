@@ -1,19 +1,24 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
-import '../../../../src/rust/api/display.dart';
 
-/// Windows-specific AFR helper using safe Rust FFI.
+import '../../../core/data/crispy_backend.dart';
+import '../../../core/utils/platform_info.dart';
+
+/// Windows-specific AFR helper using [CrispyBackend] for FFI.
 ///
-/// Uses flutter_rust_bridge to switch
-/// display refresh rates on Windows safely.
+/// Switches display refresh rates on Windows safely via the
+/// backend abstraction instead of importing `src/rust/` directly.
 class WindowsAfrHelper {
+  /// Creates a helper that routes FFI calls through [backend].
+  WindowsAfrHelper(this._backend);
+
+  final CrispyBackend _backend;
+
   /// Switches to the best matching refresh rate for the given FPS.
   Future<void> switchMode(double fps) async {
-    if (!Platform.isWindows) return;
+    if (!PlatformInfo.instance.isWindows) return;
 
     try {
-      final success = await afrSwitchMode(fps: fps);
+      final success = await _backend.afrSwitchMode(fps);
       if (success) {
         debugPrint('AFR: Windows switched/verified for ${fps}fps content.');
       } else {
@@ -28,10 +33,10 @@ class WindowsAfrHelper {
 
   /// Restores the original display mode.
   Future<void> restoreMode() async {
-    if (!Platform.isWindows) return;
+    if (!PlatformInfo.instance.isWindows) return;
 
     try {
-      final success = await afrRestoreMode();
+      final success = await _backend.afrRestoreMode();
       if (success) {
         debugPrint('AFR: Windows restored original mode.');
       } else {

@@ -124,6 +124,81 @@ mixin _CacheMediaMixin on _CacheServiceBase {
     await _backend.clearBookmarks(contentId);
   }
 
+  // ── Algorithm Wrappers ─────────────────────────────
+
+  /// Resolves next episodes for continue-watching entries.
+  Future<List<WatchHistoryEntry>> resolveNextEpisodes(
+    List<WatchHistoryEntry> entries,
+    List<VodItem> vodItems,
+    double threshold,
+  ) async {
+    final entriesJson = jsonEncode(
+      entries.map(watchHistoryEntryToMap).toList(),
+    );
+    final vodJson = jsonEncode(vodItems.map(vodItemToMap).toList());
+    final resultJson = await _backend.resolveNextEpisodes(
+      entriesJson,
+      vodJson,
+      threshold,
+    );
+    return (jsonDecode(resultJson) as List)
+        .cast<Map<String, dynamic>>()
+        .map(mapToWatchHistoryEntry)
+        .toList();
+  }
+
+  /// Filters upcoming programs for favorite channels.
+  ///
+  /// Returns a JSON string of flat maps containing both channel
+  /// and EPG entry data. Caller reconstructs typed objects.
+  Future<List<Map<String, dynamic>>> filterUpcomingPrograms({
+    required String epgMapJson,
+    required List<Channel> favorites,
+    required int nowMs,
+    required int windowMinutes,
+    required int limit,
+  }) async {
+    final favoritesJson = jsonEncode(favorites.map(channelToMap).toList());
+    final resultJson = await _backend.filterUpcomingPrograms(
+      epgMapJson,
+      favoritesJson,
+      nowMs,
+      windowMinutes,
+      limit,
+    );
+    return (jsonDecode(resultJson) as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Computes viewing statistics for a profile's watch history.
+  Future<Map<String, dynamic>> computeProfileStats(
+    List<WatchHistoryEntry> entries,
+    int nowMs,
+  ) async {
+    final historyJson = jsonEncode(
+      entries.map(watchHistoryEntryToMap).toList(),
+    );
+    final resultJson = await _backend.computeProfileStats(historyJson, nowMs);
+    return jsonDecode(resultJson) as Map<String, dynamic>;
+  }
+
+  /// Detects GPU info and returns parsed map.
+  Future<Map<String, dynamic>> detectGpuInfo() async {
+    final json = await _backend.detectGpu();
+    return jsonDecode(json) as Map<String, dynamic>;
+  }
+
+  /// Loads parsed smart groups (typed).
+  Future<List<Map<String, dynamic>>> getSmartGroupsParsed() async {
+    final json = await _backend.getSmartGroupsJson();
+    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Loads parsed smart group candidates (typed).
+  Future<List<Map<String, dynamic>>> getSmartGroupCandidatesParsed() async {
+    final json = await _backend.detectSmartGroupCandidates();
+    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+  }
+
   // ── Smart Groups ──────────────────────────────────────
 
   /// Create a smart channel group. Returns UUID.

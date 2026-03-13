@@ -91,6 +91,18 @@ class FfiBackend extends _FfiBackendBase
     // Rust manages its own lifecycle via OnceLock — no-op.
   }
 
+  // ── Display / AFR ────────────────────────────
+
+  @override
+  Future<bool> afrSwitchMode(double fps) async {
+    return await rust_api.afrSwitchMode(fps: fps);
+  }
+
+  @override
+  Future<bool> afrRestoreMode() async {
+    return await rust_api.afrRestoreMode();
+  }
+
   // ── App Update ────────────────────────────────
 
   @override

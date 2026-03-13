@@ -88,6 +88,14 @@ class MemoryBackend extends _MemoryStorage
         '"vsr_method":"None"}';
   }
 
+  // ── Display / AFR ────────────────────────────────
+
+  @override
+  Future<bool> afrSwitchMode(double fps) async => false;
+
+  @override
+  Future<bool> afrRestoreMode() async => false;
+
   // ── Events ─────────────────────────────────────
 
   @override

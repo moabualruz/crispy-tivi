@@ -72,6 +72,19 @@ abstract class CrispyBackend
   /// Tests: fed by [MemoryBackend.emitTestEvent].
   Stream<String> get dataEvents;
 
+  // ── Display / AFR ─────────────────────────────────────
+
+  /// Switch the display to the best matching refresh rate for [fps].
+  ///
+  /// Returns `true` when the switch succeeded, `false` otherwise.
+  /// No-op on platforms that don't support display mode switching.
+  Future<bool> afrSwitchMode(double fps);
+
+  /// Restore the original display mode after AFR was engaged.
+  ///
+  /// Returns `true` on success.
+  Future<bool> afrRestoreMode();
+
   // ── Cleanup ─────────────────────────────────────────
 
   /// Release resources (timers, sockets, streams).

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants.dart';
@@ -130,13 +128,8 @@ final latestVodProvider = Provider<List<VodItem>>((ref) {
 final top10VodAsyncProvider = FutureProvider<List<VodItem>>((ref) async {
   final vodState = ref.watch(vodProvider);
   if (vodState.items.isEmpty) return const [];
-  final backend = ref.read(crispyBackendProvider);
-  final json = jsonEncode(vodState.items.map(vodItemToMap).toList());
-  final result = await backend.filterTopVod(json, 10);
-  return (jsonDecode(result) as List)
-      .cast<Map<String, dynamic>>()
-      .map(mapToVodItem)
-      .toList();
+  final cache = ref.read(cacheServiceProvider);
+  return cache.filterTopVod(vodState.items, 10);
 });
 
 /// Top 10 items: highest-rated VOD items with poster art.
@@ -167,20 +160,12 @@ final continueWatchingSeriesNextEpisodeProvider =
       );
       if (seriesEntries.isEmpty) return const [];
       final vodState = ref.watch(vodProvider);
-      final backend = ref.read(crispyBackendProvider);
-      final entriesJson = jsonEncode(
-        seriesEntries.map(watchHistoryEntryToMap).toList(),
-      );
-      final vodJson = jsonEncode(vodState.items.map(vodItemToMap).toList());
-      final result = await backend.resolveNextEpisodes(
-        entriesJson,
-        vodJson,
+      final cache = ref.read(cacheServiceProvider);
+      return cache.resolveNextEpisodes(
+        seriesEntries,
+        vodState.items,
         kNextEpisodeThreshold,
       );
-      return (jsonDecode(result) as List)
-          .cast<Map<String, dynamic>>()
-          .map(mapToWatchHistoryEntry)
-          .toList();
     });
 
 // ── Task 5D: filterUpcomingPrograms → backend.filterUpcomingPrograms ──
@@ -204,29 +189,24 @@ final upcomingProgramsAsyncProvider = FutureProvider<List<UpcomingProgram>>((
   final favorites = favoritesAsync.asData?.value;
   if (favorites == null || favorites.isEmpty) return const [];
 
-  final backend = ref.read(crispyBackendProvider);
+  final cache = ref.read(cacheServiceProvider);
 
   // Encode EPG entries in the epoch-ms format expected by Rust.
   final epgMapJson = EpgJsonCodec.encode(epgState.entries);
 
-  // Encode favorite channels as JSON channel maps.
-  final favoritesJson = jsonEncode(favorites.map(channelToMap).toList());
-
   final nowMs = DateTime.now().toUtc().millisecondsSinceEpoch;
-
-  final result = await backend.filterUpcomingPrograms(
-    epgMapJson,
-    favoritesJson,
-    nowMs,
-    120, // windowMinutes
-    20, // limit
-  );
 
   // The Rust result is a flat array with channel + entry info embedded.
   // Each element has: channel_id, channel_name, stream_url, logo_url?,
   //   title, start_time (epoch ms), end_time (epoch ms),
   //   description?, category?
-  final raw = (jsonDecode(result) as List).cast<Map<String, dynamic>>();
+  final raw = await cache.filterUpcomingPrograms(
+    epgMapJson: epgMapJson,
+    favorites: favorites,
+    nowMs: nowMs,
+    windowMinutes: 120,
+    limit: 20,
+  );
 
   return raw.map((m) {
     final channel = Channel(

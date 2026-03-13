@@ -1,7 +1,8 @@
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../../core/data/codecs/json_prefs_codec.dart';
 
 // FE-PS-05
 
@@ -24,15 +25,7 @@ class BiometricPreferenceNotifier extends AsyncNotifier<Map<String, bool>> {
   @override
   Future<Map<String, bool>> build() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_prefsKey);
-    if (jsonStr == null) return {};
-
-    try {
-      final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
-      return decoded.map((k, v) => MapEntry(k, v as bool));
-    } catch (_) {
-      return {};
-    }
+    return JsonPrefsCodec.readBoolMap(prefs, _prefsKey);
   }
 
   /// Returns true if biometric auth is enabled for [profileId].
@@ -52,7 +45,7 @@ class BiometricPreferenceNotifier extends AsyncNotifier<Map<String, bool>> {
 
     // Save to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefsKey, jsonEncode(currentState));
+    await JsonPrefsCodec.writeBoolMap(prefs, _prefsKey, currentState);
 
     state = AsyncData(currentState);
   }

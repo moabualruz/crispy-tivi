@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
-import '../../data/afr_service.dart';
 import '../../domain/segment_skip_config.dart';
 import '../../domain/entities/gpu_info.dart';
 import '../../domain/entities/hardware_decoder.dart';
@@ -33,18 +32,6 @@ final afrLiveTvProvider = Provider<bool>((ref) {
 final afrVodProvider = Provider<bool>((ref) {
   final settings = ref.watch(settingsNotifierProvider);
   return settings.value?.config.player.afrVod ?? true;
-});
-
-/// AFR service provider that automatically syncs with settings.
-final afrServiceProvider = Provider<AfrService>((ref) {
-  final service = AfrService();
-  final enabled = ref.watch(afrEnabledProvider);
-
-  // Sync service state with settings
-  service.setEnabled(enabled);
-
-  ref.onDispose(() => service.dispose());
-  return service;
 });
 
 // ─────────────────────────────────────────────────────────────

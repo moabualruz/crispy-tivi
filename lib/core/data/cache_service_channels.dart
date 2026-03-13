@@ -181,6 +181,59 @@ mixin _CacheChannelsMixin on _CacheServiceBase {
   Future<void> setChannel247(String channelId, {required bool is247}) =>
       _backend.setChannel247(channelId, is247: is247);
 
+  // ── Algorithm Wrappers ───────────────────────────
+
+  /// Searches channel IDs whose live EPG program matches [query].
+  Future<List<String>> searchChannelsByLiveProgram(
+    Map<String, List<EpgEntry>> epgEntries,
+    String query,
+    int nowMs,
+  ) async {
+    final epgMapJson = jsonEncode(
+      epgEntries.map((k, v) => MapEntry(k, v.map(epgEntryToMap).toList())),
+    );
+    final resultJson = await _backend.searchChannelsByLiveProgram(
+      epgMapJson,
+      query,
+      nowMs,
+    );
+    return (jsonDecode(resultJson) as List).cast<String>();
+  }
+
+  /// Merges EPG-matched channel IDs into a base filtered list.
+  Future<List<Channel>> mergeEpgMatchedChannels({
+    required List<Channel> baseChannels,
+    required List<Channel> allChannels,
+    required List<String> matchedIds,
+    required Map<String, String> epgOverrides,
+  }) async {
+    final baseJson = jsonEncode(baseChannels.map(channelToMap).toList());
+    final allJson = jsonEncode(allChannels.map(channelToMap).toList());
+    final matchedIdsJson = jsonEncode(matchedIds);
+    final overridesJson = jsonEncode(epgOverrides);
+    final resultJson = await _backend.mergeEpgMatchedChannels(
+      baseJson,
+      allJson,
+      matchedIdsJson,
+      overridesJson,
+    );
+    return (jsonDecode(resultJson) as List)
+        .cast<Map<String, dynamic>>()
+        .map(mapToChannel)
+        .toList();
+  }
+
+  /// Builds deduplicated search categories from VOD and channel data.
+  List<String> buildSearchCategories(
+    List<String> vodCategories,
+    List<String> channelGroups,
+  ) {
+    final vodJson = jsonEncode(vodCategories);
+    final groupsJson = jsonEncode(channelGroups);
+    final resultJson = _backend.buildSearchCategories(vodJson, groupsJson);
+    return (jsonDecode(resultJson) as List).cast<String>();
+  }
+
   // ── Sync Cleanup ──────────────────────────────────
 
   /// Deletes channels for [sourceId] not in

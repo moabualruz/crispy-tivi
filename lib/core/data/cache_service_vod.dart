@@ -96,6 +96,94 @@ mixin _CacheVodMixin on _CacheServiceBase {
     return result;
   }
 
+  /// Returns the top [limit] VOD items by rating.
+  ///
+  /// Delegates to [CrispyBackend.filterTopVod] with JSON
+  /// serialization handled internally.
+  Future<List<VodItem>> filterTopVod(List<VodItem> items, int limit) async {
+    if (items.isEmpty) return [];
+    final inputJson = jsonEncode(items.map(vodItemToMap).toList());
+    final resultJson = await _backend.filterTopVod(inputJson, limit);
+    return (jsonDecode(resultJson) as List)
+        .cast<Map<String, dynamic>>()
+        .map(mapToVodItem)
+        .toList();
+  }
+
+  /// Filters VOD items by content rating level.
+  ///
+  /// Returns only items whose rating is at or below [ratingLevel].
+  Future<List<VodItem>> filterVodByContentRating(
+    List<VodItem> items,
+    int ratingLevel,
+  ) async {
+    if (items.isEmpty) return items;
+    final inputJson = jsonEncode(items.map(vodItemToMap).toList());
+    final resultJson = await _backend.filterVodByContentRating(
+      inputJson,
+      ratingLevel,
+    );
+    return (jsonDecode(resultJson) as List)
+        .cast<Map<String, dynamic>>()
+        .map(mapToVodItem)
+        .toList();
+  }
+
+  /// Returns items added within the last [days] days.
+  Future<List<VodItem>> filterRecentlyAdded(
+    List<VodItem> items,
+    int days,
+    int nowMs,
+  ) async {
+    if (items.isEmpty) return [];
+    final inputJson = jsonEncode(items.map(vodItemToMap).toList());
+    final resultJson = await _backend.filterRecentlyAdded(
+      inputJson,
+      days,
+      nowMs,
+    );
+    return (jsonDecode(resultJson) as List)
+        .cast<Map<String, dynamic>>()
+        .map(mapToVodItem)
+        .toList();
+  }
+
+  /// Returns the set of series IDs that have new episodes
+  /// within the last [days] days.
+  Future<Set<String>> seriesIdsWithNewEpisodes(
+    List<VodItem> series,
+    int days,
+    int nowMs,
+  ) async {
+    if (series.isEmpty) return {};
+    final seriesJson = jsonEncode(
+      series
+          .map(
+            (s) => {
+              'id': s.id,
+              'updated_at': s.updatedAt?.millisecondsSinceEpoch,
+            },
+          )
+          .toList(),
+    );
+    final resultJson = await _backend.seriesIdsWithNewEpisodes(
+      seriesJson,
+      days,
+      nowMs,
+    );
+    return (jsonDecode(resultJson) as List).cast<String>().toSet();
+  }
+
+  /// Returns episode counts grouped by season number.
+  Map<int, int> episodeCountBySeason(List<VodItem> episodes) {
+    if (episodes.isEmpty) return {};
+    final inputJson = jsonEncode(episodes.map(vodItemToMap).toList());
+    final resultJson = _backend.episodeCountBySeason(inputJson);
+    return (jsonDecode(resultJson) as Map<String, dynamic>).map(
+      (k, v) => MapEntry(int.parse(k), v as int),
+    );
+  }
+
   /// Filter and sort an in-memory list using the Rust backend.
   Future<List<VodItem>> filterAndSortVodItems(
     List<VodItem> items, {

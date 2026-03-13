@@ -113,6 +113,20 @@ class CacheService extends _CacheServiceBase
     await _backend.removeSetting(key);
   }
 
+  /// Reads a setting stored as a JSON list of ints.
+  ///
+  /// Returns `null` if the key is not set or the value is empty.
+  Future<List<int>?> getSettingIntList(String key) async {
+    final raw = await _backend.getSetting(key);
+    if (raw == null || raw.isEmpty) return null;
+    return (jsonDecode(raw) as List).cast<int>();
+  }
+
+  /// Writes a list of ints as a JSON setting.
+  Future<void> setSettingIntList(String key, List<int> values) async {
+    await _backend.setSetting(key, jsonEncode(values));
+  }
+
   // ── Sources ──────────────────────────────────
 
   /// Load all content sources sorted by sort_order.
@@ -274,6 +288,23 @@ class CacheService extends _CacheServiceBase
       _lastUpdateCheckTime = DateTime.now();
     }
     return result;
+  }
+
+  /// Checks for update and returns parsed map.
+  ///
+  /// Wraps [checkForUpdate] with JSON decoding so callers
+  /// don't need dart:convert.
+  Future<Map<String, dynamic>> checkForUpdateParsed(
+    String currentVersion,
+    String repoUrl, {
+    Duration? checkInterval,
+  }) async {
+    final raw = await checkForUpdate(
+      currentVersion,
+      repoUrl,
+      checkInterval: checkInterval,
+    );
+    return jsonDecode(raw) as Map<String, dynamic>;
   }
 
   /// Find a platform-specific download URL from release assets.

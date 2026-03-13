@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -97,24 +96,21 @@ class SearchNotifier extends Notifier<SearchState> {
     try {
       final vodItems = ref.read(vodProvider).items;
       final channelState = ref.read(channelListProvider);
-      final backend = ref.read(crispyBackendProvider);
+      final cache = ref.read(cacheServiceProvider);
 
-      final vodCategoriesJson = jsonEncode(
-        vodItems
-            .map((i) => i.category)
-            .whereType<String>()
-            .where((c) => c.isNotEmpty)
-            .toList(),
-      );
-      final channelGroupsJson = jsonEncode(
-        channelState.groups.where((g) => g.isNotEmpty).toList(),
-      );
+      final vodCategories =
+          vodItems
+              .map((i) => i.category)
+              .whereType<String>()
+              .where((c) => c.isNotEmpty)
+              .toList();
+      final channelGroups =
+          channelState.groups.where((g) => g.isNotEmpty).toList();
 
-      final result = backend.buildSearchCategories(
-        vodCategoriesJson,
-        channelGroupsJson,
+      final categories = cache.buildSearchCategories(
+        vodCategories,
+        channelGroups,
       );
-      final categories = (jsonDecode(result) as List).cast<String>();
       state = state.copyWith(availableCategories: categories);
     } catch (_) {
       // Ignore category load errors

@@ -1,5 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
+
+import '../../../../core/data/codecs/json_prefs_codec.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -89,7 +90,7 @@ class ProfileManagementTile extends ConsumerWidget {
       'watchHistorySummary': {'note': 'Full history not included in export.'},
     };
 
-    final jsonText = const JsonEncoder.withIndent('  ').convert(exportMap);
+    final jsonText = JsonPrefsCodec.prettyEncode(exportMap);
 
     bool shared = false;
 

@@ -287,6 +287,14 @@ class WsBackend extends _WsBackendBase
     return result as String;
   }
 
+  // ── Display / AFR ────────────────────────────────
+
+  @override
+  Future<bool> afrSwitchMode(double fps) async => false;
+
+  @override
+  Future<bool> afrRestoreMode() async => false;
+
   // ── Events ─────────────────────────────────────
 
   @override

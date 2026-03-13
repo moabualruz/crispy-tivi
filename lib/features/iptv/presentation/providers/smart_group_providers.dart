@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
@@ -98,11 +96,8 @@ final smartGroupsProvider = FutureProvider.autoDispose<List<SmartGroup>>((
   ref,
 ) async {
   final cache = ref.watch(cacheServiceProvider);
-  final json = await cache.getSmartGroupsJson();
-  final raw = jsonDecode(json) as List<dynamic>;
-  return raw
-      .map((g) => SmartGroup.fromJson(g as Map<String, dynamic>))
-      .toList();
+  final raw = await cache.getSmartGroupsParsed();
+  return raw.map(SmartGroup.fromJson).toList();
 });
 
 /// Set of channel IDs that belong to any smart group.
@@ -124,9 +119,6 @@ final smartGroupChannelIdsProvider = FutureProvider.autoDispose<Set<String>>((
 final smartGroupCandidatesProvider =
     FutureProvider.autoDispose<List<SmartGroupCandidate>>((ref) async {
       final cache = ref.watch(cacheServiceProvider);
-      final json = await cache.detectSmartGroupCandidates();
-      final raw = jsonDecode(json) as List<dynamic>;
-      return raw
-          .map((c) => SmartGroupCandidate.fromJson(c as Map<String, dynamic>))
-          .toList();
+      final raw = await cache.getSmartGroupCandidatesParsed();
+      return raw.map(SmartGroupCandidate.fromJson).toList();
     });

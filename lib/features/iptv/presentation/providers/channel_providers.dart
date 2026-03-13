@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -338,46 +336,25 @@ final _epgAwareChannelListAsyncProvider =
       if (query.isEmpty) return null;
 
       final epgState = ref.watch(epgProvider);
-      final backend = ref.read(crispyBackendProvider);
+      final cache = ref.read(cacheServiceProvider);
       final now = DateTime.now();
 
-      // Serialize EPG entries map: {"channelId": [{entry}, ...], ...}
-      final epgMapJson = jsonEncode(
-        epgState.entries.map(
-          (k, v) => MapEntry(k, v.map(epgEntryToMap).toList()),
-        ),
-      );
-
       // Step 1: find channel IDs whose live program matches query.
-      final matchedIdsJson = await backend.searchChannelsByLiveProgram(
-        epgMapJson,
+      final matchedIds = await cache.searchChannelsByLiveProgram(
+        epgState.entries,
         query,
         now.millisecondsSinceEpoch,
       );
 
-      final matchedIds = (jsonDecode(matchedIdsJson) as List).cast<String>();
       if (matchedIds.isEmpty) return channelState.filteredChannels;
 
       // Step 2: merge matched channels into base filtered list.
-      final baseJson = jsonEncode(
-        channelState.filteredChannels.map(channelToMap).toList(),
+      return cache.mergeEpgMatchedChannels(
+        baseChannels: channelState.filteredChannels,
+        allChannels: channelState.channels,
+        matchedIds: matchedIds,
+        epgOverrides: epgState.epgOverrides,
       );
-      final allChannelsJson = jsonEncode(
-        channelState.channels.map(channelToMap).toList(),
-      );
-      final epgOverridesJson = jsonEncode(epgState.epgOverrides);
-
-      final resultJson = await backend.mergeEpgMatchedChannels(
-        baseJson,
-        allChannelsJson,
-        matchedIdsJson,
-        epgOverridesJson,
-      );
-
-      return (jsonDecode(resultJson) as List)
-          .cast<Map<String, dynamic>>()
-          .map(mapToChannel)
-          .toList();
     });
 
 /// EPG-aware channel list provider (FE-TV-05).

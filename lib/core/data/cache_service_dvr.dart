@@ -80,6 +80,42 @@ mixin _CacheDvrMixin on _CacheServiceBase {
   Future<void> deleteTransferTask(String id) async {
     await _backend.deleteTransferTask(id);
   }
+  // ── Algorithm Wrappers ───────────────────────────
+
+  /// Filters DVR recordings by search query.
+  Future<List<Map<String, dynamic>>> filterDvrRecordingsParsed(
+    List<Recording> recordings,
+    String query,
+  ) async {
+    final recordingsJson = jsonEncode(recordings.map(recordingToMap).toList());
+    final resultJson = await _backend.filterDvrRecordings(
+      recordingsJson,
+      query,
+    );
+    return (jsonDecode(resultJson) as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Computes storage breakdown for recordings.
+  Future<Map<String, dynamic>> computeStorageBreakdownParsed(
+    List<Recording> recordings,
+    int nowMs,
+  ) async {
+    final recordingsJson = jsonEncode(recordings.map(recordingToMap).toList());
+    final resultJson = await _backend.computeStorageBreakdown(
+      recordingsJson,
+      nowMs,
+    );
+    return jsonDecode(resultJson) as Map<String, dynamic>;
+  }
+
+  /// Sorts remote files via the Rust backend.
+  Future<List<Map<String, dynamic>>> sortRemoteFilesParsed(
+    String filesJson,
+    String orderStr,
+  ) async {
+    final resultJson = await _backend.sortRemoteFiles(filesJson, orderStr);
+    return (jsonDecode(resultJson) as List).cast<Map<String, dynamic>>();
+  }
 }
 
 // ── DVR converters (top-level, private) ───────────

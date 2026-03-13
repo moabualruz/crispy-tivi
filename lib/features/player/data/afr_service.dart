@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/data/cache_service.dart';
+import '../../../core/data/crispy_backend.dart';
 import '../domain/crispy_player.dart';
 import 'afr_helper.dart';
 
 /// Provider for AFR Service.
 final afrServiceProvider = Provider<AfrService>((ref) {
-  final service = AfrService();
+  final backend = ref.watch(crispyBackendProvider);
+  final service = AfrService(backend);
   ref.onDispose(() => service.dispose());
   return service;
 });
@@ -23,7 +26,9 @@ final afrServiceProvider = Provider<AfrService>((ref) {
 /// - Windows/Linux: Planned (xrandr/ChangeDisplaySettings).
 /// - Web/macOS/iOS: Not supported.
 class AfrService {
-  final _helper = AfrHelper();
+  AfrService(CrispyBackend backend) : _helper = AfrHelper(backend);
+
+  final AfrHelper _helper;
   StreamSubscription? _trackSubscription;
   bool _isEnabled = false;
   double? _lastAppliedFps;

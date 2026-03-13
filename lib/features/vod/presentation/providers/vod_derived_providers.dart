@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
@@ -65,16 +63,8 @@ final _filteredVodAsyncProvider = FutureProvider.autoDispose<List<VodItem>>((
   // No restrictions for unrestricted profiles (or when no profile loaded).
   if (profile == null || !profile.isRestricted) return items;
 
-  final backend = ref.read(crispyBackendProvider);
-  final json = jsonEncode(items.map(vodItemToMap).toList());
-  final result = await backend.filterVodByContentRating(
-    json,
-    profile.ratingLevel.value,
-  );
-  return (jsonDecode(result) as List)
-      .cast<Map<String, dynamic>>()
-      .map(mapToVodItem)
-      .toList();
+  final cache = ref.read(cacheServiceProvider);
+  return cache.filterVodByContentRating(items, profile.ratingLevel.value);
 });
 
 /// Filters VOD items based on active profile's
@@ -129,17 +119,12 @@ final _recentlyAddedMoviesAsyncProvider =
     FutureProvider.autoDispose<List<VodItem>>((ref) async {
       final items = ref.watch(filteredMoviesProvider);
       if (items.isEmpty) return [];
-      final backend = ref.read(crispyBackendProvider);
-      final json = jsonEncode(items.map(vodItemToMap).toList());
-      final result = await backend.filterRecentlyAdded(
-        json,
+      final cache = ref.read(cacheServiceProvider);
+      return cache.filterRecentlyAdded(
+        items,
         kRecentlyAddedDays,
         DateTime.now().millisecondsSinceEpoch,
       );
-      return (jsonDecode(result) as List)
-          .cast<Map<String, dynamic>>()
-          .map(mapToVodItem)
-          .toList();
     });
 
 /// Movies added in the last [kRecentlyAddedDays] days.
@@ -152,17 +137,12 @@ final _recentlyAddedSeriesAsyncProvider =
     FutureProvider.autoDispose<List<VodItem>>((ref) async {
       final items = ref.watch(filteredSeriesProvider);
       if (items.isEmpty) return [];
-      final backend = ref.read(crispyBackendProvider);
-      final json = jsonEncode(items.map(vodItemToMap).toList());
-      final result = await backend.filterRecentlyAdded(
-        json,
+      final cache = ref.read(cacheServiceProvider);
+      return cache.filterRecentlyAdded(
+        items,
         kRecentlyAddedDays,
         DateTime.now().millisecondsSinceEpoch,
       );
-      return (jsonDecode(result) as List)
-          .cast<Map<String, dynamic>>()
-          .map(mapToVodItem)
-          .toList();
     });
 
 /// Series added in the last [kRecentlyAddedDays] days.
@@ -219,23 +199,12 @@ final _seriesWithNewEpisodesAsyncProvider =
     FutureProvider.autoDispose<Set<String>>((ref) async {
       final series = ref.watch(filteredSeriesProvider);
       if (series.isEmpty) return {};
-      final backend = ref.read(crispyBackendProvider);
-      final seriesJson = jsonEncode(
-        series
-            .map(
-              (s) => {
-                'id': s.id,
-                'updated_at': s.updatedAt?.millisecondsSinceEpoch,
-              },
-            )
-            .toList(),
-      );
-      final result = await backend.seriesIdsWithNewEpisodes(
-        seriesJson,
+      final cache = ref.read(cacheServiceProvider);
+      return cache.seriesIdsWithNewEpisodes(
+        series,
         kNewEpisodesDays,
         DateTime.now().millisecondsSinceEpoch,
       );
-      return (jsonDecode(result) as List).cast<String>().toSet();
     });
 
 /// Returns the set of series item IDs that have been updated within

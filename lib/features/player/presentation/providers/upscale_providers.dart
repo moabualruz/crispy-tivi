@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -82,9 +80,8 @@ final upscaleManagerProvider = Provider<UpscaleManager>((ref) {
 /// Returns [GpuInfo.unknown] if detection fails.
 final gpuInfoProvider = FutureProvider<GpuInfo>((ref) async {
   try {
-    final backend = ref.read(crispyBackendProvider);
-    final json = await backend.detectGpu();
-    final map = jsonDecode(json) as Map<String, dynamic>;
+    final cache = ref.read(cacheServiceProvider);
+    final map = await cache.detectGpuInfo();
     return GpuInfo.fromJson(map);
   } catch (e) {
     debugPrint('gpuInfoProvider: detection failed: $e');

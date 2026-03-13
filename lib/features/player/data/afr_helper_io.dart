@@ -1,8 +1,10 @@
-import 'dart:io';
+import 'dart:io' show Process;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 
+import '../../../core/data/crispy_backend.dart';
+import '../../../core/utils/platform_info.dart';
 import 'afr_windows_helper.dart';
 
 /// Platform-specific AFR helper for display mode switching.
@@ -10,25 +12,29 @@ import 'afr_windows_helper.dart';
 /// Supports:
 /// - Android: Uses [flutter_displaymode] package.
 /// - Linux: Uses `xrandr` command-line tool.
-/// - Windows: Uses win32 ChangeDisplaySettings API.
+/// - Windows: Uses win32 ChangeDisplaySettings API via [CrispyBackend].
 /// - macOS/iOS: Not supported (OS doesn't allow app-controlled refresh).
 class AfrHelper {
+  AfrHelper(CrispyBackend backend) : _windowsHelper = WindowsAfrHelper(backend);
+
   DisplayMode? _originalAndroidMode;
   String? _originalLinuxMode;
   String? _linuxDisplay;
-  final _windowsHelper = WindowsAfrHelper();
+  final WindowsAfrHelper _windowsHelper;
+
+  static final _platform = PlatformInfo.instance;
 
   /// Switches display to the best matching refresh rate for the given FPS.
   Future<void> switchToBestMode(double fps) async {
-    if (Platform.isAndroid) {
+    if (_platform.isAndroid) {
       await _switchAndroid(fps);
-    } else if (Platform.isLinux) {
+    } else if (_platform.isLinux) {
       await _switchLinux(fps);
-    } else if (Platform.isWindows) {
+    } else if (_platform.isWindows) {
       await _windowsHelper.switchMode(fps);
-    } else if (Platform.isMacOS || Platform.isIOS) {
+    } else if (_platform.isMacOS || _platform.isIOS) {
       debugPrint(
-        'AFR: ${Platform.operatingSystem} does not support '
+        'AFR: ${_platform.operatingSystem} does not support '
         'app-controlled display refresh rates.',
       );
     }
@@ -36,11 +42,11 @@ class AfrHelper {
 
   /// Restores the original display mode.
   Future<void> restoreMode() async {
-    if (Platform.isAndroid) {
+    if (_platform.isAndroid) {
       await _restoreAndroid();
-    } else if (Platform.isLinux) {
+    } else if (_platform.isLinux) {
       await _restoreLinux();
-    } else if (Platform.isWindows) {
+    } else if (_platform.isWindows) {
       await _windowsHelper.restoreMode();
     }
   }

@@ -16,6 +16,7 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/utils/platform_capabilities.dart';
 import '../../../../core/utils/screen_brightness_helper.dart';
 import '../../../favorites/data/favorites_history_service.dart';
+import '../../data/afr_service.dart';
 import '../providers/pip_provider.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../vod/domain/entities/vod_item.dart';
