@@ -23,6 +23,7 @@ import '../widgets/epg_channel_row.dart';
 import '../widgets/epg_program_block.dart';
 import '../widgets/epg_state_helpers.dart';
 import '../widgets/epg_timeline_layout.dart';
+import '../../../../core/widgets/safe_focus_scope.dart';
 import '../widgets/virtual_epg_grid.dart';
 
 /// EPG timeline screen per `.ai/docs/project-specs/ui_ux_spec.md §3.3`.
@@ -314,22 +315,28 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
 
     return Scaffold(
       key: TestKeys.epgScreen,
-      body: ResponsiveLayout(
-        compactBody: EpgMobileLayout(
-          state: state,
-          appBar: _buildAppBar(state, showGroupDropdown: true),
-          epgGrid: epgGrid,
-          onScrollToChannel: _scrollToChannel,
-          onExpandPlayer: expandPlayer,
-        ),
-        largeBody: EpgTvLayout(
-          state: state,
-          appBar: _buildAppBar(state, showGroupDropdown: false),
-          epgGrid: epgGrid,
-          onScrollToChannel: _scrollToChannel,
-          onExpandPlayer: expandPlayer,
-          onPlayEntry: playSelectedEntry,
-          onRecordEntry: recordSelectedEntry,
+      body: FocusTraversalGroup(
+        policy: ReadingOrderTraversalPolicy(),
+        child: SafeFocusScope(
+          restorationKey: 'epg_timeline',
+          child: ResponsiveLayout(
+            compactBody: EpgMobileLayout(
+              state: state,
+              appBar: _buildAppBar(state, showGroupDropdown: true),
+              epgGrid: epgGrid,
+              onScrollToChannel: _scrollToChannel,
+              onExpandPlayer: expandPlayer,
+            ),
+            largeBody: EpgTvLayout(
+              state: state,
+              appBar: _buildAppBar(state, showGroupDropdown: false),
+              epgGrid: epgGrid,
+              onScrollToChannel: _scrollToChannel,
+              onExpandPlayer: expandPlayer,
+              onPlayEntry: playSelectedEntry,
+              onRecordEntry: recordSelectedEntry,
+            ),
+          ),
         ),
       ),
     );

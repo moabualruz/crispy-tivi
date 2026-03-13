@@ -36,6 +36,7 @@ import '../widgets/sources_settings.dart';
 import '../widgets/network_diagnostics_settings.dart';
 import '../widgets/quick_access_strip.dart';
 import '../widgets/storage_settings.dart';
+import '../../../../core/widgets/safe_focus_scope.dart';
 import '../widgets/sync_settings.dart';
 
 /// Tab categories for the settings screen.
@@ -243,32 +244,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           ],
         ),
       ),
-      body: settingsAsync.when(
-        // Keep current UI during background reloads (e.g. BulkDataRefresh)
-        // to avoid destroying TabBarView and resetting the active tab.
-        skipLoadingOnReload: true,
-        skipLoadingOnRefresh: true,
-        // S-10: skeleton shimmer replaces spinner while settings load.
-        loading: () => const _SettingsShimmer(),
-        // S-07: error state includes a retry button.
-        error:
-            (e, _) => Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline, size: 48),
-                  const SizedBox(height: CrispySpacing.md),
-                  Text(context.l10n.commonError(e.toString())),
-                  const SizedBox(height: CrispySpacing.lg),
-                  FilledButton.icon(
-                    onPressed: () => ref.invalidate(settingsNotifierProvider),
-                    icon: const Icon(Icons.refresh),
-                    label: Text(context.l10n.commonRetry),
+      body: FocusTraversalGroup(
+        policy: ReadingOrderTraversalPolicy(),
+        child: SafeFocusScope(
+          restorationKey: 'settings',
+          child: settingsAsync.when(
+            // Keep current UI during background reloads (e.g. BulkDataRefresh)
+            // to avoid destroying TabBarView and resetting the active tab.
+            skipLoadingOnReload: true,
+            skipLoadingOnRefresh: true,
+            // S-10: skeleton shimmer replaces spinner while settings load.
+            loading: () => const _SettingsShimmer(),
+            // S-07: error state includes a retry button.
+            error:
+                (e, _) => Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48),
+                      const SizedBox(height: CrispySpacing.md),
+                      Text(context.l10n.commonError(e.toString())),
+                      const SizedBox(height: CrispySpacing.lg),
+                      FilledButton.icon(
+                        onPressed:
+                            () => ref.invalidate(settingsNotifierProvider),
+                        icon: const Icon(Icons.refresh),
+                        label: Text(context.l10n.commonRetry),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-        data: (settings) => _buildBody(context, settings),
+                ),
+            data: (settings) => _buildBody(context, settings),
+          ),
+        ),
       ),
     );
   }

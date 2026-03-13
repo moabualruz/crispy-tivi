@@ -31,6 +31,7 @@ import '../widgets/channel_search_bar_sliver.dart';
 import '../widgets/channel_sync_utils.dart';
 import '../widgets/channel_sliver.dart';
 import '../widgets/channel_sort_menu.dart';
+import '../../../../core/widgets/safe_focus_scope.dart';
 import '../widgets/channel_tv_layout.dart';
 
 /// Live TV channel list screen per
@@ -102,45 +103,53 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
     );
     return Scaffold(
       key: TestKeys.channelListScreen,
-      body: ResponsiveLayout(
-        compactBody: PopScope(
-          canPop: showingGroups,
-          onPopInvokedWithResult: (didPop, _) {
-            if (!didPop) {
-              ref.read(channelListProvider.notifier).setShowGroupsView(true);
-            }
-          },
-          child: Consumer(
-            builder: (context, ref, _) {
-              final s = ref.watch(channelListProvider);
-              return s.showingGroupsView && s.displayGroups.isNotEmpty
-                  ? _groupsView(s)
-                  : _channelView(s);
-            },
-          ),
-        ),
-        largeBody: Consumer(
-          builder: (context, ref, _) {
-            final s = ref.watch(channelListProvider);
-            final hiddenCount = ref.watch(
-              settingsNotifierProvider.select(
-                (a) => a.value?.hiddenChannelIds.length ?? 0,
+      body: FocusTraversalGroup(
+        policy: ReadingOrderTraversalPolicy(),
+        child: SafeFocusScope(
+          restorationKey: 'channel_list',
+          child: ResponsiveLayout(
+            compactBody: PopScope(
+              canPop: showingGroups,
+              onPopInvokedWithResult: (didPop, _) {
+                if (!didPop) {
+                  ref
+                      .read(channelListProvider.notifier)
+                      .setShowGroupsView(true);
+                }
+              },
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final s = ref.watch(channelListProvider);
+                  return s.showingGroupsView && s.displayGroups.isNotEmpty
+                      ? _groupsView(s)
+                      : _channelView(s);
+                },
               ),
-            );
-            return ChannelTvLayout(
-              state: s,
-              showSearchBar: _showSearchBar,
-              searchController: _searchController,
-              duplicateCount: ref.watch(duplicateCountProvider),
-              hiddenChannelCount: hiddenCount,
-              onSearchChanged: _onSearchChanged,
-              onSearchClose: _toggleSearch,
-              onSearchToggle: _toggleSearch,
-              onChannelTap: _onChannelTap,
-              onReorder: _onReorder,
-              onSortSelected: _onSortSelected,
-            );
-          },
+            ),
+            largeBody: Consumer(
+              builder: (context, ref, _) {
+                final s = ref.watch(channelListProvider);
+                final hiddenCount = ref.watch(
+                  settingsNotifierProvider.select(
+                    (a) => a.value?.hiddenChannelIds.length ?? 0,
+                  ),
+                );
+                return ChannelTvLayout(
+                  state: s,
+                  showSearchBar: _showSearchBar,
+                  searchController: _searchController,
+                  duplicateCount: ref.watch(duplicateCountProvider),
+                  hiddenChannelCount: hiddenCount,
+                  onSearchChanged: _onSearchChanged,
+                  onSearchClose: _toggleSearch,
+                  onSearchToggle: _toggleSearch,
+                  onChannelTap: _onChannelTap,
+                  onReorder: _onReorder,
+                  onSortSelected: _onSortSelected,
+                );
+              },
+            ),
+          ),
         ),
       ),
     );

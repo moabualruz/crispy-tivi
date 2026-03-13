@@ -9,6 +9,7 @@ import '../widgets/onboarding_form_step.dart';
 import '../widgets/onboarding_step_indicator.dart';
 import '../widgets/onboarding_sync_step.dart';
 import '../widgets/onboarding_type_picker_step.dart';
+import '../../../../core/widgets/safe_focus_scope.dart';
 import '../widgets/onboarding_welcome_step.dart';
 
 /// Root screen for the first-run onboarding wizard.
@@ -89,33 +90,39 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: Scaffold(
         key: TestKeys.onboardingScreen,
         backgroundColor: colorScheme.surface,
-        body: Stack(
-          children: [
-            const _GlassmorphicBackground(),
-            SafeArea(
-              child: Column(
-                children: [
-                  const SizedBox(height: CrispySpacing.lg),
-                  OnboardingStepIndicator(
-                    currentStep: _stepToIndicatorIndex(currentStep),
+        body: FocusTraversalGroup(
+          policy: OrderedTraversalPolicy(),
+          child: SafeFocusScope(
+            restorationKey: 'onboarding',
+            child: Stack(
+              children: [
+                const _GlassmorphicBackground(),
+                SafeArea(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: CrispySpacing.lg),
+                      OnboardingStepIndicator(
+                        currentStep: _stepToIndicatorIndex(currentStep),
+                      ),
+                      const SizedBox(height: CrispySpacing.lg),
+                      Expanded(
+                        child: PageView(
+                          controller: _pageController,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: const [
+                            OnboardingWelcomeStep(),
+                            OnboardingTypePickerStep(),
+                            OnboardingFormStep(),
+                            OnboardingSyncStep(),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: CrispySpacing.lg),
-                  Expanded(
-                    child: PageView(
-                      controller: _pageController,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: const [
-                        OnboardingWelcomeStep(),
-                        OnboardingTypePickerStep(),
-                        OnboardingFormStep(),
-                        OnboardingSyncStep(),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
