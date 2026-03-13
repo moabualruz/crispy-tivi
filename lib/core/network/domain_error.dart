@@ -147,6 +147,18 @@ MediaSourceException _handleBadResponseMse(DioException e, String label) {
   );
 }
 
+/// Maps any exception to a [MediaSourceException] for a given server [label].
+///
+/// If the exception is a [DioException], uses [dioToMediaSourceException].
+/// Otherwise wraps it as a generic server error. Callers in non-data layers
+/// use this instead of catching [DioException] directly, keeping `package:dio`
+/// out of presentation and domain code.
+MediaSourceException toMediaSourceException(Object e, String label) {
+  if (e is MediaSourceException) return e;
+  if (e is DioException) return dioToMediaSourceException(e, label);
+  return MediaSourceException.server(message: '$label error: $e', cause: e);
+}
+
 /// Converts a raw exception to a user-friendly error message.
 ///
 /// Strips Dio stack traces and HTTP noise — only the human-readable

@@ -1,56 +1,18 @@
 import 'dart:async';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
-import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
+import 'package:crispy_tivi/features/media_servers/shared/data/media_server_dio_factory.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/media_server_action_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/user_avatar_tile.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
 import '../widgets/emby_pin_login_dialog.dart';
-
-// ── Shared helpers (same authenticate / testConnection as before) ─────────
-
-Future<PlaylistSource> _authenticate(
-  Dio dio,
-  String url,
-  String username,
-  String password,
-) => authenticateMediaServer(
-  dio,
-  url,
-  username,
-  password,
-  PlaylistSourceType.emby,
-);
-
-/// Pings `/System/Info/Public` and returns server name + version.
-///
-/// Does not require authentication — Emby exposes this endpoint
-/// publicly so the user can verify they have the right URL before
-/// entering credentials.
-///
-/// [url] is already normalized by [MediaServerLoginScreen] before
-/// this callback is invoked.
-Future<ServerConnectionInfo> _testConnection(String url) async {
-  final dio = Dio(BaseOptions(baseUrl: url));
-  dio.options.headers['X-Emby-Authorization'] = embyAuthHeader(
-    MediaServerLoginScreen.kDeviceId,
-  );
-
-  final client = MediaServerApiClient(dio, baseUrl: url);
-  final info = await client.getPublicSystemInfo();
-  return ServerConnectionInfo(
-    serverName: info.serverName,
-    version: info.version,
-  );
-}
 
 /// Emby login screen with standard credential form, PIN login option,
 /// and public-user avatar grid (FE-EB-02, FE-EB-03).
@@ -124,12 +86,7 @@ class _EmbyLoginScreenState extends ConsumerState<EmbyLoginScreen> {
     if (pin == null || !mounted) return;
 
     try {
-      final dio = Dio(BaseOptions(baseUrl: _resolvedUrl));
-      dio.options.headers['X-Emby-Authorization'] = embyAuthHeader(
-        MediaServerLoginScreen.kDeviceId,
-      );
-
-      final source = await _authenticate(dio, _resolvedUrl, username, pin);
+      final source = await authenticateEmby(_resolvedUrl, username, pin);
 
       if (!mounted) return;
       ref.read(settingsNotifierProvider.notifier).addSource(source);
@@ -172,8 +129,8 @@ class _EmbyLoginScreenState extends ConsumerState<EmbyLoginScreen> {
   Widget build(BuildContext context) {
     return MediaServerLoginScreen(
       serverName: 'Emby',
-      authenticate: _authenticate,
-      testConnection: _testConnection,
+      authenticate: authenticateMediaServerCallback(PlaylistSourceType.emby),
+      testConnection: testMediaServerConnection,
       externalUsernameController: _userCtrl,
       onUrlChanged: _onUrlChanged,
       bodyFooter:

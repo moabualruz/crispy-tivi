@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,9 +11,9 @@ import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/utils/date_format_utils.dart' show formatMmss;
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
-import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_auth_service.dart';
 import 'package:crispy_tivi/core/widgets/screen_template.dart';
+import 'package:crispy_tivi/features/media_servers/shared/data/media_server_dio_factory.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/media_server_action_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/error_sanitizer.dart';
@@ -35,34 +34,16 @@ class PlexLoginScreen extends ConsumerStatefulWidget {
 }
 
 class _PlexLoginScreenState extends ConsumerState<PlexLoginScreen> {
+  /// Plex authenticate callback matching [MediaServerAuthenticate].
+  ///
+  /// Ignores the [Dio] instance from [MediaServerLoginScreen] and
+  /// delegates to [authenticatePlex] which creates its own client.
   static Future<PlaylistSource> _authenticate(
-    // The Dio instance provided by MediaServerLoginScreen is intentionally
-    // ignored here. Plex uses token-based auth (X-Plex-Token) and requires
-    // a new, unconfigured Dio instance so PlexApiClient can set its own
-    // Plex-specific headers (X-Plex-Token, X-Plex-Client-Identifier) without
-    // conflicting with the shared Emby/Jellyfin auth headers.
-    Dio _,
+    dynamic _, // Dio instance — ignored for Plex
     String url,
     String username, // unused — no username for Plex (hidden field)
     String token,
-  ) async {
-    final client = PlexApiClient(dio: Dio());
-
-    final serverInfo = await client.validateServer(
-      url: url,
-      token: token,
-      clientIdentifier: PlexAuthService.clientIdentifier,
-    );
-
-    return PlaylistSource(
-      id: 'plex_${url.hashCode}',
-      name: serverInfo.name,
-      url: url,
-      type: PlaylistSourceType.plex,
-      accessToken: token,
-      deviceId: PlexAuthService.clientIdentifier,
-    );
-  }
+  ) => authenticatePlex(url, token);
 
   /// Whether the OAuth overlay is showing.
   bool _showOAuth = false;

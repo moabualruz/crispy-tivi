@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/network/http_service.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -108,13 +107,12 @@ class SportsScore extends _$SportsScore {
       // Example using ESPN's NFL scoreboard endpoint.
       // A production implementation would dynamically select the sport/league
       // based on the channel's current EPG programme.
-      final url = Uri.parse(
+      final httpService = ref.read(httpServiceProvider);
+      final data = await httpService.getJson(
         'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard',
       );
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic>) {
         final events = data['events'] as List<dynamic>? ?? [];
 
         if (events.isNotEmpty) {

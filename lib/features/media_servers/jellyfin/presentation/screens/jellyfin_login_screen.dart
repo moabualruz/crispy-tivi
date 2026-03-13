@@ -1,13 +1,12 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
-import 'package:crispy_tivi/core/network/network_timeouts.dart';
 import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
+import 'package:crispy_tivi/features/media_servers/shared/data/media_server_dio_factory.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/media_server_action_row.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/user_avatar_tile.dart';
@@ -48,12 +47,7 @@ final _jellyfinServerProbeProvider = FutureProvider.autoDispose
       if (url.isEmpty) throw StateError('empty url');
 
       final connectionType = url.startsWith('https') ? 'HTTPS' : 'HTTP';
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: url,
-          connectTimeout: NetworkTimeouts.fastConnectTimeout,
-        ),
-      );
+      final dio = createJellyfinProbeDio(url);
 
       final sw = Stopwatch()..start();
       final client = MediaServerApiClient(dio, baseUrl: url);
@@ -78,19 +72,6 @@ final _jellyfinServerProbeProvider = FutureProvider.autoDispose
 ///   shown as a card immediately after the server responds to the URL probe.
 class JellyfinLoginScreen extends ConsumerStatefulWidget {
   const JellyfinLoginScreen({super.key});
-
-  static Future<PlaylistSource> _authenticate(
-    Dio dio,
-    String url,
-    String username,
-    String password,
-  ) => authenticateMediaServer(
-    dio,
-    url,
-    username,
-    password,
-    PlaylistSourceType.jellyfin,
-  );
 
   @override
   ConsumerState<JellyfinLoginScreen> createState() =>
@@ -123,7 +104,9 @@ class _JellyfinLoginScreenState extends ConsumerState<JellyfinLoginScreen> {
   Widget build(BuildContext context) {
     return MediaServerLoginScreen(
       serverName: 'Jellyfin',
-      authenticate: JellyfinLoginScreen._authenticate,
+      authenticate: authenticateMediaServerCallback(
+        PlaylistSourceType.jellyfin,
+      ),
       onUrlChanged: _onUrlChanged,
       externalUsernameController: _userCtrl,
       bodyFooter:

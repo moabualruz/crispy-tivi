@@ -1,6 +1,6 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:crispy_tivi/core/network/http_service.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';
 
 /// Fetches the public user list from an Emby or Jellyfin server before login.
@@ -15,10 +15,9 @@ final mediaServerPublicUsersProvider = FutureProvider.autoDispose
     .family<List<MediaServerUser>, String>((ref, url) async {
       if (url.isEmpty) return [];
       try {
-        final dio = Dio(BaseOptions(baseUrl: url));
-        final response = await dio.get<List<dynamic>>('/Users/Public');
-        final data = response.data;
-        if (data == null) return [];
+        final http = ref.read(httpServiceProvider);
+        final data = await http.getJson('$url/Users/Public');
+        if (data is! List) return [];
         return data
             .cast<Map<String, dynamic>>()
             .map(MediaServerUser.fromJson)

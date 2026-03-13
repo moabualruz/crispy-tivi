@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:crispy_tivi/core/constants.dart';
 import 'package:crispy_tivi/core/domain/entities/media_item.dart';
 import 'package:crispy_tivi/core/domain/entities/media_type.dart';
@@ -77,13 +76,9 @@ class PlexSource implements MediaSource {
       throw MediaSourceException.auth(message: e.message, cause: e);
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
-    } on DioException catch (e) {
-      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
-      throw MediaSourceException.server(
-        message: 'Plex library fetch failed: $e',
-        cause: e,
-      );
+      if (e is MediaSourceException) rethrow;
+      throw toMediaSourceException(e, 'Plex');
     }
   }
 
@@ -133,13 +128,9 @@ class PlexSource implements MediaSource {
       throw MediaSourceException.auth(message: e.message, cause: e);
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
-    } on DioException catch (e) {
-      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
-      throw MediaSourceException.server(
-        message: 'Plex library fetch failed: $e',
-        cause: e,
-      );
+      if (e is MediaSourceException) rethrow;
+      throw toMediaSourceException(e, 'Plex');
     }
   }
 
@@ -168,13 +159,9 @@ class PlexSource implements MediaSource {
       throw MediaSourceException.auth(message: e.message, cause: e);
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
-    } on DioException catch (e) {
-      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
-      throw MediaSourceException.server(
-        message: 'Plex children fetch failed: $e',
-        cause: e,
-      );
+      if (e is MediaSourceException) rethrow;
+      throw toMediaSourceException(e, 'Plex');
     }
   }
 
@@ -263,13 +250,9 @@ class PlexSource implements MediaSource {
       throw MediaSourceException.auth(message: e.message, cause: e);
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
-    } on DioException catch (e) {
-      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
-      throw MediaSourceException.server(
-        message: 'Plex filtered library fetch failed: $e',
-        cause: e,
-      );
+      if (e is MediaSourceException) rethrow;
+      throw toMediaSourceException(e, 'Plex');
     }
   }
 
@@ -282,13 +265,9 @@ class PlexSource implements MediaSource {
       throw MediaSourceException.auth(message: e.message, cause: e);
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
-    } on DioException catch (e) {
-      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
-      throw MediaSourceException.server(
-        message: 'Plex children fetch failed: $e',
-        cause: e,
-      );
+      if (e is MediaSourceException) rethrow;
+      throw toMediaSourceException(e, 'Plex');
     }
   }
 
@@ -306,13 +285,9 @@ class PlexSource implements MediaSource {
       throw MediaSourceException.auth(message: e.message, cause: e);
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
-    } on DioException catch (e) {
-      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
-      throw MediaSourceException.server(
-        message: 'Plex search failed: $e',
-        cause: e,
-      );
+      if (e is MediaSourceException) rethrow;
+      throw toMediaSourceException(e, 'Plex');
     }
   }
 
@@ -324,13 +299,9 @@ class PlexSource implements MediaSource {
       throw MediaSourceException.auth(message: e.message, cause: e);
     } on ServerFailure catch (e) {
       throw MediaSourceException.server(message: e.message, cause: e);
-    } on DioException catch (e) {
-      throw dioToMediaSourceException(e, 'Plex');
     } catch (e) {
-      throw MediaSourceException.server(
-        message: 'Plex stream URL fetch failed: $e',
-        cause: e,
-      );
+      if (e is MediaSourceException) rethrow;
+      throw toMediaSourceException(e, 'Plex');
     }
   }
 

@@ -1,23 +1,22 @@
 import 'dart:async';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
-import 'package:crispy_tivi/core/network/network_timeouts.dart';
-import 'package:crispy_tivi/core/theme/crispy_radius.dart';
+import 'package:crispy_tivi/core/network/domain_error.dart';
 import 'package:crispy_tivi/core/theme/crispy_spacing.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/utils/date_format_utils.dart' show formatMmss;
 import 'package:crispy_tivi/core/widgets/loading_state_widget.dart';
 import 'package:crispy_tivi/core/widgets/focus_wrapper.dart';
+import 'package:crispy_tivi/core/theme/crispy_radius.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_api_client.dart';
+import 'package:crispy_tivi/features/media_servers/shared/data/media_server_dio_factory.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/sync_progress_dialog.dart';
-import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
 
 // ── Quick Connect state ──────────────────────────────────────────────────
 
@@ -128,7 +127,7 @@ class _JellyfinQcNotifier extends AsyncNotifier<_QcState> {
   // ── Initiation ──────────────────────────────────────────────────────────
 
   Future<_QcState> _initiate() async {
-    final dio = _buildDio();
+    final dio = createQuickConnectDio();
     try {
       final response = await dio.post<Map<String, dynamic>>(
         '$_serverUrl/QuickConnect/Initiate',
@@ -155,9 +154,9 @@ class _JellyfinQcNotifier extends AsyncNotifier<_QcState> {
         secret: secret,
         secondsRemaining: _secondsLeft,
       );
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      if (status == 403) {
+    } catch (e) {
+      final networkError = networkErrorFromException(e);
+      if (networkError is AuthenticationError) {
         return _errorState(
           'Quick Connect is disabled on this Jellyfin server. '
           'Ask your administrator to enable it in the dashboard.',
@@ -166,8 +165,6 @@ class _JellyfinQcNotifier extends AsyncNotifier<_QcState> {
       return _errorState(
         'Cannot reach the server. Check the URL and your network.',
       );
-    } catch (e) {
-      return _errorState(e.toString());
     }
   }
 
@@ -204,7 +201,7 @@ class _JellyfinQcNotifier extends AsyncNotifier<_QcState> {
   }
 
   Future<void> _poll(String secret) async {
-    final dio = _buildDio();
+    final dio = createQuickConnectDio();
     try {
       final response = await dio.get<Map<String, dynamic>>(
         '$_serverUrl/QuickConnect/Connect',
@@ -234,13 +231,12 @@ class _JellyfinQcNotifier extends AsyncNotifier<_QcState> {
   // ── Token exchange ───────────────────────────────────────────────────────
 
   Future<void> _exchange(String secret) async {
-    final dio = _buildDio();
+    final dio = createQuickConnectDio();
     try {
       // POST /Users/AuthenticateWithQuickConnect
       final authResponse = await dio.post<Map<String, dynamic>>(
         '$_serverUrl/Users/AuthenticateWithQuickConnect',
         data: {'Secret': secret},
-        options: Options(headers: {'Content-Type': 'application/json'}),
       );
       final authData = authResponse.data;
       if (authData == null) {
@@ -298,20 +294,6 @@ class _JellyfinQcNotifier extends AsyncNotifier<_QcState> {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
-
-  Dio _buildDio() {
-    return Dio(
-      BaseOptions(
-        connectTimeout: NetworkTimeouts.fastConnectTimeout,
-        receiveTimeout: NetworkTimeouts.fastReceiveTimeout,
-        headers: {
-          'X-Emby-Authorization': embyAuthHeader(
-            MediaServerLoginScreen.kDeviceId,
-          ),
-        },
-      ),
-    );
-  }
 
   _QcState _errorState(String message) {
     return _QcState(phase: _QcPhase.error, errorMessage: message);
@@ -472,7 +454,7 @@ class _CodeDisplay extends ConsumerWidget {
             // Instruction.
             Text(
               'Open a Jellyfin client on your phone or browser,\n'
-              'go to Settings › Quick Connect, and enter this code:',
+              'go to Settings > Quick Connect, and enter this code:',
               style: tt.bodyLarge?.copyWith(color: cs.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
