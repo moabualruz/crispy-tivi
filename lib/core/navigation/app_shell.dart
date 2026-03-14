@@ -10,12 +10,9 @@ import '../../features/player/presentation/providers/player_providers.dart';
 import '../../features/player/presentation/widgets/mini_player_bar.dart';
 import '../../features/player/presentation/widgets/permanent_video_layer.dart';
 import '../../features/player/presentation/widgets/player_fullscreen_overlay.dart';
-import '../../features/profiles/data/profile_service.dart';
-import '../../features/profiles/presentation/profile_constants.dart';
 import '../../features/profiles/presentation/providers/profile_theme_provider.dart';
 import '../theme/crispy_animation.dart';
 import '../utils/focus_restoration_service.dart';
-import '../widgets/async_value_ui.dart';
 import '../theme/crispy_radius.dart';
 import '../widgets/crispy_title_bar.dart';
 import '../widgets/focus_restoring_dialog.dart';
@@ -26,6 +23,7 @@ import '../widgets/keyboard_shortcuts_overlay.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/tv_remote_key_handler.dart';
 import 'app_routes.dart';
+import 'app_shell_widgets.dart';
 import 'breadcrumb_bar.dart';
 import '../testing/test_keys.dart';
 import 'nav_badge_provider.dart';
@@ -731,7 +729,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _RailNavWidget(
+                      RailNavWidget(
                         selectedIndex: selectedIndex,
                         onDestinationSelected:
                             (i) => _onDestinationSelected(
@@ -881,7 +879,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 Positioned(
                   top: MediaQuery.of(context).padding.top + 4,
                   right: 4,
-                  child: _CompactProfileAvatar(colorScheme: colorScheme),
+                  child: CompactProfileAvatar(colorScheme: colorScheme),
                 ),
               ],
             ),
@@ -933,140 +931,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                   }).toList(),
             );
           },
-        ),
-      ),
-    );
-  }
-}
-
-// ── Compact profile avatar (FE-AS-02 / FE-AS-04) ─────────────────────────────
-
-/// Small avatar button shown in the top-right corner of the compact
-/// (mobile) layout. Tapping opens [ProfileSwitcherSheet].
-class _CompactProfileAvatar extends ConsumerWidget {
-  const _CompactProfileAvatar({required this.colorScheme});
-
-  final ColorScheme colorScheme;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(profileServiceProvider);
-
-    return profileAsync.whenShrink(
-      data: (state) {
-        final profile = state.activeProfile;
-        if (profile == null) return const SizedBox.shrink();
-        final avatarIcon =
-            kProfileAvatarIcons[profile.avatarIndex %
-                kProfileAvatarIcons.length];
-        final avatarColor =
-            kProfileAvatarColors[profile.avatarIndex %
-                kProfileAvatarColors.length];
-        final hasMultipleProfiles = state.profiles.length > 1;
-
-        return Tooltip(
-          message: profile.name,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(CrispyRadius.xl),
-              onTap:
-                  hasMultipleProfiles
-                      ? () => ProfileSwitcherSheet.show(context)
-                      : null,
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  gradient: profileAvatarGradient(avatarColor),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(avatarIcon, size: 20, color: colorScheme.onPrimary),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-// ── Rail navigation (extracted for rebuild isolation) ──────────────────────────
-
-/// Encapsulates rail hover/focus state so changes rebuild only
-/// the rail — not the entire [AppShell] subtree.
-class _RailNavWidget extends ConsumerStatefulWidget {
-  const _RailNavWidget({
-    required this.selectedIndex,
-    required this.onDestinationSelected,
-    this.onExtendedChanged,
-  });
-
-  final int selectedIndex;
-  final ValueChanged<int> onDestinationSelected;
-
-  /// Called when the rail's extended state changes (hover/focus).
-  final ValueChanged<bool>? onExtendedChanged;
-
-  @override
-  ConsumerState<_RailNavWidget> createState() => _RailNavWidgetState();
-}
-
-class _RailNavWidgetState extends ConsumerState<_RailNavWidget> {
-  final FocusScopeNode _railFocusScope = FocusScopeNode();
-  bool _isHovering = false;
-  bool _isFocused = false;
-  bool get _isExtended => _isHovering || _isFocused;
-
-  late final FocusEscalationNotifier _escalation;
-
-  @override
-  void initState() {
-    super.initState();
-    _escalation = ref.read(focusEscalationProvider.notifier);
-    _railFocusScope.addListener(_onFocusChange);
-    // Register the rail node for focus escalation.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _escalation.setRailNode(_railFocusScope);
-    });
-  }
-
-  @override
-  void dispose() {
-    _escalation.setRailNode(null);
-    _railFocusScope.removeListener(_onFocusChange);
-    _railFocusScope.dispose();
-    super.dispose();
-  }
-
-  void _onFocusChange() {
-    final hasFocus = _railFocusScope.hasFocus;
-    if (_isFocused != hasFocus) {
-      setState(() => _isFocused = hasFocus);
-      widget.onExtendedChanged?.call(_isExtended);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FocusTraversalGroup(
-      child: MouseRegion(
-        onEnter: (_) {
-          setState(() => _isHovering = true);
-          widget.onExtendedChanged?.call(_isExtended);
-        },
-        onExit: (_) {
-          setState(() => _isHovering = false);
-          widget.onExtendedChanged?.call(_isExtended);
-        },
-        child: FocusScope(
-          node: _railFocusScope,
-          child: SideNav(
-            extended: _isExtended,
-            selectedIndex: widget.selectedIndex,
-            onDestinationSelected: widget.onDestinationSelected,
-            destinations: sideDestinations,
-          ),
         ),
       ),
     );
