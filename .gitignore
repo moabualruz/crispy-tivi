@@ -95,3 +95,6 @@ _bmad-output/
 
 # riceguard reports
 reports/
+
+# release
+release/
