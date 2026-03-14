@@ -5,6 +5,7 @@
 .PHONY: help setup hooks test analyze build-windows \
         build-linux build-android build-macos \
         build-ios build-web build-server \
+        release-windows release-linux release-android release-web \
         rust-test rust-build codegen clean
 
 help: ## Show this help
@@ -100,6 +101,22 @@ run-web: ## Run on Chrome
 
 run-linux: ## Run on Linux
 	flutter run -d linux
+
+# ── Release (local convenience) ───────────────────
+
+release-windows: build-windows ## Build Windows installer (requires Inno Setup)
+	iscc scripts/inno_setup.iss
+
+release-linux: build-linux ## Build Linux AppImage
+	bash scripts/build_appimage.sh $(shell grep 'version:' pubspec.yaml | head -1 | awk '{print $$2}')
+
+release-android: ## Build Android APK + AAB
+	bash scripts/build_rust.sh android
+	flutter build apk --release
+	flutter build appbundle --release
+
+release-web: build-web ## Zip web build
+	cd build/web && zip -r ../../CrispyTivi-web.zip .
 
 # ── Clean ──────────────────────────────────────────
 
