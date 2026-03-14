@@ -115,18 +115,31 @@ class InputModeDetector extends ConsumerStatefulWidget {
 }
 
 class _InputModeDetectorState extends ConsumerState<InputModeDetector> {
-  late final FocusNode _focusNode;
-
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode();
+    // Use HardwareKeyboard to receive ALL key events globally,
+    // regardless of focus tree handling. KeyboardListener only
+    // sees events that bubble up unhandled — but arrow keys,
+    // Enter, Escape, etc. are consumed by focus traversal /
+    // CallbackShortcuts before reaching the root, so the mode
+    // would never switch from mouse to keyboard.
+    HardwareKeyboard.instance.addHandler(_onHardwareKey);
   }
 
   @override
   void dispose() {
-    _focusNode.dispose();
+    HardwareKeyboard.instance.removeHandler(_onHardwareKey);
     super.dispose();
+  }
+
+  /// Forwards hardware key events to the input mode notifier.
+  ///
+  /// Returns `false` so the event continues through the normal
+  /// focus system — we only observe, never consume.
+  bool _onHardwareKey(KeyEvent event) {
+    ref.read(inputModeProvider.notifier).onKeyEvent(event);
+    return false;
   }
 
   @override
@@ -145,14 +158,9 @@ class _InputModeDetectorState extends ConsumerState<InputModeDetector> {
       onPointerDown:
           (event) => ref.read(inputModeProvider.notifier).onPointerEvent(event),
       behavior: HitTestBehavior.translucent,
-      child: KeyboardListener(
-        focusNode: _focusNode,
-        onKeyEvent:
-            (event) => ref.read(inputModeProvider.notifier).onKeyEvent(event),
-        child: InputModeScope(
-          showFocusIndicators: showFocus,
-          child: widget.child,
-        ),
+      child: InputModeScope(
+        showFocusIndicators: showFocus,
+        child: widget.child,
       ),
     );
   }
