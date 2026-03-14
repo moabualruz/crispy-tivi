@@ -1,3 +1,9 @@
+# Branch Protection Required Checks:
+#   - rust-test, flutter-analyze, flutter-test (Tier 0)
+#   - build-windows, build-android, build-web, playwright-web, golden-tests, build-server (Tier 1)
+#
+# Tier 2 (advisory, non-blocking): build-macos, build-ios, build-linux
+
 name: CI
 
 on:
@@ -25,6 +31,10 @@ env:
   FLUTTER_TEST_THRESHOLD: 3120 # actual ~3285 as of 2026-03-13
 
 jobs:
+  # =================================================================
+  # === TIER 0: Fast Gates (always required, run first) =============
+  # =================================================================
+
   # ── Rust Tests ──────────────────────────────────
   rust-test:
     name: Rust Tests
@@ -133,6 +143,10 @@ jobs:
           path: coverage/lcov.info
           retention-days: 14
 
+  # =================================================================
+  # === TIER 1: Required for Merge ==================================
+  # =================================================================
+
   # ── Golden Tests (visual regression) ────────────
   golden-tests:
     name: Golden Tests
@@ -176,44 +190,28 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter build windows --release
+      - name: Run integration tests
+        run: |
+          flutter test integration_test/flows/channel_browse_test.dart -d windows
+          flutter test integration_test/flows/content_switching_flow_test.dart -d windows
+          flutter test integration_test/flows/dvr_flow_test.dart -d windows
+          flutter test integration_test/flows/epg_flow_test.dart -d windows
+          flutter test integration_test/flows/favorites_flow_test.dart -d windows
+          flutter test integration_test/flows/iptv_setup_flow_test.dart -d windows
+          flutter test integration_test/flows/mini_player_flow_test.dart -d windows
+          flutter test integration_test/flows/onboarding_flow_test.dart -d windows
+          flutter test integration_test/flows/player_flow_test.dart -d windows
+          flutter test integration_test/flows/player_speed_flow_test.dart -d windows
+          flutter test integration_test/flows/profile_flow_test.dart -d windows
+          flutter test integration_test/flows/profile_pin_flow_test.dart -d windows
+          flutter test integration_test/flows/search_flow_test.dart -d windows
+          flutter test integration_test/flows/settings_flow_test.dart -d windows
+          flutter test integration_test/flows/vod_flow_test.dart -d windows
+          flutter test integration_test/flows/vod_resume_flow_test.dart -d windows
       - uses: actions/upload-artifact@v4
         with:
           name: windows-release
           path: build/windows/x64/runner/Release/
-          retention-days: 7
-
-  # ── Build Linux ─────────────────────────────────
-  build-linux:
-    name: Build Linux
-    runs-on: ubuntu-latest
-    needs: [rust-test, flutter-analyze]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust
-          prefix-key: v2
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - name: Install Linux deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            clang cmake ninja-build \
-            libgtk-3-dev pkg-config \
-            libmpv-dev
-      - run: flutter pub get
-      - run: flutter build linux --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-release
-          path: build/linux/x64/release/bundle/
           retention-days: 7
 
   # ── Build Android ───────────────────────────────
@@ -255,11 +253,123 @@ jobs:
           path: build/app/outputs/flutter-apk/
           retention-days: 7
 
+  # ── Build Web ───────────────────────────────────
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    needs: flutter-analyze
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build web --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-release
+          path: build/web/
+          retention-days: 7
+
+  # ── Playwright Web Tests ────────────────────────
+  playwright-web:
+    name: Playwright Web Tests
+    runs-on: ubuntu-latest
+    needs: [build-web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-release
+          path: build/web/
+      - name: Serve web app
+        run: npx -y http-server build/web -p 3000 -a 127.0.0.1 -c-1 --cors &
+      - name: Wait for server
+        run: npx -y wait-on http://127.0.0.1:3000 --timeout 60000
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Playwright
+        run: cd e2e/playwright && npm ci && npx playwright install --with-deps chromium
+      - name: Run Playwright tests
+        run: cd e2e/playwright && npx playwright test --workers=4
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: e2e/playwright/test-results/
+          retention-days: 14
+
+  # ── Build Server ────────────────────────────────
+  build-server:
+    name: Build Server
+    runs-on: ubuntu-latest
+    needs: rust-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          prefix-key: v2
+      - name: Build server binary
+        run: cargo build -p crispy-server --release
+        working-directory: rust
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-linux
+          path: rust/target/release/crispy-server
+          retention-days: 7
+
+  # =================================================================
+  # === TIER 2: Advisory (non-blocking) =============================
+  # =================================================================
+
+  # ── Build Linux ─────────────────────────────────
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    needs: [rust-test, flutter-analyze]
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          prefix-key: v2
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Install Linux deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang cmake ninja-build \
+            libgtk-3-dev pkg-config \
+            libmpv-dev
+      - run: flutter pub get
+      - run: flutter build linux --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: build/linux/x64/release/bundle/
+          retention-days: 7
+
   # ── Build macOS ─────────────────────────────────
   build-macos:
     name: Build macOS
     runs-on: macos-latest
     needs: [rust-test, flutter-analyze]
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -303,6 +413,7 @@ jobs:
     name: Build iOS
     runs-on: macos-latest
     needs: [rust-test, flutter-analyze]
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -327,162 +438,3 @@ jobs:
           name: ios-release
           path: build/ios/iphoneos/
           retention-days: 7
-
-  # ── Build Web ───────────────────────────────────
-  build-web:
-    name: Build Web
-    runs-on: ubuntu-latest
-    needs: flutter-analyze
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - run: flutter pub get
-      - run: flutter build web --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: web-release
-          path: build/web/
-          retention-days: 7
-
-  # ── Build Server ────────────────────────────────
-  build-server:
-    name: Build Server
-    runs-on: ubuntu-latest
-    needs: rust-test
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust
-          prefix-key: v2
-      - name: Build server binary
-        run: cargo build -p crispy-server --release
-        working-directory: rust
-      - uses: actions/upload-artifact@v4
-        with:
-          name: server-linux
-          path: rust/target/release/crispy-server
-          retention-days: 7
-
-  # ── Auto Release (push to main only) ──────────
-  release:
-    name: Create Release
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    needs:
-      - rust-test
-      - flutter-test
-      - golden-tests
-      - build-windows
-      - build-linux
-      - build-android
-      - build-macos
-      - build-ios
-      - build-web
-      - build-server
-    permissions:
-      contents: write
-    env:
-      VERSION: 0.1.${{ github.run_number }}-alpha
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download all build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts/
-
-      - name: Package release archives
-        run: |
-          mkdir -p release
-          VER="${{ env.VERSION }}"
-
-          # Windows
-          (cd artifacts/windows-release && zip -r "../../release/CrispyTivi-${VER}-windows-x64.zip" .)
-
-          # Linux
-          (cd artifacts/linux-release && tar czf "../../release/CrispyTivi-${VER}-linux-x64.tar.gz" .)
-
-          # Android APK
-          cp artifacts/android-release/app-release.apk "release/CrispyTivi-${VER}-android.apk"
-
-          # macOS (already packaged with ditto to preserve symlinks)
-          cp artifacts/macos-release/macos-release.zip "release/CrispyTivi-${VER}-macos.zip"
-
-          # Web
-          (cd artifacts/web-release && zip -r "../../release/CrispyTivi-${VER}-web.zip" .)
-
-          # Server binary
-          cp artifacts/server-linux/crispy-server "release/crispy-server-${VER}-linux-x64"
-          chmod +x "release/crispy-server-${VER}-linux-x64"
-
-          ls -lh release/
-
-      - name: Generate changelog
-        id: changelog
-        run: |
-          # Find the previous release tag
-          PREV_TAG=$(gh release list --limit 1 --json tagName -q '.[0].tagName' 2>/dev/null || echo "")
-          if [ -n "$PREV_TAG" ]; then
-            echo "Previous release: $PREV_TAG"
-            CHANGES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s (\`%.7h\`)" --no-merges)
-          else
-            echo "No previous release found — listing all commits"
-            CHANGES=$(git log --pretty=format:"- %s (\`%.7h\`)" --no-merges -20)
-          fi
-
-          if [ -z "$CHANGES" ]; then
-            CHANGES="- No notable changes"
-          fi
-
-          # Write to file to preserve newlines
-          echo "$CHANGES" > /tmp/changelog.txt
-          echo "Generated changelog:"
-          cat /tmp/changelog.txt
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          VER="${{ env.VERSION }}"
-          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          CHANGES=$(cat /tmp/changelog.txt)
-
-          gh release create "v${VER}" release/* \
-            --title "v${VER}" \
-            --prerelease \
-            --notes "$(cat <<EOF
-          ## CrispyTivi v${VER}
-
-          Automated alpha build from [\`${SHORT_SHA}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}).
-
-          ### What's Changed
-
-          ${CHANGES}
-
-          ### Downloads
-
-          | Platform | File | Notes |
-          |----------|------|-------|
-          | Windows | \`CrispyTivi-${VER}-windows-x64.zip\` | Extract and run \`crispy_tivi.exe\` |
-          | Linux | \`CrispyTivi-${VER}-linux-x64.tar.gz\` | Extract, \`chmod +x\`, run |
-          | Android | \`CrispyTivi-${VER}-android.apk\` | Universal APK (phones, tablets, Android TV) |
-          | macOS | \`CrispyTivi-${VER}-macos.zip\` | Unsigned — right-click > Open first time |
-          | Web | \`CrispyTivi-${VER}-web.zip\` | Requires companion Rust server |
-          | Server | \`crispy-server-${VER}-linux-x64\` | Companion server for web builds |
-
-          > **Alpha software** — expect breaking changes and rough edges.
-          > [Report a bug](https://github.com/${{ github.repository }}/issues/new?template=bug_report.md) · [Request a feature](https://github.com/${{ github.repository }}/issues/new?template=feature_request.md) · [Buy Me a Coffee](https://buymeacoffee.com/mohdkhairruzz)
-          EOF
-          )"
