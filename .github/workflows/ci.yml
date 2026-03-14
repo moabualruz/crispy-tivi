@@ -81,6 +81,8 @@ jobs:
       - name: cargo clippy
         run: cargo clippy --workspace -- -D warnings
         working-directory: rust
+      - name: Check file sizes
+        run: bash scripts/check_file_sizes.sh
 
   # ── Flutter Analyze ─────────────────────────────
   flutter-analyze:
