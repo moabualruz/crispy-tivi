@@ -31,6 +31,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+// ignore: depend_on_referenced_packages
 import 'package:leak_tracker_flutter_testing/leak_tracker_flutter_testing.dart';
 
 import 'package:crispy_tivi/features/player/domain/crispy_player.dart';
