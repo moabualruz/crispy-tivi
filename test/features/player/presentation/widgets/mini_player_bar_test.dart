@@ -184,8 +184,7 @@ void main() {
   group('MiniPlayerBar — button interactions', () {
     testWidgets('tapping play/pause icon calls playOrPause', (tester) async {
       await tester.pumpWidget(_buildBar(mockService: mockService));
-      await tester.pump();
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.pause_rounded));
       verify(() => mockService.playOrPause()).called(1);
@@ -195,8 +194,7 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(_buildBar(mockService: mockService));
-      await tester.pump();
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       // Unmuted → volume_up icon shown.
       await tester.tap(find.byIcon(Icons.volume_up_rounded));
@@ -216,16 +214,14 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.volume_off_rounded), findsOneWidget);
     });
 
     testWidgets('tapping close icon calls stop', (tester) async {
       await tester.pumpWidget(_buildBar(mockService: mockService));
-      await tester.pump();
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.close_rounded));
       verify(() => mockService.stop()).called(1);

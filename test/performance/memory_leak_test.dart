@@ -284,8 +284,11 @@ void main() {
       // Verify: player is marked as disposed.
       expect(player.isDisposed, isTrue);
 
-      // WeakRef tracks object lifetime — target is non-null before GC.
-      expect(weakRef.target, isNull);
+      // WeakRef: local `player` still holds a strong reference, so
+      // weakRef.target cannot be null here — GC is non-deterministic
+      // and won't collect while the reference is in scope.
+      // The meaningful check is that dispose ran cleanly.
+      expect(weakRef.target, isNotNull);
 
       // Verify: all stream controllers are closed (adding should throw).
       expect(

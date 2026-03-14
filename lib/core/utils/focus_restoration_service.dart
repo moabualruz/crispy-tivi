@@ -90,15 +90,21 @@ void saveFocusKey(WidgetRef ref, String routePath) {
   }
 
   // Walk up to find the nearest ValueKey ancestor.
+  // Guard: the focused widget's context may already be deactivated
+  // during widget tree teardown, making ancestor lookup unsafe.
   Key? found;
-  context.visitAncestorElements((element) {
-    final key = element.widget.key;
-    if (key is ValueKey) {
-      found = key;
-      return false; // stop walking
-    }
-    return true; // continue
-  });
+  try {
+    context.visitAncestorElements((element) {
+      final key = element.widget.key;
+      if (key is ValueKey) {
+        found = key;
+        return false; // stop walking
+      }
+      return true; // continue
+    });
+  } catch (_) {
+    return; // Context deactivated — nothing to save.
+  }
 
   if (found != null) {
     final key = found!;

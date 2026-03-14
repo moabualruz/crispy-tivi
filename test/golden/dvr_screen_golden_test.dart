@@ -120,7 +120,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Navigate to the Completed tab (index 2).
-      await tester.tap(find.text('Completed'));
+      // Use .first to disambiguate when Tab label duplicates exist.
+      await tester.tap(find.text('Completed').first);
       await tester.pumpAndSettle();
 
       await expectLater(

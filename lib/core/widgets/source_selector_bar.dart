@@ -39,22 +39,26 @@ class _SourceSelectorBarState extends ConsumerState<SourceSelectorBar> {
   final FocusNode _sourceSelectorNode = FocusNode(
     debugLabel: 'SourceSelectorZone',
   );
+  late final FocusEscalationNotifier _escalationNotifier;
 
   @override
   void initState() {
     super.initState();
+    _escalationNotifier = ref.read(focusEscalationProvider.notifier);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref
-            .read(focusEscalationProvider.notifier)
-            .setSourceSelectorNode(_sourceSelectorNode);
+        _escalationNotifier.setSourceSelectorNode(_sourceSelectorNode);
       }
     });
   }
 
   @override
   void dispose() {
-    ref.read(focusEscalationProvider.notifier).setSourceSelectorNode(null);
+    try {
+      _escalationNotifier.setSourceSelectorNode(null);
+    } catch (_) {
+      // Provider may already be disposed during widget tree teardown.
+    }
     _sourceSelectorNode.dispose();
     super.dispose();
   }

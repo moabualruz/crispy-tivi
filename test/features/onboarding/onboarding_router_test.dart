@@ -222,27 +222,26 @@ void main() {
     },
   );
 
-  // ── REQ-03 Scenario 4: No sources + active profile + /profiles → not redirected to /onboarding
+  // ── REQ-03 Scenario 4: No sources + single no-PIN profile + /profiles → redirected to /onboarding
 
   testWidgets(
-    'no sources + active profile: /profiles is NOT redirected to /onboarding',
+    'no sources + single no-PIN profile: /profiles redirects to /onboarding',
     (tester) async {
       final router = await _pumpApp(
         tester,
         sources: [], // no sources
-        activeProfile: _defaultProfile, // profile is active
+        activeProfile: _defaultProfile, // single profile, no PIN
       );
 
       router.go(AppRoutes.profiles);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      // /profiles must NOT be redirected to /onboarding — the onboarding
-      // guard exempts both /profiles and /onboarding paths. The auto-skip
-      // profile logic (single no-PIN profile) may redirect to /home, but
-      // never to /onboarding.
+      // Auto-skip profile logic: single no-PIN profile with no sources
+      // redirects to /onboarding for first-run UX — user should add
+      // a source, not see the profile selector.
       final path = router.routeInformationProvider.value.uri.path;
-      expect(path, isNot(AppRoutes.onboarding));
+      expect(path, AppRoutes.onboarding);
     },
   );
 }

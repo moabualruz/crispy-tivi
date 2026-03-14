@@ -37,22 +37,26 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar>
     with SingleTickerProviderStateMixin {
   bool _visible = false;
   final FocusNode _miniPlayerNode = FocusNode(debugLabel: 'MiniPlayerZone');
+  late final FocusEscalationNotifier _escalationNotifier;
 
   @override
   void initState() {
     super.initState();
+    _escalationNotifier = ref.read(focusEscalationProvider.notifier);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref
-            .read(focusEscalationProvider.notifier)
-            .setMiniPlayerNode(_miniPlayerNode);
+        _escalationNotifier.setMiniPlayerNode(_miniPlayerNode);
       }
     });
   }
 
   @override
   void dispose() {
-    ref.read(focusEscalationProvider.notifier).setMiniPlayerNode(null);
+    try {
+      _escalationNotifier.setMiniPlayerNode(null);
+    } catch (_) {
+      // Provider may already be disposed during widget tree teardown.
+    }
     _miniPlayerNode.dispose();
     super.dispose();
   }
