@@ -19,12 +19,14 @@ check_dir() {
     # Normalize to forward slashes
     normalized="${file//\\//}"
 
-    # Exclude generated files
+    # Exclude generated / auto-managed files
     case "$normalized" in
-      */lib/src/rust/*) continue ;;
-      */lib/l10n/*)     continue ;;
-      *.g.dart)         continue ;;
-      *.freezed.dart)   continue ;;
+      lib/src/rust/*|*/lib/src/rust/*)           continue ;; # FRB generated Dart
+      lib/l10n/*|*/lib/l10n/*)                   continue ;; # l10n generated
+      *.g.dart)                                  continue ;; # build_runner
+      *.freezed.dart)                            continue ;; # freezed
+      */frb_generated.rs)                        continue ;; # FRB generated Rust
+      */target/*)                                continue ;; # Cargo build output
     esac
 
     lines=$(wc -l < "$file")
