@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -13,6 +14,7 @@ import '../domain/entities/upscale_quality.dart';
 import '../../../core/utils/stream_url_actions.dart';
 import '../domain/crispy_player.dart';
 import 'adaptive_buffer.dart';
+import 'android_pip_player.dart';
 import 'ios_pip_player.dart';
 import 'media_kit_player.dart';
 import 'os_media_session.dart';
@@ -66,9 +68,17 @@ class PlayerService extends PlayerServiceBase
   }) {
     _handoffManager = PlayerHandoffManager(primaryPlayer: _player);
 
-    // Register iOS PiP takeover player (AVPlayer + AVPlayerViewController).
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+    // Register platform-specific PiP takeover players.
+    // Use dart:io Platform checks (not defaultTargetPlatform) to avoid
+    // instantiating native MethodChannel players during desktop tests
+    // where defaultTargetPlatform defaults to TargetPlatform.android.
+    if (!kIsWeb && Platform.isIOS) {
       _handoffManager.registerTakeover(PlayerCapability.pip, IosPipPlayer());
+    } else if (!kIsWeb && Platform.isAndroid) {
+      _handoffManager.registerTakeover(
+        PlayerCapability.pip,
+        AndroidPipPlayer(),
+      );
     }
 
     // LNX-02: Impeller + external textures broken on Linux
