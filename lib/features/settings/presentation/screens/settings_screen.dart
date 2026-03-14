@@ -35,6 +35,7 @@ import '../widgets/language_settings.dart';
 import '../widgets/settings_search_delegate.dart';
 import '../widgets/sources_settings.dart';
 import '../widgets/network_diagnostics_settings.dart';
+import '../widgets/network_security_settings.dart';
 import '../widgets/quick_access_strip.dart';
 import '../widgets/storage_settings.dart';
 import '../../../../core/utils/focus_restoration_service.dart';
@@ -391,6 +392,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           ),
         ],
 
+        // ── Per-source TLS ──
+        if (settings.sources.isNotEmpty) ...[
+          const SizedBox(height: CrispySpacing.lg),
+          SourceTlsSettingsSection(sources: settings.sources),
+        ],
+
         const SizedBox(height: CrispySpacing.xl),
       ],
     );
@@ -547,6 +554,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           key: _sectionKeys[SettingsSection.network],
           child: const NetworkDiagnosticsTile(),
         ),
+        const SizedBox(height: CrispySpacing.lg),
+
+        // ── Network Security (TLS) ──
+        const NetworkSecuritySection(),
         const SizedBox(height: CrispySpacing.lg),
 
         // ── Experimental ──

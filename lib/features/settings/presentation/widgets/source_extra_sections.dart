@@ -9,6 +9,7 @@ import '../../../../core/domain/entities/playlist_source_type_ext.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
 import 'settings_shared_widgets.dart';
+import 'tls_toggle_widget.dart';
 
 /// Tile showing a saved playlist source with type icon,
 /// type-aware subtitle, optional drag handle, and delete.
@@ -430,6 +431,71 @@ class EpgUrlSettingsSection extends ConsumerWidget {
               ),
             ],
           ),
+    );
+  }
+}
+
+/// Per-source TLS certificate settings section.
+///
+/// Shows a [TlsToggleWidget] for each source, allowing users
+/// to enable/disable self-signed certificate acceptance on a
+/// per-source basis.
+class SourceTlsSettingsSection extends ConsumerWidget {
+  /// Creates a per-source TLS settings section.
+  const SourceTlsSettingsSection({super.key, required this.sources});
+
+  /// The list of configured playlist sources.
+  final List<PlaylistSource> sources;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (sources.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(
+          title: 'Source TLS Settings',
+          icon: Icons.security,
+          colorTitle: true,
+        ),
+        const SizedBox(height: CrispySpacing.sm),
+        SettingsCard(
+          children: [
+            for (var i = 0; i < sources.length; i++) ...[
+              if (i > 0) const Divider(height: 1),
+              ExpansionTile(
+                leading: Icon(sources[i].type.icon),
+                title: Text(sources[i].name),
+                subtitle: Text(
+                  sources[i].acceptSelfSigned
+                      ? 'Self-signed: allowed'
+                      : 'Self-signed: rejected',
+                  style: TextStyle(
+                    color:
+                        sources[i].acceptSelfSigned
+                            ? Theme.of(context).colorScheme.error
+                            : null,
+                  ),
+                ),
+                children: [
+                  TlsToggleWidget(
+                    value: sources[i].acceptSelfSigned,
+                    onChanged: (value) {
+                      final updated = sources[i].copyWith(
+                        acceptSelfSigned: value,
+                      );
+                      ref
+                          .read(settingsNotifierProvider.notifier)
+                          .updateSource(updated);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }
