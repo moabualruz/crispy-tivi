@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" msdata:Ordinal="0" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter</value></resheader>
+  <data name="NavHome" xml:space="preserve"><value>Ana Sayfa</value></data>
+  <data name="NavLiveTV" xml:space="preserve"><value>Canl&#x0131; TV</value></data>
+  <data name="NavMovies" xml:space="preserve"><value>Filmler</value></data>
+  <data name="NavSeries" xml:space="preserve"><value>Diziler</value></data>
+  <data name="NavSearch" xml:space="preserve"><value>Ara</value></data>
+  <data name="NavSettings" xml:space="preserve"><value>Ayarlar</value></data>
+  <data name="NavProfile" xml:space="preserve"><value>Profil</value></data>
+  <data name="SettingsGeneral" xml:space="preserve"><value>Genel</value></data>
+  <data name="SettingsSources" xml:space="preserve"><value>Kaynaklar</value></data>
+  <data name="SettingsPlayback" xml:space="preserve"><value>Oynatma</value></data>
+  <data name="SettingsDataSync" xml:space="preserve"><value>Veri ve Senkronizasyon</value></data>
+  <data name="SettingsAdvanced" xml:space="preserve"><value>Geli&#x015F;mi&#x015F;</value></data>
+  <data name="SettingsAbout" xml:space="preserve"><value>Hakk&#x0131;nda</value></data>
+  <data name="SettingsTheme" xml:space="preserve"><value>Tema</value></data>
+  <data name="SettingsThemeDark" xml:space="preserve"><value>Koyu</value></data>
+  <data name="SettingsThemeOledBlack" xml:space="preserve"><value>OLED Siyah</value></data>
+  <data name="SettingsThemeLight" xml:space="preserve"><value>A&#x00E7;&#x0131;k</value></data>
+  <data name="SettingsLanguage" xml:space="preserve"><value>Dil</value></data>
+  <data name="SettingsReducedMotion" xml:space="preserve"><value>Az&#x0131;lt&#x0131;lm&#x0131;&#x015F; Hareket</value></data>
+  <data name="SettingsAccentColor" xml:space="preserve"><value>Vurgu Rengi</value></data>
+  <data name="AppName" xml:space="preserve"><value>CrispyTivi</value></data>
+  <data name="Back" xml:space="preserve"><value>Geri</value></data>
+  <data name="Save" xml:space="preserve"><value>Kaydet</value></data>
+  <data name="Cancel" xml:space="preserve"><value>&#x0130;ptal</value></data>
+  <data name="Reset" xml:space="preserve"><value>S&#x0131;f&#x0131;rla</value></data>
+  <data name="OK" xml:space="preserve"><value>Tamam</value></data>
+  <data name="Error" xml:space="preserve"><value>Hata</value></data>
+  <data name="SettingsNoSources" xml:space="preserve"><value>Kaynak yap&#x0131;land&#x0131;r&#x0131;lmad&#x0131;</value></data>
+  <data name="SettingsAddSource" xml:space="preserve"><value>Kaynak Ekle</value></data>
+  <data name="SettingsVersion" xml:space="preserve"><value>S&#x00FC;r&#x00FC;m</value></data>
+  <data name="SettingsResetCategory" xml:space="preserve"><value>Kategoriyi S&#x0131;f&#x0131;rla</value></data>
+  <data name="SettingsFactoryReset" xml:space="preserve"><value>Fabrika Ayarlar&#x0131;na D&#x00F6;n</value></data>
+  <data name="SettingsExportLogs" xml:space="preserve"><value>G&#x00FC;nl&#x00FC;kleri D&#x0131;&#x015F;a Aktar</value></data>
+</root>

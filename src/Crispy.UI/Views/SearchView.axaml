@@ -1,0 +1,15 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             x:Class="Crispy.UI.Views.SearchView"
+             x:DataType="vm:SearchViewModel">
+
+  <Grid HorizontalAlignment="Center"
+        VerticalAlignment="Center">
+    <TextBlock Text="Search"
+               FontSize="32"
+               FontWeight="SemiBold"
+               Foreground="{DynamicResource TextPrimaryBrush}" />
+  </Grid>
+
+</UserControl>

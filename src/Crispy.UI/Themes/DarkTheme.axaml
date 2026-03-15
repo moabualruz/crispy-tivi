@@ -1,0 +1,47 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Surface Colors -->
+  <Color x:Key="SurfacePrimary">#0D0D0D</Color>
+  <Color x:Key="SurfaceSecondary">#1A1A1A</Color>
+  <Color x:Key="SurfaceTertiary">#262626</Color>
+  <Color x:Key="SurfaceElevated">#2A2A2A</Color>
+
+  <!-- Text Colors -->
+  <Color x:Key="TextPrimary">#F0F0F0</Color>
+  <Color x:Key="TextSecondary">#A0A0A0</Color>
+  <Color x:Key="TextDisabled">#606060</Color>
+
+  <!-- Accent Colors -->
+  <Color x:Key="AccentPrimary">#6366F1</Color>
+  <Color x:Key="AccentSecondary">#818CF8</Color>
+
+  <!-- Semantic Colors -->
+  <Color x:Key="SemanticError">#EF4444</Color>
+  <Color x:Key="SemanticSuccess">#22C55E</Color>
+  <Color x:Key="SemanticWarning">#F59E0B</Color>
+
+  <!-- Brushes -->
+  <SolidColorBrush x:Key="SurfacePrimaryBrush" Color="{StaticResource SurfacePrimary}" />
+  <SolidColorBrush x:Key="SurfaceSecondaryBrush" Color="{StaticResource SurfaceSecondary}" />
+  <SolidColorBrush x:Key="SurfaceTertiaryBrush" Color="{StaticResource SurfaceTertiary}" />
+  <SolidColorBrush x:Key="SurfaceElevatedBrush" Color="{StaticResource SurfaceElevated}" />
+
+  <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimary}" />
+  <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondary}" />
+  <SolidColorBrush x:Key="TextDisabledBrush" Color="{StaticResource TextDisabled}" />
+
+  <SolidColorBrush x:Key="AccentPrimaryBrush" Color="{StaticResource AccentPrimary}" />
+  <SolidColorBrush x:Key="AccentSecondaryBrush" Color="{StaticResource AccentSecondary}" />
+
+  <SolidColorBrush x:Key="SemanticErrorBrush" Color="{StaticResource SemanticError}" />
+  <SolidColorBrush x:Key="SemanticSuccessBrush" Color="{StaticResource SemanticSuccess}" />
+  <SolidColorBrush x:Key="SemanticWarningBrush" Color="{StaticResource SemanticWarning}" />
+
+  <!-- Overlay -->
+  <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#000000" Opacity="0.8" />
+
+  <!-- Glass Panel -->
+  <SolidColorBrush x:Key="GlassPanelBrush" Color="{StaticResource SurfacePrimary}" Opacity="0.7" />
+
+</ResourceDictionary>

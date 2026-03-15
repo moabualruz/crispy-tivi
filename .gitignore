@@ -38,6 +38,7 @@ Thumbs.db
 *.db-wal
 logs/
 *.log
+*.binlog
 
 ##
 ## User-specific config

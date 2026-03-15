@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" msdata:Ordinal="0" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter</value></resheader>
+  <data name="NavHome" xml:space="preserve"><value>Accueil</value></data>
+  <data name="NavLiveTV" xml:space="preserve"><value>TV en Direct</value></data>
+  <data name="NavMovies" xml:space="preserve"><value>Films</value></data>
+  <data name="NavSeries" xml:space="preserve"><value>S&#x00E9;ries</value></data>
+  <data name="NavSearch" xml:space="preserve"><value>Rechercher</value></data>
+  <data name="NavSettings" xml:space="preserve"><value>Param&#x00E8;tres</value></data>
+  <data name="NavProfile" xml:space="preserve"><value>Profil</value></data>
+  <data name="SettingsGeneral" xml:space="preserve"><value>G&#x00E9;n&#x00E9;ral</value></data>
+  <data name="SettingsSources" xml:space="preserve"><value>Sources</value></data>
+  <data name="SettingsPlayback" xml:space="preserve"><value>Lecture</value></data>
+  <data name="SettingsDataSync" xml:space="preserve"><value>Donn&#x00E9;es et Synchronisation</value></data>
+  <data name="SettingsAdvanced" xml:space="preserve"><value>Avanc&#x00E9;</value></data>
+  <data name="SettingsAbout" xml:space="preserve"><value>&#x00C0; propos</value></data>
+  <data name="SettingsTheme" xml:space="preserve"><value>Th&#x00E8;me</value></data>
+  <data name="SettingsThemeDark" xml:space="preserve"><value>Sombre</value></data>
+  <data name="SettingsThemeOledBlack" xml:space="preserve"><value>Noir OLED</value></data>
+  <data name="SettingsThemeLight" xml:space="preserve"><value>Clair</value></data>
+  <data name="SettingsLanguage" xml:space="preserve"><value>Langue</value></data>
+  <data name="SettingsReducedMotion" xml:space="preserve"><value>Mouvement R&#x00E9;duit</value></data>
+  <data name="SettingsAccentColor" xml:space="preserve"><value>Couleur d'Accent</value></data>
+  <data name="AppName" xml:space="preserve"><value>CrispyTivi</value></data>
+  <data name="Back" xml:space="preserve"><value>Retour</value></data>
+  <data name="Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Reset" xml:space="preserve"><value>R&#x00E9;initialiser</value></data>
+  <data name="OK" xml:space="preserve"><value>OK</value></data>
+  <data name="Error" xml:space="preserve"><value>Erreur</value></data>
+  <data name="SettingsNoSources" xml:space="preserve"><value>Aucune source configur&#x00E9;e</value></data>
+  <data name="SettingsAddSource" xml:space="preserve"><value>Ajouter une Source</value></data>
+  <data name="SettingsVersion" xml:space="preserve"><value>Version</value></data>
+  <data name="SettingsResetCategory" xml:space="preserve"><value>R&#x00E9;initialiser la Cat&#x00E9;gorie</value></data>
+  <data name="SettingsFactoryReset" xml:space="preserve"><value>R&#x00E9;initialisation d'Usine</value></data>
+  <data name="SettingsExportLogs" xml:space="preserve"><value>Exporter les Journaux</value></data>
+</root>

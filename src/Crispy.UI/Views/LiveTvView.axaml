@@ -1,0 +1,15 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             x:Class="Crispy.UI.Views.LiveTvView"
+             x:DataType="vm:LiveTvViewModel">
+
+  <Grid HorizontalAlignment="Center"
+        VerticalAlignment="Center">
+    <TextBlock Text="Live TV"
+               FontSize="32"
+               FontWeight="SemiBold"
+               Foreground="{DynamicResource TextPrimaryBrush}" />
+  </Grid>
+
+</UserControl>
