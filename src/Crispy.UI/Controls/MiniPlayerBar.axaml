@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Crispy.UI.Controls"
+             x:Class="Crispy.UI.Controls.MiniPlayerBar"
+             Height="64">
+
+  <Border Background="{DynamicResource SurfaceSecondaryBrush}"
+          CornerRadius="8 8 0 0"
+          Padding="12 8">
+    <Grid ColumnDefinitions="48,*,Auto">
+      <!-- Thumbnail placeholder -->
+      <Border Grid.Column="0"
+              Width="48"
+              Height="48"
+              Background="{DynamicResource SurfaceTertiaryBrush}"
+              CornerRadius="4">
+        <TextBlock Text="&#x25B6;"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextDisabledBrush}"
+                   FontSize="16" />
+      </Border>
+
+      <!-- Title placeholder -->
+      <StackPanel Grid.Column="1"
+                  Margin="12 0 0 0"
+                  VerticalAlignment="Center">
+        <TextBlock Text="Mini Player"
+                   FontSize="14"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextPrimaryBrush}" />
+        <TextBlock Text="No media playing"
+                   FontSize="11"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+      </StackPanel>
+
+      <!-- Play/Pause button placeholder -->
+      <Button Grid.Column="2"
+              Content="&#x23F8;"
+              FontSize="20"
+              Background="Transparent"
+              Foreground="{DynamicResource TextPrimaryBrush}"
+              VerticalAlignment="Center"
+              Padding="12 8"
+              IsEnabled="False" />
+    </Grid>
+  </Border>
+
+</UserControl>

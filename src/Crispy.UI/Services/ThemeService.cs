@@ -60,6 +60,8 @@ public class ThemeService : IThemeService
 
         CurrentTheme = theme;
         ApplyThemeResources(theme);
+        // Re-apply accent color after theme swap (theme dict contains default AccentPrimary)
+        ApplyAccentColor(SelectedAccentIndex);
         await _settingsService.SetThemeAsync(theme);
         ThemeChanged?.Invoke(theme);
     }
