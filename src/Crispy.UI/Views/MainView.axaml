@@ -16,9 +16,9 @@
     <SplitView.Pane>
       <Border PointerEntered="OnRailPointerEntered"
               PointerExited="OnRailPointerExited">
-        <controls:NavigationRail PrimaryItems="{Binding PrimaryNavItems}"
+        <controls:NavigationRail x:Name="NavRail"
+                                 PrimaryItems="{Binding PrimaryNavItems}"
                                  SecondaryItems="{Binding SecondaryNavItems}"
-                                 SelectedItem="{Binding SelectedNavItem}"
                                  IsExpanded="{Binding IsRailExpanded}" />
       </Border>
     </SplitView.Pane>

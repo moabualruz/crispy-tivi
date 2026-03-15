@@ -15,6 +15,18 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
+
+        var rail = this.FindControl<Controls.NavigationRail>("NavRail");
+        if (rail is not null)
+        {
+            rail.ItemSelected += item =>
+            {
+                if (DataContext is ViewModels.MainViewModel vm)
+                {
+                    vm.SelectedNavItem = item;
+                }
+            };
+        }
     }
 
     private void OnRailPointerEntered(object? sender, PointerEventArgs e)

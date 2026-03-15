@@ -29,13 +29,18 @@ public partial class NavigationRail : UserControl
     /// The currently selected navigation item.
     /// </summary>
     public static readonly StyledProperty<NavigationItem?> SelectedItemProperty =
-        AvaloniaProperty.Register<NavigationRail, NavigationItem?>(nameof(SelectedItem));
+        AvaloniaProperty.Register<NavigationRail, NavigationItem?>(nameof(SelectedItem), defaultBindingMode: Avalonia.Data.BindingMode.TwoWay);
 
     /// <summary>
     /// Whether the rail is expanded showing labels.
     /// </summary>
     public static readonly StyledProperty<bool> IsExpandedProperty =
         AvaloniaProperty.Register<NavigationRail, bool>(nameof(IsExpanded));
+
+    /// <summary>
+    /// Raised when the user selects a navigation item.
+    /// </summary>
+    public event Action<NavigationItem>? ItemSelected;
 
     /// <summary>
     /// Creates a new NavigationRail.
@@ -53,13 +58,13 @@ public partial class NavigationRail : UserControl
             {
                 if (args.AddedItems.Count > 0 && args.AddedItems[0] is NavigationItem item)
                 {
-                    // Deselect the other list
                     if (secondaryList is not null)
                     {
                         secondaryList.SelectedItem = null;
                     }
 
                     SelectedItem = item;
+                    ItemSelected?.Invoke(item);
                 }
             };
         }
@@ -70,13 +75,13 @@ public partial class NavigationRail : UserControl
             {
                 if (args.AddedItems.Count > 0 && args.AddedItems[0] is NavigationItem item)
                 {
-                    // Deselect the other list
                     if (primaryList is not null)
                     {
                         primaryList.SelectedItem = null;
                     }
 
                     SelectedItem = item;
+                    ItemSelected?.Invoke(item);
                 }
             };
         }
