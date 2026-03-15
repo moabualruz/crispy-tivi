@@ -28,10 +28,20 @@ public class Source : BaseEntity
     public string? Username { get; set; }
 
     /// <summary>
-    /// Optional password for authenticated sources.
-    /// TODO: Encrypt in Phase 5 (SEC requirements). Stored as plaintext for now.
+    /// Optional password for authenticated sources (plaintext — kept for migration compatibility).
+    /// New code should read/write <see cref="EncryptedPassword"/> instead.
     /// </summary>
     public string? Password { get; set; }
+
+    /// <summary>
+    /// AES-256-GCM encrypted username (produced by ICredentialEncryption).
+    /// </summary>
+    public string? EncryptedUsername { get; set; }
+
+    /// <summary>
+    /// AES-256-GCM encrypted password (produced by ICredentialEncryption).
+    /// </summary>
+    public string? EncryptedPassword { get; set; }
 
     /// <summary>
     /// Profile that created this source.

@@ -18,6 +18,8 @@ public class SourceConfiguration : IEntityTypeConfiguration<Source>
         builder.Property(s => s.Url).IsRequired().HasMaxLength(2048);
         builder.Property(s => s.Username).HasMaxLength(256);
         builder.Property(s => s.Password).HasMaxLength(256);
+        builder.Property(s => s.EncryptedUsername).HasMaxLength(1024);
+        builder.Property(s => s.EncryptedPassword).HasMaxLength(1024);
         builder.Property(s => s.SourceType).HasConversion<string>().HasMaxLength(50);
     }
 }
