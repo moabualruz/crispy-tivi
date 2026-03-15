@@ -3,11 +3,13 @@ using System.IO;
 using Crispy.Application.Configuration;
 using Crispy.Application.Sources;
 using Crispy.Application.Sync;
+using Crispy.Domain.Entities;
 using Crispy.Domain.Enums;
 using Crispy.Domain.Interfaces;
 using Crispy.Infrastructure.Connectivity;
 using Crispy.Infrastructure.Data;
 using Crispy.Infrastructure.Data.Repositories;
+using Crispy.Infrastructure.Jellyfin;
 using Crispy.Infrastructure.Logging;
 using Crispy.Infrastructure.Parsers.M3U;
 using Crispy.Infrastructure.Parsers.Stalker;
@@ -114,6 +116,26 @@ public static class DependencyInjection
         });
         services.AddTransient<StalkerParser>();
 
+        // ─── Jellyfin ─────────────────────────────────────────────────────────
+        services.AddSingleton<JellyfinDiscovery>();
+        services.AddHttpClient("JellyfinDiscovery");
+
+        // Jellyfin client factory — one JellyfinClient instance per Source
+        services.AddTransient<Func<Source, JellyfinClient>>(sp => source =>
+        {
+            var factory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = factory.CreateClient("JellyfinClient");
+            httpClient.BaseAddress = new Uri(source.Url.TrimEnd('/') + "/");
+            return new JellyfinClient(
+                source.Url,
+                accessToken: null,
+                sp.GetRequiredService<ICredentialEncryption>(),
+                httpClient,
+                sp.GetRequiredService<ILogger<JellyfinClient>>());
+        });
+        services.AddHttpClient("JellyfinClient");
+        services.AddTransient<JellyfinSyncService>();
+
         // ─── Parser registry (keyed by SourceType) ────────────────────────────
         services.AddSingleton<IReadOnlyDictionary<SourceType, ISourceParser>>(sp =>
         {
@@ -131,6 +153,7 @@ public static class DependencyInjection
                 [SourceType.StalkerPortal] = ActivatorUtilities.CreateInstance<StalkerParser>(sp,
                     sp.GetRequiredService<StalkerClient>(),
                     sp.GetRequiredService<ILogger<StalkerParser>>()),
+                [SourceType.Jellyfin] = sp.GetRequiredService<JellyfinSyncService>(),
             };
             return dict;
         });
