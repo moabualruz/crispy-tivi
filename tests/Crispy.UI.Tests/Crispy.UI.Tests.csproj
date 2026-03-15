@@ -19,6 +19,7 @@
     </PackageReference>
     <PackageReference Include="Avalonia.Headless.XUnit" />
     <PackageReference Include="FluentIcons.Avalonia" />
+    <PackageReference Include="FluentIcons.Common" />
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="NSubstitute.Analyzers.CSharp">
