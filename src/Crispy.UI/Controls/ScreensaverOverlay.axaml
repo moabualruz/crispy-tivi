@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             x:Class="Crispy.UI.Controls.ScreensaverOverlay"
+             x:DataType="vm:PlayerViewModel"
+             IsVisible="{Binding IsScreensaverActive}"
+             IsHitTestVisible="{Binding IsScreensaverActive}">
+
+  <!-- Full-screen screensaver overlay. Activates after inactivity timeout. PLR-33.
+       Any pointer or key input in PlayerView code-behind calls ResetScreensaverTimer().
+       Clicking this overlay itself also dismisses it. -->
+  <Border Background="#F2000000">
+
+    <!-- Animated dark gradient background -->
+    <Border.Background>
+      <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Color="#FF050505" Offset="0" />
+        <GradientStop Color="#FF0D0D0D" Offset="0.5" />
+        <GradientStop Color="#FF050505" Offset="1" />
+      </LinearGradientBrush>
+    </Border.Background>
+
+    <StackPanel HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="16">
+
+      <!-- Channel logo -->
+      <Border Width="96" Height="96"
+              CornerRadius="48"
+              Background="#1AFFFFFF"
+              HorizontalAlignment="Center"
+              IsVisible="{Binding ChannelLogoUrl,
+                          Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+        <Image Source="{Binding ChannelLogoUrl}"
+               Width="72" Height="72"
+               Stretch="Uniform" />
+      </Border>
+
+      <!-- Channel name -->
+      <TextBlock Text="{Binding ChannelName}"
+                 FontSize="22"
+                 FontWeight="Light"
+                 Foreground="#CCFFFFFF"
+                 HorizontalAlignment="Center"
+                 IsVisible="{Binding ChannelName,
+                             Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+      <!-- Hint -->
+      <TextBlock Text="Press any key or tap to resume"
+                 FontSize="13"
+                 Foreground="#55FFFFFF"
+                 HorizontalAlignment="Center"
+                 Margin="0,8,0,0" />
+
+    </StackPanel>
+  </Border>
+</UserControl>

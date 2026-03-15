@@ -1,0 +1,94 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:models="using:Crispy.Application.Player.Models"
+             x:Class="Crispy.UI.Controls.BookmarksOverlay"
+             x:DataType="vm:PlayerViewModel"
+             Width="340">
+
+  <!-- Bookmarks slide-in panel (PLR-33): lists saved bookmarks, add/jump-to/delete. -->
+  <Border Background="#EE121212"
+          CornerRadius="12,0,0,12"
+          Padding="16">
+
+    <StackPanel Spacing="12">
+
+      <!-- Header -->
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0"
+                   Text="Bookmarks"
+                   FontSize="16"
+                   FontWeight="SemiBold"
+                   Foreground="White"
+                   VerticalAlignment="Center" />
+        <Button Grid.Column="1"
+                Content="+ Add"
+                Command="{Binding AddBookmarkCommand}"
+                Background="#1AFFFFFF"
+                Foreground="White"
+                Padding="10,4"
+                CornerRadius="6" />
+      </Grid>
+
+      <Rectangle Fill="#33FFFFFF" Height="1" />
+
+      <!-- Bookmark list -->
+      <ScrollViewer MaxHeight="420"
+                    VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding Bookmarks}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="models:Bookmark">
+              <Border Background="#0AFFFFFF"
+                      CornerRadius="8"
+                      Padding="12,8"
+                      Margin="0,0,0,6">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+
+                  <!-- Label + timestamp -->
+                  <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Label}"
+                               FontSize="13"
+                               Foreground="White"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock FontSize="11"
+                               Foreground="#99FFFFFF" />
+                  </StackPanel>
+
+                  <!-- Jump-to — seeks via code-behind event; bound in BookmarksOverlay.axaml.cs -->
+                  <Button Grid.Column="1"
+                          Content="&#9654;"
+                          FontSize="11"
+                          Background="Transparent"
+                          Foreground="#66B5FF"
+                          Padding="8,4"
+                          Margin="4,0,0,0"
+                          Tag="{Binding PositionMs}"
+                          ToolTip.Tip="Jump to bookmark" />
+
+                  <!-- Delete -->
+                  <Button Grid.Column="2"
+                          Content="&#215;"
+                          FontSize="13"
+                          Background="Transparent"
+                          Foreground="#FF6B6B"
+                          Padding="8,4"
+                          Tag="{Binding Id}"
+                          ToolTip.Tip="Delete bookmark" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+      <!-- Empty state -->
+      <TextBlock Text="No bookmarks yet. Press Add to create one."
+                 FontSize="12"
+                 Foreground="#66FFFFFF"
+                 TextWrapping="Wrap"
+                 HorizontalAlignment="Center"
+                 IsVisible="{Binding !Bookmarks.Count}" />
+
+    </StackPanel>
+  </Border>
+</UserControl>

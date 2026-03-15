@@ -1,0 +1,67 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             x:Class="Crispy.UI.Controls.LiveEpgStripOverlay"
+             x:DataType="vm:PlayerViewModel">
+
+  <!-- Live EPG strip: sits above the seek bar, visible only for live content. PLR-33.
+       Shows current + next programme with a progress bar. -->
+  <Border Background="#99000000"
+          Padding="16,8"
+          IsVisible="{Binding IsLive}">
+
+    <Grid ColumnDefinitions="*,Auto,200">
+
+      <!-- Current programme -->
+      <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+        <TextBlock Text="NOW"
+                   FontSize="9"
+                   FontWeight="Bold"
+                   Foreground="#FFFF6B35"
+                   LetterSpacing="1" />
+        <TextBlock Text="{Binding CurrentProgrammeTitle}"
+                   FontSize="13"
+                   FontWeight="SemiBold"
+                   Foreground="White"
+                   TextTrimming="CharacterEllipsis"
+                   IsVisible="{Binding CurrentProgrammeTitle,
+                               Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <!-- Progress bar -->
+        <ProgressBar Value="{Binding CurrentProgrammeProgress}"
+                     Minimum="0"
+                     Maximum="100"
+                     Height="3"
+                     Background="#33FFFFFF"
+                     Foreground="#FFFF6B35"
+                     Margin="0,2,0,0" />
+      </StackPanel>
+
+      <!-- Divider -->
+      <Rectangle Grid.Column="1"
+                 Fill="#33FFFFFF"
+                 Width="1"
+                 Margin="16,0" />
+
+      <!-- Next programme -->
+      <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+        <TextBlock Text="NEXT"
+                   FontSize="9"
+                   FontWeight="Bold"
+                   Foreground="#9966B5FF"
+                   LetterSpacing="1" />
+        <TextBlock Text="{Binding NextProgrammeTitle}"
+                   FontSize="12"
+                   Foreground="#CCFFFFFF"
+                   TextTrimming="CharacterEllipsis"
+                   IsVisible="{Binding NextProgrammeTitle,
+                               Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <TextBlock Text="{Binding NextProgrammeStartTime}"
+                   FontSize="10"
+                   Foreground="#66FFFFFF"
+                   IsVisible="{Binding NextProgrammeStartTime,
+                               Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+
+    </Grid>
+  </Border>
+</UserControl>

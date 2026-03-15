@@ -1,0 +1,98 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:models="using:Crispy.Application.Player.Models"
+             x:Class="Crispy.UI.Controls.PlayerQueueOverlay"
+             x:DataType="vm:PlayerViewModel"
+             Width="360">
+
+  <!-- Player queue slide-in panel. PLR-33: upcoming episodes, current item highlighted,
+       remove per item. -->
+  <Border Background="#EE121212"
+          CornerRadius="12,0,0,12"
+          Padding="16">
+
+    <StackPanel Spacing="12">
+
+      <!-- Header -->
+      <TextBlock Text="Up Next"
+                 FontSize="16"
+                 FontWeight="SemiBold"
+                 Foreground="White" />
+
+      <Rectangle Fill="#33FFFFFF" Height="1" />
+
+      <!-- Queue list -->
+      <ScrollViewer MaxHeight="480"
+                    VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding Queue}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="models:QueueItem">
+              <Border CornerRadius="8"
+                      Background="#1AFFFFFF"
+                      Padding="10,8"
+                      Margin="0,0,0,6">
+
+                <Grid ColumnDefinitions="72,*,Auto" RowDefinitions="Auto,Auto">
+
+                  <!-- Thumbnail -->
+                  <Border Grid.Column="0" Grid.RowSpan="2"
+                          Width="64" Height="40"
+                          CornerRadius="4"
+                          Background="#1AFFFFFF"
+                          Margin="0,0,10,0"
+                          ClipToBounds="True">
+                    <Image Source="{Binding ThumbnailUrl}"
+                           Stretch="UniformToFill"
+                           IsVisible="{Binding ThumbnailUrl,
+                                       Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </Border>
+
+                  <!-- Title -->
+                  <TextBlock Grid.Column="1" Grid.Row="0"
+                             Text="{Binding Title}"
+                             FontSize="13"
+                             Foreground="White"
+                             TextTrimming="CharacterEllipsis"
+                             VerticalAlignment="Center" />
+
+                  <!-- Episode number -->
+                  <StackPanel Grid.Column="1" Grid.Row="1"
+                              Orientation="Horizontal" Spacing="8">
+                    <TextBlock FontSize="11"
+                               Foreground="#77FFFFFF"
+                               IsVisible="{Binding EpisodeNumber,
+                                           Converter={x:Static ObjectConverters.IsNotNull}}">
+                      <TextBlock.Text>
+                        <Binding Path="EpisodeNumber" StringFormat="Ep {0}" />
+                      </TextBlock.Text>
+                    </TextBlock>
+                  </StackPanel>
+
+                  <!-- Remove button -->
+                  <Button Grid.Column="2" Grid.RowSpan="2"
+                          Content="&#215;"
+                          FontSize="14"
+                          Background="Transparent"
+                          Foreground="#66FFFFFF"
+                          Padding="8,4"
+                          VerticalAlignment="Center"
+                          Tag="{Binding Id}"
+                          ToolTip.Tip="Remove from queue" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+      <!-- Empty state -->
+      <TextBlock Text="Queue is empty."
+                 FontSize="12"
+                 Foreground="#66FFFFFF"
+                 HorizontalAlignment="Center"
+                 IsVisible="{Binding !Queue.Count}" />
+
+    </StackPanel>
+  </Border>
+</UserControl>

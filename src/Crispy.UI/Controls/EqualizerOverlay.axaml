@@ -1,0 +1,126 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:models="using:Crispy.Application.Player.Models"
+             x:Class="Crispy.UI.Controls.EqualizerOverlay"
+             x:DataType="vm:EqualizerOverlayViewModel"
+             Width="380">
+
+  <!-- 10-band EQ slide-in panel from right edge. PLR-33.
+       DataContext is EqualizerOverlayViewModel — set by PlayerView code-behind. -->
+  <Border Background="#EE121212"
+          CornerRadius="12,0,0,12"
+          Padding="16">
+
+    <StackPanel Spacing="14">
+
+      <!-- Header -->
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+        <TextBlock Grid.Column="0"
+                   Text="Equalizer"
+                   FontSize="16"
+                   FontWeight="SemiBold"
+                   Foreground="White"
+                   VerticalAlignment="Center" />
+
+        <!-- Enable toggle -->
+        <ToggleSwitch Grid.Column="2"
+                      IsChecked="{Binding IsEnabled}"
+                      OnContent="On"
+                      OffContent="Off"
+                      Margin="8,0,0,0"
+                      VerticalAlignment="Center" />
+
+        <!-- Reset -->
+        <Button Grid.Column="3"
+                Content="Reset"
+                Command="{Binding ResetCommand}"
+                Background="#1AFFFFFF"
+                Foreground="White"
+                Padding="10,4"
+                Margin="8,0,0,0"
+                CornerRadius="6"
+                VerticalAlignment="Center" />
+      </Grid>
+
+      <Rectangle Fill="#33FFFFFF" Height="1" />
+
+      <!-- Preset chips (horizontal scroll) -->
+      <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollBarVisibility="Disabled">
+        <ItemsControl ItemsSource="{Binding Presets}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="6" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="models:EqualizerPreset">
+              <Button Content="{Binding Name}"
+                      Command="{Binding $parent[UserControl].DataContext.ApplyPresetCommand}"
+                      CommandParameter="{Binding Name}"
+                      Padding="10,4"
+                      CornerRadius="12"
+                      FontSize="12">
+                <Button.Background>
+                  <!-- Highlight when this preset is selected -->
+                  <SolidColorBrush Color="#FF66B5FF"
+                                   Opacity="0.3" />
+                </Button.Background>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+      <Rectangle Fill="#22FFFFFF" Height="1" />
+
+      <!-- 10-band sliders — horizontal layout with labels below -->
+      <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollBarVisibility="Disabled"
+                    IsEnabled="{Binding IsEnabled}">
+        <ItemsControl ItemsSource="{Binding Bands}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="4" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:EqBandViewModel">
+              <StackPanel Spacing="4" Width="30">
+
+                <!-- dB value label -->
+                <TextBlock FontSize="9"
+                           Foreground="#AAFFFFFF"
+                           HorizontalAlignment="Center">
+                  <TextBlock.Text>
+                    <Binding Path="GainDb" StringFormat="{}{0:+0.0;-0.0;0}" />
+                  </TextBlock.Text>
+                </TextBlock>
+
+                <!-- Vertical slider: -12 to +12 dB -->
+                <Slider Orientation="Vertical"
+                        Minimum="-12"
+                        Maximum="12"
+                        Value="{Binding GainDb}"
+                        Height="120"
+                        SmallChange="0.5"
+                        LargeChange="1"
+                        TickFrequency="6"
+                        IsSnapToTickEnabled="False"
+                        HorizontalAlignment="Center" />
+
+                <!-- Frequency label -->
+                <TextBlock Text="{Binding Label}"
+                           FontSize="9"
+                           Foreground="#AAFFFFFF"
+                           HorizontalAlignment="Center" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+    </StackPanel>
+  </Border>
+</UserControl>

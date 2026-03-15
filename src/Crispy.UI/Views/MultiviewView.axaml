@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:models="using:Crispy.Application.Player.Models"
+             x:Class="Crispy.UI.Views.MultiviewView"
+             x:DataType="vm:MultiviewViewModel"
+             Background="Black">
+
+  <!-- Multiview 4-up grid. PLR-29 to PLR-32.
+       Grid mode: 2×2 quad with one VideoSurface per slot.
+       Expanded mode: single slot fills the full area.
+       VideoView wiring happens in code-behind via reflection (same pattern as PlayerView). -->
+
+  <Grid RowDefinitions="Auto,*">
+
+    <!-- Toolbar -->
+    <Border Grid.Row="0"
+            Background="#CC000000"
+            Padding="12,6">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+
+        <TextBlock Grid.Column="0"
+                   Text="Multiview"
+                   FontSize="14"
+                   FontWeight="SemiBold"
+                   Foreground="White"
+                   VerticalAlignment="Center" />
+
+        <!-- Save layout -->
+        <StackPanel Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    IsVisible="{Binding IsGridMode}">
+          <TextBox Text="{Binding NewLayoutName}"
+                   Watermark="Layout name…"
+                   Width="140"
+                   Background="#1AFFFFFF"
+                   Foreground="White"
+                   Padding="8,4"
+                   CornerRadius="6" />
+          <Button Content="Save"
+                  Command="{Binding SaveLayoutCommand}"
+                  Background="#1AFFFFFF"
+                  Foreground="White"
+                  Padding="10,4"
+                  CornerRadius="6" />
+        </StackPanel>
+
+        <!-- Saved layouts dropdown -->
+        <ComboBox Grid.Column="2"
+                  ItemsSource="{Binding SavedLayouts}"
+                  Margin="8,0"
+                  Background="#1AFFFFFF"
+                  Foreground="White"
+                  PlaceholderText="Load layout…"
+                  IsVisible="{Binding IsGridMode}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="models:SavedLayout">
+              <TextBlock Text="{Binding Name}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <!-- Collapse to grid / back to single player -->
+        <Button Grid.Column="3"
+                Content="&#x2715; Close"
+                Command="{Binding CollapseCommand}"
+                Background="#1AFFFFFF"
+                Foreground="White"
+                Padding="10,4"
+                CornerRadius="6"
+                Margin="8,0,0,0"
+                IsVisible="{Binding !IsGridMode}" />
+      </Grid>
+    </Border>
+
+    <!-- Main area: 2×2 grid or expanded single slot -->
+    <Grid Grid.Row="1">
+
+      <!-- Grid mode: 4 slots in 2×2 uniform grid -->
+      <Grid ColumnDefinitions="*,*"
+            RowDefinitions="*,*"
+            IsVisible="{Binding IsGridMode}"
+            x:Name="QuadGrid">
+
+        <!-- Slot 0: top-left -->
+        <ContentControl Grid.Column="0" Grid.Row="0"
+                        DataContext="{Binding Slots[0]}"
+                        x:DataType="vm:MultiviewSlotViewModel"
+                        x:Name="Slot0Container" />
+
+        <!-- Slot 1: top-right -->
+        <ContentControl Grid.Column="1" Grid.Row="0"
+                        DataContext="{Binding Slots[1]}"
+                        x:DataType="vm:MultiviewSlotViewModel"
+                        x:Name="Slot1Container" />
+
+        <!-- Slot 2: bottom-left -->
+        <ContentControl Grid.Column="0" Grid.Row="1"
+                        DataContext="{Binding Slots[2]}"
+                        x:DataType="vm:MultiviewSlotViewModel"
+                        x:Name="Slot2Container" />
+
+        <!-- Slot 3: bottom-right -->
+        <ContentControl Grid.Column="1" Grid.Row="1"
+                        DataContext="{Binding Slots[3]}"
+                        x:DataType="vm:MultiviewSlotViewModel"
+                        x:Name="Slot3Container" />
+
+      </Grid>
+
+      <!-- Expanded mode: single slot fullscreen -->
+      <ContentControl IsVisible="{Binding !IsGridMode}"
+                      x:Name="ExpandedContainer" />
+
+    </Grid>
+  </Grid>
+</UserControl>

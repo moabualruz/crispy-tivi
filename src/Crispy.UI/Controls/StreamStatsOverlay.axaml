@@ -1,0 +1,93 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             x:Class="Crispy.UI.Controls.StreamStatsOverlay"
+             x:DataType="vm:PlayerViewModel"
+             IsVisible="{Binding IsStreamStatsVisible}">
+
+  <!-- Semi-transparent stats overlay, top-left corner. PLR-33. Updates every 1s via DispatcherTimer in PlayerViewModel. -->
+  <Border Background="#CC000000"
+          CornerRadius="0,0,8,0"
+          Padding="12,10"
+          HorizontalAlignment="Left"
+          VerticalAlignment="Top"
+          MinWidth="200">
+
+    <StackPanel Spacing="4">
+      <TextBlock Text="Stream Stats"
+                 FontSize="11"
+                 FontWeight="SemiBold"
+                 Foreground="#AAFFFFFF"
+                 Margin="0,0,0,4" />
+
+      <!-- Video codec -->
+      <Grid ColumnDefinitions="100,*">
+        <TextBlock Grid.Column="0" Text="Video codec"
+                   FontSize="11" Foreground="#77FFFFFF" FontFamily="Monospace" />
+        <TextBlock Grid.Column="1" Text="{Binding StatsCodecVideo}"
+                   FontSize="11" Foreground="White" FontFamily="Monospace" />
+      </Grid>
+
+      <!-- Audio codec -->
+      <Grid ColumnDefinitions="100,*">
+        <TextBlock Grid.Column="0" Text="Audio codec"
+                   FontSize="11" Foreground="#77FFFFFF" FontFamily="Monospace" />
+        <TextBlock Grid.Column="1" Text="{Binding StatsCodecAudio}"
+                   FontSize="11" Foreground="White" FontFamily="Monospace" />
+      </Grid>
+
+      <!-- Resolution -->
+      <Grid ColumnDefinitions="100,*">
+        <TextBlock Grid.Column="0" Text="Resolution"
+                   FontSize="11" Foreground="#77FFFFFF" FontFamily="Monospace" />
+        <TextBlock Grid.Column="1" Text="{Binding StatsResolution}"
+                   FontSize="11" Foreground="White" FontFamily="Monospace" />
+      </Grid>
+
+      <!-- Bitrate -->
+      <Grid ColumnDefinitions="100,*">
+        <TextBlock Grid.Column="0" Text="Bitrate"
+                   FontSize="11" Foreground="#77FFFFFF" FontFamily="Monospace" />
+        <TextBlock Grid.Column="1"
+                   FontSize="11" Foreground="White" FontFamily="Monospace">
+          <TextBlock.Text>
+            <Binding Path="StatsBitrateKbps" StringFormat="{}{0} kbps" />
+          </TextBlock.Text>
+        </TextBlock>
+      </Grid>
+
+      <!-- FPS -->
+      <Grid ColumnDefinitions="100,*">
+        <TextBlock Grid.Column="0" Text="FPS"
+                   FontSize="11" Foreground="#77FFFFFF" FontFamily="Monospace" />
+        <TextBlock Grid.Column="1" Text="{Binding StatsFps}"
+                   FontSize="11" Foreground="White" FontFamily="Monospace" />
+      </Grid>
+
+      <!-- Latency -->
+      <Grid ColumnDefinitions="100,*">
+        <TextBlock Grid.Column="0" Text="Latency"
+                   FontSize="11" Foreground="#77FFFFFF" FontFamily="Monospace" />
+        <TextBlock Grid.Column="1"
+                   FontSize="11" Foreground="White" FontFamily="Monospace">
+          <TextBlock.Text>
+            <Binding Path="StatsLatencyMs" StringFormat="{}{0} ms" />
+          </TextBlock.Text>
+        </TextBlock>
+      </Grid>
+
+      <!-- Packet loss -->
+      <Grid ColumnDefinitions="100,*">
+        <TextBlock Grid.Column="0" Text="Pkt loss"
+                   FontSize="11" Foreground="#77FFFFFF" FontFamily="Monospace" />
+        <TextBlock Grid.Column="1"
+                   FontSize="11" Foreground="White" FontFamily="Monospace">
+          <TextBlock.Text>
+            <Binding Path="StatsPacketLoss" StringFormat="{}{0}%" />
+          </TextBlock.Text>
+        </TextBlock>
+      </Grid>
+
+    </StackPanel>
+  </Border>
+</UserControl>
