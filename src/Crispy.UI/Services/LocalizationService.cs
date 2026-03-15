@@ -80,8 +80,17 @@ public class LocalizationService : ILocalizationService
         var culture = new CultureInfo(cultureName);
         CultureInfo.CurrentCulture = culture;
         CultureInfo.CurrentUICulture = culture;
-        // TODO: Strings.Culture = culture; — requires resource files (Plan 03)
 
         IsRightToLeft = culture.TextInfo.IsRightToLeft;
+
+        // Apply FlowDirection to the main window
+        if (Avalonia.Application.Current?.ApplicationLifetime
+            is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow is not null)
+        {
+            desktop.MainWindow.FlowDirection = IsRightToLeft
+                ? Avalonia.Media.FlowDirection.RightToLeft
+                : Avalonia.Media.FlowDirection.LeftToRight;
+        }
     }
 }

@@ -70,13 +70,16 @@
                          FontSize="16"
                          FontWeight="SemiBold"
                          Foreground="{DynamicResource TextPrimaryBrush}" />
-              <ItemsControl ItemsSource="{Binding AccentPalette}">
-                <ItemsControl.ItemsPanel>
+              <ListBox ItemsSource="{Binding AccentPalette}"
+                       SelectedIndex="{Binding SelectedAccentIndex}"
+                       Background="Transparent"
+                       BorderThickness="0">
+                <ListBox.ItemsPanel>
                   <ItemsPanelTemplate>
                     <WrapPanel Orientation="Horizontal" />
                   </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
                   <DataTemplate>
                     <Border Width="32"
                             Height="32"
@@ -88,8 +91,8 @@
                       </Border.Background>
                     </Border>
                   </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
+                </ListBox.ItemTemplate>
+              </ListBox>
             </StackPanel>
           </Border>
 
