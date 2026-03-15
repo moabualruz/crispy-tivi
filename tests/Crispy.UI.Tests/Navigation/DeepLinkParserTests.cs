@@ -9,6 +9,7 @@ namespace Crispy.UI.Tests.Navigation;
 /// <summary>
 /// Tests for crispy:// deep link URI parser.
 /// </summary>
+[Trait("Category", "Unit")]
 public class DeepLinkParserTests
 {
     [Fact]
@@ -101,5 +102,80 @@ public class DeepLinkParserTests
         var result = DeepLinkParser.Parse("https://live/channel/1");
 
         result.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_WhitespaceOnly_ReturnsNull()
+    {
+        var result = DeepLinkParser.Parse("   ");
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_Home_ReturnsHomeScreen()
+    {
+        var result = DeepLinkParser.Parse("crispy://home");
+
+        result.Should().NotBeNull();
+        result!.Screen.Should().Be("Home");
+        result.Id.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_LiveChannelWithoutId_ReturnsNullId()
+    {
+        var result = DeepLinkParser.Parse("crispy://live/channel");
+
+        result.Should().NotBeNull();
+        result!.Screen.Should().Be("LiveTv");
+        result.Id.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_VodMovieWithoutId_ReturnsNullId()
+    {
+        var result = DeepLinkParser.Parse("crispy://vod/movie");
+
+        result.Should().NotBeNull();
+        result!.Screen.Should().Be("Movies");
+        result.Id.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_VodSeriesWithoutId_ReturnsNullId()
+    {
+        var result = DeepLinkParser.Parse("crispy://vod/series");
+
+        result.Should().NotBeNull();
+        result!.Screen.Should().Be("Series");
+        result.Id.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_SearchWithNoQuery_ReturnsNullQuery()
+    {
+        var result = DeepLinkParser.Parse("crispy://search");
+
+        result.Should().NotBeNull();
+        result!.Screen.Should().Be("Search");
+        result.Query.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_UnrecognizedRoute_ReturnsNull()
+    {
+        var result = DeepLinkParser.Parse("crispy://unknown/route");
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void DeepLinkResult_RecordEquality_TwoIdenticalResults_AreEqual()
+    {
+        var a = new DeepLinkResult("Home", null, null);
+        var b = new DeepLinkResult("Home", null, null);
+
+        a.Should().Be(b);
     }
 }
