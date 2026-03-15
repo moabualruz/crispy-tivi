@@ -14,13 +14,13 @@
     <ListBox.Styles>
       <!-- Category item base style -->
       <Style Selector="ListBoxItem">
-        <Setter Property="Padding" Value="12,10" />
-        <Setter Property="Margin" Value="2,2" />
+        <Setter Property="Padding" Value="16,14" />
+        <Setter Property="Margin" Value="2,3" />
         <Setter Property="CornerRadius" Value="10" />
         <Setter Property="Background" Value="{DynamicResource SurfaceTertiaryBrush}" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Height" Value="48" />
+        <Setter Property="Height" Value="56" />
       </Style>
 
       <!-- Hover -->
