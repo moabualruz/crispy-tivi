@@ -30,10 +30,16 @@ internal sealed class Program
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .Build();
 
+        // Override the connection string with an absolute path so the DB file
+        // is always written to the same location regardless of working directory.
+        var rawConnection = configuration.GetConnectionString("DefaultConnection")
+            ?? "Data Source=crispy.db";
+        var absoluteConnection = MakeAbsoluteDbPath(rawConnection);
+
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(configuration);
         services.AddApplicationServices();
-        services.AddInfrastructureServices(configuration);
+        services.AddInfrastructureServices(configuration, absoluteConnection);
         services.AddUiServices();
 
         Services = services.BuildServiceProvider();
@@ -59,4 +65,39 @@ internal sealed class Program
             .UsePlatformDetect()
             .WithInterFont()
             .LogToTrace();
+
+    // Rewrites a SQLite connection string so the Data Source is an absolute
+    // path anchored to AppContext.BaseDirectory.  If the source is already
+    // absolute it is returned unchanged.
+    private static string MakeAbsoluteDbPath(string connectionString)
+    {
+        const string prefix1 = "Data Source=";
+        const string prefix2 = "DataSource=";
+
+        string? ExtractSource(string cs, string key)
+        {
+            var idx = cs.IndexOf(key, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0)
+            {
+                return null;
+            }
+
+            var start = idx + key.Length;
+            var end = cs.IndexOf(';', start);
+            return end < 0 ? cs[start..] : cs[start..end];
+        }
+
+        var source = ExtractSource(connectionString, prefix1)
+            ?? ExtractSource(connectionString, prefix2);
+
+        if (source is null || Path.IsPathRooted(source))
+        {
+            Console.WriteLine($"[DB] Using DB path as-is: {source ?? connectionString}");
+            return connectionString;
+        }
+
+        var absoluteSource = Path.Combine(AppContext.BaseDirectory, source);
+        Console.WriteLine($"[DB] Resolved DB path: {absoluteSource}");
+        return connectionString.Replace(source, absoluteSource, StringComparison.Ordinal);
+    }
 }

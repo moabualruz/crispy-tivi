@@ -50,28 +50,39 @@ public class LocalizationService : ILocalizationService
     {
         if (!ValidCodes.Contains(cultureName))
         {
+            Console.WriteLine($"[Locale] SetLocaleAsync: invalid code '{cultureName}', ignoring");
             return;
         }
 
         if (CurrentLocale == cultureName)
         {
+            Console.WriteLine($"[Locale] SetLocaleAsync: '{cultureName}' already active, no-op");
             return;
         }
 
         CurrentLocale = cultureName;
         ApplyCulture(cultureName);
+        Console.WriteLine($"[Locale] Saving locale '{cultureName}' to DB");
         await _settingsService.SetLocaleAsync(cultureName);
+        Console.WriteLine($"[Locale] Saved '{cultureName}' to DB successfully");
         LocaleChanged?.Invoke(cultureName);
     }
 
     /// <inheritdoc />
     public async Task InitializeAsync()
     {
+        Console.WriteLine("[Locale] InitializeAsync: reading locale from DB");
         var locale = await _settingsService.GetLocaleAsync();
+        Console.WriteLine($"[Locale] InitializeAsync: DB returned '{locale}'");
         if (ValidCodes.Contains(locale))
         {
             CurrentLocale = locale;
             ApplyCulture(locale);
+            Console.WriteLine($"[Locale] Applied locale '{locale}'");
+        }
+        else
+        {
+            Console.WriteLine($"[Locale] '{locale}' not in ValidCodes — staying at default 'en'");
         }
     }
 

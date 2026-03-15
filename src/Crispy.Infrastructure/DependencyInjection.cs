@@ -18,12 +18,20 @@ public static class DependencyInjection
     /// <summary>
     /// Adds infrastructure services to the DI container.
     /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="configuration">Application configuration.</param>
+    /// <param name="connectionStringOverride">
+    /// Optional fully-resolved connection string. When provided this takes
+    /// precedence over the value in <paramref name="configuration"/>.
+    /// </param>
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        string? connectionStringOverride = null)
     {
-        // EF Core with SQLite
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
+        // EF Core with SQLite — prefer the override (absolute path) if supplied
+        var connectionString = connectionStringOverride
+            ?? configuration.GetConnectionString("DefaultConnection")
             ?? "Data Source=crispy.db";
 
         services.AddDbContextFactory<AppDbContext>(options =>
