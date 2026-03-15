@@ -124,4 +124,32 @@ public class LocalizationServiceTests
 
         _sut.CurrentLocale.Should().Be("en");
     }
+
+    [Fact]
+    public async Task InitializeAsync_InvalidLocaleFromSettings_StaysAtDefault()
+    {
+        _settingsService.GetLocaleAsync(Arg.Any<int?>())
+            .Returns("xx-invalid");
+
+        await _sut.InitializeAsync();
+
+        _sut.CurrentLocale.Should().Be("en");
+    }
+
+    [Fact]
+    public async Task InitializeAsync_SetsIsRightToLeft_WhenLocaleIsArabic()
+    {
+        _settingsService.GetLocaleAsync(Arg.Any<int?>())
+            .Returns("ar");
+
+        await _sut.InitializeAsync();
+
+        _sut.IsRightToLeft.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsRightToLeft_DefaultsFalse()
+    {
+        _sut.IsRightToLeft.Should().BeFalse();
+    }
 }
