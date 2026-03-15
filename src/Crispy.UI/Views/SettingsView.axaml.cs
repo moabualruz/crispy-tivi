@@ -23,20 +23,15 @@ public partial class SettingsView : UserControl
     {
         base.OnKeyDown(e);
 
-        switch (e.Key)
-        {
-            // Right arrow or Enter from the category list → jump into the settings panel.
-            // XYFocus handles Left arrow from panel back to list automatically
-            // because the list is spatially to the left.
-            case Key.Right:
-            case Key.Enter:
-                if (IsFocusInCategoryList())
-                {
-                    MoveFocusToRightPanel();
-                    e.Handled = true;
-                }
+        // Determine the "forward" key based on FlowDirection (RTL-aware)
+        var forwardKey = FlowDirection == Avalonia.Media.FlowDirection.RightToLeft
+            ? Key.Left
+            : Key.Right;
 
-                break;
+        if ((e.Key == forwardKey || e.Key == Key.Enter) && IsFocusInCategoryList())
+        {
+            MoveFocusToRightPanel();
+            e.Handled = true;
         }
     }
 
@@ -73,6 +68,6 @@ public partial class SettingsView : UserControl
             .OfType<InputElement>()
             .FirstOrDefault(el => el.Focusable && el.IsEffectivelyVisible);
 
-        focusable?.Focus();
+        focusable?.Focus(NavigationMethod.Directional);
     }
 }

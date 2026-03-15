@@ -1,6 +1,8 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace Crispy.UI.Views;
 
@@ -82,13 +84,40 @@ public partial class MainView : UserControl
     {
         base.OnKeyDown(e);
 
-        if (e.Key is Key.Escape or Key.Back)
+        if (DataContext is not ViewModels.MainViewModel vm)
         {
-            if (DataContext is ViewModels.MainViewModel { CanGoBack: true } vm)
-            {
-                vm.GoBackCommand.Execute(null);
-                e.Handled = true;
-            }
+            return;
+        }
+
+        switch (e.Key)
+        {
+            case Key.Escape:
+            case Key.Back:
+                if (vm.CanGoBack)
+                {
+                    vm.GoBackCommand.Execute(null);
+                    e.Handled = true;
+                }
+                break;
+
+            case Key.Enter:
+                // If focus is on a rail item, confirm and move focus into content
+                if (_rail is not null)
+                {
+                    var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
+                    if (focused is Visual v && v.GetVisualAncestors().OfType<Controls.NavigationRail>().Any())
+                    {
+                        var tcc = this.GetVisualDescendants()
+                            .OfType<TransitioningContentControl>()
+                            .FirstOrDefault();
+                        var target = tcc?.GetVisualDescendants()
+                            .OfType<InputElement>()
+                            .FirstOrDefault(el => el.Focusable && el.IsEffectivelyVisible);
+                        target?.Focus(NavigationMethod.Directional);
+                        e.Handled = true;
+                    }
+                }
+                break;
         }
     }
 
