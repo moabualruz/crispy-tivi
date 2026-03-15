@@ -1,15 +1,130 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:search="using:Crispy.Application.Search"
              x:Class="Crispy.UI.Views.SearchView"
              x:DataType="vm:SearchViewModel">
 
-  <Grid HorizontalAlignment="Center"
-        VerticalAlignment="Center">
-    <TextBlock Text="Search"
-               FontSize="32"
-               FontWeight="SemiBold"
-               Foreground="{DynamicResource TextPrimaryBrush}" />
-  </Grid>
+  <DockPanel>
+
+    <!-- Search input row -->
+    <Grid DockPanel.Dock="Top"
+          Margin="16,12">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+
+      <TextBox Grid.Column="0"
+               Text="{Binding SearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+               Watermark="Search channels, movies, series..."
+               FontSize="15"
+               Padding="12,10" />
+
+      <ProgressBar Grid.Column="1"
+                   IsIndeterminate="True"
+                   IsVisible="{Binding IsSearching}"
+                   Width="24"
+                   Height="24"
+                   Margin="8,0,0,0" />
+    </Grid>
+
+    <!-- Error message -->
+    <TextBlock DockPanel.Dock="Top"
+               Text="{Binding ErrorMessage}"
+               IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+               Foreground="{DynamicResource ErrorBrush}"
+               Margin="16,4"
+               FontSize="13" />
+
+    <!-- Results -->
+    <ScrollViewer>
+      <StackPanel Margin="16,4"
+                  Spacing="4">
+
+        <!-- Channel results -->
+        <TextBlock Text="Channels"
+                   FontSize="13"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   Margin="0,8,0,4"
+                   IsVisible="{Binding ChannelResults.Count}" />
+        <ItemsControl ItemsSource="{Binding ChannelResults}"
+                      IsVisible="{Binding ChannelResults.Count}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="search:SearchResultItem">
+              <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                      CornerRadius="6"
+                      Padding="12,8"
+                      Margin="0,2">
+                <TextBlock Text="{Binding Title}"
+                           FontSize="14"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           TextTrimming="CharacterEllipsis" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Movie results -->
+        <TextBlock Text="Movies"
+                   FontSize="13"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   Margin="0,8,0,4"
+                   IsVisible="{Binding MovieResults.Count}" />
+        <ItemsControl ItemsSource="{Binding MovieResults}"
+                      IsVisible="{Binding MovieResults.Count}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="search:SearchResultItem">
+              <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                      CornerRadius="6"
+                      Padding="12,8"
+                      Margin="0,2">
+                <TextBlock Text="{Binding Title}"
+                           FontSize="14"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           TextTrimming="CharacterEllipsis" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Series results -->
+        <TextBlock Text="Series"
+                   FontSize="13"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   Margin="0,8,0,4"
+                   IsVisible="{Binding SeriesResults.Count}" />
+        <ItemsControl ItemsSource="{Binding SeriesResults}"
+                      IsVisible="{Binding SeriesResults.Count}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="search:SearchResultItem">
+              <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                      CornerRadius="6"
+                      Padding="12,8"
+                      Margin="0,2">
+                <TextBlock Text="{Binding Title}"
+                           FontSize="14"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           TextTrimming="CharacterEllipsis" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Empty state -->
+        <TextBlock Text="No results found."
+                   HorizontalAlignment="Center"
+                   Margin="0,32"
+                   FontSize="15"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   IsVisible="{Binding HasResults, Converter={x:Static BoolConverters.Not}}" />
+
+      </StackPanel>
+    </ScrollViewer>
+
+  </DockPanel>
 
 </UserControl>
