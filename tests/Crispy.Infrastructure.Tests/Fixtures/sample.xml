@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tv SYSTEM "xmltv.dtd">
+<tv generator-info-name="test">
+  <channel id="bbc1.uk">
+    <display-name lang="en">BBC One</display-name>
+    <display-name lang="fr">BBC Un</display-name>
+  </channel>
+  <channel id="cnn.us">
+    <display-name lang="en">CNN</display-name>
+  </channel>
+  <programme start="20240315130000 +0000" stop="20240315140000 +0000" channel="bbc1.uk">
+    <title lang="en">News at One</title>
+    <title lang="fr">Nouvelles</title>
+    <sub-title lang="en">Latest Headlines</sub-title>
+    <desc lang="en">Breaking news coverage.</desc>
+    <credits>
+      <director>Jane Smith</director>
+      <actor>John Doe</actor>
+    </credits>
+    <category lang="en">News</category>
+    <episode-num system="xmltv_ns">0.5.0/1</episode-num>
+    <episode-num system="onscreen">S01E06</episode-num>
+    <rating system="BBFC">
+      <value>PG</value>
+    </rating>
+    <star-rating>
+      <value>3/5</value>
+    </star-rating>
+    <icon src="https://example.com/news.jpg" />
+  </programme>
+  <programme start="20240315143000 +0100" stop="20240315150000 +0100" channel="bbc1.uk">
+    <title lang="en">Afternoon Show</title>
+    <desc lang="en">An afternoon programme with +0100 timezone offset.</desc>
+    <previously-shown />
+  </programme>
+  <programme start="20240315150000 +0000" stop="20240315160000 +0000" channel="cnn.us">
+    <title lang="en">World News</title>
+    <credits>
+      <director>Alice Johnson</director>
+      <actor>Bob Williams</actor>
+      <actor>Carol Brown</actor>
+    </credits>
+  </programme>
+</tv>

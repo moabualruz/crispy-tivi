@@ -1,15 +1,26 @@
 using System.IO;
 
 using Crispy.Application.Configuration;
+using Crispy.Application.Sources;
+using Crispy.Application.Sync;
+using Crispy.Domain.Enums;
 using Crispy.Domain.Interfaces;
+using Crispy.Infrastructure.Connectivity;
 using Crispy.Infrastructure.Data;
 using Crispy.Infrastructure.Data.Repositories;
 using Crispy.Infrastructure.Logging;
+using Crispy.Infrastructure.Parsers.M3U;
+using Crispy.Infrastructure.Parsers.Stalker;
+using Crispy.Infrastructure.Parsers.Xmltv;
+using Crispy.Infrastructure.Parsers.Xtream;
 using Crispy.Infrastructure.Security;
+using Crispy.Infrastructure.Sync;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Crispy.Infrastructure;
 
@@ -53,25 +64,99 @@ public static class DependencyInjection
         services.AddDbContextFactory<EpgDbContext>(options =>
             options.UseSqlite(epgConnectionString));
 
-        // Repositories
+        // ─── Repositories ─────────────────────────────────────────────────────
         services.AddScoped<ISettingsRepository, SettingsRepository>();
         services.AddScoped<ISourceRepository, SourceRepository>();
         services.AddScoped<IProfileRepository, ProfileRepository>();
+        services.AddScoped<IChannelRepository, ChannelRepository>();
+        services.AddScoped<IEpgRepository, EpgRepository>();
+        services.AddScoped<ISyncHistoryRepository, SyncHistoryRepository>();
 
-        // Security
+        // ─── Security ─────────────────────────────────────────────────────────
         services.AddSingleton<ICredentialEncryption, CredentialEncryption>();
 
-        // Feature flags
+        // ─── Feature flags ────────────────────────────────────────────────────
         services.Configure<FeatureFlagOptions>(
             configuration.GetSection(FeatureFlagOptions.Section));
 
-        // Caching
+        // ─── Caching ──────────────────────────────────────────────────────────
         services.AddMemoryCache();
 
-        // HTTP client factory
+        // ─── HTTP clients ─────────────────────────────────────────────────────
         services.AddHttpClient();
 
-        // Logging
+        // Named HTTP client for Xtream Codes (Polly resilience inline — no extension method needed)
+        services.AddHttpClient("XtreamClient");
+
+        // Named HTTP client for Stalker Portal
+        services.AddHttpClient("StalkerClient");
+
+        // HTTP client for connectivity probing
+        services.AddHttpClient("ConnectivityProbe");
+
+        // ─── Parsers ──────────────────────────────────────────────────────────
+        services.AddTransient<M3UParser>();
+        services.AddTransient<XmltvParser>();
+
+        // Xtream parser: typed client resolved from IHttpClientFactory
+        services.AddTransient<XtreamClient>(sp =>
+        {
+            var factory = sp.GetRequiredService<IHttpClientFactory>();
+            return new XtreamClient(factory.CreateClient("XtreamClient"));
+        });
+        services.AddTransient<XtreamParser>();
+
+        // Stalker parser: typed client resolved from IHttpClientFactory
+        services.AddTransient<StalkerClient>(sp =>
+        {
+            var factory = sp.GetRequiredService<IHttpClientFactory>();
+            return new StalkerClient(factory.CreateClient("StalkerClient"), mac: null);
+        });
+        services.AddTransient<StalkerParser>();
+
+        // ─── Parser registry (keyed by SourceType) ────────────────────────────
+        services.AddSingleton<IReadOnlyDictionary<SourceType, ISourceParser>>(sp =>
+        {
+            // Build a snapshot at startup; transient parsers are resolved once here
+            var dict = new Dictionary<SourceType, ISourceParser>
+            {
+                [SourceType.M3U] = ActivatorUtilities.CreateInstance<XtreamParser>(sp,
+                    sp.GetRequiredService<XtreamClient>(),
+                    sp.GetRequiredService<M3UParser>(),
+                    sp.GetRequiredService<ILogger<XtreamParser>>()),
+                [SourceType.XtreamCodes] = ActivatorUtilities.CreateInstance<XtreamParser>(sp,
+                    sp.GetRequiredService<XtreamClient>(),
+                    sp.GetRequiredService<M3UParser>(),
+                    sp.GetRequiredService<ILogger<XtreamParser>>()),
+                [SourceType.StalkerPortal] = ActivatorUtilities.CreateInstance<StalkerParser>(sp,
+                    sp.GetRequiredService<StalkerClient>(),
+                    sp.GetRequiredService<ILogger<StalkerParser>>()),
+            };
+            return dict;
+        });
+
+        // ─── Sync engine ──────────────────────────────────────────────────────
+        services.AddTransient<SyncPipeline>();
+        services.AddTransient<ChannelDeduplicator>();
+
+        services.AddSingleton<SyncScheduler>(sp => new SyncScheduler(
+            syncAllCallback: ct => sp.GetRequiredService<SyncOrchestrator>().SyncAllAsync(ct),
+            logger: sp.GetRequiredService<ILogger<SyncScheduler>>()));
+
+        services.AddSingleton<SyncOrchestrator>();
+        services.AddSingleton<ISyncOrchestrator>(sp => sp.GetRequiredService<SyncOrchestrator>());
+        services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<SyncOrchestrator>());
+
+        // ─── Connectivity ─────────────────────────────────────────────────────
+        services.AddSingleton<IConnectivityMonitor>(sp =>
+        {
+            var factory = sp.GetRequiredService<IHttpClientFactory>();
+            return new ConnectivityMonitor(
+                factory.CreateClient("ConnectivityProbe"),
+                sp.GetRequiredService<ILogger<ConnectivityMonitor>>());
+        });
+
+        // ─── Logging ──────────────────────────────────────────────────────────
         services.AddLogging(builder => builder.AddSerilogLogging());
 
         return services;
