@@ -34,14 +34,25 @@ public partial class MainView : UserControl
                 }
             };
 
-            // Enter on the already-selected rail item → re-navigate to that screen.
-            // Focus movement into content is handled by XYFocus (Right arrow).
+            // Enter on a rail item → navigate AND move focus into the content area
             _rail.EnterPressed += () =>
             {
                 if (DataContext is ViewModels.MainViewModel vm && _rail.SelectedItem is { } item)
                 {
                     vm.SelectedNavItem = item;
                 }
+
+                // Move focus into the content area after navigation
+                Dispatcher.UIThread.Post(() =>
+                {
+                    var tcc = this.GetVisualDescendants()
+                        .OfType<TransitioningContentControl>()
+                        .FirstOrDefault();
+                    var target = tcc?.GetVisualDescendants()
+                        .OfType<InputElement>()
+                        .FirstOrDefault(el => el.Focusable && el.IsEffectivelyVisible);
+                    target?.Focus(NavigationMethod.Directional);
+                }, DispatcherPriority.Loaded);
             };
         }
 
