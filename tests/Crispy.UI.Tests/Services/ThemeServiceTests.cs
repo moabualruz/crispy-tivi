@@ -16,6 +16,7 @@ namespace Crispy.UI.Tests.Services;
 /// <summary>
 /// Tests for <see cref="ThemeService"/>.
 /// </summary>
+[Trait("Category", "Unit")]
 public class ThemeServiceTests
 {
     private readonly ISettingsService _settingsService;
@@ -244,11 +245,48 @@ public class ThemeServiceTests
 
         received.Should().Be(ThemeVariant.OledBlack);
     }
+
+    [AvaloniaFact]
+    public async Task SetThemeAsync_NoSubscribers_DoesNotThrow()
+    {
+        // ThemeChanged has no subscribers — null-conditional invoke must not throw
+        var act = async () => await _sut.SetThemeAsync(ThemeVariant.Light);
+
+        await act.Should().NotThrowAsync();
+        _sut.CurrentTheme.Should().Be(ThemeVariant.Light);
+    }
+
+    [AvaloniaFact]
+    public async Task SetThemeAsync_ReappliesAccentColor_WhenAccentIndexIsNonZero()
+    {
+        // Set a non-zero accent index first, then change the theme —
+        // ApplyAccentColor(SelectedAccentIndex) must be re-invoked after the theme swap.
+        await _sut.SetAccentColorAsync(2);
+        _sut.SelectedAccentIndex.Should().Be(2);
+
+        // Switching theme must not reset the accent index
+        await _sut.SetThemeAsync(ThemeVariant.Light);
+
+        _sut.SelectedAccentIndex.Should().Be(2);
+    }
+
+    [Fact]
+    public void IsReducedMotion_DefaultsFalse()
+    {
+        _sut.IsReducedMotion.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SelectedAccentIndex_DefaultsZero()
+    {
+        _sut.SelectedAccentIndex.Should().Be(0);
+    }
 }
 
 /// <summary>
 /// Tests for <see cref="DesignTokens"/>.
 /// </summary>
+[Trait("Category", "Unit")]
 public class DesignTokensTests
 {
     [Fact]

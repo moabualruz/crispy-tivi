@@ -12,6 +12,7 @@ namespace Crispy.UI.Tests.Services;
 /// <summary>
 /// Tests for <see cref="LocalizationService"/>.
 /// </summary>
+[Trait("Category", "Unit")]
 public class LocalizationServiceTests
 {
     private readonly ISettingsService _settingsService;
@@ -150,6 +151,60 @@ public class LocalizationServiceTests
     [Fact]
     public void IsRightToLeft_DefaultsFalse()
     {
+        _sut.IsRightToLeft.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetLocaleAsync_InvalidLocale_DoesNotFireEvent()
+    {
+        var fired = false;
+        _sut.LocaleChanged += _ => fired = true;
+
+        await _sut.SetLocaleAsync("xx-bad");
+
+        fired.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetLocaleAsync_InvalidLocale_DoesNotPersist()
+    {
+        await _sut.SetLocaleAsync("zz");
+
+        await _settingsService.DidNotReceive().SetLocaleAsync(Arg.Any<string>(), Arg.Any<int?>());
+    }
+
+    [Fact]
+    public void AvailableLocales_FirstEntry_IsEnglish()
+    {
+        _sut.AvailableLocales[0].Code.Should().Be("en");
+        _sut.AvailableLocales[0].NativeName.Should().Be("English");
+    }
+
+    [Fact]
+    public void AvailableLocales_ContainsTurkish()
+    {
+        _sut.AvailableLocales.Should().Contain(l => l.Code == "tr");
+    }
+
+    [Fact]
+    public async Task SetLocaleAsync_NoSubscribers_DoesNotThrow()
+    {
+        // LocaleChanged has no subscribers — null-conditional invoke must not throw
+        var act = async () => await _sut.SetLocaleAsync("de");
+
+        await act.Should().NotThrowAsync();
+        _sut.CurrentLocale.Should().Be("de");
+    }
+
+    [Fact]
+    public async Task InitializeAsync_SetsIsRightToLeft_WhenLocaleIsFrench()
+    {
+        // French is LTR — verifies the false-branch of IsRightToLeft in InitializeAsync
+        _settingsService.GetLocaleAsync(Arg.Any<int?>())
+            .Returns("fr");
+
+        await _sut.InitializeAsync();
+
         _sut.IsRightToLeft.Should().BeFalse();
     }
 }
