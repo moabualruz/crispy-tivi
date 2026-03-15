@@ -32,13 +32,15 @@ public partial class SettingsViewModel : ViewModelBase
         IThemeService themeService,
         ILocalizationService localizationService,
         ISettingsService settingsService,
-        IOptions<FeatureFlagOptions> featureFlagOptions)
+        IOptions<FeatureFlagOptions> featureFlagOptions,
+        SourcesViewModel sourcesViewModel)
     {
         Title = "Settings";
         _themeService = themeService;
         _localizationService = localizationService;
         _settingsService = settingsService;
         _featureFlags = featureFlagOptions.Value;
+        SourcesVm = sourcesViewModel;
 
         Categories =
         [
@@ -59,6 +61,11 @@ public partial class SettingsViewModel : ViewModelBase
         _selectedAccentIndex = _themeService.SelectedAccentIndex;
         _isReducedMotion = _themeService.IsReducedMotion;
     }
+
+    /// <summary>
+    /// Embedded Sources sub-ViewModel for the Sources settings panel.
+    /// </summary>
+    public SourcesViewModel SourcesVm { get; }
 
     /// <summary>
     /// Available settings categories.
