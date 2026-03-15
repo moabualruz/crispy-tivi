@@ -3,6 +3,7 @@
              xmlns:vm="using:Crispy.UI.ViewModels"
              xmlns:controls="using:Crispy.UI.Controls"
              xmlns:conv="using:Crispy.UI.Converters"
+             xmlns:entities="using:Crispy.Domain.Entities"
              x:Class="Crispy.UI.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
 
@@ -140,13 +141,85 @@
         <!-- ═══ Sources ═══ -->
         <StackPanel Spacing="16"
                     IsVisible="{Binding SelectedCategory, Converter={x:Static conv:CategoryMatchConverter.Instance}, ConverterParameter=Sources}">
+
+          <!-- Header row with Add Source button -->
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0"
+                       Text="Sources"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <Button Grid.Column="1"
+                    Content="+ Add Source"
+                    Command="{Binding SourcesVm.NavigateToAddSourceCommand}" />
+          </Grid>
+
+          <!-- Loading indicator -->
+          <TextBlock Text="Loading…"
+                     IsVisible="{Binding SourcesVm.IsLoading}"
+                     FontSize="13"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+
+          <!-- Empty state -->
           <Border Background="{DynamicResource SurfaceElevatedBrush}"
                   CornerRadius="8"
-                  Padding="16">
-            <TextBlock Text="Source management will be available in Phase 2."
+                  Padding="16"
+                  IsVisible="{Binding SourcesVm.HasNoSources}">
+            <TextBlock Text="No sources configured. Tap '+ Add Source' to get started."
                        FontSize="14"
                        Foreground="{DynamicResource TextSecondaryBrush}" />
           </Border>
+
+          <!-- Sources list -->
+          <ItemsControl ItemsSource="{Binding SourcesVm.Sources}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="entities:Source">
+                <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                        CornerRadius="8"
+                        Padding="16"
+                        Margin="0,0,0,4">
+                  <Grid ColumnDefinitions="*,Auto,Auto">
+
+                    <!-- Name + type -->
+                    <StackPanel Grid.Column="0"
+                                Spacing="2">
+                      <TextBlock Text="{Binding Name}"
+                                 FontSize="15"
+                                 FontWeight="SemiBold"
+                                 Foreground="{DynamicResource TextPrimaryBrush}" />
+                      <TextBlock Text="{Binding SourceType}"
+                                 FontSize="12"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+
+                    <!-- Enabled badge -->
+                    <Border Grid.Column="1"
+                            CornerRadius="4"
+                            Padding="6,2"
+                            Margin="8,0"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource AccentBrush}"
+                            IsVisible="{Binding IsEnabled}">
+                      <TextBlock Text="Active"
+                                 FontSize="11"
+                                 Foreground="White" />
+                    </Border>
+
+                    <!-- Delete button: uses ReflectionBinding to reach SourcesVm.DeleteCommand
+                         from within a DataTemplate whose x:DataType is Source. -->
+                    <Button Grid.Column="2"
+                            Content="Remove"
+                            VerticalAlignment="Center"
+                            Command="{ReflectionBinding $parent[ItemsControl].DataContext.SourcesVm.DeleteCommand}"
+                            CommandParameter="{Binding}" />
+
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
         </StackPanel>
 
         <!-- ═══ Playback ═══ -->

@@ -1,3 +1,5 @@
+using CommunityToolkit.Mvvm.Messaging;
+
 using Crispy.UI.Navigation;
 using Crispy.UI.Services;
 using Crispy.UI.ViewModels;
@@ -21,6 +23,9 @@ public static class DependencyInjection
         services.AddSingleton<IThemeService, ThemeService>();
         services.AddSingleton<ILocalizationService, LocalizationService>();
 
+        // Messaging
+        services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
+
         // Navigation
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<ViewLocator>();
@@ -33,6 +38,9 @@ public static class DependencyInjection
         services.AddTransient<SeriesViewModel>();
         services.AddTransient<SearchViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<SourcesViewModel>();
+        services.AddTransient<AddSourceViewModel>();
+        services.AddTransient<EpgViewModel>();
 
         // Views (transient — resolved by ViewLocator)
         services.AddTransient<MainView>();
@@ -42,6 +50,8 @@ public static class DependencyInjection
         services.AddTransient<SeriesView>();
         services.AddTransient<SearchView>();
         services.AddTransient<SettingsView>();
+        services.AddTransient<AddSourceView>();
+        services.AddTransient<EpgView>();
 
         return services;
     }

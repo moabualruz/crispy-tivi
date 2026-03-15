@@ -9,6 +9,33 @@ using Crispy.Domain.Interfaces;
 namespace Crispy.UI.ViewModels;
 
 /// <summary>
+/// Display wrapper for an EPG programme entry, adding formatted time and current-highlight flag.
+/// </summary>
+public sealed class EpgProgrammeItem
+{
+    /// <summary>The underlying EPG programme.</summary>
+    public EpgProgramme Programme { get; }
+
+    /// <summary>Whether this programme is currently airing.</summary>
+    public bool IsCurrent { get; }
+
+    /// <summary>Formatted local time range string, e.g. "20:00 – 21:30".</summary>
+    public string TimeRange { get; }
+
+    /// <summary>
+    /// Creates a new EpgProgrammeItem.
+    /// </summary>
+    public EpgProgrammeItem(EpgProgramme programme, bool isCurrent)
+    {
+        Programme = programme;
+        IsCurrent = isCurrent;
+        var start = programme.StartUtc.ToLocalTime();
+        var stop = programme.StopUtc.ToLocalTime();
+        TimeRange = $"{start:HH:mm} – {stop:HH:mm}";
+    }
+}
+
+/// <summary>
 /// ViewModel for the EPG (Electronic Programme Guide) screen.
 /// Presents a channel list on the left and programme timeline on the right.
 /// </summary>
@@ -25,7 +52,7 @@ public partial class EpgViewModel : ViewModelBase
     private Channel? _selectedChannel;
 
     [ObservableProperty]
-    private ObservableCollection<EpgProgramme> _programmes = [];
+    private ObservableCollection<EpgProgrammeItem> _programmeItems = [];
 
     [ObservableProperty]
     private EpgProgramme? _currentProgramme;
@@ -83,7 +110,7 @@ public partial class EpgViewModel : ViewModelBase
         }
         else
         {
-            Programmes = [];
+            ProgrammeItems = [];
             CurrentProgramme = null;
         }
     }
@@ -98,10 +125,12 @@ public partial class EpgViewModel : ViewModelBase
             var to = DateTime.UtcNow.AddDays(3);
 
             var results = await _epgRepository.GetProgrammesAsync(channelId, from, to, ct);
-            Programmes = new ObservableCollection<EpgProgramme>(results);
 
             var now = DateTime.UtcNow;
             CurrentProgramme = results.FirstOrDefault(p => p.StartUtc <= now && now < p.StopUtc);
+
+            ProgrammeItems = new ObservableCollection<EpgProgrammeItem>(
+                results.Select(p => new EpgProgrammeItem(p, p == CurrentProgramme)));
         }
         finally
         {

@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:converters="using:Crispy.UI.Converters"
+             x:Class="Crispy.UI.Views.EpgView"
+             x:DataType="vm:EpgViewModel">
+
+  <UserControl.Resources>
+    <converters:ProgrammeHighlightConverter x:Key="ProgrammeHighlight" />
+  </UserControl.Resources>
+
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="280" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+
+    <!-- Loading bar -->
+    <ProgressBar Grid.ColumnSpan="2"
+                 VerticalAlignment="Top"
+                 IsIndeterminate="True"
+                 IsVisible="{Binding IsLoading}"
+                 Height="3" />
+
+    <!-- Left rail: channel list -->
+    <Border Grid.Column="0"
+            Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="0,0,1,0">
+      <ListBox ItemsSource="{Binding Channels}"
+               SelectedItem="{Binding SelectedChannel, Mode=TwoWay}"
+               SelectionMode="Single">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Text="{Binding Title}"
+                       Padding="12,10"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Border>
+
+    <!-- Right content: programme timeline -->
+    <Grid Grid.Column="1">
+
+      <!-- Empty state -->
+      <TextBlock Text="Select a channel to view its guide"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 FontSize="16"
+                 Foreground="{DynamicResource TextSecondaryBrush}"
+                 IsVisible="{Binding SelectedChannel, Converter={x:Static ObjectConverters.IsNull}}" />
+
+      <!-- Programme list -->
+      <ScrollViewer IsVisible="{Binding SelectedChannel, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <ItemsControl ItemsSource="{Binding ProgrammeItems}"
+                      Margin="0">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:EpgProgrammeItem">
+              <Border Padding="16,12"
+                      BorderBrush="{DynamicResource BorderBrush}"
+                      BorderThickness="0,0,0,1"
+                      Background="{Binding IsCurrent, Converter={StaticResource ProgrammeHighlight}}">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="{Binding TimeRange}"
+                             FontSize="12"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                  <TextBlock Text="{Binding Programme.Title}"
+                             FontWeight="SemiBold"
+                             FontSize="14"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Programme.Description}"
+                             FontSize="12"
+                             Foreground="{DynamicResource TextSecondaryBrush}"
+                             TextWrapping="Wrap"
+                             MaxLines="2"
+                             TextTrimming="CharacterEllipsis"
+                             IsVisible="{Binding Programme.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+    </Grid>
+
+  </Grid>
+
+</UserControl>
