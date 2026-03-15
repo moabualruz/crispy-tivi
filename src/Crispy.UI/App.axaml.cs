@@ -58,6 +58,15 @@ public partial class App : Avalonia.Application
             {
                 DataContext = mainViewModel,
             };
+
+            // Apply persisted FlowDirection now that MainWindow exists
+            if (Services is not null)
+            {
+                var locService = Services.GetRequiredService<Services.ILocalizationService>();
+                desktop.MainWindow.FlowDirection = locService.IsRightToLeft
+                    ? Avalonia.Media.FlowDirection.RightToLeft
+                    : Avalonia.Media.FlowDirection.LeftToRight;
+            }
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
         {

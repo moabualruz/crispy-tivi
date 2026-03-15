@@ -148,7 +148,12 @@ public partial class NavigationRail : UserControl
             primaryList.SelectedIndex = 0;
         }
 
-        primaryList.Focus();
+        // Focus the selected container directly so arrow keys work immediately
+        primaryList.Focus(NavigationMethod.Directional);
+        if (primaryList.ContainerFromIndex(primaryList.SelectedIndex) is { } container)
+        {
+            container.Focus(NavigationMethod.Directional);
+        }
     }
 
     /// <inheritdoc />
