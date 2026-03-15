@@ -43,6 +43,43 @@ public partial class NavigationRail : UserControl
     public NavigationRail()
     {
         InitializeComponent();
+
+        var primaryList = this.FindControl<ListBox>("PrimaryList");
+        var secondaryList = this.FindControl<ListBox>("SecondaryList");
+
+        if (primaryList is not null)
+        {
+            primaryList.SelectionChanged += (_, args) =>
+            {
+                if (args.AddedItems.Count > 0 && args.AddedItems[0] is NavigationItem item)
+                {
+                    // Deselect the other list
+                    if (secondaryList is not null)
+                    {
+                        secondaryList.SelectedItem = null;
+                    }
+
+                    SelectedItem = item;
+                }
+            };
+        }
+
+        if (secondaryList is not null)
+        {
+            secondaryList.SelectionChanged += (_, args) =>
+            {
+                if (args.AddedItems.Count > 0 && args.AddedItems[0] is NavigationItem item)
+                {
+                    // Deselect the other list
+                    if (primaryList is not null)
+                    {
+                        primaryList.SelectedItem = null;
+                    }
+
+                    SelectedItem = item;
+                }
+            };
+        }
     }
 
     /// <summary>

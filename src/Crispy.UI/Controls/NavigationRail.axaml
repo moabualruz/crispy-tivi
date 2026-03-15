@@ -42,7 +42,6 @@
     <ListBox Name="PrimaryList"
              DockPanel.Dock="Top"
              ItemsSource="{Binding PrimaryItems, RelativeSource={RelativeSource AncestorType=controls:NavigationRail}}"
-             SelectedItem="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=controls:NavigationRail}, Mode=TwoWay}"
              Background="Transparent"
              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
              ScrollViewer.VerticalScrollBarVisibility="Disabled">
@@ -67,7 +66,6 @@
     <ListBox Name="SecondaryList"
              DockPanel.Dock="Bottom"
              ItemsSource="{Binding SecondaryItems, RelativeSource={RelativeSource AncestorType=controls:NavigationRail}}"
-             SelectedItem="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=controls:NavigationRail}, Mode=TwoWay}"
              Background="Transparent"
              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
              ScrollViewer.VerticalScrollBarVisibility="Disabled">
