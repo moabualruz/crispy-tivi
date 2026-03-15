@@ -1,0 +1,111 @@
+{
+  "version": 3,
+  "targets": {
+    "net9.0": {}
+  },
+  "libraries": {},
+  "projectFileDependencyGroups": {
+    "net9.0": []
+  },
+  "packageFolders": {
+    "C:\\Users\\mkh\\.nuget\\packages\\": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "F:\\work\\crispy-tivi\\src\\Crispy.Domain\\Crispy.Domain.csproj",
+      "projectName": "Crispy.Domain",
+      "projectPath": "F:\\work\\crispy-tivi\\src\\Crispy.Domain\\Crispy.Domain.csproj",
+      "packagesPath": "C:\\Users\\mkh\\.nuget\\packages\\",
+      "outputPath": "F:\\work\\crispy-tivi\\src\\Crispy.Domain\\obj\\",
+      "projectStyle": "PackageReference",
+      "centralPackageVersionsManagementEnabled": true,
+      "configFilePaths": [
+        "C:\\Users\\mkh\\AppData\\Roaming\\NuGet\\NuGet.Config"
+      ],
+      "originalTargetFrameworks": [
+        "net9.0"
+      ],
+      "sources": {
+        "C:\\Program Files\\dotnet\\library-packs": {},
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "projectReferences": {}
+        }
+      },
+      "warningProperties": {
+        "allWarningsAsErrors": true,
+        "warnAsError": [
+          "NU1605"
+        ]
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "9.0.300"
+    },
+    "frameworks": {
+      "net9.0": {
+        "targetAlias": "net9.0",
+        "centralPackageVersions": {
+          "AsyncImageLoader.Avalonia": "3.5.0",
+          "Avalonia": "11.3.12",
+          "Avalonia.Android": "11.3.12",
+          "Avalonia.Browser": "11.3.12",
+          "Avalonia.Desktop": "11.3.12",
+          "Avalonia.Diagnostics": "11.3.12",
+          "Avalonia.Fonts.Inter": "11.3.12",
+          "Avalonia.Headless.XUnit": "11.3.12",
+          "Avalonia.iOS": "11.3.12",
+          "Avalonia.Themes.Fluent": "11.3.12",
+          "CommunityToolkit.Mvvm": "8.4.0",
+          "coverlet.collector": "6.0.4",
+          "FluentAssertions": "8.2.0",
+          "Microsoft.EntityFrameworkCore.Design": "9.0.3",
+          "Microsoft.EntityFrameworkCore.InMemory": "9.0.3",
+          "Microsoft.EntityFrameworkCore.Sqlite": "9.0.3",
+          "Microsoft.Extensions.Caching.Memory": "10.0.0",
+          "Microsoft.Extensions.Configuration.Json": "10.0.0",
+          "Microsoft.Extensions.DependencyInjection": "10.0.0",
+          "Microsoft.Extensions.Http": "10.0.0",
+          "Microsoft.Extensions.Options": "10.0.0",
+          "Microsoft.Extensions.Options.ConfigurationExtensions": "10.0.0",
+          "Microsoft.NET.Test.Sdk": "17.13.0",
+          "NSubstitute": "5.3.0",
+          "NSubstitute.Analyzers.CSharp": "1.0.17",
+          "Polly.Core": "8.6.0",
+          "Riok.Mapperly": "4.3.0",
+          "Serilog": "4.3.0",
+          "Serilog.Extensions.Logging": "10.0.0",
+          "Serilog.Sinks.Console": "6.1.0",
+          "Serilog.Sinks.File": "7.0.0",
+          "Xamarin.AndroidX.Core.SplashScreen": "1.0.1.15",
+          "xunit": "2.9.3",
+          "xunit.runner.visualstudio": "3.0.2"
+        },
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.312/PortableRuntimeIdentifierGraph.json"
+      }
+    }
+  }
+}

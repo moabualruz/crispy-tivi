@@ -1,0 +1,12 @@
+F:\work\crispy-tivi\src\Crispy.Domain\bin\Debug\net9.0\Crispy.Domain.deps.json
+F:\work\crispy-tivi\src\Crispy.Domain\bin\Debug\net9.0\Crispy.Domain.dll
+F:\work\crispy-tivi\src\Crispy.Domain\bin\Debug\net9.0\Crispy.Domain.pdb
+F:\work\crispy-tivi\src\Crispy.Domain\obj\Debug\net9.0\Crispy.Domain.GeneratedMSBuildEditorConfig.editorconfig
+F:\work\crispy-tivi\src\Crispy.Domain\obj\Debug\net9.0\Crispy.Domain.AssemblyInfoInputs.cache
+F:\work\crispy-tivi\src\Crispy.Domain\obj\Debug\net9.0\Crispy.Domain.AssemblyInfo.cs
+F:\work\crispy-tivi\src\Crispy.Domain\obj\Debug\net9.0\Crispy.Domain.csproj.CoreCompileInputs.cache
+F:\work\crispy-tivi\src\Crispy.Domain\obj\Debug\net9.0\Crispy.Domain.sourcelink.json
+F:\work\crispy-tivi\src\Crispy.Domain\obj\Debug\net9.0\Crispy.Domain.dll
+F:\work\crispy-tivi\src\Crispy.Domain\obj\Debug\net9.0\refint\Crispy.Domain.dll
+F:\work\crispy-tivi\src\Crispy.Domain\obj\Debug\net9.0\Crispy.Domain.pdb
+F:\work\crispy-tivi\src\Crispy.Domain\obj\Debug\net9.0\ref\Crispy.Domain.dll
