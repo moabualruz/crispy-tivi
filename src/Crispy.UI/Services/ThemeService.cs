@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -117,19 +118,36 @@ public class ThemeService : IThemeService
             return;
         }
 
-        // Remove existing theme dictionaries
+        // Remove existing custom theme dictionaries from ALL levels
         var merged = app.Resources.MergedDictionaries;
-        var toRemove = merged
-            .OfType<ResourceInclude>()
-            .Where(r => r.Source?.ToString().Contains("Theme.axaml") == true)
-            .ToList();
+
+        // Check both top-level and nested ResourceDictionary
+        var toRemove = new List<IResourceProvider>();
+        foreach (var item in merged)
+        {
+            if (item is ResourceInclude ri && ri.Source?.ToString().Contains("Theme.axaml") == true)
+            {
+                toRemove.Add(ri);
+            }
+            else if (item is ResourceDictionary rd)
+            {
+                var nested = rd.MergedDictionaries
+                    .OfType<ResourceInclude>()
+                    .Where(r => r.Source?.ToString().Contains("Theme.axaml") == true)
+                    .ToList();
+                foreach (var n in nested)
+                {
+                    rd.MergedDictionaries.Remove(n);
+                }
+            }
+        }
 
         foreach (var item in toRemove)
         {
             merged.Remove(item);
         }
 
-        // Add the new theme dictionary
+        // Add the new theme dictionary at top level
         var include = new ResourceInclude(new Uri("avares://Crispy.UI"))
         {
             Source = new Uri(uri),
