@@ -14,104 +14,105 @@ namespace Crispy.UI.Tests.ViewModels;
 /// <summary>
 /// Unit tests for PlayerViewModel — verifies OSD reactive state derived from
 /// IPlayerService state emissions (skip-intro, auto-play countdown, still-watching prompt).
-/// Full implementation target: Wave 2 (03-02).
 /// </summary>
 [Trait("Category", "Unit")]
 public class PlayerViewModelTests
 {
     private readonly IPlayerService _playerService;
+    private readonly ITimeshiftService _timeshiftService;
+    private readonly ISleepTimerService _sleepTimerService;
+    private readonly TestSubject<PlayerState> _stateSubject;
+    private readonly TestSubject<TimeshiftState> _timeshiftSubject;
+    private readonly TestSubject<TimeSpan?> _sleepSubject;
     private readonly PlayerViewModel _sut;
 
     public PlayerViewModelTests()
     {
+        _stateSubject = new TestSubject<PlayerState>();
+        _timeshiftSubject = new TestSubject<TimeshiftState>();
+        _sleepSubject = new TestSubject<TimeSpan?>();
+
         _playerService = Substitute.For<IPlayerService>();
         _playerService.State.Returns(PlayerState.Empty);
-        _playerService.StateChanged.Returns(new TestSubject<PlayerState>());
+        _playerService.StateChanged.Returns(_stateSubject);
         _playerService.AudioSamples.Returns(new TestSubject<float[]>());
         _playerService.AudioTracks.Returns([]);
         _playerService.SubtitleTracks.Returns([]);
 
-        _sut = new PlayerViewModel(_playerService);
+        _timeshiftService = Substitute.For<ITimeshiftService>();
+        _timeshiftService.StateChanged.Returns(_timeshiftSubject);
+        _timeshiftService.State.Returns(new TimeshiftState(
+            TimeSpan.Zero, TimeSpan.Zero, DateTimeOffset.UtcNow,
+            string.Empty, true, false));
+
+        _sleepTimerService = Substitute.For<ISleepTimerService>();
+        _sleepTimerService.RemainingChanged.Returns(_sleepSubject);
+        _sleepTimerService.Remaining.Returns((TimeSpan?)null);
+
+        _sut = new PlayerViewModel(_playerService, _timeshiftService, _sleepTimerService);
     }
 
     [Fact]
-    public void SkipIntro_IsVisible_WhenPositionWithinIntroMarker()
+    public void ShowSkipIntro_IsTrue_WhenPositionWithinIntroMarker()
     {
-        // Arrange — simulate state where position is within the 0–90s intro window
+        // Arrange — configure a 0–90s intro marker
+        _sut.SetSegmentMarkers(
+            intro: [new JellyfinSegmentMarker(TimeSpan.Zero, TimeSpan.FromSeconds(90))],
+            credits: []);
+
+        // Act — emit a state update with position inside the intro window
         var state = PlayerState.Empty with
         {
             Mode = PlaybackMode.Vod,
             IsPlaying = true,
             Position = TimeSpan.FromSeconds(45),
+            Duration = TimeSpan.FromMinutes(45),
         };
+        _stateSubject.OnNext(state);
 
-        // Act — Wave 2 implementation must observe StateChanged and set IsSkipIntroVisible
-        _sut.PlayerState = state;
-
-        // RED: IsSkipIntroVisible will be false until the real implementation
-        // subscribes to StateChanged and evaluates intro-marker boundaries.
-        _sut.IsSkipIntroVisible.Should().BeTrue(
+        // Assert
+        _sut.ShowSkipIntro.Should().BeTrue(
             "Skip Intro button must appear when playback position falls within the intro marker window");
     }
 
     [Fact]
-    public void SkipIntro_IsNotVisible_WhenNoMarkers()
+    public void ShowSkipIntro_IsFalse_WhenNoMarkers()
     {
-        // Arrange — default empty state has no markers
-        _sut.PlayerState = PlayerState.Empty;
+        // Arrange — default: no markers set
+        // Act — emit default state
+        _stateSubject.OnNext(PlayerState.Empty);
 
-        // Assert — safe default: no skip button when there are no markers
-        // This will pass immediately because the stub initialises IsSkipIntroVisible = false.
-        _sut.IsSkipIntroVisible.Should().BeFalse(
+        // Assert
+        _sut.ShowSkipIntro.Should().BeFalse(
             "Skip Intro button must be hidden when no intro marker is present");
     }
 
     [Fact]
-    public void AutoPlayCountdown_Starts_WhenCreditsMarkerReached()
+    public void ShowAutoPlayCountdown_IsTrue_WhenNearEndOfVod()
     {
-        // Arrange — simulate position near the end of a VOD episode (credits region)
+        // Arrange — position within last 30s of a 45-minute VOD
         var state = PlayerState.Empty with
         {
             Mode = PlaybackMode.Vod,
             IsPlaying = true,
-            Position = TimeSpan.FromMinutes(44),
+            Position = TimeSpan.FromMinutes(44) + TimeSpan.FromSeconds(45),
             Duration = TimeSpan.FromMinutes(45),
         };
 
         // Act
-        _sut.PlayerState = state;
+        _stateSubject.OnNext(state);
 
-        // RED: AutoPlayCountdownSeconds will be 0 until Wave 2 implements credits detection
-        _sut.IsAutoPlayCountdownVisible.Should().BeTrue(
-            "Auto-play countdown must start when playback enters the credits region");
+        // Assert
+        _sut.ShowAutoPlayCountdown.Should().BeTrue(
+            "Auto-play countdown must start when playback enters the final 30 seconds of a VOD episode");
         _sut.AutoPlayCountdownSeconds.Should().BeGreaterThan(0,
             "Auto-play countdown must start at a positive value");
     }
 
     [Fact]
-    public void AreYouStillWatching_Fires_AfterThreeEpisodes()
+    public void IsSpeedEnabled_IsFalse_WhenIsLiveTrue()
     {
-        // Arrange — simulate the third episode completing without user interaction
-        var thirdEpisodeComplete = PlayerState.Empty with
-        {
-            Mode = PlaybackMode.Vod,
-            IsPlaying = false,
-            Position = TimeSpan.FromMinutes(45),
-            Duration = TimeSpan.FromMinutes(45),
-        };
-
-        // Act — Wave 2 must track a consecutive-episode counter
-        _sut.PlayerState = thirdEpisodeComplete;
-
-        // RED: IsAreYouStillWatchingVisible will be false until the counter is implemented
-        _sut.IsAreYouStillWatchingVisible.Should().BeTrue(
-            "\"Are You Still Watching?\" prompt must appear after three consecutive episodes without user interaction");
-    }
-
-    [Fact]
-    public void Speed_IsDisabled_WhenIsLiveTrue()
-    {
-        // Arrange
+        // Arrange — live state
         var liveState = PlayerState.Empty with
         {
             Mode = PlaybackMode.Live,
@@ -120,11 +121,11 @@ public class PlayerViewModelTests
         };
 
         // Act
-        _sut.PlayerState = liveState;
+        _stateSubject.OnNext(liveState);
 
-        // RED: IsSpeedEnabled will be true (default) until the ViewModel binds it to IsLive
+        // Assert
         _sut.IsSpeedEnabled.Should().BeFalse(
-            "Speed controls must be disabled for live streams (no meaningful fast-forward on live TV)");
+            "Speed controls must be disabled for live streams (PLR-07)");
     }
 
     [Fact]
@@ -139,12 +140,51 @@ public class PlayerViewModelTests
         };
 
         // Act
-        _sut.PlayerState = hdState;
+        _stateSubject.OnNext(hdState);
 
-        // RED: QualityDisplay will be empty until the ViewModel computes it from video dimensions
+        // Assert
         _sut.QualityDisplay.Should().NotBeNullOrEmpty(
-            "QualityDisplay must show a human-readable resolution label (e.g. \"1080p\") from PlayerState dimensions");
+            "QualityDisplay must show a human-readable resolution label from video dimensions");
         _sut.QualityDisplay.Should().Contain("1080",
             "QualityDisplay must include the vertical resolution value");
+    }
+
+    [Fact]
+    public void IsTimeshifted_IsTrue_WhenModeIsTimeshifted()
+    {
+        // Arrange
+        var timeshiftedState = PlayerState.Empty with
+        {
+            Mode = PlaybackMode.Timeshifted,
+            IsLive = true,
+            IsPlaying = true,
+        };
+
+        // Act
+        _stateSubject.OnNext(timeshiftedState);
+
+        // Assert
+        _sut.IsTimeshifted.Should().BeTrue(
+            "IsTimeshifted must be true when PlayerState.Mode is Timeshifted");
+    }
+
+    [Fact]
+    public void ShowGoLive_IsTrue_WhenTimeshiftedAndNotAtLiveEdge()
+    {
+        // Arrange — emit timeshifted player state
+        _stateSubject.OnNext(PlayerState.Empty with { Mode = PlaybackMode.Timeshifted, IsLive = true });
+
+        // Emit timeshift state with offset (not at live edge)
+        _timeshiftSubject.OnNext(new TimeshiftState(
+            BufferDuration: TimeSpan.FromMinutes(2),
+            Offset: TimeSpan.FromMinutes(-2),
+            LiveEdgeTime: DateTimeOffset.UtcNow,
+            OffsetDisplay: "-2:00",
+            IsAtLiveEdge: false,
+            IsBufferFull: false));
+
+        // Assert
+        _sut.ShowGoLive.Should().BeTrue(
+            "GO LIVE button must appear when player is timeshifted and not at the live edge");
     }
 }

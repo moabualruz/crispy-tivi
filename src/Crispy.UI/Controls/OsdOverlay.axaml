@@ -1,0 +1,374 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             x:Class="Crispy.UI.Controls.OsdOverlay"
+             x:DataType="vm:PlayerViewModel"
+             Background="Transparent"
+             IsHitTestVisible="True">
+
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <!-- ═══ TOP BAR ═══════════════════════════════════════════════════════════ -->
+    <Border Grid.Row="0"
+            IsVisible="{Binding IsOsdVisible}"
+            Background="#CC000000"
+            Padding="16,8">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+
+        <!-- Channel logo -->
+        <Border Grid.Column="0"
+                Width="36" Height="36"
+                CornerRadius="4"
+                Background="#1AFFFFFF"
+                Margin="0,0,10,0">
+          <Image Source="{Binding ChannelLogoUrl}"
+                 Stretch="Uniform" />
+        </Border>
+
+        <!-- Channel name + programme -->
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+          <TextBlock Text="{Binding ChannelName}"
+                     FontSize="15"
+                     FontWeight="SemiBold"
+                     Foreground="White" />
+          <TextBlock Text="{Binding CurrentProgramme}"
+                     FontSize="12"
+                     Foreground="#B3FFFFFF" />
+        </StackPanel>
+
+        <!-- LIVE badge (live and NOT timeshifted) -->
+        <Border Grid.Column="2"
+                Margin="8,0"
+                Padding="8,3"
+                CornerRadius="4"
+                Background="#CCE53935">
+          <Border.IsVisible>
+            <MultiBinding Converter="{x:Static BoolConverters.And}">
+              <Binding Path="IsLive" />
+              <Binding Path="!IsTimeshifted" />
+            </MultiBinding>
+          </Border.IsVisible>
+          <TextBlock Text="LIVE"
+                     Foreground="White"
+                     FontSize="11"
+                     FontWeight="Bold" />
+        </Border>
+
+        <!-- Timeshift offset badge -->
+        <Border Grid.Column="2"
+                Margin="8,0"
+                Padding="8,3"
+                CornerRadius="4"
+                Background="#CC555555"
+                IsVisible="{Binding IsTimeshifted}">
+          <TextBlock Text="{Binding TimeshiftOffset}"
+                     Foreground="White"
+                     FontSize="11" />
+        </Border>
+
+        <!-- Quality badge -->
+        <Border Grid.Column="3"
+                Padding="6,3"
+                CornerRadius="4"
+                Background="#881AFFFFFF"
+                IsVisible="{Binding QualityDisplay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                Margin="4,0">
+          <TextBlock Text="{Binding QualityDisplay}"
+                     Foreground="White"
+                     FontSize="11" />
+        </Border>
+
+        <!-- Sleep timer countdown -->
+        <Border Grid.Column="4"
+                Padding="6,3"
+                CornerRadius="4"
+                Background="#881AFFFFFF"
+                IsVisible="{Binding SleepTimerRemaining, Converter={x:Static ObjectConverters.IsNotNull}}"
+                Margin="4,0">
+          <TextBlock Text="{Binding SleepTimerRemaining}"
+                     Foreground="White"
+                     FontSize="11" />
+        </Border>
+
+      </Grid>
+    </Border>
+
+    <!-- ═══ CENTER OVERLAYS ════════════════════════════════════════════════════ -->
+    <Grid Grid.Row="1">
+
+      <!-- Buffering spinner -->
+      <ProgressBar IsIndeterminate="True"
+                   Width="48"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   IsVisible="{Binding IsBuffering}" />
+
+      <!-- Skip Intro button -->
+      <Button Content="Skip Intro"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Bottom"
+              Margin="0,0,24,24"
+              Padding="16,8"
+              IsVisible="{Binding ShowSkipIntro}"
+              Command="{Binding SkipIntroCommand}"
+              Background="#CC000000"
+              Foreground="White" />
+
+      <!-- Skip Credits button (offset slightly above Skip Intro) -->
+      <Button Content="Skip Credits"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Bottom"
+              Margin="0,0,24,80"
+              Padding="16,8"
+              IsVisible="{Binding ShowSkipCredits}"
+              Command="{Binding SkipCreditsCommand}"
+              Background="#CC000000"
+              Foreground="White" />
+
+      <!-- Auto-play countdown -->
+      <Border IsVisible="{Binding ShowAutoPlayCountdown}"
+              Background="#CC000000"
+              CornerRadius="8"
+              Padding="24,16"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              Margin="0,0,32,0"
+              MaxWidth="240">
+        <StackPanel Spacing="8" HorizontalAlignment="Center">
+          <TextBlock Text="Next episode in"
+                     Foreground="#B3FFFFFF"
+                     FontSize="13"
+                     HorizontalAlignment="Center" />
+          <TextBlock Text="{Binding AutoPlayCountdownSeconds}"
+                     Foreground="White"
+                     FontSize="42"
+                     FontWeight="Bold"
+                     HorizontalAlignment="Center" />
+          <Button Content="Cancel"
+                  HorizontalAlignment="Center"
+                  Command="{Binding CancelAutoPlayCommand}"
+                  Background="Transparent"
+                  Foreground="#B3FFFFFF" />
+        </StackPanel>
+      </Border>
+
+      <!-- Are You Still Watching -->
+      <Border IsVisible="{Binding ShowAreYouStillWatching}"
+              Background="#E6000000"
+              CornerRadius="8"
+              Padding="32,24"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16" HorizontalAlignment="Center">
+          <TextBlock Text="Are you still watching?"
+                     Foreground="White"
+                     FontSize="20"
+                     FontWeight="SemiBold"
+                     HorizontalAlignment="Center" />
+          <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+            <Button Content="Continue Watching"
+                    Command="{Binding ContinueWatchingCommand}"
+                    Padding="16,8"
+                    Background="#1AFFFFFF"
+                    Foreground="White" />
+            <Button Content="Stop"
+                    Command="{Binding StopWatchingCommand}"
+                    Padding="16,8"
+                    Background="Transparent"
+                    Foreground="#B3FFFFFF" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Zap overlay (channel switch) -->
+      <Border IsVisible="{Binding ShowZapOverlay}"
+              Background="#CC000000"
+              CornerRadius="12"
+              Padding="20,16"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              Margin="0,0,48,0"
+              Width="300">
+        <StackPanel Spacing="8">
+          <Image Source="{Binding ChannelLogoUrl}"
+                 Width="64" Height="64"
+                 Stretch="Uniform"
+                 HorizontalAlignment="Center" />
+          <TextBlock Text="{Binding ChannelName}"
+                     FontSize="18"
+                     FontWeight="SemiBold"
+                     Foreground="White"
+                     HorizontalAlignment="Center" />
+          <TextBlock Text="{Binding CurrentProgramme}"
+                     FontSize="13"
+                     Foreground="#B3FFFFFF"
+                     TextWrapping="Wrap"
+                     HorizontalAlignment="Center" />
+        </StackPanel>
+      </Border>
+
+      <!-- Direct-tune overlay -->
+      <Border IsVisible="{Binding DirectTuneActive}"
+              Background="#CC000000"
+              CornerRadius="8"
+              Padding="24,16"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <TextBlock Text="{Binding DirectTuneDisplay}"
+                   FontSize="48"
+                   FontWeight="Bold"
+                   Foreground="White"
+                   HorizontalAlignment="Center" />
+      </Border>
+
+      <!-- Error panel -->
+      <Border IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+              Background="#CC000000"
+              CornerRadius="8"
+              Padding="24,16"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              MaxWidth="360">
+        <StackPanel Spacing="12" HorizontalAlignment="Center">
+          <TextBlock Text="{Binding ErrorMessage}"
+                     Foreground="White"
+                     FontSize="15"
+                     TextWrapping="Wrap"
+                     HorizontalAlignment="Center" />
+          <Button Content="Retry"
+                  HorizontalAlignment="Center"
+                  Command="{Binding RetryCommand}"
+                  Padding="24,8"
+                  Background="#1AFFFFFF"
+                  Foreground="White" />
+        </StackPanel>
+      </Border>
+
+    </Grid>
+
+    <!-- ═══ BOTTOM BAR ════════════════════════════════════════════════════════ -->
+    <Border Grid.Row="2"
+            IsVisible="{Binding IsOsdVisible}"
+            Background="#CC000000"
+            Padding="16,10">
+      <StackPanel Spacing="8">
+
+        <!-- Seek bar: wired in code-behind via SeekBarHost -->
+        <ContentControl x:Name="SeekBarHost" />
+
+        <!-- Control row -->
+        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+
+          <!-- Previous channel -->
+          <Button Grid.Column="0"
+                  Content="&#x23EE;"
+                  Command="{Binding PreviousChannelCommand}"
+                  Background="Transparent"
+                  Foreground="White"
+                  FontSize="20"
+                  Padding="8,4" />
+
+          <!-- Pause -->
+          <Button Grid.Column="1"
+                  Content="&#x23F8;"
+                  Command="{Binding PauseCommand}"
+                  IsVisible="{Binding IsPlaying}"
+                  Background="Transparent"
+                  Foreground="White"
+                  FontSize="24"
+                  Padding="8,4" />
+
+          <!-- Resume -->
+          <Button Grid.Column="2"
+                  Content="&#x25B6;"
+                  Command="{Binding ResumeCommand}"
+                  IsVisible="{Binding !IsPlaying}"
+                  Background="Transparent"
+                  Foreground="White"
+                  FontSize="24"
+                  Padding="8,4" />
+
+          <!-- Next channel -->
+          <Button Grid.Column="3"
+                  Content="&#x23ED;"
+                  Command="{Binding NextChannelCommand}"
+                  Background="Transparent"
+                  Foreground="White"
+                  FontSize="20"
+                  Padding="8,4" />
+
+          <!-- Spacer -->
+          <Border Grid.Column="4" />
+
+          <!-- Volume slider -->
+          <Slider Grid.Column="5"
+                  Width="80"
+                  Minimum="0" Maximum="1"
+                  Value="{Binding Volume}"
+                  VerticalAlignment="Center" />
+
+          <!-- Mute -->
+          <Button Grid.Column="6"
+                  Content="&#x1F507;"
+                  Command="{Binding ToggleMuteCommand}"
+                  Background="Transparent"
+                  Foreground="White"
+                  FontSize="18"
+                  Padding="8,4" />
+
+          <!-- Track selector -->
+          <Button Grid.Column="7"
+                  Content="&#x1F3A7;"
+                  Command="{Binding OpenTrackSelectorCommand}"
+                  Background="Transparent"
+                  Foreground="White"
+                  FontSize="18"
+                  Padding="8,4" />
+
+          <!-- PiP toggle -->
+          <Button Grid.Column="8"
+                  Content="&#x2750;"
+                  Command="{Binding TogglePipCommand}"
+                  Background="Transparent"
+                  Foreground="White"
+                  FontSize="18"
+                  Padding="8,4" />
+
+          <!-- External player -->
+          <Button Grid.Column="9"
+                  Content="&#x2197;"
+                  Command="{Binding OpenExternalPlayerCommand}"
+                  Background="Transparent"
+                  Foreground="White"
+                  FontSize="18"
+                  Padding="8,4"
+                  ToolTip.Tip="Open in external player" />
+
+          <!-- Catchup restart -->
+          <Button Grid.Column="10"
+                  Content="&#x23EA;"
+                  IsVisible="{Binding CanRestartFromCatchup}"
+                  Background="Transparent"
+                  Foreground="White"
+                  FontSize="18"
+                  Padding="8,4" />
+
+          <!-- GO LIVE -->
+          <Button Grid.Column="11"
+                  Content="GO LIVE"
+                  IsVisible="{Binding ShowGoLive}"
+                  Command="{Binding GoLiveCommand}"
+                  Background="#CCE53935"
+                  Foreground="White"
+                  FontSize="12"
+                  FontWeight="Bold"
+                  Padding="10,4"
+                  CornerRadius="4" />
+
+        </Grid>
+      </StackPanel>
+    </Border>
+
+  </Grid>
+
+</UserControl>

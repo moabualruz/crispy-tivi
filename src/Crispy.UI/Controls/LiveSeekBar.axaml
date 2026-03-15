@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:Crispy.UI.Controls"
+             mc:Ignorable="d"
+             x:Class="Crispy.UI.Controls.LiveSeekBar"
+             x:DataType="controls:LiveSeekBar">
+
+  <!-- Rendered entirely in code-behind using DrawingContext.
+       This AXAML file satisfies Avalonia's resource/compilation requirements. -->
+  <Canvas x:Name="SeekBarCanvas"
+          Height="48"
+          HorizontalAlignment="Stretch"
+          Background="Transparent"
+          ClipToBounds="False" />
+</UserControl>

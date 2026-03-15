@@ -41,8 +41,14 @@ public static class DependencyInjection
         services.AddTransient<SourcesViewModel>();
         services.AddTransient<AddSourceViewModel>();
         services.AddTransient<EpgViewModel>();
+        services.AddTransient<PlayerViewModel>();
+        services.AddTransient<TrackSelectorViewModel>();
+        services.AddSingleton<MiniPlayerViewModel>(); // singleton — shared state while browsing
 
         // Views (transient — resolved by ViewLocator)
+        services.AddTransient<PlayerView>();
+        services.AddTransient<TrackSelectorView>();
+        services.AddTransient<MiniPlayerView>();
         services.AddTransient<MainView>();
         services.AddTransient<HomeView>();
         services.AddTransient<LiveTvView>();

@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             x:Class="Crispy.UI.Views.MiniPlayerView"
+             x:DataType="vm:MiniPlayerViewModel"
+             IsVisible="{Binding IsVisible}"
+             Width="240" Height="135"
+             HorizontalAlignment="Right"
+             VerticalAlignment="Top">
+
+  <Border Background="#F0121212"
+          CornerRadius="8"
+          ClipToBounds="True"
+          BoxShadow="0 4 12 #80000000">
+
+    <Grid>
+      <!-- Thumbnail / logo -->
+      <Image Source="{Binding ChannelLogoUrl}"
+             Stretch="UniformToFill" />
+      <Border Background="#80000000" />
+
+      <!-- Channel name -->
+      <TextBlock Text="{Binding ChannelName}"
+                 Foreground="White"
+                 FontSize="13"
+                 FontWeight="SemiBold"
+                 VerticalAlignment="Top"
+                 Margin="8,6" />
+
+      <!-- Tap to expand -->
+      <Border Background="Transparent"
+              IsHitTestVisible="True"
+              Tapped="OnVideoAreaTapped" />
+
+      <!-- Controls -->
+      <StackPanel Orientation="Horizontal"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Bottom"
+                  Spacing="4"
+                  Margin="0,0,0,8">
+        <Button Background="Transparent"
+                Foreground="White"
+                FontSize="18"
+                Padding="8,4"
+                Command="{Binding PauseCommand}"
+                IsVisible="{Binding IsPlaying}"
+                Content="&#x23F8;" />
+        <Button Background="Transparent"
+                Foreground="White"
+                FontSize="18"
+                Padding="8,4"
+                Command="{Binding ResumeCommand}"
+                IsVisible="{Binding !IsPlaying}"
+                Content="&#x25B6;" />
+        <Button Background="Transparent"
+                Foreground="White"
+                FontSize="18"
+                Padding="8,4"
+                Command="{Binding StopCommand}"
+                Content="&#x23F9;" />
+      </StackPanel>
+
+    </Grid>
+  </Border>
+
+</UserControl>

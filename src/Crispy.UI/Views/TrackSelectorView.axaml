@@ -1,0 +1,149 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:models="using:Crispy.Application.Player.Models"
+             x:Class="Crispy.UI.Views.TrackSelectorView"
+             x:DataType="vm:TrackSelectorViewModel">
+
+  <!-- Slide-up bottom sheet.
+       Parent (OSD or PlayerView code-behind) controls visibility and slide animation. -->
+  <Border Background="#F0121212"
+          CornerRadius="16,16,0,0"
+          Padding="0,8,0,24"
+          MaxWidth="480">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Spacing="0">
+
+        <!-- Drag handle -->
+        <Border Width="40" Height="4"
+                CornerRadius="2"
+                Background="#40FFFFFF"
+                HorizontalAlignment="Center"
+                Margin="0,8,0,16" />
+
+        <!-- ── Audio section ─────────────────────────────────────────── -->
+        <TextBlock Text="Audio"
+                   Foreground="#80FFFFFF"
+                   FontSize="12"
+                   FontWeight="SemiBold"
+                   Margin="20,0,0,8" />
+
+        <ItemsControl ItemsSource="{Binding AudioTracks}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="models:TrackInfo">
+              <Border Padding="20,10"
+                      Background="Transparent">
+                <Border.Styles>
+                  <Style Selector="Border:pointerover">
+                    <Setter Property="Background" Value="#0AFFFFFF" />
+                  </Style>
+                </Border.Styles>
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Grid.Column="0">
+                    <TextBlock Text="{Binding Name}"
+                               Foreground="White"
+                               FontSize="15" />
+                    <TextBlock Text="{Binding Language}"
+                               Foreground="#80FFFFFF"
+                               FontSize="12"
+                               IsVisible="{Binding Language, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                  <!-- Selected indicator -->
+                  <Border Grid.Column="1"
+                          Width="20" Height="20"
+                          CornerRadius="10"
+                          BorderBrush="#E53935"
+                          BorderThickness="2"
+                          IsVisible="{Binding IsSelected}">
+                    <Border Width="10" Height="10"
+                            CornerRadius="5"
+                            Background="#E53935"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+                  </Border>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- ── Subtitles section ──────────────────────────────────────── -->
+        <Border Height="1" Background="#20FFFFFF" Margin="20,8" />
+
+        <TextBlock Text="Subtitles"
+                   Foreground="#80FFFFFF"
+                   FontSize="12"
+                   FontWeight="SemiBold"
+                   Margin="20,0,0,8" />
+
+        <ItemsControl ItemsSource="{Binding SubtitleTracks}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="models:TrackInfo">
+              <Border Padding="20,10" Background="Transparent">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Grid.Column="0">
+                    <TextBlock Text="{Binding Name}" Foreground="White" FontSize="15" />
+                    <TextBlock Text="{Binding Language}"
+                               Foreground="#80FFFFFF"
+                               FontSize="12"
+                               IsVisible="{Binding Language, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                  <Border Grid.Column="1"
+                          Width="20" Height="20"
+                          CornerRadius="10"
+                          BorderBrush="#E53935"
+                          BorderThickness="2"
+                          IsVisible="{Binding IsSelected}">
+                    <Border Width="10" Height="10"
+                            CornerRadius="5"
+                            Background="#E53935"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+                  </Border>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- ── Speed section (hidden for live TV) ────────────────────── -->
+        <Border IsVisible="{Binding !IsLive}">
+          <StackPanel>
+            <Border Height="1" Background="#20FFFFFF" Margin="20,8" />
+
+            <TextBlock Text="Speed"
+                       Foreground="#80FFFFFF"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Margin="20,0,0,8" />
+
+            <ItemsControl ItemsSource="{Binding SpeedOptions}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel Orientation="Horizontal" Margin="12,0" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SpeedOption">
+                  <Border Padding="12,8"
+                          CornerRadius="6"
+                          Margin="4"
+                          Background="#1AFFFFFF">
+                    <TextBlock Text="{Binding Label}"
+                               Foreground="White"
+                               FontSize="14"
+                               HorizontalAlignment="Center" />
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+
+  </Border>
+
+</UserControl>

@@ -12,9 +12,8 @@ using Xunit;
 namespace Crispy.UI.Tests.ViewModels;
 
 /// <summary>
-/// Unit tests for TrackSelectorViewModel — verifies that the popover is populated
-/// from IPlayerService tracks and that track/speed selection calls the service.
-/// Full implementation target: Wave 2 (03-02).
+/// Unit tests for TrackSelectorViewModel — verifies that UpdateFromState populates
+/// tracks and that track/speed selection calls the service.
 /// </summary>
 [Trait("Category", "Unit")]
 public class TrackSelectorViewModelTests
@@ -41,47 +40,72 @@ public class TrackSelectorViewModelTests
     }
 
     [Fact]
-    public void AudioTracks_Populated_FromPlayerServiceTracks()
+    public void AudioTracks_Populated_AfterUpdateFromState()
     {
-        // RED: Wave 2 must copy IPlayerService.AudioTracks into the ViewModel's
-        // ObservableCollection during initialisation.
-        _sut.AudioTracks.Should().HaveCount(SampleAudioTracks.Count,
-            "AudioTracks must be populated from IPlayerService.AudioTracks on construction");
+        // Arrange
+        var state = PlayerState.Empty with { AudioTracks = SampleAudioTracks };
 
+        // Act — UpdateFromState is called when the player emits a new state
+        _sut.UpdateFromState(state);
+
+        // Assert
+        _sut.AudioTracks.Should().HaveCount(SampleAudioTracks.Count,
+            "AudioTracks must be populated from PlayerState.AudioTracks via UpdateFromState");
         _sut.AudioTracks.Should().Contain(t => t.Language == "en",
-            "The English audio track from the service must appear in the ViewModel collection");
+            "The English audio track must appear in the ViewModel collection");
     }
 
     [Fact]
     public async Task SelectAudioTrack_CallsSetAudioTrackAsync()
     {
-        // Arrange
+        // Arrange — populate tracks first
+        _sut.UpdateFromState(PlayerState.Empty with { AudioTracks = SampleAudioTracks });
         var track = SampleAudioTracks[1]; // French track
 
         // Act
         await _sut.SelectAudioTrackCommand.ExecuteAsync(track);
 
-        // RED: the stub command does nothing — Wave 2 must call the service
+        // Assert
         await _playerService.Received(1).SetAudioTrackAsync(track.Id);
     }
 
     [Fact]
-    public void SpeedOptions_DoNotIncludeValues_WhenIsLive()
+    public void SpeedOptions_AlwaysContainFullPresetList()
     {
-        // Arrange — live state
-        var liveState = PlayerState.Empty with
-        {
-            Mode = PlaybackMode.Live,
-            IsLive = true,
-        };
+        // SpeedOptions is always the full list — the View hides the speed section
+        // when IsLive=true (see TrackSelectorView.axaml !IsLive binding).
+        // The ViewModel exposes all presets and lets the View decide visibility.
+        _sut.SpeedOptions.Should().HaveCount(6,
+            "SpeedOptions must always expose all 6 preset values (0.5x–2.0x); " +
+            "the View hides the section for live TV via IsLive binding");
+    }
 
-        _playerService.State.Returns(liveState);
+    [Fact]
+    public void IsLive_IsTrue_WhenStateIsLive()
+    {
+        // Arrange
+        var liveState = PlayerState.Empty with { Mode = PlaybackMode.Live, IsLive = true };
 
-        // Recreate ViewModel so it initialises with the live state
-        var sut = new TrackSelectorViewModel(_playerService);
+        // Act
+        _sut.UpdateFromState(liveState);
 
-        // RED: SpeedOptions will be populated until Wave 2 conditionally hides them for live
-        sut.SpeedOptions.Should().BeEmpty(
-            "Speed options must not be shown for live streams — changing playback rate on a live stream is meaningless");
+        // Assert
+        _sut.IsLive.Should().BeTrue(
+            "IsLive must be set from PlayerState so the View can hide the speed section");
+    }
+
+    [Fact]
+    public void SelectedAudioTrack_IsSetToActiveTrack_AfterUpdateFromState()
+    {
+        // Arrange — English track is IsSelected=true
+        var state = PlayerState.Empty with { AudioTracks = SampleAudioTracks };
+
+        // Act
+        _sut.UpdateFromState(state);
+
+        // Assert
+        _sut.SelectedAudioTrack.Should().NotBeNull();
+        _sut.SelectedAudioTrack!.Language.Should().Be("en",
+            "SelectedAudioTrack must be set to the currently active track");
     }
 }
