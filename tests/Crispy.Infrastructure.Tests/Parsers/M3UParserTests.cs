@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Crispy.Infrastructure.Tests.Parsers;
 
+[Trait("Category", "Unit")]
 public class M3UParserTests
 {
     private static Stream MakeStream(string content, Encoding? encoding = null)
@@ -151,5 +152,93 @@ public class M3UParserTests
         entries.Should().HaveCount(2, "malformed entry should be returned via lenient path, not dropped");
         entries[1].Title.Should().Be("Malformed 1");
         entries[1].IsLenientParsed.Should().BeTrue();
+    }
+
+    // ------------------------------------------------------------------
+    // Empty stream → yields nothing
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task ParseStreamAsync_YieldsNothing_WhenStreamIsEmpty()
+    {
+        using var stream = MakeStream(string.Empty);
+        var parser = new M3UParser();
+
+        var entries = new List<M3UEntry>();
+        await foreach (var e in parser.ParseStreamAsync(stream))
+            entries.Add(e);
+
+        entries.Should().BeEmpty();
+    }
+
+    // ------------------------------------------------------------------
+    // EXTINF without URL (no subsequent URL line) → not yielded
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task ParseStreamAsync_SkipsExtinf_WhenNoUrlFollows()
+    {
+        const string m3u = """
+            #EXTM3U
+            #EXTINF:-1 tvg-id="nourl",No URL Channel
+            """;
+
+        using var stream = MakeStream(m3u);
+        var parser = new M3UParser();
+
+        var entries = new List<M3UEntry>();
+        await foreach (var e in parser.ParseStreamAsync(stream))
+            entries.Add(e);
+
+        entries.Should().BeEmpty();
+    }
+
+    // ------------------------------------------------------------------
+    // Cancellation mid-stream
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task ParseStreamAsync_ThrowsOperationCanceledException_WhenCancelled()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var parser = new M3UParser();
+        using var stream = MakeStream("#EXTM3U\n#EXTINF:-1,Ch\nhttps://s.example.com/1.ts\n");
+
+        var act = async () =>
+        {
+            await foreach (var _ in parser.ParseStreamAsync(stream, cts.Token))
+            {
+                // consume
+            }
+        };
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    // ------------------------------------------------------------------
+    // KODIPROP stream headers
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task ParseStreamAsync_KodiPropStreamHeaders_Extracted()
+    {
+        // The parser looks for the literal prefix (no leading #):
+        // "KODIPROP:inputstream.adaptive.stream_headers="
+        const string m3u = "#EXTM3U\r\n" +
+            "#EXTINF:-1 tvg-id=\"kodi\" tvg-name=\"Kodi\",Kodi Channel\r\n" +
+            "KODIPROP:inputstream.adaptive.stream_headers=X-Token=abc123\r\n" +
+            "https://stream.example.com/kodi.ts\r\n";
+
+        using var stream = MakeStream(m3u);
+        var parser = new M3UParser();
+
+        var entries = new List<M3UEntry>();
+        await foreach (var e in parser.ParseStreamAsync(stream))
+            entries.Add(e);
+
+        entries.Should().HaveCount(1);
+        entries[0].KodiStreamHeaders.Should().Be("X-Token=abc123");
     }
 }
