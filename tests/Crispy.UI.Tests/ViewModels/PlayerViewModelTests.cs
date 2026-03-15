@@ -1,3 +1,5 @@
+using Avalonia.Headless.XUnit;
+
 using Crispy.Application.Player;
 using Crispy.Application.Player.Models;
 using Crispy.UI.Tests.Helpers;
@@ -52,7 +54,7 @@ public class PlayerViewModelTests
         _sut = new PlayerViewModel(_playerService, _timeshiftService, _sleepTimerService);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void ShowSkipIntro_IsTrue_WhenPositionWithinIntroMarker()
     {
         // Arrange — configure a 0–90s intro marker
@@ -75,7 +77,7 @@ public class PlayerViewModelTests
             "Skip Intro button must appear when playback position falls within the intro marker window");
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void ShowSkipIntro_IsFalse_WhenNoMarkers()
     {
         // Arrange — default: no markers set
@@ -87,7 +89,7 @@ public class PlayerViewModelTests
             "Skip Intro button must be hidden when no intro marker is present");
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void ShowAutoPlayCountdown_IsTrue_WhenNearEndOfVod()
     {
         // Arrange — position within last 30s of a 45-minute VOD
@@ -109,7 +111,7 @@ public class PlayerViewModelTests
             "Auto-play countdown must start at a positive value");
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void IsSpeedEnabled_IsFalse_WhenIsLiveTrue()
     {
         // Arrange — live state
@@ -128,7 +130,7 @@ public class PlayerViewModelTests
             "Speed controls must be disabled for live streams (PLR-07)");
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void QualityDisplay_ShowsResolution_FromPlayerState()
     {
         // Arrange
@@ -149,7 +151,7 @@ public class PlayerViewModelTests
             "QualityDisplay must include the vertical resolution value");
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void IsTimeshifted_IsTrue_WhenModeIsTimeshifted()
     {
         // Arrange
@@ -168,7 +170,7 @@ public class PlayerViewModelTests
             "IsTimeshifted must be true when PlayerState.Mode is Timeshifted");
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void ShowGoLive_IsTrue_WhenTimeshiftedAndNotAtLiveEdge()
     {
         // Arrange — emit timeshifted player state
