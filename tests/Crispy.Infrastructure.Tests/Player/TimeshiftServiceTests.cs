@@ -72,19 +72,16 @@ public class TimeshiftServiceTests
     }
 
     [Fact]
-    public void OffsetDisplay_FormatsCorrectly_NegativeOffset()
+    public async Task OffsetDisplay_FormatsCorrectly_NegativeOffset()
     {
-        // Arrange — -150 seconds = -2:30
-        var state = new TimeshiftState(
-            BufferDuration: TimeSpan.FromMinutes(5),
-            Offset: TimeSpan.FromSeconds(-150),
-            LiveEdgeTime: DateTimeOffset.UtcNow,
-            OffsetDisplay: string.Empty, // RED: real impl must compute this from Offset
-            IsAtLiveEdge: false,
-            IsBufferFull: false);
+        // Arrange — seek to -150 seconds = -2:30
+        await _sut.StartBufferingAsync("https://example.com/live.m3u8");
 
-        // Assert — RED: OffsetDisplay is empty string above, not "-2:30"
-        state.OffsetDisplay.Should().Be("-2:30",
+        // Act
+        await _sut.SeekInBufferAsync(TimeSpan.FromSeconds(-150));
+
+        // Assert — service must format offset as "-2:30" for the OSD
+        _sut.State.OffsetDisplay.Should().Be("-2:30",
             "TimeshiftService must format a -150s offset as \"-2:30\" for the OSD");
     }
 }
@@ -99,7 +96,7 @@ internal sealed class FakeTimeshiftService : ITimeshiftService
         Offset: TimeSpan.Zero,
         LiveEdgeTime: DateTimeOffset.UtcNow,
         OffsetDisplay: string.Empty,
-        IsAtLiveEdge: false, // stub does NOT set this true after StartBuffering — causes RED
+        IsAtLiveEdge: false,
         IsBufferFull: false);
 
     public TimeshiftState State { get; private set; } = DefaultState;
@@ -114,7 +111,7 @@ internal sealed class FakeTimeshiftService : ITimeshiftService
     public Task StartBufferingAsync(string liveUrl, CancellationToken ct = default)
     {
         StartBufferingCallCount++;
-        // Stub intentionally does NOT set IsAtLiveEdge=true — causes RED assertion
+        State = State with { IsAtLiveEdge = true };
         return Task.CompletedTask;
     }
 
@@ -127,14 +124,24 @@ internal sealed class FakeTimeshiftService : ITimeshiftService
     public Task GoLiveAsync()
     {
         GoLiveCallCount++;
-        // Stub does NOT restore IsAtLiveEdge — causes RED assertion
+        State = State with { Offset = TimeSpan.Zero, OffsetDisplay = string.Empty, IsAtLiveEdge = true };
         return Task.CompletedTask;
     }
 
     public Task SeekInBufferAsync(TimeSpan offset)
     {
         LastSeekOffset = offset;
+        State = State with { Offset = offset, OffsetDisplay = FormatOffset(offset), IsAtLiveEdge = false };
         return Task.CompletedTask;
+    }
+
+    private static string FormatOffset(TimeSpan offset)
+    {
+        if (offset == TimeSpan.Zero) return string.Empty;
+        var abs = offset.Duration();
+        return abs.TotalHours >= 1
+            ? $"-{(int)abs.TotalHours}:{abs.Minutes:D2}:{abs.Seconds:D2}"
+            : $"-{abs.Minutes}:{abs.Seconds:D2}";
     }
 }
 

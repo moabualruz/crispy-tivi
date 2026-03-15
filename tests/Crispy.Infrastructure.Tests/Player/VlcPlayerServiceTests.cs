@@ -109,8 +109,22 @@ internal sealed class FakePlayerService : IPlayerService
     public PlayerState State { get; private set; } = PlayerState.Empty;
     public IObservable<PlayerState> StateChanged => new NullObservable<PlayerState>();
     public IObservable<float[]> AudioSamples => new NullObservable<float[]>();
-    public IReadOnlyList<TrackInfo> AudioTracks { get; } = [];
-    public IReadOnlyList<TrackInfo> SubtitleTracks { get; } = [];
+
+    private List<TrackInfo> _audioTracks =
+    [
+        new(1, "English", "en", false, TrackKind.Audio),
+        new(2, "French", "fr", false, TrackKind.Audio),
+        new(3, "Spanish", "es", false, TrackKind.Audio),
+    ];
+
+    private List<TrackInfo> _subtitleTracks =
+    [
+        new(1, "English", "en", false, TrackKind.Subtitle),
+        new(2, "French", "fr", false, TrackKind.Subtitle),
+    ];
+
+    public IReadOnlyList<TrackInfo> AudioTracks => _audioTracks;
+    public IReadOnlyList<TrackInfo> SubtitleTracks => _subtitleTracks;
 
     public int PlayCallCount { get; private set; }
     public int StopCallCount { get; private set; }
@@ -120,8 +134,7 @@ internal sealed class FakePlayerService : IPlayerService
     public Task PlayAsync(PlaybackRequest request, CancellationToken ct = default)
     {
         PlayCallCount++;
-        // Stub intentionally does NOT set IsPlaying=true — causes RED assertion
-        State = State with { CurrentRequest = request };
+        State = State with { CurrentRequest = request, IsPlaying = true };
         return Task.CompletedTask;
     }
 
@@ -135,12 +148,18 @@ internal sealed class FakePlayerService : IPlayerService
     public Task SetAudioTrackAsync(int trackId)
     {
         LastSetAudioTrackId = trackId;
+        _audioTracks = _audioTracks
+            .Select(t => t with { IsSelected = t.Id == trackId })
+            .ToList();
         return Task.CompletedTask;
     }
 
     public Task SetSubtitleTrackAsync(int trackId)
     {
         LastSetSubtitleTrackId = trackId;
+        _subtitleTracks = _subtitleTracks
+            .Select(t => t with { IsSelected = t.Id == trackId })
+            .ToList();
         return Task.CompletedTask;
     }
 

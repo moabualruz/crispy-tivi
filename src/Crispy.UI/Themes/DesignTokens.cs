@@ -52,7 +52,7 @@ public static class DesignTokens
     public static readonly TimeSpan SlowDuration = TimeSpan.FromMilliseconds(400);
 
     /// <summary>
-    /// Curated accent color palette (8 colors).
+    /// Curated accent color palette (9 colors).
     /// Index maps to user selection in settings.
     /// </summary>
     public static readonly Color[] AccentPalette =

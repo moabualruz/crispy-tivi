@@ -44,10 +44,32 @@ internal sealed class Program
 
         Services = services.BuildServiceProvider();
 
-        // Ensure database is created and seeded
+        // Ensure database schema matches the current model.
+        // EnsureCreated() creates all tables from the model on first run but cannot
+        // add columns to existing tables. When the schema evolves, we detect stale
+        // DBs and recreate them. This is safe during early development; production
+        // will switch to Migrate() once an initial migration baseline is created.
         var dbFactory = Services.GetRequiredService<IDbContextFactory<AppDbContext>>();
         using (var context = dbFactory.CreateDbContext())
         {
+            if (context.Database.CanConnect())
+            {
+                // Detect schema drift: if a column added in a later phase is missing,
+                // the DB was created before that column existed. Recreate it.
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT count(*) FROM pragma_table_info('Sources') WHERE name='EncryptedPassword'";
+                var hasEncryptedCol = Convert.ToInt64(cmd.ExecuteScalar()) > 0;
+                conn.Close();
+
+                if (!hasEncryptedCol)
+                {
+                    Console.WriteLine("[DB] Stale schema detected (missing EncryptedPassword). Recreating DB...");
+                    context.Database.EnsureDeleted();
+                }
+            }
+
             context.Database.EnsureCreated();
         }
 
