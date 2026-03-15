@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Crispy.Infrastructure.Tests.Security;
 
+[Trait("Category", "Unit")]
 public class CredentialEncryptionTests
 {
     private readonly CredentialEncryption _sut = new();
@@ -67,5 +68,84 @@ public class CredentialEncryptionTests
         var decrypted = _sut.Decrypt(encrypted);
 
         decrypted.Should().Be(unicode);
+    }
+
+    // ------------------------------------------------------------------
+    // Null argument guards
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public void Encrypt_NullInput_ThrowsArgumentNullException()
+    {
+        var act = () => _sut.Encrypt(null!);
+
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Decrypt_NullInput_ThrowsArgumentNullException()
+    {
+        var act = () => _sut.Decrypt(null!);
+
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    // ------------------------------------------------------------------
+    // Invalid base64 → FormatException
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public void Decrypt_InvalidBase64_ThrowsFormatException()
+    {
+        var act = () => _sut.Decrypt("not-valid-base64!!!");
+
+        act.Should().Throw<FormatException>();
+    }
+
+    // ------------------------------------------------------------------
+    // Large payload roundtrip
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public void Encrypt_ThenDecrypt_LargePayload_RoundTrips()
+    {
+        var large = new string('x', 10_000);
+
+        var encrypted = _sut.Encrypt(large);
+        var decrypted = _sut.Decrypt(encrypted);
+
+        decrypted.Should().Be(large);
+    }
+
+    // ------------------------------------------------------------------
+    // Encrypt returns valid base64
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public void Encrypt_ReturnsValidBase64String()
+    {
+        var encrypted = _sut.Encrypt("test-value");
+
+        var act = () => Convert.FromBase64String(encrypted);
+
+        act.Should().NotThrow();
+    }
+
+    // ------------------------------------------------------------------
+    // Second instance reuses existing key file (LoadOrCreateKey "file exists" branch)
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public void Encrypt_ThenDecrypt_WithSecondInstance_RoundTrips()
+    {
+        // First instance creates or reuses the key file
+        var first = new CredentialEncryption();
+        var encrypted = first.Encrypt("cross-instance-test");
+
+        // Second instance must load the same key from disk
+        var second = new CredentialEncryption();
+        var decrypted = second.Decrypt(encrypted);
+
+        decrypted.Should().Be("cross-instance-test");
     }
 }
