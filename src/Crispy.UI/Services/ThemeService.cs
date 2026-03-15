@@ -118,41 +118,20 @@ public class ThemeService : IThemeService
             return;
         }
 
-        // Remove existing custom theme dictionaries from ALL levels
-        var merged = app.Resources.MergedDictionaries;
-
-        // Check both top-level and nested ResourceDictionary
-        var toRemove = new List<IResourceProvider>();
-        foreach (var item in merged)
-        {
-            if (item is ResourceInclude ri && ri.Source?.ToString().Contains("Theme.axaml") == true)
-            {
-                toRemove.Add(ri);
-            }
-            else if (item is ResourceDictionary rd)
-            {
-                var nested = rd.MergedDictionaries
-                    .OfType<ResourceInclude>()
-                    .Where(r => r.Source?.ToString().Contains("Theme.axaml") == true)
-                    .ToList();
-                foreach (var n in nested)
-                {
-                    rd.MergedDictionaries.Remove(n);
-                }
-            }
-        }
-
-        foreach (var item in toRemove)
-        {
-            merged.Remove(item);
-        }
-
-        // Add the new theme dictionary at top level
-        var include = new ResourceInclude(new Uri("avares://Crispy.UI"))
+        // Load the theme ResourceDictionary and copy each resource
+        // directly into app.Resources — this reliably triggers DynamicResource updates
+        var themeDict = new ResourceInclude(new Uri("avares://Crispy.UI"))
         {
             Source = new Uri(uri),
         };
-        merged.Insert(0, include);
+
+        if (themeDict.Loaded is ResourceDictionary loaded)
+        {
+            foreach (var kvp in loaded)
+            {
+                app.Resources[kvp.Key] = kvp.Value;
+            }
+        }
     }
 
     private static void ApplyAccentColor(int index)
