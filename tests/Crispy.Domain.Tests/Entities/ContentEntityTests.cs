@@ -177,4 +177,122 @@ public class ContentEntityTests
 
         prog.ChannelId.Should().Be("bbc-one");
     }
+
+    // --- Channel ---
+
+    [Fact]
+    public void Channel_Title_IsSet()
+    {
+        var channel = new Channel { Title = "BBC One", SourceId = 1 };
+
+        channel.Title.Should().Be("BBC One");
+    }
+
+    [Fact]
+    public void Channel_SourceId_IsSet()
+    {
+        var channel = new Channel { Title = "BBC One", SourceId = 42 };
+
+        channel.SourceId.Should().Be(42);
+    }
+
+    [Fact]
+    public void Channel_TvgLogo_BacksThumbnail()
+    {
+        var channel = new Channel
+        {
+            Title = "BBC One",
+            SourceId = 1,
+            TvgLogo = "https://example.com/logo.png",
+        };
+
+        channel.Thumbnail.Should().Be("https://example.com/logo.png");
+        channel.TvgLogo.Should().Be("https://example.com/logo.png");
+    }
+
+    [Fact]
+    public void Channel_GroupName_CanBeSet()
+    {
+        var channel = new Channel { Title = "Sky Sports", SourceId = 1, GroupName = "Sports" };
+
+        channel.GroupName.Should().Be("Sports");
+    }
+
+    [Fact]
+    public void Channel_EpgChannelId_CanBeSet()
+    {
+        var channel = new Channel { Title = "BBC One", SourceId = 1, TvgId = "bbc-one.uk" };
+
+        channel.TvgId.Should().Be("bbc-one.uk");
+    }
+
+    [Fact]
+    public void Channel_IsEnabled_IsFalseByDefault_ViaIsHidden()
+    {
+        var channel = new Channel { Title = "BBC One", SourceId = 1 };
+
+        // Channel has no IsEnabled; hidden defaults false (visible by default)
+        channel.IsHidden.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Channel_IsRadio_DefaultsToFalse()
+    {
+        var channel = new Channel { Title = "BBC Radio 4", SourceId = 1 };
+
+        channel.IsRadio.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Channel_IsFavorite_DefaultsToFalse()
+    {
+        var channel = new Channel { Title = "BBC One", SourceId = 1 };
+
+        channel.IsFavorite.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Channel_StreamEndpoints_DefaultsToEmpty()
+    {
+        var channel = new Channel { Title = "BBC One", SourceId = 1 };
+
+        channel.StreamEndpoints.Should().NotBeNull();
+        channel.StreamEndpoints.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Channel_GroupMemberships_DefaultsToEmpty()
+    {
+        var channel = new Channel { Title = "BBC One", SourceId = 1 };
+
+        channel.GroupMemberships.Should().NotBeNull();
+        channel.GroupMemberships.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Channel_OptionalFields_DefaultToNull()
+    {
+        var channel = new Channel { Title = "BBC One", SourceId = 1 };
+
+        channel.TvgId.Should().BeNull();
+        channel.TvgName.Should().BeNull();
+        channel.TvgLogo.Should().BeNull();
+        channel.TvgChno.Should().BeNull();
+        channel.GroupName.Should().BeNull();
+        channel.CatchupSource.Should().BeNull();
+        channel.UnifiedNumber.Should().BeNull();
+        channel.UserAssignedNumber.Should().BeNull();
+        channel.CustomSortOrder.Should().BeNull();
+        channel.DeduplicationGroupId.Should().BeNull();
+        channel.DeduplicationGroup.Should().BeNull();
+        channel.Source.Should().BeNull();
+    }
+
+    [Fact]
+    public void Channel_MissedSyncCount_DefaultsToZero()
+    {
+        var channel = new Channel { Title = "BBC One", SourceId = 1 };
+
+        channel.MissedSyncCount.Should().Be(0);
+    }
 }
