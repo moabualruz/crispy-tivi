@@ -43,4 +43,4 @@ logs/
 ## User-specific config
 ##
 appsettings.Development.json
-appsettings.Local.json
+appsettings.Local.json*.binlog
