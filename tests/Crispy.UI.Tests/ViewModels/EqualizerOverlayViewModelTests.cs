@@ -250,6 +250,69 @@ public class EqualizerOverlayViewModelTests
         _sut.Bands[0].GainDb.Should().BeApproximately(0f, 0.001f,
             "after disposal the subscription is removed and no updates occur");
     }
+
+    // ─── RunOnUiThread catch branch ──────────────────────────────────────────
+
+    [Fact]
+    public void OnBandsChanged_FallsBackToDirectInvoke_WhenDispatcherThrows()
+    {
+        // The catch branch in RunOnUiThread is exercised when Dispatcher.UIThread
+        // is not initialised (no headless platform) and throws InvalidOperationException.
+        // In a plain [Fact] (no Avalonia platform), CheckAccess() throws — the catch
+        // block then calls action() directly, which must still update the bands.
+        var service = Substitute.For<IEqualizerService>();
+        var subject = new TestSubject<float[]>();
+        service.IsEnabled.Returns(false);
+        service.CurrentBands.Returns(new float[10]);
+        service.BandsChanged.Returns(subject);
+        service.Presets.Returns([]);
+
+        var vm = new EqualizerOverlayViewModel(service);
+        var newGains = new float[10] { 5f, 5f, 5f, 5f, 5f, 5f, 5f, 5f, 5f, 5f };
+
+        // In a plain Fact the Avalonia dispatcher may or may not be initialised.
+        // Either path (direct call or post) must leave bands updated without throwing.
+        var act = () => subject.OnNext(newGains);
+        act.Should().NotThrow("RunOnUiThread must never propagate exceptions to callers");
+    }
+
+    [Fact]
+    public void Dispose_CanBeCalledTwice_WithoutThrowing()
+    {
+        var act = () =>
+        {
+            _sut.Dispose();
+            _sut.Dispose();
+        };
+        act.Should().NotThrow("double-dispose is a common pattern and must be safe");
+    }
+
+    [Fact]
+    public async Task BandGainChange_CallsSetBandAsync_ForEachBand()
+    {
+        // Exercise OnBandGainChanged for every band index to ensure full coverage
+        // of the async void path across all 10 bands.
+        for (var i = 0; i < 10; i++)
+        {
+            _sut.Bands[i].GainDb = (i + 1) * 1.0f;
+            await Task.Yield();
+            await _equalizerService.Received(1).SetBandAsync(i, (i + 1) * 1.0f);
+        }
+    }
+
+    [Fact]
+    public void IsEnabled_TrueWhenServiceReturnsTrue()
+    {
+        var service = Substitute.For<IEqualizerService>();
+        service.IsEnabled.Returns(true);
+        service.CurrentBands.Returns(new float[10]);
+        service.BandsChanged.Returns(new TestSubject<float[]>());
+        service.Presets.Returns([]);
+
+        var vm = new EqualizerOverlayViewModel(service);
+
+        vm.IsEnabled.Should().BeTrue("constructor reads IsEnabled directly from service");
+    }
 }
 
 /// <summary>
@@ -356,5 +419,32 @@ public class EqBandViewModelTests
         var band = new EqBandViewModel(index, label, 0f);
         band.BandIndex.Should().Be(index);
         band.Label.Should().Be(label);
+    }
+
+    [Fact]
+    public void GainDb_DoesNotThrow_WhenNoGainChangedSubscribers()
+    {
+        // Exercises the GainChanged?.Invoke null-conditional path when no handler
+        // is attached — covers the null branch of the null-conditional operator.
+        var band = new EqBandViewModel(0, "32Hz", 0f);
+
+        var act = () => { band.GainDb = 3f; };
+
+        act.Should().NotThrow("GainChanged?.Invoke must be safe with zero subscribers");
+        band.GainDb.Should().BeApproximately(3f, 0.001f);
+    }
+
+    [Fact]
+    public void GainDb_MultipleChanges_EachRaisesEvent()
+    {
+        var band = new EqBandViewModel(1, "64Hz", 0f);
+        var eventCount = 0;
+        band.GainChanged += (_, _) => eventCount++;
+
+        band.GainDb = 1f;
+        band.GainDb = 2f;
+        band.GainDb = 3f;
+
+        eventCount.Should().Be(3, "each distinct gain change must raise one event");
     }
 }

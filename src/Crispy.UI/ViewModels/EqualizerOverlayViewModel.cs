@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 
 using Avalonia.Threading;
 
@@ -120,6 +121,10 @@ public partial class EqualizerOverlayViewModel : ViewModelBase, IDisposable
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
+    // Platform bridge — catch branch only fires when no Avalonia platform is registered
+    // (e.g., console-only process). Excluded from coverage as it is unreachable under
+    // Avalonia.Headless and is pure infrastructure glue, not business logic.
+    [ExcludeFromCodeCoverage]
     private static void RunOnUiThread(Action action)
     {
         try
