@@ -1,9 +1,6 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
 
 namespace Crispy.UI.Views;
 
@@ -13,6 +10,7 @@ namespace Crispy.UI.Views;
 public partial class MainView : UserControl
 {
     private Controls.NavigationRail? _rail;
+    private Panel? _contentPanel;
 
     /// <summary>
     /// Creates a new MainView.
@@ -22,6 +20,8 @@ public partial class MainView : UserControl
         InitializeComponent();
 
         _rail = this.FindControl<Controls.NavigationRail>("NavRail");
+        _contentPanel = this.FindControl<Panel>("ContentPanel");
+
         if (_rail is not null)
         {
             _rail.ItemSelected += item =>
@@ -32,15 +32,33 @@ public partial class MainView : UserControl
                 }
             };
 
-            // Enter on a rail item → move keyboard focus into the content area
-            _rail.EnterPressed += MovesFocusToContent;
+            // Enter on the already-selected rail item → re-navigate to that screen.
+            // Focus movement into content is handled by XYFocus (Right arrow).
+            _rail.EnterPressed += () =>
+            {
+                if (DataContext is ViewModels.MainViewModel vm && _rail.SelectedItem is { } item)
+                {
+                    vm.SelectedNavItem = item;
+                }
+            };
         }
 
-        // Focus the rail's primary list once the visual tree is ready
         AttachedToVisualTree += (_, _) =>
+        {
+            // Block XYFocus from targeting covered content while the overlay pane
+            // is open (workaround for Avalonia issue #14985).
+            var splitView = this.FindControl<SplitView>("MainSplitView");
+            if (splitView is not null)
+            {
+                splitView.PaneOpened += (_, _) => SetContentHitTest(false);
+                splitView.PaneClosed += (_, _) => SetContentHitTest(true);
+            }
+
+            // Give the rail focus on first load so arrow keys work immediately.
             Dispatcher.UIThread.Post(
                 () => _rail?.FocusPrimaryList(),
                 DispatcherPriority.Loaded);
+        };
     }
 
     private void OnRailPointerEntered(object? sender, PointerEventArgs e)
@@ -64,64 +82,23 @@ public partial class MainView : UserControl
     {
         base.OnKeyDown(e);
 
-        if (DataContext is not ViewModels.MainViewModel vm)
+        if (e.Key is Key.Escape or Key.Back)
         {
-            return;
-        }
-
-        switch (e.Key)
-        {
-            case Key.Escape:
-            case Key.Back:
-                // If focus is inside the content area, move it back to the rail
-                if (IsFocusInContent())
-                {
-                    _rail?.FocusPrimaryList();
-                    e.Handled = true;
-                    return;
-                }
-
-                if (vm.CanGoBack)
-                {
-                    vm.GoBackCommand.Execute(null);
-                    e.Handled = true;
-                }
-
-                break;
+            if (DataContext is ViewModels.MainViewModel { CanGoBack: true } vm)
+            {
+                vm.GoBackCommand.Execute(null);
+                e.Handled = true;
+            }
         }
     }
 
-    // Moves keyboard focus to the first focusable element inside the content
-    // area (the TransitioningContentControl child).
-    private void MovesFocusToContent()
+    // Prevents XYFocus from targeting content controls while the SplitView
+    // overlay pane is open in front of them.
+    private void SetContentHitTest(bool enabled)
     {
-        // Walk the visual tree to find the TransitioningContentControl
-        var tcc = this.FindDescendantOfType<TransitioningContentControl>();
-        if (tcc is null)
+        if (_contentPanel is not null)
         {
-            return;
+            _contentPanel.IsHitTestVisible = enabled;
         }
-
-        // Find the first focusable descendant inside the content presenter
-        var focusable = tcc
-            .GetVisualDescendants()
-            .OfType<InputElement>()
-            .FirstOrDefault(el => el.Focusable && el.IsEffectivelyVisible);
-
-        focusable?.Focus();
-    }
-
-    // Returns true when keyboard focus currently sits inside the content area
-    // (i.e. not inside the navigation rail pane).
-    private bool IsFocusInContent()
-    {
-        var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as Visual;
-        if (focused is null)
-        {
-            return false;
-        }
-
-        return focused.GetVisualAncestors().Contains(_rail) == false
-            && this.GetVisualDescendants().Contains(focused);
     }
 }

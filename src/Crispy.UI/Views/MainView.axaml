@@ -5,7 +5,8 @@
              x:Class="Crispy.UI.Views.MainView"
              x:DataType="vm:MainViewModel">
 
-  <SplitView DisplayMode="CompactOverlay"
+  <SplitView x:Name="MainSplitView"
+             DisplayMode="CompactOverlay"
              IsPaneOpen="{Binding IsRailExpanded}"
              CompactPaneLength="64"
              OpenPaneLength="256"
@@ -25,7 +26,7 @@
 
     <!-- Content Area -->
     <SplitView.Content>
-      <Panel>
+      <Panel x:Name="ContentPanel">
         <!-- Page content with crossfade transition -->
         <TransitioningContentControl Content="{Binding CurrentPage}"
                                      Margin="0 0 0 64">

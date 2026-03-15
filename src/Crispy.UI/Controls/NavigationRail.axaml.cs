@@ -59,6 +59,50 @@ public partial class NavigationRail : UserControl
         var primaryList = this.FindControl<ListBox>("PrimaryList");
         var secondaryList = this.FindControl<ListBox>("SecondaryList");
 
+        // Intercept arrow keys in the tunnel phase so we can break out of a
+        // ListBox when the user presses Down on the last item (→ jump to
+        // SecondaryList) or Up on the first item of SecondaryList (→ jump back).
+        if (primaryList is not null && secondaryList is not null)
+        {
+            primaryList.AddHandler(
+                KeyDownEvent,
+                (_, e) =>
+                {
+                    if (e.Key == Key.Down
+                        && primaryList.SelectedIndex == primaryList.ItemCount - 1)
+                    {
+                        if (secondaryList.ItemCount > 0)
+                        {
+                            secondaryList.SelectedIndex = 0;
+                            secondaryList.ContainerFromIndex(0)?.Focus(NavigationMethod.Directional);
+                        }
+
+                        e.Handled = true;
+                    }
+                },
+                handledEventsToo: false,
+                routes: Avalonia.Interactivity.RoutingStrategies.Tunnel);
+
+            secondaryList.AddHandler(
+                KeyDownEvent,
+                (_, e) =>
+                {
+                    if (e.Key == Key.Up && secondaryList.SelectedIndex == 0)
+                    {
+                        if (primaryList.ItemCount > 0)
+                        {
+                            var lastIdx = primaryList.ItemCount - 1;
+                            primaryList.SelectedIndex = lastIdx;
+                            primaryList.ContainerFromIndex(lastIdx)?.Focus(NavigationMethod.Directional);
+                        }
+
+                        e.Handled = true;
+                    }
+                },
+                handledEventsToo: false,
+                routes: Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        }
+
         if (primaryList is not null)
         {
             primaryList.SelectionChanged += (_, args) =>

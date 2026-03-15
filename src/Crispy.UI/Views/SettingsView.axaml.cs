@@ -25,21 +25,14 @@ public partial class SettingsView : UserControl
 
         switch (e.Key)
         {
+            // Right arrow or Enter from the category list → jump into the settings panel.
+            // XYFocus handles Left arrow from panel back to list automatically
+            // because the list is spatially to the left.
+            case Key.Right:
             case Key.Enter:
-                // Enter on the category list → move focus to the right panel
                 if (IsFocusInCategoryList())
                 {
                     MoveFocusToRightPanel();
-                    e.Handled = true;
-                }
-
-                break;
-
-            case Key.Escape:
-                // Escape from the right panel → move focus back to the category list
-                if (!IsFocusInCategoryList())
-                {
-                    FocusCategoryList();
                     e.Handled = true;
                 }
 
@@ -81,12 +74,5 @@ public partial class SettingsView : UserControl
             .FirstOrDefault(el => el.Focusable && el.IsEffectivelyVisible);
 
         focusable?.Focus();
-    }
-
-    private void FocusCategoryList()
-    {
-        var categoryList = this.FindDescendantOfType<Controls.SettingsCategoryList>();
-        var listBox = categoryList?.FindDescendantOfType<ListBox>();
-        listBox?.Focus();
     }
 }
