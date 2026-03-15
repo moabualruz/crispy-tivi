@@ -9,7 +9,8 @@
            SelectedItem="{Binding SelectedCategory}"
            Background="Transparent"
            Padding="6"
-           Focusable="True">
+           Focusable="True"
+           KeyboardNavigation.TabNavigation="Once">
 
     <ListBox.Styles>
       <!-- Category item base style -->

@@ -44,7 +44,8 @@
              ItemsSource="{Binding PrimaryItems, RelativeSource={RelativeSource AncestorType=controls:NavigationRail}}"
              Background="Transparent"
              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-             ScrollViewer.VerticalScrollBarVisibility="Disabled">
+             ScrollViewer.VerticalScrollBarVisibility="Disabled"
+             KeyboardNavigation.TabNavigation="Once">
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="models:NavigationItem">
           <StackPanel Orientation="Horizontal">
@@ -68,7 +69,8 @@
              ItemsSource="{Binding SecondaryItems, RelativeSource={RelativeSource AncestorType=controls:NavigationRail}}"
              Background="Transparent"
              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-             ScrollViewer.VerticalScrollBarVisibility="Disabled">
+             ScrollViewer.VerticalScrollBarVisibility="Disabled"
+             KeyboardNavigation.TabNavigation="Once">
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="models:NavigationItem">
           <StackPanel Orientation="Horizontal">

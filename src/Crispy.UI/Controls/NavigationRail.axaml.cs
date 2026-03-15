@@ -2,6 +2,7 @@ using System.Collections;
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 
 using Crispy.UI.Models;
@@ -41,6 +42,12 @@ public partial class NavigationRail : UserControl
     /// Raised when the user selects a navigation item.
     /// </summary>
     public event Action<NavigationItem>? ItemSelected;
+
+    /// <summary>
+    /// Raised when the user presses Enter on a selected item, signalling that
+    /// focus should move into the content area.
+    /// </summary>
+    public event Action? EnterPressed;
 
     /// <summary>
     /// Creates a new NavigationRail.
@@ -121,5 +128,39 @@ public partial class NavigationRail : UserControl
     {
         get => GetValue(IsExpandedProperty);
         set => SetValue(IsExpandedProperty, value);
+    }
+
+    /// <summary>
+    /// Focuses the first item in the primary list so arrow keys work
+    /// immediately without requiring Tab first.
+    /// </summary>
+    public void FocusPrimaryList()
+    {
+        var primaryList = this.FindControl<ListBox>("PrimaryList");
+        if (primaryList is null)
+        {
+            return;
+        }
+
+        // Select first item if nothing is selected yet
+        if (primaryList.SelectedIndex < 0 && primaryList.ItemCount > 0)
+        {
+            primaryList.SelectedIndex = 0;
+        }
+
+        primaryList.Focus();
+    }
+
+    /// <inheritdoc />
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+
+        if (e.Key == Key.Enter || e.Key == Key.Return)
+        {
+            // Fire EnterPressed so the shell can move focus to the content area
+            EnterPressed?.Invoke();
+            e.Handled = true;
+        }
     }
 }
