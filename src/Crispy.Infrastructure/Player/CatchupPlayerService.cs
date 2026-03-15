@@ -3,7 +3,7 @@ using Crispy.Application.Player.Models;
 using Crispy.Domain.Entities;
 using Crispy.Domain.Enums;
 
-using ApplicationContentType = Crispy.Application.Player.Models.ContentType;
+using ApplicationContentType = Crispy.Application.Player.Models.PlaybackContentType;
 
 using Microsoft.Extensions.Logging;
 

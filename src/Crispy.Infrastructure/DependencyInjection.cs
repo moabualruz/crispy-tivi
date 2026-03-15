@@ -2,6 +2,7 @@ using System.IO;
 
 using Crispy.Application.Configuration;
 using Crispy.Application.Player;
+using Crispy.Application.Player.Models;
 using Crispy.Application.Search;
 using Crispy.Application.Sources;
 using Crispy.Application.Sync;
@@ -209,6 +210,12 @@ public static class DependencyInjection
         services.AddSingleton<DownloadManager>();
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<DownloadManager>());
 
+        // ─── Player data repositories ─────────────────────────────────────────
+        services.AddScoped<IWatchHistoryService, WatchHistoryService>();
+        services.AddScoped<IBookmarkRepository, BookmarkRepository>();
+        services.AddScoped<IReminderRepository, ReminderRepository>();
+        services.AddScoped<ISavedLayoutRepository, SavedLayoutRepository>();
+
         // ─── Player services ──────────────────────────────────────────────────
         // VlcPlayerService compiles as no-op stub when LIBVLC symbol is not defined
         // (LibVLCSharp packages pending NuGet restore — see STATE.md blocker).
@@ -223,6 +230,30 @@ public static class DependencyInjection
         services.AddSingleton<IStreamHealthRepository, StreamHealthRepository>();
         services.AddSingleton<IMediaSessionService, Crispy.Application.Player.NullMediaSessionService>();
         services.AddSingleton<CatchupPlayerService>();
+        services.AddSingleton<IEqualizerService>(sp =>
+            new EqualizerService(
+                sp.GetRequiredService<IPlayerService>(),
+                sp.GetRequiredService<ILogger<EqualizerService>>()));
+        services.AddSingleton<IMultiviewService>(sp =>
+        {
+            // MultiviewService needs 4 independent IPlayerService instances (one per slot).
+            // Each is a separate VlcPlayerService with its own LibVLC instance.
+            var healthRepo = sp.GetRequiredService<IStreamHealthRepository>();
+            var logger0 = sp.GetRequiredService<ILogger<VlcPlayerService>>();
+            var logger1 = sp.GetRequiredService<ILogger<VlcPlayerService>>();
+            var logger2 = sp.GetRequiredService<ILogger<VlcPlayerService>>();
+            var logger3 = sp.GetRequiredService<ILogger<VlcPlayerService>>();
+            IPlayerService[] players =
+            [
+                new VlcPlayerService(healthRepo, logger0),
+                new VlcPlayerService(healthRepo, logger1),
+                new VlcPlayerService(healthRepo, logger2),
+                new VlcPlayerService(healthRepo, logger3),
+            ];
+            return new MultiviewService(
+                players,
+                sp.GetRequiredService<ILogger<MultiviewService>>());
+        });
 
         // ─── Logging ──────────────────────────────────────────────────────────
         services.AddLogging(builder => builder.AddSerilogLogging());

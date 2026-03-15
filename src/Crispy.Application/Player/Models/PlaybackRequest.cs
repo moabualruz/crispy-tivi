@@ -2,8 +2,9 @@ namespace Crispy.Application.Player.Models;
 
 /// <summary>
 /// The type of content being played — drives player behaviour (timeshift eligibility, resume, etc.).
+/// Renamed from ContentType to avoid ambiguity with Crispy.Domain.Enums.ContentType.
 /// </summary>
-public enum ContentType
+public enum PlaybackContentType
 {
     LiveTv,
     Vod,
@@ -24,7 +25,7 @@ public enum ContentType
 /// <param name="JellyfinItemId">Jellyfin item id used for watch-progress reporting; null for IPTV sources.</param>
 public sealed record PlaybackRequest(
     string Url,
-    ContentType ContentType,
+    PlaybackContentType ContentType,
     string? Title = null,
     string? ChannelLogoUrl = null,
     TimeSpan ResumeAt = default,

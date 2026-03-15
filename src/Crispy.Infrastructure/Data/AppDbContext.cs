@@ -1,3 +1,4 @@
+using Crispy.Application.Player.Models;
 using Crispy.Domain.Entities;
 using Crispy.Infrastructure.Data.Configurations;
 
@@ -59,8 +60,27 @@ public class AppDbContext : DbContext
     // Phase 2 — Operational
     // -------------------------------------------------------------------------
 
-    /// <summary>Watch history table.</summary>
+    /// <summary>Watch history table (domain entity — integer PK, used for EPG/sync history).</summary>
     public DbSet<WatchHistory> WatchHistory => Set<WatchHistory>();
+
+    // -------------------------------------------------------------------------
+    // Phase 3 — Player data layer (string PKs, SHA-256 based)
+    // -------------------------------------------------------------------------
+
+    /// <summary>Player watch history entries (SHA-256 keyed, PLR-47/48).</summary>
+    public DbSet<WatchHistoryEntry> WatchHistoryEntries => Set<WatchHistoryEntry>();
+
+    /// <summary>Playback bookmarks (PLR-41).</summary>
+    public DbSet<Bookmark> Bookmarks => Set<Bookmark>();
+
+    /// <summary>Saved multiview layouts (PLR-42).</summary>
+    public DbSet<SavedLayout> SavedLayouts => Set<SavedLayout>();
+
+    /// <summary>Programme reminders (PLR-43).</summary>
+    public DbSet<Reminder> Reminders => Set<Reminder>();
+
+    /// <summary>Stream health telemetry (PLR-40).</summary>
+    public DbSet<StreamHealth> StreamHealthEntries => Set<StreamHealth>();
 
     /// <summary>Sync history audit table.</summary>
     public DbSet<SyncHistory> SyncHistory => Set<SyncHistory>();
@@ -101,6 +121,13 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration(new WatchHistoryConfiguration());
         modelBuilder.ApplyConfiguration(new SyncHistoryConfiguration());
         modelBuilder.ApplyConfiguration(new DownloadConfiguration());
+
+        // Phase 3 — Player data layer configurations
+        modelBuilder.ApplyConfiguration(new WatchHistoryEntryConfiguration());
+        modelBuilder.ApplyConfiguration(new BookmarkConfiguration());
+        modelBuilder.ApplyConfiguration(new SavedLayoutConfiguration());
+        modelBuilder.ApplyConfiguration(new ReminderConfiguration());
+        modelBuilder.ApplyConfiguration(new StreamHealthConfiguration());
 
         // Global soft-delete query filters — Phase 1
         modelBuilder.Entity<Profile>().HasQueryFilter(e => e.DeletedAt == null);

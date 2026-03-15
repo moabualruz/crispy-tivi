@@ -61,8 +61,8 @@ public class VlcPlayerServiceTests
     public async Task Play_CreatesNewMedia_ForEachRequest()
     {
         // Arrange
-        var firstRequest = new PlaybackRequest("https://example.com/stream1.m3u8", ContentType.LiveTv, "Channel 1");
-        var secondRequest = new PlaybackRequest("https://example.com/stream2.m3u8", ContentType.LiveTv, "Channel 2");
+        var firstRequest = new PlaybackRequest("https://example.com/stream1.m3u8", PlaybackContentType.LiveTv, "Channel 1");
+        var secondRequest = new PlaybackRequest("https://example.com/stream2.m3u8", PlaybackContentType.LiveTv, "Channel 2");
 
         // Act
         await _sut.PlayAsync(firstRequest);
@@ -83,7 +83,7 @@ public class VlcPlayerServiceTests
     public async Task Stop_ThenPlay_StartsCleanSession()
     {
         // Arrange
-        var request = new PlaybackRequest("https://example.com/stream.m3u8", ContentType.LiveTv);
+        var request = new PlaybackRequest("https://example.com/stream.m3u8", PlaybackContentType.LiveTv);
 
         // Act
         await _sut.PlayAsync(request);

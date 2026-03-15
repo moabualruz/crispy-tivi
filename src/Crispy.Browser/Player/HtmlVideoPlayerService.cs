@@ -95,8 +95,8 @@ public sealed class HtmlVideoPlayerService : IPlayerService, IDisposable
 
         var mode = request.ContentType switch
         {
-            ContentType.Radio => PlaybackMode.Radio,
-            ContentType.LiveTv => PlaybackMode.Live,
+            PlaybackContentType.Radio => PlaybackMode.Radio,
+            PlaybackContentType.LiveTv => PlaybackMode.Live,
             _ => PlaybackMode.Vod,
         };
 
@@ -107,7 +107,7 @@ public sealed class HtmlVideoPlayerService : IPlayerService, IDisposable
             IsBuffering = true,
             ErrorMessage = null,
             CurrentRequest = request,
-            IsLive = request.ContentType == ContentType.LiveTv || request.ContentType == ContentType.Radio,
+            IsLive = request.ContentType == PlaybackContentType.LiveTv || request.ContentType == PlaybackContentType.Radio,
         });
 
         return Task.CompletedTask;

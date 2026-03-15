@@ -257,8 +257,8 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
 
         var mode = request.ContentType switch
         {
-            Application.Player.Models.ContentType.LiveTv => PlaybackMode.Live,
-            Application.Player.Models.ContentType.Radio => PlaybackMode.Radio,
+            Application.Player.Models.PlaybackContentType.LiveTv => PlaybackMode.Live,
+            Application.Player.Models.PlaybackContentType.Radio => PlaybackMode.Radio,
             _ => PlaybackMode.Vod,
         };
 
@@ -518,6 +518,19 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
         _audioSamplesSubject.Dispose();
     }
 
+#endif
+
+    /// <summary>
+    /// Applies or removes an AudioEqualizer on the underlying MediaPlayer.
+    /// Called by EqualizerService. No-op when LIBVLC is not defined.
+    /// </summary>
+#if LIBVLC
+    public void SetEqualizer(LibVLCSharp.Shared.AudioEqualizer? equalizer)
+    {
+        _mediaPlayer.SetEqualizer(equalizer);
+    }
+#else
+    public void SetEqualizer(object? equalizer) { }
 #endif
 
     private void EmitState(Func<PlayerState, PlayerState> update)
