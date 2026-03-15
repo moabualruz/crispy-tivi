@@ -1,6 +1,7 @@
 using System.IO;
 
 using Crispy.Application.Configuration;
+using Crispy.Application.Player;
 using Crispy.Application.Search;
 using Crispy.Application.Sources;
 using Crispy.Application.Sync;
@@ -17,6 +18,7 @@ using Crispy.Infrastructure.Parsers.M3U;
 using Crispy.Infrastructure.Parsers.Stalker;
 using Crispy.Infrastructure.Parsers.Xmltv;
 using Crispy.Infrastructure.Parsers.Xtream;
+using Crispy.Infrastructure.Player;
 using Crispy.Infrastructure.Search;
 using Crispy.Infrastructure.Security;
 using Crispy.Infrastructure.Sync;
@@ -206,6 +208,21 @@ public static class DependencyInjection
         // ─── Downloads ────────────────────────────────────────────────────────
         services.AddSingleton<DownloadManager>();
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<DownloadManager>());
+
+        // ─── Player services ──────────────────────────────────────────────────
+        // VlcPlayerService compiles as no-op stub when LIBVLC symbol is not defined
+        // (LibVLCSharp packages pending NuGet restore — see STATE.md blocker).
+        // Core.Initialize() must be called by the platform entry point BEFORE these are resolved:
+        //   Desktop: Program.cs → before BuildAvaloniaApp()
+        //   Android: MainActivity.cs → OnCreate() before base.OnCreate()
+        services.AddSingleton<IPlayerService, VlcPlayerService>();
+        services.AddSingleton<ITimeshiftService, TimeshiftService>();
+        services.AddSingleton<IAudioStreamDetector, AudioStreamDetector>();
+        services.AddSingleton<ISleepTimerService>(sp =>
+            new SleepTimerService(sp.GetRequiredService<IPlayerService>()));
+        services.AddSingleton<IStreamHealthRepository, StreamHealthRepository>();
+        services.AddSingleton<IMediaSessionService, Crispy.Application.Player.NullMediaSessionService>();
+        services.AddSingleton<CatchupPlayerService>();
 
         // ─── Logging ──────────────────────────────────────────────────────────
         services.AddLogging(builder => builder.AddSerilogLogging());
