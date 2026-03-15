@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:controls="using:Crispy.UI.Controls"
+             x:Class="Crispy.UI.Views.MainView"
+             x:DataType="vm:MainViewModel">
+
+  <SplitView DisplayMode="CompactOverlay"
+             IsPaneOpen="{Binding IsRailExpanded}"
+             CompactPaneLength="64"
+             OpenPaneLength="256"
+             PanePlacement="Left"
+             UseLightDismissOverlayMode="True">
+
+    <!-- Navigation Rail Pane -->
+    <SplitView.Pane>
+      <Border PointerEntered="OnRailPointerEntered"
+              PointerExited="OnRailPointerExited">
+        <controls:NavigationRail PrimaryItems="{Binding PrimaryNavItems}"
+                                 SecondaryItems="{Binding SecondaryNavItems}"
+                                 SelectedItem="{Binding SelectedNavItem}"
+                                 IsExpanded="{Binding IsRailExpanded}" />
+      </Border>
+    </SplitView.Pane>
+
+    <!-- Content Area -->
+    <SplitView.Content>
+      <Panel>
+        <!-- Page content with crossfade transition -->
+        <TransitioningContentControl Content="{Binding CurrentPage}"
+                                     Margin="0 0 0 64">
+          <TransitioningContentControl.PageTransition>
+            <CrossFade Duration="0:0:0.25" />
+          </TransitioningContentControl.PageTransition>
+        </TransitioningContentControl>
+
+        <!-- Mini player bar at bottom -->
+        <controls:MiniPlayerBar VerticalAlignment="Bottom" />
+      </Panel>
+    </SplitView.Content>
+
+  </SplitView>
+
+</UserControl>

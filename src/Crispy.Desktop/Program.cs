@@ -47,6 +47,14 @@ internal sealed class Program
 
         DatabaseSeeder.SeedAsync(dbFactory).GetAwaiter().GetResult();
 
+        // Initialize theme and localization from persisted settings
+        var themeService = Services.GetRequiredService<Crispy.UI.Services.IThemeService>();
+        themeService.InitializeAsync().GetAwaiter().GetResult();
+
+        var localizationService = Services.GetRequiredService<Crispy.UI.Services.ILocalizationService>();
+        localizationService.InitializeAsync().GetAwaiter().GetResult();
+
+        App.Services = Services;
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 

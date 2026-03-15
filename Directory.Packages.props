@@ -46,6 +46,9 @@
     <!-- DI -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
 
+    <!-- Icons -->
+    <PackageVersion Include="FluentIcons.Avalonia" Version="2.0.321" />
+
     <!-- Images -->
     <PackageVersion Include="AsyncImageLoader.Avalonia" Version="3.5.0" />
 

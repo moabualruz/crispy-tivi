@@ -1,0 +1,88 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fi="using:FluentIcons.Avalonia"
+             xmlns:controls="using:Crispy.UI.Controls"
+             xmlns:models="using:Crispy.UI.Models"
+             x:Class="Crispy.UI.Controls.NavigationRail"
+             x:DataType="controls:NavigationRail">
+
+  <UserControl.Styles>
+    <!-- Navigation rail item style -->
+    <Style Selector="ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="4 2" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Height" Value="48" />
+    </Style>
+
+    <!-- Selected item accent -->
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentPrimaryBrush}" />
+    </Style>
+
+    <!-- Icon style -->
+    <Style Selector="fi|SymbolIcon.nav-icon">
+      <Setter Property="FontSize" Value="22" />
+      <Setter Property="Width" Value="48" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Label text style -->
+    <Style Selector="TextBlock.nav-label">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Margin" Value="4 0 12 0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <!-- Primary items at top -->
+    <ListBox Name="PrimaryList"
+             DockPanel.Dock="Top"
+             ItemsSource="{Binding PrimaryItems, RelativeSource={RelativeSource AncestorType=controls:NavigationRail}}"
+             SelectedItem="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=controls:NavigationRail}, Mode=TwoWay}"
+             Background="Transparent"
+             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+             ScrollViewer.VerticalScrollBarVisibility="Disabled">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="models:NavigationItem">
+          <StackPanel Orientation="Horizontal">
+            <fi:SymbolIcon Symbol="{Binding Icon}"
+                           Classes="nav-icon" />
+            <TextBlock Text="{Binding Name}"
+                       Classes="nav-label"
+                       IsVisible="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=controls:NavigationRail}}" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <!-- Spacer -->
+    <Border DockPanel.Dock="Top"
+            VerticalAlignment="Stretch" />
+
+    <!-- Secondary items at bottom -->
+    <ListBox Name="SecondaryList"
+             DockPanel.Dock="Bottom"
+             ItemsSource="{Binding SecondaryItems, RelativeSource={RelativeSource AncestorType=controls:NavigationRail}}"
+             SelectedItem="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=controls:NavigationRail}, Mode=TwoWay}"
+             Background="Transparent"
+             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+             ScrollViewer.VerticalScrollBarVisibility="Disabled">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="models:NavigationItem">
+          <StackPanel Orientation="Horizontal">
+            <fi:SymbolIcon Symbol="{Binding Icon}"
+                           Classes="nav-icon" />
+            <TextBlock Text="{Binding Name}"
+                       Classes="nav-label"
+                       IsVisible="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=controls:NavigationRail}}" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+
+</UserControl>

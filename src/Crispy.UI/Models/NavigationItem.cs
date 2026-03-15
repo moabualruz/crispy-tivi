@@ -1,3 +1,5 @@
+using FluentIcons.Common;
+
 namespace Crispy.UI.Models;
 
 /// <summary>
@@ -5,6 +7,6 @@ namespace Crispy.UI.Models;
 /// </summary>
 public sealed record NavigationItem(
     string Name,
-    string IconKey,
+    Symbol Icon,
     Type ViewModelType,
     bool IsSecondary = false);
