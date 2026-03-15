@@ -50,6 +50,7 @@
 
     <!-- Icons -->
     <PackageVersion Include="FluentIcons.Avalonia" Version="2.0.321" />
+    <PackageVersion Include="FluentIcons.Common" Version="2.0.321" />
 
     <!-- Images -->
     <PackageVersion Include="AsyncImageLoader.Avalonia" Version="3.5.0" />
