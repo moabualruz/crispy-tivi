@@ -1,0 +1,18 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="bbc1.uk" tvg-name="BBC One" tvg-logo="https://example.com/bbc1.png" tvg-chno="1" group-title="UK News" catchup="default" catchup-source="https://catchup.example.com/bbc1?start={start}&end={end}" catchup-days="7",BBC One HD
+https://stream.example.com/bbc1/index.m3u8
+#EXTINF:-1 tvg-id="cnn.us" tvg-name="CNN" tvg-logo="https://example.com/cnn.png" tvg-chno="2" group-title="News" catchup="append" catchup-source="https://catchup.example.com/cnn" catchup-days="3",CNN International
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+#EXTVLCOPT:http-referrer=https://example.com/
+https://stream.example.com/cnn/live.ts
+#EXTINF:-1 tvg-id="bbc.radio4" tvg-name="BBC Radio 4" tvg-logo="https://example.com/r4.png" tvg-chno="100" group-title="Radio" radio=1,BBC Radio 4
+https://stream.example.com/bbcr4/listen.mp3
+#EXTINF:-1 tvg-id="espn.us" tvg-name="ESPN" tvg-logo="https://example.com/espn.png" tvg-chno="3" group-title="Sports" catchup="xc" catchup-days="2",ESPN Sports
+KODIPROP:inputstream.adaptive.stream_headers=User-Agent=TestAgent
+https://stream.example.com/espn/live.ts
+#EXTINF:-1 tvg-id="eurosport.eu" tvg-name="Eurosport 1" tvg-logo="https://example.com/eurosport.png" tvg-chno="4" group-title="Sports" catchup="shift" catchup-source="https://ts.example.com/eurosport" catchup-days="5",Eurosport 1 HD
+https://stream.example.com/eurosport/live.ts
+#EXTINF:-1 tvg-name="Broken No Quotes tvg-logo=noquotes.png group-title=Broken,Malformed Channel 1
+https://stream.example.com/broken1/live.ts
+#EXTINF:-1 tvg-id="second.broken" Broken=value malformed line here,Malformed Channel 2
+https://stream.example.com/broken2/live.ts

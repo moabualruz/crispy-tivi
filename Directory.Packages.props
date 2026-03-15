@@ -45,6 +45,7 @@
 
     <!-- DI -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.7" />
 
 
     <!-- Icons -->
