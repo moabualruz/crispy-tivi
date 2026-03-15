@@ -1,0 +1,46 @@
+##
+## Planning
+##
+.planning/
+
+##
+## .NET Build
+##
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+*.nupkg
+.nuget/
+packages/
+
+##
+## IDE
+##
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+##
+## OS
+##
+Thumbs.db
+*.DS_Store
+
+##
+## Runtime
+##
+*.db
+*.db-shm
+*.db-wal
+logs/
+*.log
+
+##
+## User-specific config
+##
+appsettings.Development.json
+appsettings.Local.json
