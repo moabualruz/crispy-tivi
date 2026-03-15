@@ -43,6 +43,8 @@ public static class DependencyInjection
         services.AddTransient<EpgViewModel>();
         services.AddTransient<PlayerViewModel>();
         services.AddTransient<TrackSelectorViewModel>();
+        services.AddTransient<MultiviewViewModel>();
+        services.AddSingleton<EqualizerOverlayViewModel>(); // singleton — EQ state persists across sessions
         services.AddSingleton<MiniPlayerViewModel>(); // singleton — shared state while browsing
 
         // Views (transient — resolved by ViewLocator)

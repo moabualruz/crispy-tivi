@@ -30,6 +30,8 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     private DispatcherTimer? _zapDismissTimer;
     private DispatcherTimer? _autoPlayCountdownTimer;
     private DispatcherTimer? _directTuneTimer;
+    private DispatcherTimer? _screensaverTimer;
+    private DispatcherTimer? _statsRefreshTimer;
 
     private PlaybackRequest? _currentRequest;
     private PlaybackRequest? _pipSavedRequest;
@@ -182,6 +184,70 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private bool _canRestartFromCatchup;
 
+    // ─── Stream stats overlay (I key, PLR-33) ────────────────────────────────
+
+    [ObservableProperty]
+    private bool _isStreamStatsVisible;
+
+    [ObservableProperty]
+    private string _statsCodecVideo = string.Empty;
+
+    [ObservableProperty]
+    private string _statsCodecAudio = string.Empty;
+
+    [ObservableProperty]
+    private string _statsResolution = string.Empty;
+
+    [ObservableProperty]
+    private string _statsBitrateKbps = string.Empty;
+
+    [ObservableProperty]
+    private string _statsFps = string.Empty;
+
+    [ObservableProperty]
+    private string _statsLatencyMs = string.Empty;
+
+    [ObservableProperty]
+    private string _statsPacketLoss = string.Empty;
+
+    // ─── Screensaver (PLR-33) ────────────────────────────────────────────────
+
+    [ObservableProperty]
+    private bool _isScreensaverActive;
+
+    /// <summary>Inactivity timeout before screensaver activates. Default 10 minutes.</summary>
+    public int ScreensaverTimeoutSeconds { get; set; } = 600;
+
+    // ─── Bookmarks overlay (PLR-33) ──────────────────────────────────────────
+
+    [ObservableProperty]
+    private bool _isBookmarksOverlayOpen;
+
+    [ObservableProperty]
+    private ObservableCollection<Crispy.Application.Player.Models.Bookmark> _bookmarks = [];
+
+    // ─── Player queue overlay (PLR-33) ───────────────────────────────────────
+
+    [ObservableProperty]
+    private bool _isQueueOverlayOpen;
+
+    [ObservableProperty]
+    private ObservableCollection<Crispy.Application.Player.Models.QueueItem> _queue = [];
+
+    // ─── Live EPG strip (PLR-33) ─────────────────────────────────────────────
+
+    [ObservableProperty]
+    private string? _currentProgrammeTitle;
+
+    [ObservableProperty]
+    private string? _nextProgrammeTitle;
+
+    [ObservableProperty]
+    private string? _nextProgrammeStartTime;
+
+    [ObservableProperty]
+    private double _currentProgrammeProgress;
+
     // ─── Computed properties ─────────────────────────────────────────────────
 
     /// <summary>Speed controls are disabled for live TV (PLR-07).</summary>
@@ -222,11 +288,40 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
                 IsOsdVisible = false;
                 _osdHideTimer?.Stop();
             };
+
+            InitScreensaverTimer();
+            InitStatsRefreshTimer();
         }
         catch (Exception)
         {
-            // No dispatcher available (unit test environment) — OSD timer not started.
+            // No dispatcher available (unit test environment) — timers not started.
         }
+    }
+
+    private void InitScreensaverTimer()
+    {
+        _screensaverTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(ScreensaverTimeoutSeconds) };
+        _screensaverTimer.Tick += (_, _) =>
+        {
+            _screensaverTimer?.Stop();
+            IsScreensaverActive = true;
+        };
+    }
+
+    private void InitStatsRefreshTimer()
+    {
+        _statsRefreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _statsRefreshTimer.Tick += (_, _) => RefreshStreamStats();
+    }
+
+    private void RefreshStreamStats()
+    {
+        var state = _playerService.State;
+        if (state.CurrentVideoWidth.HasValue && state.CurrentVideoHeight.HasValue)
+            StatsResolution = $"{state.CurrentVideoWidth}×{state.CurrentVideoHeight}";
+        else
+            StatsResolution = "—";
+        // Codec and bitrate require VLC media stats API — populated when available via StateChanged.
     }
 
     private void SubscribeToServices()
@@ -348,6 +443,39 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         IsOsdVisible = true;
         _osdHideTimer?.Stop();
         _osdHideTimer?.Start();
+        DismissScreensaver();
+    }
+
+    /// <summary>Resets the screensaver inactivity timer. Call on any user input.</summary>
+    public void ResetScreensaverTimer()
+    {
+        _screensaverTimer?.Stop();
+        if (IsPlaying)
+        {
+            _screensaverTimer?.Start();
+        }
+    }
+
+    /// <summary>Dismisses the screensaver and resets the inactivity timer.</summary>
+    public void DismissScreensaver()
+    {
+        IsScreensaverActive = false;
+        ResetScreensaverTimer();
+    }
+
+    /// <summary>Toggles stream stats overlay visibility (I key, PLR-33).</summary>
+    public void ToggleStreamStats()
+    {
+        IsStreamStatsVisible = !IsStreamStatsVisible;
+        if (IsStreamStatsVisible)
+        {
+            _statsRefreshTimer?.Start();
+            RefreshStreamStats();
+        }
+        else
+        {
+            _statsRefreshTimer?.Stop();
+        }
     }
 
     // ─── Autoplay countdown ──────────────────────────────────────────────────
@@ -705,6 +833,8 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         _zapDismissTimer?.Stop();
         _autoPlayCountdownTimer?.Stop();
         _directTuneTimer?.Stop();
+        _screensaverTimer?.Stop();
+        _statsRefreshTimer?.Stop();
     }
 }
 
