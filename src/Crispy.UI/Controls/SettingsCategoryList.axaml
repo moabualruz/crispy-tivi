@@ -7,27 +7,46 @@
 
   <ListBox ItemsSource="{Binding Categories}"
            SelectedItem="{Binding SelectedCategory}"
-           Background="{DynamicResource SurfaceSecondaryBrush}"
-           CornerRadius="8"
-           Padding="4"
+           Background="Transparent"
+           Padding="6"
            Focusable="True">
+
+    <ListBox.Styles>
+      <!-- Category item base style -->
+      <Style Selector="ListBoxItem">
+        <Setter Property="Padding" Value="12,10" />
+        <Setter Property="Margin" Value="2,2" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceTertiaryBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Height" Value="48" />
+      </Style>
+
+      <!-- Hover -->
+      <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}" />
+      </Style>
+
+      <!-- Selected -->
+      <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AccentPrimaryBrush}" />
+      </Style>
+    </ListBox.Styles>
+
     <ListBox.ItemTemplate>
       <DataTemplate x:DataType="vm:SettingsCategory">
-        <Grid ColumnDefinitions="32,*"
-              Margin="8,6"
-              Height="40">
+        <Grid ColumnDefinitions="28,*">
           <fi:SymbolIcon Grid.Column="0"
                          Symbol="{Binding Icon}"
                          FontSize="18"
                          VerticalAlignment="Center"
-                         HorizontalAlignment="Center"
-                         Foreground="{DynamicResource TextSecondaryBrush}" />
+                         HorizontalAlignment="Center" />
           <TextBlock Grid.Column="1"
                      Text="{Binding Name}"
                      VerticalAlignment="Center"
-                     Margin="8,0,0,0"
-                     FontSize="14"
-                     Foreground="{DynamicResource TextPrimaryBrush}" />
+                     Margin="10,0,0,0"
+                     FontSize="14" />
         </Grid>
       </DataTemplate>
     </ListBox.ItemTemplate>
