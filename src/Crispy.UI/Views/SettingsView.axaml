@@ -1,0 +1,149 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:controls="using:Crispy.UI.Controls"
+             x:Class="Crispy.UI.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+  <Grid ColumnDefinitions="256,*"
+        Background="{DynamicResource SurfacePrimaryBrush}">
+
+    <!-- Left panel: Category list -->
+    <Border Grid.Column="0"
+            Background="{DynamicResource SurfaceSecondaryBrush}"
+            Padding="8">
+      <controls:SettingsCategoryList DataContext="{Binding}" />
+    </Border>
+
+    <!-- Right panel: Selected category settings -->
+    <ScrollViewer Grid.Column="1"
+                  Padding="24,16">
+
+      <!-- General settings -->
+      <StackPanel Spacing="16"
+                  IsVisible="{Binding SelectedCategory.Name, Converter={x:Static StringConverters.IsNotNullOrEmpty}, FallbackValue=False}">
+
+        <!-- Theme picker -->
+        <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                CornerRadius="8"
+                Padding="16">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Theme"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <ComboBox ItemsSource="{Binding AvailableThemes}"
+                      SelectedItem="{Binding SelectedTheme}"
+                      MinWidth="200" />
+          </StackPanel>
+        </Border>
+
+        <!-- Language picker -->
+        <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                CornerRadius="8"
+                Padding="16">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Language"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <ComboBox ItemsSource="{Binding AvailableLocales}"
+                      SelectedItem="{Binding SelectedLocaleOption}"
+                      MinWidth="200">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:LocaleOption">
+                  <TextBlock Text="{Binding NativeName}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+        </Border>
+
+        <!-- Accent color picker -->
+        <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                CornerRadius="8"
+                Padding="16">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Accent Color"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <ItemsControl ItemsSource="{Binding AccentPalette}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Width="32"
+                          Height="32"
+                          CornerRadius="16"
+                          Margin="4"
+                          Cursor="Hand">
+                    <Border.Background>
+                      <SolidColorBrush Color="{Binding}" />
+                    </Border.Background>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <!-- Reduced motion toggle -->
+        <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                CornerRadius="8"
+                Padding="16">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0"
+                        Spacing="4">
+              <TextBlock Text="Reduced Motion"
+                         FontSize="16"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="Disable animations for accessibility"
+                         FontSize="12"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1"
+                          IsChecked="{Binding IsReducedMotion}"
+                          VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+
+        <!-- About section -->
+        <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                CornerRadius="8"
+                Padding="16">
+          <StackPanel Spacing="8">
+            <TextBlock Text="About"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock FontSize="13"
+                       Foreground="{DynamicResource TextSecondaryBrush}">
+              <Run Text="Version: " />
+              <Run Text="{Binding AppVersion}" />
+            </TextBlock>
+            <TextBlock FontSize="13"
+                       Foreground="{DynamicResource TextSecondaryBrush}">
+              <Run Text="Build: " />
+              <Run Text="{Binding BuildDate}" />
+            </TextBlock>
+            <StackPanel Orientation="Horizontal"
+                        Spacing="8"
+                        Margin="0,8,0,0">
+              <Button Content="Reset Category"
+                      Command="{Binding ResetCategoryCommand}" />
+              <Button Content="Factory Reset"
+                      Command="{Binding FactoryResetCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+
+</UserControl>

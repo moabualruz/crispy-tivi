@@ -1,18 +1,48 @@
+using Crispy.UI.Navigation;
+using Crispy.UI.Services;
+using Crispy.UI.ViewModels;
+using Crispy.UI.Views;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Crispy.UI;
 
 /// <summary>
-/// Registers UI layer services (ViewModels, navigation, etc.).
+/// Registers UI layer services (ViewModels, navigation, views).
 /// </summary>
 public static class DependencyInjection
 {
     /// <summary>
     /// Adds UI services to the DI container.
-    /// Plan 02 adds navigation services, Plan 03 adds theme/localization.
     /// </summary>
     public static IServiceCollection AddUiServices(this IServiceCollection services)
     {
+        // Theme & Localization
+        services.AddSingleton<IThemeService, ThemeService>();
+        services.AddSingleton<ILocalizationService, LocalizationService>();
+
+        // Navigation
+        services.AddSingleton<INavigationService, NavigationService>();
+        services.AddSingleton<ViewLocator>();
+
+        // ViewModels (transient — new instance per navigation)
+        services.AddTransient<MainViewModel>();
+        services.AddTransient<HomeViewModel>();
+        services.AddTransient<LiveTvViewModel>();
+        services.AddTransient<MoviesViewModel>();
+        services.AddTransient<SeriesViewModel>();
+        services.AddTransient<SearchViewModel>();
+        services.AddTransient<SettingsViewModel>();
+
+        // Views (transient — resolved by ViewLocator)
+        services.AddTransient<MainView>();
+        services.AddTransient<HomeView>();
+        services.AddTransient<LiveTvView>();
+        services.AddTransient<MoviesView>();
+        services.AddTransient<SeriesView>();
+        services.AddTransient<SearchView>();
+        services.AddTransient<SettingsView>();
+
         return services;
     }
 }

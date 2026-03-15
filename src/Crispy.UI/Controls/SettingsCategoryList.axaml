@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             x:Class="Crispy.UI.Controls.SettingsCategoryList"
+             x:DataType="vm:SettingsViewModel">
+
+  <ListBox ItemsSource="{Binding Categories}"
+           SelectedItem="{Binding SelectedCategory}"
+           Background="{DynamicResource SurfaceSecondaryBrush}"
+           CornerRadius="8"
+           Padding="4"
+           Focusable="True">
+    <ListBox.ItemTemplate>
+      <DataTemplate x:DataType="vm:SettingsCategory">
+        <Grid ColumnDefinitions="32,*"
+              Margin="8,6"
+              Height="40">
+          <TextBlock Grid.Column="0"
+                     Text="{Binding IconKey}"
+                     VerticalAlignment="Center"
+                     HorizontalAlignment="Center"
+                     FontSize="16"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+          <TextBlock Grid.Column="1"
+                     Text="{Binding Name}"
+                     VerticalAlignment="Center"
+                     Margin="8,0,0,0"
+                     FontSize="14"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
+        </Grid>
+      </DataTemplate>
+    </ListBox.ItemTemplate>
+  </ListBox>
+
+</UserControl>
