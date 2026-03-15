@@ -176,7 +176,7 @@ internal sealed class SequentialHttpMessageHandler : HttpMessageHandler
 }
 
 /// <summary>Simple test double for ICredentialEncryption that records what was encrypted.</summary>
-internal sealed class TestCredentialEncryption : Crispy.Infrastructure.Security.ICredentialEncryption
+internal sealed class TestCredentialEncryption : Crispy.Application.Security.ICredentialEncryption
 {
     public string? LastEncrypted { get; private set; }
 
