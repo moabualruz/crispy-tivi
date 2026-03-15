@@ -1,3 +1,5 @@
+using Avalonia.Headless.XUnit;
+
 using Crispy.Application.Services;
 using Crispy.Domain.Enums;
 using Crispy.UI.Services;
@@ -33,7 +35,7 @@ public class ThemeServiceTests
         _sut.CurrentTheme.Should().Be(ThemeVariant.Dark);
     }
 
-    [Theory]
+    [AvaloniaTheory]
     [InlineData(ThemeVariant.Dark)]
     [InlineData(ThemeVariant.OledBlack)]
     [InlineData(ThemeVariant.Light)]
@@ -44,7 +46,7 @@ public class ThemeServiceTests
         _sut.CurrentTheme.Should().Be(theme);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task SetThemeAsync_PersistsViaSettingsService()
     {
         await _sut.SetThemeAsync(ThemeVariant.OledBlack);
@@ -53,7 +55,7 @@ public class ThemeServiceTests
             .SetThemeAsync(ThemeVariant.OledBlack, Arg.Any<int?>());
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task SetThemeAsync_FiresThemeChangedEvent()
     {
         ThemeVariant? received = null;
@@ -64,7 +66,7 @@ public class ThemeServiceTests
         received.Should().Be(ThemeVariant.Light);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task SetThemeAsync_DoesNotFireEvent_WhenSameTheme()
     {
         await _sut.InitializeAsync();
@@ -76,7 +78,7 @@ public class ThemeServiceTests
         fired.Should().BeFalse();
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task InitializeAsync_LoadsPersistedTheme()
     {
         _settingsService.GetThemeAsync(Arg.Any<int?>())
@@ -87,7 +89,7 @@ public class ThemeServiceTests
         _sut.CurrentTheme.Should().Be(ThemeVariant.Light);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task SetReducedMotionAsync_UpdatesIsReducedMotion()
     {
         await _sut.SetReducedMotionAsync(true);
@@ -95,7 +97,7 @@ public class ThemeServiceTests
         _sut.IsReducedMotion.Should().BeTrue();
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task SetReducedMotionAsync_PersistsViaSettingsService()
     {
         await _sut.SetReducedMotionAsync(true);
@@ -104,7 +106,7 @@ public class ThemeServiceTests
             .SetAsync("reduced_motion", true, Arg.Any<int?>());
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task SetAccentColorAsync_UpdatesSelectedAccentIndex()
     {
         await _sut.SetAccentColorAsync(3);
@@ -112,7 +114,7 @@ public class ThemeServiceTests
         _sut.SelectedAccentIndex.Should().Be(3);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task SetAccentColorAsync_ClampsToValidRange()
     {
         await _sut.SetAccentColorAsync(99);
@@ -151,9 +153,9 @@ public class DesignTokensTests
     }
 
     [Fact]
-    public void AccentPalette_Has8Colors()
+    public void AccentPalette_Has9Colors()
     {
-        DesignTokens.AccentPalette.Should().HaveCount(8);
+        DesignTokens.AccentPalette.Should().HaveCount(9);
     }
 
     [Fact]

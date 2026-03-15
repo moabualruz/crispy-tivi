@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Headless.XUnit;
 
 using Crispy.UI.ViewModels;
 
@@ -42,7 +43,7 @@ public class ViewLocatorTests
         locator.Match(null).Should().BeFalse();
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Build_ReturnsFallbackTextBlock_WhenViewNotRegistered()
     {
         var sp = new ServiceCollection().BuildServiceProvider();

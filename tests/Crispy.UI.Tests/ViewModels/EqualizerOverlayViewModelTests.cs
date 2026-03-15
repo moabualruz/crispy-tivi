@@ -1,3 +1,5 @@
+using Avalonia.Headless.XUnit;
+
 using Crispy.Application.Player;
 using Crispy.Application.Player.Models;
 using Crispy.UI.Tests.Helpers;
@@ -61,5 +63,298 @@ public class EqualizerOverlayViewModelTests
     {
         _sut.SelectedPresetName.Should().BeNull(
             "No preset is selected on startup; user selects one explicitly");
+    }
+
+    // ─── Presets property ────────────────────────────────────────────────────
+
+    [Fact]
+    public void Presets_ReturnsServicePresets()
+    {
+        var presets = new List<EqualizerPreset> { EqualizerPreset.Flat, EqualizerPreset.Rock };
+        _equalizerService.Presets.Returns(presets);
+        var vm = new EqualizerOverlayViewModel(_equalizerService);
+
+        vm.Presets.Should().BeSameAs(presets);
+    }
+
+    // ─── Band initialisation ─────────────────────────────────────────────────
+
+    [Fact]
+    public void Bands_InitialisedWithCurrentBandGains()
+    {
+        var gains = new float[10] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        _equalizerService.CurrentBands.Returns(gains);
+        var vm = new EqualizerOverlayViewModel(_equalizerService);
+
+        for (var i = 0; i < 10; i++)
+            vm.Bands[i].GainDb.Should().BeApproximately(gains[i], 0.001f);
+    }
+
+    [Fact]
+    public void Bands_SlotIndexMatchesBandIndex()
+    {
+        for (var i = 0; i < 10; i++)
+            _sut.Bands[i].BandIndex.Should().Be(i);
+    }
+
+    // ─── ToggleEnabledAsync ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ToggleEnabledCommand_TogglesIsEnabledAndCallsService_WhenDisabled()
+    {
+        _equalizerService.IsEnabled.Returns(false);
+        var vm = new EqualizerOverlayViewModel(_equalizerService);
+
+        await vm.ToggleEnabledCommand.ExecuteAsync(null);
+
+        vm.IsEnabled.Should().BeTrue();
+        await _equalizerService.Received(1).SetEnabledAsync(true);
+    }
+
+    [Fact]
+    public async Task ToggleEnabledCommand_TogglesIsEnabledAndCallsService_WhenEnabled()
+    {
+        _equalizerService.IsEnabled.Returns(true);
+        var vm = new EqualizerOverlayViewModel(_equalizerService);
+
+        await vm.ToggleEnabledCommand.ExecuteAsync(null);
+
+        vm.IsEnabled.Should().BeFalse();
+        await _equalizerService.Received(1).SetEnabledAsync(false);
+    }
+
+    // ─── ApplyPresetAsync ────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ApplyPresetCommand_SetsSelectedPresetNameAndCallsService()
+    {
+        await _sut.ApplyPresetCommand.ExecuteAsync("Rock");
+
+        _sut.SelectedPresetName.Should().Be("Rock");
+        await _equalizerService.Received(1).ApplyPresetAsync("Rock");
+    }
+
+    [Fact]
+    public async Task ApplyPresetCommand_UpdatesSelectedPresetName_WhenCalledTwice()
+    {
+        await _sut.ApplyPresetCommand.ExecuteAsync("Jazz");
+        await _sut.ApplyPresetCommand.ExecuteAsync("Pop");
+
+        _sut.SelectedPresetName.Should().Be("Pop");
+    }
+
+    // ─── ResetAsync ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ResetCommand_SetsSelectedPresetToFlatAndCallsService()
+    {
+        await _sut.ResetCommand.ExecuteAsync(null);
+
+        _sut.SelectedPresetName.Should().Be(EqualizerPreset.Flat.Name);
+        await _equalizerService.Received(1).ResetAsync();
+    }
+
+    // ─── Close / IsVisible ───────────────────────────────────────────────────
+
+    [Fact]
+    public void CloseCommand_SetsIsVisibleFalse()
+    {
+        _sut.IsVisible = true;
+
+        _sut.CloseCommand.Execute(null);
+
+        _sut.IsVisible.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsVisible_CanBeSetToTrue()
+    {
+        _sut.IsVisible = true;
+
+        _sut.IsVisible.Should().BeTrue();
+    }
+
+    // ─── BandsChanged observable ─────────────────────────────────────────────
+
+    [AvaloniaFact]
+    public void OnBandsChanged_UpdatesBandGains_WhenObservableEmits()
+    {
+        var newGains = new float[10] { 1f, 2f, 3f, 4f, 5f, 6f, 7f, 8f, 9f, 10f };
+
+        _bandsSubject.OnNext(newGains);
+
+        for (var i = 0; i < 10; i++)
+            _sut.Bands[i].GainDb.Should().BeApproximately(newGains[i], 0.001f);
+    }
+
+    [AvaloniaFact]
+    public void OnBandsChanged_IgnoresExtraBands_WhenArrayLongerThanTen()
+    {
+        var newGains = new float[12];
+        for (var i = 0; i < 12; i++) newGains[i] = i;
+
+        // Should not throw — only updates up to Bands.Count
+        var act = () => _bandsSubject.OnNext(newGains);
+        act.Should().NotThrow();
+
+        for (var i = 0; i < 10; i++)
+            _sut.Bands[i].GainDb.Should().BeApproximately(i, 0.001f);
+    }
+
+    // ─── Band gain change → deselects preset ────────────────────────────────
+
+    [Fact]
+    public async Task BandGainChange_DeselectsSelectedPreset()
+    {
+        await _sut.ApplyPresetCommand.ExecuteAsync("Rock");
+        _sut.SelectedPresetName.Should().Be("Rock");
+
+        // Move a band — simulates user dragging a slider
+        _sut.Bands[0].GainDb = 5f;
+
+        // Allow async void OnBandGainChanged to complete
+        await Task.Yield();
+
+        _sut.SelectedPresetName.Should().BeNull(
+            "manually adjusting a band deselects the active preset");
+    }
+
+    [Fact]
+    public async Task BandGainChange_CallsSetBandAsync_WithCorrectIndexAndValue()
+    {
+        _sut.Bands[3].GainDb = 4.5f;
+
+        await Task.Yield();
+
+        await _equalizerService.Received(1).SetBandAsync(3, 4.5f);
+    }
+
+    // ─── Dispose ─────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Dispose_DoesNotThrow()
+    {
+        var act = () => _sut.Dispose();
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Dispose_UnsubscribesFromBandsChanged_SoSubsequentEmitsAreIgnored()
+    {
+        var gains = new float[10];
+        gains[0] = 99f;
+
+        _sut.Dispose();
+        _bandsSubject.OnNext(gains);
+
+        _sut.Bands[0].GainDb.Should().BeApproximately(0f, 0.001f,
+            "after disposal the subscription is removed and no updates occur");
+    }
+}
+
+/// <summary>
+/// Unit tests for EqBandViewModel — verifies gain property, slot index, and event emission.
+/// </summary>
+[Trait("Category", "Unit")]
+public class EqBandViewModelTests
+{
+    // ─── Construction ────────────────────────────────────────────────────────
+
+    [Fact]
+    public void BandIndex_IsSetFromConstructor()
+    {
+        var band = new EqBandViewModel(5, "1k", 0f);
+        band.BandIndex.Should().Be(5);
+    }
+
+    [Fact]
+    public void Label_IsSetFromConstructor()
+    {
+        var band = new EqBandViewModel(5, "1k", 0f);
+        band.Label.Should().Be("1k");
+    }
+
+    [Fact]
+    public void GainDb_InitialisedFromConstructor()
+    {
+        var band = new EqBandViewModel(0, "32Hz", 3.5f);
+        band.GainDb.Should().BeApproximately(3.5f, 0.001f);
+    }
+
+    // ─── GainDb setter ───────────────────────────────────────────────────────
+
+    [Fact]
+    public void GainDb_SetterUpdatesValue()
+    {
+        var band = new EqBandViewModel(0, "32Hz", 0f);
+        band.GainDb = 6f;
+        band.GainDb.Should().BeApproximately(6f, 0.001f);
+    }
+
+    [Fact]
+    public void GainDb_RaisesGainChangedEvent_WithCorrectIndexAndValue()
+    {
+        var band = new EqBandViewModel(3, "250Hz", 0f);
+        (int Index, float Db)? received = null;
+        band.GainChanged += (_, args) => received = args;
+
+        band.GainDb = 4f;
+
+        received.Should().NotBeNull();
+        received!.Value.Index.Should().Be(3);
+        received.Value.Db.Should().BeApproximately(4f, 0.001f);
+    }
+
+    [Fact]
+    public void GainDb_DoesNotRaiseGainChangedEvent_WhenValueWithinEpsilon()
+    {
+        var band = new EqBandViewModel(0, "32Hz", 1f);
+        var eventCount = 0;
+        band.GainChanged += (_, _) => eventCount++;
+
+        // Delta < 0.001f — should be suppressed
+        band.GainDb = 1.0005f;
+
+        eventCount.Should().Be(0,
+            "changes smaller than 0.001 dB are below the threshold and should be ignored");
+    }
+
+    [Fact]
+    public void GainDb_RaisesPropertyChangedEvent_WhenValueChanges()
+    {
+        var band = new EqBandViewModel(0, "32Hz", 0f);
+        var propChanged = false;
+        band.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(EqBandViewModel.GainDb))
+                propChanged = true;
+        };
+
+        band.GainDb = 2f;
+
+        propChanged.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GainDb_DoesNotRaisePropertyChanged_WhenValueWithinEpsilon()
+    {
+        var band = new EqBandViewModel(0, "32Hz", 1f);
+        var propChanged = false;
+        band.PropertyChanged += (_, _) => propChanged = true;
+
+        band.GainDb = 1.0005f;
+
+        propChanged.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(0, "32Hz")]
+    [InlineData(4, "500Hz")]
+    [InlineData(9, "16k")]
+    public void BandIndex_MatchesSlotPosition(int index, string label)
+    {
+        var band = new EqBandViewModel(index, label, 0f);
+        band.BandIndex.Should().Be(index);
+        band.Label.Should().Be(label);
     }
 }

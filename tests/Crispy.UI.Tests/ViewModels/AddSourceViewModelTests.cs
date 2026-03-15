@@ -110,4 +110,176 @@ public class AddSourceViewModelTests
     {
         Build().ErrorMessage.Should().BeNull();
     }
+
+    // ─── SaveAsync (lines 164-169) ────────────────────────────────────────────
+
+    [Fact]
+    public async Task SaveCommand_CallsCreateAsync_WithCorrectSource()
+    {
+        var repo = Substitute.For<ISourceRepository>();
+        var enc = Substitute.For<ICredentialEncryption>();
+        var messenger = Substitute.For<IMessenger>();
+        var nav = Substitute.For<INavigationService>();
+
+        var created = new Crispy.Domain.Entities.Source
+        {
+            Name = "Test Source",
+            Url = "http://example.com/playlist.m3u",
+            SourceType = SourceType.M3U,
+            IsEnabled = true,
+        };
+        repo.CreateAsync(Arg.Any<Crispy.Domain.Entities.Source>()).Returns(created);
+
+        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        vm.Name = "Test Source";
+        vm.Url = "http://example.com/playlist.m3u";
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        await repo.Received(1).CreateAsync(Arg.Is<Crispy.Domain.Entities.Source>(s =>
+            s.Name == "Test Source" &&
+            s.Url == "http://example.com/playlist.m3u" &&
+            s.SourceType == SourceType.M3U &&
+            s.IsEnabled == true));
+    }
+
+    [Fact]
+    public async Task SaveCommand_NavigatesBack_WhenCanGoBack()
+    {
+        var repo = Substitute.For<ISourceRepository>();
+        var enc = Substitute.For<ICredentialEncryption>();
+        var messenger = Substitute.For<IMessenger>();
+        var nav = Substitute.For<INavigationService>();
+
+        var created = new Crispy.Domain.Entities.Source
+        {
+            Name = "IPTV",
+            Url = "http://iptv.example/list.m3u",
+            SourceType = SourceType.M3U,
+            IsEnabled = true,
+        };
+        repo.CreateAsync(Arg.Any<Crispy.Domain.Entities.Source>()).Returns(created);
+        nav.CanGoBack.Returns(true);
+
+        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        vm.Name = "IPTV";
+        vm.Url = "http://iptv.example/list.m3u";
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        nav.Received(1).GoBack();
+    }
+
+    [Fact]
+    public async Task SaveCommand_DoesNotCallGoBack_WhenCannotGoBack()
+    {
+        var repo = Substitute.For<ISourceRepository>();
+        var enc = Substitute.For<ICredentialEncryption>();
+        var messenger = Substitute.For<IMessenger>();
+        var nav = Substitute.For<INavigationService>();
+
+        var created = new Crispy.Domain.Entities.Source
+        {
+            Name = "IPTV2",
+            Url = "http://iptv2.example/list.m3u",
+            SourceType = SourceType.M3U,
+            IsEnabled = true,
+        };
+        repo.CreateAsync(Arg.Any<Crispy.Domain.Entities.Source>()).Returns(created);
+        nav.CanGoBack.Returns(false);
+
+        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        vm.Name = "IPTV2";
+        vm.Url = "http://iptv2.example/list.m3u";
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        nav.DidNotReceive().GoBack();
+    }
+
+    [Fact]
+    public async Task SaveCommand_SetsErrorMessage_WhenCreateAsyncThrows()
+    {
+        var repo = Substitute.For<ISourceRepository>();
+        var enc = Substitute.For<ICredentialEncryption>();
+        var messenger = Substitute.For<IMessenger>();
+        var nav = Substitute.For<INavigationService>();
+
+        repo.CreateAsync(Arg.Any<Crispy.Domain.Entities.Source>())
+            .Returns<Crispy.Domain.Entities.Source>(_ => throw new InvalidOperationException("DB error"));
+
+        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        vm.Name = "Bad Source";
+        vm.Url = "http://bad.example/list.m3u";
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        vm.ErrorMessage.Should().Contain("DB error");
+    }
+
+    // ─── CancelCommand (lines 164-169) ────────────────────────────────────────
+
+    [Fact]
+    public void CancelCommand_CallsGoBack_WhenCanGoBack()
+    {
+        var repo = Substitute.For<ISourceRepository>();
+        var enc = Substitute.For<ICredentialEncryption>();
+        var messenger = Substitute.For<IMessenger>();
+        var nav = Substitute.For<INavigationService>();
+        nav.CanGoBack.Returns(true);
+
+        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        vm.CancelCommand.Execute(null);
+
+        nav.Received(1).GoBack();
+    }
+
+    [Fact]
+    public void CancelCommand_DoesNotCallGoBack_WhenCannotGoBack()
+    {
+        var repo = Substitute.For<ISourceRepository>();
+        var enc = Substitute.For<ICredentialEncryption>();
+        var messenger = Substitute.For<IMessenger>();
+        var nav = Substitute.For<INavigationService>();
+        nav.CanGoBack.Returns(false);
+
+        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        vm.CancelCommand.Execute(null);
+
+        nav.DidNotReceive().GoBack();
+    }
+
+    [Fact]
+    public async Task SaveCommand_EncryptsCredentials_WhenUsernameAndPasswordProvided()
+    {
+        var repo = Substitute.For<ISourceRepository>();
+        var enc = Substitute.For<ICredentialEncryption>();
+        var messenger = Substitute.For<IMessenger>();
+        var nav = Substitute.For<INavigationService>();
+
+        enc.Encrypt("user1").Returns("enc_user");
+        enc.Encrypt("pass1").Returns("enc_pass");
+
+        var created = new Crispy.Domain.Entities.Source
+        {
+            Name = "Xtream",
+            Url = "http://xtream.example",
+            SourceType = SourceType.XtreamCodes,
+            IsEnabled = true,
+        };
+        repo.CreateAsync(Arg.Any<Crispy.Domain.Entities.Source>()).Returns(created);
+
+        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        vm.Name = "Xtream";
+        vm.Url = "http://xtream.example";
+        vm.SelectedSourceType = SourceType.XtreamCodes;
+        vm.Username = "user1";
+        vm.Password = "pass1";
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        await repo.Received(1).CreateAsync(Arg.Is<Crispy.Domain.Entities.Source>(s =>
+            s.EncryptedUsername == "enc_user" &&
+            s.EncryptedPassword == "enc_pass"));
+    }
 }
