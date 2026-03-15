@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fi="using:FluentIcons.Avalonia"
              xmlns:vm="using:Crispy.UI.ViewModels"
              x:Class="Crispy.UI.Controls.SettingsCategoryList"
              x:DataType="vm:SettingsViewModel">
@@ -15,12 +16,12 @@
         <Grid ColumnDefinitions="32,*"
               Margin="8,6"
               Height="40">
-          <TextBlock Grid.Column="0"
-                     Text="{Binding IconKey}"
-                     VerticalAlignment="Center"
-                     HorizontalAlignment="Center"
-                     FontSize="16"
-                     Foreground="{DynamicResource TextSecondaryBrush}" />
+          <fi:SymbolIcon Grid.Column="0"
+                         Symbol="{Binding Icon}"
+                         FontSize="18"
+                         VerticalAlignment="Center"
+                         HorizontalAlignment="Center"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
           <TextBlock Grid.Column="1"
                      Text="{Binding Name}"
                      VerticalAlignment="Center"

@@ -10,6 +10,7 @@ using Crispy.Domain.Enums;
 using Crispy.UI.Services;
 using Crispy.UI.Themes;
 
+using FluentIcons.Common;
 using Microsoft.Extensions.Options;
 
 namespace Crispy.UI.ViewModels;
@@ -41,12 +42,12 @@ public partial class SettingsViewModel : ViewModelBase
 
         Categories =
         [
-            new SettingsCategory("General", "gear", "SettingsGeneral"),
-            new SettingsCategory("Sources", "globe", "SettingsSources"),
-            new SettingsCategory("Playback", "play", "SettingsPlayback"),
-            new SettingsCategory("Data & Sync", "sync", "SettingsDataSync"),
-            new SettingsCategory("Advanced", "wrench", "SettingsAdvanced"),
-            new SettingsCategory("About", "info", "SettingsAbout"),
+            new SettingsCategory("General", Symbol.Settings, "SettingsGeneral"),
+            new SettingsCategory("Sources", Symbol.Globe, "SettingsSources"),
+            new SettingsCategory("Playback", Symbol.Play, "SettingsPlayback"),
+            new SettingsCategory("Data & Sync", Symbol.ArrowSync, "SettingsDataSync"),
+            new SettingsCategory("Advanced", Symbol.Wrench, "SettingsAdvanced"),
+            new SettingsCategory("About", Symbol.Info, "SettingsAbout"),
         ];
 
         SelectedCategory = Categories[0];
@@ -199,9 +200,9 @@ public partial class SettingsViewModel : ViewModelBase
 /// Represents a settings category with name, icon, and localization key.
 /// </summary>
 /// <param name="Name">Display name of the category.</param>
-/// <param name="IconKey">Icon identifier for the category.</param>
+/// <param name="Icon">Fluent icon symbol for the category.</param>
 /// <param name="LocalizationKey">RESX localization key for the category name.</param>
-public record SettingsCategory(string Name, string IconKey, string LocalizationKey);
+public record SettingsCategory(string Name, FluentIcons.Common.Symbol Icon, string LocalizationKey);
 
 /// <summary>
 /// Bindable locale option for ComboBox display.
