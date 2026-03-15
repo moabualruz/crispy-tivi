@@ -121,6 +121,129 @@ public class ThemeServiceTests
 
         _sut.SelectedAccentIndex.Should().BeLessThan(DesignTokens.AccentPalette.Length);
     }
+
+    [AvaloniaFact]
+    public async Task SetAccentColorAsync_ClampNegative_SetsIndexToZero()
+    {
+        await _sut.SetAccentColorAsync(-1);
+
+        _sut.SelectedAccentIndex.Should().Be(0);
+    }
+
+    [AvaloniaFact]
+    public async Task SetAccentColorAsync_ZeroIndex_SetsIndexToZero()
+    {
+        await _sut.SetAccentColorAsync(0);
+
+        _sut.SelectedAccentIndex.Should().Be(0);
+    }
+
+    [AvaloniaFact]
+    public async Task SetAccentColorAsync_PersistsClamped_WhenNegativeInput()
+    {
+        await _sut.SetAccentColorAsync(-5);
+
+        await _settingsService.Received(1)
+            .SetAsync(Arg.Is("accent_index"), Arg.Is<object>(v => (int)v == 0), Arg.Any<int?>());
+    }
+
+    [AvaloniaFact]
+    public async Task SetAccentColorAsync_PersistsClamped_WhenOverflowInput()
+    {
+        var maxIndex = DesignTokens.AccentPalette.Length - 1;
+        await _sut.SetAccentColorAsync(1000);
+
+        await _settingsService.Received(1)
+            .SetAsync(Arg.Is("accent_index"), Arg.Is<object>(v => (int)v == maxIndex), Arg.Any<int?>());
+    }
+
+    [AvaloniaFact]
+    public async Task InitializeAsync_SetsIsReducedMotion_WhenStoredTrue()
+    {
+        _settingsService.GetAsync("reduced_motion", false, Arg.Any<int?>())
+            .Returns(true);
+
+        await _sut.InitializeAsync();
+
+        _sut.IsReducedMotion.Should().BeTrue();
+    }
+
+    [AvaloniaFact]
+    public async Task InitializeAsync_SetsIsReducedMotion_WhenStoredFalse()
+    {
+        _settingsService.GetAsync("reduced_motion", false, Arg.Any<int?>())
+            .Returns(false);
+
+        await _sut.InitializeAsync();
+
+        _sut.IsReducedMotion.Should().BeFalse();
+    }
+
+    [AvaloniaFact]
+    public async Task InitializeAsync_LoadsAccentIndex_AndAppliesColor_WhenInRange()
+    {
+        _settingsService.GetAsync("accent_index", 0, Arg.Any<int?>())
+            .Returns(2);
+
+        await _sut.InitializeAsync();
+
+        _sut.SelectedAccentIndex.Should().Be(2);
+    }
+
+    [AvaloniaFact]
+    public async Task InitializeAsync_DoesNotApplyAccentColor_WhenIndexOutOfRange()
+    {
+        // Stored index that is out of bounds — should not throw, just skip ApplyAccentColor
+        _settingsService.GetAsync("accent_index", 0, Arg.Any<int?>())
+            .Returns(999);
+
+        var act = async () => await _sut.InitializeAsync();
+
+        await act.Should().NotThrowAsync();
+        _sut.SelectedAccentIndex.Should().Be(999);
+    }
+
+    [AvaloniaFact]
+    public async Task InitializeAsync_WithLightTheme_SetsCurrentThemeLight()
+    {
+        _settingsService.GetThemeAsync(Arg.Any<int?>())
+            .Returns(ThemeVariant.Light);
+
+        await _sut.InitializeAsync();
+
+        _sut.CurrentTheme.Should().Be(ThemeVariant.Light);
+    }
+
+    [AvaloniaFact]
+    public async Task InitializeAsync_WithOledBlackTheme_SetsCurrentTheme()
+    {
+        _settingsService.GetThemeAsync(Arg.Any<int?>())
+            .Returns(ThemeVariant.OledBlack);
+
+        await _sut.InitializeAsync();
+
+        _sut.CurrentTheme.Should().Be(ThemeVariant.OledBlack);
+    }
+
+    [AvaloniaFact]
+    public async Task SetReducedMotionAsync_False_UpdatesIsReducedMotion()
+    {
+        await _sut.SetReducedMotionAsync(true);
+        await _sut.SetReducedMotionAsync(false);
+
+        _sut.IsReducedMotion.Should().BeFalse();
+    }
+
+    [AvaloniaFact]
+    public async Task SetThemeAsync_FiresThemeChangedEvent_ForOledBlack()
+    {
+        ThemeVariant? received = null;
+        _sut.ThemeChanged += t => received = t;
+
+        await _sut.SetThemeAsync(ThemeVariant.OledBlack);
+
+        received.Should().Be(ThemeVariant.OledBlack);
+    }
 }
 
 /// <summary>
