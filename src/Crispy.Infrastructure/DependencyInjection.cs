@@ -1,6 +1,7 @@
 using System.IO;
 
 using Crispy.Application.Configuration;
+using Crispy.Application.Search;
 using Crispy.Application.Sources;
 using Crispy.Application.Sync;
 using Crispy.Domain.Entities;
@@ -9,12 +10,14 @@ using Crispy.Domain.Interfaces;
 using Crispy.Infrastructure.Connectivity;
 using Crispy.Infrastructure.Data;
 using Crispy.Infrastructure.Data.Repositories;
+using Crispy.Infrastructure.Downloads;
 using Crispy.Infrastructure.Jellyfin;
 using Crispy.Infrastructure.Logging;
 using Crispy.Infrastructure.Parsers.M3U;
 using Crispy.Infrastructure.Parsers.Stalker;
 using Crispy.Infrastructure.Parsers.Xmltv;
 using Crispy.Infrastructure.Parsers.Xtream;
+using Crispy.Infrastructure.Search;
 using Crispy.Infrastructure.Security;
 using Crispy.Infrastructure.Sync;
 
@@ -73,6 +76,9 @@ public static class DependencyInjection
         services.AddScoped<IChannelRepository, ChannelRepository>();
         services.AddScoped<IEpgRepository, EpgRepository>();
         services.AddScoped<ISyncHistoryRepository, SyncHistoryRepository>();
+        services.AddScoped<IMovieRepository, MovieRepository>();
+        services.AddScoped<ISeriesRepository, SeriesRepository>();
+        services.AddScoped<ISearchRepository, SearchRepository>();
 
         // ─── Security ─────────────────────────────────────────────────────────
         services.AddSingleton<ICredentialEncryption, CredentialEncryption>();
@@ -178,6 +184,28 @@ public static class DependencyInjection
                 factory.CreateClient("ConnectivityProbe"),
                 sp.GetRequiredService<ILogger<ConnectivityMonitor>>());
         });
+
+        // ─── TMDB enrichment ──────────────────────────────────────────────────
+        services.AddHttpClient("TmdbClient", client =>
+        {
+            client.BaseAddress = new Uri("https://api.themoviedb.org/3/");
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
+        services.AddTransient<TmdbEnricher>(sp =>
+        {
+            var factory = sp.GetRequiredService<IHttpClientFactory>();
+            return new TmdbEnricher(
+                factory.CreateClient("TmdbClient"),
+                sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(),
+                sp.GetRequiredService<ILogger<TmdbEnricher>>());
+        });
+
+        // ─── Search ───────────────────────────────────────────────────────────
+        services.AddScoped<ISearchService, FtsSearchService>();
+
+        // ─── Downloads ────────────────────────────────────────────────────────
+        services.AddSingleton<DownloadManager>();
+        services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<DownloadManager>());
 
         // ─── Logging ──────────────────────────────────────────────────────────
         services.AddLogging(builder => builder.AddSerilogLogging());

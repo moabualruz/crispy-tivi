@@ -506,30 +506,31 @@ CREATE VIRTUAL TABLE IF NOT EXISTS ContentSearch USING fts5(
         // -------------------------------------------------------------------------
         // FTS5 triggers on Channels to keep ContentSearch in sync
         // -------------------------------------------------------------------------
+        // Triggers use rowid=NEW.Id so the FTS5 index can be located by Channel.Id.
+        // DELETE FROM ContentSearch WHERE rowid=... is the correct approach for standalone
+        // (non-content) FTS5 tables. The INSERT('delete'...) syntax is for content tables only.
         migrationBuilder.Sql(@"
 CREATE TRIGGER IF NOT EXISTS channel_ai
 AFTER INSERT ON Channels
 BEGIN
-    INSERT INTO ContentSearch(content_id, content_type, source_id, title, description, group_name)
-    VALUES (NEW.Id, 'Channel', NEW.SourceId, NEW.Title, NULL, NEW.GroupName);
+    INSERT INTO ContentSearch(rowid, content_id, content_type, source_id, title, description, group_name)
+    VALUES (NEW.Id, NEW.Id, 'Channel', NEW.SourceId, NEW.Title, NULL, NEW.GroupName);
 END;");
 
         migrationBuilder.Sql(@"
 CREATE TRIGGER IF NOT EXISTS channel_ad
 AFTER DELETE ON Channels
 BEGIN
-    INSERT INTO ContentSearch(ContentSearch, content_id, content_type, source_id, title, description, group_name)
-    VALUES ('delete', OLD.Id, 'Channel', OLD.SourceId, OLD.Title, NULL, OLD.GroupName);
+    DELETE FROM ContentSearch WHERE rowid = OLD.Id;
 END;");
 
         migrationBuilder.Sql(@"
 CREATE TRIGGER IF NOT EXISTS channel_au
 AFTER UPDATE ON Channels
 BEGIN
-    INSERT INTO ContentSearch(ContentSearch, content_id, content_type, source_id, title, description, group_name)
-    VALUES ('delete', OLD.Id, 'Channel', OLD.SourceId, OLD.Title, NULL, OLD.GroupName);
-    INSERT INTO ContentSearch(content_id, content_type, source_id, title, description, group_name)
-    VALUES (NEW.Id, 'Channel', NEW.SourceId, NEW.Title, NULL, NEW.GroupName);
+    DELETE FROM ContentSearch WHERE rowid = OLD.Id;
+    INSERT INTO ContentSearch(rowid, content_id, content_type, source_id, title, description, group_name)
+    VALUES (NEW.Id, NEW.Id, 'Channel', NEW.SourceId, NEW.Title, NULL, NEW.GroupName);
 END;");
     }
 
