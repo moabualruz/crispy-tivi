@@ -4,6 +4,12 @@
 .planning/
 
 ##
+## Tools
+##
+.coa/
+.fastembed_cache/
+
+##
 ## .NET Build
 ##
 [Bb]in/
