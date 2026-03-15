@@ -146,5 +146,14 @@ public class ThemeService : IThemeService
         var color = DesignTokens.AccentPalette[index];
         resources["AccentPrimary"] = color;
         resources["AccentPrimaryBrush"] = new SolidColorBrush(color);
+
+        // Also set Avalonia's built-in accent so ToggleSwitch, ListBox selection etc. use it
+        resources["SystemAccentColor"] = color;
+        resources["SystemAccentColorDark1"] = color;
+        resources["SystemAccentColorDark2"] = color;
+        resources["SystemAccentColorDark3"] = color;
+        resources["SystemAccentColorLight1"] = color;
+        resources["SystemAccentColorLight2"] = color;
+        resources["SystemAccentColorLight3"] = color;
     }
 }

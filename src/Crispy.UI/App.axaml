@@ -12,7 +12,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://Crispy.UI/Themes/DarkTheme.axaml" />
+                <!-- Theme loaded at runtime by ThemeService.InitializeAsync -->
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
