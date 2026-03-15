@@ -5,6 +5,8 @@ using FluentAssertions;
 
 using NSubstitute;
 
+using Xunit;
+
 namespace Crispy.UI.Tests.Services;
 
 /// <summary>

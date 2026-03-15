@@ -1,0 +1,74 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Styles.Resources>
+    <!-- Reduced Motion Flag (dynamic, toggled at runtime) -->
+    <x:Boolean x:Key="ReducedMotion">False</x:Boolean>
+  </Styles.Resources>
+
+  <!-- Focus style for buttons -->
+  <Style Selector="Button:focus-visible">
+    <Setter Property="RenderTransform">
+      <ScaleTransform ScaleX="1.05" ScaleY="1.05" />
+    </Setter>
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Style.Animations>
+      <Animation Duration="0:0:0.2" Easing="CubicEaseOut" FillMode="Forward">
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="1" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+
+  <!-- Focus style for list box items -->
+  <Style Selector="ListBoxItem:focus-visible">
+    <Setter Property="RenderTransform">
+      <ScaleTransform ScaleX="1.05" ScaleY="1.05" />
+    </Setter>
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Style.Animations>
+      <Animation Duration="0:0:0.2" Easing="CubicEaseOut" FillMode="Forward">
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="1" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+
+  <!-- Focus style for focusable borders -->
+  <Style Selector="Border.focusable:focus-visible">
+    <Setter Property="RenderTransform">
+      <ScaleTransform ScaleX="1.05" ScaleY="1.05" />
+    </Setter>
+    <Style.Animations>
+      <Animation Duration="0:0:0.2" Easing="CubicEaseOut" FillMode="Forward">
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="1" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+
+  <!-- Reduced motion: buttons -->
+  <Style Selector="Button.reduced-motion:focus-visible">
+    <Setter Property="RenderTransform" Value="{x:Null}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <!-- Reduced motion: list box items -->
+  <Style Selector="ListBoxItem.reduced-motion:focus-visible">
+    <Setter Property="RenderTransform" Value="{x:Null}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <!-- Reduced motion: focusable borders -->
+  <Style Selector="Border.focusable.reduced-motion:focus-visible">
+    <Setter Property="RenderTransform" Value="{x:Null}" />
+  </Style>
+
+</Styles>

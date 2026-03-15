@@ -1,0 +1,66 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Styles.Resources>
+    <!-- Spacing Thickness Resources (4px/8px grid) -->
+    <Thickness x:Key="SpacingXs">4</Thickness>
+    <Thickness x:Key="SpacingSm">8</Thickness>
+    <Thickness x:Key="SpacingMd">16</Thickness>
+    <Thickness x:Key="SpacingLg">24</Thickness>
+    <Thickness x:Key="SpacingXl">32</Thickness>
+
+    <!-- Corner Radii -->
+    <CornerRadius x:Key="RadiusSm">4</CornerRadius>
+    <CornerRadius x:Key="RadiusMd">8</CornerRadius>
+    <CornerRadius x:Key="RadiusLg">12</CornerRadius>
+  </Styles.Resources>
+
+  <!-- Card Style -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}" />
+    <Setter Property="Padding" Value="{StaticResource SpacingMd}" />
+    <Setter Property="BoxShadow" Value="0 2 8 0 #20000000" />
+  </Style>
+
+  <!-- Primary Button Style -->
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource AccentPrimaryBrush}" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}" />
+    <Setter Property="Padding" Value="16 8" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <!-- Secondary Button Style -->
+  <Style Selector="Button.secondary">
+    <Setter Property="Background" Value="{DynamicResource SurfaceTertiaryBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}" />
+    <Setter Property="Padding" Value="16 8" />
+  </Style>
+
+  <!-- Ghost Button Style -->
+  <Style Selector="Button.ghost">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="Padding" Value="16 8" />
+  </Style>
+
+  <!-- Glass Panel Style -->
+  <Style Selector="Border.glass">
+    <Setter Property="Background" Value="{DynamicResource GlassPanelBrush}" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}" />
+    <Setter Property="Padding" Value="{StaticResource SpacingMd}" />
+  </Style>
+
+  <!-- Setting Row Style -->
+  <Style Selector="Border.setting-row">
+    <Setter Property="Padding" Value="16 12" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Border.setting-row:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceTertiaryBrush}" />
+  </Style>
+
+</Styles>

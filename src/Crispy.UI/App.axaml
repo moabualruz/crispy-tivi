@@ -5,5 +5,15 @@
 
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://Crispy.UI/Themes/SharedStyles.axaml" />
+        <StyleInclude Source="avares://Crispy.UI/Themes/FocusStyles.axaml" />
     </Application.Styles>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Crispy.UI/Themes/DarkTheme.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
 </Application>
