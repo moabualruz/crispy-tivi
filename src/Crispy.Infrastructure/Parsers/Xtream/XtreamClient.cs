@@ -79,6 +79,13 @@ public sealed class XtreamClient
             $"/player_api.php?username={username}&password={password}&action=get_short_epg&stream_id={streamId}",
             ct).ConfigureAwait(false);
 
+    /// <summary>
+    /// Downloads the M3U playlist from the given absolute URL using the same HttpClient instance.
+    /// This keeps the M3U fallback testable via the injected HttpClient.
+    /// </summary>
+    public Task<Stream> GetM3UStreamAsync(string absoluteUrl, CancellationToken ct = default)
+        => _http.GetStreamAsync(absoluteUrl, ct);
+
     private async Task<JsonDocument?> GetJsonAsync(string relativeUrl, CancellationToken ct)
     {
         using var response = await _http.GetAsync(relativeUrl, ct).ConfigureAwait(false);

@@ -106,10 +106,9 @@ public sealed class XtreamParser : ISourceParser
     {
         var m3uUrl = $"{source.Url.TrimEnd('/')}/get.php?username={Uri.EscapeDataString(username)}&password={Uri.EscapeDataString(password)}&type=m3u_plus&output=ts";
 
-        using var httpClient = new HttpClient();
         try
         {
-            await using var stream = await httpClient.GetStreamAsync(m3uUrl, ct).ConfigureAwait(false);
+            await using var stream = await _client.GetM3UStreamAsync(m3uUrl, ct).ConfigureAwait(false);
             var channels = new List<Channel>();
             int skipped = 0;
 
