@@ -178,4 +178,76 @@ public class DeepLinkParserTests
 
         a.Should().Be(b);
     }
+
+    [Fact]
+    public void Parse_SearchWithMultipleQueryParams_ReturnsAllParams()
+    {
+        var result = DeepLinkParser.Parse("crispy://search?q=action&lang=en");
+
+        result.Should().NotBeNull();
+        result!.Screen.Should().Be("Search");
+        result.Query.Should().ContainKey("q").WhoseValue.Should().Be("action");
+        result.Query.Should().ContainKey("lang").WhoseValue.Should().Be("en");
+    }
+
+    [Fact]
+    public void Parse_QueryKeyWithNoValue_ReturnsEmptyStringValue()
+    {
+        // "flag" has no '=' — ParseQuery should store empty string
+        var result = DeepLinkParser.Parse("crispy://search?flag");
+
+        result.Should().NotBeNull();
+        result!.Query.Should().ContainKey("flag").WhoseValue.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Parse_QueryParamWithEncodedValue_DecodesCorrectly()
+    {
+        var result = DeepLinkParser.Parse("crispy://search?q=action%20movie");
+
+        result.Should().NotBeNull();
+        result!.Query!["q"].Should().Be("action movie");
+    }
+
+    [Fact]
+    public void Parse_SettingsWithQueryParams_ReturnsQueryAndId()
+    {
+        var result = DeepLinkParser.Parse("crispy://settings/playback?autoplay=true");
+
+        result.Should().NotBeNull();
+        result!.Screen.Should().Be("Settings");
+        result.Id.Should().Be("playback");
+        result.Query.Should().ContainKey("autoplay");
+    }
+
+    [Fact]
+    public void Parse_VodSeriesWithQueryParams_ReturnsSeriesScreenAndQuery()
+    {
+        var result = DeepLinkParser.Parse("crispy://vod/series/42?season=2");
+
+        result.Should().NotBeNull();
+        result!.Screen.Should().Be("Series");
+        result.Id.Should().Be("42");
+        result.Query.Should().ContainKey("season").WhoseValue.Should().Be("2");
+    }
+
+    [Fact]
+    public void Parse_HomeWithQuery_ReturnsHomeScreenWithQuery()
+    {
+        var result = DeepLinkParser.Parse("crispy://home?featured=true");
+
+        result.Should().NotBeNull();
+        result!.Screen.Should().Be("Home");
+        result.Query.Should().ContainKey("featured");
+    }
+
+    [Fact]
+    public void DeepLinkResult_Deconstruct_ScreenIdQuery()
+    {
+        var r = new DeepLinkResult("LiveTv", "5", null);
+
+        r.Screen.Should().Be("LiveTv");
+        r.Id.Should().Be("5");
+        r.Query.Should().BeNull();
+    }
 }

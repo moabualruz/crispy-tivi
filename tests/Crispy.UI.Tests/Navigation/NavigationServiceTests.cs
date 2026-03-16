@@ -157,6 +157,84 @@ public class NavigationServiceTests
         second.Should().NotBeSameAs(first);
         _sut.CanGoBack.Should().BeTrue();
     }
+
+    [Fact]
+    public void CurrentViewModel_IsNull_BeforeAnyNavigation()
+    {
+        _sut.CurrentViewModel.Should().BeNull();
+    }
+
+    [Fact]
+    public void CanGoBack_IsFalse_BeforeAnyNavigation()
+    {
+        _sut.CanGoBack.Should().BeFalse();
+    }
+
+    [Fact]
+    public void GoBack_WhenCurrentIsNotNavigationAware_DoesNotThrow()
+    {
+        // LiveTvTestViewModel does NOT implement INavigationAware
+        _sut.NavigateTo<HomeTestViewModel>();
+        _sut.NavigateTo<LiveTvTestViewModel>();
+
+        var act = () => _sut.GoBack();
+
+        act.Should().NotThrow();
+        _sut.CurrentViewModel.Should().BeOfType<HomeTestViewModel>();
+    }
+
+    [Fact]
+    public void GoBack_WhenRestoredViewModelIsNotScrollRestorable_DoesNotThrow()
+    {
+        // HomeTestViewModel implements INavigationAware but NOT IScrollRestorable
+        _sut.NavigateTo<HomeTestViewModel>();
+        _sut.NavigateTo<LiveTvTestViewModel>();
+
+        var act = () => _sut.GoBack();
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void NavigateTo_WithParameter_PassesParameterToOnNavigatedTo()
+    {
+        _sut.NavigateTo<HomeTestViewModel>(parameter: 42);
+
+        var vm = _sut.CurrentViewModel as HomeTestViewModel;
+        vm!.LastNavigatedToParam.Should().Be(42);
+    }
+
+    [Fact]
+    public void GoBack_WhenNoCurrentViewModel_DoesNotThrow()
+    {
+        // CanGoBack is false initially — GoBack must be a no-op
+        var act = () => _sut.GoBack();
+
+        act.Should().NotThrow();
+        _sut.CurrentViewModel.Should().BeNull();
+    }
+
+    [Fact]
+    public void Navigated_IsNotFired_BeforeFirstNavigation()
+    {
+        var fired = false;
+        _sut.Navigated += _ => fired = true;
+
+        // No navigation — event must not fire
+        fired.Should().BeFalse();
+    }
+
+    [Fact]
+    public void GoBack_CallsOnNavigatedFrom_OnCurrentNavigationAwareViewModel()
+    {
+        _sut.NavigateTo<HomeTestViewModel>();
+        _sut.NavigateTo<HomeTestViewModel>();
+        var second = _sut.CurrentViewModel as HomeTestViewModel;
+
+        _sut.GoBack();
+
+        second!.NavigatedFromCalled.Should().BeTrue();
+    }
 }
 
 // --- Test doubles ---
