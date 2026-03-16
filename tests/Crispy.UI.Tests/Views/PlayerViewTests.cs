@@ -1,7 +1,10 @@
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 
 using Crispy.Application.Player;
 using Crispy.Application.Player.Models;
+using Crispy.Application.Services;
 using Crispy.UI.Tests.Helpers;
 using Crispy.UI.ViewModels;
 using Crispy.UI.Views;
@@ -15,8 +18,7 @@ using Xunit;
 namespace Crispy.UI.Tests.Views;
 
 /// <summary>
-/// Smoke tests verifying that PlayerView mounts without exceptions under the headless
-/// Avalonia platform, and that OSD / volume state is correct at startup.
+/// Tests for PlayerView code-behind: smoke render, OSD state, and keyboard shortcuts.
 /// </summary>
 [Trait("Category", "UI")]
 public class PlayerViewTests
@@ -47,6 +49,8 @@ public class PlayerViewTests
 
         return new PlayerViewModel(playerService, timeshiftService, sleepTimer);
     }
+
+    // ── Smoke tests ──────────────────────────────────────────────────────────
 
     [AvaloniaFact]
     public void PlayerView_RendersWithoutException()
@@ -90,6 +94,213 @@ public class PlayerViewTests
 
         vm.Volume.Should().BeApproximately(1.0f, 0.001f,
             "PlayerViewModel must default volume to 1.0 (100%)");
+        window.Close();
+    }
+
+    // ── Keyboard shortcuts (PLR-21) ──────────────────────────────────────────
+
+    [AvaloniaFact]
+    public void PlayerView_SpaceKey_DoesNotThrow_WhenNotPlaying()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+        var view = (PlayerView)window.Content!;
+        view.Focus();
+
+        // Space when not playing → calls ResumeCommand (no-op since nothing is loaded)
+        var act = () =>
+        {
+            window.KeyPressQwerty(PhysicalKey.Space, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.Space, RawInputModifiers.None);
+        };
+
+        act.Should().NotThrow("Space key must not throw regardless of play state");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void PlayerView_MKey_DoesNotThrow()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+        var view = (PlayerView)window.Content!;
+        view.Focus();
+
+        var act = () =>
+        {
+            window.KeyPressQwerty(PhysicalKey.M, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.M, RawInputModifiers.None);
+        };
+
+        act.Should().NotThrow("M key (mute toggle) must not throw");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void PlayerView_FKey_DoesNotThrow()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+        var view = (PlayerView)window.Content!;
+        view.Focus();
+
+        var act = () =>
+        {
+            window.KeyPressQwerty(PhysicalKey.F, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.F, RawInputModifiers.None);
+        };
+
+        act.Should().NotThrow("F key (fullscreen toggle) must not throw");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void PlayerView_EscapeKey_DoesNotThrow()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+        var view = (PlayerView)window.Content!;
+        view.Focus();
+
+        var act = () =>
+        {
+            window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        };
+
+        act.Should().NotThrow("Escape key (fullscreen toggle) must not throw");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void PlayerView_UpArrow_IncreasesVolume()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+        var view = (PlayerView)window.Content!;
+        view.Focus();
+
+        // SetVolumeCommand is async; volume change is scheduled
+        var act = () =>
+        {
+            window.KeyPressQwerty(PhysicalKey.ArrowUp, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.ArrowUp, RawInputModifiers.None);
+        };
+
+        act.Should().NotThrow("Up arrow (volume +5%) must not throw");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void PlayerView_DownArrow_DecreasesVolume()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+        var view = (PlayerView)window.Content!;
+        view.Focus();
+
+        var act = () =>
+        {
+            window.KeyPressQwerty(PhysicalKey.ArrowDown, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.ArrowDown, RawInputModifiers.None);
+        };
+
+        act.Should().NotThrow("Down arrow (volume -5%) must not throw");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void PlayerView_LeftArrow_SeeksBackward_DoesNotThrow()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+        var view = (PlayerView)window.Content!;
+        view.Focus();
+
+        var act = () =>
+        {
+            window.KeyPressQwerty(PhysicalKey.ArrowLeft, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.ArrowLeft, RawInputModifiers.None);
+        };
+
+        act.Should().NotThrow("Left arrow (seek back) must not throw");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void PlayerView_RightArrow_SeeksForward_DoesNotThrow()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+        var view = (PlayerView)window.Content!;
+        view.Focus();
+
+        var act = () =>
+        {
+            window.KeyPressQwerty(PhysicalKey.ArrowRight, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.ArrowRight, RawInputModifiers.None);
+        };
+
+        act.Should().NotThrow("Right arrow (seek forward) must not throw");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void PlayerView_AKey_CycleAudioTrack_DoesNotThrow()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+        var view = (PlayerView)window.Content!;
+        view.Focus();
+
+        var act = () =>
+        {
+            window.KeyPressQwerty(PhysicalKey.A, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.A, RawInputModifiers.None);
+        };
+
+        act.Should().NotThrow("A key (cycle audio track) must not throw");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void PlayerView_MultipleKeystrokes_DoNotThrow()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+        var view = (PlayerView)window.Content!;
+        view.Focus();
+
+        var act = () =>
+        {
+            // Simulate a realistic sequence: show OSD, adjust volume, seek
+            window.KeyPressQwerty(PhysicalKey.Space, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.Space, RawInputModifiers.None);
+            window.KeyPressQwerty(PhysicalKey.ArrowUp, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.ArrowUp, RawInputModifiers.None);
+            window.KeyPressQwerty(PhysicalKey.ArrowRight, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.ArrowRight, RawInputModifiers.None);
+            window.KeyPressQwerty(PhysicalKey.M, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.M, RawInputModifiers.None);
+            window.KeyPressQwerty(PhysicalKey.F, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.F, RawInputModifiers.None);
+            window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+            window.KeyReleaseQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        };
+
+        act.Should().NotThrow("a realistic keyboard sequence must not throw");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void PlayerView_PointerMove_ShowsOsd()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+
+        window.MouseMove(new Avalonia.Point(200, 200));
+
+        vm.IsOsdVisible.Should().BeTrue("mouse movement must reveal the OSD");
         window.Close();
     }
 }

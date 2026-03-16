@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 
 using Crispy.UI.ViewModels;
@@ -14,11 +15,21 @@ public partial class OsdOverlay : UserControl
     private LiveSeekBar? _liveSeekBar;
     private VodSeekBar? _vodSeekBar;
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+
+        // Re-wire if DataContext was set before the control entered the visual tree
+        if (DataContext is PlayerViewModel vm)
+            WireSeekBars(vm);
+    }
+
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
 
-        if (DataContext is PlayerViewModel vm)
+        // Only wire when already attached (SeekBarHost is available)
+        if (SeekBarHost is not null && DataContext is PlayerViewModel vm)
             WireSeekBars(vm);
     }
 
