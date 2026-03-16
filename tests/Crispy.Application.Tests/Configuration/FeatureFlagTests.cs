@@ -8,7 +8,106 @@ namespace Crispy.Application.Tests.Configuration;
 public sealed class FeatureFlagTests
 {
     // -------------------------------------------------------------------------
-    // Enabled = false — always returns false regardless of Platforms
+    // IsEnabledForPlatform — Enabled = false
+    // -------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("Windows")]
+    [InlineData("Linux")]
+    [InlineData("macOS")]
+    [InlineData("Android")]
+    [InlineData("iOS")]
+    [InlineData("Browser")]
+    [InlineData("Unknown")]
+    public void IsEnabledForPlatform_ReturnsFalse_WhenEnabledIsFalse(string platform)
+    {
+        var flag = new FeatureFlag
+        {
+            Enabled = false,
+            Platforms = ["Windows", "Linux", "macOS", "Android", "iOS", "Browser", "*"],
+        };
+
+        flag.IsEnabledForPlatform(platform).Should().BeFalse();
+    }
+
+    // -------------------------------------------------------------------------
+    // IsEnabledForPlatform — Enabled = true, empty platforms → true for any
+    // -------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("Windows")]
+    [InlineData("Linux")]
+    [InlineData("macOS")]
+    [InlineData("Android")]
+    [InlineData("iOS")]
+    [InlineData("Browser")]
+    [InlineData("Unknown")]
+    public void IsEnabledForPlatform_ReturnsTrue_WhenPlatformsEmpty(string platform)
+    {
+        var flag = new FeatureFlag { Enabled = true };
+
+        flag.IsEnabledForPlatform(platform).Should().BeTrue();
+    }
+
+    // -------------------------------------------------------------------------
+    // IsEnabledForPlatform — wildcard "*" → true for any platform
+    // -------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("Windows")]
+    [InlineData("Linux")]
+    [InlineData("macOS")]
+    [InlineData("Android")]
+    [InlineData("iOS")]
+    [InlineData("Browser")]
+    [InlineData("Unknown")]
+    public void IsEnabledForPlatform_ReturnsTrue_WhenWildcardPresent(string platform)
+    {
+        var flag = new FeatureFlag { Enabled = true, Platforms = ["*"] };
+
+        flag.IsEnabledForPlatform(platform).Should().BeTrue();
+    }
+
+    // -------------------------------------------------------------------------
+    // IsEnabledForPlatform — exact match for each platform
+    // -------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("Windows")]
+    [InlineData("Linux")]
+    [InlineData("macOS")]
+    [InlineData("Android")]
+    [InlineData("iOS")]
+    [InlineData("Browser")]
+    public void IsEnabledForPlatform_ReturnsTrue_WhenPlatformIsListed(string platform)
+    {
+        var flag = new FeatureFlag { Enabled = true, Platforms = [platform] };
+
+        flag.IsEnabledForPlatform(platform).Should().BeTrue();
+    }
+
+    // -------------------------------------------------------------------------
+    // IsEnabledForPlatform — no match
+    // -------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("Windows", "Linux")]
+    [InlineData("Linux", "macOS")]
+    [InlineData("macOS", "Windows")]
+    [InlineData("Android", "iOS")]
+    [InlineData("iOS", "Browser")]
+    [InlineData("Browser", "Android")]
+    [InlineData("Unknown", "Windows")]
+    public void IsEnabledForPlatform_ReturnsFalse_WhenPlatformNotListed(string platform, string listedPlatform)
+    {
+        var flag = new FeatureFlag { Enabled = true, Platforms = [listedPlatform] };
+
+        flag.IsEnabledForPlatform(platform).Should().BeFalse();
+    }
+
+    // -------------------------------------------------------------------------
+    // IsEnabledForCurrentPlatform — delegates to IsEnabledForPlatform
+    // (verifies the wrapper behaves consistently; one OS always matches)
     // -------------------------------------------------------------------------
 
     [Fact]
@@ -24,18 +123,6 @@ public sealed class FeatureFlagTests
     }
 
     [Fact]
-    public void IsEnabledForCurrentPlatform_ReturnsFalse_WhenEnabledFalseAndEmptyPlatforms()
-    {
-        var flag = new FeatureFlag { Enabled = false };
-
-        flag.IsEnabledForCurrentPlatform().Should().BeFalse();
-    }
-
-    // -------------------------------------------------------------------------
-    // Enabled = true, wildcard / empty
-    // -------------------------------------------------------------------------
-
-    [Fact]
     public void IsEnabledForCurrentPlatform_ReturnsTrue_WhenEnabledAndPlatformsEmpty()
     {
         var flag = new FeatureFlag { Enabled = true };
@@ -44,7 +131,7 @@ public sealed class FeatureFlagTests
     }
 
     [Fact]
-    public void IsEnabledForCurrentPlatform_ReturnsTrue_WhenEnabledAndPlatformsContainsStar()
+    public void IsEnabledForCurrentPlatform_ReturnsTrue_WhenEnabledAndWildcard()
     {
         var flag = new FeatureFlag { Enabled = true, Platforms = ["*"] };
 
@@ -52,25 +139,9 @@ public sealed class FeatureFlagTests
     }
 
     [Fact]
-    public void IsEnabledForCurrentPlatform_ReturnsTrue_WhenEnabledAndPlatformsContainsStarAmongOthers()
-    {
-        var flag = new FeatureFlag
-        {
-            Enabled = true,
-            Platforms = ["NonExistentOS", "*"],
-        };
-
-        flag.IsEnabledForCurrentPlatform().Should().BeTrue();
-    }
-
-    // -------------------------------------------------------------------------
-    // Enabled = true, current platform in list
-    // -------------------------------------------------------------------------
-
-    [Fact]
     public void IsEnabledForCurrentPlatform_ReturnsTrue_WhenCurrentPlatformIsInList()
     {
-        // Include all desktop OS names — at least one must match the running agent
+        // Include all known OS names — at least one must match on any CI agent
         var flag = new FeatureFlag
         {
             Enabled = true,
@@ -80,10 +151,6 @@ public sealed class FeatureFlagTests
         flag.IsEnabledForCurrentPlatform().Should().BeTrue();
     }
 
-    // -------------------------------------------------------------------------
-    // Enabled = true, no matching platform
-    // -------------------------------------------------------------------------
-
     [Fact]
     public void IsEnabledForCurrentPlatform_ReturnsFalse_WhenNoPlatformMatches()
     {
@@ -91,19 +158,6 @@ public sealed class FeatureFlagTests
         {
             Enabled = true,
             Platforms = ["NonExistentOS"],
-        };
-
-        flag.IsEnabledForCurrentPlatform().Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsEnabledForCurrentPlatform_ReturnsFalse_WhenOnlyMobilePlatformsListed_OnDesktop()
-    {
-        // Tests run on desktop (Windows/Linux/macOS) — Android/iOS/Browser should not match
-        var flag = new FeatureFlag
-        {
-            Enabled = true,
-            Platforms = ["Android", "iOS", "Browser"],
         };
 
         flag.IsEnabledForCurrentPlatform().Should().BeFalse();

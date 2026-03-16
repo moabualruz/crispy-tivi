@@ -22,46 +22,27 @@ public class FeatureFlag
     /// </summary>
     public bool IsEnabledForCurrentPlatform()
     {
+        if (OperatingSystem.IsWindows()) return IsEnabledForPlatform("Windows");
+        if (OperatingSystem.IsLinux()) return IsEnabledForPlatform("Linux");
+        if (OperatingSystem.IsMacOS()) return IsEnabledForPlatform("macOS");
+        if (OperatingSystem.IsAndroid()) return IsEnabledForPlatform("Android");
+        if (OperatingSystem.IsIOS()) return IsEnabledForPlatform("iOS");
+        if (OperatingSystem.IsBrowser()) return IsEnabledForPlatform("Browser");
+        return IsEnabledForPlatform("Unknown");
+    }
+
+    /// <summary>
+    /// Evaluates whether the feature is enabled for the specified platform name.
+    /// Valid platform names: "Windows", "Linux", "macOS", "Android", "iOS", "Browser".
+    /// </summary>
+    public bool IsEnabledForPlatform(string platformName)
+    {
         if (!Enabled)
-        {
             return false;
-        }
 
         if (Platforms.Count == 0 || Platforms.Contains("*"))
-        {
             return true;
-        }
 
-        if (OperatingSystem.IsWindows() && Platforms.Contains("Windows"))
-        {
-            return true;
-        }
-
-        if (OperatingSystem.IsLinux() && Platforms.Contains("Linux"))
-        {
-            return true;
-        }
-
-        if (OperatingSystem.IsMacOS() && Platforms.Contains("macOS"))
-        {
-            return true;
-        }
-
-        if (OperatingSystem.IsAndroid() && Platforms.Contains("Android"))
-        {
-            return true;
-        }
-
-        if (OperatingSystem.IsIOS() && Platforms.Contains("iOS"))
-        {
-            return true;
-        }
-
-        if (OperatingSystem.IsBrowser() && Platforms.Contains("Browser"))
-        {
-            return true;
-        }
-
-        return false;
+        return Platforms.Contains(platformName);
     }
 }
