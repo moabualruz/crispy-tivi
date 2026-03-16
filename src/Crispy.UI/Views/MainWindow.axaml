@@ -1,9 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Crispy.UI.ViewModels"
+        xmlns:views="using:Crispy.UI.Views"
         xmlns:input="using:Avalonia.Input"
         x:Class="Crispy.UI.Views.MainWindow"
-        x:DataType="vm:MainViewModel"
+        x:DataType="vm:AppShellViewModel"
         Title="CrispyTivi"
         Width="1280"
         Height="720"
@@ -11,6 +12,6 @@
         MinHeight="600"
         input:XYFocus.NavigationModes="Enabled">
 
-  <ContentControl Content="{Binding}" />
+  <views:AppShell />
 
 </Window>

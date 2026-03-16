@@ -11,7 +11,7 @@ namespace Crispy.UI.Views;
 /// Code-behind for MultiviewView.
 /// Responsibilities:
 /// — Wire VideoView.MediaPlayer for each of the 4 slot containers via reflection
-///   (same airspace workaround as PlayerView — keeps Crispy.UI free of a compile-time
+///   (same airspace workaround as AppShell video layer — keeps Crispy.UI free of a compile-time
 ///   LibVLCSharp reference).
 /// — Route keyboard shortcuts: Left/Right/Up/Down change audio slot, F expands focused slot.
 /// — Pointer drag-to-swap between slots.

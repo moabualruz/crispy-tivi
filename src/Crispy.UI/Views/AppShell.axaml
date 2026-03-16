@@ -24,6 +24,7 @@
     <!-- ═══ LAYER 1: Content / Navigation ══════════════════════════════════ -->
     <Grid x:Name="ContentLayer"
           IsVisible="{Binding IsContentVisible}"
+          Opacity="{Binding ContentOpacity}"
           Background="{Binding ContentBackground}"
           ZIndex="1">
 
@@ -69,6 +70,7 @@
     <!-- ═══ LAYER 2: Player Overlay (OSD) ══════════════════════════════════ -->
     <Grid x:Name="PlayerOverlay"
           IsVisible="{Binding IsPlayerOverlayVisible}"
+          Opacity="{Binding PlayerOverlayOpacity}"
           ZIndex="2">
       <controls:OsdOverlay DataContext="{Binding Player}" />
     </Grid>

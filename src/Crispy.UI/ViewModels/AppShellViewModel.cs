@@ -1,4 +1,8 @@
+using System.Threading;
+using System.Threading.Tasks;
+
 using Avalonia.Media;
+using Avalonia.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -38,6 +42,29 @@ public partial class AppShellViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isMiniPlayerVisible;
 
+    /// <summary>Whether the shell is currently in fullscreen mode.</summary>
+    [ObservableProperty]
+    private bool _isFullscreen;
+
+    // ─── Fullscreen state snapshot ────────────────────────────────────────────
+
+    private bool _preFullscreenContentVisible = true;
+    private bool _preFullscreenPlayerOverlayVisible;
+    private bool _preFullscreenMiniPlayerVisible;
+
+    // ─── Transition opacity ───────────────────────────────────────────────────
+
+    /// <summary>Opacity of the content/browsing layer — animated during transitions.</summary>
+    [ObservableProperty]
+    private double _contentOpacity = 1.0;
+
+    /// <summary>Opacity of the player overlay layer — animated during transitions.</summary>
+    [ObservableProperty]
+    private double _playerOverlayOpacity = 0.0;
+
+    /// <summary>Tracks the active transition so concurrent calls cancel the previous one.</summary>
+    private CancellationTokenSource? _transitionCts;
+
     // ─── Derived visuals ──────────────────────────────────────────────────────
 
     /// <summary>
@@ -63,7 +90,11 @@ public partial class AppShellViewModel : ViewModelBase
 
     // ─── State transitions ────────────────────────────────────────────────────
 
-    /// <summary>Transitions to full-screen watching mode: hides content, shows OSD.</summary>
+    /// <summary>
+    /// Transitions to full-screen watching mode.
+    /// Boolean flags flip immediately; opacity cross-fade (ContentLayer 300ms out,
+    /// PlayerOverlay 200ms in) runs concurrently for a smooth visual transition.
+    /// </summary>
     [RelayCommand]
     public void EnterWatchingMode()
     {
@@ -72,16 +103,22 @@ public partial class AppShellViewModel : ViewModelBase
         IsPlayerOverlayVisible = true;
         IsMiniPlayerVisible = false;
         OnPropertyChanged(nameof(ContentBackground));
+        _ = AnimateToWatchingAsync();
     }
 
-    /// <summary>Transitions to browsing mode: shows content, hides OSD, shows mini-player.</summary>
+    /// <summary>
+    /// Transitions to browsing mode.
+    /// Boolean flags flip immediately; opacity cross-fade (PlayerOverlay 200ms out,
+    /// ContentLayer 300ms in) runs concurrently for a smooth visual transition.
+    /// </summary>
     [RelayCommand]
     public void EnterBrowsingMode()
     {
         IsContentVisible = true;
         IsPlayerOverlayVisible = false;
-        IsMiniPlayerVisible = IsVideoVisible; // show mini-player only if something is playing
+        IsMiniPlayerVisible = IsVideoVisible;
         OnPropertyChanged(nameof(ContentBackground));
+        _ = AnimateToBrowsingAsync();
     }
 
     /// <summary>Toggles PiP (mini-player) mode.</summary>
@@ -102,6 +139,119 @@ public partial class AppShellViewModel : ViewModelBase
         }
     }
 
+    /// <summary>Toggles fullscreen mode. Saves/restores layer visibility.</summary>
+    [RelayCommand]
+    public void ToggleFullscreen()
+    {
+        if (!IsFullscreen)
+            EnterFullscreen();
+        else
+            ExitFullscreen();
+    }
+
+    /// <summary>Enters fullscreen: hides content layer, shows player overlay, signals view.</summary>
+    public void EnterFullscreen()
+    {
+        // Save current state so we can restore on exit
+        _preFullscreenContentVisible = IsContentVisible;
+        _preFullscreenPlayerOverlayVisible = IsPlayerOverlayVisible;
+        _preFullscreenMiniPlayerVisible = IsMiniPlayerVisible;
+
+        IsContentVisible = false;
+        IsPlayerOverlayVisible = true;
+        IsMiniPlayerVisible = false;
+        IsFullscreen = true;
+        OnPropertyChanged(nameof(ContentBackground));
+    }
+
+    /// <summary>Exits fullscreen: restores prior layer visibility, signals view.</summary>
+    public void ExitFullscreen()
+    {
+        IsContentVisible = _preFullscreenContentVisible;
+        IsPlayerOverlayVisible = _preFullscreenPlayerOverlayVisible;
+        IsMiniPlayerVisible = _preFullscreenMiniPlayerVisible;
+        IsFullscreen = false;
+        OnPropertyChanged(nameof(ContentBackground));
+    }
+
+    // ─── Animated transition helpers ──────────────────────────────────────────
+
+    private async Task AnimateToWatchingAsync()
+    {
+        var cts = BeginTransition();
+
+        try
+        {
+            // ContentLayer already hidden (IsContentVisible=false set synchronously).
+            // Animate ContentOpacity 1→0 then PlayerOverlayOpacity 0→1 for visual polish
+            // on systems where the layer is still composited during the frame.
+            ContentOpacity = 1.0;
+            await FadeAsync(v => ContentOpacity = v, from: 1.0, to: 0.0, durationMs: 300, cts.Token);
+
+            if (cts.Token.IsCancellationRequested) return;
+
+            PlayerOverlayOpacity = 0.0;
+            await FadeAsync(v => PlayerOverlayOpacity = v, from: 0.0, to: 1.0, durationMs: 200, cts.Token);
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task AnimateToBrowsingAsync()
+    {
+        var cts = BeginTransition();
+
+        try
+        {
+            // PlayerOverlay already hidden; ContentLayer already visible (set synchronously).
+            // Animate PlayerOverlayOpacity 1→0 then ContentOpacity 0→1 for visual polish.
+            PlayerOverlayOpacity = 1.0;
+            await FadeAsync(v => PlayerOverlayOpacity = v, from: 1.0, to: 0.0, durationMs: 200, cts.Token);
+
+            if (cts.Token.IsCancellationRequested) return;
+
+            ContentOpacity = 0.0;
+            await FadeAsync(v => ContentOpacity = v, from: 0.0, to: 1.0, durationMs: 300, cts.Token);
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    /// <summary>
+    /// Steps opacity from <paramref name="from"/> to <paramref name="to"/> over
+    /// <paramref name="durationMs"/> milliseconds using 16ms ticks (~60 fps).
+    /// Runs on the UI thread via Dispatcher.
+    /// </summary>
+    private static async Task FadeAsync(
+        Action<double> setter,
+        double from,
+        double to,
+        int durationMs,
+        CancellationToken ct)
+    {
+        const int tickMs = 16;
+        int steps = Math.Max(1, durationMs / tickMs);
+        double delta = (to - from) / steps;
+
+        for (int i = 0; i < steps; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            double value = from + delta * (i + 1);
+            await Dispatcher.UIThread.InvokeAsync(() => setter(value));
+            await Task.Delay(tickMs, ct);
+        }
+
+        // Ensure exact final value
+        await Dispatcher.UIThread.InvokeAsync(() => setter(to));
+    }
+
+    /// <summary>Cancels any in-progress transition and returns a new token.</summary>
+    private CancellationTokenSource BeginTransition()
+    {
+        _transitionCts?.Cancel();
+        _transitionCts?.Dispose();
+        _transitionCts = new CancellationTokenSource();
+        return _transitionCts;
+    }
+
     // ─── Player state sync ────────────────────────────────────────────────────
 
     private void OnPlayerPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -120,6 +270,8 @@ public partial class AppShellViewModel : ViewModelBase
                 IsPlayerOverlayVisible = false;
                 IsMiniPlayerVisible = false;
                 IsContentVisible = true;
+                ContentOpacity = 1.0;
+                PlayerOverlayOpacity = 0.0;
                 OnPropertyChanged(nameof(ContentBackground));
             }
         }

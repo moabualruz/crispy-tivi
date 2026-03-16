@@ -51,7 +51,6 @@ public static class DependencyInjection
 
         // Views (transient — resolved by ViewLocator)
         services.AddTransient<AppShell>();
-        services.AddTransient<PlayerView>();
         services.AddTransient<TrackSelectorView>();
         services.AddTransient<MiniPlayerView>();
         services.AddTransient<MainView>();
@@ -64,7 +63,6 @@ public static class DependencyInjection
         services.AddTransient<AddSourceView>();
         services.AddTransient<EpgView>();
         services.AddTransient<MultiviewView>();
-        services.AddTransient<FullscreenPlayerWindow>();
 
         return services;
     }

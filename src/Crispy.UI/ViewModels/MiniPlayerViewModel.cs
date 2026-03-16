@@ -45,7 +45,7 @@ public partial class MiniPlayerViewModel : ViewModelBase
     [RelayCommand]
     private void Expand()
     {
-        // Navigation to full PlayerView handled by host screen
+        // Navigation to full player handled by host screen
         ExpandRequested?.Invoke(this, EventArgs.Empty);
     }
 

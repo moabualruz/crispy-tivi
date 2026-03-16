@@ -9,7 +9,7 @@
   <!-- Multiview 4-up grid. PLR-29 to PLR-32.
        Grid mode: 2×2 quad with one VideoSurface per slot.
        Expanded mode: single slot fills the full area.
-       VideoView wiring happens in code-behind via reflection (same pattern as PlayerView). -->
+       VideoView wiring happens in code-behind via reflection (same airspace workaround as AppShell video layer). -->
 
   <Grid RowDefinitions="Auto,*">
 

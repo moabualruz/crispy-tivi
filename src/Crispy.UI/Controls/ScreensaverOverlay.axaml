@@ -7,7 +7,7 @@
              IsHitTestVisible="{Binding IsScreensaverActive}">
 
   <!-- Full-screen screensaver overlay. Activates after inactivity timeout. PLR-33.
-       Any pointer or key input in PlayerView code-behind calls ResetScreensaverTimer().
+       Any pointer or key input in AppShell calls ResetScreensaverTimer().
        Clicking this overlay itself also dismisses it. -->
   <Border Background="#F2000000">
 

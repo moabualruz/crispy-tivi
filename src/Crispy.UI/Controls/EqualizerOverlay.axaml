@@ -7,7 +7,7 @@
              Width="380">
 
   <!-- 10-band EQ slide-in panel from right edge. PLR-33.
-       DataContext is EqualizerOverlayViewModel — set by PlayerView code-behind. -->
+       DataContext is EqualizerOverlayViewModel — set by AppShell code-behind. -->
   <Border Background="#EE121212"
           CornerRadius="12,0,0,12"
           Padding="16">

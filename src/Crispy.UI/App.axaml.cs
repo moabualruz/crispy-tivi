@@ -54,11 +54,11 @@ public partial class App : Avalonia.Application
             // Avoid duplicate validations from both Avalonia and CommunityToolkit.
             DisableAvaloniaDataAnnotationValidation();
 
-            var mainViewModel = Services?.GetRequiredService<MainViewModel>();
+            var shellViewModel = Services?.GetRequiredService<AppShellViewModel>();
 
             desktop.MainWindow = new MainWindow
             {
-                DataContext = mainViewModel,
+                DataContext = shellViewModel,
             };
 
             // Apply persisted FlowDirection now that MainWindow exists
@@ -72,11 +72,11 @@ public partial class App : Avalonia.Application
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
         {
-            var mainViewModel = Services?.GetRequiredService<MainViewModel>();
+            var shellViewModel = Services?.GetRequiredService<AppShellViewModel>();
 
-            singleView.MainView = new MainView
+            singleView.MainView = new AppShell
             {
-                DataContext = mainViewModel,
+                DataContext = shellViewModel,
             };
         }
 

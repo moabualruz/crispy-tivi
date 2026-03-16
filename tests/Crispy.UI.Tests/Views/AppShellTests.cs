@@ -192,6 +192,58 @@ public class AppShellTests
         vm.IsPlayerOverlayVisible.Should().BeFalse();
     }
 
+    // ─── Fullscreen unit tests ────────────────────────────────────────────────
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ToggleFullscreen_SetsIsFullscreenTrue_WhenFalse()
+    {
+        var vm = BuildVm();
+        vm.IsFullscreen.Should().BeFalse("starts non-fullscreen");
+
+        vm.ToggleFullscreen();
+
+        vm.IsFullscreen.Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ToggleFullscreen_SetsIsFullscreenFalse_WhenTrue()
+    {
+        var vm = BuildVm();
+        vm.ToggleFullscreen(); // enter fullscreen
+
+        vm.ToggleFullscreen(); // exit fullscreen
+
+        vm.IsFullscreen.Should().BeFalse();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ToggleFullscreen_HidesContent_WhenEnteringFullscreen()
+    {
+        var vm = BuildVm();
+        vm.IsContentVisible.Should().BeTrue("precondition: content visible before fullscreen");
+
+        vm.ToggleFullscreen();
+
+        vm.IsContentVisible.Should().BeFalse("content layer hidden in fullscreen");
+        vm.IsPlayerOverlayVisible.Should().BeTrue("OSD shown in fullscreen");
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ToggleFullscreen_RestoresContentVisible_WhenExitingFullscreen()
+    {
+        var vm = BuildVm();
+        // Default: content visible, no overlay
+        vm.ToggleFullscreen(); // enter — saves state
+        vm.ToggleFullscreen(); // exit  — restores state
+
+        vm.IsContentVisible.Should().BeTrue("content restored after exiting fullscreen");
+        vm.IsFullscreen.Should().BeFalse();
+    }
+
     // ─── AppShell headless render tests ───────────────────────────────────────
 
     [AvaloniaFact]
@@ -276,6 +328,27 @@ public class AppShellTests
         var videoLayer = shell!.FindControl<Border>("VideoLayer");
         videoLayer.Should().NotBeNull();
         videoLayer!.IsVisible.Should().BeFalse("video layer starts hidden until playback starts");
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void AppShell_VideoLayer_ExistsAndIsBlack_OnStartup()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<AppShell>(vm);
+
+        var shell = window.GetVisualDescendants()
+            .OfType<AppShell>()
+            .FirstOrDefault();
+        shell.Should().NotBeNull("AppShell must be in the visual tree");
+
+        var videoLayer = shell!.FindControl<Border>("VideoLayer");
+        videoLayer.Should().NotBeNull("Layer 0 must be a Border named VideoLayer");
+
+        var background = videoLayer!.Background as Avalonia.Media.ISolidColorBrush;
+        background.Should().NotBeNull("VideoLayer background must be a solid color brush");
+        background!.Color.Should().Be(Avalonia.Media.Colors.Black, "VideoLayer background must be black");
 
         window.Close();
     }

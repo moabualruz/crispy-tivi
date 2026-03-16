@@ -17,11 +17,13 @@ namespace Crispy.UI.Views;
 /// — Wire VideoView.MediaPlayer from VlcPlayerService via reflection (temporary —
 ///   Phase B replaces with GpuVideoSurface).
 /// — Create VideoView once on first attach; never destroy it.
+/// — Fullscreen: listen to IsFullscreen on ViewModel, toggle WindowState + title bar.
 /// </summary>
 public partial class AppShell : UserControl
 {
     private Controls.NavigationRail? _rail;
     private Panel? _contentPanel;
+    private AppShellViewModel? _subscribedVm;
 
     /// <summary>Creates a new AppShell.</summary>
     public AppShell()
@@ -81,8 +83,52 @@ public partial class AppShell : UserControl
 
             // Wire VideoView once — lives for the session lifetime
             if (DataContext is AppShellViewModel shellVm)
+            {
                 WireVideoViewIfAvailable(shellVm.Player);
+                SubscribeFullscreen(shellVm);
+            }
         };
+
+        DataContextChanged += (_, _) =>
+        {
+            if (_subscribedVm is not null)
+            {
+                _subscribedVm.PropertyChanged -= OnViewModelPropertyChanged;
+                _subscribedVm = null;
+            }
+            if (DataContext is AppShellViewModel newVm)
+                SubscribeFullscreen(newVm);
+        };
+    }
+
+    // ─── Fullscreen wiring ────────────────────────────────────────────────────
+
+    private void SubscribeFullscreen(AppShellViewModel vm)
+    {
+        if (_subscribedVm is not null)
+            _subscribedVm.PropertyChanged -= OnViewModelPropertyChanged;
+        _subscribedVm = vm;
+        _subscribedVm.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is not nameof(AppShellViewModel.IsFullscreen)) return;
+        if (sender is not AppShellViewModel vm) return;
+
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window is null) return;
+
+        if (vm.IsFullscreen)
+        {
+            window.WindowState = WindowState.FullScreen;
+            window.SystemDecorations = SystemDecorations.None;
+        }
+        else
+        {
+            window.WindowState = WindowState.Normal;
+            window.SystemDecorations = SystemDecorations.Full;
+        }
     }
 
     // ─── Rail pointer handlers ────────────────────────────────────────────────
@@ -111,9 +157,20 @@ public partial class AppShell : UserControl
 
         switch (e.Key)
         {
+            case Key.F:
+                vm.ToggleFullscreenCommand.Execute(null);
+                e.Handled = true;
+                break;
+
             case Key.Escape:
             case Key.Back:
-                if (vm.Navigation.CanGoBack)
+                // Exit fullscreen first if active; otherwise go back in navigation
+                if (vm.IsFullscreen)
+                {
+                    vm.ToggleFullscreenCommand.Execute(null);
+                    e.Handled = true;
+                }
+                else if (vm.Navigation.CanGoBack)
                 {
                     vm.Navigation.GoBackCommand.Execute(null);
                     e.Handled = true;
