@@ -47,6 +47,11 @@ logs/
 *.binlog
 
 ##
+## Coverage
+##
+coverage-*/
+
+##
 ## User-specific config
 ##
 appsettings.Development.json
