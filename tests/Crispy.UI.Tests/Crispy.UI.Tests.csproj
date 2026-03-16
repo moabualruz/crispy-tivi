@@ -19,6 +19,8 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Avalonia.Headless.XUnit" />
+    <PackageReference Include="Avalonia.Skia" />
+    <PackageReference Include="SkiaSharp" />
     <PackageReference Include="FluentIcons.Avalonia" />
     <PackageReference Include="FluentIcons.Common" />
     <PackageReference Include="FluentAssertions" />

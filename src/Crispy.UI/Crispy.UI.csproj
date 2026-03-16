@@ -30,6 +30,8 @@
 
   <ItemGroup>
     <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Skia" />
+    <PackageReference Include="SkiaSharp" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="FluentIcons.Avalonia" />
     <PackageReference Include="Avalonia.Fonts.Inter" />

@@ -10,6 +10,8 @@
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="11.3.12" />
     <PackageVersion Include="Avalonia.Diagnostics" Version="11.3.12" />
     <PackageVersion Include="Avalonia.Desktop" Version="11.3.12" />
+    <PackageVersion Include="Avalonia.Skia" Version="11.3.12" />
+    <PackageVersion Include="SkiaSharp" Version="2.88.9" />
     <PackageVersion Include="Avalonia.iOS" Version="11.3.12" />
     <PackageVersion Include="Avalonia.Browser" Version="11.3.12" />
     <PackageVersion Include="Avalonia.Android" Version="11.3.12" />
