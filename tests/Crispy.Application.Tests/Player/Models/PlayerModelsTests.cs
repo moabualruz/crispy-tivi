@@ -214,6 +214,39 @@ public sealed class ReminderTests
         reminder.StartTime.Should().Be(start);
         reminder.NotifyAt.Should().Be(notify);
     }
+
+    [Fact]
+    public void Reminder_StoresCreatedAt()
+    {
+        var now = new DateTimeOffset(2026, 3, 16, 10, 0, 0, TimeSpan.Zero);
+
+        var reminder = new Reminder
+        {
+            Id = "r",
+            ProgramName = "Show",
+            ChannelName = "CH",
+            ProfileId = "p",
+            CreatedAt = now,
+        };
+
+        reminder.CreatedAt.Should().Be(now);
+    }
+
+    [Fact]
+    public void Reminder_FiredCanBeSetToTrueAfterConstruction()
+    {
+        var reminder = new Reminder
+        {
+            Id = "r",
+            ProgramName = "Show",
+            ChannelName = "CH",
+            ProfileId = "p",
+        };
+
+        reminder.Fired = true;
+
+        reminder.Fired.Should().BeTrue();
+    }
 }
 
 // =============================================================================
@@ -450,6 +483,182 @@ public sealed class WatchHistoryEntryTests
     public void MediaType_HasExpectedValues()
     {
         Enum.GetValues<MediaType>().Should().Contain([MediaType.Channel, MediaType.Movie, MediaType.Episode]);
+    }
+
+    [Fact]
+    public void WatchHistoryEntry_MediaType_DefaultsToChannel()
+    {
+        var entry = MakeEntry();
+
+        entry.MediaType.Should().Be(MediaType.Channel);
+    }
+
+    [Fact]
+    public void WatchHistoryEntry_MediaType_CanBeSetToMovie()
+    {
+        var entry = MakeEntry();
+        entry.MediaType = MediaType.Movie;
+
+        entry.MediaType.Should().Be(MediaType.Movie);
+    }
+
+    [Fact]
+    public void WatchHistoryEntry_MediaType_CanBeSetToEpisode()
+    {
+        var entry = MakeEntry();
+        entry.MediaType = MediaType.Episode;
+
+        entry.MediaType.Should().Be(MediaType.Episode);
+    }
+
+    [Fact]
+    public void Progress_ReturnsAboveOne_WhenPositionExceedsDuration()
+    {
+        // PositionMs > DurationMs: fraction > 1.0 — no clamping by design.
+        var entry = MakeEntry(posMs: 12000, durMs: 10000);
+
+        entry.Progress.Should().BeGreaterThan(1.0);
+    }
+
+    [Fact]
+    public void WatchHistoryEntry_StoresPosterUrls()
+    {
+        var entry = MakeEntry();
+        entry.PosterUrl = "https://img.test/poster.jpg";
+        entry.SeriesPosterUrl = "https://img.test/series.jpg";
+
+        entry.PosterUrl.Should().Be("https://img.test/poster.jpg");
+        entry.SeriesPosterUrl.Should().Be("https://img.test/series.jpg");
+    }
+
+    [Fact]
+    public void WatchHistoryEntry_StoresLastWatched()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var entry = MakeEntry();
+        entry.LastWatched = now;
+
+        entry.LastWatched.Should().Be(now);
+    }
+
+    [Fact]
+    public void WatchHistoryEntry_StoresDeviceName()
+    {
+        var entry = MakeEntry();
+
+        entry.DeviceName.Should().Be("Desktop");
+    }
+}
+
+// =============================================================================
+// PlayerState
+// =============================================================================
+
+[Trait("Category", "Unit")]
+public sealed class PlayerStateTests
+{
+    [Fact]
+    public void PlayerState_Empty_HasExpectedDefaults()
+    {
+        var s = PlayerState.Empty;
+
+        s.IsPlaying.Should().BeFalse();
+        s.IsBuffering.Should().BeFalse();
+        s.IsMuted.Should().BeFalse();
+        s.Volume.Should().Be(1.0f);
+        s.Rate.Should().Be(1.0f);
+        s.Position.Should().Be(TimeSpan.Zero);
+        s.Duration.Should().Be(TimeSpan.Zero);
+        s.IsLive.Should().BeFalse();
+        s.Timeshift.Should().BeNull();
+        s.IsAudioOnly.Should().BeFalse();
+        s.ErrorMessage.Should().BeNull();
+        s.AudioTracks.Should().BeEmpty();
+        s.SubtitleTracks.Should().BeEmpty();
+        s.CurrentVideoWidth.Should().BeNull();
+        s.CurrentVideoHeight.Should().BeNull();
+        s.CurrentRequest.Should().BeNull();
+        s.Mode.Should().Be(PlaybackMode.Live);
+    }
+
+    [Fact]
+    public void PlayerState_Constructor_StoresAllParameters()
+    {
+        var request = new PlaybackRequest("https://stream.test/s.m3u8", PlaybackContentType.LiveTv);
+        var audio = new List<TrackInfo> { new(1, "English", "en", true, TrackKind.Audio) };
+        var subs = new List<TrackInfo> { new(2, "French", "fr", false, TrackKind.Subtitle) };
+
+        var state = new PlayerState(
+            Mode: PlaybackMode.Vod,
+            IsPlaying: true,
+            IsBuffering: true,
+            IsMuted: true,
+            Volume: 0.5f,
+            Rate: 1.5f,
+            Position: TimeSpan.FromSeconds(30),
+            Duration: TimeSpan.FromMinutes(90),
+            IsLive: false,
+            Timeshift: null,
+            IsAudioOnly: false,
+            ErrorMessage: "test error",
+            AudioTracks: audio,
+            SubtitleTracks: subs,
+            CurrentVideoWidth: 1920,
+            CurrentVideoHeight: 1080,
+            CurrentRequest: request);
+
+        state.Mode.Should().Be(PlaybackMode.Vod);
+        state.IsPlaying.Should().BeTrue();
+        state.IsBuffering.Should().BeTrue();
+        state.IsMuted.Should().BeTrue();
+        state.Volume.Should().Be(0.5f);
+        state.Rate.Should().Be(1.5f);
+        state.Position.Should().Be(TimeSpan.FromSeconds(30));
+        state.Duration.Should().Be(TimeSpan.FromMinutes(90));
+        state.IsLive.Should().BeFalse();
+        state.IsAudioOnly.Should().BeFalse();
+        state.ErrorMessage.Should().Be("test error");
+        state.AudioTracks.Should().BeSameAs(audio);
+        state.SubtitleTracks.Should().BeSameAs(subs);
+        state.CurrentVideoWidth.Should().Be(1920);
+        state.CurrentVideoHeight.Should().Be(1080);
+        state.CurrentRequest.Should().BeSameAs(request);
+    }
+
+    [Fact]
+    public void PlayerState_RecordEquality_WhenSameValues()
+    {
+        var a = PlayerState.Empty;
+        var b = PlayerState.Empty;
+
+        a.Should().Be(b);
+    }
+
+    [Fact]
+    public void PlayerState_RecordInequality_WhenDifferentIsPlaying()
+    {
+        var playing = PlayerState.Empty with { IsPlaying = true };
+
+        playing.Should().NotBe(PlayerState.Empty);
+    }
+
+    [Fact]
+    public void PlayerState_WithExpression_ProducesModifiedCopy()
+    {
+        var state = PlayerState.Empty with { IsLive = true, Volume = 0.8f };
+
+        state.IsLive.Should().BeTrue();
+        state.Volume.Should().Be(0.8f);
+        // unchanged properties
+        state.IsPlaying.Should().BeFalse();
+    }
+
+    [Fact]
+    public void PlaybackMode_HasExpectedValues()
+    {
+        var values = Enum.GetValues<PlaybackMode>();
+        values.Should().Contain(PlaybackMode.Live);
+        values.Should().Contain(PlaybackMode.Vod);
     }
 }
 
