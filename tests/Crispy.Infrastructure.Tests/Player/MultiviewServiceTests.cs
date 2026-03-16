@@ -272,6 +272,146 @@ public class MultiviewServiceTests
         emitted.Should().NotBeNull();
     }
 
+    // ── ExpandSlotAsync ───────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ExpandSlotAsync_SetsIsExpanded_OnTargetSlot()
+    {
+        using var sut = CreateSut();
+
+        await sut.ExpandSlotAsync(2);
+
+        sut.Slots[2].IsExpanded.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ExpandSlotAsync_ClearsIsExpanded_OnOtherSlots()
+    {
+        using var sut = CreateSut();
+
+        await sut.ExpandSlotAsync(1);
+
+        sut.Slots[0].IsExpanded.Should().BeFalse();
+        sut.Slots[2].IsExpanded.Should().BeFalse();
+        sut.Slots[3].IsExpanded.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ExpandSlotAsync_ThrowsArgumentException_ForInvalidIndex()
+    {
+        using var sut = CreateSut();
+
+        var act = async () => await sut.ExpandSlotAsync(99);
+
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    // ── CollapseToGridAsync ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task CollapseToGridAsync_ClearsIsExpanded_OnAllSlots()
+    {
+        using var sut = CreateSut();
+        await sut.ExpandSlotAsync(0);
+
+        await sut.CollapseToGridAsync();
+
+        sut.Slots.Should().AllSatisfy(s => s.IsExpanded.Should().BeFalse());
+    }
+
+    [Fact]
+    public async Task CollapseToGridAsync_DoesNotThrow_WhenNoSlotExpanded()
+    {
+        using var sut = CreateSut();
+
+        var act = async () => await sut.CollapseToGridAsync();
+
+        await act.Should().NotThrowAsync();
+    }
+
+    // ── SaveLayoutAsync ───────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SaveLayoutAsync_AddsToSavedLayouts()
+    {
+        using var sut = CreateSut();
+        var request = new PlaybackRequest("http://example.com/live", PlaybackContentType.LiveTv, Title: "Ch1");
+        await sut.AssignSlotAsync(0, request);
+
+        await sut.SaveLayoutAsync("My Layout");
+
+        var layouts = await sut.GetSavedLayoutsAsync();
+        layouts.Should().HaveCount(1);
+        layouts[0].Name.Should().Be("My Layout");
+    }
+
+    [Fact]
+    public async Task SaveLayoutAsync_StoresStreamsAsJson()
+    {
+        using var sut = CreateSut();
+        var request = new PlaybackRequest("http://example.com/live", PlaybackContentType.LiveTv, Title: "Ch1");
+        await sut.AssignSlotAsync(0, request);
+
+        await sut.SaveLayoutAsync("JsonLayout");
+
+        var layouts = await sut.GetSavedLayoutsAsync();
+        layouts[0].StreamsJson.Should().Contain("http://example.com/live");
+    }
+
+    // ── GetSavedLayoutsAsync ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetSavedLayoutsAsync_ReturnsEmpty_WhenNoLayoutsSaved()
+    {
+        using var sut = CreateSut();
+
+        var layouts = await sut.GetSavedLayoutsAsync();
+
+        layouts.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetSavedLayoutsAsync_ReturnsMostRecentFirst_AfterMultipleSaves()
+    {
+        using var sut = CreateSut();
+        var req = new PlaybackRequest("http://example.com/live", PlaybackContentType.LiveTv);
+        await sut.AssignSlotAsync(0, req);
+
+        await sut.SaveLayoutAsync("First");
+        await sut.SaveLayoutAsync("Second");
+
+        var layouts = await sut.GetSavedLayoutsAsync();
+        layouts.Should().HaveCount(2);
+        layouts[0].Name.Should().Be("Second", "most recently saved layout should be first");
+    }
+
+    // ── SwapSlotsAsync ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SwapSlotsAsync_ExchangesRequests_BetweenTwoSlots()
+    {
+        using var sut = CreateSut();
+        var reqA = new PlaybackRequest("http://example.com/a", PlaybackContentType.LiveTv, Title: "A");
+        var reqB = new PlaybackRequest("http://example.com/b", PlaybackContentType.LiveTv, Title: "B");
+        await sut.AssignSlotAsync(0, reqA);
+        await sut.AssignSlotAsync(1, reqB);
+
+        await sut.SwapSlotsAsync(0, 1);
+
+        sut.Slots[0].Request.Should().Be(reqB);
+        sut.Slots[1].Request.Should().Be(reqA);
+    }
+
+    [Fact]
+    public async Task SwapSlotsAsync_ThrowsArgumentException_ForInvalidIndex()
+    {
+        using var sut = CreateSut();
+
+        var act = async () => await sut.SwapSlotsAsync(0, 99);
+
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
     // ── Dispose ───────────────────────────────────────────────────────────────
 
     [Fact]

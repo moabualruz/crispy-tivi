@@ -185,6 +185,108 @@ public class WatchHistoryServiceTests : IDisposable
         id.Should().MatchRegex("^[0-9a-f]{16}$");
     }
 
+    // ─── GetAsync ─────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetAsync_ReturnsEntry_WhenItExists()
+    {
+        var entry = MakeEntry("http://stream/get-1", positionMs: 4000, durationMs: 10000);
+        await _service.RecordAsync(entry);
+
+        var result = await _service.GetAsync(entry.Id);
+
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(entry.Id);
+        result.StreamUrl.Should().Be(entry.StreamUrl);
+    }
+
+    [Fact]
+    public async Task GetAsync_ReturnsNull_WhenIdDoesNotExist()
+    {
+        var result = await _service.GetAsync("nonexistent-id");
+
+        result.Should().BeNull();
+    }
+
+    // ─── DeleteAsync ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task DeleteAsync_RemovesEntry_WhenItExists()
+    {
+        var entry = MakeEntry("http://stream/del-1", positionMs: 3000, durationMs: 10000);
+        await _service.RecordAsync(entry);
+
+        await _service.DeleteAsync(entry.Id);
+
+        var result = await _service.GetAsync(entry.Id);
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteAsync_DoesNotThrow_WhenIdDoesNotExist()
+    {
+        var act = async () => await _service.DeleteAsync("nonexistent-id");
+
+        await act.Should().NotThrowAsync();
+    }
+
+    // ─── UpdatePositionAsync ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task UpdatePositionAsync_UpdatesPosition_WhenEntryExists()
+    {
+        var entry = MakeEntry("http://stream/upd-1", positionMs: 1000, durationMs: 10000);
+        await _service.RecordAsync(entry);
+
+        await _service.UpdatePositionAsync(entry.Id, 7500);
+
+        var result = await _service.GetAsync(entry.Id);
+        result.Should().NotBeNull();
+        result!.PositionMs.Should().Be(7500);
+    }
+
+    [Fact]
+    public async Task UpdatePositionAsync_DoesNotThrow_WhenIdDoesNotExist()
+    {
+        var act = async () => await _service.UpdatePositionAsync("nonexistent-id", 9999);
+
+        await act.Should().NotThrowAsync();
+    }
+
+    // ─── ClearAllAsync ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ClearAllAsync_RemovesAllEntriesForProfile()
+    {
+        await _service.RecordAsync(MakeEntry("http://stream/clear-1", positionMs: 3000, durationMs: 10000, profileId: "profile-1"));
+        await _service.RecordAsync(MakeEntry("http://stream/clear-2", positionMs: 4000, durationMs: 10000, profileId: "profile-1"));
+
+        await _service.ClearAllAsync("profile-1");
+
+        var result = await _service.GetContinueWatchingAsync("profile-1");
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ClearAllAsync_OnlyRemovesTargetProfile_LeavingOtherProfilesIntact()
+    {
+        await _service.RecordAsync(MakeEntry("http://stream/pA-1", positionMs: 3000, durationMs: 10000, profileId: "profile-A"));
+        await _service.RecordAsync(MakeEntry("http://stream/pB-1", positionMs: 3000, durationMs: 10000, profileId: "profile-B"));
+
+        await _service.ClearAllAsync("profile-A");
+
+        var resultB = await _service.GetContinueWatchingAsync("profile-B");
+        resultB.Should().HaveCount(1, "profile-B entries must not be affected by clearing profile-A");
+    }
+
+    [Fact]
+    public async Task ClearAllAsync_DoesNotThrow_WhenProfileHasNoEntries()
+    {
+        var act = async () => await _service.ClearAllAsync("empty-profile");
+
+        await act.Should().NotThrowAsync();
+    }
+
     // ─── IDbContextFactory backed by options (creates a fresh instance per call) ──
 
     private sealed class OptionsDbContextFactory : IDbContextFactory<AppDbContext>
