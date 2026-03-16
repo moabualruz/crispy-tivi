@@ -870,11 +870,29 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, INavigationAw
 
     // ─── Navigation lifecycle ─────────────────────────────────────────────────
 
+    /// <summary>
+    /// Pending playback request from navigation — view calls <see cref="StartPendingPlayback"/>
+    /// after the VideoView is wired to ensure VLC renders into the embedded surface.
+    /// </summary>
+    public PlaybackRequest? PendingPlaybackRequest { get; private set; }
+
     /// <inheritdoc />
     public void OnNavigatedTo(object? parameter)
     {
         if (parameter is PlaybackRequest request)
-            PlayCommand.Execute(request);
+            PendingPlaybackRequest = request;
+    }
+
+    /// <summary>
+    /// Called by PlayerView after VideoView is wired. Starts playback if a request is pending.
+    /// </summary>
+    public void StartPendingPlayback()
+    {
+        if (PendingPlaybackRequest is not null)
+        {
+            PlayCommand.Execute(PendingPlaybackRequest);
+            PendingPlaybackRequest = null;
+        }
     }
 
     /// <inheritdoc />
