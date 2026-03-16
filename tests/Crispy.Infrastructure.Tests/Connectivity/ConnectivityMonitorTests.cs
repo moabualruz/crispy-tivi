@@ -167,4 +167,130 @@ public class ConnectivityMonitorTests : IDisposable
         var act = () => sut.Dispose();
         act.Should().NotThrow();
     }
+
+    // ─── OnNetworkAvailabilityChanged ─────────────────────────────────────────
+
+    [Fact]
+    public void OnNetworkAvailabilityChanged_DoesNotThrow_WhenCalled()
+    {
+        // OnNetworkAvailabilityChanged is internal — callable via InternalsVisibleTo.
+        // It fire-and-forgets a CheckAsync call; we only verify it doesn't throw synchronously.
+        _handler.ResponseCode = HttpStatusCode.OK;
+        using var sut = CreateSut();
+
+        var act = () => sut.OnNetworkAvailabilityChanged(null, null!);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public async Task OnNetworkAvailabilityChanged_TriggersRecheck_WhenProbeSucceeds()
+    {
+        _handler.ResponseCode = HttpStatusCode.OK;
+        using var sut = CreateSut();
+
+        // Force level to non-Online first
+        _handler.ThrowOnSend = true;
+        await sut.CheckAsync();
+        _handler.ThrowOnSend = false;
+
+        ConnectivityLevel? captured = null;
+        sut.ConnectivityChanged += (_, level) => captured = level;
+
+        sut.OnNetworkAvailabilityChanged(null, null!);
+
+        // Allow the fire-and-forget task to complete
+        await Task.Delay(200);
+
+        captured.Should().Be(ConnectivityLevel.Online,
+            "re-check after network change should restore Online when probe succeeds");
+    }
+
+    [Fact]
+    public async Task OnNetworkAvailabilityChanged_FiresEvent_WhenNetworkGoesOffline()
+    {
+        // Start online
+        _handler.ResponseCode = HttpStatusCode.OK;
+        using var sut = CreateSut();
+        await sut.CheckAsync();
+        sut.CurrentLevel.Should().Be(ConnectivityLevel.Online);
+
+        ConnectivityLevel? captured = null;
+        sut.ConnectivityChanged += (_, level) => captured = level;
+
+        // Simulate network failure
+        _handler.ThrowOnSend = true;
+        sut.OnNetworkAvailabilityChanged(null, null!);
+
+        // Allow the fire-and-forget task to complete
+        await Task.Delay(200);
+
+        captured.Should().NotBeNull("event should fire when network goes offline");
+        captured.Should().NotBe(ConnectivityLevel.Online, "level should change from Online when network fails");
+        sut.CurrentLevel.Should().NotBe(ConnectivityLevel.Online);
+    }
+
+    [Fact]
+    public async Task OnNetworkAvailabilityChanged_FiresEvent_WhenNetworkComesBackOnline()
+    {
+        // Start offline
+        _handler.ThrowOnSend = true;
+        using var sut = CreateSut();
+        await sut.CheckAsync();
+        var offlineLevel = sut.CurrentLevel;
+        offlineLevel.Should().NotBe(ConnectivityLevel.Online);
+
+        ConnectivityLevel? captured = null;
+        sut.ConnectivityChanged += (_, level) => captured = level;
+
+        // Network comes back online
+        _handler.ThrowOnSend = false;
+        _handler.ResponseCode = HttpStatusCode.OK;
+        sut.OnNetworkAvailabilityChanged(null, null!);
+
+        // Allow the fire-and-forget task to complete
+        await Task.Delay(200);
+
+        captured.Should().Be(ConnectivityLevel.Online,
+            "event should fire with Online when network comes back");
+        sut.CurrentLevel.Should().Be(ConnectivityLevel.Online);
+    }
+
+    [Fact]
+    public async Task OnNetworkAvailabilityChanged_UpdatesCurrentLevel_AfterRecheck()
+    {
+        // Establish a known non-Online baseline via a failing probe
+        _handler.ThrowOnSend = true;
+        using var sut = CreateSut();
+        await sut.CheckAsync();
+        var offlineLevel = sut.CurrentLevel;
+        offlineLevel.Should().NotBe(ConnectivityLevel.Online);
+
+        // Restore connectivity and trigger recheck via network event
+        _handler.ThrowOnSend = false;
+        _handler.ResponseCode = HttpStatusCode.OK;
+        sut.OnNetworkAvailabilityChanged(null, null!);
+        await Task.Delay(200);
+
+        // After recheck with working probe, level should have changed from the offline state
+        sut.CurrentLevel.Should().NotBe(offlineLevel,
+            "CurrentLevel should update after OnNetworkAvailabilityChanged triggers recheck");
+    }
+
+    [Fact]
+    public void OnNetworkAvailabilityChanged_DoesNotThrow_WhenEventFires()
+    {
+        _handler.ResponseCode = HttpStatusCode.OK;
+        using var sut = CreateSut();
+
+        // Simulate multiple rapid network change events (common during network reconnection)
+        var act = () =>
+        {
+            sut.OnNetworkAvailabilityChanged(null, null!);
+            sut.OnNetworkAvailabilityChanged(null, null!);
+            sut.OnNetworkAvailabilityChanged(null, null!);
+        };
+
+        act.Should().NotThrow();
+    }
 }
