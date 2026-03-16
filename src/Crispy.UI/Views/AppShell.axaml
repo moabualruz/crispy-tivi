@@ -21,7 +21,6 @@
          ON TOP of the native video — this is how we solve airspace.
          ALL UI that must appear over video goes inside VideoView.Content. -->
     <vlc:VideoView x:Name="VideoView"
-                   IsVisible="{Binding IsVideoVisible}"
                    ZIndex="0">
       <Grid>
         <!-- Content / Navigation — renders in floating overlay on top of video -->
