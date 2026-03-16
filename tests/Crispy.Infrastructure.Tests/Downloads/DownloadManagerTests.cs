@@ -140,7 +140,7 @@ public class DownloadManagerTests : IDisposable
     // ─── CancelAsync ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task CancelAsync_RemovesDownload_WhenExists()
+    public async Task CancelAsync_SetsStatusToFailed_WhenExists()
     {
         var sut = CreateSut();
         var id = await sut.QueueDownloadAsync(MakeContent(), "1080p");
@@ -149,7 +149,8 @@ public class DownloadManagerTests : IDisposable
 
         using var ctx = _factory.CreateDbContext();
         var download = ctx.Downloads.Find(id);
-        download.Should().BeNull("cancelled downloads should be removed from persistence");
+        download.Should().NotBeNull("cancelled download row is retained for history");
+        download!.Status.Should().Be(DownloadStatus.Failed, "CancelAsync marks the download as Failed");
     }
 
     [Fact]

@@ -24,8 +24,9 @@ public partial class OsdOverlay : UserControl
 
     private void WireSeekBars(PlayerViewModel vm)
     {
-        var host = this.FindControl<ContentControl>("SeekBarHost");
-        if (host is null) return;
+        // Use AXAML-generated field instead of FindControl (avoids name scope issues in headless)
+        if (SeekBarHost is null) return;
+        var host = SeekBarHost;
 
         if (_liveSeekBar is null)
         {

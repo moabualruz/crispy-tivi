@@ -5,7 +5,7 @@ using Crispy.UI.Controls;
 
 using FluentAssertions;
 
-using System.Reactive.Subjects;
+using Crispy.UI.Tests.Helpers;
 
 using Xunit;
 
@@ -58,7 +58,7 @@ public class WaveformVisualizerTests
     public void AttachAudioSamples_WithObservable_DoesNotThrow()
     {
         var sut = new WaveformVisualizer();
-        var subject = new Subject<float[]>();
+        var subject = new TestSubject<float[]>();
 
         var act = () => sut.AttachAudioSamples(subject);
 
@@ -69,8 +69,8 @@ public class WaveformVisualizerTests
     public void AttachAudioSamples_ReplacingExistingSubscription_DoesNotThrow()
     {
         var sut = new WaveformVisualizer();
-        var first = new Subject<float[]>();
-        var second = new Subject<float[]>();
+        var first = new TestSubject<float[]>();
+        var second = new TestSubject<float[]>();
         sut.AttachAudioSamples(first);
 
         var act = () => sut.AttachAudioSamples(second);
@@ -82,7 +82,7 @@ public class WaveformVisualizerTests
     public void AttachAudioSamples_WithSamples_ProcessesWithoutException()
     {
         var sut = new WaveformVisualizer { ColumnCount = 4 };
-        var subject = new Subject<float[]>();
+        var subject = new TestSubject<float[]>();
         sut.AttachAudioSamples(subject);
         var window = new Window { Content = sut, Width = 400, Height = 100 };
         window.Show();
@@ -97,7 +97,7 @@ public class WaveformVisualizerTests
     public void AttachAudioSamples_NullAfterSubscription_SwitchesToPulseAnimation()
     {
         var sut = new WaveformVisualizer();
-        var subject = new Subject<float[]>();
+        var subject = new TestSubject<float[]>();
         sut.AttachAudioSamples(subject);
 
         // Detach — should fall back to pulse animation without throwing

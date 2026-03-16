@@ -76,7 +76,7 @@ public class NavigationRailTests
         var item = new NavigationItem("Home", Symbol.Home, typeof(object));
         var sut = new NavigationRail
         {
-            PrimaryItems = [item],
+            PrimaryItems = new NavigationItem[] { item },
         };
 
         sut.SelectedItem = item;

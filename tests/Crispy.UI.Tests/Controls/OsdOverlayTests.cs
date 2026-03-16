@@ -11,7 +11,7 @@ using FluentAssertions;
 
 using NSubstitute;
 
-using System.Reactive.Subjects;
+using Crispy.UI.Tests.Helpers;
 
 using Xunit;
 
@@ -26,14 +26,14 @@ public class OsdOverlayTests
         var timeshiftService = Substitute.For<ITimeshiftService>();
         var sleepTimerService = Substitute.For<ISleepTimerService>();
 
-        var stateSubject = new Subject<PlayerState>();
+        var stateSubject = new TestSubject<PlayerState>();
         playerService.StateChanged.Returns(stateSubject);
-        playerService.State.Returns(new PlayerState());
+        playerService.State.Returns(PlayerState.Empty);
 
-        var timeshiftSubject = new Subject<TimeshiftState>();
+        var timeshiftSubject = new TestSubject<TimeshiftState>();
         timeshiftService.StateChanged.Returns(timeshiftSubject);
 
-        var sleepSubject = new Subject<TimeSpan?>();
+        var sleepSubject = new TestSubject<TimeSpan?>();
         sleepTimerService.RemainingChanged.Returns(sleepSubject);
         sleepTimerService.Remaining.Returns((TimeSpan?)null);
 
