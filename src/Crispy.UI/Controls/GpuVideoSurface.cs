@@ -100,16 +100,17 @@ public class GpuVideoSurface : Control, IVideoFrameReceiver
     /// <inheritdoc />
     public override void Render(DrawingContext context)
     {
-        SKImage? image;
+        SKImage? snapshot;
         lock (_swapLock)
         {
-            image = _frontImage;
+            // Take a non-owning snapshot — safe to use after lock release
+            // because SKImage is immutable and refcounted internally.
+            snapshot = _frontImage;
         }
 
-        if (image is not null)
+        if (snapshot is not null)
         {
-            // Use ICustomDrawOperation for direct Skia GPU canvas rendering
-            var op = new VideoDrawOperation(new Rect(Bounds.Size), image);
+            var op = new VideoDrawOperation(new Rect(Bounds.Size), snapshot);
             context.Custom(op);
         }
         else
@@ -120,29 +121,37 @@ public class GpuVideoSurface : Control, IVideoFrameReceiver
 
     /// <summary>
     /// Custom draw operation that renders an SKImage directly on Skia's GPU canvas.
-    /// Skia handles GPU texture upload and hardware-accelerated scaling/compositing.
+    /// Holds its own reference to prevent use-after-dispose during render.
     /// </summary>
     private sealed class VideoDrawOperation : ICustomDrawOperation
     {
         private readonly Rect _bounds;
-        private readonly SKImage _image;
+        private SKImage? _image;
 
         public VideoDrawOperation(Rect bounds, SKImage image)
         {
             _bounds = bounds;
-            _image = image;
+            // Defensive clone — ensures this image survives even if
+            // GpuVideoSurface swaps/disposes the original during render.
+            _image = image.Subset(new SKRectI(0, 0, image.Width, image.Height));
         }
 
         public Rect Bounds => _bounds;
 
-        public void Dispose() { } // SKImage lifecycle managed by GpuVideoSurface
+        public void Dispose()
+        {
+            _image?.Dispose();
+            _image = null;
+        }
 
-        public bool Equals(ICustomDrawOperation? other) => false; // always redraw
+        public bool Equals(ICustomDrawOperation? other) => false;
 
         public bool HitTest(Point p) => _bounds.Contains(p);
 
         public void Render(ImmediateDrawingContext context)
         {
+            if (_image is null) return;
+
             var leaseFeature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
             if (leaseFeature is null) return;
 
@@ -151,11 +160,9 @@ public class GpuVideoSurface : Control, IVideoFrameReceiver
 
             var dest = new SKRect(0, 0, (float)_bounds.Width, (float)_bounds.Height);
 
-            // GPU-accelerated: Skia renders SKImage on hardware canvas with
-            // bilinear filtering for scaling — no CPU involved in the draw
             using var paint = new SKPaint
             {
-                FilterQuality = SKFilterQuality.Medium, // bilinear scaling
+                FilterQuality = SKFilterQuality.Medium,
                 IsAntialias = false,
             };
 
