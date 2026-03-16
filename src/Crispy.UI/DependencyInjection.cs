@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.Messaging;
 
 using Crispy.Application.Player;
-using Crispy.UI.Controls;
 using Crispy.UI.Navigation;
 using Crispy.UI.Services;
 using Crispy.UI.ViewModels;
@@ -50,10 +49,6 @@ public static class DependencyInjection
         services.AddSingleton<EqualizerOverlayViewModel>(); // singleton — EQ state persists across sessions
         services.AddSingleton<MiniPlayerViewModel>(); // singleton — shared state while browsing
         services.AddSingleton<AppShellViewModel>(); // singleton — root shell, owns layer state
-
-        // Video surface — singleton so VlcPlayerService can push frames to it
-        services.AddSingleton<GpuVideoSurface>();
-        services.AddSingleton<IVideoFrameReceiver>(sp => sp.GetRequiredService<GpuVideoSurface>());
 
         // Views (transient — resolved by ViewLocator)
         services.AddTransient<AppShell>();
