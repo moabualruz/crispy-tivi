@@ -59,6 +59,8 @@
     <PackageVersion Include="LibVLCSharp" Version="3.9.6" />
     <PackageVersion Include="LibVLCSharp.Avalonia" Version="3.9.5" />
     <PackageVersion Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
+    <PackageVersion Include="VideoLAN.LibVLC.Linux" Version="3.0.21" />
+    <PackageVersion Include="VideoLAN.LibVLC.Mac" Version="3.0.21" />
     <PackageVersion Include="VideoLAN.LibVLC.Android" Version="3.0.21" />
 
     <!-- Reactive Extensions (used by player services) -->

@@ -10,6 +10,9 @@
     <ProjectReference Include="..\Crispy.UI\Crispy.UI.csproj" />
   </ItemGroup>
 
+  <!-- No VLC NuGet for iOS: LibVLCSharp.iOS requires manual xcframework integration.
+       VLC support on iOS must be added via a native Xcode binding project or
+       MobileVLCKit embedded as a framework. LIBVLC define is intentionally absent. -->
   <ItemGroup>
     <PackageReference Include="Avalonia.iOS" />
   </ItemGroup>

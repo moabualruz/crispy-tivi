@@ -10,6 +10,9 @@
     <ProjectReference Include="..\Crispy.UI\Crispy.UI.csproj" />
   </ItemGroup>
 
+  <!-- No VLC for WASM: LibVLCSharp has no WebAssembly target.
+       Browser playback uses HtmlVideoPlayerService via JS interop instead.
+       LIBVLC define is intentionally absent. -->
   <ItemGroup>
     <PackageReference Include="Avalonia.Browser" />
   </ItemGroup>

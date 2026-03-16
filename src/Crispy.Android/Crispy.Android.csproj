@@ -5,6 +5,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>Crispy.Android</RootNamespace>
     <ApplicationId>com.crispy.tivi</ApplicationId>
+    <DefineConstants>$(DefineConstants);LIBVLC</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,5 +15,7 @@
   <ItemGroup>
     <PackageReference Include="Avalonia.Android" />
     <PackageReference Include="Xamarin.AndroidX.Core.SplashScreen" />
+    <PackageReference Include="LibVLCSharp" />
+    <PackageReference Include="VideoLAN.LibVLC.Android" />
   </ItemGroup>
 </Project>
