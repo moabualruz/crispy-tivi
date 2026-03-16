@@ -77,6 +77,35 @@
                             ZIndex="3"
                             IsVisible="{Binding IsMiniPlayerVisible}" />
 
+    <!-- ═══ ERROR NOTIFICATION TOAST ═══════════════════════════════════════ -->
+    <Border x:Name="ErrorToast"
+            IsVisible="{Binding IsErrorNotificationVisible}"
+            ZIndex="4"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            Margin="0 0 0 80"
+            Padding="16 12"
+            CornerRadius="8"
+            Background="#E0D32F2F"
+            MaxWidth="500">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0"
+                   Text="{Binding ErrorNotificationMessage}"
+                   Foreground="White"
+                   FontSize="14"
+                   TextWrapping="Wrap"
+                   VerticalAlignment="Center" />
+        <Button Grid.Column="1"
+                Content="Dismiss"
+                Command="{Binding DismissErrorNotificationCommand}"
+                Margin="12 0 0 0"
+                Padding="8 4"
+                FontSize="12"
+                Background="Transparent"
+                Foreground="White" />
+      </Grid>
+    </Border>
+
   </Grid>
 
 </UserControl>
