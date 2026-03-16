@@ -65,18 +65,6 @@ public partial class AppShellViewModel : ViewModelBase
     /// <summary>Tracks the active transition so concurrent calls cancel the previous one.</summary>
     private CancellationTokenSource? _transitionCts;
 
-    // ─── Error notification ──────────────────────────────────────────────────
-
-    /// <summary>Error notification message displayed in the toast overlay.</summary>
-    [ObservableProperty]
-    private string? _errorNotificationMessage;
-
-    /// <summary>Whether the error notification toast is visible.</summary>
-    [ObservableProperty]
-    private bool _isErrorNotificationVisible;
-
-    private DispatcherTimer? _errorDismissTimer;
-
     // ─── Derived visuals ──────────────────────────────────────────────────────
 
     /// <summary>
@@ -286,49 +274,6 @@ public partial class AppShellViewModel : ViewModelBase
                 PlayerOverlayOpacity = 0.0;
                 OnPropertyChanged(nameof(ContentBackground));
             }
-        }
-        else if (e.PropertyName is nameof(PlayerViewModel.ErrorMessage))
-        {
-            if (Player.ErrorMessage is { } msg)
-            {
-                ErrorNotificationMessage = msg;
-                IsErrorNotificationVisible = true;
-                StartErrorDismissTimer();
-            }
-            else
-            {
-                DismissErrorNotification();
-            }
-        }
-    }
-
-    // ─── Error notification helpers ──────────────────────────────────────────
-
-    /// <summary>Dismisses the error notification toast immediately.</summary>
-    [RelayCommand]
-    private void DismissErrorNotification()
-    {
-        IsErrorNotificationVisible = false;
-        ErrorNotificationMessage = null;
-        _errorDismissTimer?.Stop();
-    }
-
-    private void StartErrorDismissTimer()
-    {
-        _errorDismissTimer?.Stop();
-        try
-        {
-            _errorDismissTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
-            _errorDismissTimer.Tick += (_, _) =>
-            {
-                _errorDismissTimer?.Stop();
-                DismissErrorNotification();
-            };
-            _errorDismissTimer.Start();
-        }
-        catch (Exception)
-        {
-            // No dispatcher available (unit test environment) — timer not started.
         }
     }
 }

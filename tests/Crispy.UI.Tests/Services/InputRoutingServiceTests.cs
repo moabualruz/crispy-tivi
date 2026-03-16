@@ -24,15 +24,15 @@ public class InputRoutingServiceTests
     [InlineData(Key.MediaPlayPause, AppState.Browsing)]
     [InlineData(Key.MediaPlayPause, AppState.Watching)]
     [InlineData(Key.MediaPlayPause, AppState.BrowsingWhilePlaying)]
-    [InlineData(Key.MediaStop, AppState.Idle)]
-    [InlineData(Key.MediaStop, AppState.Watching)]
-    [InlineData(Key.MediaNextTrack, AppState.Browsing)]
-    [InlineData(Key.MediaNextTrack, AppState.Watching)]
+    [InlineData(Key.MediaStop,       AppState.Idle)]
+    [InlineData(Key.MediaStop,       AppState.Watching)]
+    [InlineData(Key.MediaNextTrack,  AppState.Browsing)]
+    [InlineData(Key.MediaNextTrack,  AppState.Watching)]
     [InlineData(Key.MediaPreviousTrack, AppState.Browsing)]
     [InlineData(Key.MediaPreviousTrack, AppState.Watching)]
-    [InlineData(Key.Space, AppState.Idle)]
-    [InlineData(Key.Space, AppState.Watching)]
-    [InlineData(Key.Space, AppState.Browsing)]
+    [InlineData(Key.Space,           AppState.Idle)]
+    [InlineData(Key.Space,           AppState.Watching)]
+    [InlineData(Key.Space,           AppState.Browsing)]
     public void MediaKey_AlwaysRoutesToPlayer_RegardlessOfState(Key key, AppState state)
     {
         var result = _sut.HandleKey(key, KeyModifiers.None, state);
@@ -123,9 +123,9 @@ public class InputRoutingServiceTests
     // ── Seek keys (Shift + Left/Right) always go to player ────────────────────
 
     [Theory]
-    [InlineData(Key.Left, AppState.Browsing)]
+    [InlineData(Key.Left,  AppState.Browsing)]
     [InlineData(Key.Right, AppState.Browsing)]
-    [InlineData(Key.Left, AppState.Watching)]
+    [InlineData(Key.Left,  AppState.Watching)]
     [InlineData(Key.Right, AppState.Watching)]
     public void ShiftArrow_AlwaysRoutesToPlayer_AsSeekKey(Key key, AppState state)
     {

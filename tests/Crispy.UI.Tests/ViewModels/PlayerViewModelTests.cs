@@ -55,69 +55,6 @@ public class PlayerViewModelTests
         _sut = new PlayerViewModel(_playerService, _timeshiftService, _sleepTimerService);
     }
 
-    // ── Error handling ───────────────────────────────────────────────────────
-
-    [AvaloniaFact]
-    public void HandleError_DoesNotRetry_WhenErrorIsPermanent()
-    {
-        // Arrange — emit state with a permanent error (GStreamer unavailable)
-        var state = PlayerState.Empty with
-        {
-            ErrorMessage = "GStreamer not available. Install GStreamer 1.24+ runtime.",
-            CurrentRequest = new PlaybackRequest("http://test.ts", PlaybackContentType.LiveTv, "Test Channel"),
-        };
-
-        // Act
-        _stateSubject.OnNext(state);
-
-        // Assert — permanent errors must NOT be retried
-        _sut.RetryCount.Should().Be(0,
-            "permanent errors (runtime unavailable) must not increment RetryCount or schedule retries");
-        _sut.ErrorMessage.Should().Be(state.ErrorMessage,
-            "ErrorMessage must still be set so subscribers (AppShellViewModel) can display it");
-    }
-
-    [AvaloniaFact]
-    public void HandleError_RetriesUpToThree_WhenErrorIsTransient()
-    {
-        // Arrange — first call PlayInternal to set _currentRequest
-        _sut.PlayAsync(new PlaybackRequest("http://test.ts", PlaybackContentType.LiveTv, "Test Channel")).Wait();
-
-        // Act — emit state with a transient error
-        var state = PlayerState.Empty with
-        {
-            ErrorMessage = "Stream timeout",
-            CurrentRequest = new PlaybackRequest("http://test.ts", PlaybackContentType.LiveTv, "Test Channel"),
-        };
-        _stateSubject.OnNext(state);
-
-        // Assert — transient errors must increment RetryCount
-        _sut.RetryCount.Should().Be(1,
-            "transient errors must increment RetryCount to track retry attempts");
-    }
-
-    [Fact]
-    public void IsPermanentError_ReturnsTrue_ForRuntimeUnavailableMessages()
-    {
-        PlayerViewModel.IsPermanentError("GStreamer not available. Install GStreamer 1.24+ runtime.")
-            .Should().BeTrue();
-        PlayerViewModel.IsPermanentError("VLC runtime not installed")
-            .Should().BeTrue();
-        PlayerViewModel.IsPermanentError("Player runtime missing")
-            .Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsPermanentError_ReturnsFalse_ForTransientErrors()
-    {
-        PlayerViewModel.IsPermanentError("Stream timeout")
-            .Should().BeFalse();
-        PlayerViewModel.IsPermanentError("Connection reset by peer")
-            .Should().BeFalse();
-    }
-
-    // ── Existing tests ───────────────────────────────────────────────────────
-
     [AvaloniaFact]
     public void ShowSkipIntro_IsTrue_WhenPositionWithinIntroMarker()
     {

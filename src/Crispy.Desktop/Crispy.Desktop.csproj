@@ -14,11 +14,10 @@
   <ItemGroup>
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="FluentIcons.Avalonia" />
-    <!-- LibVLCSharp removed — replaced by GStreamer (see architecture decision in CLAUDE.md).
-         GstSharp native packages will be added here when GstSharpBundle NuGet becomes available. -->
-    <!-- <PackageReference Include="GstSharpBundle.Windows.x64" Condition="$([MSBuild]::IsOSPlatform('Windows'))" /> -->
-    <!-- <PackageReference Include="GstSharpBundle.Linux.x64" Condition="$([MSBuild]::IsOSPlatform('Linux'))" /> -->
-    <!-- <PackageReference Include="GstSharpBundle.Mac.x64" Condition="$([MSBuild]::IsOSPlatform('OSX'))" /> -->
+    <PackageReference Include="LibVLCSharp" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+    <PackageReference Include="VideoLAN.LibVLC.Linux" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
+    <PackageReference Include="VideoLAN.LibVLC.Mac" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>

@@ -473,11 +473,6 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
     private void HandleError(PlayerState state)
     {
         if (state.ErrorMessage is null) return;
-
-        // Permanent errors (runtime unavailable) are not retryable — surface immediately, no retry.
-        if (IsPermanentError(state.ErrorMessage))
-            return;
-
         RetryCount++;
         if (RetryCount <= 3 && _currentRequest is { } req)
         {
@@ -486,17 +481,6 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
                 Dispatcher.UIThread.Post(async () =>
                     await _playerService.PlayAsync(captured)));
         }
-    }
-
-    /// <summary>
-    /// Returns true if the error message indicates a permanent/unrecoverable condition
-    /// that should not be retried (e.g., player runtime not installed).
-    /// </summary>
-    public static bool IsPermanentError(string errorMessage)
-    {
-        return errorMessage.Contains("not available", StringComparison.OrdinalIgnoreCase)
-            || errorMessage.Contains("not installed", StringComparison.OrdinalIgnoreCase)
-            || errorMessage.Contains("runtime", StringComparison.OrdinalIgnoreCase);
     }
 
     // ─── OSD auto-hide ───────────────────────────────────────────────────────
