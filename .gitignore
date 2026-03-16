@@ -8,6 +8,7 @@
 ##
 .coa/
 .fastembed_cache/
+.claude/
 
 ##
 ## .NET Build
