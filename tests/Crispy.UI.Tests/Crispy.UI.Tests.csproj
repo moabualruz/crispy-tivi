@@ -20,6 +20,8 @@
     </PackageReference>
     <PackageReference Include="Avalonia.Headless.XUnit" />
     <PackageReference Include="Avalonia.Skia" />
+    <PackageReference Include="LibVLCSharp" />
+    <PackageReference Include="LibVLCSharp.Avalonia" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="FluentIcons.Avalonia" />
     <PackageReference Include="FluentIcons.Common" />

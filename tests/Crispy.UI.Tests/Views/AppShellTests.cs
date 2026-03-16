@@ -314,41 +314,6 @@ public class AppShellTests
         window.Close();
     }
 
-    [AvaloniaFact]
-    public void AppShell_VideoLayer_IsHidden_ByDefault()
-    {
-        var vm = BuildVm();
-        var window = HeadlessTestHelpers.CreateWindow<AppShell>(vm);
-
-        var shell = window.GetVisualDescendants()
-            .OfType<AppShell>()
-            .FirstOrDefault();
-        shell.Should().NotBeNull();
-
-        var videoSurface = shell!.FindControl<Crispy.UI.Controls.GpuVideoSurface>("VideoSurface");
-        videoSurface.Should().NotBeNull("Layer 0 must be a GpuVideoSurface named VideoSurface");
-        videoSurface!.IsVisible.Should().BeFalse("video surface starts hidden until playback starts");
-
-        window.Close();
-    }
-
-    [AvaloniaFact]
-    public void AppShell_VideoLayer_ExistsAndIsBlack_OnStartup()
-    {
-        var vm = BuildVm();
-        var window = HeadlessTestHelpers.CreateWindow<AppShell>(vm);
-
-        var shell = window.GetVisualDescendants()
-            .OfType<AppShell>()
-            .FirstOrDefault();
-        shell.Should().NotBeNull("AppShell must be in the visual tree");
-
-        // GpuVideoSurface renders black via DrawingContext.FillRectangle when no frame is present.
-        // Verify the surface control exists and is the correct type — background color is
-        // paint-time behaviour tested via the GpuVideoSurface unit tests.
-        var videoSurface = shell!.FindControl<Crispy.UI.Controls.GpuVideoSurface>("VideoSurface");
-        videoSurface.Should().NotBeNull("Layer 0 must be a GpuVideoSurface named VideoSurface");
-
-        window.Close();
-    }
+    // VideoView (NativeControlHost) requires a real window — not testable in Avalonia.Headless.
+    // Video layer visibility is verified indirectly via AppShellViewModel.IsVideoVisible unit tests above.
 }

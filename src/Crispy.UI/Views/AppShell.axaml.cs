@@ -6,6 +6,8 @@ using Avalonia.VisualTree;
 
 using Crispy.UI.ViewModels;
 
+using LibVLCSharp.Avalonia;
+
 namespace Crispy.UI.Views;
 
 /// <summary>
@@ -14,7 +16,7 @@ namespace Crispy.UI.Views;
 /// — Route keyboard shortcuts (Escape, Back, Enter) to Navigation/Player commands.
 /// — Manage pointer-based rail expand/collapse.
 /// — Prevent XYFocus from targeting covered content during SplitView overlay.
-/// — Wire GpuVideoSurface to VlcPlayerService.SetFrameReceiver once at startup.
+/// — Wire VideoView.MediaPlayer to VlcPlayerService.NativePlayerHandle at startup.
 /// — Fullscreen: listen to IsFullscreen on ViewModel, toggle WindowState + title bar.
 /// </summary>
 public partial class AppShell : UserControl
@@ -79,14 +81,22 @@ public partial class AppShell : UserControl
                 () => _rail?.FocusPrimaryList(),
                 DispatcherPriority.Loaded);
 
-            // Wire GpuVideoSurface to VlcPlayerService once — both are singletons.
-            // No deferred post needed: GpuVideoSurface is a plain Avalonia Control,
-            // no native window handle required.
+            // Wire VideoView.MediaPlayer to VlcPlayerService.NativePlayerHandle once.
+            // Deferred to DispatcherPriority.Loaded because VideoView uses NativeControlHost
+            // which requires the visual tree to be fully attached before setting MediaPlayer.
             if (DataContext is AppShellViewModel shellVm)
             {
-                var surface = this.FindControl<Controls.GpuVideoSurface>("VideoSurface");
-                if (surface is not null)
-                    shellVm.Player.PlayerService.SetFrameReceiver(surface);
+                Dispatcher.UIThread.Post(() =>
+                {
+                    var videoView = this.FindControl<VideoView>("VideoView");
+                    if (videoView is not null
+                        && shellVm.Player.PlayerService.NativePlayerHandle
+                            is LibVLCSharp.Shared.MediaPlayer mp)
+                    {
+                        videoView.MediaPlayer = mp;
+                    }
+                }, DispatcherPriority.Loaded);
+
                 SubscribeFullscreen(shellVm);
             }
         };
