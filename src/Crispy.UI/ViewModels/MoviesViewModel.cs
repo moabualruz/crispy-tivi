@@ -5,14 +5,16 @@ using CommunityToolkit.Mvvm.Input;
 
 using Crispy.Domain.Entities;
 using Crispy.Domain.Interfaces;
+using Crispy.UI.Navigation;
 
 namespace Crispy.UI.ViewModels;
 
 /// <summary>
 /// ViewModel for the Movies screen — loads VOD movies from all enabled sources,
 /// with optional per-source filtering.
+/// Implements INavigationAware to reload data when navigated back to after a sync.
 /// </summary>
-public partial class MoviesViewModel : ViewModelBase
+public partial class MoviesViewModel : ViewModelBase, INavigationAware
 {
     private readonly IMovieRepository _movieRepository;
     private readonly ISourceRepository _sourceRepository;
@@ -40,6 +42,12 @@ public partial class MoviesViewModel : ViewModelBase
 
         _ = LoadAsync();
     }
+
+    /// <inheritdoc />
+    public void OnNavigatedTo(object? parameter) => _ = LoadAsync();
+
+    /// <inheritdoc />
+    public void OnNavigatedFrom() { }
 
     /// <summary>
     /// Loads sources and movies. Builds source filter list first,

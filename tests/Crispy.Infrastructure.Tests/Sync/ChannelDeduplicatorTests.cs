@@ -4,10 +4,13 @@ using Crispy.Infrastructure.Tests.Helpers;
 
 using FluentAssertions;
 
+using Microsoft.EntityFrameworkCore;
+
 using Xunit;
 
 namespace Crispy.Infrastructure.Tests.Sync;
 
+[Trait("Category", "Unit")]
 public class ChannelDeduplicatorTests : IDisposable
 {
     private readonly TestDbContextFactory _factory;
@@ -85,6 +88,82 @@ public class ChannelDeduplicatorTests : IDisposable
         var group = ctx2.DeduplicationGroups.FirstOrDefault(g => g.Id == groupId);
         group.Should().NotBeNull("pre-existing group must not be deleted");
         group!.CanonicalTitle.Should().Be(originalTitle, "pre-existing group title must not change");
+    }
+
+    [Fact]
+    public async Task RunAsync_SingleUniqueChannel_CreatesNoGroup()
+    {
+        // CNN has TvgId "cnn.us" but only appears in one source — no dedup needed
+        var deduplicator = new ChannelDeduplicator(_factory);
+
+        await deduplicator.RunAsync(CancellationToken.None);
+
+        using var ctx = _factory.CreateDbContext();
+        // Only BBC One (bbc1.uk, 2 sources) should produce a group — CNN should not
+        var groups = ctx.DeduplicationGroups.ToList();
+        groups.Should().NotContain(g => g.CanonicalTvgId == "cnn.us",
+            "channels unique to one source must not create a deduplication group");
+    }
+
+    [Fact]
+    public async Task RunAsync_EmptyDatabase_CreatesNoGroups()
+    {
+        // Use a fresh factory with no channels
+        using var emptyFactory = new TestDbContextFactory();
+        using var ctx = emptyFactory.CreateDbContext();
+        var profile = new Profile { Name = "Empty" };
+        ctx.Profiles.Add(profile);
+        ctx.SaveChanges();
+
+        var deduplicator = new ChannelDeduplicator(emptyFactory);
+        await deduplicator.RunAsync(CancellationToken.None);
+
+        using var ctx2 = emptyFactory.CreateDbContext();
+        ctx2.DeduplicationGroups.Should().BeEmpty("no channels means no dedup groups");
+    }
+
+    [Fact]
+    public async Task RunAsync_ExistingGroup_NewMemberAdded_WhenThirdSourceAppears()
+    {
+        // First run creates a group for bbc1.uk with 2 channels
+        var deduplicator = new ChannelDeduplicator(_factory);
+        await deduplicator.RunAsync(CancellationToken.None);
+
+        // Add a third source with the same TvgId
+        using (var ctx = _factory.CreateDbContext())
+        {
+            var profile = ctx.Profiles.First();
+            var src3 = new Source { Name = "Source3", Url = "http://s3.com", ProfileId = profile.Id, SortOrder = 3 };
+            ctx.Sources.Add(src3);
+            ctx.SaveChanges();
+            ctx.Channels.Add(new Channel { Title = "BBC One FHD", TvgId = "bbc1.uk", SourceId = src3.Id });
+            ctx.SaveChanges();
+        }
+
+        // Second run — should add the new channel to the existing group
+        await deduplicator.RunAsync(CancellationToken.None);
+
+        using var ctx2 = _factory.CreateDbContext();
+        var group = ctx2.DeduplicationGroups
+            .Include(g => g.Channels)
+            .FirstOrDefault(g => g.CanonicalTvgId == "bbc1.uk");
+        group.Should().NotBeNull();
+        group!.Channels.Should().HaveCount(3, "all three sources contribute to the same bbc1.uk group");
+    }
+
+    [Fact]
+    public async Task RunAsync_PrimaryChannelIsLowestSourceId()
+    {
+        // src1 has lower Id than src2, so src1's channel should be canonical title source
+        var deduplicator = new ChannelDeduplicator(_factory);
+        await deduplicator.RunAsync(CancellationToken.None);
+
+        using var ctx = _factory.CreateDbContext();
+        var group = ctx.DeduplicationGroups.First(g => g.CanonicalTvgId == "bbc1.uk");
+
+        // Primary = lowest SourceId = src1 → Title = "BBC One"
+        group.CanonicalTitle.Should().Be("BBC One",
+            "the channel from the lowest SourceId is the primary and sets CanonicalTitle");
     }
 
     public void Dispose() => _factory.Dispose();

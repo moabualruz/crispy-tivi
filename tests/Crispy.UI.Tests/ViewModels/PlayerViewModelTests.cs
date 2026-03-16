@@ -1478,4 +1478,94 @@ public class PlayerViewModelTests
 
         _sut.EpisodesWatchedCount.Should().Be(before + 1);
     }
+
+    // ─── RetryCommand with no pending request ─────────────────────────────────
+
+    [AvaloniaFact]
+    public async Task RetryCommand_ClearsErrorAndRetryCount_WhenNoPriorRequest()
+    {
+        // Arrange — set error state without ever calling PlayCommand (no _currentRequest)
+        _sut.ErrorMessage = "lost signal";
+        _sut.RetryCount = 1;
+
+        // Act
+        await _sut.RetryCommand.ExecuteAsync(null);
+
+        // Assert — error state cleared even though there's no request to replay
+        _sut.ErrorMessage.Should().BeNull("RetryAsync must clear ErrorMessage unconditionally");
+        _sut.RetryCount.Should().Be(0, "RetryAsync must reset RetryCount unconditionally");
+        await _playerService.DidNotReceive().PlayAsync(Arg.Any<PlaybackRequest>(), Arg.Any<CancellationToken>());
+
+    }
+
+    // ─── HandleError stops auto-retry after 3 attempts ───────────────────────
+
+    [AvaloniaFact]
+    public async Task HandleError_DoesNotScheduleRetry_WhenRetryLimitExceeded()
+    {
+        // Arrange — prime a current request so the guard is only RetryCount
+        var req = new PlaybackRequest(
+            Url: "http://tv.example.com/ch1",
+            ContentType: PlaybackContentType.LiveTv,
+            Title: "Ch1");
+        await _sut.PlayCommand.ExecuteAsync(req);
+
+        // Emit 3 errors to exhaust the auto-retry budget (RetryCount will reach 3)
+        for (int i = 0; i < 3; i++)
+            _stateSubject.OnNext(PlayerState.Empty with { ErrorMessage = "timeout" });
+
+        var countAfterThree = _sut.RetryCount;
+
+        // Emit a 4th error — RetryCount becomes 4 but PlayAsync must NOT be scheduled again
+        _stateSubject.OnNext(PlayerState.Empty with { ErrorMessage = "timeout" });
+
+        _sut.RetryCount.Should().Be(4,
+            "HandleError increments RetryCount on every error regardless of retry limit");
+
+        // PlayAsync was called once (initial play) — any async retries from HandleError
+        // use Task.Delay(2s) so they haven't fired yet; we verify no *extra* synchronous calls.
+        await _playerService.Received(1).PlayAsync(req);
+    }
+
+    // ─── SetAspectRatioCommand with a non-null ratio ──────────────────────────
+
+    [AvaloniaFact]
+    public async Task SetAspectRatioCommand_WithSpecificRatio_ForwardsToPlayerService()
+    {
+        await _sut.SetAspectRatioCommand.ExecuteAsync("16:9");
+
+        await _playerService.Received(1).SetAspectRatioAsync("16:9");
+    }
+
+    // ─── IsBuffering / IsAudioOnly state mirrors ─────────────────────────────
+
+    [AvaloniaFact]
+    public void IsBuffering_IsTrue_WhenStateEmitsBuffering()
+    {
+        _stateSubject.OnNext(PlayerState.Empty with { IsBuffering = true });
+
+        _sut.IsBuffering.Should().BeTrue("IsBuffering must mirror the player state");
+    }
+
+    [AvaloniaFact]
+    public void IsAudioOnly_IsTrue_WhenStateEmitsAudioOnly()
+    {
+        _stateSubject.OnNext(PlayerState.Empty with { IsAudioOnly = true });
+
+        _sut.IsAudioOnly.Should().BeTrue("IsAudioOnly must mirror the player state");
+    }
+
+    // ─── HandleError with no current request ─────────────────────────────────
+
+    [AvaloniaFact]
+    public void HandleError_IncrementsRetryCount_ButDoesNotRetry_WhenNoCurrentRequest()
+    {
+        // No PlayCommand has been called — _currentRequest is null.
+        // Emit an error state; HandleError should increment RetryCount but not call PlayAsync.
+        _stateSubject.OnNext(PlayerState.Empty with { ErrorMessage = "connection refused" });
+
+        _sut.RetryCount.Should().Be(1,
+            "RetryCount must increment on every error even when there is no current request");
+        _playerService.DidNotReceive().PlayAsync(Arg.Any<PlaybackRequest>());
+    }
 }

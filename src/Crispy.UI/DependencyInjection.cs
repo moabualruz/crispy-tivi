@@ -60,6 +60,7 @@ public static class DependencyInjection
         services.AddTransient<SettingsView>();
         services.AddTransient<AddSourceView>();
         services.AddTransient<EpgView>();
+        services.AddTransient<MultiviewView>();
 
         return services;
     }

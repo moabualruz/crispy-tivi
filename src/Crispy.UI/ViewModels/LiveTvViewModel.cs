@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Crispy.Domain.Entities;
 using Crispy.Domain.Interfaces;
+using Crispy.UI.Navigation;
 
 namespace Crispy.UI.ViewModels;
 
@@ -15,8 +16,9 @@ public sealed record SourceFilterItem(int? SourceId, string Name);
 /// <summary>
 /// ViewModel for the Live TV screen.
 /// Loads channels from IChannelRepository grouped / filtered by source.
+/// Implements INavigationAware to reload data when navigated back to after a sync.
 /// </summary>
-public partial class LiveTvViewModel : ViewModelBase
+public partial class LiveTvViewModel : ViewModelBase, INavigationAware
 {
     private readonly IChannelRepository _channelRepository;
     private readonly ISourceRepository _sourceRepository;
@@ -43,6 +45,12 @@ public partial class LiveTvViewModel : ViewModelBase
         Title = "Live TV";
         LoadCommand.Execute(null);
     }
+
+    /// <inheritdoc />
+    public void OnNavigatedTo(object? parameter) => LoadCommand.Execute(null);
+
+    /// <inheritdoc />
+    public void OnNavigatedFrom() { }
 
     /// <summary>
     /// Loads sources and channels. Triggered on construction and when source filter changes.

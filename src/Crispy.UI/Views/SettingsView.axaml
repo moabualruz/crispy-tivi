@@ -131,9 +131,9 @@
                            FontSize="12"
                            Foreground="{DynamicResource TextSecondaryBrush}" />
               </StackPanel>
-              <ToggleSwitch Grid.Column="1"
-                            IsChecked="{Binding IsReducedMotion}"
-                            VerticalAlignment="Center" />
+              <CheckBox Grid.Column="1"
+                        IsChecked="{Binding IsReducedMotion}"
+                        VerticalAlignment="Center" />
             </Grid>
           </Border>
         </StackPanel>

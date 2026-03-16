@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 
 using Crispy.Domain.Entities;
 using Crispy.Domain.Interfaces;
+using Crispy.UI.Navigation;
 
 namespace Crispy.UI.ViewModels;
 
@@ -38,8 +39,9 @@ public sealed class EpgProgrammeItem
 /// <summary>
 /// ViewModel for the EPG (Electronic Programme Guide) screen.
 /// Presents a channel list on the left and programme timeline on the right.
+/// Implements INavigationAware to reload channels when navigated back to after a sync.
 /// </summary>
-public partial class EpgViewModel : ViewModelBase
+public partial class EpgViewModel : ViewModelBase, INavigationAware
 {
     private readonly IEpgRepository _epgRepository;
     private readonly IChannelRepository _channelRepository;
@@ -75,6 +77,12 @@ public partial class EpgViewModel : ViewModelBase
 
         _ = LoadChannelsAsync();
     }
+
+    /// <inheritdoc />
+    public void OnNavigatedTo(object? parameter) => _ = LoadChannelsAsync();
+
+    /// <inheritdoc />
+    public void OnNavigatedFrom() { }
 
     /// <summary>
     /// Loads all channels from all enabled sources.

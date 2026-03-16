@@ -1,5 +1,6 @@
 using Crispy.Application.Sources;
 using Crispy.Domain.Entities;
+using Crispy.Domain.Enums;
 
 using Microsoft.Extensions.Logging;
 
@@ -25,6 +26,9 @@ public sealed class StalkerParser : ISourceParser
     {
         try
         {
+            // Set the base address from the source URL before every sync so the
+            // singleton StalkerClient targets the correct portal per-source.
+            _client.SetBaseAddress(source.Url);
             await _client.HandshakeAsync(ct).ConfigureAwait(false);
 
             var channels = new List<Channel>();
@@ -33,18 +37,36 @@ public sealed class StalkerParser : ISourceParser
             using var channelsDoc = await _client.GetChannelsAsync(ct).ConfigureAwait(false);
             if (channelsDoc is not null && channelsDoc.RootElement.TryGetProperty("js", out var js))
             {
-                var data = js.TryGetProperty("data", out var d) ? d : js;
+                var data = js.ValueKind == System.Text.Json.JsonValueKind.Object && js.TryGetProperty("data", out var d) ? d : js;
                 if (data.ValueKind == System.Text.Json.JsonValueKind.Array)
                 {
                     foreach (var el in data.EnumerateArray())
                     {
-                        channels.Add(new Channel
+                        // Stalker portals expose the stream URL in the "cmd" field.
+                        var cmd = el.TryGetProperty("cmd", out var c) ? c.GetString() : null;
+
+                        var channel = new Channel
                         {
                             Title = el.TryGetProperty("name", out var n) ? n.GetString() ?? "Unknown" : "Unknown",
+                            ExternalId = el.TryGetProperty("id", out var id) ? id.ToString() : null,
                             TvgId = el.TryGetProperty("xmltv_id", out var xid) ? xid.GetString() : null,
                             TvgLogo = el.TryGetProperty("logo", out var l) ? l.GetString() : null,
                             SourceId = source.Id,
-                        });
+                        };
+
+                        if (cmd is not null)
+                        {
+                            channel.StreamEndpoints.Add(new StreamEndpoint
+                            {
+                                ChannelId = 0, // EF resolves after channel insert
+                                SourceId = source.Id,
+                                Url = cmd,
+                                Format = StreamFormat.Unknown,
+                                Priority = 0,
+                            });
+                        }
+
+                        channels.Add(channel);
                     }
                 }
             }
@@ -81,7 +103,12 @@ public sealed class StalkerParser : ISourceParser
                 }
             }
 
-            return new ParseResult { Channels = channels, Movies = movies };
+            return new ParseResult
+            {
+                Channels = channels,
+                StreamEndpoints = channels.SelectMany(c => c.StreamEndpoints).ToList(),
+                Movies = movies,
+            };
         }
         catch (Exception ex)
         {

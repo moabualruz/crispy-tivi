@@ -29,6 +29,7 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
             b.Property<int?>("CustomSortOrder").HasColumnType("INTEGER");
             b.Property<DateTime?>("DeletedAt").HasColumnType("TEXT");
             b.Property<int?>("DeduplicationGroupId").HasColumnType("INTEGER");
+            b.Property<string>("ExternalId").HasMaxLength(500).HasColumnType("TEXT");
             b.Property<string>("GroupName").HasMaxLength(200).HasColumnType("TEXT");
             b.Property<bool>("IsFavorite").HasColumnType("INTEGER");
             b.Property<bool>("IsHidden").HasColumnType("INTEGER");
@@ -46,7 +47,8 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
             b.HasKey("Id");
             b.HasIndex("DeduplicationGroupId");
             b.HasIndex("SourceId");
-            b.HasIndex("TvgId", "SourceId").IsUnique();
+            b.HasIndex("ExternalId", "SourceId").IsUnique();
+            b.HasIndex("TvgId", "SourceId");
             b.ToTable("Channels");
         });
 

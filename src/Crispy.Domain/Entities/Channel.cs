@@ -11,6 +11,9 @@ public class Channel : BaseEntity, IContentItem
     /// <summary>Display name shown in channel lists.</summary>
     public required string Title { get; set; }
 
+    /// <summary>Source-specific unique identifier (Xtream stream_id, M3U URL, Stalker id).</summary>
+    public string? ExternalId { get; set; }
+
     /// <summary>EPG tvg-id used to match channel to EPG programme data.</summary>
     public string? TvgId { get; set; }
 

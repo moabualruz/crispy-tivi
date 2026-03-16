@@ -11,8 +11,10 @@ namespace Crispy.UI.ViewModels;
 
 /// <summary>
 /// ViewModel for the Sources list in Settings.
+/// Implements INavigationAware so the list is refreshed whenever the user
+/// navigates back from the Add Source wizard.
 /// </summary>
-public partial class SourcesViewModel : ViewModelBase
+public partial class SourcesViewModel : ViewModelBase, INavigationAware
 {
     private readonly ISourceRepository _sourceRepository;
     private readonly INavigationService _navigationService;
@@ -30,6 +32,12 @@ public partial class SourcesViewModel : ViewModelBase
 
         LoadCommand.Execute(null);
     }
+
+    /// <inheritdoc />
+    public void OnNavigatedTo(object? parameter) => LoadCommand.Execute(null);
+
+    /// <inheritdoc />
+    public void OnNavigatedFrom() { }
 
     /// <summary>
     /// The list of configured sources.

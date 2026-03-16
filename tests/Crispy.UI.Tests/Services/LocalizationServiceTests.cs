@@ -255,4 +255,34 @@ public class LocalizationServiceTests
 
         received.Should().Contain("a:tr").And.Contain("b:tr");
     }
+
+    [Fact]
+    public async Task InitializeAsync_InvalidLocaleFromSettings_IsRightToLeftStaysFalse()
+    {
+        // The else-branch in InitializeAsync skips ApplyCulture, so RTL must remain false
+        _settingsService.GetLocaleAsync(Arg.Any<int?>())
+            .Returns("xx-invalid");
+
+        await _sut.InitializeAsync();
+
+        _sut.IsRightToLeft.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("fr", "Français")]
+    [InlineData("de", "Deutsch")]
+    [InlineData("tr", "Türkçe")]
+    public void AvailableLocales_ContainsExpectedNativeName(string code, string nativeName)
+    {
+        _sut.AvailableLocales.Should().Contain(l => l.Code == code && l.NativeName == nativeName);
+    }
+
+    [Fact]
+    public async Task SetLocaleAsync_CaseInsensitiveCode_SetsCorrectRtlState()
+    {
+        // "AR" is RTL even when passed in upper-case
+        await _sut.SetLocaleAsync("AR");
+
+        _sut.IsRightToLeft.Should().BeTrue();
+    }
 }

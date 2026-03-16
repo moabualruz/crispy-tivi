@@ -131,8 +131,7 @@ public partial class ContentDataSchema : Migration
         migrationBuilder.CreateIndex(
             name: "IX_Channels_TvgId_SourceId",
             table: "Channels",
-            columns: new[] { "TvgId", "SourceId" },
-            unique: true);
+            columns: new[] { "TvgId", "SourceId" });
 
         migrationBuilder.CreateIndex(
             name: "IX_Channels_SourceId",

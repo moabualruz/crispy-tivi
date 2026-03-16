@@ -231,6 +231,24 @@ public class JellyfinClientTests
         libs.Should().BeEmpty();
     }
 
+    // ─── PollQuickConnectAsync cancellation ───────────────────────────────────
+
+    [Fact]
+    public async Task PollQuickConnectAsync_ThrowsOperationCanceledException_WhenTokenCancelled()
+    {
+        // Provides infinite false responses; cancellation fires before deadline (5 min).
+        // The `return false` deadline path is unreachable in a unit test without a
+        // 5-minute wait — it is a documented coverage ceiling analogous to WebSocket methods.
+        var client = MakeClient(null,
+            (HttpStatusCode.OK, """{"Authenticated":false}"""));
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(30));
+
+        var act = async () => await client.PollQuickConnectAsync("secret", pollIntervalMs: 5, cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
     // ─── AuthenticateAsync edge cases ──────────────────────────────────────────
 
     [Fact]

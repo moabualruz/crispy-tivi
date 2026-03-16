@@ -6,6 +6,7 @@ using Crispy.Domain.Entities;
 using Crispy.Domain.Enums;
 using Crispy.Domain.Interfaces;
 using Crispy.Application.Security;
+using Crispy.Application.Sync;
 using Crispy.UI.Navigation;
 
 namespace Crispy.UI.ViewModels;
@@ -22,7 +23,9 @@ public record SourceSavedMessage(Source Source);
 public partial class AddSourceViewModel : ViewModelBase
 {
     private readonly ISourceRepository _sourceRepository;
+    private readonly IProfileRepository _profileRepository;
     private readonly ICredentialEncryption _credentialEncryption;
+    private readonly ISyncService _syncService;
     private readonly IMessenger _messenger;
     private readonly INavigationService _navigationService;
 
@@ -31,13 +34,17 @@ public partial class AddSourceViewModel : ViewModelBase
     /// </summary>
     public AddSourceViewModel(
         ISourceRepository sourceRepository,
+        IProfileRepository profileRepository,
         ICredentialEncryption credentialEncryption,
+        ISyncService syncService,
         IMessenger messenger,
         INavigationService navigationService)
     {
         Title = "Add Source";
         _sourceRepository = sourceRepository;
+        _profileRepository = profileRepository;
         _credentialEncryption = credentialEncryption;
+        _syncService = syncService;
         _messenger = messenger;
         _navigationService = navigationService;
         _selectedSourceType = SourceType.M3U;
@@ -120,12 +127,21 @@ public partial class AddSourceViewModel : ViewModelBase
 
         try
         {
+            // Ensure a default profile exists (FK constraint)
+            var profiles = await _profileRepository.GetAllAsync();
+            var profile = profiles.FirstOrDefault();
+            if (profile is null)
+            {
+                profile = await _profileRepository.CreateAsync(new Profile { Name = "Default" });
+            }
+
             var source = new Source
             {
                 Name = Name.Trim(),
                 Url = Url.Trim(),
                 SourceType = SelectedSourceType,
                 IsEnabled = true,
+                ProfileId = profile.Id,
             };
 
             if (!string.IsNullOrWhiteSpace(Username))
@@ -140,6 +156,9 @@ public partial class AddSourceViewModel : ViewModelBase
 
             var created = await _sourceRepository.CreateAsync(source);
             _messenger.Send(new SourceSavedMessage(created));
+
+            // Trigger sync in background — don't await (UI should navigate immediately)
+            _ = _syncService.SyncSourceAsync(created.Id);
 
             if (_navigationService.CanGoBack)
             {

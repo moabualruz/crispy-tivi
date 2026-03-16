@@ -39,7 +39,7 @@ public class XtreamClientTests
             BaseAddress = new Uri("http://test.example.com")
         };
 
-        var xtreamClient = new XtreamClient(client);
+        var xtreamClient = new XtreamClient(client) { BaseUrl = "http://test.example.com" };
         var result = await xtreamClient.AuthenticateAsync("testuser", "testpass");
 
         result.Should().NotBeNull();
@@ -77,7 +77,7 @@ public class XtreamClientTests
             BaseAddress = new Uri("http://test.example.com")
         };
 
-        var xtreamClient = new XtreamClient(client);
+        var xtreamClient = new XtreamClient(client) { BaseUrl = "http://test.example.com" };
         var result = await xtreamClient.AuthenticateAsync("testuser", "testpass");
 
         result.Should().NotBeNull();

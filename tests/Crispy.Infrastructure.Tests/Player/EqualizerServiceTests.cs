@@ -211,7 +211,7 @@ public class EqualizerServiceTests
     {
         using var sut = CreateSut();
         float[]? emitted = null;
-        using var _ = sut.BandsChanged.Subscribe(bands => emitted = bands);
+        using var _ = System.ObservableExtensions.Subscribe(sut.BandsChanged, bands => emitted = bands);
 
         await sut.SetBandAsync(3, 5.0f);
 

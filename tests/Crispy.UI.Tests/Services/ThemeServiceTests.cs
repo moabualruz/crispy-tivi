@@ -338,6 +338,39 @@ public class ThemeServiceTests
         // Event removed — count stays 0 (no async call needed; just verifies no throw)
         count.Should().Be(0);
     }
+
+    [AvaloniaFact]
+    public async Task SetAccentColorAsync_MaxBoundary_PersistsMaxIndex()
+    {
+        var maxIndex = DesignTokens.AccentPalette.Length - 1;
+
+        await _sut.SetAccentColorAsync(maxIndex);
+
+        await _settingsService.Received(1)
+            .SetAsync(Arg.Is("accent_index"), Arg.Is<object>(v => (int)v == maxIndex), Arg.Any<int?>());
+    }
+
+    [AvaloniaFact]
+    public async Task SetReducedMotionAsync_False_PersistsFalse()
+    {
+        await _sut.SetReducedMotionAsync(false);
+
+        await _settingsService.Received(1)
+            .SetAsync("reduced_motion", false, Arg.Any<int?>());
+    }
+
+    [AvaloniaFact]
+    public async Task InitializeAsync_AccentIndexAtMaxBoundary_AppliesAccentColor()
+    {
+        var maxIndex = DesignTokens.AccentPalette.Length - 1;
+        _settingsService.GetAsync("accent_index", 0, Arg.Any<int?>())
+            .Returns(maxIndex);
+
+        await _sut.InitializeAsync();
+
+        // Index is in range — ApplyAccentColor must have been called (no throw, index retained)
+        _sut.SelectedAccentIndex.Should().Be(maxIndex);
+    }
 }
 
 /// <summary>

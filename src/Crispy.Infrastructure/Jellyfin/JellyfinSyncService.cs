@@ -1,9 +1,9 @@
 using System.Net;
 
+using Crispy.Application.Security;
 using Crispy.Application.Sources;
 using Crispy.Domain.Entities;
 using Crispy.Domain.Enums;
-using Crispy.Infrastructure.Security;
 
 using Microsoft.Extensions.Logging;
 
@@ -16,6 +16,7 @@ namespace Crispy.Infrastructure.Jellyfin;
 public sealed class JellyfinSyncService : ISourceParser
 {
     private readonly Func<Source, JellyfinClient> _clientFactory;
+    private readonly ICredentialEncryption _credentialEncryption;
     private readonly ILogger<JellyfinSyncService> _logger;
 
     private const string ImageBaseUrl = "https://image.tmdb.org/t/p/w500";
@@ -23,9 +24,11 @@ public sealed class JellyfinSyncService : ISourceParser
     /// <summary>Creates a new JellyfinSyncService.</summary>
     public JellyfinSyncService(
         Func<Source, JellyfinClient> clientFactory,
+        ICredentialEncryption credentialEncryption,
         ILogger<JellyfinSyncService> logger)
     {
         _clientFactory = clientFactory;
+        _credentialEncryption = credentialEncryption;
         _logger = logger;
     }
 
@@ -36,10 +39,17 @@ public sealed class JellyfinSyncService : ISourceParser
 
         try
         {
-            // Authenticate using stored credentials
-            if (!string.IsNullOrEmpty(source.Username) && !string.IsNullOrEmpty(source.Password))
+            // Decrypt credentials (prefer encrypted, fall back to plaintext for legacy sources)
+            var username = source.EncryptedUsername is not null
+                ? _credentialEncryption.Decrypt(source.EncryptedUsername)
+                : source.Username;
+            var password = source.EncryptedPassword is not null
+                ? _credentialEncryption.Decrypt(source.EncryptedPassword)
+                : source.Password;
+
+            if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
             {
-                await client.AuthenticateAsync(source.Username, source.Password, ct).ConfigureAwait(false);
+                await client.AuthenticateAsync(username, password, ct).ConfigureAwait(false);
             }
             else if (client.AccessToken is null)
             {

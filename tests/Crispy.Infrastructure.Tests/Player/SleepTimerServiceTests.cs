@@ -112,7 +112,7 @@ public class SleepTimerServiceTests
 
         var act = () =>
         {
-            using var _ = sut.RemainingChanged.Subscribe(_ => { });
+            using var _ = System.ObservableExtensions.Subscribe(sut.RemainingChanged, _ => { });
         };
 
         act.Should().NotThrow();
@@ -185,7 +185,7 @@ public class SleepTimerServiceTests
     {
         using var sut = CreateSut();
         TimeSpan? lastEmitted = null;
-        using var _ = sut.RemainingChanged.Subscribe(v => lastEmitted = v);
+        using var _ = System.ObservableExtensions.Subscribe(sut.RemainingChanged, v => lastEmitted = v);
 
         sut.SetTimer(TimeSpan.FromMilliseconds(500));
 

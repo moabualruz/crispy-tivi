@@ -1,6 +1,8 @@
 using CommunityToolkit.Mvvm.Messaging;
 
 using Crispy.Application.Security;
+using Crispy.Application.Sync;
+
 using Crispy.Domain.Enums;
 using Crispy.Domain.Interfaces;
 using Crispy.UI.Navigation;
@@ -17,13 +19,21 @@ namespace Crispy.UI.Tests.ViewModels;
 [Trait("Category", "Unit")]
 public class AddSourceViewModelTests
 {
+    private static IProfileRepository MockProfileRepo()
+    {
+        var profileRepo = Substitute.For<IProfileRepository>();
+        var defaultProfile = new Crispy.Domain.Entities.Profile { Id = 1, Name = "Default" };
+        profileRepo.GetAllAsync().Returns(new[] { defaultProfile });
+        return profileRepo;
+    }
+
     private static AddSourceViewModel Build()
     {
         var repo = Substitute.For<ISourceRepository>();
         var enc = Substitute.For<ICredentialEncryption>();
         var messenger = Substitute.For<IMessenger>();
         var nav = Substitute.For<INavigationService>();
-        return new AddSourceViewModel(repo, enc, messenger, nav);
+        return new AddSourceViewModel(repo, MockProfileRepo(), enc, Substitute.For<ISyncService>(), messenger, nav);
     }
 
     [Fact]
@@ -130,7 +140,7 @@ public class AddSourceViewModelTests
         };
         repo.CreateAsync(Arg.Any<Crispy.Domain.Entities.Source>()).Returns(created);
 
-        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        var vm = new AddSourceViewModel(repo, MockProfileRepo(), enc, Substitute.For<ISyncService>(), messenger, nav);
         vm.Name = "Test Source";
         vm.Url = "http://example.com/playlist.m3u";
 
@@ -161,7 +171,7 @@ public class AddSourceViewModelTests
         repo.CreateAsync(Arg.Any<Crispy.Domain.Entities.Source>()).Returns(created);
         nav.CanGoBack.Returns(true);
 
-        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        var vm = new AddSourceViewModel(repo, MockProfileRepo(), enc, Substitute.For<ISyncService>(), messenger, nav);
         vm.Name = "IPTV";
         vm.Url = "http://iptv.example/list.m3u";
 
@@ -188,7 +198,7 @@ public class AddSourceViewModelTests
         repo.CreateAsync(Arg.Any<Crispy.Domain.Entities.Source>()).Returns(created);
         nav.CanGoBack.Returns(false);
 
-        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        var vm = new AddSourceViewModel(repo, MockProfileRepo(), enc, Substitute.For<ISyncService>(), messenger, nav);
         vm.Name = "IPTV2";
         vm.Url = "http://iptv2.example/list.m3u";
 
@@ -208,7 +218,7 @@ public class AddSourceViewModelTests
         repo.CreateAsync(Arg.Any<Crispy.Domain.Entities.Source>())
             .Returns<Crispy.Domain.Entities.Source>(_ => throw new InvalidOperationException("DB error"));
 
-        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        var vm = new AddSourceViewModel(repo, MockProfileRepo(), enc, Substitute.For<ISyncService>(), messenger, nav);
         vm.Name = "Bad Source";
         vm.Url = "http://bad.example/list.m3u";
 
@@ -228,7 +238,7 @@ public class AddSourceViewModelTests
         var nav = Substitute.For<INavigationService>();
         nav.CanGoBack.Returns(true);
 
-        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        var vm = new AddSourceViewModel(repo, MockProfileRepo(), enc, Substitute.For<ISyncService>(), messenger, nav);
         vm.CancelCommand.Execute(null);
 
         nav.Received(1).GoBack();
@@ -243,7 +253,7 @@ public class AddSourceViewModelTests
         var nav = Substitute.For<INavigationService>();
         nav.CanGoBack.Returns(false);
 
-        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        var vm = new AddSourceViewModel(repo, MockProfileRepo(), enc, Substitute.For<ISyncService>(), messenger, nav);
         vm.CancelCommand.Execute(null);
 
         nav.DidNotReceive().GoBack();
@@ -269,7 +279,7 @@ public class AddSourceViewModelTests
         };
         repo.CreateAsync(Arg.Any<Crispy.Domain.Entities.Source>()).Returns(created);
 
-        var vm = new AddSourceViewModel(repo, enc, messenger, nav);
+        var vm = new AddSourceViewModel(repo, MockProfileRepo(), enc, Substitute.For<ISyncService>(), messenger, nav);
         vm.Name = "Xtream";
         vm.Url = "http://xtream.example";
         vm.SelectedSourceType = SourceType.XtreamCodes;

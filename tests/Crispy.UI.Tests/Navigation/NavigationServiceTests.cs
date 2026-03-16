@@ -5,15 +5,14 @@ using FluentAssertions;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using NSubstitute;
-
 using Xunit;
 
 namespace Crispy.UI.Tests.Navigation;
 
 /// <summary>
-/// Tests for stack-based NavigationService.
+/// Unit tests for <see cref="NavigationService"/>.
 /// </summary>
+[Trait("Category", "Unit")]
 public class NavigationServiceTests
 {
     private readonly ServiceProvider _serviceProvider;

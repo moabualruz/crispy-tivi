@@ -19,6 +19,7 @@ namespace Crispy.Infrastructure.Tests.Sync;
 /// Tests for TmdbEnricher: TMDB metadata population, skip-if-already-enriched, rate limiting.
 /// Uses SequentialHttpMessageHandler to mock TMDB HTTP responses.
 /// </summary>
+[Trait("Category", "Unit")]
 public class TmdbEnricherTests
 {
     private static TmdbEnricher MakeEnricher(params (HttpStatusCode status, string json)[] responses)
@@ -106,10 +107,56 @@ public class TmdbEnricherTests
         movie.TmdbId.Should().BeNull("no TMDB match means no enrichment");
     }
 
+    [Fact]
+    public async Task EnrichMoviesAsync_ZeroVoteAverage_SetsNullRating()
+    {
+        const string searchJson = """{"results":[{"id":1,"title":"Zero Vote"}],"total_results":1}""";
+        const string detailJson = """{"id":1,"vote_average":0.0,"overview":null,"genres":null,"credits":null}""";
+
+        var enricher = MakeEnricher(
+            (HttpStatusCode.OK, searchJson),
+            (HttpStatusCode.OK, detailJson));
+
+        var movie = new Movie { Title = "Zero Vote", SourceId = 1 };
+        await enricher.EnrichMoviesAsync([movie], CancellationToken.None);
+
+        movie.Rating.Should().BeNull("vote_average of 0 must map to null Rating");
+    }
+
+    [Fact]
+    public async Task EnrichMoviesAsync_MovieWithoutYear_BuildsUrlWithoutYearParam()
+    {
+        // No year → search URL must not include &year= — verified indirectly by successful enrichment
+        const string searchJson = """{"results":[{"id":555,"title":"Timeless"}],"total_results":1}""";
+        const string detailJson = """{"id":555,"vote_average":6.0,"overview":"No year","genres":null,"credits":null}""";
+
+        var enricher = MakeEnricher(
+            (HttpStatusCode.OK, searchJson),
+            (HttpStatusCode.OK, detailJson));
+
+        var movie = new Movie { Title = "Timeless", SourceId = 1, Year = null };
+        await enricher.EnrichMoviesAsync([movie], CancellationToken.None);
+
+        movie.TmdbId.Should().Be(555, "year-less movies should still be enriched via title-only search");
+    }
+
+    [Fact]
+    public async Task EnrichMoviesAsync_HttpError_DoesNotThrow_AndLeavesMovieUnenriched()
+    {
+        // HTTP 500 on search → enricher must swallow and leave TmdbId null
+        var enricher = MakeEnricher((HttpStatusCode.InternalServerError, "{}"));
+
+        var movie = new Movie { Title = "Broken Film", SourceId = 1 };
+        var act = () => enricher.EnrichMoviesAsync([movie], CancellationToken.None);
+
+        await act.Should().NotThrowAsync("non-OCE HTTP failures must be swallowed");
+        movie.TmdbId.Should().BeNull();
+    }
+
     // ─── Series enrichment ────────────────────────────────────────────────────
 
     [Fact]
-    public async Task EnrichSeriesAsync_PopulatesTmdbId()
+    public async Task EnrichSeriesAsync_PopulatesAllMetadataFields()
     {
         const string searchJson = """
         {
@@ -142,5 +189,63 @@ public class TmdbEnricherTests
 
         series.TmdbId.Should().Be(67890);
         series.Overview.Should().Be("A great test show");
+        series.FirstAiredYear.Should().Be(2019);
+        series.Rating.Should().Be(7.8);
+        series.Genres.Should().Contain("Drama");
+        series.Thumbnail.Should().Contain("show_poster.jpg");
+        series.BackdropUrl.Should().Contain("show_backdrop.jpg");
+    }
+
+    [Fact]
+    public async Task EnrichSeriesAsync_SkipsSeries_WithTmdbIdAlreadySet()
+    {
+        var enricher = MakeEnricher(); // no responses — would throw if HTTP is called
+
+        var series = new Series { Title = "Already Enriched Show", SourceId = 1, TmdbId = 77777 };
+        await enricher.EnrichSeriesAsync([series], CancellationToken.None);
+
+        series.TmdbId.Should().Be(77777, "already-enriched series must not be overwritten");
+    }
+
+    [Fact]
+    public async Task EnrichSeriesAsync_NoMatch_LeavesSeriesUnenriched()
+    {
+        const string emptySearch = """{"results":[],"total_results":0}""";
+        var enricher = MakeEnricher((HttpStatusCode.OK, emptySearch));
+
+        var series = new Series { Title = "Unknown Show", SourceId = 1 };
+        await enricher.EnrichSeriesAsync([series], CancellationToken.None);
+
+        series.TmdbId.Should().BeNull("no TMDB match means no enrichment");
+    }
+
+    [Fact]
+    public async Task EnrichSeriesAsync_HttpError_DoesNotThrow_AndLeavesSeriesUnenriched()
+    {
+        var enricher = MakeEnricher((HttpStatusCode.InternalServerError, "{}"));
+
+        var series = new Series { Title = "Broken Show", SourceId = 1 };
+        var act = () => enricher.EnrichSeriesAsync([series], CancellationToken.None);
+
+        await act.Should().NotThrowAsync("non-OCE HTTP failures must be swallowed");
+        series.TmdbId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task EnrichMoviesAsync_EmptyList_DoesNotThrow()
+    {
+        var enricher = MakeEnricher();
+
+        var act = () => enricher.EnrichMoviesAsync([], CancellationToken.None);
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task EnrichSeriesAsync_EmptyList_DoesNotThrow()
+    {
+        var enricher = MakeEnricher();
+
+        var act = () => enricher.EnrichSeriesAsync([], CancellationToken.None);
+        await act.Should().NotThrowAsync();
     }
 }

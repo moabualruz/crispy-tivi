@@ -12,6 +12,7 @@ using Xunit;
 
 namespace Crispy.Infrastructure.Tests.Sync;
 
+[Trait("Category", "Unit")]
 public class SyncPipelineTests : IDisposable
 {
     private readonly TestDbContextFactory _factory;
@@ -45,6 +46,7 @@ public class SyncPipelineTests : IDisposable
             .Select(i => new Crispy.Domain.Entities.Channel
             {
                 Title = $"Channel {i}",
+                ExternalId = $"ch{i}",
                 TvgId = $"ch{i}",
                 SourceId = _testSource.Id,
             })
@@ -104,6 +106,74 @@ public class SyncPipelineTests : IDisposable
         using var ctx = _factory.CreateDbContext();
         var missing = ctx.Channels.First(c => c.TvgId == "ch3" && c.SourceId == _testSource.Id);
         missing.MissedSyncCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RunAsync_EmptyParseResult_NoChannelsInserted()
+    {
+        var pipeline = new SyncPipeline(_factory, _epgFactory, NullLogger<SyncPipeline>.Instance);
+
+        await pipeline.RunAsync(_testSource, new FakeParser(new ParseResult()), CancellationToken.None);
+
+        using var ctx = _factory.CreateDbContext();
+        ctx.Channels.Count(c => c.SourceId == _testSource.Id).Should().Be(0,
+            "empty parse result must not insert any channels");
+    }
+
+    [Fact]
+    public async Task RunAsync_ChannelWithExternalId_UpsertedById()
+    {
+        // Channel with ExternalId — upsert should match by ExternalId
+        var ch = new Crispy.Domain.Entities.Channel
+        {
+            Title = "External ID Channel",
+            ExternalId = "ext-123",
+            TvgId = null,
+            SourceId = _testSource.Id,
+        };
+        var pipeline = new SyncPipeline(_factory, _epgFactory, NullLogger<SyncPipeline>.Instance);
+
+        // Two syncs with same ExternalId — should result in exactly one DB row
+        await pipeline.RunAsync(_testSource, new FakeParser(new ParseResult { Channels = [ch] }), CancellationToken.None);
+        await pipeline.RunAsync(_testSource, new FakeParser(new ParseResult { Channels = [ch] }), CancellationToken.None);
+
+        using var ctx = _factory.CreateDbContext();
+        ctx.Channels.Count(c => c.SourceId == _testSource.Id && c.ExternalId == "ext-123")
+            .Should().Be(1, "same ExternalId channel must upsert, not duplicate");
+    }
+
+    [Fact]
+    public async Task RunAsync_ReappearedChannel_MissedSyncCountReset()
+    {
+        var channels = MakeChannels(3);
+        var pipeline = new SyncPipeline(_factory, _epgFactory, NullLogger<SyncPipeline>.Instance);
+
+        // Sync 1: all 3 present
+        await pipeline.RunAsync(_testSource, new FakeParser(new ParseResult { Channels = channels }), CancellationToken.None);
+
+        // Sync 2: ch3 absent → MissedSyncCount = 1
+        await pipeline.RunAsync(_testSource, new FakeParser(new ParseResult { Channels = MakeChannels(2) }), CancellationToken.None);
+
+        // Sync 3: all 3 back → MissedSyncCount for ch3 reset to 0
+        await pipeline.RunAsync(_testSource, new FakeParser(new ParseResult { Channels = channels }), CancellationToken.None);
+
+        using var ctx = _factory.CreateDbContext();
+        var ch3 = ctx.Channels.First(c => c.TvgId == "ch3" && c.SourceId == _testSource.Id);
+        ch3.MissedSyncCount.Should().Be(0, "MissedSyncCount must reset to 0 when channel reappears");
+    }
+
+    [Fact]
+    public async Task RunAsync_LargeChannelList_AllInserted()
+    {
+        // BatchSize is 500 — verify batching works by inserting > 500 channels
+        var channels = MakeChannels(550);
+        var pipeline = new SyncPipeline(_factory, _epgFactory, NullLogger<SyncPipeline>.Instance);
+
+        await pipeline.RunAsync(_testSource, new FakeParser(new ParseResult { Channels = channels }), CancellationToken.None);
+
+        using var ctx = _factory.CreateDbContext();
+        ctx.Channels.Count(c => c.SourceId == _testSource.Id).Should().Be(550,
+            "all 550 channels across multiple batches must be inserted");
     }
 
     public void Dispose()

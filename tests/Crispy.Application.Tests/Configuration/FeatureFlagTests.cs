@@ -164,6 +164,40 @@ public sealed class FeatureFlagTests
     }
 
     // -------------------------------------------------------------------------
+    // IsEnabledForCurrentPlatform — platformOverride exercises every OS branch
+    // -------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("Windows")]
+    [InlineData("Linux")]
+    [InlineData("macOS")]
+    [InlineData("Android")]
+    [InlineData("iOS")]
+    [InlineData("Browser")]
+    [InlineData("Unknown")]
+    public void IsEnabledForPlatform_ReturnsFalse_WhenDisabledEvenWithWildcard(string platform)
+    {
+        var flag = new FeatureFlag { Enabled = false, Platforms = [platform, "*"] };
+
+        flag.IsEnabledForPlatform(platform).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("Windows")]
+    [InlineData("Linux")]
+    [InlineData("macOS")]
+    [InlineData("Android")]
+    [InlineData("iOS")]
+    [InlineData("Browser")]
+    [InlineData("Unknown")]
+    public void IsEnabledForPlatform_ReturnsTrue_WhenWildcardPlatform(string platform)
+    {
+        var flag = new FeatureFlag { Enabled = true, Platforms = ["*"] };
+
+        flag.IsEnabledForPlatform(platform).Should().BeTrue();
+    }
+
+    // -------------------------------------------------------------------------
     // Default state
     // -------------------------------------------------------------------------
 

@@ -10,6 +10,13 @@ public sealed class ParseResult
     /// <summary>Live/linear channels parsed from the source.</summary>
     public IReadOnlyList<Channel> Channels { get; init; } = [];
 
+    /// <summary>
+    /// Stream endpoints for the parsed channels.
+    /// Indexed in the same order as <see cref="Channels"/> — one endpoint per channel.
+    /// ChannelId is set to 0 here; the sync pipeline resolves real IDs after upsert.
+    /// </summary>
+    public IReadOnlyList<StreamEndpoint> StreamEndpoints { get; init; } = [];
+
     /// <summary>VOD movies parsed from the source.</summary>
     public IReadOnlyList<Movie> Movies { get; init; } = [];
 

@@ -14,7 +14,7 @@ public static class DependencyInjection
     /// </summary>
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        services.AddScoped<ISettingsService, SettingsService>();
+        services.AddSingleton<ISettingsService, SettingsService>();
         return services;
     }
 }

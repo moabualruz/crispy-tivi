@@ -3,6 +3,7 @@ using Avalonia.Headless.XUnit;
 using CommunityToolkit.Mvvm.Messaging;
 
 using Crispy.Application.Security;
+using Crispy.Application.Sync;
 using Crispy.Domain.Interfaces;
 using Crispy.UI.Navigation;
 using Crispy.UI.Tests.Helpers;
@@ -28,7 +29,9 @@ public class AddSourceViewTests
         var messenger = Substitute.For<IMessenger>();
         var navigationService = Substitute.For<INavigationService>();
 
-        var vm = new AddSourceViewModel(sourceRepo, credentialEncryption, messenger, navigationService);
+        var profileRepo = Substitute.For<IProfileRepository>();
+        var syncService = Substitute.For<ISyncService>();
+        var vm = new AddSourceViewModel(sourceRepo, profileRepo, credentialEncryption, syncService, messenger, navigationService);
         var window = HeadlessTestHelpers.CreateWindow<AddSourceView>(vm);
 
         window.Should().NotBeNull();

@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Crispy.Application\Crispy.Application.csproj" />
     <ProjectReference Include="..\..\src\Crispy.Infrastructure\Crispy.Infrastructure.csproj" />
     <!-- Microsoft.Extensions.Hosting.Abstractions lives in Microsoft.AspNetCore.App shared
          framework. Without this reference the test runner cannot resolve it at runtime. -->

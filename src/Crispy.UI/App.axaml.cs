@@ -6,6 +6,8 @@ using Avalonia.Markup.Xaml;
 using Crispy.UI.ViewModels;
 using Crispy.UI.Views;
 
+using Crispy.Application.Sync;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Crispy.UI;
@@ -76,6 +78,16 @@ public partial class App : Avalonia.Application
             {
                 DataContext = mainViewModel,
             };
+        }
+
+        // Trigger initial sync of all sources on startup
+        if (Services is not null)
+        {
+            var syncService = Services.GetService<ISyncService>();
+            if (syncService is not null)
+            {
+                _ = syncService.SyncAllAsync();
+            }
         }
 
         base.OnFrameworkInitializationCompleted();

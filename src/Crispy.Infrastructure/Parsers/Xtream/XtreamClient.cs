@@ -24,6 +24,9 @@ public sealed class XtreamClient
         _http = httpClient;
     }
 
+    /// <summary>The server base URL set by the parser before each sync.</summary>
+    public string? BaseUrl { get; set; }
+
     /// <summary>
     /// Authenticates against the Xtream Codes API and stores the server/user info.
     /// Returns null if the request fails.
@@ -33,7 +36,8 @@ public sealed class XtreamClient
         string password,
         CancellationToken ct = default)
     {
-        var url = $"/player_api.php?username={Uri.EscapeDataString(username)}&password={Uri.EscapeDataString(password)}";
+        var baseUrl = BaseUrl?.TrimEnd('/') ?? throw new InvalidOperationException("BaseUrl must be set before calling AuthenticateAsync");
+        var url = $"{baseUrl}/player_api.php?username={Uri.EscapeDataString(username)}&password={Uri.EscapeDataString(password)}";
         using var response = await _http.GetAsync(url, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
@@ -88,7 +92,8 @@ public sealed class XtreamClient
 
     private async Task<JsonDocument?> GetJsonAsync(string relativeUrl, CancellationToken ct)
     {
-        using var response = await _http.GetAsync(relativeUrl, ct).ConfigureAwait(false);
+        var url = (BaseUrl?.TrimEnd('/') ?? string.Empty) + relativeUrl;
+        using var response = await _http.GetAsync(url, ct).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
             return null;
 

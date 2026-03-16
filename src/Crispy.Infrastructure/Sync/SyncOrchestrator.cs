@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 using Crispy.Application.Sources;
 using Crispy.Application.Sync;
 using Crispy.Domain.Enums;
@@ -12,7 +14,7 @@ namespace Crispy.Infrastructure.Sync;
 /// Hosted service that triggers an immediate sync on app startup, then delegates to SyncScheduler.
 /// Implements ISyncOrchestrator for manual trigger support.
 /// </summary>
-public sealed class SyncOrchestrator : ISyncOrchestrator, IHostedService
+public sealed class SyncOrchestrator : ISyncOrchestrator, ISyncService, IHostedService
 {
     private readonly ISourceRepository _sourceRepository;
     private readonly IReadOnlyDictionary<SourceType, ISourceParser> _parsers;
@@ -22,6 +24,7 @@ public sealed class SyncOrchestrator : ISyncOrchestrator, IHostedService
     private readonly ILogger<SyncOrchestrator> _logger;
 
     private CancellationTokenSource? _startupCts;
+    private readonly ConcurrentDictionary<int, SemaphoreSlim> _sourceLocks = new();
 
     /// <summary>Creates a new SyncOrchestrator.</summary>
     public SyncOrchestrator(
@@ -107,9 +110,23 @@ public sealed class SyncOrchestrator : ISyncOrchestrator, IHostedService
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
-    /// <summary>Syncs a single source by ID.</summary>
+    /// <inheritdoc />
+    public Task CancelAsync(int sourceId)
+    {
+        _logger.LogInformation("Cancel requested for source {SourceId} (not yet implemented)", sourceId);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Syncs a single source by ID. Per-source lock prevents concurrent duplicate syncs.</summary>
     public async Task SyncSourceAsync(int sourceId, CancellationToken ct = default)
     {
+        var semaphore = _sourceLocks.GetOrAdd(sourceId, _ => new SemaphoreSlim(1, 1));
+        if (!await semaphore.WaitAsync(0, ct).ConfigureAwait(false))
+        {
+            _logger.LogInformation("Sync already in progress for source {SourceId}, skipping", sourceId);
+            return;
+        }
+
         try
         {
             var source = await _sourceRepository.GetByIdAsync(sourceId).ConfigureAwait(false);
@@ -125,12 +142,18 @@ public sealed class SyncOrchestrator : ISyncOrchestrator, IHostedService
                 return;
             }
 
+            _logger.LogInformation("Syncing source {SourceId} ({Name})", sourceId, source.Name);
             await _pipeline.RunAsync(source, parser, ct).ConfigureAwait(false);
             await _deduplicator.RunAsync(ct).ConfigureAwait(false);
+            _logger.LogInformation("Sync complete for source {SourceId}", sourceId);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Sync failed for source {SourceId}", sourceId);
+        }
+        finally
+        {
+            semaphore.Release();
         }
     }
 }

@@ -1,10 +1,13 @@
 using System.Net;
 using System.Text;
 
+using Crispy.Application.Security;
 using Crispy.Application.Sources;
 using Crispy.Domain.Entities;
 using Crispy.Domain.Enums;
 using Crispy.Infrastructure.Jellyfin;
+
+using NSubstitute;
 
 using FluentAssertions;
 
@@ -48,7 +51,7 @@ public class JellyfinSyncServiceTests
         JellyfinClient ClientFactory(Source s)
             => new(s.Url, presetToken, enc, httpClient, NullLogger<JellyfinClient>.Instance);
 
-        return new JellyfinSyncService(ClientFactory, NullLogger<JellyfinSyncService>.Instance);
+        return new JellyfinSyncService(ClientFactory, Substitute.For<ICredentialEncryption>(), NullLogger<JellyfinSyncService>.Instance);
     }
 
     // ─── No credentials ───────────────────────────────────────────────────────
@@ -180,6 +183,39 @@ public class JellyfinSyncServiceTests
         result.Channels.Should().BeEmpty();
     }
 
+    // ─── Pagination ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ParseAsync_FetchesSecondPage_WhenFirstPageIsFullyPopulated()
+    {
+        // FetchAllItemsAsync continues paging when page.Count == PageSize (500).
+        // We use PageSize=500 items on the first response and 1 item on the second,
+        // verifying both pages are merged into the result.
+        var source = MakeSource();
+        const string libraries = """
+        {"Items":[{"Id":"lib1","Name":"Movies","Type":"movies"}],"TotalRecordCount":1}
+        """;
+
+        // Build a JSON array of 500 movies (first page — triggers second fetch)
+        var movieArray = string.Join(",",
+            Enumerable.Range(1, 500).Select(i =>
+                $"{{\"Id\":\"m{i}\",\"Name\":\"Movie {i}\",\"Type\":\"Movie\"}}"));
+        var page1 = $"{{\"Items\":[{movieArray}],\"TotalRecordCount\":501}}";
+
+        const string page2 = """{"Items":[{"Id":"m501","Name":"Movie 501","Type":"Movie"}],"TotalRecordCount":501}""";
+
+        var sut = MakeSut(source, presetToken: "tok",
+            (HttpStatusCode.OK, libraries),
+            (HttpStatusCode.OK, page1),
+            (HttpStatusCode.OK, page2));
+
+        var result = await sut.ParseAsync(source);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Movies.Should().HaveCount(501);
+        result.Movies[^1].Title.Should().Be("Movie 501");
+    }
+
     // ─── With username/password auth ──────────────────────────────────────────
 
     [Fact]
@@ -213,7 +249,7 @@ public class JellyfinSyncServiceTests
         JellyfinClient ClientFactory(Source s)
             => new(s.Url, "tok", enc, httpClient, NullLogger<JellyfinClient>.Instance);
 
-        var sut = new JellyfinSyncService(ClientFactory, NullLogger<JellyfinSyncService>.Instance);
+        var sut = new JellyfinSyncService(ClientFactory, Substitute.For<ICredentialEncryption>(), NullLogger<JellyfinSyncService>.Instance);
 
         var result = await sut.ParseAsync(source);
 
@@ -234,7 +270,7 @@ public class JellyfinSyncServiceTests
         JellyfinClient ClientFactory(Source s)
             => new(s.Url, "tok", enc, httpClient, NullLogger<JellyfinClient>.Instance);
 
-        var sut = new JellyfinSyncService(ClientFactory, NullLogger<JellyfinSyncService>.Instance);
+        var sut = new JellyfinSyncService(ClientFactory, Substitute.For<ICredentialEncryption>(), NullLogger<JellyfinSyncService>.Instance);
 
         var result = await sut.ParseAsync(source);
 
@@ -280,7 +316,7 @@ public class JellyfinSyncServiceTests
         JellyfinClient ClientFactory(Source s)
             => new(s.Url, "tok", enc, httpClient, NullLogger<JellyfinClient>.Instance);
 
-        var sut = new JellyfinSyncService(ClientFactory, NullLogger<JellyfinSyncService>.Instance);
+        var sut = new JellyfinSyncService(ClientFactory, Substitute.For<ICredentialEncryption>(), NullLogger<JellyfinSyncService>.Instance);
 
         var result = await sut.ParseAsync(source);
 

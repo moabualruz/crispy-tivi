@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:controls="using:Crispy.UI.Controls"
              x:Class="Crispy.UI.Views.PlayerView"
              x:DataType="vm:PlayerViewModel"
              Background="Black">
@@ -21,7 +22,8 @@
     <Border x:Name="VideoSurface"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
-            Background="Black" />
+            Background="Black"
+            IsVisible="{Binding !IsAudioOnly}" />
 
     <!-- Radio mode: audio-only UI visible when IsAudioOnly=true -->
     <Grid IsVisible="{Binding IsAudioOnly}"
@@ -30,6 +32,9 @@
       <StackPanel HorizontalAlignment="Center"
                   VerticalAlignment="Center"
                   Spacing="24">
+        <!-- Waveform visualizer for audio-only streams -->
+        <controls:WaveformVisualizer Height="80" Width="320"
+                                     HorizontalAlignment="Center" />
         <!-- Large station logo -->
         <Border Width="160" Height="160" CornerRadius="80"
                 Background="#1AFFFFFF">

@@ -25,7 +25,7 @@ public class DependencyInjectionTests
 
         var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ISettingsService));
         descriptor.Should().NotBeNull();
-        descriptor!.Lifetime.Should().Be(ServiceLifetime.Scoped);
+        descriptor!.Lifetime.Should().Be(ServiceLifetime.Singleton);
     }
 
     [Fact]

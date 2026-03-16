@@ -113,7 +113,7 @@ public class MultiviewServiceTests
 
         var act = () =>
         {
-            using var _ = sut.SlotsChanged.Subscribe(_ => { });
+            using var _ = System.ObservableExtensions.Subscribe(sut.SlotsChanged, _ => { });
         };
 
         act.Should().NotThrow();
@@ -264,7 +264,7 @@ public class MultiviewServiceTests
     {
         using var sut = CreateSut();
         IReadOnlyList<MultiviewSlot>? emitted = null;
-        using var _ = sut.SlotsChanged.Subscribe(s => emitted = s);
+        using var _ = System.ObservableExtensions.Subscribe(sut.SlotsChanged, s => emitted = s);
         var request = new PlaybackRequest("http://example.com/live", PlaybackContentType.LiveTv);
 
         await sut.AssignSlotAsync(0, request);

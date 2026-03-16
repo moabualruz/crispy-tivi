@@ -40,6 +40,21 @@ public sealed class StalkerClient : IAsyncDisposable
     }
 
     /// <summary>
+    /// Sets the base address of the underlying HttpClient to the given portal URL.
+    /// Must be called before every sync so the client targets the correct source.
+    /// Resets the cached token so a fresh handshake is performed for the new URL.
+    /// </summary>
+    public void SetBaseAddress(string url)
+    {
+        var uri = new Uri(url.TrimEnd('/') + "/");
+        if (_http.BaseAddress != uri)
+        {
+            _http.BaseAddress = uri;
+            _token = null; // force re-handshake for new portal
+        }
+    }
+
+    /// <summary>
     /// Performs the initial handshake to obtain an authentication token.
     /// </summary>
     public async Task<string?> HandshakeAsync(CancellationToken ct = default)

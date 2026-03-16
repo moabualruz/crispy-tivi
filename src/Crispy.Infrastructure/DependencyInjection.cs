@@ -2,6 +2,7 @@ using System.IO;
 
 using Crispy.Application.Configuration;
 using Crispy.Application.Player;
+using Crispy.Application.Security;
 using Crispy.Application.Player.Models;
 using Crispy.Application.Search;
 using Crispy.Application.Sources;
@@ -154,10 +155,12 @@ public static class DependencyInjection
                 [SourceType.M3U] = ActivatorUtilities.CreateInstance<XtreamParser>(sp,
                     sp.GetRequiredService<XtreamClient>(),
                     sp.GetRequiredService<M3UParser>(),
+                    sp.GetRequiredService<ICredentialEncryption>(),
                     sp.GetRequiredService<ILogger<XtreamParser>>()),
                 [SourceType.XtreamCodes] = ActivatorUtilities.CreateInstance<XtreamParser>(sp,
                     sp.GetRequiredService<XtreamClient>(),
                     sp.GetRequiredService<M3UParser>(),
+                    sp.GetRequiredService<ICredentialEncryption>(),
                     sp.GetRequiredService<ILogger<XtreamParser>>()),
                 [SourceType.StalkerPortal] = ActivatorUtilities.CreateInstance<StalkerParser>(sp,
                     sp.GetRequiredService<StalkerClient>(),
@@ -177,6 +180,7 @@ public static class DependencyInjection
 
         services.AddSingleton<SyncOrchestrator>();
         services.AddSingleton<ISyncOrchestrator>(sp => sp.GetRequiredService<SyncOrchestrator>());
+        services.AddSingleton<ISyncService>(sp => sp.GetRequiredService<SyncOrchestrator>());
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<SyncOrchestrator>());
 
         // ─── Connectivity ─────────────────────────────────────────────────────

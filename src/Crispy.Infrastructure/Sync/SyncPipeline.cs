@@ -123,39 +123,36 @@ public sealed class SyncPipeline
     {
         await using var ctx = await _appFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
 
-        // Load existing channels for this source to do diff-based upsert
-        var tvgIds = batch
-            .Where(c => c.TvgId is not null)
-            .Select(c => c.TvgId!)
+        // Load existing channels for this source keyed by ExternalId for upsert
+        var externalIds = batch
+            .Where(c => c.ExternalId is not null)
+            .Select(c => c.ExternalId!)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var existing = await ctx.Channels
-            .Where(c => c.SourceId == sourceId && c.TvgId != null && tvgIds.Contains(c.TvgId!))
-            .ToDictionaryAsync(c => c.TvgId!, StringComparer.OrdinalIgnoreCase, ct)
+            .Where(c => c.SourceId == sourceId && c.ExternalId != null && externalIds.Contains(c.ExternalId!))
+            .ToDictionaryAsync(c => c.ExternalId!, StringComparer.OrdinalIgnoreCase, ct)
             .ConfigureAwait(false);
 
-        var titlesOfNoTvgId = batch
-            .Where(c => c.TvgId is null)
-            .Select(c => c.Title)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var existingByTitle = await ctx.Channels
-            .Where(c => c.SourceId == sourceId && c.TvgId == null && titlesOfNoTvgId.Contains(c.Title))
-            .ToDictionaryAsync(c => c.Title, StringComparer.OrdinalIgnoreCase, ct)
-            .ConfigureAwait(false);
+        // Load existing endpoints for channels we already know about
+        var existingChannelIds = existing.Values.Select(c => c.Id).ToHashSet();
+        var existingEndpoints = existingChannelIds.Count > 0
+            ? await ctx.StreamEndpoints
+                .Where(e => e.SourceId == sourceId && existingChannelIds.Contains(e.ChannelId))
+                .ToDictionaryAsync(e => e.ChannelId, ct)
+                .ConfigureAwait(false)
+            : new Dictionary<int, Crispy.Domain.Entities.StreamEndpoint>();
 
         foreach (var incoming in batch)
         {
             TvChannel? existingChannel = null;
 
-            if (incoming.TvgId is not null)
-                existing.TryGetValue(incoming.TvgId, out existingChannel);
-            else
-                existingByTitle.TryGetValue(incoming.Title, out existingChannel);
+            if (incoming.ExternalId is not null)
+                existing.TryGetValue(incoming.ExternalId, out existingChannel);
 
             if (existingChannel is null)
             {
-                // New channel — insert
+                // New channel — EF inserts channel and cascades StreamEndpoints via navigation
                 ctx.Channels.Add(incoming);
             }
             else
@@ -172,6 +169,29 @@ public sealed class SyncPipeline
                 existingChannel.CatchupDays = incoming.CatchupDays;
                 existingChannel.MissedSyncCount = 0; // reset on re-appearance
                 // Preserve: IsFavorite, IsHidden, CustomSortOrder, UserAssignedNumber
+
+                // Upsert the first endpoint from the incoming channel (one endpoint per source per channel)
+                var incomingEndpoint = incoming.StreamEndpoints.FirstOrDefault();
+                if (incomingEndpoint is not null && !string.IsNullOrEmpty(incomingEndpoint.Url))
+                {
+                    if (existingEndpoints.TryGetValue(existingChannel.Id, out var existingEndpoint))
+                    {
+                        // Update URL in case it changed (e.g. password rotation)
+                        existingEndpoint.Url = incomingEndpoint.Url;
+                        existingEndpoint.Format = incomingEndpoint.Format;
+                    }
+                    else
+                    {
+                        ctx.StreamEndpoints.Add(new Crispy.Domain.Entities.StreamEndpoint
+                        {
+                            ChannelId = existingChannel.Id,
+                            SourceId = sourceId,
+                            Url = incomingEndpoint.Url,
+                            Format = incomingEndpoint.Format,
+                            Priority = incomingEndpoint.Priority,
+                        });
+                    }
+                }
             }
         }
 

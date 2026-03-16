@@ -19,16 +19,25 @@ public class FeatureFlag
 
     /// <summary>
     /// Evaluates whether the feature is enabled for the current platform.
+    /// Delegates to <see cref="ResolvePlatformName"/> for OS detection so subclasses
+    /// (or test doubles) can override the detection logic without changing callers.
     /// </summary>
-    public bool IsEnabledForCurrentPlatform()
+    public bool IsEnabledForCurrentPlatform() =>
+        IsEnabledForPlatform(ResolvePlatformName());
+
+    /// <summary>
+    /// Returns the name of the current platform.
+    /// Override in tests via subclass to exercise non-host platform branches.
+    /// </summary>
+    protected internal virtual string ResolvePlatformName()
     {
-        if (OperatingSystem.IsWindows()) return IsEnabledForPlatform("Windows");
-        if (OperatingSystem.IsLinux()) return IsEnabledForPlatform("Linux");
-        if (OperatingSystem.IsMacOS()) return IsEnabledForPlatform("macOS");
-        if (OperatingSystem.IsAndroid()) return IsEnabledForPlatform("Android");
-        if (OperatingSystem.IsIOS()) return IsEnabledForPlatform("iOS");
-        if (OperatingSystem.IsBrowser()) return IsEnabledForPlatform("Browser");
-        return IsEnabledForPlatform("Unknown");
+        if (OperatingSystem.IsWindows()) return "Windows";
+        if (OperatingSystem.IsLinux()) return "Linux";
+        if (OperatingSystem.IsMacOS()) return "macOS";
+        if (OperatingSystem.IsAndroid()) return "Android";
+        if (OperatingSystem.IsIOS()) return "iOS";
+        if (OperatingSystem.IsBrowser()) return "Browser";
+        return "Unknown";
     }
 
     /// <summary>

@@ -1,8 +1,11 @@
+using Crispy.Application.Security;
 using Crispy.Domain.Entities;
 using Crispy.Domain.Enums;
 using Crispy.Infrastructure.Parsers.M3U;
 using Crispy.Infrastructure.Parsers.Xtream;
 using Crispy.Infrastructure.Tests.TestData;
+
+using NSubstitute;
 
 using FluentAssertions;
 
@@ -25,7 +28,7 @@ public class XtreamParserTests
         };
         var xtreamClient = new XtreamClient(httpClient);
         var m3uParser = new M3UParser();
-        return new XtreamParser(xtreamClient, m3uParser, NullLogger<XtreamParser>.Instance);
+        return new XtreamParser(xtreamClient, m3uParser, Substitute.For<ICredentialEncryption>(), NullLogger<XtreamParser>.Instance);
     }
 
     // ─── Successful auth + parse ──────────────────────────────────────────────
@@ -85,6 +88,59 @@ public class XtreamParserTests
 
         result.Channels[0].TvgId.Should().Be("bbc1.uk");
         result.Channels[1].TvgId.Should().Be("cnn.us");
+    }
+
+    [Fact]
+    public async Task ParseAsync_SuccessfulAuth_CreatesStreamEndpointPerChannel()
+    {
+        var source = TestSourceProvider.XtreamSource();
+        var handler = new FakeHttpHandler()
+            .WithResponse("get_live_streams", TestSourceProvider.LoadText("xtream-live.json"))
+            .WithResponse("get_vod_streams", "[]")
+            .WithResponse("get_series", "[]")
+            .WithResponse("player_api.php", TestSourceProvider.LoadText("xtream-auth.json"));
+
+        var result = await MakeParser(handler).ParseAsync(source);
+
+        // 3 channels from xtream-live.json (stream_ids: 101, 102, 103)
+        result.StreamEndpoints.Should().HaveCount(3);
+        var base_ = source.Url.TrimEnd('/');
+        var user = Uri.EscapeDataString(source.Username ?? "");
+        var pass = Uri.EscapeDataString(source.Password ?? "");
+        result.StreamEndpoints[0].Url.Should().Be($"{base_}/live/{user}/{pass}/101.ts");
+        result.StreamEndpoints[1].Url.Should().Be($"{base_}/live/{user}/{pass}/102.ts");
+        result.StreamEndpoints[2].Url.Should().Be($"{base_}/live/{user}/{pass}/103.ts");
+    }
+
+    [Fact]
+    public async Task ParseAsync_SuccessfulAuth_StreamEndpointsAreMpegTs()
+    {
+        var handler = new FakeHttpHandler()
+            .WithResponse("get_live_streams", TestSourceProvider.LoadText("xtream-live.json"))
+            .WithResponse("get_vod_streams", "[]")
+            .WithResponse("get_series", "[]")
+            .WithResponse("player_api.php", TestSourceProvider.LoadText("xtream-auth.json"));
+
+        var result = await MakeParser(handler).ParseAsync(TestSourceProvider.XtreamSource());
+
+        result.StreamEndpoints.Should().AllSatisfy(e =>
+            e.Format.Should().Be(Crispy.Domain.Enums.StreamFormat.MpegTs));
+    }
+
+    [Fact]
+    public async Task ParseAsync_SuccessfulAuth_StreamEndpointsAttachedToChannels()
+    {
+        var handler = new FakeHttpHandler()
+            .WithResponse("get_live_streams", TestSourceProvider.LoadText("xtream-live.json"))
+            .WithResponse("get_vod_streams", "[]")
+            .WithResponse("get_series", "[]")
+            .WithResponse("player_api.php", TestSourceProvider.LoadText("xtream-auth.json"));
+
+        var result = await MakeParser(handler).ParseAsync(TestSourceProvider.XtreamSource());
+
+        // Each channel's StreamEndpoints navigation is populated
+        result.Channels.Should().AllSatisfy(c =>
+            c.StreamEndpoints.Should().HaveCount(1));
     }
 
     [Fact]

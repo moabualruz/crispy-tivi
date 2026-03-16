@@ -1,6 +1,8 @@
+using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.VisualTree;
 
 using Crispy.Application.Player;
 using Crispy.Application.Player.Models;
@@ -302,5 +304,98 @@ public class PlayerViewTests
 
         vm.IsOsdVisible.Should().BeTrue("mouse movement must reveal the OSD");
         window.Close();
+    }
+
+    // ── Audio-only layout (Truth 5) ─────────────────────────────────────────
+
+    [AvaloniaFact]
+    public void PlayerView_IsAudioOnly_SetTrue_WhenAudioOnlyStateEmitted()
+    {
+        var stateSubject = new TestSubject<PlayerState>();
+        var playerService = Substitute.For<IPlayerService>();
+        var audioOnlyState = PlayerState.Empty with { IsAudioOnly = true };
+        playerService.State.Returns(audioOnlyState);
+        playerService.StateChanged.Returns(stateSubject);
+        playerService.AudioSamples.Returns(new TestSubject<float[]>());
+        playerService.AudioTracks.Returns([]);
+        playerService.SubtitleTracks.Returns([]);
+
+        var timeshiftService = Substitute.For<ITimeshiftService>();
+        timeshiftService.StateChanged.Returns(new TestSubject<TimeshiftState>());
+        timeshiftService.State.Returns(new TimeshiftState(
+            BufferDuration: TimeSpan.Zero,
+            Offset: TimeSpan.Zero,
+            LiveEdgeTime: DateTimeOffset.UtcNow,
+            OffsetDisplay: string.Empty,
+            IsAtLiveEdge: true,
+            IsBufferFull: false));
+
+        var sleepTimer = Substitute.For<ISleepTimerService>();
+        sleepTimer.RemainingChanged.Returns(new TestSubject<TimeSpan?>());
+        sleepTimer.Remaining.Returns((TimeSpan?)null);
+
+        var vm = new PlayerViewModel(playerService, timeshiftService, sleepTimer);
+        stateSubject.OnNext(audioOnlyState);
+
+        var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+
+        // ViewModel reflects audio-only state — compiled binding
+        // IsVisible="{Binding !IsAudioOnly}" hides VideoSurface (verified by build)
+        vm.IsAudioOnly.Should().BeTrue(
+            "ViewModel must reflect IsAudioOnly from PlayerState; " +
+            "PlayerView.axaml binds VideoSurface.IsVisible to !IsAudioOnly");
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void PlayerView_IsAudioOnly_FalseByDefault()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+
+        vm.IsAudioOnly.Should().BeFalse(
+            "ViewModel must default IsAudioOnly to false; VideoSurface visible by default");
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void PlayerView_RendersWithoutException_WhenAudioOnly()
+    {
+        var stateSubject = new TestSubject<PlayerState>();
+        var playerService = Substitute.For<IPlayerService>();
+        var audioOnlyState = PlayerState.Empty with { IsAudioOnly = true };
+        playerService.State.Returns(audioOnlyState);
+        playerService.StateChanged.Returns(stateSubject);
+        playerService.AudioSamples.Returns(new TestSubject<float[]>());
+        playerService.AudioTracks.Returns([]);
+        playerService.SubtitleTracks.Returns([]);
+
+        var timeshiftService = Substitute.For<ITimeshiftService>();
+        timeshiftService.StateChanged.Returns(new TestSubject<TimeshiftState>());
+        timeshiftService.State.Returns(new TimeshiftState(
+            BufferDuration: TimeSpan.Zero,
+            Offset: TimeSpan.Zero,
+            LiveEdgeTime: DateTimeOffset.UtcNow,
+            OffsetDisplay: string.Empty,
+            IsAtLiveEdge: true,
+            IsBufferFull: false));
+
+        var sleepTimer = Substitute.For<ISleepTimerService>();
+        sleepTimer.RemainingChanged.Returns(new TestSubject<TimeSpan?>());
+        sleepTimer.Remaining.Returns((TimeSpan?)null);
+
+        var vm = new PlayerViewModel(playerService, timeshiftService, sleepTimer);
+        stateSubject.OnNext(audioOnlyState);
+
+        // Rendering audio-only mode (hidden VideoSurface + visible WaveformVisualizer) must not throw
+        var act = () =>
+        {
+            var window = HeadlessTestHelpers.CreateWindow<PlayerView>(vm);
+            window.Close();
+        };
+
+        act.Should().NotThrow("PlayerView must render without exception in audio-only mode");
     }
 }
