@@ -221,13 +221,11 @@ public static class DependencyInjection
         services.AddScoped<ISavedLayoutRepository, SavedLayoutRepository>();
 
         // ─── Player services ──────────────────────────────────────────────────
-        // VlcPlayerService compiles as no-op stub when LIBVLC symbol is not defined
-        // (LibVLCSharp packages pending NuGet restore — see STATE.md blocker).
-        // Core.Initialize() must be called by the platform entry point BEFORE these are resolved:
-        //   Desktop: Program.cs → before BuildAvaloniaApp()
-        //   Android: MainActivity.cs → OnCreate() before base.OnCreate()
-        services.AddSingleton<IPlayerService, VlcPlayerService>();
-        services.AddSingleton<ITimeshiftService, TimeshiftService>();
+        // GstreamerPlayerService detects GStreamer runtime availability at construction.
+        // If native GStreamer is absent, all playback methods log a warning and return gracefully.
+        services.AddSingleton<IPlayerService, GstreamerPlayerService>();
+        // TODO: Reimplement TimeshiftService with GStreamer queue/multiqueue elements (Phase D)
+        services.AddSingleton<ITimeshiftService, Crispy.Application.Player.NullTimeshiftService>();
         services.AddSingleton<IAudioStreamDetector, AudioStreamDetector>();
         services.AddSingleton<ISleepTimerService>(sp =>
             new SleepTimerService(sp.GetRequiredService<IPlayerService>()));
@@ -241,18 +239,18 @@ public static class DependencyInjection
         services.AddSingleton<IMultiviewService>(sp =>
         {
             // MultiviewService needs 4 independent IPlayerService instances (one per slot).
-            // Each is a separate VlcPlayerService with its own LibVLC instance.
+            // Each is a separate GstreamerPlayerService with its own pipeline.
             var healthRepo = sp.GetRequiredService<IStreamHealthRepository>();
-            var logger0 = sp.GetRequiredService<ILogger<VlcPlayerService>>();
-            var logger1 = sp.GetRequiredService<ILogger<VlcPlayerService>>();
-            var logger2 = sp.GetRequiredService<ILogger<VlcPlayerService>>();
-            var logger3 = sp.GetRequiredService<ILogger<VlcPlayerService>>();
+            var logger0 = sp.GetRequiredService<ILogger<GstreamerPlayerService>>();
+            var logger1 = sp.GetRequiredService<ILogger<GstreamerPlayerService>>();
+            var logger2 = sp.GetRequiredService<ILogger<GstreamerPlayerService>>();
+            var logger3 = sp.GetRequiredService<ILogger<GstreamerPlayerService>>();
             IPlayerService[] players =
             [
-                new VlcPlayerService(healthRepo, logger0),
-                new VlcPlayerService(healthRepo, logger1),
-                new VlcPlayerService(healthRepo, logger2),
-                new VlcPlayerService(healthRepo, logger3),
+                new GstreamerPlayerService(healthRepo, logger0),
+                new GstreamerPlayerService(healthRepo, logger1),
+                new GstreamerPlayerService(healthRepo, logger2),
+                new GstreamerPlayerService(healthRepo, logger3),
             ];
             return new MultiviewService(
                 players,

@@ -16,8 +16,8 @@ namespace Crispy.UI.Controls;
 
 /// <summary>
 /// High-performance video surface using SkiaSharp GPU-accelerated rendering.
-/// Receives raw BGRA frames from VLC via IVideoFrameReceiver, uploads to
-/// SKImage, and renders via ICustomDrawOperation on Skia's GPU canvas.
+/// Receives raw BGRA frames from GStreamer appsink via IVideoFrameReceiver,
+/// uploads to SKImage, and renders via ICustomDrawOperation on Skia's GPU canvas.
 /// No WriteableBitmap, no NativeControlHost — zero airspace, GPU compositing.
 /// </summary>
 public class GpuVideoSurface : Control, IVideoFrameReceiver

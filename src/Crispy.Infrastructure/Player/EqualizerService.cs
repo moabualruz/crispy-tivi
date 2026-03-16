@@ -8,9 +8,9 @@ namespace Crispy.Infrastructure.Player;
 /// <summary>
 /// IEqualizerService implementation.
 ///
-/// Desktop/Mobile: delegates to LibVLC via <see cref="VlcPlayerService.ApplyEqualizerBands"/>.
+/// Desktop/Mobile: delegates to GStreamer via <see cref="GstreamerPlayerService.ApplyEqualizerBands"/>.
 /// Browser: no-op stub (Web Audio API EQ handled via equalizer.js injected in Crispy.Browser).
-/// If native libvlc is not available at runtime, behaves as an in-memory stub.
+/// If GStreamer is not available at runtime, behaves as an in-memory stub.
 ///
 /// Satisfies PLR-33 (10-band EQ overlay with preset management).
 /// </summary>
@@ -54,7 +54,7 @@ public sealed class EqualizerService : IEqualizerService, IDisposable
 
         if (_isEnabled)
         {
-            PushBandsToVlc();
+            PushBandsToPlayer();
         }
 
         EmitBandsChanged();
@@ -77,7 +77,7 @@ public sealed class EqualizerService : IEqualizerService, IDisposable
 
         if (_isEnabled)
         {
-            PushBandsToVlc();
+            PushBandsToPlayer();
         }
 
         EmitBandsChanged();
@@ -91,11 +91,11 @@ public sealed class EqualizerService : IEqualizerService, IDisposable
 
         if (enabled)
         {
-            PushBandsToVlc();
+            PushBandsToPlayer();
         }
         else
         {
-            ClearVlcEqualizer();
+            ClearPlayerEqualizer();
         }
 
         _logger.LogDebug("Equalizer {State}", enabled ? "enabled" : "disabled");
@@ -109,7 +109,7 @@ public sealed class EqualizerService : IEqualizerService, IDisposable
 
         if (_isEnabled)
         {
-            PushBandsToVlc();
+            PushBandsToPlayer();
         }
 
         EmitBandsChanged();
@@ -124,24 +124,24 @@ public sealed class EqualizerService : IEqualizerService, IDisposable
     private void EmitBandsChanged() => _bandsChanged.OnNext((float[])_currentBands.Clone());
 
     /// <summary>
-    /// Passes the current band values to VlcPlayerService.
-    /// VlcPlayerService owns the LibVLCSharp.Shared.Equalizer instance so that
-    /// EqualizerService has no direct reference to LibVLCSharp types and compiles
-    /// (and tests) cleanly without native libvlc present.
+    /// Passes the current band values to the player service's equalizer.
+    /// GstreamerPlayerService owns the GStreamer equalizer-10bands element so that
+    /// EqualizerService has no direct reference to GStreamer types and compiles
+    /// (and tests) cleanly without native GStreamer present.
     /// </summary>
-    private void PushBandsToVlc()
+    private void PushBandsToPlayer()
     {
-        if (_playerService is VlcPlayerService vlc)
+        if (_playerService is GstreamerPlayerService gst)
         {
-            vlc.ApplyEqualizerBands(_currentBands);
+            gst.ApplyEqualizerBands(_currentBands);
         }
     }
 
-    private void ClearVlcEqualizer()
+    private void ClearPlayerEqualizer()
     {
-        if (_playerService is VlcPlayerService vlc)
+        if (_playerService is GstreamerPlayerService gst)
         {
-            vlc.ClearEqualizer();
+            gst.ClearEqualizer();
         }
     }
 }
