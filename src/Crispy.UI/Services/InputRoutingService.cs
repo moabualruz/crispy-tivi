@@ -60,10 +60,10 @@ public class InputRoutingService : IInputRoutingService  // UI-layer interface (
         {
             return currentState switch
             {
-                AppState.Watching          => KeyHandleResult.Handled, // show content layer
-                AppState.Browsing          => KeyHandleResult.Handled, // go back in nav stack
+                AppState.Watching => KeyHandleResult.Handled, // show content layer
+                AppState.Browsing => KeyHandleResult.Handled, // go back in nav stack
                 AppState.BrowsingWhilePlaying => KeyHandleResult.Handled, // close content overlay
-                _                          => KeyHandleResult.NotHandled,
+                _ => KeyHandleResult.NotHandled,
             };
         }
 
