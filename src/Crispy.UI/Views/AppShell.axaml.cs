@@ -14,9 +14,7 @@ namespace Crispy.UI.Views;
 /// — Route keyboard shortcuts (Escape, Back, Enter) to Navigation/Player commands.
 /// — Manage pointer-based rail expand/collapse.
 /// — Prevent XYFocus from targeting covered content during SplitView overlay.
-/// — Wire VideoView.MediaPlayer from VlcPlayerService via reflection (temporary —
-///   Phase B replaces with GpuVideoSurface).
-/// — Create VideoView once on first attach; never destroy it.
+/// — Wire GpuVideoSurface to VlcPlayerService.SetFrameReceiver once at startup.
 /// — Fullscreen: listen to IsFullscreen on ViewModel, toggle WindowState + title bar.
 /// </summary>
 public partial class AppShell : UserControl
@@ -81,14 +79,14 @@ public partial class AppShell : UserControl
                 () => _rail?.FocusPrimaryList(),
                 DispatcherPriority.Loaded);
 
-            // Wire VideoView once — lives for the session lifetime.
-            // Deferred to DispatcherPriority.Loaded so the native window handle
-            // exists before NativeControlHost tries to create a child window.
+            // Wire GpuVideoSurface to VlcPlayerService once — both are singletons.
+            // No deferred post needed: GpuVideoSurface is a plain Avalonia Control,
+            // no native window handle required.
             if (DataContext is AppShellViewModel shellVm)
             {
-                Dispatcher.UIThread.Post(
-                    () => WireVideoViewIfAvailable(shellVm.Player),
-                    DispatcherPriority.Loaded);
+                var surface = this.FindControl<Controls.GpuVideoSurface>("VideoSurface");
+                if (surface is not null)
+                    shellVm.Player.PlayerService.SetFrameReceiver(surface);
                 SubscribeFullscreen(shellVm);
             }
         };
@@ -200,42 +198,6 @@ public partial class AppShell : UserControl
                 }
                 break;
         }
-    }
-
-    // ─── VideoView wiring (temporary — Phase B replaces with GpuVideoSurface) ─
-
-    /// <summary>
-    /// Creates LibVLCSharp.Avalonia.VideoView via reflection and places it in VideoLayer.
-    /// Keeps Crispy.UI free of a compile-time LibVLCSharp dependency.
-    /// Called once on first attach — the VideoView is never destroyed.
-    /// </summary>
-    private void WireVideoViewIfAvailable(PlayerViewModel vm)
-    {
-        var videoViewType = Type.GetType(
-            "LibVLCSharp.Avalonia.VideoView, LibVLCSharp.Avalonia",
-            throwOnError: false);
-        if (videoViewType is null) return;
-
-        if (Activator.CreateInstance(videoViewType) is not Control videoView) return;
-
-        videoView.SetValue(HorizontalAlignmentProperty, Avalonia.Layout.HorizontalAlignment.Stretch);
-        videoView.SetValue(VerticalAlignmentProperty, Avalonia.Layout.VerticalAlignment.Stretch);
-
-        // Assign MediaPlayer BEFORE adding to tree — LibVLCSharp.Avalonia.VideoView
-        // hooks into the MediaPlayer to provide the rendering surface. This must happen
-        // BEFORE Play() is called, otherwise VLC creates its own output window.
-        var mpFromService = vm.PlayerService.GetType()
-            .GetProperty("MediaPlayer")
-            ?.GetValue(vm.PlayerService);
-        if (mpFromService is not null)
-        {
-            videoViewType.GetProperty("MediaPlayer")?.SetValue(videoView, mpFromService);
-        }
-
-        // Place the VideoView inside VideoLayer (Border in Layer 0)
-        var videoLayer = this.FindControl<Border>("VideoLayer");
-        if (videoLayer is not null)
-            videoLayer.Child = videoView;
     }
 
     // ─── XYFocus workaround ───────────────────────────────────────────────────

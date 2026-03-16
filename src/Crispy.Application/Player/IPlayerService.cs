@@ -66,4 +66,11 @@ public interface IPlayerService
     /// Emits float[] containing interleaved samples at the media's native sample rate.
     /// </summary>
     IObservable<float[]> AudioSamples { get; }
+
+    /// <summary>
+    /// Registers the video frame receiver that will receive decoded frame callbacks.
+    /// Call once at startup before playback begins.
+    /// Pass <c>null</c> to detach.
+    /// </summary>
+    void SetFrameReceiver(IVideoFrameReceiver? receiver);
 }

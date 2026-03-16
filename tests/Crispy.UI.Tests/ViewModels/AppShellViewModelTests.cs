@@ -9,6 +9,8 @@ using FluentAssertions;
 
 using NSubstitute;
 
+using Avalonia.Headless.XUnit;
+
 using Xunit;
 
 namespace Crispy.UI.Tests.ViewModels;
@@ -99,7 +101,7 @@ public class AppShellViewModelTests
 
     // ── ContentBackground ─────────────────────────────────────────────────────
 
-    [Fact]
+    [AvaloniaFact]
     public void ContentBackground_IsTransparent_WhenVideoNotVisible()
     {
         var sut = Build();
@@ -110,7 +112,7 @@ public class AppShellViewModelTests
         sut.IsContentVisible.Should().BeTrue();
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void ContentBackground_IsBlackOverlay_WhenVideoAndContentBothVisible()
     {
         var sut = Build();

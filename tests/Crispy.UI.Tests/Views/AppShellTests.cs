@@ -325,9 +325,9 @@ public class AppShellTests
             .FirstOrDefault();
         shell.Should().NotBeNull();
 
-        var videoLayer = shell!.FindControl<Border>("VideoLayer");
-        videoLayer.Should().NotBeNull();
-        videoLayer!.IsVisible.Should().BeFalse("video layer starts hidden until playback starts");
+        var videoSurface = shell!.FindControl<Crispy.UI.Controls.GpuVideoSurface>("VideoSurface");
+        videoSurface.Should().NotBeNull("Layer 0 must be a GpuVideoSurface named VideoSurface");
+        videoSurface!.IsVisible.Should().BeFalse("video surface starts hidden until playback starts");
 
         window.Close();
     }
@@ -343,12 +343,11 @@ public class AppShellTests
             .FirstOrDefault();
         shell.Should().NotBeNull("AppShell must be in the visual tree");
 
-        var videoLayer = shell!.FindControl<Border>("VideoLayer");
-        videoLayer.Should().NotBeNull("Layer 0 must be a Border named VideoLayer");
-
-        var background = videoLayer!.Background as Avalonia.Media.ISolidColorBrush;
-        background.Should().NotBeNull("VideoLayer background must be a solid color brush");
-        background!.Color.Should().Be(Avalonia.Media.Colors.Black, "VideoLayer background must be black");
+        // GpuVideoSurface renders black via DrawingContext.FillRectangle when no frame is present.
+        // Verify the surface control exists and is the correct type — background color is
+        // paint-time behaviour tested via the GpuVideoSurface unit tests.
+        var videoSurface = shell!.FindControl<Crispy.UI.Controls.GpuVideoSurface>("VideoSurface");
+        videoSurface.Should().NotBeNull("Layer 0 must be a GpuVideoSurface named VideoSurface");
 
         window.Close();
     }

@@ -31,6 +31,7 @@ public class EqualizerServiceTests
         public Task SetVolumeAsync(float volume) => Task.CompletedTask;
         public Task MuteAsync(bool mute) => Task.CompletedTask;
         public Task SetAspectRatioAsync(string? ratio) => Task.CompletedTask;
+        public void SetFrameReceiver(IVideoFrameReceiver? receiver) { }
     }
 
     private static EqualizerService CreateSut() =>

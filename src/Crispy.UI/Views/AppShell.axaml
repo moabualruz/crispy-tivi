@@ -16,10 +16,9 @@
   <Grid>
 
     <!-- ═══ LAYER 0: Video Surface ══════════════════════════════════════════ -->
-    <Border x:Name="VideoLayer"
-            Background="Black"
-            IsVisible="{Binding IsVideoVisible}"
-            ZIndex="0" />
+    <controls:GpuVideoSurface x:Name="VideoSurface"
+                              IsVisible="{Binding IsVideoVisible}"
+                              ZIndex="0" />
 
     <!-- ═══ LAYER 1: Content / Navigation ══════════════════════════════════ -->
     <Grid x:Name="ContentLayer"

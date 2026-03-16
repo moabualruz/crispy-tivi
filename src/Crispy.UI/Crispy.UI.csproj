@@ -3,6 +3,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <RootNamespace>Crispy.UI</RootNamespace>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,6 +39,5 @@
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <PackageReference Include="LibVLCSharp.Avalonia" />
   </ItemGroup>
 </Project>

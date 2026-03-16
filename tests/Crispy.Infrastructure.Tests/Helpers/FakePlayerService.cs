@@ -40,6 +40,7 @@ public sealed class FakePlayerService : IPlayerService
     public Task SetVolumeAsync(float volume) => Task.CompletedTask;
     public Task MuteAsync(bool mute) => Task.CompletedTask;
     public Task SetAspectRatioAsync(string? ratio) => Task.CompletedTask;
+    public void SetFrameReceiver(IVideoFrameReceiver? receiver) { }
 }
 
 /// <summary>An observable that never emits — avoids System.Reactive dependency.</summary>

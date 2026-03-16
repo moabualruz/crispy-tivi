@@ -182,6 +182,10 @@ public sealed class HtmlVideoPlayerService : IPlayerService, IDisposable
     public Task SetAspectRatioAsync(string? ratio) => Task.CompletedTask;
 
     /// <inheritdoc />
+    /// Browser uses HTML5 video — no buffer callback rendering, receiver is ignored.
+    public void SetFrameReceiver(IVideoFrameReceiver? receiver) { }
+
+    /// <inheritdoc />
     public void Dispose()
     {
         _stateSubject.OnCompleted();

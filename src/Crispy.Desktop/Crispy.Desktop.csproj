@@ -15,7 +15,6 @@
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="FluentIcons.Avalonia" />
     <PackageReference Include="LibVLCSharp" />
-    <PackageReference Include="LibVLCSharp.Avalonia" />
     <PackageReference Include="VideoLAN.LibVLC.Windows" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
     <PackageReference Include="VideoLAN.LibVLC.Linux" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
     <PackageReference Include="VideoLAN.LibVLC.Mac" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
