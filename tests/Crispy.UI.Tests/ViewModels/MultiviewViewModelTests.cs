@@ -252,6 +252,49 @@ public class MultiviewViewModelTests
         await _multiviewService.Received(1).ClearSlotAsync(0);
     }
 
+    // ─── LoadLayoutCommand ────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task LoadLayoutCommand_CallsServiceWithLayoutId()
+    {
+        await _sut.LoadLayoutCommand.ExecuteAsync("layout-42");
+
+        await _multiviewService.Received(1).LoadLayoutAsync("layout-42");
+    }
+
+    // ─── MultiviewSlotViewModel ───────────────────────────────────────────────
+
+    [Fact]
+    public void MultiviewSlotViewModel_Update_SetsAllProperties()
+    {
+        var request = new PlaybackRequest("http://stream/b", PlaybackContentType.LiveTv, Title: "Test Channel", ChannelLogoUrl: "http://logo/img.png");
+        var slot = new MultiviewSlot(1, request, true, true, true);
+        var playerService = Substitute.For<IPlayerService>();
+
+        var vm = new MultiviewSlotViewModel(slot, playerService);
+
+        vm.SlotIndex.Should().Be(1);
+        vm.IsActive.Should().BeTrue();
+        vm.IsAudioActive.Should().BeTrue();
+        vm.IsExpanded.Should().BeTrue();
+        vm.ChannelName.Should().Be("Test Channel");
+        vm.ChannelLogoUrl.Should().Be("http://logo/img.png");
+        vm.PlayerService.Should().BeSameAs(playerService);
+    }
+
+    [Fact]
+    public void MultiviewSlotViewModel_Update_WhenRequestIsNull_ClearsChannelNameAndLogo()
+    {
+        var slot = new MultiviewSlot(0, null, false, false, false);
+        var playerService = Substitute.For<IPlayerService>();
+
+        var vm = new MultiviewSlotViewModel(slot, playerService);
+
+        vm.ChannelName.Should().BeNull();
+        vm.ChannelLogoUrl.Should().BeNull();
+        vm.IsActive.Should().BeFalse();
+    }
+
     // ─── LoadSavedLayouts on construction ────────────────────────────────────
 
     [Fact]
