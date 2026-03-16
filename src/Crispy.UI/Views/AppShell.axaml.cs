@@ -81,10 +81,14 @@ public partial class AppShell : UserControl
                 () => _rail?.FocusPrimaryList(),
                 DispatcherPriority.Loaded);
 
-            // Wire VideoView once — lives for the session lifetime
+            // Wire VideoView once — lives for the session lifetime.
+            // Deferred to DispatcherPriority.Loaded so the native window handle
+            // exists before NativeControlHost tries to create a child window.
             if (DataContext is AppShellViewModel shellVm)
             {
-                WireVideoViewIfAvailable(shellVm.Player);
+                Dispatcher.UIThread.Post(
+                    () => WireVideoViewIfAvailable(shellVm.Player),
+                    DispatcherPriority.Loaded);
                 SubscribeFullscreen(shellVm);
             }
         };
