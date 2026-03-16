@@ -349,6 +349,10 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
             return Task.CompletedTask;
         }
 
+        // Stop current playback and clear surface before switching
+        if (_mediaPlayer.IsPlaying)
+            _mediaPlayer.Stop();
+
         _playStartedAt = DateTimeOffset.UtcNow;
         _ttffRecorded = false;
         _wasPlayingBeforeBuffer = false;

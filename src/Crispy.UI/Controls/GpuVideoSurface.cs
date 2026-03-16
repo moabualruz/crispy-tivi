@@ -12,28 +12,31 @@ namespace Crispy.UI.Controls;
 /// <summary>
 /// Displays video frames received via IVideoFrameReceiver as a WriteableBitmap.
 /// No NativeControlHost — zero airspace issues. Video composites naturally with all UI.
-/// This is the WriteableBitmap fallback/initial implementation.
-/// Phase B+ will add D3D11 GPU interop on Windows.
+/// Uses double buffering and frame coalescing for smooth playback.
 /// </summary>
 public class GpuVideoSurface : Control, IVideoFrameReceiver
 {
-    private WriteableBitmap? _bitmap;
-    private readonly object _bitmapLock = new();
+    private WriteableBitmap? _frontBuffer;  // displayed by Render
+    private WriteableBitmap? _backBuffer;   // written by OnFrame
+    private volatile bool _frameReady;      // signals a new frame is available
+    private volatile bool _invalidatePending; // prevents redundant Dispatcher posts
+    private uint _currentWidth, _currentHeight;
 
     /// <inheritdoc />
     public void OnFormatChanged(uint width, uint height)
     {
+        _currentWidth = width;
+        _currentHeight = height;
+
+        var size = new PixelSize((int)width, (int)height);
+        var dpi = new Vector(96, 96);
+
+        // Create both buffers on UI thread
         Dispatcher.UIThread.Post(() =>
         {
-            lock (_bitmapLock)
-            {
-                _bitmap = new WriteableBitmap(
-                    new PixelSize((int)width, (int)height),
-                    new Vector(96, 96),
-                    PixelFormat.Bgra8888,
-                    AlphaFormat.Premul);
-            }
-
+            _backBuffer = new WriteableBitmap(size, dpi, PixelFormat.Bgra8888, AlphaFormat.Premul);
+            _frontBuffer = new WriteableBitmap(size, dpi, PixelFormat.Bgra8888, AlphaFormat.Premul);
+            _frameReady = false;
             InvalidateVisual();
         });
     }
@@ -41,13 +44,9 @@ public class GpuVideoSurface : Control, IVideoFrameReceiver
     /// <inheritdoc />
     public void OnFrame(IntPtr buffer, uint width, uint height, uint pitch)
     {
-        WriteableBitmap? bmp;
-        lock (_bitmapLock)
-        {
-            bmp = _bitmap;
-        }
-
-        if (bmp is null) return;
+        var bmp = _backBuffer;
+        if (bmp is null || width != _currentWidth || height != _currentHeight)
+            return;
 
         using (var fb = bmp.Lock())
         {
@@ -55,28 +54,54 @@ public class GpuVideoSurface : Control, IVideoFrameReceiver
             {
                 var src = (byte*)buffer;
                 var dst = (byte*)fb.Address;
-                var copyPitch = Math.Min(pitch, (uint)fb.RowBytes);
-                for (var y = 0; y < height; y++)
+                var dstPitch = (uint)fb.RowBytes;
+
+                if (pitch == dstPitch)
                 {
-                    Buffer.MemoryCopy(
-                        src + y * pitch,
-                        dst + y * fb.RowBytes,
-                        fb.RowBytes,
-                        copyPitch);
+                    // Fast path: single bulk copy when pitches match
+                    Buffer.MemoryCopy(src, dst, dstPitch * height, pitch * height);
+                }
+                else
+                {
+                    // Slow path: row-by-row when pitches differ
+                    var copyBytes = Math.Min(pitch, dstPitch);
+                    for (var y = 0; y < height; y++)
+                    {
+                        Buffer.MemoryCopy(
+                            src + y * pitch,
+                            dst + y * dstPitch,
+                            dstPitch, copyBytes);
+                    }
                 }
             }
         }
 
-        Dispatcher.UIThread.Post(InvalidateVisual, DispatcherPriority.Render);
+        _frameReady = true;
+
+        // Coalesce: only post one InvalidateVisual per render cycle
+        if (!_invalidatePending)
+        {
+            _invalidatePending = true;
+            Dispatcher.UIThread.Post(() =>
+            {
+                _invalidatePending = false;
+                if (_frameReady)
+                {
+                    // Swap buffers
+                    (_frontBuffer, _backBuffer) = (_backBuffer, _frontBuffer);
+                    _frameReady = false;
+                    InvalidateVisual();
+                }
+            }, DispatcherPriority.Render);
+        }
     }
 
     /// <inheritdoc />
     public void OnClear()
     {
-        lock (_bitmapLock)
-        {
-            _bitmap = null;
-        }
+        _frameReady = false;
+        _frontBuffer = null;
+        _backBuffer = null;
 
         Dispatcher.UIThread.Post(InvalidateVisual);
     }
@@ -84,11 +109,7 @@ public class GpuVideoSurface : Control, IVideoFrameReceiver
     /// <inheritdoc />
     public override void Render(DrawingContext context)
     {
-        WriteableBitmap? bmp;
-        lock (_bitmapLock)
-        {
-            bmp = _bitmap;
-        }
+        var bmp = _frontBuffer;
 
         if (bmp is not null)
         {
