@@ -1,0 +1,83 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:controls="using:Crispy.UI.Controls"
+             x:Class="Crispy.UI.Views.AppShell"
+             x:DataType="vm:AppShellViewModel">
+
+  <!--
+    AppShell: 3-layer root container.
+
+    Layer 0 (ZIndex=0): VideoLayer — persistent video surface, starts hidden.
+    Layer 1 (ZIndex=1): ContentLayer — navigation rail + page content.
+    Layer 2 (ZIndex=2): PlayerOverlay — OSD, auto-hides.
+    MiniPlayerBar — always at bottom when playing + browsing.
+  -->
+  <Grid>
+
+    <!-- ═══ LAYER 0: Video Surface ══════════════════════════════════════════ -->
+    <Border x:Name="VideoLayer"
+            Background="Black"
+            IsVisible="{Binding IsVideoVisible}"
+            ZIndex="0" />
+
+    <!-- ═══ LAYER 1: Content / Navigation ══════════════════════════════════ -->
+    <Grid x:Name="ContentLayer"
+          IsVisible="{Binding IsContentVisible}"
+          Background="{Binding ContentBackground}"
+          ZIndex="1">
+
+      <SplitView x:Name="MainSplitView"
+                 DisplayMode="CompactOverlay"
+                 IsPaneOpen="{Binding Navigation.IsRailExpanded}"
+                 CompactPaneLength="64"
+                 OpenPaneLength="256"
+                 PanePlacement="Left"
+                 UseLightDismissOverlayMode="True">
+
+        <!-- Navigation Rail Pane -->
+        <SplitView.Pane>
+          <Border PointerEntered="OnRailPointerEntered"
+                  PointerExited="OnRailPointerExited">
+            <controls:NavigationRail x:Name="NavRail"
+                                     PrimaryItems="{Binding Navigation.PrimaryNavItems}"
+                                     SecondaryItems="{Binding Navigation.SecondaryNavItems}"
+                                     IsExpanded="{Binding Navigation.IsRailExpanded}" />
+          </Border>
+        </SplitView.Pane>
+
+        <!-- Content Area -->
+        <SplitView.Content>
+          <Panel x:Name="ContentPanel">
+            <!-- Page content with crossfade transition -->
+            <TransitioningContentControl Content="{Binding Navigation.CurrentPage}"
+                                         Margin="0 0 0 64">
+              <TransitioningContentControl.PageTransition>
+                <CrossFade Duration="0:0:0.25" />
+              </TransitioningContentControl.PageTransition>
+            </TransitioningContentControl>
+
+            <!-- Mini player bar at bottom (within content layer) -->
+            <controls:MiniPlayerBar VerticalAlignment="Bottom" />
+          </Panel>
+        </SplitView.Content>
+
+      </SplitView>
+
+    </Grid>
+
+    <!-- ═══ LAYER 2: Player Overlay (OSD) ══════════════════════════════════ -->
+    <Grid x:Name="PlayerOverlay"
+          IsVisible="{Binding IsPlayerOverlayVisible}"
+          ZIndex="2">
+      <controls:OsdOverlay DataContext="{Binding Player}" />
+    </Grid>
+
+    <!-- ═══ MINI PLAYER BAR — playing + browsing ════════════════════════════ -->
+    <controls:MiniPlayerBar VerticalAlignment="Bottom"
+                            ZIndex="3"
+                            IsVisible="{Binding IsMiniPlayerVisible}" />
+
+  </Grid>
+
+</UserControl>

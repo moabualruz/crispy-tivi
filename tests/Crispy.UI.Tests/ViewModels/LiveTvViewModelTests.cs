@@ -23,7 +23,7 @@ public class LiveTvViewModelTests
         new() { Id = id, Title = $"Ch{id}", SourceId = sourceId, GroupName = group };
 
     private static LiveTvViewModel MakeSut(IChannelRepository channelRepo, ISourceRepository sourceRepo) =>
-        new(channelRepo, sourceRepo, Substitute.For<INavigationService>());
+        new(channelRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
 
     // ── Constructor ────────────────────────────────────────────────────────────
 
@@ -349,11 +349,11 @@ public class LiveTvViewModelTests
     // ── SelectChannelCommand ───────────────────────────────────────────────────
 
     [Fact]
-    public async Task SelectChannelCommand_NavigatesToPlayer_WhenEndpointExists()
+    public async Task SelectChannelCommand_PlaysChannel_WhenEndpointExists()
     {
         var channelRepo = Substitute.For<IChannelRepository>();
         var sourceRepo = Substitute.For<ISourceRepository>();
-        var navService = Substitute.For<INavigationService>();
+        var playerController = Substitute.For<IPlayerController>();
 
         sourceRepo.GetAllAsync().Returns(Task.FromResult<IReadOnlyList<Source>>([]));
         channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
@@ -364,13 +364,13 @@ public class LiveTvViewModelTests
         fullChannel.StreamEndpoints.Add(endpoint);
         channelRepo.GetByIdAsync(7, Arg.Any<CancellationToken>()).Returns(Task.FromResult<Channel?>(fullChannel));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo, navService);
+        var sut = new LiveTvViewModel(channelRepo, sourceRepo, Substitute.For<INavigationService>(), playerController);
         await Task.Delay(50);
 
         var stub = MakeChannel(7, 1);
         await sut.SelectChannelCommand.ExecuteAsync(stub);
 
-        navService.Received(1).NavigateTo<PlayerViewModel>(
+        await playerController.Received(1).PlayAsync(
             Arg.Is<PlaybackRequest>(r =>
                 r.Url == "http://stream/ch7" &&
                 r.ContentType == PlaybackContentType.LiveTv &&
@@ -379,11 +379,11 @@ public class LiveTvViewModelTests
     }
 
     [Fact]
-    public async Task SelectChannelCommand_DoesNotNavigate_WhenNoEndpoint()
+    public async Task SelectChannelCommand_DoesNotPlay_WhenNoEndpoint()
     {
         var channelRepo = Substitute.For<IChannelRepository>();
         var sourceRepo = Substitute.For<ISourceRepository>();
-        var navService = Substitute.For<INavigationService>();
+        var playerController = Substitute.For<IPlayerController>();
 
         sourceRepo.GetAllAsync().Returns(Task.FromResult<IReadOnlyList<Source>>([]));
         channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
@@ -393,13 +393,13 @@ public class LiveTvViewModelTests
         var fullChannel = new Channel { Id = 5, Title = "Empty Ch", SourceId = 1 };
         channelRepo.GetByIdAsync(5, Arg.Any<CancellationToken>()).Returns(Task.FromResult<Channel?>(fullChannel));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo, navService);
+        var sut = new LiveTvViewModel(channelRepo, sourceRepo, Substitute.For<INavigationService>(), playerController);
         await Task.Delay(50);
 
         var stub = MakeChannel(5, 1);
         await sut.SelectChannelCommand.ExecuteAsync(stub);
 
-        navService.DidNotReceiveWithAnyArgs().NavigateTo<PlayerViewModel>();
+        await playerController.DidNotReceiveWithAnyArgs().PlayAsync(default!);
     }
 
     [Fact]
@@ -407,7 +407,7 @@ public class LiveTvViewModelTests
     {
         var channelRepo = Substitute.For<IChannelRepository>();
         var sourceRepo = Substitute.For<ISourceRepository>();
-        var navService = Substitute.For<INavigationService>();
+        var playerController = Substitute.For<IPlayerController>();
 
         sourceRepo.GetAllAsync().Returns(Task.FromResult<IReadOnlyList<Source>>([]));
         channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
@@ -418,13 +418,13 @@ public class LiveTvViewModelTests
         fullChannel.StreamEndpoints.Add(endpoint);
         channelRepo.GetByIdAsync(9, Arg.Any<CancellationToken>()).Returns(Task.FromResult<Channel?>(fullChannel));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo, navService);
+        var sut = new LiveTvViewModel(channelRepo, sourceRepo, Substitute.For<INavigationService>(), playerController);
         await Task.Delay(50);
 
         var stub = MakeChannel(9, 1);
         await sut.SelectChannelCommand.ExecuteAsync(stub);
 
-        navService.Received(1).NavigateTo<PlayerViewModel>(
+        await playerController.Received(1).PlayAsync(
             Arg.Is<PlaybackRequest>(r => r.ContentType == PlaybackContentType.Radio));
     }
 }

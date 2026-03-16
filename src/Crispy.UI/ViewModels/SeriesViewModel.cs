@@ -20,6 +20,7 @@ public partial class SeriesViewModel : ViewModelBase, INavigationAware
     private readonly ISeriesRepository _seriesRepository;
     private readonly ISourceRepository _sourceRepository;
     private readonly INavigationService _navigationService;
+    private readonly IPlayerController _playerController;
 
     [ObservableProperty]
     private ObservableCollection<Series> _series = [];
@@ -48,12 +49,14 @@ public partial class SeriesViewModel : ViewModelBase, INavigationAware
     public SeriesViewModel(
         ISeriesRepository seriesRepository,
         ISourceRepository sourceRepository,
-        INavigationService navigationService)
+        INavigationService navigationService,
+        IPlayerController playerController)
     {
         Title = "Series";
         _seriesRepository = seriesRepository;
         _sourceRepository = sourceRepository;
         _navigationService = navigationService;
+        _playerController = playerController;
 
         _ = LoadAsync();
     }
@@ -132,11 +135,11 @@ public partial class SeriesViewModel : ViewModelBase, INavigationAware
     }
 
     /// <summary>
-    /// Navigates to the player for the selected episode.
+    /// Triggers playback for the selected episode.
     /// No-ops when <paramref name="episode"/> has no stream URL.
     /// </summary>
     [RelayCommand]
-    public void SelectEpisode(Episode episode)
+    public async Task SelectEpisodeAsync(Episode episode)
     {
         if (string.IsNullOrEmpty(episode.StreamUrl))
             return;
@@ -150,7 +153,7 @@ public partial class SeriesViewModel : ViewModelBase, INavigationAware
             ContentType: PlaybackContentType.Vod,
             Title: title);
 
-        _navigationService.NavigateTo<PlayerViewModel>(request);
+        await _playerController.PlayAsync(request);
     }
 
     private async Task FetchSeriesForFilterAsync(SourceFilterItem filter, CancellationToken ct = default)

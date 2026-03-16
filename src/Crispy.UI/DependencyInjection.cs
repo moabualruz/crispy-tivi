@@ -41,13 +41,16 @@ public static class DependencyInjection
         services.AddTransient<SourcesViewModel>();
         services.AddTransient<AddSourceViewModel>();
         services.AddTransient<EpgViewModel>();
-        services.AddTransient<PlayerViewModel>();
+        services.AddSingleton<PlayerViewModel>(); // singleton — persists across navigation, direct play API
+        services.AddSingleton<IPlayerController>(sp => sp.GetRequiredService<PlayerViewModel>());
         services.AddTransient<TrackSelectorViewModel>();
         services.AddTransient<MultiviewViewModel>();
         services.AddSingleton<EqualizerOverlayViewModel>(); // singleton — EQ state persists across sessions
         services.AddSingleton<MiniPlayerViewModel>(); // singleton — shared state while browsing
+        services.AddSingleton<AppShellViewModel>(); // singleton — root shell, owns layer state
 
         // Views (transient — resolved by ViewLocator)
+        services.AddTransient<AppShell>();
         services.AddTransient<PlayerView>();
         services.AddTransient<TrackSelectorView>();
         services.AddTransient<MiniPlayerView>();

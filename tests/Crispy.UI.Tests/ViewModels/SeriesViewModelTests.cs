@@ -21,6 +21,7 @@ public class SeriesViewModelTests
     private readonly ISeriesRepository _seriesRepo;
     private readonly ISourceRepository _sourceRepo;
     private readonly INavigationService _navigationService;
+    private readonly IPlayerController _playerController;
     private readonly SeriesViewModel _sut;
 
     public SeriesViewModelTests()
@@ -28,13 +29,14 @@ public class SeriesViewModelTests
         _seriesRepo = Substitute.For<ISeriesRepository>();
         _sourceRepo = Substitute.For<ISourceRepository>();
         _navigationService = Substitute.For<INavigationService>();
+        _playerController = Substitute.For<IPlayerController>();
 
         _seriesRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(new List<Series>());
         _sourceRepo.GetAllAsync()
             .Returns(new List<Source>());
 
-        _sut = new SeriesViewModel(_seriesRepo, _sourceRepo, _navigationService);
+        _sut = new SeriesViewModel(_seriesRepo, _sourceRepo, _navigationService, _playerController);
     }
 
     private static Source MakeSource(int id, string name, bool enabled = true) =>
@@ -102,7 +104,7 @@ public class SeriesViewModelTests
         seriesRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Series>>([]));
 
-        var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>());
+        var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
         await Task.Delay(100);
 
         // "All Sources" + 2 enabled sources
@@ -119,7 +121,7 @@ public class SeriesViewModelTests
         seriesRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Series>>([MakeSeries(1, 1), MakeSeries(2, 1)]));
 
-        var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>());
+        var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
         await Task.Delay(100);
 
         sut.Series.Should().HaveCount(2);
@@ -134,7 +136,7 @@ public class SeriesViewModelTests
         seriesRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Series>>([]));
 
-        var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>());
+        var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
         await Task.Delay(100);
 
         sut.IsLoading.Should().BeFalse();
@@ -147,7 +149,7 @@ public class SeriesViewModelTests
         var sourceRepo = Substitute.For<ISourceRepository>();
         sourceRepo.GetAllAsync().ThrowsAsync(new InvalidOperationException("DB error"));
 
-        var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>());
+        var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
         await Task.Delay(100);
 
         sut.IsLoading.Should().BeFalse();
@@ -169,7 +171,7 @@ public class SeriesViewModelTests
         seriesRepo.GetBySourceAsync(2, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Series>>([MakeSeries(2, 2)]));
 
-        var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>());
+        var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
         await Task.Delay(100);
 
         // Default is "All Sources" so both series should be present
@@ -194,7 +196,7 @@ public class SeriesViewModelTests
         seriesRepo.GetBySourceAsync(2, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Series>>([MakeSeries(20, 2), MakeSeries(21, 2)]));
 
-        var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>());
+        var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
         await Task.Delay(100);
 
         var source2Filter = sut.SourceFilters.First(f => f.SourceId == 2);
@@ -237,10 +239,10 @@ public class SeriesViewModelTests
         _sut.IsEpisodesLoading.Should().BeFalse();
     }
 
-    // ── SelectEpisodeCommand — navigation ──────────────────────────────────────
+    // ── SelectEpisodeCommand — playback ────────────────────────────────────────
 
     [Fact]
-    public void SelectEpisodeCommand_NavigatesToPlayer_WhenStreamUrlExists()
+    public async Task SelectEpisodeCommand_PlaysEpisode_WhenStreamUrlExists()
     {
         var series = MakeSeries(5, 1);
         _sut.SelectedSeries = series;
@@ -256,16 +258,16 @@ public class SeriesViewModelTests
             StreamUrl = "http://stream/ep99.m3u8",
         };
 
-        _sut.SelectEpisodeCommand.Execute(episode);
+        await _sut.SelectEpisodeCommand.ExecuteAsync(episode);
 
-        _navigationService.Received(1).NavigateTo<PlayerViewModel>(
+        await _playerController.Received(1).PlayAsync(
             Arg.Is<PlaybackRequest>(r =>
                 r.Url == "http://stream/ep99.m3u8" &&
                 r.ContentType == PlaybackContentType.Vod));
     }
 
     [Fact]
-    public void SelectEpisodeCommand_DoesNotNavigate_WhenStreamUrlIsEmpty()
+    public async Task SelectEpisodeCommand_DoesNotPlay_WhenStreamUrlIsEmpty()
     {
         var episode = new Episode
         {
@@ -278,8 +280,8 @@ public class SeriesViewModelTests
             StreamUrl = null,
         };
 
-        _sut.SelectEpisodeCommand.Execute(episode);
+        await _sut.SelectEpisodeCommand.ExecuteAsync(episode);
 
-        _navigationService.DidNotReceive().NavigateTo<PlayerViewModel>(Arg.Any<object>());
+        await _playerController.DidNotReceiveWithAnyArgs().PlayAsync(default!);
     }
 }

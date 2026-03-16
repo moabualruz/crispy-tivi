@@ -27,7 +27,7 @@ public class SeriesViewTests
         var sourceRepo = Substitute.For<ISourceRepository>();
         sourceRepo.GetAllAsync().Returns([]);
 
-        var vm = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>());
+        var vm = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
         var window = HeadlessTestHelpers.CreateWindow<SeriesView>(vm);
 
         window.Should().NotBeNull();

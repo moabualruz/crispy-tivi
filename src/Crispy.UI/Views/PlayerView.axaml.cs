@@ -49,9 +49,6 @@ public partial class PlayerView : UserControl
         // returns null and this block is a no-op.
         WireVideoViewIfAvailable(vm);
 
-        // Start playback AFTER VideoView is wired — ensures VLC renders inline
-        vm.StartPendingPlayback();
-
         // OSD overlay via OverlayLayer — sits above the NativeControlHost airspace
         var overlayLayer = OverlayLayer.GetOverlayLayer(this);
         if (overlayLayer is not null)

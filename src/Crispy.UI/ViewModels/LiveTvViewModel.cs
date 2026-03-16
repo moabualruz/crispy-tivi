@@ -8,6 +8,7 @@ using Crispy.UI.Navigation;
 
 namespace Crispy.UI.ViewModels;
 
+
 /// <summary>
 /// A chip item for the source selector bar.
 /// null SourceId means "All Sources".
@@ -24,6 +25,7 @@ public partial class LiveTvViewModel : ViewModelBase, INavigationAware
     private readonly IChannelRepository _channelRepository;
     private readonly ISourceRepository _sourceRepository;
     private readonly INavigationService _navigationService;
+    private readonly IPlayerController _playerController;
 
     [ObservableProperty]
     private ObservableCollection<Channel> _channels = [];
@@ -62,11 +64,13 @@ public partial class LiveTvViewModel : ViewModelBase, INavigationAware
     public LiveTvViewModel(
         IChannelRepository channelRepository,
         ISourceRepository sourceRepository,
-        INavigationService navigationService)
+        INavigationService navigationService,
+        IPlayerController playerController)
     {
         _channelRepository = channelRepository;
         _sourceRepository = sourceRepository;
         _navigationService = navigationService;
+        _playerController = playerController;
         Title = "Live TV";
         LoadCommand.Execute(null);
     }
@@ -232,6 +236,6 @@ public partial class LiveTvViewModel : ViewModelBase, INavigationAware
             Title: fullChannel.Title,
             ChannelLogoUrl: fullChannel.TvgLogo);
 
-        _navigationService.NavigateTo<PlayerViewModel>(request);
+        await _playerController.PlayAsync(request);
     }
 }

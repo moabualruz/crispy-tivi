@@ -32,7 +32,7 @@ public class LiveTvViewTests
         sourceRepo.GetAllAsync()
             .Returns(Task.FromResult<IReadOnlyList<Source>>([]));
 
-        return new LiveTvViewModel(channelRepo, sourceRepo, Substitute.For<INavigationService>());
+        return new LiveTvViewModel(channelRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
     }
 
     [Fact]

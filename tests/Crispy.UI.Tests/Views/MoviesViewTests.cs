@@ -27,7 +27,7 @@ public class MoviesViewTests
         var sourceRepo = Substitute.For<ISourceRepository>();
         sourceRepo.GetAllAsync().Returns([]);
 
-        var vm = new MoviesViewModel(movieRepo, sourceRepo, Substitute.For<INavigationService>());
+        var vm = new MoviesViewModel(movieRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
         var window = HeadlessTestHelpers.CreateWindow<MoviesView>(vm);
 
         window.Should().NotBeNull();

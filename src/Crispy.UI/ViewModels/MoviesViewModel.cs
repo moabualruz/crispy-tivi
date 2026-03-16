@@ -20,6 +20,7 @@ public partial class MoviesViewModel : ViewModelBase, INavigationAware
     private readonly IMovieRepository _movieRepository;
     private readonly ISourceRepository _sourceRepository;
     private readonly INavigationService _navigationService;
+    private readonly IPlayerController _playerController;
 
     [ObservableProperty]
     private ObservableCollection<Movie> _movies = [];
@@ -39,22 +40,24 @@ public partial class MoviesViewModel : ViewModelBase, INavigationAware
     public MoviesViewModel(
         IMovieRepository movieRepository,
         ISourceRepository sourceRepository,
-        INavigationService navigationService)
+        INavigationService navigationService,
+        IPlayerController playerController)
     {
         Title = "Movies";
         _movieRepository = movieRepository;
         _sourceRepository = sourceRepository;
         _navigationService = navigationService;
+        _playerController = playerController;
 
         _ = LoadAsync();
     }
 
     /// <summary>
-    /// Navigates to the player for the selected movie.
+    /// Triggers playback for the selected movie.
     /// No-ops when <paramref name="movie"/> has no stream URL.
     /// </summary>
     [RelayCommand]
-    private void SelectMovie(Movie movie)
+    private async Task SelectMovieAsync(Movie movie)
     {
         if (string.IsNullOrEmpty(movie.StreamUrl))
             return;
@@ -64,7 +67,7 @@ public partial class MoviesViewModel : ViewModelBase, INavigationAware
             ContentType: PlaybackContentType.Vod,
             Title: movie.Title);
 
-        _navigationService.NavigateTo<PlayerViewModel>(request);
+        await _playerController.PlayAsync(request);
     }
 
     /// <inheritdoc />

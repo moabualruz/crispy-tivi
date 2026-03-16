@@ -372,17 +372,17 @@ public class PlayerViewModelTests
         await _playerService.Received(1).SetVolumeAsync(0.7f);
     }
 
-    // ─── PlayCommand ──────────────────────────────────────────────────────────
+    // ─── PlayInternalCommand ──────────────────────────────────────────────────
 
     [AvaloniaFact]
-    public async Task PlayCommand_SetsChannelName_AndCallsService()
+    public async Task PlayInternalCommand_SetsChannelName_AndCallsService()
     {
         var req = new PlaybackRequest(
             Url: "http://tv.example.com/ch1",
             ContentType: PlaybackContentType.LiveTv,
             Title: "BBC One");
 
-        await _sut.PlayCommand.ExecuteAsync(req);
+        await _sut.PlayInternalCommand.ExecuteAsync(req);
 
         _sut.ChannelName.Should().Be("BBC One");
         await _playerService.Received(1).PlayAsync(req);
@@ -398,7 +398,7 @@ public class PlayerViewModelTests
             ContentType: PlaybackContentType.LiveTv,
             Title: "Ch1");
 
-        await _sut.PlayCommand.ExecuteAsync(req);
+        await _sut.PlayInternalCommand.ExecuteAsync(req);
         _sut.ErrorMessage = "stream error";
         _sut.RetryCount = 2;
 
@@ -447,7 +447,7 @@ public class PlayerViewModelTests
             UserAgent: null,
             EnableTimeshift: false);
 
-        await _sut.PlayCommand.ExecuteAsync(req);
+        await _sut.PlayInternalCommand.ExecuteAsync(req);
         _playerService.ClearReceivedCalls();
 
         _sut.TogglePipCommand.Execute(null);
@@ -579,7 +579,7 @@ public class PlayerViewModelTests
             UserAgent: null,
             EnableTimeshift: false);
 
-        await _sut.PlayCommand.ExecuteAsync(req);
+        await _sut.PlayInternalCommand.ExecuteAsync(req);
         _playerService.ClearReceivedCalls();
 
         await _sut.GoLiveCommand.ExecuteAsync(null);
@@ -905,7 +905,7 @@ public class PlayerViewModelTests
             Title: "Ch1");
 
         // Set up a current request so retry path executes
-        _sut.PlayCommand.Execute(req);
+        _sut.PlayInternalCommand.Execute(req);
 
         _stateSubject.OnNext(PlayerState.Empty with { ErrorMessage = "Network error" });
 
@@ -932,7 +932,7 @@ public class PlayerViewModelTests
             ContentType: PlaybackContentType.LiveTv,
             Title: "Ch1");
 
-        _sut.PlayCommand.Execute(req);
+        _sut.PlayInternalCommand.Execute(req);
         _sut.RetryCount = 4; // already over the limit
 
         _playerService.ClearReceivedCalls();
@@ -994,7 +994,7 @@ public class PlayerViewModelTests
             ContentType: PlaybackContentType.LiveTv,
             Title: "Ch1");
 
-        await _sut.PlayCommand.ExecuteAsync(req);
+        await _sut.PlayInternalCommand.ExecuteAsync(req);
 
         // On desktop test runner, FindPlayerOnPath returns null → Process.Start with URL.
         // We can't easily prevent Process.Start, so we skip verifying launch itself;
@@ -1376,7 +1376,7 @@ public class PlayerViewModelTests
         // Set up a current request so GoLiveAsync replays it
         var request = new Crispy.Application.Player.Models.PlaybackRequest("http://stream",
             Crispy.Application.Player.Models.PlaybackContentType.LiveTv, Title: "Live Ch");
-        await _sut.PlayCommand.ExecuteAsync(request);
+        await _sut.PlayInternalCommand.ExecuteAsync(request);
 
         await _sut.GoLiveCommand.ExecuteAsync(null);
 
@@ -1508,7 +1508,7 @@ public class PlayerViewModelTests
             Url: "http://tv.example.com/ch1",
             ContentType: PlaybackContentType.LiveTv,
             Title: "Ch1");
-        await _sut.PlayCommand.ExecuteAsync(req);
+        await _sut.PlayInternalCommand.ExecuteAsync(req);
 
         // Emit 3 errors to exhaust the auto-retry budget (RetryCount will reach 3)
         for (int i = 0; i < 3; i++)

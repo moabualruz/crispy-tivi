@@ -8,7 +8,6 @@ using CommunityToolkit.Mvvm.Input;
 
 using Crispy.Application.Player;
 using Crispy.Application.Player.Models;
-using Crispy.UI.Navigation;
 
 namespace Crispy.UI.ViewModels;
 
@@ -18,8 +17,9 @@ namespace Crispy.UI.ViewModels;
 /// keyboard/gesture routing, external player launch, and PiP restore.
 /// OSD display state (channel info, visibility, skip markers, auto-play) is
 /// delegated to <see cref="Osd"/>.
+/// Registered as Singleton — always alive, never recreated across navigation.
 /// </summary>
-public partial class PlayerViewModel : ViewModelBase, IDisposable, INavigationAware
+public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerController
 {
     private readonly IPlayerService _playerService;
     private readonly ITimeshiftService _timeshiftService;
@@ -578,7 +578,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, INavigationAw
     // ─── Commands ────────────────────────────────────────────────────────────
 
     [RelayCommand]
-    private async Task PlayAsync(PlaybackRequest request)
+    private async Task PlayInternalAsync(PlaybackRequest request)
     {
         _currentRequest = request;
         RetryCount = 0;
@@ -868,35 +868,13 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, INavigationAw
         return -1;
     }
 
-    // ─── Navigation lifecycle ─────────────────────────────────────────────────
-
-    /// <summary>
-    /// Pending playback request from navigation — view calls <see cref="StartPendingPlayback"/>
-    /// after the VideoView is wired to ensure VLC renders into the embedded surface.
-    /// </summary>
-    public PlaybackRequest? PendingPlaybackRequest { get; private set; }
+    // ─── IPlayerController ────────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public void OnNavigatedTo(object? parameter)
+    public async Task PlayAsync(PlaybackRequest request)
     {
-        if (parameter is PlaybackRequest request)
-            PendingPlaybackRequest = request;
+        await PlayInternalCommand.ExecuteAsync(request);
     }
-
-    /// <summary>
-    /// Called by PlayerView after VideoView is wired. Starts playback if a request is pending.
-    /// </summary>
-    public void StartPendingPlayback()
-    {
-        if (PendingPlaybackRequest is not null)
-        {
-            PlayCommand.Execute(PendingPlaybackRequest);
-            PendingPlaybackRequest = null;
-        }
-    }
-
-    /// <inheritdoc />
-    public void OnNavigatedFrom() { }
 
     // ─── Cleanup ─────────────────────────────────────────────────────────────
 
