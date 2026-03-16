@@ -30,7 +30,7 @@ public class SleepTimerServiceTests
         public Task SetVolumeAsync(float volume) => Task.CompletedTask;
         public Task MuteAsync(bool mute) => Task.CompletedTask;
         public Task SetAspectRatioAsync(string? ratio) => Task.CompletedTask;
-        public void SetFrameReceiver(IVideoFrameReceiver? receiver) { }
+        public object? NativePlayerHandle => null;
     }
 
     private static SleepTimerService CreateSut() => new(new FakePlayerService());
@@ -310,6 +310,6 @@ public class SleepTimerServiceTests
         }
         public Task MuteAsync(bool mute) => Task.CompletedTask;
         public Task SetAspectRatioAsync(string? ratio) => Task.CompletedTask;
-        public void SetFrameReceiver(IVideoFrameReceiver? receiver) { }
+        public object? NativePlayerHandle => null;
     }
 }

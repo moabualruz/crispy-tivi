@@ -12,12 +12,21 @@ namespace Crispy.Infrastructure.Tests.Player;
 /// Unit tests for VlcPlayerService — verifies that the service correctly delegates
 /// audio/subtitle track selection and media lifecycle calls to the underlying LibVLC engine.
 /// Tests use handwritten stubs (no NSubstitute) to work without a full NuGet restore.
-/// Full implementation target: Crispy.Infrastructure/Player/VlcPlayerService.cs (Wave 2).
 /// </summary>
 [Trait("Category", "Unit")]
 public class VlcPlayerServiceTests
 {
     private readonly VlcTestPlayerStub _sut = new();
+
+    [Fact]
+    public void NativePlayerHandle_ReturnsConfiguredHandle()
+    {
+        // Arrange — stub defaults to a sentinel object
+        var handle = _sut.NativePlayerHandle;
+
+        // Assert
+        handle.Should().NotBeNull("stub returns a non-null handle by default");
+    }
 
     [Fact]
     public async Task SetAudioTrack_CallsMediaPlayerSetAudioTrack_WithCorrectId()
@@ -171,6 +180,6 @@ internal sealed class VlcTestPlayerStub : IPlayerService
     public Task SetVolumeAsync(float volume) => Task.CompletedTask;
     public Task MuteAsync(bool mute) => Task.CompletedTask;
     public Task SetAspectRatioAsync(string? ratio) => Task.CompletedTask;
-    public void SetFrameReceiver(IVideoFrameReceiver? receiver) { }
+    public object? NativePlayerHandle { get; } = new object();
 }
 

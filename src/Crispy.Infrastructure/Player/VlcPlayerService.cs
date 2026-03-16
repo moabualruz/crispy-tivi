@@ -1,6 +1,3 @@
-using System.Runtime.InteropServices;
-using System.Text;
-
 using Crispy.Application.Player;
 using Crispy.Application.Player.Models;
 
@@ -59,15 +56,6 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
     private LibVLC? _libVlc;
     private MediaPlayer? _mediaPlayer;
 
-    // Video frame receiver — set by the UI layer before playback starts
-    private IVideoFrameReceiver? _frameReceiver;
-
-    // Memory buffer for VLC software decode (SetVideoCallbacks path)
-    private IntPtr _videoBuffer = IntPtr.Zero;
-    private uint _videoWidth;
-    private uint _videoHeight;
-    private uint _videoPitch;
-
     public VlcPlayerService(IStreamHealthRepository healthRepo, ILogger<VlcPlayerService> logger)
     {
         _healthRepo = healthRepo;
@@ -83,7 +71,6 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
             };
 
             WireEvents();
-            SetupVideoCallbacks();
         }
         else
         {
@@ -92,86 +79,8 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
         }
     }
 
-    /// <summary>
-    /// Registers the receiver that will be called for every decoded video frame.
-    /// Must be set before playback starts. Can be cleared by passing null.
-    /// </summary>
-    public void SetFrameReceiver(IVideoFrameReceiver? receiver)
-    {
-        _frameReceiver = receiver;
-    }
-
-    /// <summary>
-    /// Wires VLC software-decode callbacks so frames are pushed to <see cref="IVideoFrameReceiver"/>
-    /// instead of being rendered to a native window.
-    /// </summary>
-    private void SetupVideoCallbacks()
-    {
-        if (_mediaPlayer is null)
-            return;
-
-        // Format callback: called once when VLC knows the video dimensions.
-        // We allocate the buffer here and tell VLC to output BGRA32 (RV32).
-        _mediaPlayer.SetVideoFormatCallbacks(
-            (ref IntPtr opaque, IntPtr chroma, ref uint width, ref uint height,
-             ref uint pitches, ref uint lines) =>
-            {
-                // Write "RV32" (BGRA 32-bit) into the chroma buffer VLC gave us
-                var chromaBytes = Encoding.ASCII.GetBytes("RV32");
-                Marshal.Copy(chromaBytes, 0, chroma, 4);
-
-                _videoWidth  = width;
-                _videoHeight = height;
-                _videoPitch  = width * 4; // BGRA = 4 bytes per pixel
-                pitches      = _videoPitch;
-                lines        = height;
-
-                // Free any previous buffer before allocating a new one
-                if (_videoBuffer != IntPtr.Zero)
-                {
-                    Marshal.FreeHGlobal(_videoBuffer);
-                }
-
-                _videoBuffer = Marshal.AllocHGlobal((int)(_videoPitch * height));
-
-                _frameReceiver?.OnFormatChanged(width, height);
-
-                return 1; // one plane (packed BGRA)
-            },
-            (ref IntPtr opaque) =>
-            {
-                // Cleanup callback: free the decode buffer
-                if (_videoBuffer != IntPtr.Zero)
-                {
-                    Marshal.FreeHGlobal(_videoBuffer);
-                    _videoBuffer = IntPtr.Zero;
-                }
-            });
-
-        // Lock / unlock / display callbacks: called per frame on VLC decode thread.
-        // These must be fast — no managed allocations, no locks.
-        _mediaPlayer.SetVideoCallbacks(
-            (opaque, planes) =>
-            {
-                // Lock: hand our buffer pointer to VLC as the decode target
-                if (_videoBuffer != IntPtr.Zero)
-                    Marshal.WriteIntPtr(planes, _videoBuffer);
-
-                return IntPtr.Zero; // picture handle (unused)
-            },
-            (opaque, picture, planes) =>
-            {
-                // Unlock: frame has been decoded into _videoBuffer — push to receiver
-                if (_videoBuffer != IntPtr.Zero && _frameReceiver is not null)
-                {
-                    _frameReceiver.OnFrame(_videoBuffer, _videoWidth, _videoHeight, _videoPitch);
-                }
-            },
-            (opaque, picture) =>
-            {
-                // Display: no-op — IVideoFrameReceiver handles display timing
-            });
-    }
+    /// <inheritdoc />
+    public object? NativePlayerHandle => _mediaPlayer;
 
     private static bool IsVlcAvailable()
     {
@@ -416,7 +325,6 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
     public Task StopAsync()
     {
         _mediaPlayer?.Stop();
-        _frameReceiver?.OnClear();
         EmitState(_ => PlayerState.Empty);
         return Task.CompletedTask;
     }
@@ -567,16 +475,6 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
         _audioSamplesSubject.OnCompleted();
         _stateSubject.Dispose();
         _audioSamplesSubject.Dispose();
-
-        _frameReceiver?.OnClear();
-        _frameReceiver = null;
-
-        // Free the video decode buffer if the cleanup callback didn't (e.g. never played)
-        if (_videoBuffer != IntPtr.Zero)
-        {
-            Marshal.FreeHGlobal(_videoBuffer);
-            _videoBuffer = IntPtr.Zero;
-        }
 
         _equalizer?.Dispose();
         _equalizer = null;

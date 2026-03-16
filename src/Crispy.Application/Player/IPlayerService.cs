@@ -68,9 +68,9 @@ public interface IPlayerService
     IObservable<float[]> AudioSamples { get; }
 
     /// <summary>
-    /// Registers the video frame receiver that will receive decoded frame callbacks.
-    /// Call once at startup before playback begins.
-    /// Pass <c>null</c> to detach.
+    /// Returns the native player handle for the UI layer to bind to the video surface.
+    /// For VLC: returns LibVLCSharp.Shared.MediaPlayer typed as object (keeps Application layer free of LibVLC dependency).
+    /// For Browser: returns null (HTML5 video element is managed by JS interop).
     /// </summary>
-    void SetFrameReceiver(IVideoFrameReceiver? receiver);
+    object? NativePlayerHandle { get; }
 }
