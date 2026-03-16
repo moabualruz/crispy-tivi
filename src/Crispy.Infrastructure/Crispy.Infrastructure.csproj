@@ -32,6 +32,17 @@
     <PackageReference Include="Serilog.Extensions.Logging" />
     <PackageReference Include="Serilog.Sinks.Console" />
     <PackageReference Include="Serilog.Sinks.File" />
-    <PackageReference Include="LibVLCSharp" />
+    <!-- LibVLCSharp removed — replaced by GStreamer (runtime detection via GstreamerPlayerService).
+         GstSharp PackageReference will be added when GstSharpBundle NuGet becomes available.
+         See Directory.Packages.props for version management. -->
+    <!-- <PackageReference Include="GstSharp" /> -->
+    <!-- <PackageReference Include="GstSharpBundle.Windows.x64" Condition="'$(RuntimeIdentifier)' == 'win-x64' Or '$(RuntimeIdentifier)' == ''" /> -->
+  </ItemGroup>
+
+  <!-- VLC-specific source files excluded from compilation — LibVLCSharp package removed.
+       These files are kept as reference for the GStreamer migration. -->
+  <ItemGroup>
+    <Compile Remove="Player\VlcPlayerService.cs" />
+    <Compile Remove="Player\TimeshiftService.cs" />
   </ItemGroup>
 </Project>

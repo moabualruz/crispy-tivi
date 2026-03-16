@@ -57,13 +57,19 @@
     <!-- Images -->
     <PackageVersion Include="AsyncImageLoader.Avalonia" Version="3.5.0" />
 
-    <!-- Player — LibVLCSharp (packages pending NuGet restore; see STATE.md blocker) -->
-    <PackageVersion Include="LibVLCSharp" Version="3.9.6" />
-    <PackageVersion Include="LibVLCSharp.Avalonia" Version="3.9.5" />
-    <PackageVersion Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
-    <PackageVersion Include="VideoLAN.LibVLC.Linux" Version="3.0.21" />
-    <PackageVersion Include="VideoLAN.LibVLC.Mac" Version="3.0.21" />
-    <PackageVersion Include="VideoLAN.LibVLC.Android" Version="3.0.21" />
+    <!-- Player — GStreamer via GstSharp (runtime detection; see CLAUDE.md architecture decision) -->
+    <!-- GstSharpBundle NuGet not yet available in local cache — runtime probe will return false
+         and GstreamerPlayerService will gracefully degrade. When available, uncomment and restore. -->
+    <!-- <PackageVersion Include="GstSharp" Version="1.24.0" /> -->
+    <!-- <PackageVersion Include="GstSharpBundle.Windows.x64" Version="1.24.0" /> -->
+
+    <!-- Player — LibVLCSharp (kept as fallback reference; replaced by GStreamer — see architecture decision) -->
+    <!-- <PackageVersion Include="LibVLCSharp" Version="3.9.6" /> -->
+    <!-- <PackageVersion Include="LibVLCSharp.Avalonia" Version="3.9.5" /> -->
+    <!-- <PackageVersion Include="VideoLAN.LibVLC.Windows" Version="3.0.21" /> -->
+    <!-- <PackageVersion Include="VideoLAN.LibVLC.Linux" Version="3.0.21" /> -->
+    <!-- <PackageVersion Include="VideoLAN.LibVLC.Mac" Version="3.0.21" /> -->
+    <!-- <PackageVersion Include="VideoLAN.LibVLC.Android" Version="3.0.21" /> -->
 
     <!-- Reactive Extensions (used by player services) -->
     <PackageVersion Include="System.Reactive" Version="6.0.1" />
