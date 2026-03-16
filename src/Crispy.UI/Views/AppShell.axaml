@@ -16,67 +16,72 @@
   -->
   <Grid>
 
-    <!-- ═══ LAYER 0: Video Surface (LibVLCSharp NativeControlHost) ═══════════ -->
+    <!-- ═══ LAYER 0: Video Surface (LibVLCSharp NativeControlHost) ═══════════
+         VideoView.Content renders in a floating transparent overlay window
+         ON TOP of the native video — this is how we solve airspace.
+         ALL UI that must appear over video goes inside VideoView.Content. -->
     <vlc:VideoView x:Name="VideoView"
                    IsVisible="{Binding IsVideoVisible}"
-                   ZIndex="0" />
+                   ZIndex="0">
+      <Grid>
+        <!-- Content / Navigation — renders in floating overlay on top of video -->
+        <Grid x:Name="ContentLayer"
+              IsVisible="{Binding IsContentVisible}"
+              Opacity="{Binding ContentOpacity}"
+              Background="{Binding ContentBackground}"
+              ZIndex="1">
 
-    <!-- ═══ LAYER 1: Content / Navigation ══════════════════════════════════ -->
-    <Grid x:Name="ContentLayer"
-          IsVisible="{Binding IsContentVisible}"
-          Opacity="{Binding ContentOpacity}"
-          Background="{Binding ContentBackground}"
-          ZIndex="1">
+          <SplitView x:Name="MainSplitView"
+                     DisplayMode="CompactOverlay"
+                     IsPaneOpen="{Binding Navigation.IsRailExpanded}"
+                     CompactPaneLength="64"
+                     OpenPaneLength="256"
+                     PanePlacement="Left"
+                     UseLightDismissOverlayMode="True">
 
-      <SplitView x:Name="MainSplitView"
-                 DisplayMode="CompactOverlay"
-                 IsPaneOpen="{Binding Navigation.IsRailExpanded}"
-                 CompactPaneLength="64"
-                 OpenPaneLength="256"
-                 PanePlacement="Left"
-                 UseLightDismissOverlayMode="True">
+            <!-- Navigation Rail Pane -->
+            <SplitView.Pane>
+              <Border PointerEntered="OnRailPointerEntered"
+                      PointerExited="OnRailPointerExited">
+                <controls:NavigationRail x:Name="NavRail"
+                                         PrimaryItems="{Binding Navigation.PrimaryNavItems}"
+                                         SecondaryItems="{Binding Navigation.SecondaryNavItems}"
+                                         IsExpanded="{Binding Navigation.IsRailExpanded}" />
+              </Border>
+            </SplitView.Pane>
 
-        <!-- Navigation Rail Pane -->
-        <SplitView.Pane>
-          <Border PointerEntered="OnRailPointerEntered"
-                  PointerExited="OnRailPointerExited">
-            <controls:NavigationRail x:Name="NavRail"
-                                     PrimaryItems="{Binding Navigation.PrimaryNavItems}"
-                                     SecondaryItems="{Binding Navigation.SecondaryNavItems}"
-                                     IsExpanded="{Binding Navigation.IsRailExpanded}" />
-          </Border>
-        </SplitView.Pane>
+            <!-- Content Area -->
+            <SplitView.Content>
+              <Panel x:Name="ContentPanel">
+                <!-- Page content with crossfade transition -->
+                <TransitioningContentControl Content="{Binding Navigation.CurrentPage}"
+                                             Margin="0 0 0 64">
+                  <TransitioningContentControl.PageTransition>
+                    <CrossFade Duration="0:0:0.25" />
+                  </TransitioningContentControl.PageTransition>
+                </TransitioningContentControl>
 
-        <!-- Content Area -->
-        <SplitView.Content>
-          <Panel x:Name="ContentPanel">
-            <!-- Page content with crossfade transition -->
-            <TransitioningContentControl Content="{Binding Navigation.CurrentPage}"
-                                         Margin="0 0 0 64">
-              <TransitioningContentControl.PageTransition>
-                <CrossFade Duration="0:0:0.25" />
-              </TransitioningContentControl.PageTransition>
-            </TransitioningContentControl>
+              </Panel>
+            </SplitView.Content>
 
-          </Panel>
-        </SplitView.Content>
+          </SplitView>
 
-      </SplitView>
+        </Grid>
 
-    </Grid>
+        <!-- Player Overlay (OSD) — renders in floating overlay on top of video -->
+        <Grid x:Name="PlayerOverlay"
+              IsVisible="{Binding IsPlayerOverlayVisible}"
+              Opacity="{Binding PlayerOverlayOpacity}"
+              ZIndex="2">
+          <controls:OsdOverlay DataContext="{Binding Player}" />
+        </Grid>
 
-    <!-- ═══ LAYER 2: Player Overlay (OSD) ══════════════════════════════════ -->
-    <Grid x:Name="PlayerOverlay"
-          IsVisible="{Binding IsPlayerOverlayVisible}"
-          Opacity="{Binding PlayerOverlayOpacity}"
-          ZIndex="2">
-      <controls:OsdOverlay DataContext="{Binding Player}" />
-    </Grid>
-
-    <!-- ═══ MINI PLAYER BAR — playing + browsing ════════════════════════════ -->
-    <controls:MiniPlayerBar VerticalAlignment="Bottom"
-                            ZIndex="3"
-                            IsVisible="{Binding IsMiniPlayerVisible}" />
+        <!-- Mini Player Bar — renders in floating overlay on top of video -->
+        <controls:MiniPlayerBar VerticalAlignment="Bottom"
+                                ZIndex="3"
+                                IsVisible="{Binding IsMiniPlayerVisible}" />
+      </Grid>
+    </vlc:VideoView>
 
   </Grid>
 
