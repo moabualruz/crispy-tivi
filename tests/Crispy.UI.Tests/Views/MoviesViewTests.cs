@@ -1,6 +1,7 @@
 using Avalonia.Headless.XUnit;
 
 using Crispy.Domain.Interfaces;
+using Crispy.UI.Navigation;
 using Crispy.UI.Tests.Helpers;
 using Crispy.UI.ViewModels;
 using Crispy.UI.Views;
@@ -26,7 +27,7 @@ public class MoviesViewTests
         var sourceRepo = Substitute.For<ISourceRepository>();
         sourceRepo.GetAllAsync().Returns([]);
 
-        var vm = new MoviesViewModel(movieRepo, sourceRepo);
+        var vm = new MoviesViewModel(movieRepo, sourceRepo, Substitute.For<INavigationService>());
         var window = HeadlessTestHelpers.CreateWindow<MoviesView>(vm);
 
         window.Should().NotBeNull();

@@ -1,5 +1,7 @@
+using Crispy.Application.Player.Models;
 using Crispy.Domain.Entities;
 using Crispy.Domain.Interfaces;
+using Crispy.UI.Navigation;
 using Crispy.UI.ViewModels;
 
 using FluentAssertions;
@@ -17,8 +19,11 @@ public class LiveTvViewModelTests
     private static Source MakeSource(int id, string name, bool enabled = true) =>
         new() { Id = id, Name = name, Url = "http://test", IsEnabled = enabled };
 
-    private static Channel MakeChannel(int id, int sourceId) =>
-        new() { Id = id, Title = $"Ch{id}", SourceId = sourceId };
+    private static Channel MakeChannel(int id, int sourceId, string? group = null) =>
+        new() { Id = id, Title = $"Ch{id}", SourceId = sourceId, GroupName = group };
+
+    private static LiveTvViewModel MakeSut(IChannelRepository channelRepo, ISourceRepository sourceRepo) =>
+        new(channelRepo, sourceRepo, Substitute.For<INavigationService>());
 
     // ── Constructor ────────────────────────────────────────────────────────────
 
@@ -31,7 +36,7 @@ public class LiveTvViewModelTests
         channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Channel>>([]));
 
-        var act = () => new LiveTvViewModel(channelRepo, sourceRepo);
+        var act = () => MakeSut(channelRepo, sourceRepo);
         act.Should().NotThrow();
 
         // Allow fire-and-forget Load to complete.
@@ -47,7 +52,7 @@ public class LiveTvViewModelTests
         channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Channel>>([]));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo);
+        var sut = MakeSut(channelRepo, sourceRepo);
         sut.Title.Should().Be("Live TV");
     }
 
@@ -60,7 +65,7 @@ public class LiveTvViewModelTests
         channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Channel>>([]));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo);
+        var sut = MakeSut(channelRepo, sourceRepo);
         sut.Channels.Should().NotBeNull();
     }
 
@@ -78,7 +83,7 @@ public class LiveTvViewModelTests
         channelRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Channel>>([MakeChannel(1, 1), MakeChannel(2, 1)]));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo);
+        var sut = MakeSut(channelRepo, sourceRepo);
 
         // Wait for the fire-and-forget Load triggered in constructor.
         await Task.Delay(100);
@@ -98,7 +103,7 @@ public class LiveTvViewModelTests
         channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Channel>>([]));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo);
+        var sut = MakeSut(channelRepo, sourceRepo);
         await Task.Delay(100);
 
         // "All Sources" chip + one per enabled source.
@@ -122,7 +127,7 @@ public class LiveTvViewModelTests
         channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Channel>>([]));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo);
+        var sut = MakeSut(channelRepo, sourceRepo);
         await Task.Delay(100);
 
         // "All Sources" + only 1 enabled source.
@@ -138,7 +143,7 @@ public class LiveTvViewModelTests
         channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Channel>>([]));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo);
+        var sut = MakeSut(channelRepo, sourceRepo);
         await Task.Delay(100);
 
         sut.IsLoading.Should().BeFalse();
@@ -151,7 +156,7 @@ public class LiveTvViewModelTests
         var sourceRepo = Substitute.For<ISourceRepository>();
         sourceRepo.GetAllAsync().ThrowsAsync(new InvalidOperationException("DB error"));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo);
+        var sut = MakeSut(channelRepo, sourceRepo);
         await Task.Delay(100);
 
         sut.IsLoading.Should().BeFalse();
@@ -174,7 +179,7 @@ public class LiveTvViewModelTests
         channelRepo.GetBySourceAsync(2, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Channel>>([MakeChannel(20, 2), MakeChannel(21, 2)]));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo);
+        var sut = MakeSut(channelRepo, sourceRepo);
         await Task.Delay(100);
 
         // Switch to source2 filter.
@@ -200,7 +205,7 @@ public class LiveTvViewModelTests
         channelRepo.GetBySourceAsync(2, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Channel>>([MakeChannel(3, 2)]));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo);
+        var sut = MakeSut(channelRepo, sourceRepo);
         await Task.Delay(100);
 
         // "All Sources" is the initial selection — should union from both sources.
@@ -217,7 +222,7 @@ public class LiveTvViewModelTests
         channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Channel>>([]));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo);
+        var sut = MakeSut(channelRepo, sourceRepo);
         await Task.Delay(100);
 
         // Record call count after constructor Load completes.
@@ -230,6 +235,86 @@ public class LiveTvViewModelTests
         // No additional calls should have been made.
         sourceRepo.ReceivedCalls().Count().Should().Be(callsBefore,
             "setting SelectedSourceFilter to null must not trigger ApplyFilterAsync");
+    }
+
+    // ── Group filtering ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Groups_PopulatedFromChannels_AfterLoad()
+    {
+        var channelRepo = Substitute.For<IChannelRepository>();
+        var sourceRepo = Substitute.For<ISourceRepository>();
+
+        var source = MakeSource(1, "IPTV1");
+        sourceRepo.GetAllAsync()
+            .Returns(Task.FromResult<IReadOnlyList<Source>>([source]));
+        channelRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>(
+            [
+                MakeChannel(1, 1, "Sports"),
+                MakeChannel(2, 1, "News"),
+                MakeChannel(3, 1, "Sports"),
+                MakeChannel(4, 1, null),   // no group — excluded from chips
+            ]));
+
+        var sut = MakeSut(channelRepo, sourceRepo);
+        await Task.Delay(100);
+
+        // "All" + 2 distinct groups in alphabetical order.
+        sut.Groups.Should().Equal("All", "News", "Sports");
+    }
+
+    [Fact]
+    public async Task SelectedGroup_FiltersChannels_ByGroupName()
+    {
+        var channelRepo = Substitute.For<IChannelRepository>();
+        var sourceRepo = Substitute.For<ISourceRepository>();
+
+        var source = MakeSource(1, "IPTV1");
+        sourceRepo.GetAllAsync()
+            .Returns(Task.FromResult<IReadOnlyList<Source>>([source]));
+        channelRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>(
+            [
+                MakeChannel(1, 1, "Sports"),
+                MakeChannel(2, 1, "News"),
+                MakeChannel(3, 1, "Sports"),
+            ]));
+
+        var sut = MakeSut(channelRepo, sourceRepo);
+        await Task.Delay(100);
+
+        sut.SelectedGroup = "Sports";
+
+        sut.Channels.Should().HaveCount(2, "only Sports channels should be visible");
+        sut.Channels.All(c => c.GroupName == "Sports").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SelectedGroup_ShowsAll_WhenAllSelected()
+    {
+        var channelRepo = Substitute.For<IChannelRepository>();
+        var sourceRepo = Substitute.For<ISourceRepository>();
+
+        var source = MakeSource(1, "IPTV1");
+        sourceRepo.GetAllAsync()
+            .Returns(Task.FromResult<IReadOnlyList<Source>>([source]));
+        channelRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>(
+            [
+                MakeChannel(1, 1, "Sports"),
+                MakeChannel(2, 1, "News"),
+                MakeChannel(3, 1, "Sports"),
+            ]));
+
+        var sut = MakeSut(channelRepo, sourceRepo);
+        await Task.Delay(100);
+
+        // First narrow to Sports, then switch back to All.
+        sut.SelectedGroup = "Sports";
+        sut.SelectedGroup = "All";
+
+        sut.Channels.Should().HaveCount(3, "All group shows every channel");
     }
 
     [Fact]
@@ -247,7 +332,7 @@ public class LiveTvViewModelTests
         channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Channel>>([]));
 
-        var sut = new LiveTvViewModel(channelRepo, sourceRepo);
+        var sut = MakeSut(channelRepo, sourceRepo);
         await Task.Delay(100);
 
         // Switch to source1 filter to trigger ApplyFilterAsync which will throw on the second GetAllAsync.
@@ -259,5 +344,87 @@ public class LiveTvViewModelTests
         }
 
         sut.IsLoading.Should().BeFalse("IsLoading must be reset even when ApplyFilterAsync throws");
+    }
+
+    // ── SelectChannelCommand ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SelectChannelCommand_NavigatesToPlayer_WhenEndpointExists()
+    {
+        var channelRepo = Substitute.For<IChannelRepository>();
+        var sourceRepo = Substitute.For<ISourceRepository>();
+        var navService = Substitute.For<INavigationService>();
+
+        sourceRepo.GetAllAsync().Returns(Task.FromResult<IReadOnlyList<Source>>([]));
+        channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>([]));
+
+        var endpoint = new StreamEndpoint { ChannelId = 7, SourceId = 1, Url = "http://stream/ch7", Priority = 0 };
+        var fullChannel = new Channel { Id = 7, Title = "Sports HD", SourceId = 1, TvgLogo = "http://logo/ch7.png", IsRadio = false };
+        fullChannel.StreamEndpoints.Add(endpoint);
+        channelRepo.GetByIdAsync(7, Arg.Any<CancellationToken>()).Returns(Task.FromResult<Channel?>(fullChannel));
+
+        var sut = new LiveTvViewModel(channelRepo, sourceRepo, navService);
+        await Task.Delay(50);
+
+        var stub = MakeChannel(7, 1);
+        await sut.SelectChannelCommand.ExecuteAsync(stub);
+
+        navService.Received(1).NavigateTo<PlayerViewModel>(
+            Arg.Is<PlaybackRequest>(r =>
+                r.Url == "http://stream/ch7" &&
+                r.ContentType == PlaybackContentType.LiveTv &&
+                r.Title == "Sports HD" &&
+                r.ChannelLogoUrl == "http://logo/ch7.png"));
+    }
+
+    [Fact]
+    public async Task SelectChannelCommand_DoesNotNavigate_WhenNoEndpoint()
+    {
+        var channelRepo = Substitute.For<IChannelRepository>();
+        var sourceRepo = Substitute.For<ISourceRepository>();
+        var navService = Substitute.For<INavigationService>();
+
+        sourceRepo.GetAllAsync().Returns(Task.FromResult<IReadOnlyList<Source>>([]));
+        channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>([]));
+
+        // GetByIdAsync returns channel with no endpoints.
+        var fullChannel = new Channel { Id = 5, Title = "Empty Ch", SourceId = 1 };
+        channelRepo.GetByIdAsync(5, Arg.Any<CancellationToken>()).Returns(Task.FromResult<Channel?>(fullChannel));
+
+        var sut = new LiveTvViewModel(channelRepo, sourceRepo, navService);
+        await Task.Delay(50);
+
+        var stub = MakeChannel(5, 1);
+        await sut.SelectChannelCommand.ExecuteAsync(stub);
+
+        navService.DidNotReceiveWithAnyArgs().NavigateTo<PlayerViewModel>();
+    }
+
+    [Fact]
+    public async Task SelectChannelCommand_UsesRadioContentType_WhenChannelIsRadio()
+    {
+        var channelRepo = Substitute.For<IChannelRepository>();
+        var sourceRepo = Substitute.For<ISourceRepository>();
+        var navService = Substitute.For<INavigationService>();
+
+        sourceRepo.GetAllAsync().Returns(Task.FromResult<IReadOnlyList<Source>>([]));
+        channelRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>([]));
+
+        var endpoint = new StreamEndpoint { ChannelId = 9, SourceId = 1, Url = "http://stream/radio9", Priority = 0 };
+        var fullChannel = new Channel { Id = 9, Title = "Radio FM", SourceId = 1, IsRadio = true };
+        fullChannel.StreamEndpoints.Add(endpoint);
+        channelRepo.GetByIdAsync(9, Arg.Any<CancellationToken>()).Returns(Task.FromResult<Channel?>(fullChannel));
+
+        var sut = new LiveTvViewModel(channelRepo, sourceRepo, navService);
+        await Task.Delay(50);
+
+        var stub = MakeChannel(9, 1);
+        await sut.SelectChannelCommand.ExecuteAsync(stub);
+
+        navService.Received(1).NavigateTo<PlayerViewModel>(
+            Arg.Is<PlaybackRequest>(r => r.ContentType == PlaybackContentType.Radio));
     }
 }

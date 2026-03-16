@@ -35,6 +35,34 @@
       </ListBox>
     </ScrollViewer>
 
+    <!-- Group filter chip bar -->
+    <ScrollViewer DockPanel.Dock="Top"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Disabled"
+                  Margin="12,0,12,8">
+      <ListBox ItemsSource="{Binding Groups}"
+               SelectedItem="{Binding SelectedGroup, Mode=TwoWay}"
+               SelectionMode="Single">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal"
+                        Spacing="6" />
+          </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Border CornerRadius="16"
+                    Padding="14,6"
+                    Background="{DynamicResource SurfaceElevatedBrush}">
+              <TextBlock Text="{Binding}"
+                         FontSize="13"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+            </Border>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </ScrollViewer>
+
     <!-- Loading progress bar -->
     <ProgressBar DockPanel.Dock="Top"
                  IsIndeterminate="True"
@@ -42,34 +70,47 @@
                  Height="3" />
 
     <!-- Channel list -->
-    <ListBox ItemsSource="{Binding Channels}">
+    <ListBox ItemsSource="{Binding Channels}"
+             SelectionMode="Single">
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="entities:Channel">
-          <Grid ColumnDefinitions="48,*"
-                Margin="8,6">
-            <!-- Logo -->
-            <Image Grid.Column="0"
-                   Source="{Binding TvgLogo}"
-                   Width="40"
-                   Height="40"
-                   Stretch="Uniform" />
-            <!-- Name + group -->
-            <StackPanel Grid.Column="1"
-                        Margin="10,0,0,0"
-                        VerticalAlignment="Center"
-                        Spacing="2">
-              <TextBlock Text="{Binding Title}"
-                         FontSize="14"
-                         FontWeight="SemiBold"
-                         Foreground="{DynamicResource TextPrimaryBrush}"
-                         TextTrimming="CharacterEllipsis" />
-              <TextBlock Text="{Binding GroupName}"
-                         FontSize="12"
-                         Foreground="{DynamicResource TextSecondaryBrush}"
-                         TextTrimming="CharacterEllipsis"
-                         IsVisible="{Binding GroupName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-            </StackPanel>
-          </Grid>
+          <!--
+            Button with no visible chrome wraps each row so that a single tap fires
+            SelectChannelCommand with the Channel as CommandParameter.
+            HorizontalContentAlignment=Stretch ensures the row fills the full width.
+          -->
+          <Button Command="{Binding $parent[UserControl].((vm:LiveTvViewModel)DataContext).SelectChannelCommand}"
+                  CommandParameter="{Binding}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Stretch"
+                  Padding="0"
+                  Background="Transparent">
+            <Grid ColumnDefinitions="48,*"
+                  Margin="8,6">
+              <!-- Logo -->
+              <Image Grid.Column="0"
+                     Source="{Binding TvgLogo}"
+                     Width="40"
+                     Height="40"
+                     Stretch="Uniform" />
+              <!-- Name + group -->
+              <StackPanel Grid.Column="1"
+                          Margin="10,0,0,0"
+                          VerticalAlignment="Center"
+                          Spacing="2">
+                <TextBlock Text="{Binding Title}"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding GroupName}"
+                           FontSize="12"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextTrimming="CharacterEllipsis"
+                           IsVisible="{Binding GroupName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              </StackPanel>
+            </Grid>
+          </Button>
         </DataTemplate>
       </ListBox.ItemTemplate>
     </ListBox>

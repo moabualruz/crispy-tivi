@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 
+using Crispy.Application.Player.Models;
 using Crispy.Domain.Entities;
 using Crispy.Domain.Interfaces;
+using Crispy.UI.Navigation;
 using Crispy.UI.ViewModels;
 
 using FluentAssertions;
@@ -18,26 +20,28 @@ public class MoviesViewModelTests
 {
     private readonly IMovieRepository _movieRepo;
     private readonly ISourceRepository _sourceRepo;
+    private readonly INavigationService _navService;
     private readonly MoviesViewModel _sut;
 
     public MoviesViewModelTests()
     {
         _movieRepo = Substitute.For<IMovieRepository>();
         _sourceRepo = Substitute.For<ISourceRepository>();
+        _navService = Substitute.For<INavigationService>();
 
         _movieRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(new List<Movie>());
         _sourceRepo.GetAllAsync()
             .Returns(new List<Source>());
 
-        _sut = new MoviesViewModel(_movieRepo, _sourceRepo);
+        _sut = new MoviesViewModel(_movieRepo, _sourceRepo, _navService);
     }
 
     private static Source MakeSource(int id, string name, bool enabled = true) =>
         new() { Id = id, Name = name, Url = "http://test", IsEnabled = enabled };
 
-    private static Movie MakeMovie(int id, int sourceId) =>
-        new() { Id = id, Title = $"Movie{id}", SourceId = sourceId };
+    private static Movie MakeMovie(int id, int sourceId, string? streamUrl = null) =>
+        new() { Id = id, Title = $"Movie{id}", SourceId = sourceId, StreamUrl = streamUrl };
 
     // ── Constructor / defaults ─────────────────────────────────────────────────
 
@@ -108,7 +112,7 @@ public class MoviesViewModelTests
         movieRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Movie>>([]));
 
-        var sut = new MoviesViewModel(movieRepo, sourceRepo);
+        var sut = new MoviesViewModel(movieRepo, sourceRepo, Substitute.For<INavigationService>());
         await Task.Delay(100);
 
         // "All Sources" + 2 enabled sources
@@ -125,7 +129,7 @@ public class MoviesViewModelTests
         movieRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Movie>>([MakeMovie(1, 1), MakeMovie(2, 1)]));
 
-        var sut = new MoviesViewModel(movieRepo, sourceRepo);
+        var sut = new MoviesViewModel(movieRepo, sourceRepo, Substitute.For<INavigationService>());
         await Task.Delay(100);
 
         sut.Movies.Should().HaveCount(2);
@@ -140,7 +144,7 @@ public class MoviesViewModelTests
         movieRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Movie>>([]));
 
-        var sut = new MoviesViewModel(movieRepo, sourceRepo);
+        var sut = new MoviesViewModel(movieRepo, sourceRepo, Substitute.For<INavigationService>());
         await Task.Delay(100);
 
         sut.IsLoading.Should().BeFalse();
@@ -153,7 +157,7 @@ public class MoviesViewModelTests
         var sourceRepo = Substitute.For<ISourceRepository>();
         sourceRepo.GetAllAsync().ThrowsAsync(new InvalidOperationException("DB error"));
 
-        var sut = new MoviesViewModel(movieRepo, sourceRepo);
+        var sut = new MoviesViewModel(movieRepo, sourceRepo, Substitute.For<INavigationService>());
         await Task.Delay(100);
 
         sut.IsLoading.Should().BeFalse();
@@ -175,7 +179,7 @@ public class MoviesViewModelTests
         movieRepo.GetBySourceAsync(2, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Movie>>([MakeMovie(2, 2)]));
 
-        var sut = new MoviesViewModel(movieRepo, sourceRepo);
+        var sut = new MoviesViewModel(movieRepo, sourceRepo, Substitute.For<INavigationService>());
         await Task.Delay(100);
 
         // Default is "All Sources" so both movies should be present
@@ -200,7 +204,7 @@ public class MoviesViewModelTests
         movieRepo.GetBySourceAsync(2, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Movie>>([MakeMovie(20, 2), MakeMovie(21, 2)]));
 
-        var sut = new MoviesViewModel(movieRepo, sourceRepo);
+        var sut = new MoviesViewModel(movieRepo, sourceRepo, Substitute.For<INavigationService>());
         await Task.Delay(100);
 
         var source2Filter = sut.SourceFilters.First(f => f.SourceId == 2);
@@ -218,5 +222,33 @@ public class MoviesViewModelTests
         await Task.Delay(50);
         var act = async () => await _sut.LoadCommand.ExecuteAsync(default(CancellationToken));
         await act.Should().NotThrowAsync();
+    }
+
+    // ── SelectMovieCommand ─────────────────────────────────────────────────────
+
+    [Fact]
+    public void SelectMovieCommand_NavigatesToPlayer_WhenStreamUrlExists()
+    {
+        var movie = MakeMovie(1, 1, streamUrl: "http://stream/movie.m3u8");
+
+        _sut.SelectMovieCommand.Execute(movie);
+
+        _navService.Received(1).NavigateTo<PlayerViewModel>(
+            Arg.Is<PlaybackRequest>(r =>
+                r.Url == movie.StreamUrl &&
+                r.ContentType == PlaybackContentType.Vod &&
+                r.Title == movie.Title));
+    }
+
+    [Fact]
+    public void SelectMovieCommand_DoesNotNavigate_WhenNoStreamUrl()
+    {
+        var movieNoUrl = MakeMovie(2, 1, streamUrl: null);
+        var movieEmptyUrl = MakeMovie(3, 1, streamUrl: "");
+
+        _sut.SelectMovieCommand.Execute(movieNoUrl);
+        _sut.SelectMovieCommand.Execute(movieEmptyUrl);
+
+        _navService.DidNotReceiveWithAnyArgs().NavigateTo<PlayerViewModel>();
     }
 }

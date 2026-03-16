@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using Crispy.Application.Player.Models;
 using Crispy.Domain.Entities;
 using Crispy.Domain.Interfaces;
 using Crispy.UI.Navigation;
@@ -18,6 +19,7 @@ public partial class MoviesViewModel : ViewModelBase, INavigationAware
 {
     private readonly IMovieRepository _movieRepository;
     private readonly ISourceRepository _sourceRepository;
+    private readonly INavigationService _navigationService;
 
     [ObservableProperty]
     private ObservableCollection<Movie> _movies = [];
@@ -34,13 +36,35 @@ public partial class MoviesViewModel : ViewModelBase, INavigationAware
     /// <summary>
     /// Creates a new MoviesViewModel and begins loading movies.
     /// </summary>
-    public MoviesViewModel(IMovieRepository movieRepository, ISourceRepository sourceRepository)
+    public MoviesViewModel(
+        IMovieRepository movieRepository,
+        ISourceRepository sourceRepository,
+        INavigationService navigationService)
     {
         Title = "Movies";
         _movieRepository = movieRepository;
         _sourceRepository = sourceRepository;
+        _navigationService = navigationService;
 
         _ = LoadAsync();
+    }
+
+    /// <summary>
+    /// Navigates to the player for the selected movie.
+    /// No-ops when <paramref name="movie"/> has no stream URL.
+    /// </summary>
+    [RelayCommand]
+    private void SelectMovie(Movie movie)
+    {
+        if (string.IsNullOrEmpty(movie.StreamUrl))
+            return;
+
+        var request = new PlaybackRequest(
+            Url: movie.StreamUrl,
+            ContentType: PlaybackContentType.Vod,
+            Title: movie.Title);
+
+        _navigationService.NavigateTo<PlayerViewModel>(request);
     }
 
     /// <inheritdoc />

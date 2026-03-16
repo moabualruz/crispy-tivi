@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:entities="using:Crispy.Domain.Entities"
              x:Class="Crispy.UI.Views.MoviesView"
              x:DataType="vm:MoviesViewModel">
 
@@ -40,30 +41,36 @@
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
-            <DataTemplate>
-              <Border Width="160"
-                      Height="260"
-                      Margin="6"
-                      CornerRadius="8"
-                      Background="{DynamicResource SurfaceBrush}"
-                      ClipToBounds="True">
-                <StackPanel>
-                  <Image Source="{Binding Thumbnail}"
-                         Height="200"
-                         Stretch="UniformToFill" />
-                  <Border Padding="8,4"><StackPanel>
-                    <TextBlock Text="{Binding Title}"
-                               FontWeight="SemiBold"
-                               FontSize="13"
-                               TextTrimming="CharacterEllipsis"
-                               MaxLines="2"
-                               Foreground="{DynamicResource TextPrimaryBrush}" />
-                    <TextBlock Text="{Binding Year}"
-                               FontSize="11"
-                               Foreground="{DynamicResource TextSecondaryBrush}" />
-                  </StackPanel></Border>
-                </StackPanel>
-              </Border>
+            <DataTemplate x:DataType="entities:Movie">
+              <Button Command="{Binding $parent[ItemsControl].((vm:MoviesViewModel)DataContext).SelectMovieCommand}"
+                      CommandParameter="{Binding}"
+                      Padding="0"
+                      Background="Transparent"
+                      BorderThickness="0">
+                <Border Width="160"
+                        Height="260"
+                        Margin="6"
+                        CornerRadius="8"
+                        Background="{DynamicResource SurfaceBrush}"
+                        ClipToBounds="True">
+                  <StackPanel>
+                    <Image Source="{Binding Thumbnail}"
+                           Height="200"
+                           Stretch="UniformToFill" />
+                    <Border Padding="8,4"><StackPanel>
+                      <TextBlock Text="{Binding Title}"
+                                 FontWeight="SemiBold"
+                                 FontSize="13"
+                                 TextTrimming="CharacterEllipsis"
+                                 MaxLines="2"
+                                 Foreground="{DynamicResource TextPrimaryBrush}" />
+                      <TextBlock Text="{Binding Year}"
+                                 FontSize="11"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel></Border>
+                  </StackPanel>
+                </Border>
+              </Button>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>

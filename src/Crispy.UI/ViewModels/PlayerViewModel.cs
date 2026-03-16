@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 
 using Crispy.Application.Player;
 using Crispy.Application.Player.Models;
+using Crispy.UI.Navigation;
 
 namespace Crispy.UI.ViewModels;
 
@@ -18,7 +19,7 @@ namespace Crispy.UI.ViewModels;
 /// OSD display state (channel info, visibility, skip markers, auto-play) is
 /// delegated to <see cref="Osd"/>.
 /// </summary>
-public partial class PlayerViewModel : ViewModelBase, IDisposable
+public partial class PlayerViewModel : ViewModelBase, IDisposable, INavigationAware
 {
     private readonly IPlayerService _playerService;
     private readonly ITimeshiftService _timeshiftService;
@@ -866,6 +867,18 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
             if (predicate(list[i])) return i;
         return -1;
     }
+
+    // ─── Navigation lifecycle ─────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public void OnNavigatedTo(object? parameter)
+    {
+        if (parameter is PlaybackRequest request)
+            PlayCommand.Execute(request);
+    }
+
+    /// <inheritdoc />
+    public void OnNavigatedFrom() { }
 
     // ─── Cleanup ─────────────────────────────────────────────────────────────
 

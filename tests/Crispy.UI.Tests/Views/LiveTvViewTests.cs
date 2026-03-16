@@ -2,6 +2,7 @@ using Avalonia.Headless.XUnit;
 
 using Crispy.Domain.Entities;
 using Crispy.Domain.Interfaces;
+using Crispy.UI.Navigation;
 using Crispy.UI.Tests.Helpers;
 using Crispy.UI.ViewModels;
 using Crispy.UI.Views;
@@ -31,7 +32,7 @@ public class LiveTvViewTests
         sourceRepo.GetAllAsync()
             .Returns(Task.FromResult<IReadOnlyList<Source>>([]));
 
-        return new LiveTvViewModel(channelRepo, sourceRepo);
+        return new LiveTvViewModel(channelRepo, sourceRepo, Substitute.For<INavigationService>());
     }
 
     [Fact]
