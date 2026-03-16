@@ -1,11 +1,10 @@
 using Crispy.Application.Player;
 using Crispy.Application.Player.Models;
 
-using Microsoft.Extensions.Logging;
-
-#if LIBVLC
 using LibVLCSharp.Shared;
-#endif
+using LibVLCSharp.Shared.Structures;
+
+using Microsoft.Extensions.Logging;
 
 namespace Crispy.Infrastructure.Player;
 
@@ -13,11 +12,9 @@ namespace Crispy.Infrastructure.Player;
 /// IPlayerService implementation backed by LibVLCSharp (Desktop / Android / iOS).
 /// On WASM the Browser project substitutes HtmlVideoPlayerService via DI instead.
 ///
-/// When the LIBVLC compilation symbol is defined (set automatically when the
-/// LibVLCSharp package is restored) the real VLC engine is used.
-/// Without LIBVLC the service compiles as a no-op stub so the solution builds
-/// even before packages are restored (matches the IHostedServiceShim pattern
-/// used throughout Phase 2 — see STATE.md blocker note).
+/// VLC availability is detected at runtime via <see cref="IsVlcAvailable"/>.
+/// If the native libvlc shared library is absent (e.g. Browser / iOS), all
+/// playback methods log a warning and return gracefully without throwing.
 /// </summary>
 public sealed class VlcPlayerService : IPlayerService, IDisposable
 {
@@ -31,8 +28,6 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
     private List<TrackInfo> _audioTracks = [];
     private List<TrackInfo> _subtitleTracks = [];
 
-    // Fields used only inside #if LIBVLC blocks — suppress "unused field" warnings in stub build.
-#pragma warning disable CS0169, CS0414, CS0649
     // Track IDs to re-apply after seek (fixes Pitfall 8 — subtitle IDs reset on seek)
     private int _savedAudioTrackId = -1;
     private int _savedSubtitleTrackId = -1;
@@ -45,18 +40,21 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
     // Stall tracking (buffering after Playing)
     private bool _wasPlayingBeforeBuffer;
     private DateTimeOffset? _bufferStartedAt;
-#pragma warning restore CS0169, CS0414, CS0649
 
     // UI thread dispatch — captured at construction on the UI thread.
     // VLC events fire on background threads; we post state emissions back to the UI context.
     private readonly SynchronizationContext? _uiContext;
 
-#if LIBVLC
+    // Runtime VLC availability detection
+    private static bool _vlcAvailable;
+    private static bool _vlcChecked;
+    private static readonly object _vlcCheckLock = new();
+
     private static bool _coreInitialized;
     private static readonly object _initLock = new();
 
-    private readonly LibVLC _libVlc;
-    private readonly LibVLCSharp.Shared.MediaPlayer _mediaPlayer;
+    private LibVLC? _libVlc;
+    private MediaPlayer? _mediaPlayer;
 
     public VlcPlayerService(IStreamHealthRepository healthRepo, ILogger<VlcPlayerService> logger)
     {
@@ -64,16 +62,52 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
         _logger = logger;
         _uiContext = SynchronizationContext.Current;
 
-        EnsureCoreInitialized();
-
-        _libVlc = new LibVLC(enableDebugLogs: false);
-        _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVlc)
+        if (IsVlcAvailable())
         {
-            EnableHardwareDecoding = true,
-        };
+            _libVlc = new LibVLC(enableDebugLogs: false);
+            _mediaPlayer = new MediaPlayer(_libVlc)
+            {
+                EnableHardwareDecoding = true,
+            };
 
-        WireEvents();
+            WireEvents();
+        }
+        else
+        {
+            _logger.LogWarning(
+                "VlcPlayerService: native libvlc not available on this platform — playback is disabled.");
+        }
     }
+
+    private static bool IsVlcAvailable()
+    {
+        lock (_vlcCheckLock)
+        {
+            if (!_vlcChecked)
+            {
+                try
+                {
+                    Core.Initialize();
+                    _vlcAvailable = true;
+                }
+                catch
+                {
+                    _vlcAvailable = false;
+                }
+
+                _vlcChecked = true;
+            }
+
+            return _vlcAvailable;
+        }
+    }
+
+    /// <summary>
+    /// Exposes the cached VLC availability result for use by other Infrastructure services
+    /// (e.g. TimeshiftService). Returns <c>false</c> until <see cref="VlcPlayerService"/>
+    /// has been constructed at least once (which triggers the check).
+    /// </summary>
+    internal static bool IsVlcRuntimeAvailable() => IsVlcAvailable();
 
     private static void EnsureCoreInitialized()
     {
@@ -91,7 +125,7 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
 
     private void WireEvents()
     {
-        _mediaPlayer.Playing += (_, _) => PostToUiThread(() =>
+        _mediaPlayer!.Playing += (_, _) => PostToUiThread(() =>
         {
             // TTFF on first Playing event after PlayAsync
             if (!_ttffRecorded && _playStartedAt.HasValue && _currentUrlHash != null)
@@ -189,7 +223,7 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
 
         // PCM audio callback for waveform visualizer
         _mediaPlayer.SetAudioCallbacks(
-            play: (data, samples, count, pts) =>
+            (data, samples, count, pts) =>
             {
                 // Interpret as float[] (FI32 format)
                 unsafe
@@ -205,10 +239,10 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
                     _audioSamplesSubject.OnNext(buffer);
                 }
             },
-            pause: (_, _) => { },
-            resume: (_, _) => { },
-            flush: _ => { },
-            drain: _ => { });
+            (_, _) => { },
+            (_, _) => { },
+            (_, _) => { },
+            _ => { });
 
         _mediaPlayer.SetAudioFormat("FI32", 44100, 2);
     }
@@ -231,12 +265,23 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
     /// <inheritdoc />
     public Task PlayAsync(PlaybackRequest request, CancellationToken ct = default)
     {
+        if (_mediaPlayer is null)
+        {
+            _logger.LogWarning("PlayAsync: VLC not available — playback skipped.");
+            EmitState(_ => PlayerState.Empty with
+            {
+                ErrorMessage = "VLC not available on this platform.",
+                CurrentRequest = request,
+            });
+            return Task.CompletedTask;
+        }
+
         _playStartedAt = DateTimeOffset.UtcNow;
         _ttffRecorded = false;
         _wasPlayingBeforeBuffer = false;
         _currentUrlHash = StreamUrlHash.Compute(request.Url);
 
-        var media = new Media(_libVlc, new Uri(request.Url));
+        var media = new Media(_libVlc!, new Uri(request.Url));
 
         if (request.HttpHeaders != null)
         {
@@ -279,21 +324,21 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
     /// <inheritdoc />
     public Task PauseAsync()
     {
-        _mediaPlayer.Pause();
+        _mediaPlayer?.Pause();
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public Task ResumeAsync()
     {
-        _mediaPlayer.Play();
+        _mediaPlayer?.Play();
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public Task StopAsync()
     {
-        _mediaPlayer.Stop();
+        _mediaPlayer?.Stop();
         EmitState(_ => PlayerState.Empty);
         return Task.CompletedTask;
     }
@@ -301,13 +346,17 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
     /// <inheritdoc />
     public Task SeekAsync(TimeSpan position)
     {
-        _mediaPlayer.Time = (long)position.TotalMilliseconds;
+        if (_mediaPlayer is not null)
+            _mediaPlayer.Time = (long)position.TotalMilliseconds;
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public Task SetRateAsync(float rate)
     {
+        if (_mediaPlayer is null)
+            return Task.CompletedTask;
+
         // Live TV rate lock per PLR-07
         if (!_mediaPlayer.IsSeekable)
         {
@@ -323,7 +372,7 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
     public Task SetAudioTrackAsync(int trackId)
     {
         _savedAudioTrackId = trackId;
-        _mediaPlayer.SetAudioTrack(trackId);
+        _mediaPlayer?.SetAudioTrack(trackId);
         return Task.CompletedTask;
     }
 
@@ -331,37 +380,48 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
     public Task SetSubtitleTrackAsync(int trackId)
     {
         _savedSubtitleTrackId = trackId;
-        _mediaPlayer.SetSpu(trackId);
+        _mediaPlayer?.SetSpu(trackId);
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public Task AddSubtitleFileAsync(string filePath)
     {
-        _mediaPlayer.AddSlave(MediaSlaveType.Subtitle, new Uri(filePath), enforce: true);
+        _mediaPlayer?.AddSlave(MediaSlaveType.Subtitle, filePath, true);
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public Task SetVolumeAsync(float volume)
     {
-        var clamped = Math.Clamp(volume, 0f, 1f);
-        _mediaPlayer.Volume = (int)(clamped * 100);
-        EmitState(s => s with { Volume = clamped });
+        if (_mediaPlayer is not null)
+        {
+            var clamped = Math.Clamp(volume, 0f, 1f);
+            _mediaPlayer.Volume = (int)(clamped * 100);
+            EmitState(s => s with { Volume = clamped });
+        }
+
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public Task MuteAsync(bool mute)
     {
-        _mediaPlayer.Mute = mute;
-        EmitState(s => s with { IsMuted = mute });
+        if (_mediaPlayer is not null)
+        {
+            _mediaPlayer.Mute = mute;
+            EmitState(s => s with { IsMuted = mute });
+        }
+
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public Task SetAspectRatioAsync(string? ratio)
     {
+        if (_mediaPlayer is null)
+            return Task.CompletedTask;
+
         if (ratio == null)
         {
             _mediaPlayer.AspectRatio = null;
@@ -378,6 +438,50 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
         return Task.CompletedTask;
     }
 
+    // Owned equalizer instance — created lazily when EqualizerService first calls ApplyEqualizerBands.
+    private Equalizer? _equalizer;
+
+    /// <summary>
+    /// Applies a 10-band float array to the underlying MediaPlayer equalizer.
+    /// Called by EqualizerService. No-op when VLC is not available.
+    /// </summary>
+    internal void ApplyEqualizerBands(float[] bands)
+    {
+        if (_mediaPlayer is null)
+        {
+            return;
+        }
+
+        _equalizer ??= new Equalizer();
+
+        for (var i = 0; i < bands.Length && i < 10; i++)
+        {
+            _equalizer.SetAmp(bands[i], (uint)i);
+        }
+
+        _mediaPlayer.SetEqualizer(_equalizer);
+    }
+
+    /// <summary>
+    /// Clears (disables) the equalizer on the underlying MediaPlayer.
+    /// Called by EqualizerService. No-op when VLC is not available.
+    /// </summary>
+    internal void ClearEqualizer()
+    {
+        if (_mediaPlayer is null)
+        {
+            return;
+        }
+
+        _equalizer?.Dispose();
+        _equalizer = null;
+
+        // LibVLCSharp 3.x lacks nullable annotation but the native API accepts null to disable.
+#pragma warning disable CS8625
+        _mediaPlayer.SetEqualizer(null);
+#pragma warning restore CS8625
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {
@@ -386,13 +490,22 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
         _stateSubject.Dispose();
         _audioSamplesSubject.Dispose();
 
-        // IMPORTANT: MediaPlayer must be disposed BEFORE LibVLC (anti-pattern if reversed)
-        _mediaPlayer.Dispose();
-        _libVlc.Dispose();
+        _equalizer?.Dispose();
+        _equalizer = null;
+
+        if (_mediaPlayer is not null)
+        {
+            // IMPORTANT: MediaPlayer must be disposed BEFORE LibVLC (anti-pattern if reversed)
+            _mediaPlayer.Dispose();
+            _mediaPlayer = null;
+        }
+
+        _libVlc?.Dispose();
+        _libVlc = null;
     }
 
     private static List<TrackInfo> BuildTrackList(
-        IEnumerable<LibVLCSharp.Shared.MediaTrack>? descs,
+        IEnumerable<MediaTrack>? descs,
         TrackKind kind)
     {
         if (descs is null)
@@ -411,7 +524,7 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
     }
 
     private static List<TrackInfo> BuildTrackList(
-        IEnumerable<LibVLCSharp.Shared.TrackDescription>? descs,
+        IEnumerable<TrackDescription>? descs,
         TrackKind kind)
     {
         if (descs is null)
@@ -429,109 +542,6 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
                 Kind: kind))
             .ToList();
     }
-
-#else
-
-    // ── Stub (no-op) when LIBVLC symbol is not defined ────────────────────────
-    // Allows the solution to compile with --no-restore while LibVLCSharp packages
-    // are pending download (same pattern as IHostedServiceShim.cs in Phase 2).
-
-    public VlcPlayerService(IStreamHealthRepository healthRepo, ILogger<VlcPlayerService> logger)
-    {
-        _healthRepo = healthRepo;
-        _logger = logger;
-        _uiContext = SynchronizationContext.Current;
-        _logger.LogWarning(
-            "VlcPlayerService running as NO-OP STUB — LIBVLC symbol not defined. " +
-            "Add LibVLCSharp NuGet packages and define LIBVLC to enable real playback.");
-    }
-
-    /// <inheritdoc />
-    public PlayerState State => _state;
-
-    /// <inheritdoc />
-    public IObservable<PlayerState> StateChanged => _stateSubject;
-
-    /// <inheritdoc />
-    public IReadOnlyList<TrackInfo> AudioTracks => _audioTracks;
-
-    /// <inheritdoc />
-    public IReadOnlyList<TrackInfo> SubtitleTracks => _subtitleTracks;
-
-    /// <inheritdoc />
-    public IObservable<float[]> AudioSamples => _audioSamplesSubject;
-
-    /// <inheritdoc />
-    public Task PlayAsync(PlaybackRequest request, CancellationToken ct = default)
-    {
-        EmitState(_ => PlayerState.Empty with
-        {
-            ErrorMessage = "VLC not available (LibVLCSharp packages not installed).",
-            CurrentRequest = request,
-        });
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc />
-    public Task PauseAsync() => Task.CompletedTask;
-
-    /// <inheritdoc />
-    public Task ResumeAsync() => Task.CompletedTask;
-
-    /// <inheritdoc />
-    public Task StopAsync()
-    {
-        EmitState(_ => PlayerState.Empty);
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc />
-    public Task SeekAsync(TimeSpan position) => Task.CompletedTask;
-
-    /// <inheritdoc />
-    public Task SetRateAsync(float rate) => Task.CompletedTask;
-
-    /// <inheritdoc />
-    public Task SetAudioTrackAsync(int trackId) => Task.CompletedTask;
-
-    /// <inheritdoc />
-    public Task SetSubtitleTrackAsync(int trackId) => Task.CompletedTask;
-
-    /// <inheritdoc />
-    public Task AddSubtitleFileAsync(string filePath) => Task.CompletedTask;
-
-    /// <inheritdoc />
-    public Task SetVolumeAsync(float volume) => Task.CompletedTask;
-
-    /// <inheritdoc />
-    public Task MuteAsync(bool mute) => Task.CompletedTask;
-
-    /// <inheritdoc />
-    public Task SetAspectRatioAsync(string? ratio) => Task.CompletedTask;
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        _stateSubject.OnCompleted();
-        _audioSamplesSubject.OnCompleted();
-        _stateSubject.Dispose();
-        _audioSamplesSubject.Dispose();
-    }
-
-#endif
-
-    /// <summary>
-    /// Applies or removes an AudioEqualizer on the underlying MediaPlayer.
-    /// Called by EqualizerService. No-op when LIBVLC is not defined.
-    /// </summary>
-#if LIBVLC
-    public void SetEqualizer(LibVLCSharp.Shared.AudioEqualizer? equalizer)
-    {
-        _mediaPlayer.SetEqualizer(equalizer);
-    }
-#else
-    public void SetEqualizer(object? equalizer) { }
-#endif
 
     private void EmitState(Func<PlayerState, PlayerState> update)
     {
@@ -556,5 +566,4 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
             action();
         }
     }
-
 }

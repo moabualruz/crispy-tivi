@@ -3,7 +3,6 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
     <RootNamespace>Crispy.Desktop</RootNamespace>
-    <DefineConstants>$(DefineConstants);LIBVLC</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

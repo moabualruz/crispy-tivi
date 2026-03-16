@@ -2,11 +2,10 @@ using Crispy.Application.Player;
 using Crispy.Application.Player.Models;
 using Crispy.Infrastructure.Connectivity;
 
-using Microsoft.Extensions.Logging;
-
-#if LIBVLC
 using LibVLCSharp.Shared;
-#endif
+using LibVLCSharp.Shared.Structures;
+
+using Microsoft.Extensions.Logging;
 
 namespace Crispy.Infrastructure.Player;
 
@@ -22,7 +21,7 @@ namespace Crispy.Infrastructure.Player;
 /// is actively writing. Only completed segments (those whose write head has moved on)
 /// are opened by the playback player.
 ///
-/// When LIBVLC is not defined, the service compiles as a no-op stub.
+/// If native libvlc is not available at runtime, buffering is a no-op.
 /// </summary>
 public sealed class TimeshiftService : ITimeshiftService, IDisposable
 {
@@ -40,20 +39,15 @@ public sealed class TimeshiftService : ITimeshiftService, IDisposable
         IsAtLiveEdge: true,
         IsBufferFull: false);
 
-#pragma warning disable CS0169, CS0414, CS0649
     private string? _bufferDir;
     private int _currentSegmentIndex;
     private readonly Dictionary<int, DateTimeOffset> _segmentStartTimes = [];
     private Timer? _tickTimer;
     private Timer? _segmentTimer;
-#pragma warning restore CS0169, CS0414, CS0649
 
-#if LIBVLC
     private LibVLC? _libVlc;
-    private LibVLCSharp.Shared.MediaPlayer? _recorderPlayer;
-    private LibVLCSharp.Shared.MediaPlayer? _playbackPlayer;
-    private bool _isRecording;
-#endif
+    private MediaPlayer? _recorderPlayer;
+    private MediaPlayer? _playbackPlayer;
 
     /// <inheritdoc />
     public TimeSpan MaxBufferDuration { get; } = TimeSpan.FromHours(4);
@@ -96,7 +90,12 @@ public sealed class TimeshiftService : ITimeshiftService, IDisposable
             return;
         }
 
-#if LIBVLC
+        if (!VlcPlayerService.IsVlcRuntimeAvailable())
+        {
+            _logger.LogWarning("TimeshiftService: native libvlc not available — buffering is a no-op.");
+            return;
+        }
+
         await StopBufferingAsync().ConfigureAwait(false);
 
         _bufferDir = Path.Combine(Path.GetTempPath(), "CrispyTivi", "timeshift", Guid.NewGuid().ToString("N"));
@@ -106,8 +105,8 @@ public sealed class TimeshiftService : ITimeshiftService, IDisposable
         _segmentStartTimes.Clear();
 
         _libVlc = new LibVLC(enableDebugLogs: false);
-        _recorderPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVlc);
-        _playbackPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVlc);
+        _recorderPlayer = new MediaPlayer(_libVlc);
+        _playbackPlayer = new MediaPlayer(_libVlc);
 
         StartNextSegment(liveUrl);
 
@@ -119,18 +118,12 @@ public sealed class TimeshiftService : ITimeshiftService, IDisposable
             TimeSpan.FromSeconds(SegmentDurationSeconds),
             TimeSpan.FromSeconds(SegmentDurationSeconds));
 
-        _isRecording = true;
         _logger.LogInformation("Timeshift recording started in {Dir}", _bufferDir);
-#else
-        await Task.CompletedTask.ConfigureAwait(false);
-        _logger.LogWarning("TimeshiftService: LIBVLC not available — buffering is a no-op.");
-#endif
     }
 
     /// <inheritdoc />
     public Task StopBufferingAsync()
     {
-#if LIBVLC
         _tickTimer?.Dispose();
         _tickTimer = null;
         _segmentTimer?.Dispose();
@@ -147,8 +140,6 @@ public sealed class TimeshiftService : ITimeshiftService, IDisposable
         _libVlc?.Dispose();
         _libVlc = null;
 
-        _isRecording = false;
-
         // Clean up temp files
         if (_bufferDir != null && Directory.Exists(_bufferDir))
         {
@@ -164,16 +155,15 @@ public sealed class TimeshiftService : ITimeshiftService, IDisposable
 
         _bufferDir = null;
         _segmentStartTimes.Clear();
-#endif
+
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public Task GoLiveAsync()
     {
-#if LIBVLC
         _playbackPlayer?.Stop();
-#endif
+
         _state = _state with
         {
             Offset = TimeSpan.Zero,
@@ -192,7 +182,6 @@ public sealed class TimeshiftService : ITimeshiftService, IDisposable
             throw new ArgumentOutOfRangeException(nameof(offset), "Offset must be zero or negative.");
         }
 
-#if LIBVLC
         if (_bufferDir == null || _recorderPlayer == null || _playbackPlayer == null)
         {
             return Task.CompletedTask;
@@ -238,7 +227,7 @@ public sealed class TimeshiftService : ITimeshiftService, IDisposable
         {
             _playbackPlayer.Time = (long)seekWithinSegment.TotalMilliseconds;
         }
-#endif
+
         _state = _state with
         {
             Offset = offset,
@@ -258,11 +247,9 @@ public sealed class TimeshiftService : ITimeshiftService, IDisposable
         _stateSubject.OnCompleted();
         _stateSubject.Dispose();
 
-#if LIBVLC
         _recorderPlayer?.Dispose();
         _playbackPlayer?.Dispose();
         _libVlc?.Dispose();
-#endif
 
         if (_bufferDir != null && Directory.Exists(_bufferDir))
         {
@@ -274,7 +261,6 @@ public sealed class TimeshiftService : ITimeshiftService, IDisposable
         }
     }
 
-#if LIBVLC
     private void StartNextSegment(string liveUrl)
     {
         var segPath = GetSegmentPath(_currentSegmentIndex);
@@ -327,7 +313,6 @@ public sealed class TimeshiftService : ITimeshiftService, IDisposable
             }
         }
     }
-#endif
 
     private void OnTick()
     {
@@ -336,12 +321,7 @@ public sealed class TimeshiftService : ITimeshiftService, IDisposable
             : TimeSpan.Zero;
 
         var isBufferFull = bufferDuration >= MaxBufferDuration;
-
-#if LIBVLC
         var isAtLiveEdge = _playbackPlayer?.IsPlaying != true;
-#else
-        var isAtLiveEdge = true;
-#endif
 
         _state = _state with
         {

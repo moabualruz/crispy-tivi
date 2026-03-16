@@ -78,12 +78,16 @@ internal sealed class Program
         App.Services = Services;
 
         // Core.Initialize() must be called before any LibVLC usage.
-        // VlcPlayerService guards against double-initialization internally,
+        // VlcPlayerService guards against double-initialization internally via IsVlcAvailable(),
         // but calling it here ensures it happens before DI resolves the service.
-        // When LIBVLC symbol is not defined this is a no-op (see VlcPlayerService stub).
-#if LIBVLC
-        LibVLCSharp.Shared.Core.Initialize();
-#endif
+        try
+        {
+            LibVLCSharp.Shared.Core.Initialize();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[VLC] Core.Initialize failed — VLC playback will be disabled: {ex.Message}");
+        }
 
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }

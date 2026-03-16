@@ -12,7 +12,7 @@ public class CatchupUrlResolverTests
 {
     // Fixed reference time: 2024-06-15 10:00:00 UTC (no offset)
     private static readonly DateTimeOffset Start = new DateTimeOffset(2024, 6, 15, 10, 0, 0, TimeSpan.Zero);
-    private static readonly DateTimeOffset End   = new DateTimeOffset(2024, 6, 15, 11, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset End = new DateTimeOffset(2024, 6, 15, 11, 0, 0, TimeSpan.Zero);
 
     // ─── Append mode ──────────────────────────────────────────────────────────
 
@@ -103,7 +103,7 @@ public class CatchupUrlResolverTests
     public void Resolve_SubstitutesPositiveOffset_WhenStartHasPositiveTimezone()
     {
         var startWithOffset = new DateTimeOffset(2024, 6, 15, 12, 0, 0, TimeSpan.FromHours(2));
-        var endWithOffset   = new DateTimeOffset(2024, 6, 15, 13, 0, 0, TimeSpan.FromHours(2));
+        var endWithOffset = new DateTimeOffset(2024, 6, 15, 13, 0, 0, TimeSpan.FromHours(2));
         var template = "http://catchup.example.com/?offset={offset}";
 
         var result = CatchupUrlResolver.Resolve(template, CatchupType.Default, startWithOffset, endWithOffset);
@@ -115,7 +115,7 @@ public class CatchupUrlResolverTests
     public void Resolve_SubstitutesNegativeOffset_WhenStartHasNegativeTimezone()
     {
         var startWithOffset = new DateTimeOffset(2024, 6, 15, 5, 0, 0, TimeSpan.FromHours(-5));
-        var endWithOffset   = new DateTimeOffset(2024, 6, 15, 6, 0, 0, TimeSpan.FromHours(-5));
+        var endWithOffset = new DateTimeOffset(2024, 6, 15, 6, 0, 0, TimeSpan.FromHours(-5));
         var template = "http://catchup.example.com/?offset={offset}";
 
         var result = CatchupUrlResolver.Resolve(template, CatchupType.Default, startWithOffset, endWithOffset);
@@ -154,8 +154,8 @@ public class CatchupUrlResolverTests
     public void Resolve_SubstitutesAllPlaceholders_WhenFullTemplate()
     {
         var startUnix = Start.ToUnixTimeSeconds();
-        var endUnix   = End.ToUnixTimeSeconds();
-        var template  = "{start}|{end}|{duration}|{utcstart}|{utcend}|{lutcstart}|{lutcend}|{Y}|{m}|{d}|{H}|{M}|{S}|{offset}";
+        var endUnix = End.ToUnixTimeSeconds();
+        var template = "{start}|{end}|{duration}|{utcstart}|{utcend}|{lutcstart}|{lutcend}|{Y}|{m}|{d}|{H}|{M}|{S}|{offset}";
 
         var result = CatchupUrlResolver.Resolve(template, CatchupType.Shift, Start, End);
 

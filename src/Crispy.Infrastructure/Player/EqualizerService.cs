@@ -3,18 +3,14 @@ using Crispy.Application.Player.Models;
 
 using Microsoft.Extensions.Logging;
 
-#if LIBVLC
-using LibVLCSharp.Shared;
-#endif
-
 namespace Crispy.Infrastructure.Player;
 
 /// <summary>
 /// IEqualizerService implementation.
 ///
-/// Desktop/Mobile: delegates to LibVLC AudioEqualizer API.
+/// Desktop/Mobile: delegates to LibVLC via <see cref="VlcPlayerService.ApplyEqualizerBands"/>.
 /// Browser: no-op stub (Web Audio API EQ handled via equalizer.js injected in Crispy.Browser).
-/// When LIBVLC is not defined (packages not yet restored), behaves as an in-memory stub.
+/// If native libvlc is not available at runtime, behaves as an in-memory stub.
 ///
 /// Satisfies PLR-33 (10-band EQ overlay with preset management).
 /// </summary>
@@ -26,12 +22,6 @@ public sealed class EqualizerService : IEqualizerService, IDisposable
     private bool _isEnabled;
     private float[] _currentBands = new float[10];
     private readonly SimpleSubject<float[]> _bandsChanged = new();
-
-#if LIBVLC
-#pragma warning disable CS0169, CS0414, CS0649
-    private AudioEqualizer? _equalizer;
-#pragma warning restore CS0169, CS0414, CS0649
-#endif
 
     public EqualizerService(IPlayerService playerService, ILogger<EqualizerService> logger)
     {
@@ -62,9 +52,10 @@ public sealed class EqualizerService : IEqualizerService, IDisposable
         var clamped = Math.Clamp(dB, -12f, 12f);
         _currentBands[bandIndex] = clamped;
 
-#if LIBVLC
-        ApplyToVlc();
-#endif
+        if (_isEnabled)
+        {
+            PushBandsToVlc();
+        }
 
         EmitBandsChanged();
         return Task.CompletedTask;
@@ -84,9 +75,10 @@ public sealed class EqualizerService : IEqualizerService, IDisposable
 
         _currentBands = (float[])preset.Bands.Clone();
 
-#if LIBVLC
-        ApplyToVlc();
-#endif
+        if (_isEnabled)
+        {
+            PushBandsToVlc();
+        }
 
         EmitBandsChanged();
         return Task.CompletedTask;
@@ -97,16 +89,14 @@ public sealed class EqualizerService : IEqualizerService, IDisposable
     {
         _isEnabled = enabled;
 
-#if LIBVLC
         if (enabled)
         {
-            ApplyToVlc();
+            PushBandsToVlc();
         }
         else
         {
-            DisableVlcEqualizer();
+            ClearVlcEqualizer();
         }
-#endif
 
         _logger.LogDebug("Equalizer {State}", enabled ? "enabled" : "disabled");
         return Task.CompletedTask;
@@ -117,12 +107,10 @@ public sealed class EqualizerService : IEqualizerService, IDisposable
     {
         _currentBands = new float[10];
 
-#if LIBVLC
         if (_isEnabled)
         {
-            ApplyToVlc();
+            PushBandsToVlc();
         }
-#endif
 
         EmitBandsChanged();
         return Task.CompletedTask;
@@ -135,33 +123,25 @@ public sealed class EqualizerService : IEqualizerService, IDisposable
 
     private void EmitBandsChanged() => _bandsChanged.OnNext((float[])_currentBands.Clone());
 
-#if LIBVLC
-    private void ApplyToVlc()
-    {
-        if (_playerService is not VlcPlayerService vlc)
-        {
-            return;
-        }
-
-        _equalizer ??= new AudioEqualizer();
-
-        for (var i = 0; i < 10; i++)
-        {
-            _equalizer.SetAmp(_currentBands[i], (uint)i);
-        }
-
-        vlc.SetEqualizer(_equalizer);
-    }
-
-    private void DisableVlcEqualizer()
+    /// <summary>
+    /// Passes the current band values to VlcPlayerService.
+    /// VlcPlayerService owns the LibVLCSharp.Shared.Equalizer instance so that
+    /// EqualizerService has no direct reference to LibVLCSharp types and compiles
+    /// (and tests) cleanly without native libvlc present.
+    /// </summary>
+    private void PushBandsToVlc()
     {
         if (_playerService is VlcPlayerService vlc)
         {
-            vlc.SetEqualizer(null);
+            vlc.ApplyEqualizerBands(_currentBands);
         }
-
-        _equalizer?.Dispose();
-        _equalizer = null;
     }
-#endif
+
+    private void ClearVlcEqualizer()
+    {
+        if (_playerService is VlcPlayerService vlc)
+        {
+            vlc.ClearEqualizer();
+        }
+    }
 }

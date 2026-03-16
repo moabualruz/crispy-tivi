@@ -26,9 +26,14 @@ public class MainActivity : AvaloniaMainActivity<App>
     {
         // Core.Initialize() must be called BEFORE any LibVLC usage (before DI resolves VlcPlayerService).
         // Called here at the earliest safe point — before base.OnCreate() has run.
-#if LIBVLC
-        LibVLCSharp.Shared.Core.Initialize();
-#endif
+        try
+        {
+            LibVLCSharp.Shared.Core.Initialize();
+        }
+        catch (Exception ex)
+        {
+            Android.Util.Log.Warn("CrispyTivi", $"VLC Core.Initialize failed — playback disabled: {ex.Message}");
+        }
 
         return base.CustomizeAppBuilder(builder)
             .WithInterFont();
