@@ -225,18 +225,25 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
         _mediaPlayer.SetAudioCallbacks(
             (data, samples, count, pts) =>
             {
-                // Interpret as float[] (FI32 format)
-                unsafe
+                if (samples == IntPtr.Zero || count == 0) return;
+                try
                 {
-                    var floatCount = (int)count;
-                    var buffer = new float[floatCount];
-                    var src = (float*)data;
-                    for (var i = 0; i < floatCount; i++)
+                    unsafe
                     {
-                        buffer[i] = src[i];
-                    }
+                        var floatCount = (int)count;
+                        var buffer = new float[floatCount];
+                        var src = (float*)samples;
+                        for (var i = 0; i < floatCount; i++)
+                        {
+                            buffer[i] = src[i];
+                        }
 
-                    _audioSamplesSubject.OnNext(buffer);
+                        _audioSamplesSubject.OnNext(buffer);
+                    }
+                }
+                catch
+                {
+                    // Audio callback must never throw — VLC crashes if it does
                 }
             },
             (_, _) => { },
