@@ -80,9 +80,17 @@ public partial class PlayerView : UserControl
             videoViewType.GetProperty("MediaPlayer")?.SetValue(videoView, mpFromService);
         }
 
-        var surface = this.FindControl<Border>("VideoSurface");
-        if (surface is not null)
-            surface.Child = videoView;
+        try
+        {
+            var surface = this.FindControl<Border>("VideoSurface");
+            if (surface is not null)
+                surface.Child = videoView;
+        }
+        catch (InvalidOperationException)
+        {
+            // Name scope unavailable (e.g. headless rendering or detached tree).
+            // Video surface wiring is optional; VLC player still operates via reflection.
+        }
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
