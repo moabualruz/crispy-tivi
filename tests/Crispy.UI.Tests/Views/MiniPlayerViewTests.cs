@@ -83,22 +83,32 @@ public class MiniPlayerViewTests
         var window = HeadlessTestHelpers.CreateWindow<MiniPlayerView>(vm);
         var view = (MiniPlayerView)window.Content!;
 
-        // Headless pointer routing doesn't propagate GetPosition(root) deltas reliably.
-        // Verify the drag sequence doesn't throw and leaves the control in a valid state.
-        // The production drag logic (OnPointerPressed → capture → OnPointerMoved → margin update)
-        // is verified by the pointer events being routed without exception.
-        var act = () =>
-        {
-            window.MouseDown(new Point(50, 50), MouseButton.Left);
-            window.MouseMove(new Point(80, 70));
-            window.MouseUp(new Point(80, 70), MouseButton.Left);
-        };
+        // Call internal drag methods directly — tests real drag logic
+        // without relying on headless pointer coordinate routing.
+        view.BeginDrag(new Point(50, 50));
+        view.ApplyDragDelta(new Point(80, 70)); // delta = (30, 20) > 4px threshold
 
-        act.Should().NotThrow("drag sequence must not throw in headless");
+        view.IsDragging.Should().BeTrue("delta exceeds 4px threshold");
+        view.Margin.Left.Should().BeApproximately(30, 0.1, "margin.Left = origin(0) + delta(30)");
+        view.Margin.Top.Should().BeApproximately(20, 0.1, "margin.Top = origin(0) + delta(20)");
 
-        // Margin may or may not update depending on headless pointer coordinate resolution.
-        // What we CAN verify: the view is still in a valid state after the drag sequence.
-        view.Margin.Should().NotBeNull();
+        view.EndDrag();
+        view.IsDragging.Should().BeFalse("drag must end after release");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void MiniPlayerView_DragBelowThreshold_DoesNotMove()
+    {
+        var vm = BuildVm();
+        var window = HeadlessTestHelpers.CreateWindow<MiniPlayerView>(vm);
+        var view = (MiniPlayerView)window.Content!;
+
+        view.BeginDrag(new Point(50, 50));
+        view.ApplyDragDelta(new Point(52, 51)); // delta = (2, 1) < 4px threshold
+
+        view.IsDragging.Should().BeFalse("delta below 4px must not trigger drag");
+        view.Margin.Should().Be(new Thickness(0), "margin must not change below threshold");
         window.Close();
     }
 

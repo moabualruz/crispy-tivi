@@ -15,6 +15,11 @@ public partial class OsdOverlay : UserControl
     private LiveSeekBar? _liveSeekBar;
     private VodSeekBar? _vodSeekBar;
 
+    public OsdOverlay()
+    {
+        InitializeComponent();
+    }
+
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);

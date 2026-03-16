@@ -105,31 +105,18 @@ public class OsdOverlayTests
     }
 
     [AvaloniaFact]
-    public void OsdOverlay_SeekBarHost_ResolvedAfterAttachedToVisualTree()
+    public void OsdOverlay_SeekBarHost_IsNotNull_AfterAttachedToVisualTree()
     {
         var vm = MakePlayerViewModel();
         var control = new OsdOverlay { DataContext = vm };
         var window = new Window { Content = control, Width = 1280, Height = 200 };
         window.Show();
 
-        // SeekBarHost is an AXAML-generated field set by InitializeComponent.
-        // In headless, complex controls may not fully resolve all named children
-        // (e.g., controls with platform-specific rendering). Verify the control
-        // itself rendered and the DataContext wiring didn't throw.
-        // If SeekBarHost IS available, verify it's a ContentControl.
-        if (control.SeekBarHost is not null)
-        {
-            control.SeekBarHost.Should().BeOfType<ContentControl>(
-                "SeekBarHost must be a ContentControl for seek bar injection");
-        }
-        else
-        {
-            // Document: OsdOverlay AXAML has 256+ lines with seek bars, transport
-            // controls, and overlays — some may not instantiate in headless.
-            // The WireSeekBars guard (SeekBarHost is null → return) prevents crashes.
-            // This path is a headless limitation, not a production bug.
-        }
-
+        // InitializeComponent() in constructor registers x:Name fields.
+        // SeekBarHost must be available after the control is in the visual tree.
+        control.SeekBarHost.Should().NotBeNull(
+            "SeekBarHost must be resolved from AXAML after InitializeComponent");
+        control.SeekBarHost.Should().BeOfType<ContentControl>();
         window.Close();
     }
 
@@ -166,6 +153,9 @@ public class OsdOverlayTests
         var window = new Window { Content = control, Width = 1280, Height = 200 };
         window.Show();
         control.DataContext = vm;
+
+        // Push live state through the observable so IsLive updates reactively
+        stateSubject.OnNext(PlayerState.Empty with { IsLive = true });
 
         // SeekBarHost.Content is set to a LiveSeekBar for live streams
         control.SeekBarHost?.Content.Should().BeOfType<LiveSeekBar>(

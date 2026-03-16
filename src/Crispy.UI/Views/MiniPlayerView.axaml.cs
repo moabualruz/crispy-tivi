@@ -16,14 +16,13 @@ public partial class MiniPlayerView : UserControl
 {
     private Point _dragStart;
     private Point _originPosition;
-    private bool _isDragging;
+    internal bool IsDragging { get; private set; }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
-        _dragStart = e.GetPosition(Parent as Visual ?? this);
-        _originPosition = new Point(Margin.Left, Margin.Top);
-        _isDragging = false;
+        var root = TopLevel.GetTopLevel(this) as Visual ?? (Parent as Visual ?? this);
+        BeginDrag(e.GetPosition(root));
         e.Pointer.Capture(this);
     }
 
@@ -32,21 +31,41 @@ public partial class MiniPlayerView : UserControl
         base.OnPointerMoved(e);
         if (e.Pointer.Captured != this) return;
 
-        var pos = e.GetPosition(Parent as Visual ?? this);
-        var delta = pos - _dragStart;
-
-        if (Math.Abs(delta.X) > 4 || Math.Abs(delta.Y) > 4)
-            _isDragging = true;
-
-        if (_isDragging)
-            Margin = new Avalonia.Thickness(_originPosition.X + delta.X, _originPosition.Y + delta.Y, 0, 0);
+        var root = TopLevel.GetTopLevel(this) as Visual ?? (Parent as Visual ?? this);
+        ApplyDragDelta(e.GetPosition(root));
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
         e.Pointer.Capture(null);
-        _isDragging = false;
+        EndDrag();
+    }
+
+    /// <summary>Starts a drag from the given position. Testable without pointer events.</summary>
+    internal void BeginDrag(Point startPosition)
+    {
+        _dragStart = startPosition;
+        _originPosition = new Point(Margin.Left, Margin.Top);
+        IsDragging = false;
+    }
+
+    /// <summary>Applies drag delta from current position. Testable without pointer events.</summary>
+    internal void ApplyDragDelta(Point currentPosition)
+    {
+        var delta = currentPosition - _dragStart;
+
+        if (Math.Abs(delta.X) > 4 || Math.Abs(delta.Y) > 4)
+            IsDragging = true;
+
+        if (IsDragging)
+            Margin = new Thickness(_originPosition.X + delta.X, _originPosition.Y + delta.Y, 0, 0);
+    }
+
+    /// <summary>Ends the drag gesture.</summary>
+    internal void EndDrag()
+    {
+        IsDragging = false;
     }
 
     private void OnVideoAreaTapped(object? sender, TappedEventArgs e)
