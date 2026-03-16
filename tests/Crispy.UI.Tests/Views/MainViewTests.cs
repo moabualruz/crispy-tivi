@@ -46,21 +46,17 @@ public class MainViewTests
         var vm = MakeViewModel();
         var window = HeadlessTestHelpers.CreateWindow<MainView>(vm);
 
-        // The MainView AXAML contains a NavigationRail — verify it's in the visual tree.
-        // If this fails, the view template isn't inflating properly in headless.
-        var rail = window.GetVisualDescendants()
-            .OfType<Crispy.UI.Controls.NavigationRail>()
+        // NavigationRail lives in SplitView.Pane which Avalonia places in a
+        // template-generated panel. Use FindControl (logical tree) to locate it
+        // by its AXAML x:Name, which works regardless of visual-tree depth.
+        var mainView = window.GetVisualDescendants()
+            .OfType<MainView>()
             .FirstOrDefault();
+        mainView.Should().NotBeNull("MainView must be in the window visual tree");
 
-        if (rail is null)
-        {
-            // NavigationRail might be inside a SplitView pane that hasn't loaded.
-            // Fall back to verifying the MainView's content is a Panel with children.
-            var mainView = window.GetVisualDescendants().OfType<MainView>().FirstOrDefault();
-            mainView.Should().NotBeNull("MainView should be in the visual tree");
-            var content = mainView!.GetVisualChildren().ToList();
-            content.Should().NotBeEmpty("MainView should have visual children after rendering");
-        }
+        var rail = mainView!.FindControl<Crispy.UI.Controls.NavigationRail>("NavRail");
+
+        rail.Should().NotBeNull("MainView must contain a NavigationRail named NavRail");
 
         window.Close();
     }

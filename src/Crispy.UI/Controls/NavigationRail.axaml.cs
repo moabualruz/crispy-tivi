@@ -56,25 +56,22 @@ public partial class NavigationRail : UserControl
     {
         InitializeComponent();
 
-        var primaryList = this.FindControl<ListBox>("PrimaryList");
-        var secondaryList = this.FindControl<ListBox>("SecondaryList");
-
         // Intercept arrow keys in the tunnel phase so we can break out of a
         // ListBox when the user presses Down on the last item (→ jump to
         // SecondaryList) or Up on the first item of SecondaryList (→ jump back).
-        if (primaryList is not null && secondaryList is not null)
+        if (PrimaryList is not null && SecondaryList is not null)
         {
-            primaryList.AddHandler(
+            PrimaryList.AddHandler(
                 KeyDownEvent,
                 (_, e) =>
                 {
                     if (e.Key == Key.Down
-                        && primaryList.SelectedIndex == primaryList.ItemCount - 1)
+                        && PrimaryList.SelectedIndex == PrimaryList.ItemCount - 1)
                     {
-                        if (secondaryList.ItemCount > 0)
+                        if (SecondaryList.ItemCount > 0)
                         {
-                            secondaryList.SelectedIndex = 0;
-                            secondaryList.ContainerFromIndex(0)?.Focus(NavigationMethod.Directional);
+                            SecondaryList.SelectedIndex = 0;
+                            SecondaryList.ContainerFromIndex(0)?.Focus(NavigationMethod.Directional);
                         }
 
                         e.Handled = true;
@@ -83,17 +80,17 @@ public partial class NavigationRail : UserControl
                 handledEventsToo: false,
                 routes: Avalonia.Interactivity.RoutingStrategies.Tunnel);
 
-            secondaryList.AddHandler(
+            SecondaryList.AddHandler(
                 KeyDownEvent,
                 (_, e) =>
                 {
-                    if (e.Key == Key.Up && secondaryList.SelectedIndex == 0)
+                    if (e.Key == Key.Up && SecondaryList.SelectedIndex == 0)
                     {
-                        if (primaryList.ItemCount > 0)
+                        if (PrimaryList.ItemCount > 0)
                         {
-                            var lastIdx = primaryList.ItemCount - 1;
-                            primaryList.SelectedIndex = lastIdx;
-                            primaryList.ContainerFromIndex(lastIdx)?.Focus(NavigationMethod.Directional);
+                            var lastIdx = PrimaryList.ItemCount - 1;
+                            PrimaryList.SelectedIndex = lastIdx;
+                            PrimaryList.ContainerFromIndex(lastIdx)?.Focus(NavigationMethod.Directional);
                         }
 
                         e.Handled = true;
@@ -103,15 +100,15 @@ public partial class NavigationRail : UserControl
                 routes: Avalonia.Interactivity.RoutingStrategies.Tunnel);
         }
 
-        if (primaryList is not null)
+        if (PrimaryList is not null)
         {
-            primaryList.SelectionChanged += (_, args) =>
+            PrimaryList.SelectionChanged += (_, args) =>
             {
                 if (args.AddedItems.Count > 0 && args.AddedItems[0] is NavigationItem item)
                 {
-                    if (secondaryList is not null)
+                    if (SecondaryList is not null)
                     {
-                        secondaryList.SelectedItem = null;
+                        SecondaryList.SelectedItem = null;
                     }
 
                     SelectedItem = item;
@@ -120,15 +117,15 @@ public partial class NavigationRail : UserControl
             };
         }
 
-        if (secondaryList is not null)
+        if (SecondaryList is not null)
         {
-            secondaryList.SelectionChanged += (_, args) =>
+            SecondaryList.SelectionChanged += (_, args) =>
             {
                 if (args.AddedItems.Count > 0 && args.AddedItems[0] is NavigationItem item)
                 {
-                    if (primaryList is not null)
+                    if (PrimaryList is not null)
                     {
-                        primaryList.SelectedItem = null;
+                        PrimaryList.SelectedItem = null;
                     }
 
                     SelectedItem = item;
@@ -180,21 +177,20 @@ public partial class NavigationRail : UserControl
     /// </summary>
     public void FocusPrimaryList()
     {
-        var primaryList = this.FindControl<ListBox>("PrimaryList");
-        if (primaryList is null)
+        if (PrimaryList is null)
         {
             return;
         }
 
         // Select first item if nothing is selected yet
-        if (primaryList.SelectedIndex < 0 && primaryList.ItemCount > 0)
+        if (PrimaryList.SelectedIndex < 0 && PrimaryList.ItemCount > 0)
         {
-            primaryList.SelectedIndex = 0;
+            PrimaryList.SelectedIndex = 0;
         }
 
         // Focus the selected container directly so arrow keys work immediately
-        primaryList.Focus(NavigationMethod.Directional);
-        if (primaryList.ContainerFromIndex(primaryList.SelectedIndex) is { } container)
+        PrimaryList.Focus(NavigationMethod.Directional);
+        if (PrimaryList.ContainerFromIndex(PrimaryList.SelectedIndex) is { } container)
         {
             container.Focus(NavigationMethod.Directional);
         }

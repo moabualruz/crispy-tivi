@@ -1,5 +1,9 @@
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Input.Platform;
+using Avalonia.VisualTree;
 
 using Crispy.UI.Controls;
 using Crispy.UI.Models;
@@ -85,24 +89,50 @@ public class NavigationRailTests
     }
 
     [AvaloniaFact]
-    public void ItemSelected_Event_CanBeSubscribed()
+    public void ItemSelected_Event_FiredWhenListBoxSelectionChanges()
     {
-        var sut = new NavigationRail();
-        NavigationItem? received = null;
-        sut.ItemSelected += item => received = item;
+        var items = MakePrimaryItems();
+        var control = new NavigationRail
+        {
+            PrimaryItems = items,
+        };
+        var window = new Window { Content = control, Width = 72, Height = 720 };
+        window.Show();
 
-        // No items selected — event not yet fired
-        received.Should().BeNull();
+        NavigationItem? received = null;
+        control.ItemSelected += i => received = i;
+
+        // Drive selection through the internal PrimaryList — this is the real user
+        // path that triggers SelectionChanged → ItemSelected event.
+        var primaryList = control.GetVisualDescendants()
+            .OfType<ListBox>()
+            .FirstOrDefault(l => l.Name == "PrimaryList");
+        primaryList.Should().NotBeNull("PrimaryList must be in the visual tree after layout");
+        primaryList!.SelectedItem = items[0];
+
+        received.Should().Be(items[0]);
+        control.SelectedItem.Should().Be(items[0]);
+        window.Close();
     }
 
     [AvaloniaFact]
-    public void EnterPressed_Event_CanBeSubscribed()
+    public void EnterPressed_Event_FiredOnEnterKeyDown()
     {
-        var sut = new NavigationRail();
-        var fired = false;
-        sut.EnterPressed += () => fired = true;
+        // NavigationRail.OnKeyDown fires when it holds keyboard focus.
+        // Set Focusable=true so the UserControl itself can receive key events.
+        var control = new NavigationRail { Focusable = true };
+        var window = new Window { Content = control, Width = 72, Height = 720 };
+        window.Show();
 
-        fired.Should().BeFalse();
+        var fired = false;
+        control.EnterPressed += () => fired = true;
+
+        control.Focus();
+        window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        window.KeyReleaseQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+
+        fired.Should().BeTrue();
+        window.Close();
     }
 
     [AvaloniaFact]
