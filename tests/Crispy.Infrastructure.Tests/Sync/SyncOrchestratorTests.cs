@@ -1,4 +1,5 @@
 using Crispy.Application.Sources;
+using Crispy.Application.Sync;
 using Crispy.Domain.Entities;
 using Crispy.Domain.Enums;
 using Crispy.Domain.Interfaces;
@@ -65,6 +66,15 @@ public class SyncOrchestratorTests : IDisposable
     {
         public Task<ParseResult> ParseAsync(Source source, CancellationToken ct = default) =>
             throw new InvalidOperationException("Parser failure");
+    }
+
+    private sealed class CancellingParser : ISourceParser
+    {
+        public Task<ParseResult> ParseAsync(Source source, CancellationToken ct = default)
+        {
+            ct.ThrowIfCancellationRequested();
+            return Task.FromResult(new ParseResult { Channels = [] });
+        }
     }
 
     // ─── Setup ────────────────────────────────────────────────────────────────
@@ -351,5 +361,76 @@ public class SyncOrchestratorTests : IDisposable
         await cts.CancelAsync();
 
         await Task.Delay(200);
+    }
+
+    // ─── ISyncOrchestrator.StartAsync (public method, not IHostedService) ─────
+
+    [Fact]
+    public async Task ISyncOrchestrator_StartAsync_SyncsAllSources()
+    {
+        _sourceRepo.SetAll([_m3uSource]);
+        _sourceRepo.SetById(_m3uSource.Id, _m3uSource);
+
+        var parser = new FakeParser();
+        var sut = CreateSut(new Dictionary<SourceType, ISourceParser>
+        {
+            [SourceType.M3U] = parser,
+        });
+
+        await sut.StartAsync(CancellationToken.None);
+
+        parser.CallCount.Should().Be(1, "StartAsync should sync all enabled sources");
+    }
+
+    [Fact]
+    public async Task ISyncOrchestrator_StartAsync_DoesNotThrow_WhenNoSources()
+    {
+        _sourceRepo.SetAll([]);
+
+        var sut = CreateSut();
+
+        var act = () => sut.StartAsync(CancellationToken.None);
+        await act.Should().NotThrowAsync();
+    }
+
+    // ─── StopAsync when _startupCts is not null ───────────────────────────────
+
+    [Fact]
+    public async Task StopAsync_CancelsStartupCts_WhenStartedViaIHostedService()
+    {
+        _sourceRepo.SetAll([]);
+
+        IHostedService hosted = CreateSut();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await hosted.StartAsync(cts.Token);
+
+        // Give fire-and-forget a moment, then stop — exercises _startupCts.CancelAsync()
+        await Task.Delay(50);
+
+        var orchestrator = (ISyncOrchestrator)hosted;
+        var act = () => orchestrator.StopAsync();
+        await act.Should().NotThrowAsync();
+    }
+
+    // ─── SyncSourceAsync: OperationCanceledException propagates (not swallowed) ─
+
+    [Fact]
+    public async Task SyncSourceAsync_PropagatesOperationCanceledException()
+    {
+        // The catch filter `when ex is not OperationCanceledException` lets OCE propagate.
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        _sourceRepo.SetById(_m3uSource.Id, _m3uSource);
+
+        var sut = CreateSut(new Dictionary<SourceType, ISourceParser>
+        {
+            [SourceType.M3U] = new CancellingParser(),
+        });
+
+        var act = () => sut.SyncSourceAsync(_m3uSource.Id, cts.Token);
+        await act.Should().ThrowAsync<OperationCanceledException>(
+            "OperationCanceledException must NOT be swallowed by the catch filter");
     }
 }
