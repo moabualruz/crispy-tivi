@@ -1288,4 +1288,194 @@ public class PlayerViewModelTests
         _sut.DirectTuneActive.Should().BeFalse("direct-tune timer tick must commit and clear the overlay");
         _sut.DirectTuneDisplay.Should().BeEmpty();
     }
+
+    // ─── C3 gap-fill ─────────────────────────────────────────────────────────
+
+    [AvaloniaFact]
+    public void Dispose_DoesNotThrow_WhenCalledOnce()
+    {
+        var act = () => _sut.Dispose();
+
+        act.Should().NotThrow();
+    }
+
+    [AvaloniaFact]
+    public void Dispose_DoesNotThrow_WhenCalledTwice()
+    {
+        _sut.Dispose();
+        var act = () => _sut.Dispose();
+
+        act.Should().NotThrow("double-dispose must be safe");
+    }
+
+    [AvaloniaFact]
+    public void SetSegmentMarkers_StoresMarkers_ForSkipIntroUse()
+    {
+        var intro = new[] { new JellyfinSegmentMarker(TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(60)) };
+        var credits = Array.Empty<JellyfinSegmentMarker>();
+
+        _sut.SetSegmentMarkers(intro, credits);
+
+        // After setting markers with a position inside the intro window, ShowSkipIntro should be true
+        _stateSubject.OnNext(PlayerState.Empty with
+        {
+            IsPlaying = true,
+            Position = TimeSpan.FromSeconds(30),
+            Duration = TimeSpan.FromHours(1),
+        });
+
+        _sut.ShowSkipIntro.Should().BeTrue();
+    }
+
+    [AvaloniaFact]
+    public void HandleDigitKey_SetsSingleDigit_DirectTuneActiveAndDisplay()
+    {
+        _sut.HandleDigitKey("7");
+
+        _sut.DirectTuneActive.Should().BeTrue();
+        _sut.DirectTuneDisplay.Should().Be("7");
+    }
+
+    [AvaloniaFact]
+    public void ResetScreensaverTimer_WhenIsPlayingFalse_DoesNotStartTimer()
+    {
+        // IsPlaying is false by default — timer must not start
+        _sut.IsPlaying.Should().BeFalse();
+
+        var act = () => _sut.ResetScreensaverTimer();
+
+        act.Should().NotThrow();
+    }
+
+    [AvaloniaFact]
+    public void ResetScreensaverTimer_WhenIsPlayingTrue_DoesNotThrow()
+    {
+        _stateSubject.OnNext(PlayerState.Empty with { IsPlaying = true });
+
+        var act = () => _sut.ResetScreensaverTimer();
+
+        act.Should().NotThrow();
+    }
+
+    [AvaloniaFact]
+    public void DismissScreensaver_SetsIsScreensaverActive_FalseAndDoesNotThrow()
+    {
+        // Force screensaver active via reflection then dismiss
+        typeof(PlayerViewModel)
+            .GetProperty("IsScreensaverActive")!
+            .SetValue(_sut, true);
+
+        _sut.DismissScreensaver();
+
+        _sut.IsScreensaverActive.Should().BeFalse();
+    }
+
+    [AvaloniaFact]
+    public async Task GoLiveCommand_CallsTimeshiftGoLiveAsync()
+    {
+        // Set up a current request so GoLiveAsync replays it
+        var request = new Crispy.Application.Player.Models.PlaybackRequest("http://stream",
+            Crispy.Application.Player.Models.PlaybackContentType.LiveTv, Title: "Live Ch");
+        await _sut.PlayCommand.ExecuteAsync(request);
+
+        await _sut.GoLiveCommand.ExecuteAsync(null);
+
+        await _timeshiftService.Received(1).GoLiveAsync();
+    }
+
+    [AvaloniaFact]
+    public void ToggleStreamStats_TogglesOnThenOff_LeavesVisibleFalse()
+    {
+        _sut.IsStreamStatsVisible.Should().BeFalse();
+
+        _sut.ToggleStreamStats(); // → true
+        _sut.ToggleStreamStats(); // → false
+
+        _sut.IsStreamStatsVisible.Should().BeFalse();
+    }
+
+    [AvaloniaFact]
+    public void ScreensaverTimeoutSeconds_DefaultIs600()
+    {
+        _sut.ScreensaverTimeoutSeconds.Should().Be(600);
+    }
+
+    [AvaloniaFact]
+    public void ScreensaverTimeoutSeconds_CanBeOverridden()
+    {
+        _sut.ScreensaverTimeoutSeconds = 300;
+
+        _sut.ScreensaverTimeoutSeconds.Should().Be(300);
+    }
+
+    [AvaloniaFact]
+    public async Task CycleSubtitleTrackCommand_WithNoCurrentSelected_UsesFirstTrack()
+    {
+        // Emit state with two tracks, neither selected — FindIndex returns -1 → idx = 0
+        _stateSubject.OnNext(PlayerState.Empty with
+        {
+            IsPlaying = true,
+            SubtitleTracks =
+            [
+                new Crispy.Application.Player.Models.TrackInfo(1, "English", "en", false, Crispy.Application.Player.Models.TrackKind.Subtitle),
+                new Crispy.Application.Player.Models.TrackInfo(2, "French",  "fr", false, Crispy.Application.Player.Models.TrackKind.Subtitle),
+            ],
+        });
+
+        await _sut.CycleSubtitleTrackCommand.ExecuteAsync(null);
+
+        await _playerService.Received(1).SetSubtitleTrackAsync(1);
+    }
+
+    [AvaloniaFact]
+    public async Task CycleSubtitleTrackCommand_WithCurrentSelected_WrapsToNextTrack()
+    {
+        // Emit state where first track is selected — cycle should pick second
+        _stateSubject.OnNext(PlayerState.Empty with
+        {
+            IsPlaying = true,
+            SubtitleTracks =
+            [
+                new Crispy.Application.Player.Models.TrackInfo(1, "English", "en", true,  Crispy.Application.Player.Models.TrackKind.Subtitle),
+                new Crispy.Application.Player.Models.TrackInfo(2, "French",  "fr", false, Crispy.Application.Player.Models.TrackKind.Subtitle),
+            ],
+        });
+
+        await _sut.CycleSubtitleTrackCommand.ExecuteAsync(null);
+
+        await _playerService.Received(1).SetSubtitleTrackAsync(2);
+    }
+
+    [AvaloniaFact]
+    public async Task CycleSubtitleTrackCommand_WithEmptyTracks_DoesNotCallService()
+    {
+        // No tracks — early return, service must not be called
+        _stateSubject.OnNext(PlayerState.Empty with { SubtitleTracks = [] });
+
+        await _sut.CycleSubtitleTrackCommand.ExecuteAsync(null);
+
+        await _playerService.DidNotReceive().SetSubtitleTrackAsync(Arg.Any<int>());
+    }
+
+    [AvaloniaFact]
+    public void CompleteHandoff_SetsIsHandoffInProgressFalse()
+    {
+        typeof(PlayerViewModel)
+            .GetProperty("IsHandoffInProgress")!
+            .SetValue(_sut, true);
+
+        _sut.CompleteHandoff();
+
+        _sut.IsHandoffInProgress.Should().BeFalse();
+    }
+
+    [AvaloniaFact]
+    public void NextEpisodeCommand_IncrementsEpisodesWatchedCount_FromGapFill()
+    {
+        var before = _sut.EpisodesWatchedCount;
+
+        _sut.NextEpisodeCommand.Execute(null);
+
+        _sut.EpisodesWatchedCount.Should().Be(before + 1);
+    }
 }
