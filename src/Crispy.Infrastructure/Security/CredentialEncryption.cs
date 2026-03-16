@@ -22,11 +22,18 @@ public sealed class CredentialEncryption : ICredentialEncryption
     private readonly Lazy<byte[]> _key;
 
     /// <summary>
-    /// Initialises the encryption service. Key is loaded lazily on first use.
+    /// Initialises the encryption service with the platform-default key path.
+    /// Key is loaded lazily on first use.
     /// </summary>
-    public CredentialEncryption()
+    public CredentialEncryption() : this(GetKeyFilePath()) { }
+
+    /// <summary>
+    /// Initialises the encryption service with a custom key file path.
+    /// Used by tests to inject a temp directory and exercise all key-management branches.
+    /// </summary>
+    public CredentialEncryption(string keyFilePath)
     {
-        _key = new Lazy<byte[]>(LoadOrCreateKey, LazyThreadSafetyMode.ExecutionAndPublication);
+        _key = new Lazy<byte[]>(() => LoadOrCreateKey(keyFilePath), LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     /// <inheritdoc />
@@ -76,9 +83,8 @@ public sealed class CredentialEncryption : ICredentialEncryption
     // Key management
     // -------------------------------------------------------------------------
 
-    private static byte[] LoadOrCreateKey()
+    private static byte[] LoadOrCreateKey(string keyFilePath)
     {
-        var keyFilePath = GetKeyFilePath();
         var dir = Path.GetDirectoryName(keyFilePath)!;
 
         if (File.Exists(keyFilePath))
