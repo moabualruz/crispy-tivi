@@ -194,7 +194,7 @@ public sealed class FtsSearchService : ISearchService
 
         // Wrap each word and append * to last word for prefix matching
         var words = sanitized.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (words.Length == 0)
+        if (words.Length == 0) // defensive guard — unreachable: sanitized is non-empty here
             return string.Empty;
 
         var sb = new StringBuilder();

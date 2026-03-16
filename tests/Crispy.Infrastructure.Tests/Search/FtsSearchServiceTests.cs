@@ -461,6 +461,36 @@ public class FtsSearchServiceTests : IAsyncLifetime
 
     [Fact]
     [Trait("Category", "Integration")]
+    public async Task SearchAsync_UnknownContentType_IsSkippedAndDoesNotAppearInResults()
+    {
+        // Exercises the default `_ => 1.0` weight branch and the missing switch case
+        // (no bucket match → item is created but not added to any list).
+        await using var ctx = NewContext();
+
+        var source = new Source { Name = "S9", Url = "http://s9.com", SourceType = SourceType.M3U };
+        ctx.Sources.Add(source);
+        await ctx.SaveChangesAsync();
+
+        // Insert an FTS row with an unrecognised content_type
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText =
+                "INSERT INTO ContentSearch(rowid, content_id, content_type, source_id, title, description, group_name) " +
+                "VALUES (99002, 9002, 'Unknown', @sid, 'Mystery Item', NULL, NULL)";
+            cmd.Parameters.AddWithValue("@sid", source.Id);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        var sut = NewSut();
+        var results = await sut.SearchAsync("mystery", profileId: 1, CancellationToken.None);
+
+        results.Channels.Should().BeEmpty();
+        results.Movies.Should().BeEmpty();
+        results.Series.Should().BeEmpty();
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
     public async Task SearchAsync_RoutesEpisodeContentType_ToSeriesBucket()
     {
         await using var ctx = NewContext();
