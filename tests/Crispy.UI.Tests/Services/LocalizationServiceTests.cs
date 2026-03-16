@@ -207,4 +207,52 @@ public class LocalizationServiceTests
 
         _sut.IsRightToLeft.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task SetLocaleAsync_SameLocaleTwice_DoesNotPersistSecondTime()
+    {
+        // First call persists; second call with same locale is a no-op and must not persist
+        await _sut.SetLocaleAsync("de");
+        _settingsService.ClearReceivedCalls();
+
+        await _sut.SetLocaleAsync("de");
+
+        await _settingsService.DidNotReceive().SetLocaleAsync(Arg.Any<string>(), Arg.Any<int?>());
+    }
+
+    [Fact]
+    public async Task SetLocaleAsync_CaseInsensitiveCode_IsAccepted()
+    {
+        // ValidCodes uses OrdinalIgnoreCase — "FR" must be treated as valid
+        await _sut.SetLocaleAsync("FR");
+
+        _sut.CurrentLocale.Should().Be("FR");
+    }
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("ar")]
+    [InlineData("tr")]
+    [InlineData("fr")]
+    [InlineData("de")]
+    public async Task InitializeAsync_SetsCurrentLocale_ForEachValidCode(string locale)
+    {
+        _settingsService.GetLocaleAsync(Arg.Any<int?>()).Returns(locale);
+
+        await _sut.InitializeAsync();
+
+        _sut.CurrentLocale.Should().Be(locale);
+    }
+
+    [Fact]
+    public async Task SetLocaleAsync_MultipleSubscribers_AllReceiveEvent()
+    {
+        var received = new List<string>();
+        _sut.LocaleChanged += l => received.Add("a:" + l);
+        _sut.LocaleChanged += l => received.Add("b:" + l);
+
+        await _sut.SetLocaleAsync("tr");
+
+        received.Should().Contain("a:tr").And.Contain("b:tr");
+    }
 }

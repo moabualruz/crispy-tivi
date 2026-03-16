@@ -281,6 +281,63 @@ public class ThemeServiceTests
     {
         _sut.SelectedAccentIndex.Should().Be(0);
     }
+
+    [AvaloniaFact]
+    public async Task SetThemeAsync_SameTheme_DoesNotPersist()
+    {
+        // Default is Dark; calling SetThemeAsync(Dark) again must be a no-op
+        await _sut.InitializeAsync(); // sets CurrentTheme = Dark from mock
+        _settingsService.ClearReceivedCalls();
+
+        await _sut.SetThemeAsync(ThemeVariant.Dark);
+
+        await _settingsService.DidNotReceive().SetThemeAsync(Arg.Any<ThemeVariant>(), Arg.Any<int?>());
+    }
+
+    [AvaloniaFact]
+    public async Task SetAccentColorAsync_MaxBoundary_SetsToLastIndex()
+    {
+        var maxIndex = DesignTokens.AccentPalette.Length - 1;
+
+        await _sut.SetAccentColorAsync(maxIndex);
+
+        _sut.SelectedAccentIndex.Should().Be(maxIndex);
+    }
+
+    [AvaloniaFact]
+    public async Task SetReducedMotionAsync_CalledTwiceWithTrue_PersistsTwice()
+    {
+        await _sut.SetReducedMotionAsync(true);
+        await _sut.SetReducedMotionAsync(true);
+
+        await _settingsService.Received(2)
+            .SetAsync("reduced_motion", true, Arg.Any<int?>());
+    }
+
+    [AvaloniaFact]
+    public async Task InitializeAsync_AccentIndexNegativeStored_SetsSelectedIndex()
+    {
+        // Negative index stored — clamped by GetAsync default, but we verify SelectedAccentIndex is set
+        _settingsService.GetAsync("accent_index", 0, Arg.Any<int?>())
+            .Returns(-1);
+
+        await _sut.InitializeAsync();
+
+        // -1 < 0 so AccentPalette check skips; SelectedAccentIndex is whatever was stored
+        _sut.SelectedAccentIndex.Should().Be(-1);
+    }
+
+    [Fact]
+    public void ThemeChangedEvent_CanBeSubscribedAndUnsubscribed()
+    {
+        var count = 0;
+        Action<ThemeVariant> handler = _ => count++;
+        _sut.ThemeChanged += handler;
+        _sut.ThemeChanged -= handler;
+
+        // Event removed — count stays 0 (no async call needed; just verifies no throw)
+        count.Should().Be(0);
+    }
 }
 
 /// <summary>
