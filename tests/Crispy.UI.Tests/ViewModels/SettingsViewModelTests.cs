@@ -211,4 +211,53 @@ public class SettingsViewModelTests
     {
         _sut.BuildDate.Should().NotBeNullOrEmpty();
     }
+
+    // ── AppVersion ────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void AppVersion_IsNotNullOrEmpty()
+    {
+        _sut.AppVersion.Should().NotBeNullOrEmpty();
+    }
+
+    // ── AvailableThemes ───────────────────────────────────────────────────────
+
+    [Fact]
+    public void AvailableThemes_HasThreeItems()
+    {
+        _sut.AvailableThemes.Should().HaveCount(3,
+            "Dark, OledBlack, and Light are the three supported theme variants");
+    }
+
+    // ── IsDebugDiagnosticsEnabled ─────────────────────────────────────────────
+
+    [Fact]
+    public void IsDebugDiagnosticsEnabled_ReturnsFalse_WhenFeatureFlagNotSet()
+    {
+        // Default FeatureFlagOptions has no flags enabled.
+        _sut.IsDebugDiagnosticsEnabled.Should().BeFalse();
+    }
+
+    // ── ResetCategoryCommand — non-General category ───────────────────────────
+
+    [Fact]
+    public async Task ResetCategoryCommand_WhenNonGeneralCategory_DoesNotResetTheme()
+    {
+        _sut.SelectedCategory = _sut.Categories.First(c => c.Name == "Sources");
+        _sut.SelectedTheme = ThemeVariant.Light;
+
+        await _sut.ResetCategoryCommand.ExecuteAsync(null);
+
+        // Non-General category reset is a no-op — theme should stay as set.
+        _sut.SelectedTheme.Should().Be(ThemeVariant.Light,
+            "resetting a non-General category must not touch the theme setting");
+    }
+
+    // ── AccentPalette ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public void AccentPalette_IsNotEmpty()
+    {
+        _sut.AccentPalette.Should().NotBeEmpty("design tokens must define at least one accent color");
+    }
 }
