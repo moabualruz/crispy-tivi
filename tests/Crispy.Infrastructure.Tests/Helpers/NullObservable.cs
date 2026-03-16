@@ -8,8 +8,3 @@ internal sealed class NullObservable<T> : IObservable<T>
     public IDisposable Subscribe(IObserver<T> observer) => NullDisposable.Instance;
 }
 
-internal sealed class NullDisposable : IDisposable
-{
-    public static readonly NullDisposable Instance = new();
-    public void Dispose() { }
-}

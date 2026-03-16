@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 
 using Crispy.Infrastructure.Jellyfin;
-using Crispy.Infrastructure.Security;
 
 using FluentAssertions;
 
@@ -17,6 +16,7 @@ namespace Crispy.Infrastructure.Tests.Jellyfin;
 /// Tests for JellyfinClient: Quick Connect flow, WebSocket reconnect logic, and item retrieval.
 /// Uses a SequentialHttpMessageHandler to mock HTTP responses without NSubstitute.
 /// </summary>
+[Trait("Category", "Unit")]
 public class JellyfinClientTests
 {
     // ─── Helper factory ───────────────────────────────────────────────────────
@@ -145,6 +145,181 @@ public class JellyfinClientTests
         var items = await client.GetItemsAsync("lib1", "Movie", 0, 100, CancellationToken.None);
 
         items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetItemsAsync_MapsAllProperties_WhenFullItemReturned()
+    {
+        const string json = """
+        {
+            "Items": [{
+                "Id": "item1",
+                "Name": "Breaking Bad S01E01",
+                "Type": "Episode",
+                "Overview": "A chemistry teacher turns to crime.",
+                "ProductionYear": 2008,
+                "RunTimeTicks": 27000000000,
+                "Path": "/tv/breaking-bad/s01e01.mkv",
+                "SeriesId": "series_bb",
+                "SeriesName": "Breaking Bad",
+                "IndexNumber": 1,
+                "ParentIndexNumber": 1,
+                "ChannelNumber": "5",
+                "ImageTags": {"Primary": "tag_abc"},
+                "BackdropImageTags": ["bd1"],
+                "ProviderIds": {"Imdb": "tt0903747"}
+            }],
+            "TotalRecordCount": 1
+        }
+        """;
+        var client = MakeClient("tok", (HttpStatusCode.OK, json));
+
+        var items = await client.GetItemsAsync("lib1", "Episode", 0, 50, CancellationToken.None);
+
+        items.Should().HaveCount(1);
+        var item = items[0];
+        item.Id.Should().Be("item1");
+        item.Name.Should().Be("Breaking Bad S01E01");
+        item.Type.Should().Be("Episode");
+        item.Overview.Should().Be("A chemistry teacher turns to crime.");
+        item.ProductionYear.Should().Be(2008);
+        item.RunTimeTicks.Should().Be(27000000000L);
+        item.Path.Should().Be("/tv/breaking-bad/s01e01.mkv");
+        item.SeriesId.Should().Be("series_bb");
+        item.SeriesName.Should().Be("Breaking Bad");
+        item.IndexNumber.Should().Be(1);
+        item.ParentIndexNumber.Should().Be(1);
+        item.ChannelNumber.Should().Be("5");
+        item.ImageTags.Should().ContainKey("Primary").WhoseValue.Should().Be("tag_abc");
+        item.BackdropImageTags.Should().Contain("bd1");
+        item.ProviderIds.Should().ContainKey("Imdb").WhoseValue.Should().Be("tt0903747");
+    }
+
+    // ─── GetLibrariesAsync ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetLibrariesAsync_ReturnsFolderList()
+    {
+        const string json = """
+        {
+            "Items": [
+                {"Id":"lib1","Name":"Movies","Type":"CollectionFolder"},
+                {"Id":"lib2","Name":"TV Shows","Type":"CollectionFolder"}
+            ],
+            "TotalRecordCount": 2
+        }
+        """;
+        var client = MakeClient("tok", (HttpStatusCode.OK, json));
+
+        var libs = await client.GetLibrariesAsync(CancellationToken.None);
+
+        libs.Should().HaveCount(2);
+        libs[0].Id.Should().Be("lib1");
+        libs[0].Name.Should().Be("Movies");
+        libs[1].Id.Should().Be("lib2");
+        libs[1].Name.Should().Be("TV Shows");
+    }
+
+    [Fact]
+    public async Task GetLibrariesAsync_ReturnsEmpty_WhenNoFolders()
+    {
+        const string json = """{"Items":[],"TotalRecordCount":0}""";
+        var client = MakeClient("tok", (HttpStatusCode.OK, json));
+
+        var libs = await client.GetLibrariesAsync(CancellationToken.None);
+
+        libs.Should().BeEmpty();
+    }
+
+    // ─── AuthenticateAsync edge cases ──────────────────────────────────────────
+
+    [Fact]
+    public async Task AuthenticateAsync_LeavesTokenNull_WhenServerReturnsNullToken()
+    {
+        var client = MakeClient(null,
+            (HttpStatusCode.OK, """{"AccessToken":null,"UserId":"user1"}"""));
+
+        await client.AuthenticateAsync("admin", "wrongpass", CancellationToken.None);
+
+        client.AccessToken.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AuthenticateAsync_Throws_WhenServerReturns401()
+    {
+        var client = MakeClient(null,
+            (HttpStatusCode.Unauthorized, """{"error":"Unauthorized"}"""));
+
+        var act = async () => await client.AuthenticateAsync("bad", "creds", CancellationToken.None);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    // ─── JellyfinItem ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void JellyfinItem_DefaultValues_AreCorrect()
+    {
+        var item = new JellyfinItem();
+
+        item.Id.Should().BeEmpty();
+        item.Name.Should().BeEmpty();
+        item.Type.Should().BeEmpty();
+        item.Overview.Should().BeNull();
+        item.ProductionYear.Should().BeNull();
+        item.RunTimeTicks.Should().BeNull();
+        item.Path.Should().BeNull();
+        item.SeriesId.Should().BeNull();
+        item.SeriesName.Should().BeNull();
+        item.IndexNumber.Should().BeNull();
+        item.ParentIndexNumber.Should().BeNull();
+        item.ChannelNumber.Should().BeNull();
+        item.ImageTags.Should().BeNull();
+        item.BackdropImageTags.Should().BeNull();
+        item.ProviderIds.Should().BeNull();
+    }
+
+    [Fact]
+    public void JellyfinItem_AllPropertiesSetAndRead()
+    {
+        var providerIds = new Dictionary<string, string> { ["Imdb"] = "tt123", ["Tmdb"] = "456" };
+        var imageTags = new Dictionary<string, string> { ["Primary"] = "imgA", ["Thumb"] = "imgB" };
+        var backdropTags = new List<string> { "bk1", "bk2" };
+
+        var item = new JellyfinItem
+        {
+            Id = "id1",
+            Name = "The Matrix",
+            Type = "Movie",
+            Overview = "A hacker discovers reality is a simulation.",
+            ProductionYear = 1999,
+            RunTimeTicks = 8280000000L,
+            Path = "/media/movies/matrix.mkv",
+            SeriesId = "series1",
+            SeriesName = "The Matrix Trilogy",
+            IndexNumber = 1,
+            ParentIndexNumber = 2,
+            ChannelNumber = "42",
+            ImageTags = imageTags,
+            BackdropImageTags = backdropTags,
+            ProviderIds = providerIds,
+        };
+
+        item.Id.Should().Be("id1");
+        item.Name.Should().Be("The Matrix");
+        item.Type.Should().Be("Movie");
+        item.Overview.Should().Be("A hacker discovers reality is a simulation.");
+        item.ProductionYear.Should().Be(1999);
+        item.RunTimeTicks.Should().Be(8280000000L);
+        item.Path.Should().Be("/media/movies/matrix.mkv");
+        item.SeriesId.Should().Be("series1");
+        item.SeriesName.Should().Be("The Matrix Trilogy");
+        item.IndexNumber.Should().Be(1);
+        item.ParentIndexNumber.Should().Be(2);
+        item.ChannelNumber.Should().Be("42");
+        item.ImageTags.Should().BeSameAs(imageTags);
+        item.BackdropImageTags.Should().BeSameAs(backdropTags);
+        item.ProviderIds.Should().BeSameAs(providerIds);
     }
 }
 

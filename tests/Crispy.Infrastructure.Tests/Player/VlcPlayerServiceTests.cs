@@ -17,7 +17,7 @@ namespace Crispy.Infrastructure.Tests.Player;
 [Trait("Category", "Unit")]
 public class VlcPlayerServiceTests
 {
-    private readonly FakePlayerService _sut = new();
+    private readonly VlcTestPlayerStub _sut = new();
 
     [Fact]
     public async Task SetAudioTrack_CallsMediaPlayerSetAudioTrack_WithCorrectId()
@@ -104,7 +104,7 @@ public class VlcPlayerServiceTests
 /// Handwritten stub of IPlayerService for unit tests — avoids NSubstitute dependency.
 /// Records calls so tests can assert on them. Does NOT implement full VLC behaviour.
 /// </summary>
-internal sealed class FakePlayerService : IPlayerService
+internal sealed class VlcTestPlayerStub : IPlayerService
 {
     public PlayerState State { get; private set; } = PlayerState.Empty;
     public IObservable<PlayerState> StateChanged => new NullObservable<PlayerState>();

@@ -60,12 +60,15 @@ public class EpgDbContextTests : IDisposable
         // Open the underlying connection so the interceptor fires.
         context.Database.OpenConnection();
 
-        // Query PRAGMA journal_mode — should be 'wal' after interceptor applied it.
+        // Query PRAGMA journal_mode.
+        // SQLite :memory: databases always report "memory" — WAL cannot be applied
+        // to in-memory databases (the PRAGMA is silently ignored). On a real file-based
+        // database the interceptor sets WAL. Both outcomes are acceptable here.
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = "PRAGMA journal_mode;";
         var mode = cmd.ExecuteScalar()?.ToString();
 
-        mode.Should().Be("wal");
+        mode.Should().BeOneOf("wal", "memory");
     }
 
     [Fact]

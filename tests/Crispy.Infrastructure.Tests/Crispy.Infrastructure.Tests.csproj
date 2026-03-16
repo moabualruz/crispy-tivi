@@ -4,10 +4,16 @@
     <RootNamespace>Crispy.Infrastructure.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- Ensure all package assemblies (e.g. Microsoft.Extensions.Hosting.Abstractions)
+         are copied to the output directory so the test runner can load them. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Crispy.Infrastructure\Crispy.Infrastructure.csproj" />
+    <!-- Microsoft.Extensions.Hosting.Abstractions lives in Microsoft.AspNetCore.App shared
+         framework. Without this reference the test runner cannot resolve it at runtime. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,7 +34,9 @@
     </PackageReference>
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="NSubstitute" />
+    <PackageReference Include="System.Reactive" />
     <PackageReference Include="NSubstitute.Analyzers.CSharp">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

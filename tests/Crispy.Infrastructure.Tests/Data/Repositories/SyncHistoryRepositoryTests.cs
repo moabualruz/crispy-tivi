@@ -28,10 +28,17 @@ public sealed class SyncHistoryRepositoryTests : IDisposable
     private async Task<int> SeedSourceAsync()
     {
         await using var ctx = await _factory.CreateDbContextAsync();
+
+        // Source has a FK to Profile — seed a profile first.
+        var profile = new Crispy.Domain.Entities.Profile { Name = "Test Profile" };
+        ctx.Profiles.Add(profile);
+        await ctx.SaveChangesAsync();
+
         var source = new Crispy.Domain.Entities.Source
         {
             Name = "Test Source",
             Url = "http://test.example.com/playlist.m3u",
+            ProfileId = profile.Id,
         };
         ctx.Sources.Add(source);
         await ctx.SaveChangesAsync();

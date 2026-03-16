@@ -104,12 +104,15 @@ public sealed class SearchRepositoryTests : IDisposable
     [Fact]
     public async Task IndexAsync_DoesNotThrow_WhenFts5TableExists()
     {
-        // Create the FTS5 virtual table in the test SQLite connection
+        // Create the FTS5 virtual table via raw SqliteConnection (EF Relational not available)
         await using var ctx = await _factory.CreateDbContextAsync();
-        await ctx.Database.ExecuteSqlRawAsync(
+        var conn = _factory.Connection;
+        await using var createCmd = conn.CreateCommand();
+        createCmd.CommandText =
             "CREATE VIRTUAL TABLE IF NOT EXISTS ContentSearch USING fts5(" +
             "content_id UNINDEXED, content_type UNINDEXED, source_id UNINDEXED, " +
-            "title, description, group_name)");
+            "title, description, group_name)";
+        await createCmd.ExecuteNonQueryAsync();
 
         var act = async () => await _sut.IndexAsync(
             contentId: 1,
@@ -125,11 +128,13 @@ public sealed class SearchRepositoryTests : IDisposable
     [Fact]
     public async Task IndexAsync_InsertsRow_ThatCanBeReadBack()
     {
-        await using var ctx = await _factory.CreateDbContextAsync();
-        await ctx.Database.ExecuteSqlRawAsync(
+        var conn = _factory.Connection;
+        await using var createCmd = conn.CreateCommand();
+        createCmd.CommandText =
             "CREATE VIRTUAL TABLE IF NOT EXISTS ContentSearch USING fts5(" +
             "content_id UNINDEXED, content_type UNINDEXED, source_id UNINDEXED, " +
-            "title, description, group_name)");
+            "title, description, group_name)";
+        await createCmd.ExecuteNonQueryAsync();
 
         await _sut.IndexAsync(
             contentId: 42,
@@ -140,13 +145,9 @@ public sealed class SearchRepositoryTests : IDisposable
             groupName: null);
 
         // Verify row exists via raw query
-        var conn = (SqliteConnection)ctx.Database.GetDbConnection();
-        if (conn.State != System.Data.ConnectionState.Open)
-            await conn.OpenAsync();
-
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT content_id FROM ContentSearch WHERE title MATCH 'Inception'";
-        var raw = await cmd.ExecuteScalarAsync();
+        await using var readCmd = conn.CreateCommand();
+        readCmd.CommandText = "SELECT content_id FROM ContentSearch WHERE title MATCH 'Inception'";
+        var raw = await readCmd.ExecuteScalarAsync();
 
         raw.Should().NotBeNull();
         Convert.ToInt32(raw).Should().Be(42);

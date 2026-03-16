@@ -24,13 +24,17 @@ public sealed class ReminderRepository : IReminderRepository
     {
         await using var db = await _dbFactory.CreateDbContextAsync().ConfigureAwait(false);
 
-        return await db.Reminders
-            .Where(r => r.ProfileId == profileId
-                     && !r.Fired
-                     && r.NotifyAt > DateTimeOffset.UtcNow)
-            .OrderBy(r => r.NotifyAt)
+        var now = DateTimeOffset.UtcNow;
+        // SQLite does not support DateTimeOffset in LINQ predicates or ordering.
+        // Fetch the filtered set (Fired=false, matching profileId) then sort/filter on the client.
+        var candidates = await db.Reminders
+            .Where(r => r.ProfileId == profileId && !r.Fired)
             .ToListAsync()
             .ConfigureAwait(false);
+        return candidates
+            .Where(r => r.NotifyAt > now)
+            .OrderBy(r => r.NotifyAt)
+            .ToList();
     }
 
     /// <inheritdoc />

@@ -4,6 +4,8 @@ using Crispy.Infrastructure.Tests.Helpers;
 
 using FluentAssertions;
 
+using Microsoft.EntityFrameworkCore;
+
 using Xunit;
 
 namespace Crispy.Infrastructure.Tests.Data.Repositories;
@@ -152,7 +154,8 @@ public sealed class ProfileRepositoryTests : IDisposable
         await _sut.DeleteAsync(profile.Id);
 
         await using var ctx = await _factory.CreateDbContextAsync();
-        var raw = await ctx.Profiles.FindAsync(profile.Id);
+        // IgnoreQueryFilters bypasses the soft-delete filter so the deleted row is visible.
+        var raw = await ctx.Profiles.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == profile.Id);
         raw!.DeletedAt.Should().NotBeNull();
     }
 

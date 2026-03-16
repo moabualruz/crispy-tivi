@@ -31,6 +31,9 @@ public sealed class TestDbContextFactory : IDbContextFactory<AppDbContext>, IDis
         context.Database.EnsureCreated();
     }
 
+    /// <summary>The shared SQLite connection backing this factory.</summary>
+    public SqliteConnection Connection => _connection;
+
     /// <inheritdoc />
     public AppDbContext CreateDbContext()
     {

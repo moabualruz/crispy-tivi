@@ -24,11 +24,12 @@ public sealed class SavedLayoutRepository : ISavedLayoutRepository
     {
         await using var db = await _dbFactory.CreateDbContextAsync().ConfigureAwait(false);
 
-        return await db.SavedLayouts
+        // SQLite does not support DateTimeOffset in ORDER BY; sort client-side.
+        var layouts = await db.SavedLayouts
             .Where(l => l.ProfileId == profileId)
-            .OrderByDescending(l => l.CreatedAt)
             .ToListAsync()
             .ConfigureAwait(false);
+        return layouts.OrderByDescending(l => l.CreatedAt.UtcTicks).ToList();
     }
 
     /// <inheritdoc />
