@@ -177,4 +177,61 @@ public class EpgViewModelTests
         _sut.ProgrammeItems[0].IsCurrent.Should().BeFalse("the past show is not currently airing");
         _sut.ProgrammeItems[1].IsCurrent.Should().BeTrue("this programme is currently airing");
     }
+
+    // ─── EpgProgrammeItem direct unit tests ──────────────────────────────────
+
+    [Fact]
+    public void EpgProgrammeItem_TimeRange_FormatsCorrectly()
+    {
+        // Use a fixed UTC time so local conversion is deterministic relative to itself.
+        var startUtc = new DateTime(2024, 6, 15, 18, 0, 0, DateTimeKind.Utc);
+        var stopUtc = new DateTime(2024, 6, 15, 19, 30, 0, DateTimeKind.Utc);
+        var programme = new EpgProgramme
+        {
+            ChannelId = "ch1",
+            Title = "Test Show",
+            StartUtc = startUtc,
+            StopUtc = stopUtc,
+        };
+
+        var item = new EpgProgrammeItem(programme, isCurrent: false);
+
+        var expectedStart = startUtc.ToLocalTime().ToString("HH:mm");
+        var expectedStop = stopUtc.ToLocalTime().ToString("HH:mm");
+        item.TimeRange.Should().Be($"{expectedStart} \u2013 {expectedStop}",
+            "TimeRange must be formatted as HH:mm – HH:mm in local time");
+    }
+
+    [Fact]
+    public void EpgProgrammeItem_IsCurrent_True_WhenFlagSet()
+    {
+        var programme = new EpgProgramme
+        {
+            ChannelId = "ch1",
+            Title = "Live",
+            StartUtc = DateTime.UtcNow.AddMinutes(-5),
+            StopUtc = DateTime.UtcNow.AddMinutes(55),
+        };
+
+        var item = new EpgProgrammeItem(programme, isCurrent: true);
+
+        item.IsCurrent.Should().BeTrue();
+        item.Programme.Should().BeSameAs(programme);
+    }
+
+    [Fact]
+    public void EpgProgrammeItem_IsCurrent_False_WhenFlagNotSet()
+    {
+        var programme = new EpgProgramme
+        {
+            ChannelId = "ch1",
+            Title = "Past",
+            StartUtc = DateTime.UtcNow.AddHours(-2),
+            StopUtc = DateTime.UtcNow.AddHours(-1),
+        };
+
+        var item = new EpgProgrammeItem(programme, isCurrent: false);
+
+        item.IsCurrent.Should().BeFalse();
+    }
 }
