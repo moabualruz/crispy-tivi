@@ -237,6 +237,94 @@ public class StalkerClientTests
         callCount.Should().Be(countAtStop, "keep-alive should not fire after StopKeepAliveAsync");
     }
 
+    // ------------------------------------------------------------------
+    // GetChannelsAsync — returns JsonDocument when authorised
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task GetChannelsAsync_ReturnsDocument_WhenAuthorised()
+    {
+        const string handshake = """{"js":{"token":"tok"}}""";
+        const string channels = """{"js":{"data":[{"name":"BBC One"}]}}""";
+        var responses = new Queue<string>(new[] { handshake, channels });
+
+        var handler = new QueuedHandler(responses);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://test.example.com") };
+        var client = new StalkerClient(httpClient, mac: "AA:BB:CC:DD:EE:FF");
+
+        await client.HandshakeAsync();
+        using var doc = await client.GetChannelsAsync();
+
+        doc.Should().NotBeNull();
+    }
+
+    // ------------------------------------------------------------------
+    // GetVodCategoriesAsync — returns document with categories
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task GetVodCategoriesAsync_ReturnsDocument_WhenAuthorised()
+    {
+        const string handshake = """{"js":{"token":"tok"}}""";
+        const string categories = """{"js":{"data":[{"id":"1","title":"Action"}]}}""";
+        var responses = new Queue<string>(new[] { handshake, categories });
+
+        var handler = new QueuedHandler(responses);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://test.example.com") };
+        var client = new StalkerClient(httpClient, mac: "AA:BB:CC:DD:EE:FF");
+
+        await client.HandshakeAsync();
+        using var doc = await client.GetVodCategoriesAsync();
+
+        doc.Should().NotBeNull();
+    }
+
+    // ------------------------------------------------------------------
+    // GetVodListAsync — returns document with VOD items
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task GetVodListAsync_ReturnsDocument_WhenAuthorised()
+    {
+        const string handshake = """{"js":{"token":"tok"}}""";
+        const string vodList = """{"js":{"data":[{"name":"Inception","cmd":"http://vod.example.com/inception"}]}}""";
+        var responses = new Queue<string>(new[] { handshake, vodList });
+
+        var handler = new QueuedHandler(responses);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://test.example.com") };
+        var client = new StalkerClient(httpClient, mac: "AA:BB:CC:DD:EE:FF");
+
+        await client.HandshakeAsync();
+        using var doc = await client.GetVodListAsync("1", page: 1);
+
+        doc.Should().NotBeNull();
+    }
+
+    // ------------------------------------------------------------------
+    // GetVodListAsync — null when server returns 401
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task GetVodListAsync_ReturnsNull_WhenServerReturns401()
+    {
+        // Handshake succeeds, subsequent auth request returns 401
+        const string handshake = """{"js":{"token":"tok"}}""";
+        var responses = new Queue<(string, HttpStatusCode)>(new[]
+        {
+            (handshake, HttpStatusCode.OK),
+            ("{}", HttpStatusCode.Unauthorized),
+        });
+
+        var handler = new StatusQueuedHandler(responses);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://test.example.com") };
+        var client = new StalkerClient(httpClient, mac: "AA:BB:CC:DD:EE:FF");
+
+        await client.HandshakeAsync();
+        using var doc = await client.GetVodListAsync("1");
+
+        doc.Should().BeNull();
+    }
+
     private sealed class FakeMessageHandler : HttpMessageHandler
     {
         private readonly string _response;
@@ -273,6 +361,42 @@ public class StalkerClientTests
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            });
+        }
+    }
+
+    private sealed class QueuedHandler : HttpMessageHandler
+    {
+        private readonly Queue<string> _responses;
+
+        public QueuedHandler(Queue<string> responses) => _responses = responses;
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var json = _responses.Count > 0 ? _responses.Dequeue() : "{}";
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json"),
+            });
+        }
+    }
+
+    private sealed class StatusQueuedHandler : HttpMessageHandler
+    {
+        private readonly Queue<(string Json, HttpStatusCode Status)> _responses;
+
+        public StatusQueuedHandler(Queue<(string, HttpStatusCode)> responses) => _responses = responses;
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var (json, status) = _responses.Count > 0
+                ? _responses.Dequeue()
+                : ("{}", HttpStatusCode.OK);
+            return Task.FromResult(new HttpResponseMessage(status)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json"),
             });
         }
     }

@@ -460,4 +460,54 @@ public class XmltvParserTests
         result.Should().HaveCount(1);
         result[0].Title.Should().Be("Show");
     }
+
+    // ------------------------------------------------------------------
+    // ParseXmltvDate — bare datetime without timezone offset
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task ParseAsync_BareDateTime_WithoutOffset_IsStoredAsUtc()
+    {
+        // "20240315143000" — no offset — parsed via AssumeUniversal fallback
+        const string xml = """
+            <?xml version="1.0"?>
+            <tv>
+              <programme start="20240315143000" stop="20240315150000" channel="ch1">
+                <title>No Offset Show</title>
+              </programme>
+            </tv>
+            """;
+
+        var result = await ParseInlineAsync(xml);
+
+        result.Should().HaveCount(1);
+        result[0].StartUtc.Kind.Should().Be(DateTimeKind.Utc);
+        result[0].StartUtc.Year.Should().Be(2024);
+        result[0].StartUtc.Month.Should().Be(3);
+        result[0].StartUtc.Day.Should().Be(15);
+    }
+
+    // ------------------------------------------------------------------
+    // ParseXmltvDate — malformed date falls back to UtcNow (programme still yielded)
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task ParseAsync_MalformedDate_FallsBackGracefully_AndYieldsProgramme()
+    {
+        const string xml = """
+            <?xml version="1.0"?>
+            <tv>
+              <programme start="not-a-date" stop="also-not-a-date" channel="ch1">
+                <title>Fallback Show</title>
+              </programme>
+            </tv>
+            """;
+
+        var result = await ParseInlineAsync(xml);
+
+        // The programme is yielded using UtcNow as the fallback time
+        result.Should().HaveCount(1);
+        result[0].Title.Should().Be("Fallback Show");
+        result[0].StartUtc.Kind.Should().Be(DateTimeKind.Utc);
+    }
 }

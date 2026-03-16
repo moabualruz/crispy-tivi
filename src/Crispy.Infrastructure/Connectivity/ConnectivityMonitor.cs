@@ -89,7 +89,7 @@ public sealed class ConnectivityMonitor : IConnectivityMonitor, IDisposable
         return level;
     }
 
-    private void OnNetworkAvailabilityChanged(object? sender, NetworkAvailabilityEventArgs e)
+    internal void OnNetworkAvailabilityChanged(object? sender, NetworkAvailabilityEventArgs e)
     {
         // Fire-and-forget re-check on network change
         _ = Task.Run(async () =>

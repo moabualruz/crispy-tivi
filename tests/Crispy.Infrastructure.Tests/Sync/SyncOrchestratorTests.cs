@@ -7,6 +7,7 @@ using Crispy.Infrastructure.Tests.Helpers;
 
 using FluentAssertions;
 
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 
 using Xunit;
@@ -22,6 +23,7 @@ public class SyncOrchestratorTests : IDisposable
     {
         private readonly Dictionary<int, Source?> _byId = [];
         private List<Source> _all = [];
+        public bool ThrowOnGetAll { get; set; }
 
         public void SetById(int id, Source? source) => _byId[id] = source;
         public void SetAll(List<Source> sources) => _all = sources;
@@ -29,8 +31,12 @@ public class SyncOrchestratorTests : IDisposable
         public Task<Source?> GetByIdAsync(int id) =>
             Task.FromResult(_byId.TryGetValue(id, out var s) ? s : null);
 
-        public Task<IReadOnlyList<Source>> GetAllAsync() =>
-            Task.FromResult<IReadOnlyList<Source>>(_all);
+        public Task<IReadOnlyList<Source>> GetAllAsync()
+        {
+            if (ThrowOnGetAll)
+                throw new InvalidOperationException("DB error");
+            return Task.FromResult<IReadOnlyList<Source>>(_all);
+        }
 
         public Task<IReadOnlyList<Source>> GetByProfileAsync(int profileId) =>
             Task.FromResult<IReadOnlyList<Source>>([]);
@@ -266,5 +272,84 @@ public class SyncOrchestratorTests : IDisposable
         var sut = CreateSut();
         var act = () => sut.StopAsync();
         await act.Should().NotThrowAsync();
+    }
+
+    // ─── IHostedService ───────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task IHostedService_StartAsync_DoesNotThrow()
+    {
+        _sourceRepo.SetAll([]);
+
+        IHostedService sut = CreateSut();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var act = () => sut.StartAsync(cts.Token);
+        await act.Should().NotThrowAsync();
+
+        await sut.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task IHostedService_StopAsync_DoesNotThrow_WhenNotStarted()
+    {
+        IHostedService sut = CreateSut();
+
+        var act = () => sut.StopAsync(CancellationToken.None);
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task IHostedService_StartThenStop_CompletesCleanly()
+    {
+        _sourceRepo.SetAll([]);
+
+        IHostedService sut = CreateSut();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await sut.StartAsync(cts.Token);
+
+        // Give the fire-and-forget task a moment to run
+        await Task.Delay(50);
+
+        var act = () => sut.StopAsync(CancellationToken.None);
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task IHostedService_StartAsync_ExceptionInGetAllAsync_HitsExceptionCatchBranch()
+    {
+        // Source repo throws InvalidOperationException on GetAllAsync, so SyncAllAsync
+        // propagates it into the fire-and-forget catch(Exception) branch.
+        _sourceRepo.ThrowOnGetAll = true;
+
+        IHostedService sut = CreateSut();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var act = () => sut.StartAsync(cts.Token);
+        await act.Should().NotThrowAsync();
+
+        // Allow the Task.Run body to execute and hit catch(Exception)
+        await Task.Delay(200);
+        await sut.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task IHostedService_StartAsync_CancelledAfterStart_HitsOceCatchBranch()
+    {
+        // Cancel immediately after StartAsync returns — the fire-and-forget task
+        // calls SyncAllAsync with a token that becomes cancelled during GetAllAsync,
+        // exercising the catch(OperationCanceledException) branch.
+        _sourceRepo.SetAll([]);
+
+        IHostedService sut = CreateSut();
+
+        using var cts = new CancellationTokenSource();
+        await sut.StartAsync(cts.Token);
+
+        // Cancel immediately so the in-flight SyncAllAsync picks up cancellation
+        await cts.CancelAsync();
+
+        await Task.Delay(200);
     }
 }
