@@ -1,0 +1,8 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="bbc1" tvg-name="BBC One" tvg-logo="https://img.example.com/bbc.png" group-title="UK",BBC One
+http://fake-stream.test/bbc1.m3u8
+#EXTINF:-1 tvg-id="cnn" tvg-name="CNN" tvg-logo="https://img.example.com/cnn.png" group-title="News",CNN
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+http://fake-stream.test/cnn.m3u8
+#EXTINF:-1 tvg-id="espn" tvg-name="ESPN" group-title="Sports",ESPN
+http://fake-stream.test/espn.m3u8

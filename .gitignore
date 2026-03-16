@@ -51,3 +51,8 @@ logs/
 ##
 appsettings.Development.json
 appsettings.Local.json*.binlog
+
+##
+## Test data local overrides
+##
+tests/**/TestData/**/*.local.*

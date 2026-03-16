@@ -1,0 +1,1 @@
+{"user_info":{"username":"testuser","password":"testpass","status":"Active","exp_date":"1750000000","is_trial":"0","active_cons":"1","created_at":"1700000000","max_connections":"1"},"server_info":{"url":"http://fake-xtream.test","port":"80","https_port":"443","server_protocol":"http","rtmp_port":"8880","timezone":"UTC","timestamp_now":1710000000}}
