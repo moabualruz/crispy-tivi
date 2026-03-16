@@ -382,6 +382,112 @@ public class StalkerClientTests
         }
     }
 
+    // ------------------------------------------------------------------
+    // GetChannelsAsync — returns null when server returns 401
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task GetChannelsAsync_ReturnsNull_WhenServerReturns401()
+    {
+        const string handshake = """{"js":{"token":"tok"}}""";
+        var responses = new Queue<(string, HttpStatusCode)>(new[]
+        {
+            (handshake, HttpStatusCode.OK),
+            ("{}", HttpStatusCode.Unauthorized),
+        });
+
+        var handler = new StatusQueuedHandler(responses);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://test.example.com") };
+        var client = new StalkerClient(httpClient, mac: "AA:BB:CC:DD:EE:FF");
+
+        await client.HandshakeAsync();
+        using var doc = await client.GetChannelsAsync();
+
+        doc.Should().BeNull();
+    }
+
+    // ------------------------------------------------------------------
+    // GetVodCategoriesAsync — returns null when server returns 404
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task GetVodCategoriesAsync_ReturnsNull_WhenServerReturnsError()
+    {
+        const string handshake = """{"js":{"token":"tok"}}""";
+        var responses = new Queue<(string, HttpStatusCode)>(new[]
+        {
+            (handshake, HttpStatusCode.OK),
+            ("{}", HttpStatusCode.NotFound),
+        });
+
+        var handler = new StatusQueuedHandler(responses);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://test.example.com") };
+        var client = new StalkerClient(httpClient, mac: "AA:BB:CC:DD:EE:FF");
+
+        await client.HandshakeAsync();
+        using var doc = await client.GetVodCategoriesAsync();
+
+        doc.Should().BeNull();
+    }
+
+    // ------------------------------------------------------------------
+    // Keep-alive: exception other than OCE is silently swallowed
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task KeepAlive_SwallowsNonOceExceptions_AndContinues()
+    {
+        // Handler throws on the first keep-alive ping (after token auto-handshake)
+        var callCount = 0;
+        var throwingHandler = new ThrowingOnPingHandler(() => callCount++);
+        using var httpClient = new HttpClient(throwingHandler) { BaseAddress = new Uri("http://test.example.com") };
+        var client = new StalkerClient(httpClient, mac: "00:11:22:33:44:55");
+
+        // Should not throw — the catch block in the loop body swallows non-OCE exceptions
+        var act = async () =>
+        {
+            await client.StartKeepAliveAsync(interval: TimeSpan.FromMilliseconds(20));
+            await Task.Delay(120);
+            await client.StopKeepAliveAsync();
+        };
+
+        await act.Should().NotThrowAsync();
+        callCount.Should().BeGreaterThan(0, "the loop should have attempted at least one ping");
+    }
+
+    // ------------------------------------------------------------------
+    // StopKeepAliveAsync when not started — no-op, does not throw
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task StopKeepAliveAsync_DoesNotThrow_WhenNeverStarted()
+    {
+        var client = new StalkerClient(MakeFakeClient(), mac: "AA:BB:CC:DD:EE:FF");
+
+        var act = async () => await client.StopKeepAliveAsync();
+
+        await act.Should().NotThrowAsync();
+    }
+
+    // ------------------------------------------------------------------
+    // StartKeepAliveAsync called twice — second call stops first loop
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task StartKeepAliveAsync_Twice_DoesNotThrow()
+    {
+        var client = new StalkerClient(MakeFakeClient(), mac: "AA:BB:CC:DD:EE:FF");
+
+        var act = async () =>
+        {
+            await client.StartKeepAliveAsync(interval: TimeSpan.FromSeconds(10));
+            await client.StartKeepAliveAsync(interval: TimeSpan.FromSeconds(10));
+            await client.StopKeepAliveAsync();
+        };
+
+        await act.Should().NotThrowAsync();
+    }
+
     private sealed class StatusQueuedHandler : HttpMessageHandler
     {
         private readonly Queue<(string Json, HttpStatusCode Status)> _responses;
@@ -398,6 +504,38 @@ public class StalkerClientTests
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json"),
             });
+        }
+    }
+
+    /// <summary>
+    /// Returns a valid handshake token on the first request, then throws
+    /// <see cref="HttpRequestException"/> on every subsequent request (simulating a
+    /// transient network error during keep-alive pings). This exercises the
+    /// <c>catch { /* Ignore ping failures */ }</c> branch inside the keep-alive loop.
+    /// </summary>
+    private sealed class ThrowingOnPingHandler : HttpMessageHandler
+    {
+        private int _callCount;
+        private readonly Action _onCall;
+
+        public ThrowingOnPingHandler(Action onCall) => _onCall = onCall;
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            _onCall();
+            var count = System.Threading.Interlocked.Increment(ref _callCount);
+            if (count == 1)
+            {
+                // First call = auto-handshake — return a token
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("""{"js":{"token":"tok"}}""", Encoding.UTF8, "application/json"),
+                });
+            }
+
+            // Subsequent calls = keep-alive pings — throw to exercise the catch branch
+            throw new HttpRequestException("Simulated network error");
         }
     }
 }
