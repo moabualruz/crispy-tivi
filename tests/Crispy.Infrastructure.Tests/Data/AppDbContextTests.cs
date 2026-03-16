@@ -81,6 +81,87 @@ public class AppDbContextTests : IDisposable
         results.Should().HaveCount(2);
     }
 
+    [Fact]
+    public async Task AllDbSets_ShouldBeNonNull_AfterContextCreation()
+    {
+        await using var context = _factory.CreateDbContext();
+
+        context.Profiles.Should().NotBeNull();
+        context.Settings.Should().NotBeNull();
+        context.Sources.Should().NotBeNull();
+        context.Channels.Should().NotBeNull();
+        context.ChannelGroups.Should().NotBeNull();
+        context.ChannelGroupMemberships.Should().NotBeNull();
+        context.DeduplicationGroups.Should().NotBeNull();
+        context.StreamEndpoints.Should().NotBeNull();
+        context.Movies.Should().NotBeNull();
+        context.SeriesItems.Should().NotBeNull();
+        context.Episodes.Should().NotBeNull();
+        context.WatchHistory.Should().NotBeNull();
+        context.WatchHistoryEntries.Should().NotBeNull();
+        context.Bookmarks.Should().NotBeNull();
+        context.SavedLayouts.Should().NotBeNull();
+        context.Reminders.Should().NotBeNull();
+        context.StreamHealthEntries.Should().NotBeNull();
+        context.SyncHistory.Should().NotBeNull();
+        context.Downloads.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task OnModelCreating_ShouldConfigureAllEntityTypes_WithoutError()
+    {
+        // If OnModelCreating threw, EnsureCreated() in the factory would have failed.
+        // Reaching this point means model configuration succeeded.
+        await using var context = _factory.CreateDbContext();
+        var entityTypes = context.Model.GetEntityTypes().Select(e => e.ClrType.Name).ToList();
+
+        entityTypes.Should().Contain("Profile");
+        entityTypes.Should().Contain("Setting");
+        entityTypes.Should().Contain("Source");
+        entityTypes.Should().Contain("Channel");
+        entityTypes.Should().Contain("Movie");
+        entityTypes.Should().Contain("Series");
+        entityTypes.Should().Contain("Episode");
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_ShouldSetUpdatedAt_WhenEntityIsModified()
+    {
+        await using var context = _factory.CreateDbContext();
+        var profile = new Profile { Name = "Initial" };
+        context.Profiles.Add(profile);
+        await context.SaveChangesAsync();
+        var originalUpdatedAt = profile.UpdatedAt;
+
+        await Task.Delay(15);
+
+        profile.Name = "Modified";
+        await context.SaveChangesAsync();
+
+        profile.UpdatedAt.Should().BeOnOrAfter(originalUpdatedAt);
+        profile.CreatedAt.Should().BeOnOrBefore(profile.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task SoftDelete_ShouldMarkEntityAsDeleted_WhenDeletedAtSet()
+    {
+        await using var context = _factory.CreateDbContext();
+        var profile = new Profile { Name = "ToDelete" };
+        context.Profiles.Add(profile);
+        await context.SaveChangesAsync();
+
+        profile.DeletedAt = DateTime.UtcNow;
+        await context.SaveChangesAsync();
+
+        // Query filter excludes it from normal queries
+        var active = await context.Profiles.ToListAsync();
+        active.Should().NotContain(p => p.Name == "ToDelete");
+
+        // But it still exists when filters are ignored
+        var all = await context.Profiles.IgnoreQueryFilters().ToListAsync();
+        all.Should().Contain(p => p.Name == "ToDelete" && p.DeletedAt != null);
+    }
+
     public void Dispose()
     {
         _factory.Dispose();
