@@ -250,4 +250,33 @@ public class DeepLinkParserTests
         r.Id.Should().Be("5");
         r.Query.Should().BeNull();
     }
+
+    [Fact]
+    public void Parse_QueryStringIsOnlyQuestionMark_ReturnsNullQuery()
+    {
+        // ParseQuery receives "?" which after TrimStart('?') becomes "" → returns null
+        var result = DeepLinkParser.Parse("crispy://search?");
+
+        result.Should().NotBeNull();
+        result!.Screen.Should().Be("Search");
+        result.Query.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_UriWithEmptyHostAndNoPath_ReturnsNull()
+    {
+        // crispy:/// → Host="" Path="/" → allSegments empty → returns null
+        var result = DeepLinkParser.Parse("crispy:///");
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_VodWithUnknownSubRoute_ReturnsNull()
+    {
+        // "vod/episode" matches neither "movie" nor "series" → falls through to null
+        var result = DeepLinkParser.Parse("crispy://vod/episode/5");
+
+        result.Should().BeNull();
+    }
 }
