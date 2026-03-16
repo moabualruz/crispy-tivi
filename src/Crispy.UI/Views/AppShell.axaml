@@ -57,8 +57,6 @@
               </TransitioningContentControl.PageTransition>
             </TransitioningContentControl>
 
-            <!-- Mini player bar at bottom (within content layer) -->
-            <controls:MiniPlayerBar VerticalAlignment="Bottom" />
           </Panel>
         </SplitView.Content>
 

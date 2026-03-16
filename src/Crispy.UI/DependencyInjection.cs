@@ -59,7 +59,6 @@ public static class DependencyInjection
         services.AddTransient<AppShell>();
         services.AddTransient<TrackSelectorView>();
         services.AddTransient<MiniPlayerView>();
-        services.AddTransient<MainView>();
         services.AddTransient<HomeView>();
         services.AddTransient<LiveTvView>();
         services.AddTransient<MoviesView>();
