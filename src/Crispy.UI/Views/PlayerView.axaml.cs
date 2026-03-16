@@ -76,19 +76,23 @@ public partial class PlayerView : UserControl
         videoView.SetValue(HorizontalAlignmentProperty, Avalonia.Layout.HorizontalAlignment.Stretch);
         videoView.SetValue(VerticalAlignmentProperty, Avalonia.Layout.VerticalAlignment.Stretch);
 
-        // Assign MediaPlayer from the service via reflection
-        var mpFromService = vm.PlayerService.GetType()
-            .GetProperty("MediaPlayer")
-            ?.GetValue(vm.PlayerService);
-        if (mpFromService is not null)
-        {
-            videoViewType.GetProperty("MediaPlayer")?.SetValue(videoView, mpFromService);
-        }
-
-        // VideoSurface is the generated field from x:Name="VideoSurface" in the AXAML.
-        // Using the field directly avoids a NameScope lookup (which fails in headless).
+        // Add VideoView to visual tree FIRST so native window handle is created
         if (VideoSurface is not null)
             VideoSurface.Child = videoView;
+
+        // Defer MediaPlayer assignment until VideoView is fully loaded —
+        // setting it before the native handle exists causes VLC to open
+        // a separate rendering window instead of embedding in VideoView.
+        videoView.AttachedToVisualTree += (_, _) =>
+        {
+            var mpFromService = vm.PlayerService.GetType()
+                .GetProperty("MediaPlayer")
+                ?.GetValue(vm.PlayerService);
+            if (mpFromService is not null)
+            {
+                videoViewType.GetProperty("MediaPlayer")?.SetValue(videoView, mpFromService);
+            }
+        };
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)

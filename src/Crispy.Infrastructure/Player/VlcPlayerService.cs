@@ -221,37 +221,9 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
             });
         });
 
-        // PCM audio callback for waveform visualizer
-        _mediaPlayer.SetAudioCallbacks(
-            (data, samples, count, pts) =>
-            {
-                if (samples == IntPtr.Zero || count == 0) return;
-                try
-                {
-                    unsafe
-                    {
-                        var floatCount = (int)count;
-                        var buffer = new float[floatCount];
-                        var src = (float*)samples;
-                        for (var i = 0; i < floatCount; i++)
-                        {
-                            buffer[i] = src[i];
-                        }
-
-                        _audioSamplesSubject.OnNext(buffer);
-                    }
-                }
-                catch
-                {
-                    // Audio callback must never throw — VLC crashes if it does
-                }
-            },
-            (_, _) => { },
-            (_, _) => { },
-            (_, _) => { },
-            _ => { });
-
-        _mediaPlayer.SetAudioFormat("FI32", 44100, 2);
+        // Note: Audio callbacks (SetAudioCallbacks/SetAudioFormat) intentionally NOT set.
+        // Setting them hijacks VLC's audio output, silencing normal playback.
+        // WaveformVisualizer uses a fallback pulsing animation when no samples are available.
     }
 
     /// <inheritdoc />
