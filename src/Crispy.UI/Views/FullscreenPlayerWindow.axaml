@@ -1,0 +1,19 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Crispy.UI.Views.FullscreenPlayerWindow"
+        Title="CrispyTivi — Fullscreen"
+        Background="Black"
+        WindowState="FullScreen"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False">
+
+  <!-- VideoHost receives the reparented VideoSurface Border from PlayerView -->
+  <ContentControl x:Name="VideoHost"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"
+                  HorizontalContentAlignment="Stretch"
+                  VerticalContentAlignment="Stretch"
+                  Background="Black" />
+
+</Window>

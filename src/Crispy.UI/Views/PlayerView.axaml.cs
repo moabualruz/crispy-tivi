@@ -20,10 +20,15 @@ namespace Crispy.UI.Views;
 /// — Route keyboard shortcuts to PlayerViewModel commands (PLR-21).
 /// — Detect and route touch gestures to ViewModel commands.
 /// — Hide/restore cursor on Desktop when OSD is hidden.
+/// — Manage dedicated FullscreenPlayerWindow on Desktop (reparents VideoSurface).
 /// </summary>
 public partial class PlayerView : UserControl
 {
     private OsdOverlay? _osdOverlay;
+    private FullscreenPlayerWindow? _fullscreenWindow;
+
+    private static bool IsDesktop =>
+        OperatingSystem.IsWindows() || OperatingSystem.IsLinux() || OperatingSystem.IsMacOS();
 
     // Touch gesture tracking
     private Point _gestureStart;
@@ -203,7 +208,10 @@ public partial class PlayerView : UserControl
                 break;
 
             case Key.F:
-                vm.ToggleFullscreenCommand.Execute(null);
+                if (IsDesktop)
+                    ToggleFullscreenWindow();
+                else
+                    vm.ToggleFullscreenCommand.Execute(null);
                 e.Handled = true;
                 break;
 
@@ -239,7 +247,10 @@ public partial class PlayerView : UserControl
                 break;
 
             case Key.Escape:
-                vm.ToggleFullscreenCommand.Execute(null);
+                if (IsDesktop && _fullscreenWindow is not null)
+                    ExitFullscreenWindow();
+                else
+                    vm.ToggleFullscreenCommand.Execute(null);
                 e.Handled = true;
                 break;
 
@@ -304,6 +315,63 @@ public partial class PlayerView : UserControl
         }
 
         vm.ShowOsd();
+    }
+
+    // ─── Dedicated fullscreen window (Desktop only) ───────────────────────────
+
+    private void ToggleFullscreenWindow()
+    {
+        if (_fullscreenWindow is null)
+            EnterFullscreenWindow();
+        else
+            ExitFullscreenWindow();
+    }
+
+    private void EnterFullscreenWindow()
+    {
+        if (VideoSurface is null) return;
+
+        // Detach VideoSurface from this view
+        VideoSurface.IsVisible = false;
+        var surface = VideoSurface;
+
+        _fullscreenWindow = new FullscreenPlayerWindow();
+        _fullscreenWindow.SetVideoContent(surface);
+        _fullscreenWindow.ExitRequested += (_, _) => ExitFullscreenWindow();
+        _fullscreenWindow.Show();
+        _fullscreenWindow.Focus();
+
+        // Move OSD into the fullscreen window's overlay layer
+        if (_osdOverlay is not null)
+        {
+            OverlayLayer.GetOverlayLayer(this)?.Children.Remove(_osdOverlay);
+            var fsOverlay = OverlayLayer.GetOverlayLayer(_fullscreenWindow);
+            fsOverlay?.Children.Add(_osdOverlay);
+        }
+    }
+
+    private void ExitFullscreenWindow()
+    {
+        if (_fullscreenWindow is null) return;
+
+        // Move OSD back to PlayerView overlay
+        if (_osdOverlay is not null)
+        {
+            OverlayLayer.GetOverlayLayer(_fullscreenWindow)?.Children.Remove(_osdOverlay);
+            OverlayLayer.GetOverlayLayer(this)?.Children.Add(_osdOverlay);
+        }
+
+        _fullscreenWindow.DetachVideoContent();
+
+        if (VideoSurface is not null)
+            VideoSurface.IsVisible = true;
+
+        var win = _fullscreenWindow;
+        _fullscreenWindow = null;
+        win.Close();
+
+        // Return focus to this view
+        Focus();
     }
 
     private static int FindIndex<T>(IReadOnlyList<T> list, Func<T, bool> predicate)

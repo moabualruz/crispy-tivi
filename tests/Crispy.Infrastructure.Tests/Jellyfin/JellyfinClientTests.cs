@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -271,6 +272,105 @@ public class JellyfinClientTests
         var act = async () => await client.AuthenticateAsync("bad", "creds", CancellationToken.None);
 
         await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    // ─── GetPlaybackInfoAsync ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetPlaybackInfoAsync_ReturnsDirectStreamUrl_WhenAvailable()
+    {
+        const string playbackJson = """
+        {
+            "MediaSources": [{
+                "Id": "src1",
+                "Path": "/media/movies/matrix.mkv",
+                "SupportsDirectStream": true,
+                "SupportsTranscoding": true,
+                "TranscodingUrl": "/Videos/src1/stream.m3u8?api_key=tok",
+                "MediaStreams": [
+                    {"Type":"Video","Index":0,"IsDefault":true},
+                    {"Type":"Audio","Language":"eng","DisplayTitle":"English","Index":1,"IsDefault":true}
+                ]
+            }],
+            "PlaySessionId": "session-abc"
+        }
+        """;
+        var client = MakeClient("tok", (HttpStatusCode.OK, playbackJson));
+
+        var info = await client.GetPlaybackInfoAsync("item42", CancellationToken.None);
+        var url = client.ResolveStreamUrl(info);
+
+        info.PlaySessionId.Should().Be("session-abc");
+        info.MediaSources.Should().HaveCount(1);
+        info.MediaSources[0].SupportsDirectStream.Should().BeTrue();
+        info.MediaSources[0].MediaStreams.Should().HaveCount(2);
+        // Direct stream preferred — returns /Videos/{id}/stream?static=true URL
+        url.Should().Contain("/Videos/src1/stream").And.Contain("static=true");
+    }
+
+    [Fact]
+    public async Task GetPlaybackInfoAsync_ReturnsTranscodingUrl_WhenDirectStreamUnavailable()
+    {
+        const string playbackJson = """
+        {
+            "MediaSources": [{
+                "Id": "src2",
+                "Path": "/media/movies/matrix.mkv",
+                "SupportsDirectStream": false,
+                "SupportsTranscoding": true,
+                "TranscodingUrl": "/Videos/src2/stream.m3u8?api_key=tok",
+                "MediaStreams": []
+            }],
+            "PlaySessionId": "session-xyz"
+        }
+        """;
+        var client = MakeClient("tok", (HttpStatusCode.OK, playbackJson));
+
+        var info = await client.GetPlaybackInfoAsync("item99", CancellationToken.None);
+        var url = client.ResolveStreamUrl(info);
+
+        info.MediaSources[0].SupportsDirectStream.Should().BeFalse();
+        info.MediaSources[0].SupportsTranscoding.Should().BeTrue();
+        // Falls back to transcoding URL
+        url.Should().Be("http://localhost:8096/Videos/src2/stream.m3u8?api_key=tok");
+    }
+
+    [Fact]
+    public async Task GetPlaybackInfoAsync_ReturnsChapterInfo_WhenPresent()
+    {
+        const string playbackJson = """
+        {
+            "MediaSources": [{
+                "Id": "src3",
+                "Path": "/media/tv/show/s01e01.mkv",
+                "SupportsDirectStream": true,
+                "SupportsTranscoding": false,
+                "TranscodingUrl": null,
+                "MediaStreams": [
+                    {"Type":"Video","Index":0,"IsDefault":true,"DisplayTitle":"1080p H.264"},
+                    {"Type":"Audio","Language":"eng","DisplayTitle":"English AC3","Index":1,"IsDefault":true},
+                    {"Type":"Audio","Language":"spa","DisplayTitle":"Spanish AC3","Index":2,"IsDefault":false},
+                    {"Type":"Subtitle","Language":"eng","DisplayTitle":"English SRT","Index":3,"IsDefault":false}
+                ]
+            }],
+            "PlaySessionId": "session-chapters"
+        }
+        """;
+        var client = MakeClient("tok", (HttpStatusCode.OK, playbackJson));
+
+        var info = await client.GetPlaybackInfoAsync("episode1", CancellationToken.None);
+
+        var streams = info.MediaSources[0].MediaStreams;
+        streams.Should().HaveCount(4);
+
+        var audioStreams = streams.Where(s => s.Type == "Audio").ToList();
+        audioStreams.Should().HaveCount(2);
+        audioStreams.Should().ContainSingle(s => s.IsDefault && s.Language == "eng");
+
+        var subtitleStreams = streams.Where(s => s.Type == "Subtitle").ToList();
+        subtitleStreams.Should().HaveCount(1);
+        subtitleStreams[0].Language.Should().Be("eng");
+        subtitleStreams[0].DisplayTitle.Should().Be("English SRT");
     }
 
     // ─── JellyfinItem ──────────────────────────────────────────────────────────

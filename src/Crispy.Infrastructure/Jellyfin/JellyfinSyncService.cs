@@ -73,7 +73,12 @@ public sealed class JellyfinSyncService : ISourceParser
                 {
                     case "movies":
                         var movieItems = await FetchAllItemsAsync(client, lib.Id, "Movie", ct).ConfigureAwait(false);
-                        movies.AddRange(movieItems.Select(i => MapMovie(i, source.Id)));
+                        foreach (var i in movieItems)
+                        {
+                            var playbackInfo = await FetchPlaybackInfoSafeAsync(client, i.Id, ct).ConfigureAwait(false);
+                            movies.Add(MapMovie(i, source.Id, client, playbackInfo));
+                        }
+
                         break;
 
                     case "tvshows":
@@ -81,7 +86,12 @@ public sealed class JellyfinSyncService : ISourceParser
                         series.AddRange(seriesItems.Select(i => MapSeries(i, source.Id)));
 
                         var episodeItems = await FetchAllItemsAsync(client, lib.Id, "Episode", ct).ConfigureAwait(false);
-                        episodes.AddRange(episodeItems.Select(i => MapEpisode(i, source.Id, seriesItems)));
+                        foreach (var i in episodeItems)
+                        {
+                            var playbackInfo = await FetchPlaybackInfoSafeAsync(client, i.Id, ct).ConfigureAwait(false);
+                            episodes.Add(MapEpisode(i, source.Id, seriesItems, client, playbackInfo));
+                        }
+
                         break;
 
                     case "livetv":
@@ -121,6 +131,26 @@ public sealed class JellyfinSyncService : ISourceParser
 
     // ─── Fetch helpers ────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Calls GetPlaybackInfoAsync and swallows HTTP errors (e.g. 404 for stale items).
+    /// Returns null on failure so the caller falls back to item.Path.
+    /// </summary>
+    private async Task<JellyfinPlaybackInfoResponse?> FetchPlaybackInfoSafeAsync(
+        JellyfinClient client,
+        string itemId,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await client.GetPlaybackInfoAsync(itemId, ct).ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogDebug("PlaybackInfo unavailable for item {ItemId}: {Message}", itemId, ex.Message);
+            return null;
+        }
+    }
+
     private static async Task<List<JellyfinItem>> FetchAllItemsAsync(
         JellyfinClient client,
         string libraryId,
@@ -145,17 +175,25 @@ public sealed class JellyfinSyncService : ISourceParser
 
     // ─── Mapping ──────────────────────────────────────────────────────────────
 
-    private static Movie MapMovie(JellyfinItem item, int sourceId)
+    private static Movie MapMovie(
+        JellyfinItem item,
+        int sourceId,
+        JellyfinClient client,
+        JellyfinPlaybackInfoResponse? playbackInfo)
     {
         _ = int.TryParse(
             item.ProviderIds?.GetValueOrDefault("Tmdb"),
             out var tmdbId);
 
+        var streamUrl = playbackInfo is not null
+            ? client.ResolveStreamUrl(playbackInfo) ?? item.Path
+            : item.Path;
+
         return new Movie
         {
             Title = item.Name,
             SourceId = sourceId,
-            StreamUrl = item.Path,
+            StreamUrl = streamUrl,
             Overview = item.Overview,
             Year = item.ProductionYear,
             RuntimeMinutes = item.RunTimeTicks.HasValue
@@ -185,10 +223,17 @@ public sealed class JellyfinSyncService : ISourceParser
     private static Episode MapEpisode(
         JellyfinItem item,
         int sourceId,
-        IReadOnlyList<JellyfinItem> seriesItems)
+        IReadOnlyList<JellyfinItem> seriesItems,
+        JellyfinClient client,
+        JellyfinPlaybackInfoResponse? playbackInfo)
     {
         // Try to match seriesId — use 1 as a placeholder if not found (will be linked by SyncPipeline)
         var seriesId = 1;
+
+        var streamUrl = playbackInfo is not null
+            ? client.ResolveStreamUrl(playbackInfo) ?? item.Path
+            : item.Path;
+
         return new Episode
         {
             Title = item.Name,
@@ -196,7 +241,7 @@ public sealed class JellyfinSyncService : ISourceParser
             SeriesId = seriesId,
             SeasonNumber = item.ParentIndexNumber ?? 1,
             EpisodeNumber = item.IndexNumber ?? 1,
-            StreamUrl = item.Path,
+            StreamUrl = streamUrl,
             Overview = item.Overview,
             RuntimeMinutes = item.RunTimeTicks.HasValue
                 ? (int)(item.RunTimeTicks.Value / 600_000_000L)

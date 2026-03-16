@@ -10,7 +10,7 @@
 
     <!-- ═══ TOP BAR ═══════════════════════════════════════════════════════════ -->
     <Border Grid.Row="0"
-            IsVisible="{Binding IsOsdVisible}"
+            IsVisible="{Binding Osd.IsOsdVisible}"
             Background="#CC000000"
             Padding="16,8">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
@@ -21,17 +21,17 @@
                 CornerRadius="4"
                 Background="#1AFFFFFF"
                 Margin="0,0,10,0">
-          <Image Source="{Binding ChannelLogoUrl}"
+          <Image Source="{Binding Osd.ChannelLogoUrl}"
                  Stretch="Uniform" />
         </Border>
 
         <!-- Channel name + programme -->
         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
-          <TextBlock Text="{Binding ChannelName}"
+          <TextBlock Text="{Binding Osd.ChannelName}"
                      FontSize="15"
                      FontWeight="SemiBold"
                      Foreground="White" />
-          <TextBlock Text="{Binding CurrentProgramme}"
+          <TextBlock Text="{Binding Osd.CurrentProgramme}"
                      FontSize="12"
                      Foreground="#B3FFFFFF" />
         </StackPanel>
@@ -44,8 +44,8 @@
                 Background="#CCE53935">
           <Border.IsVisible>
             <MultiBinding Converter="{x:Static BoolConverters.And}">
-              <Binding Path="IsLive" />
-              <Binding Path="!IsTimeshifted" />
+              <Binding Path="Osd.IsLive" />
+              <Binding Path="!Osd.IsTimeshifted" />
             </MultiBinding>
           </Border.IsVisible>
           <TextBlock Text="LIVE"
@@ -60,8 +60,8 @@
                 Padding="8,3"
                 CornerRadius="4"
                 Background="#CC555555"
-                IsVisible="{Binding IsTimeshifted}">
-          <TextBlock Text="{Binding TimeshiftOffset}"
+                IsVisible="{Binding Osd.IsTimeshifted}">
+          <TextBlock Text="{Binding Osd.TimeshiftOffset}"
                      Foreground="White"
                      FontSize="11" />
         </Border>
@@ -109,7 +109,7 @@
               VerticalAlignment="Bottom"
               Margin="0,0,24,24"
               Padding="16,8"
-              IsVisible="{Binding ShowSkipIntro}"
+              IsVisible="{Binding Osd.ShowSkipIntro}"
               Command="{Binding SkipIntroCommand}"
               Background="#CC000000"
               Foreground="White" />
@@ -120,13 +120,13 @@
               VerticalAlignment="Bottom"
               Margin="0,0,24,80"
               Padding="16,8"
-              IsVisible="{Binding ShowSkipCredits}"
+              IsVisible="{Binding Osd.ShowSkipCredits}"
               Command="{Binding SkipCreditsCommand}"
               Background="#CC000000"
               Foreground="White" />
 
       <!-- Auto-play countdown -->
-      <Border IsVisible="{Binding ShowAutoPlayCountdown}"
+      <Border IsVisible="{Binding Osd.ShowAutoPlayCountdown}"
               Background="#CC000000"
               CornerRadius="8"
               Padding="24,16"
@@ -139,7 +139,7 @@
                      Foreground="#B3FFFFFF"
                      FontSize="13"
                      HorizontalAlignment="Center" />
-          <TextBlock Text="{Binding AutoPlayCountdownSeconds}"
+          <TextBlock Text="{Binding Osd.AutoPlayCountdownSeconds}"
                      Foreground="White"
                      FontSize="42"
                      FontWeight="Bold"
@@ -153,7 +153,7 @@
       </Border>
 
       <!-- Are You Still Watching -->
-      <Border IsVisible="{Binding ShowAreYouStillWatching}"
+      <Border IsVisible="{Binding Osd.ShowAreYouStillWatching}"
               Background="#E6000000"
               CornerRadius="8"
               Padding="32,24"
@@ -190,16 +190,16 @@
               Margin="0,0,48,0"
               Width="300">
         <StackPanel Spacing="8">
-          <Image Source="{Binding ChannelLogoUrl}"
+          <Image Source="{Binding Osd.ChannelLogoUrl}"
                  Width="64" Height="64"
                  Stretch="Uniform"
                  HorizontalAlignment="Center" />
-          <TextBlock Text="{Binding ChannelName}"
+          <TextBlock Text="{Binding Osd.ChannelName}"
                      FontSize="18"
                      FontWeight="SemiBold"
                      Foreground="White"
                      HorizontalAlignment="Center" />
-          <TextBlock Text="{Binding CurrentProgramme}"
+          <TextBlock Text="{Binding Osd.CurrentProgramme}"
                      FontSize="13"
                      Foreground="#B3FFFFFF"
                      TextWrapping="Wrap"
@@ -248,7 +248,7 @@
 
     <!-- ═══ BOTTOM BAR ════════════════════════════════════════════════════════ -->
     <Border Grid.Row="2"
-            IsVisible="{Binding IsOsdVisible}"
+            IsVisible="{Binding Osd.IsOsdVisible}"
             Background="#CC000000"
             Padding="16,10">
       <StackPanel Spacing="8">
@@ -356,7 +356,7 @@
           <!-- GO LIVE -->
           <Button Grid.Column="11"
                   Content="GO LIVE"
-                  IsVisible="{Binding ShowGoLive}"
+                  IsVisible="{Binding Osd.ShowGoLive}"
                   Command="{Binding GoLiveCommand}"
                   Background="#CCE53935"
                   Foreground="White"

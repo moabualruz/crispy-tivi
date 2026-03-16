@@ -107,6 +107,63 @@ internal sealed class JellyfinQuickConnectPollResponse
 }
 
 /// <summary>
+/// A single media stream (audio, video, or subtitle) within a media source.
+/// </summary>
+public sealed class JellyfinMediaStream
+{
+    [JsonPropertyName("Type")]
+    public string Type { get; set; } = string.Empty;
+
+    [JsonPropertyName("Language")]
+    public string? Language { get; set; }
+
+    [JsonPropertyName("DisplayTitle")]
+    public string? DisplayTitle { get; set; }
+
+    [JsonPropertyName("Index")]
+    public int Index { get; set; }
+
+    [JsonPropertyName("IsDefault")]
+    public bool IsDefault { get; set; }
+}
+
+/// <summary>
+/// A single media source returned by the PlaybackInfo endpoint.
+/// </summary>
+public sealed class JellyfinMediaSourceInfo
+{
+    [JsonPropertyName("Id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("Path")]
+    public string? Path { get; set; }
+
+    [JsonPropertyName("SupportsDirectStream")]
+    public bool SupportsDirectStream { get; set; }
+
+    [JsonPropertyName("SupportsTranscoding")]
+    public bool SupportsTranscoding { get; set; }
+
+    [JsonPropertyName("TranscodingUrl")]
+    public string? TranscodingUrl { get; set; }
+
+    [JsonPropertyName("MediaStreams")]
+    public List<JellyfinMediaStream> MediaStreams { get; set; } = [];
+}
+
+/// <summary>
+/// Response from Jellyfin's /Items/{itemId}/PlaybackInfo endpoint.
+/// </summary>
+public sealed class JellyfinPlaybackInfoResponse
+{
+    [JsonPropertyName("MediaSources")]
+    public List<JellyfinMediaSourceInfo> MediaSources { get; set; } = [];
+
+    [JsonPropertyName("PlaySessionId")]
+    public string? PlaySessionId { get; set; }
+}
+
+/// <summary>
 /// HTTP client for a single Jellyfin server — wraps Quick Connect, standard auth,
 /// WebSocket keepalive/reconnect, and library item retrieval.
 /// </summary>
@@ -118,9 +175,13 @@ public sealed class JellyfinClient
     private readonly ILogger<JellyfinClient> _logger;
 
     private string? _accessToken;
+    private string? _userId;
 
     /// <summary>Current access token (null until authenticated).</summary>
     public string? AccessToken => _accessToken;
+
+    /// <summary>Authenticated user ID (null until authenticated).</summary>
+    public string? UserId => _userId;
 
     private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
 
@@ -186,6 +247,7 @@ public sealed class JellyfinClient
         if (auth.AccessToken is not null)
         {
             _accessToken = auth.AccessToken;
+            _userId = auth.UserId;
             _encryption.Encrypt(auth.AccessToken);
             _logger.LogInformation("Quick Connect authentication succeeded (userId={UserId})", auth.UserId);
         }
@@ -203,6 +265,7 @@ public sealed class JellyfinClient
         if (auth.AccessToken is not null)
         {
             _accessToken = auth.AccessToken;
+            _userId = auth.UserId;
             _logger.LogInformation("Authenticated as {Username}", username);
         }
     }
@@ -235,6 +298,37 @@ public sealed class JellyfinClient
     {
         var result = await GetAsync<JellyfinItemsResponse>("/Library/VirtualFolders", ct).ConfigureAwait(false);
         return result.Items;
+    }
+
+    /// <summary>
+    /// Calls GET /Items/{itemId}/PlaybackInfo and returns the full response including
+    /// MediaSources, PlaySessionId, and per-source MediaStreams (audio/subtitle tracks).
+    /// </summary>
+    public async Task<JellyfinPlaybackInfoResponse> GetPlaybackInfoAsync(
+        string itemId,
+        CancellationToken ct)
+    {
+        var userSuffix = _userId is not null ? $"userId={Uri.EscapeDataString(_userId)}" : string.Empty;
+        var url = $"/Items/{Uri.EscapeDataString(itemId)}/PlaybackInfo?{userSuffix}";
+        return await GetAsync<JellyfinPlaybackInfoResponse>(url, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Resolves the best playback URL from a <see cref="JellyfinPlaybackInfoResponse"/>.
+    /// Prefers direct stream; falls back to transcoding URL; returns null when neither is present.
+    /// </summary>
+    public string? ResolveStreamUrl(JellyfinPlaybackInfoResponse info)
+    {
+        foreach (var source in info.MediaSources)
+        {
+            if (source.SupportsDirectStream && !string.IsNullOrEmpty(source.Id))
+                return $"{_baseUrl}/Videos/{Uri.EscapeDataString(source.Id)}/stream?static=true&api_key={_accessToken}";
+
+            if (source.SupportsTranscoding && !string.IsNullOrEmpty(source.TranscodingUrl))
+                return _baseUrl + source.TranscodingUrl;
+        }
+
+        return null;
     }
 
     // ─── WebSocket ────────────────────────────────────────────────────────────

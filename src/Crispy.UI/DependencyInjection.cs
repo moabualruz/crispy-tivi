@@ -61,6 +61,7 @@ public static class DependencyInjection
         services.AddTransient<AddSourceView>();
         services.AddTransient<EpgView>();
         services.AddTransient<MultiviewView>();
+        services.AddTransient<FullscreenPlayerWindow>();
 
         return services;
     }

@@ -13,8 +13,10 @@ namespace Crispy.UI.ViewModels;
 
 /// <summary>
 /// ViewModel for the full-screen player OSD.
-/// Manages all player state, OSD visibility, skip markers, autoplay countdown,
-/// timeshift offset, keyboard/gesture routing, external player launch, and PiP restore.
+/// Manages playback state, commands, track lists, screensaver, stream stats,
+/// keyboard/gesture routing, external player launch, and PiP restore.
+/// OSD display state (channel info, visibility, skip markers, auto-play) is
+/// delegated to <see cref="Osd"/>.
 /// </summary>
 public partial class PlayerViewModel : ViewModelBase, IDisposable
 {
@@ -26,7 +28,6 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     private IDisposable? _timeshiftSubscription;
     private IDisposable? _sleepTimerSubscription;
 
-    private DispatcherTimer? _osdHideTimer;
     private DispatcherTimer? _zapDismissTimer;
     private DispatcherTimer? _autoPlayCountdownTimer;
     private DispatcherTimer? _directTuneTimer;
@@ -42,10 +43,90 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
 
     private string _directTuneAccumulator = string.Empty;
 
-    // ─── OSD visibility ─────────────────────────────────────────────────────
+    // ─── OSD sub-ViewModel ───────────────────────────────────────────────────
 
-    [ObservableProperty]
-    private bool _isOsdVisible = true;
+    /// <summary>OSD display state (channel info, visibility, skip markers, auto-play, etc.).</summary>
+    public OsdViewModel Osd { get; } = new();
+
+    // ─── Forwarding properties ────────────────────────────────────────────────
+    // These delegate reads/writes to Osd so existing call sites and tests need no change.
+
+    /// <summary>Forwarded to <see cref="OsdViewModel.IsOsdVisible"/>.</summary>
+    public bool IsOsdVisible
+    {
+        get => Osd.IsOsdVisible;
+        set => Osd.IsOsdVisible = value;
+    }
+
+    /// <summary>Forwarded to <see cref="OsdViewModel.ChannelLogoUrl"/>.</summary>
+    public string? ChannelLogoUrl
+    {
+        get => Osd.ChannelLogoUrl;
+        set => Osd.ChannelLogoUrl = value;
+    }
+
+    /// <summary>Forwarded to <see cref="OsdViewModel.ChannelName"/>.</summary>
+    public string? ChannelName
+    {
+        get => Osd.ChannelName;
+        set => Osd.ChannelName = value;
+    }
+
+    /// <summary>Forwarded to <see cref="OsdViewModel.CurrentProgramme"/>.</summary>
+    public string? CurrentProgramme
+    {
+        get => Osd.CurrentProgramme;
+        set => Osd.CurrentProgramme = value;
+    }
+
+    /// <summary>Forwarded to <see cref="OsdViewModel.TimeshiftOffset"/>.</summary>
+    public string TimeshiftOffset
+    {
+        get => Osd.TimeshiftOffset;
+        set => Osd.TimeshiftOffset = value;
+    }
+
+    /// <summary>Forwarded to <see cref="OsdViewModel.ShowGoLive"/>.</summary>
+    public bool ShowGoLive
+    {
+        get => Osd.ShowGoLive;
+        set => Osd.ShowGoLive = value;
+    }
+
+    /// <summary>Forwarded to <see cref="OsdViewModel.ShowSkipIntro"/>.</summary>
+    public bool ShowSkipIntro
+    {
+        get => Osd.ShowSkipIntro;
+        set => Osd.ShowSkipIntro = value;
+    }
+
+    /// <summary>Forwarded to <see cref="OsdViewModel.ShowSkipCredits"/>.</summary>
+    public bool ShowSkipCredits
+    {
+        get => Osd.ShowSkipCredits;
+        set => Osd.ShowSkipCredits = value;
+    }
+
+    /// <summary>Forwarded to <see cref="OsdViewModel.ShowAutoPlayCountdown"/>.</summary>
+    public bool ShowAutoPlayCountdown
+    {
+        get => Osd.ShowAutoPlayCountdown;
+        set => Osd.ShowAutoPlayCountdown = value;
+    }
+
+    /// <summary>Forwarded to <see cref="OsdViewModel.AutoPlayCountdownSeconds"/>.</summary>
+    public int AutoPlayCountdownSeconds
+    {
+        get => Osd.AutoPlayCountdownSeconds;
+        set => Osd.AutoPlayCountdownSeconds = value;
+    }
+
+    /// <summary>Forwarded to <see cref="OsdViewModel.ShowAreYouStillWatching"/>.</summary>
+    public bool ShowAreYouStillWatching
+    {
+        get => Osd.ShowAreYouStillWatching;
+        set => Osd.ShowAreYouStillWatching = value;
+    }
 
     // ─── Playback state mirrors ──────────────────────────────────────────────
 
@@ -96,30 +177,15 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private bool _isTrackSelectorOpen;
 
-    // ─── OSD header / channel info ──────────────────────────────────────────
-
-    [ObservableProperty]
-    private string? _channelLogoUrl;
-
-    [ObservableProperty]
-    private string? _channelName;
-
-    [ObservableProperty]
-    private string? _currentProgramme;
+    // ─── Quality display ─────────────────────────────────────────────────────
 
     [ObservableProperty]
     private string? _qualityDisplay;
 
-    // ─── Timeshift ──────────────────────────────────────────────────────────
+    // ─── Timeshift (playback-state mirror; OSD display copy lives in Osd) ────
 
     [ObservableProperty]
     private bool _isTimeshifted;
-
-    [ObservableProperty]
-    private string _timeshiftOffset = string.Empty;
-
-    [ObservableProperty]
-    private bool _showGoLive;
 
     // ─── Zap overlay ────────────────────────────────────────────────────────
 
@@ -134,30 +200,13 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private string _directTuneDisplay = string.Empty;
 
-    // ─── Skip markers ───────────────────────────────────────────────────────
-
-    [ObservableProperty]
-    private bool _showSkipIntro;
-
-    [ObservableProperty]
-    private bool _showSkipCredits;
-
-    // ─── Auto-play / next episode ────────────────────────────────────────────
-
-    [ObservableProperty]
-    private bool _showAutoPlayCountdown;
-
-    [ObservableProperty]
-    private int _autoPlayCountdownSeconds = 5;
-
-    [ObservableProperty]
-    private bool _showAreYouStillWatching;
-
-    [ObservableProperty]
-    private int _episodesWatchedCount;
+    // ─── Auto-play supporting state ──────────────────────────────────────────
 
     [ObservableProperty]
     private bool _showPostPlay;
+
+    [ObservableProperty]
+    private int _episodesWatchedCount;
 
     // ─── Chapters (Jellyfin VOD) ─────────────────────────────────────────────
 
@@ -271,24 +320,18 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         _timeshiftService = timeshiftService;
         _sleepTimerService = sleepTimerService;
 
-        InitOsdTimer();
+        InitTimers();
         SubscribeToServices();
     }
 
     // ─── Initialisation ──────────────────────────────────────────────────────
 
-    private void InitOsdTimer()
+    private void InitTimers()
     {
         // DispatcherTimer requires a running UI thread — unavailable in unit test environments.
+        // OsdViewModel owns the OSD hide timer; this method initialises the remaining timers.
         try
         {
-            _osdHideTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-            _osdHideTimer.Tick += (_, _) =>
-            {
-                IsOsdVisible = false;
-                _osdHideTimer?.Stop();
-            };
-
             InitScreensaverTimer();
             InitStatsRefreshTimer();
         }
@@ -374,6 +417,10 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
             IsTimeshifted = state.Mode == PlaybackMode.Timeshifted;
             OnPropertyChanged(nameof(IsSpeedEnabled));
 
+            // Sync OSD display copies
+            Osd.IsLive = state.IsLive;
+            Osd.IsTimeshifted = IsTimeshifted;
+
             UpdateQualityDisplay(state);
             UpdateChannelInfo(state);
             CheckSkipMarkers(state.Position);
@@ -386,8 +433,8 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     {
         RunOnUiThread(() =>
         {
-            TimeshiftOffset = ts.OffsetDisplay;
-            ShowGoLive = IsTimeshifted && !ts.IsAtLiveEdge;
+            Osd.TimeshiftOffset = ts.OffsetDisplay;
+            Osd.ShowGoLive = IsTimeshifted && !ts.IsAtLiveEdge;
         });
     }
 
@@ -403,22 +450,22 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     {
         if (state.CurrentRequest is { } req)
         {
-            ChannelLogoUrl = req.ChannelLogoUrl;
-            ChannelName = req.Title;
+            Osd.ChannelLogoUrl = req.ChannelLogoUrl;
+            Osd.ChannelName = req.Title;
         }
     }
 
     private void CheckSkipMarkers(TimeSpan position)
     {
-        ShowSkipIntro = _introMarkers.Any(m => position >= m.Start && position <= m.End);
-        ShowSkipCredits = _creditsMarkers.Any(m => position >= m.Start && position <= m.End);
+        Osd.ShowSkipIntro = _introMarkers.Any(m => position >= m.Start && position <= m.End);
+        Osd.ShowSkipCredits = _creditsMarkers.Any(m => position >= m.Start && position <= m.End);
     }
 
     private void CheckAutoPlay(PlayerState state)
     {
         if (state.Duration == TimeSpan.Zero || Mode != PlaybackMode.Vod) return;
         var nearEnd = state.Duration - state.Position <= TimeSpan.FromSeconds(30);
-        if (nearEnd && !ShowAutoPlayCountdown && !ShowPostPlay)
+        if (nearEnd && !Osd.ShowAutoPlayCountdown && !ShowPostPlay)
             StartAutoPlayCountdown();
     }
 
@@ -440,9 +487,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     /// <summary>Called from code-behind on pointer-moved or tap to show and reset OSD timer.</summary>
     public void ShowOsd()
     {
-        IsOsdVisible = true;
-        _osdHideTimer?.Stop();
-        _osdHideTimer?.Start();
+        Osd.ShowOsd();
         DismissScreensaver();
     }
 
@@ -482,14 +527,14 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
 
     private void StartAutoPlayCountdown()
     {
-        AutoPlayCountdownSeconds = 5;
-        ShowAutoPlayCountdown = true;
+        Osd.AutoPlayCountdownSeconds = 5;
+        Osd.ShowAutoPlayCountdown = true;
         _autoPlayCountdownTimer?.Stop();
         _autoPlayCountdownTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _autoPlayCountdownTimer.Tick += (_, _) =>
         {
-            AutoPlayCountdownSeconds--;
-            if (AutoPlayCountdownSeconds <= 0)
+            Osd.AutoPlayCountdownSeconds--;
+            if (Osd.AutoPlayCountdownSeconds <= 0)
             {
                 _autoPlayCountdownTimer!.Stop();
                 AutoPlayNextCommand.Execute(null);
@@ -536,8 +581,8 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     {
         _currentRequest = request;
         RetryCount = 0;
-        ChannelName = request.Title;
-        ChannelLogoUrl = request.ChannelLogoUrl;
+        Osd.ChannelName = request.Title;
+        Osd.ChannelLogoUrl = request.ChannelLogoUrl;
         await _playerService.PlayAsync(request);
     }
 
@@ -569,7 +614,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     {
         if (_introMarkers.Length > 0)
             await _playerService.SeekAsync(_introMarkers[0].End);
-        ShowSkipIntro = false;
+        Osd.ShowSkipIntro = false;
     }
 
     [RelayCommand]
@@ -577,7 +622,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     {
         if (_creditsMarkers.Length > 0)
             await _playerService.SeekAsync(_creditsMarkers[0].End);
-        ShowSkipCredits = false;
+        Osd.ShowSkipCredits = false;
     }
 
     [RelayCommand]
@@ -666,32 +711,32 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void AutoPlayNext()
     {
-        ShowAutoPlayCountdown = false;
+        Osd.ShowAutoPlayCountdown = false;
         _autoPlayCountdownTimer?.Stop();
         EpisodesWatchedCount++;
         if (EpisodesWatchedCount >= 3)
-            ShowAreYouStillWatching = true;
+            Osd.ShowAreYouStillWatching = true;
         // Navigation to next episode handled externally
     }
 
     [RelayCommand]
     private void CancelAutoPlay()
     {
-        ShowAutoPlayCountdown = false;
+        Osd.ShowAutoPlayCountdown = false;
         _autoPlayCountdownTimer?.Stop();
     }
 
     [RelayCommand]
     private void ContinueWatching()
     {
-        ShowAreYouStillWatching = false;
+        Osd.ShowAreYouStillWatching = false;
         EpisodesWatchedCount = 0;
     }
 
     [RelayCommand]
     private async Task StopWatchingAsync()
     {
-        ShowAreYouStillWatching = false;
+        Osd.ShowAreYouStillWatching = false;
         await _playerService.StopAsync();
     }
 
@@ -829,7 +874,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         _playerSubscription?.Dispose();
         _timeshiftSubscription?.Dispose();
         _sleepTimerSubscription?.Dispose();
-        _osdHideTimer?.Stop();
+        Osd.StopTimer();
         _zapDismissTimer?.Stop();
         _autoPlayCountdownTimer?.Stop();
         _directTuneTimer?.Stop();
