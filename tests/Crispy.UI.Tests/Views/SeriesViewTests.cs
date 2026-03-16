@@ -1,6 +1,7 @@
 using Avalonia.Headless.XUnit;
 
 using Crispy.Domain.Interfaces;
+using Crispy.UI.Navigation;
 using Crispy.UI.Tests.Helpers;
 using Crispy.UI.ViewModels;
 using Crispy.UI.Views;
@@ -26,7 +27,7 @@ public class SeriesViewTests
         var sourceRepo = Substitute.For<ISourceRepository>();
         sourceRepo.GetAllAsync().Returns([]);
 
-        var vm = new SeriesViewModel(seriesRepo, sourceRepo);
+        var vm = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>());
         var window = HeadlessTestHelpers.CreateWindow<SeriesView>(vm);
 
         window.Should().NotBeNull();

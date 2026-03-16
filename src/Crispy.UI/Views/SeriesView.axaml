@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:entities="using:Crispy.Domain.Entities"
              x:Class="Crispy.UI.Views.SeriesView"
              x:DataType="vm:SeriesViewModel">
 
@@ -27,59 +28,168 @@
       </ListBox>
     </Border>
 
-    <!-- Content grid -->
-    <Grid>
+    <!-- Main content: series grid + episode panel side-by-side -->
+    <Grid ColumnDefinitions="*,Auto">
 
-      <!-- Series grid -->
-      <ScrollViewer IsVisible="{Binding !IsLoading}">
-        <ItemsControl ItemsSource="{Binding Series}"
-                      Margin="12">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <WrapPanel Orientation="Horizontal" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate>
-              <Border Width="160"
-                      Height="260"
-                      Margin="6"
-                      CornerRadius="8"
-                      Background="{DynamicResource SurfaceBrush}"
-                      ClipToBounds="True">
-                <StackPanel>
-                  <Image Source="{Binding Thumbnail}"
-                         Height="200"
-                         Stretch="UniformToFill" />
-                  <Border Padding="8,4"><StackPanel>
-                    <TextBlock Text="{Binding Title}"
-                               FontWeight="SemiBold"
-                               FontSize="13"
-                               TextTrimming="CharacterEllipsis"
-                               MaxLines="2"
-                               Foreground="{DynamicResource TextPrimaryBrush}" />
-                    <TextBlock Text="{Binding FirstAiredYear}"
-                               FontSize="11"
-                               Foreground="{DynamicResource TextSecondaryBrush}" />
-                  </StackPanel></Border>
-                </StackPanel>
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </ScrollViewer>
+      <!-- Left: series grid + loading overlay -->
+      <Grid Grid.Column="0">
 
-      <!-- Loading overlay -->
-      <StackPanel HorizontalAlignment="Center"
-                  VerticalAlignment="Center"
-                  IsVisible="{Binding IsLoading}"
-                  Spacing="12">
-        <ProgressBar IsIndeterminate="True"
-                     Width="200" />
-        <TextBlock Text="Loading..."
-                   HorizontalAlignment="Center"
-                   Foreground="{DynamicResource TextSecondaryBrush}" />
-      </StackPanel>
+        <!-- Series grid -->
+        <ScrollViewer IsVisible="{Binding !IsLoading}">
+          <ItemsControl ItemsSource="{Binding Series}"
+                        Margin="12">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="entities:Series">
+                <Border Width="160"
+                        Height="260"
+                        Margin="6"
+                        CornerRadius="8"
+                        Background="{DynamicResource SurfaceBrush}"
+                        ClipToBounds="True"
+                        Cursor="Hand">
+                  <Button Command="{Binding $parent[UserControl].((vm:SeriesViewModel)DataContext).SelectSeriesCommand}"
+                          CommandParameter="{Binding}"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          Padding="0"
+                          HorizontalContentAlignment="Stretch"
+                          VerticalContentAlignment="Stretch">
+                    <StackPanel>
+                      <Image Source="{Binding Thumbnail}"
+                             Height="200"
+                             Stretch="UniformToFill" />
+                      <Border Padding="8,4">
+                        <StackPanel>
+                          <TextBlock Text="{Binding Title}"
+                                     FontWeight="SemiBold"
+                                     FontSize="13"
+                                     TextTrimming="CharacterEllipsis"
+                                     MaxLines="2"
+                                     Foreground="{DynamicResource TextPrimaryBrush}" />
+                          <TextBlock Text="{Binding FirstAiredYear}"
+                                     FontSize="11"
+                                     Foreground="{DynamicResource TextSecondaryBrush}" />
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                  </Button>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Loading overlay -->
+        <StackPanel HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding IsLoading}"
+                    Spacing="12">
+          <ProgressBar IsIndeterminate="True"
+                       Width="200" />
+          <TextBlock Text="Loading..."
+                     HorizontalAlignment="Center"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+        </StackPanel>
+
+      </Grid>
+
+      <!-- Right: episode panel (visible only when a series is selected) -->
+      <Border Grid.Column="1"
+              Width="340"
+              IsVisible="{Binding SelectedSeries, Converter={x:Static ObjectConverters.IsNotNull}}"
+              Background="{DynamicResource SurfaceBrush}"
+              BorderBrush="{DynamicResource BorderBrush}"
+              BorderThickness="1,0,0,0">
+
+        <DockPanel>
+
+          <!-- Episode panel header -->
+          <Border DockPanel.Dock="Top"
+                  Padding="12,10"
+                  Background="{DynamicResource SurfaceVariantBrush}">
+            <TextBlock Text="{Binding SelectedSeries.Title}"
+                       FontWeight="SemiBold"
+                       FontSize="15"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       TextTrimming="CharacterEllipsis" />
+          </Border>
+
+          <!-- Episodes loading indicator -->
+          <StackPanel DockPanel.Dock="Top"
+                      HorizontalAlignment="Center"
+                      Margin="0,16"
+                      Spacing="8"
+                      IsVisible="{Binding IsEpisodesLoading}">
+            <ProgressBar IsIndeterminate="True" Width="160" />
+            <TextBlock Text="Loading episodes..."
+                       HorizontalAlignment="Center"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+          </StackPanel>
+
+          <!-- Episode list -->
+          <ScrollViewer IsVisible="{Binding !IsEpisodesLoading}">
+            <ItemsControl ItemsSource="{Binding Episodes}"
+                          Margin="0,4">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="entities:Episode">
+                  <Button Command="{Binding $parent[UserControl].((vm:SeriesViewModel)DataContext).SelectEpisodeCommand}"
+                          CommandParameter="{Binding}"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch"
+                          Padding="0">
+                    <Border Padding="12,8"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="0,0,0,1">
+                      <Grid ColumnDefinitions="64,*">
+
+                        <!-- Thumbnail -->
+                        <Image Grid.Column="0"
+                               Source="{Binding Thumbnail}"
+                               Width="64"
+                               Height="40"
+                               Stretch="UniformToFill" />
+
+                        <!-- Episode info -->
+                        <StackPanel Grid.Column="1"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Spacing="2">
+                          <TextBlock FontSize="11"
+                                     Foreground="{DynamicResource TextSecondaryBrush}">
+                            <TextBlock.Text>
+                              <MultiBinding StringFormat="S{0:D2}E{1:D2}">
+                                <Binding Path="SeasonNumber" />
+                                <Binding Path="EpisodeNumber" />
+                              </MultiBinding>
+                            </TextBlock.Text>
+                          </TextBlock>
+                          <TextBlock Text="{Binding Title}"
+                                     FontSize="13"
+                                     FontWeight="Medium"
+                                     TextTrimming="CharacterEllipsis"
+                                     MaxLines="2"
+                                     Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </StackPanel>
+
+                      </Grid>
+                    </Border>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+        </DockPanel>
+
+      </Border>
 
     </Grid>
 

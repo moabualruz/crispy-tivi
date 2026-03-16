@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using Crispy.Application.Player.Models;
 using Crispy.Domain.Entities;
 using Crispy.Domain.Interfaces;
 using Crispy.UI.Navigation;
@@ -18,6 +19,7 @@ public partial class SeriesViewModel : ViewModelBase, INavigationAware
 {
     private readonly ISeriesRepository _seriesRepository;
     private readonly ISourceRepository _sourceRepository;
+    private readonly INavigationService _navigationService;
 
     [ObservableProperty]
     private ObservableCollection<Series> _series = [];
@@ -31,14 +33,27 @@ public partial class SeriesViewModel : ViewModelBase, INavigationAware
     [ObservableProperty]
     private bool _isLoading;
 
+    [ObservableProperty]
+    private Series? _selectedSeries;
+
+    [ObservableProperty]
+    private ObservableCollection<Episode> _episodes = [];
+
+    [ObservableProperty]
+    private bool _isEpisodesLoading;
+
     /// <summary>
     /// Creates a new SeriesViewModel and begins loading series.
     /// </summary>
-    public SeriesViewModel(ISeriesRepository seriesRepository, ISourceRepository sourceRepository)
+    public SeriesViewModel(
+        ISeriesRepository seriesRepository,
+        ISourceRepository sourceRepository,
+        INavigationService navigationService)
     {
         Title = "Series";
         _seriesRepository = seriesRepository;
         _sourceRepository = sourceRepository;
+        _navigationService = navigationService;
 
         _ = LoadAsync();
     }
@@ -92,6 +107,50 @@ public partial class SeriesViewModel : ViewModelBase, INavigationAware
         {
             _ = FetchSeriesForFilterAsync(value);
         }
+    }
+
+    /// <summary>
+    /// Selects a series and loads its episodes from the repository.
+    /// </summary>
+    [RelayCommand]
+    public async Task SelectSeriesAsync(Series series, CancellationToken ct = default)
+    {
+        SelectedSeries = series;
+        Episodes = [];
+        IsEpisodesLoading = true;
+        try
+        {
+            var loaded = await _seriesRepository.GetByIdAsync(series.Id, includeEpisodes: true, ct);
+            var episodeList = loaded?.Episodes ?? [];
+            Episodes = new ObservableCollection<Episode>(
+                episodeList.OrderBy(e => e.SeasonNumber).ThenBy(e => e.EpisodeNumber));
+        }
+        finally
+        {
+            IsEpisodesLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Navigates to the player for the selected episode.
+    /// No-ops when <paramref name="episode"/> has no stream URL.
+    /// </summary>
+    [RelayCommand]
+    public void SelectEpisode(Episode episode)
+    {
+        if (string.IsNullOrEmpty(episode.StreamUrl))
+            return;
+
+        var title = SelectedSeries is not null
+            ? $"{SelectedSeries.Title} S{episode.SeasonNumber:D2}E{episode.EpisodeNumber:D2} – {episode.Title}"
+            : episode.Title;
+
+        var request = new PlaybackRequest(
+            Url: episode.StreamUrl,
+            ContentType: PlaybackContentType.Vod,
+            Title: title);
+
+        _navigationService.NavigateTo<PlayerViewModel>(request);
     }
 
     private async Task FetchSeriesForFilterAsync(SourceFilterItem filter, CancellationToken ct = default)
