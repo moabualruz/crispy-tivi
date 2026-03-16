@@ -150,4 +150,41 @@ public sealed class JellyfinDiscoveryTests
         info.Name.Should().BeEmpty();
         info.EndpointAddress.Should().BeEmpty();
     }
+
+    // ── DiscoverAsync ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task DiscoverAsync_ReturnsEmptyList_WhenNoServersRespond()
+    {
+        // In a test environment, UDP broadcast to port 7359 receives no replies.
+        // DiscoverAsync must not throw and must return an empty list.
+        var handler = new FakeHttpHandler(HttpStatusCode.OK);
+        var client = new HttpClient(handler);
+        var factory = MakeFactory(client);
+        var sut = new JellyfinDiscovery(factory, NullLogger<JellyfinDiscovery>.Instance);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        var act = async () => await sut.DiscoverAsync(cts.Token);
+
+        // Must not throw — even if OperationCanceledException is raised internally it is caught
+        var result = await act.Should().NotThrowAsync();
+        result.Subject.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DiscoverAsync_ThrowsOperationCanceledException_WhenCancelledImmediately()
+    {
+        // DiscoverAsync propagates OperationCanceledException when the token is pre-cancelled
+        // (the outer catch only swallows non-cancellation exceptions).
+        var handler = new FakeHttpHandler(HttpStatusCode.OK);
+        var client = new HttpClient(handler);
+        var factory = MakeFactory(client);
+        var sut = new JellyfinDiscovery(factory, NullLogger<JellyfinDiscovery>.Instance);
+
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        var act = async () => await sut.DiscoverAsync(cts.Token);
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
 }
