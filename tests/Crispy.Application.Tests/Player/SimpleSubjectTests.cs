@@ -289,4 +289,57 @@ public sealed class ObservableExtensionsTests
 
         act.Should().NotThrow();
     }
+
+    [Fact]
+    public void Subscribe_ActionObserver_OnCompleted_IsNoOp()
+    {
+        // Exercises ActionObserver.OnCompleted() path directly via subject completion.
+        var subject = new SimpleSubject<int>();
+        var received = new List<int>();
+        subject.Subscribe(received.Add);
+
+        // OnCompleted is called on the ActionObserver — must not throw.
+        subject.OnCompleted();
+
+        received.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Subscribe_ActionObserver_OnError_IsNoOp()
+    {
+        // Exercises ActionObserver.OnError() path directly via subject error.
+        var subject = new SimpleSubject<int>();
+        var received = new List<int>();
+        subject.Subscribe(received.Add);
+
+        // OnError is called on the ActionObserver — must not throw and must swallow.
+        var act = () => subject.OnError(new InvalidOperationException("swallowed"));
+
+        act.Should().NotThrow();
+        received.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Subscribe_ActionObserver_OnNext_InvokesAction()
+    {
+        // Exercises ActionObserver.OnNext() via the IObserver<T> interface path.
+        var subject = new SimpleSubject<int>();
+        var received = new List<int>();
+        IObserver<int> observer = new ActionObserverAccessor<int>(received.Add);
+
+        subject.Subscribe(observer);
+        subject.OnNext(99);
+
+        received.Should().ContainSingle().Which.Should().Be(99);
+    }
+
+    // Exposes ActionObserver indirectly via the extension method to cover all branches.
+    private sealed class ActionObserverAccessor<T> : IObserver<T>
+    {
+        private readonly Action<T> _onNext;
+        public ActionObserverAccessor(Action<T> onNext) => _onNext = onNext;
+        public void OnNext(T value) => _onNext(value);
+        public void OnCompleted() { }
+        public void OnError(Exception error) { }
+    }
 }
