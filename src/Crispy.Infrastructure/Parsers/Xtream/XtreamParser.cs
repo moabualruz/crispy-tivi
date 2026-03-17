@@ -88,10 +88,16 @@ public sealed class XtreamParser : ISourceParser
             {
                 foreach (var el in vodDoc.RootElement.EnumerateArray())
                 {
+                    var vodStreamId = el.TryGetProperty("stream_id", out var vsid) ? vsid.ToString() : null;
+                    var containerExt = el.TryGetProperty("container_extension", out var ext) ? ext.GetString() : "ts";
+
                     movies.Add(new Movie
                     {
                         Title = el.TryGetProperty("name", out var n) ? n.GetString() ?? "Unknown" : "Unknown",
                         Thumbnail = el.TryGetProperty("stream_icon", out var ico) ? ico.GetString() : null,
+                        StreamUrl = vodStreamId is not null
+                            ? $"{baseUrl}/movie/{Uri.EscapeDataString(username)}/{Uri.EscapeDataString(password)}/{vodStreamId}.{containerExt ?? "ts"}"
+                            : null,
                         SourceId = source.Id,
                     });
                 }
@@ -105,6 +111,7 @@ public sealed class XtreamParser : ISourceParser
                     series.Add(new Series
                     {
                         Title = el.TryGetProperty("name", out var n) ? n.GetString() ?? "Unknown" : "Unknown",
+                        Thumbnail = el.TryGetProperty("cover", out var cover) ? cover.GetString() : null,
                         SourceId = source.Id,
                     });
                 }
