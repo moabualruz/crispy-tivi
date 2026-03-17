@@ -8,7 +8,6 @@ export global OnboardingState {
   in-out property <bool> is-active: false;
 
   callback complete();
-  callback skip();
 }
 
 component StepIndicator inherits HorizontalLayout {
@@ -80,6 +79,13 @@ component WelcomeStep inherits VerticalLayout {
 }
 
 component AddSourceStep inherits VerticalLayout {
+  // Properties to collect form values (avoids Slint scoping issue with if-block IDs)
+  in-out property <string> src-name: "";
+  in-out property <int> src-type-idx: 0;
+  in-out property <string> field-url: "";
+  in-out property <string> field-user: "";
+  in-out property <string> field-pass: "";
+
   alignment: center;
   spacing: Theme.spacing-lg;
 
@@ -97,90 +103,148 @@ component AddSourceStep inherits VerticalLayout {
     horizontal-alignment: center;
   }
 
-  // Form
+  // Form card — glassmorphic
   Rectangle {
-    width: 400px;
-    border-radius: Theme.radius-md;
-    background: Theme.surface;
+    width: 440px;
+    border-radius: 16px;
+    background: rgba(28, 28, 32, 0.95);
     border-width: 1px;
-    border-color: Theme.border-subtle;
+    border-color: rgba(255, 255, 255, 0.1);
 
     VerticalLayout {
-      padding: Theme.spacing-lg;
-      spacing: Theme.spacing-md;
+      padding: 24px;
+      spacing: 16px;
 
+      // Name (all types)
       VerticalLayout {
-        spacing: Theme.spacing-xs;
-        Text { text: "Name"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
-        onb-name := LineEdit { placeholder-text: "My IPTV"; }
-      }
-      VerticalLayout {
-        spacing: Theme.spacing-xs;
-        Text { text: "Type"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
-        onb-type := ComboBox {
-          model: ["M3U / M3U8", "Xtream Codes", "Stalker Portal"];
-          current-index: 0;
+        spacing: 6px;
+        Text { text: "Source Name"; color: Theme.text-secondary; font-size: 13px; }
+        LineEdit {
+          placeholder-text: "My IPTV Provider";
+          edited => { root.src-name = self.text; }
         }
       }
+
+      // Type selector
       VerticalLayout {
-        spacing: Theme.spacing-xs;
-        Text { text: "URL"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
-        onb-url := LineEdit { placeholder-text: "http://example.com/playlist.m3u"; }
+        spacing: 6px;
+        Text { text: "Source Type"; color: Theme.text-secondary; font-size: 13px; }
+        ComboBox {
+          model: ["M3U / M3U8", "Xtream Codes", "Stalker Portal"];
+          current-index <=> root.src-type-idx;
+          selected => {
+            // Clear fields on type change
+            root.field-url = "";
+            root.field-user = "";
+            root.field-pass = "";
+          }
+        }
+      }
+
+      // M3U: Playlist URL
+      if root.src-type-idx == 0: VerticalLayout {
+        spacing: 6px;
+        Text { text: "Playlist URL"; color: Theme.text-secondary; font-size: 13px; }
+        LineEdit {
+          placeholder-text: "http://example.com/playlist.m3u";
+          edited => { root.field-url = self.text; }
+        }
+      }
+
+      // Xtream: Server URL
+      if root.src-type-idx == 1: VerticalLayout {
+        spacing: 6px;
+        Text { text: "Server URL"; color: Theme.text-secondary; font-size: 13px; }
+        LineEdit {
+          placeholder-text: "http://provider.com:8080";
+          edited => { root.field-url = self.text; }
+        }
+      }
+      // Xtream: Username
+      if root.src-type-idx == 1: VerticalLayout {
+        spacing: 6px;
+        Text { text: "Username"; color: Theme.text-secondary; font-size: 13px; }
+        LineEdit {
+          placeholder-text: "username";
+          edited => { root.field-user = self.text; }
+        }
+      }
+      // Xtream: Password
+      if root.src-type-idx == 1: VerticalLayout {
+        spacing: 6px;
+        Text { text: "Password"; color: Theme.text-secondary; font-size: 13px; }
+        LineEdit {
+          placeholder-text: "password";
+          input-type: password;
+          edited => { root.field-pass = self.text; }
+        }
+      }
+
+      // Stalker: Portal URL
+      if root.src-type-idx == 2: VerticalLayout {
+        spacing: 6px;
+        Text { text: "Portal URL"; color: Theme.text-secondary; font-size: 13px; }
+        LineEdit {
+          placeholder-text: "http://portal.example.com/c/";
+          edited => { root.field-url = self.text; }
+        }
+      }
+      // Stalker: MAC Address
+      if root.src-type-idx == 2: VerticalLayout {
+        spacing: 6px;
+        Text { text: "MAC Address"; color: Theme.text-secondary; font-size: 13px; }
+        LineEdit {
+          placeholder-text: "00:1A:79:XX:XX:XX";
+          edited => { root.field-user = self.text; }
+        }
       }
     }
   }
 
-  HorizontalLayout {
-    spacing: Theme.spacing-md;
-    alignment: center;
-
-    FocusScope {
-      width: 100px;
-      height: 40px;
-      key-pressed(event) => {
-        if event.text == Key.Return { OnboardingState.step = 2; return accept; }
-        return reject;
+  // Add & Continue — primary button (white)
+  FocusScope {
+    width: 200px;
+    height: 48px;
+    key-pressed(event) => {
+      if event.text == Key.Return {
+        AppState.save-source(
+          root.src-name,
+          root.src-type-idx == 0 ? "m3u" : root.src-type-idx == 1 ? "xtream" : "stalker",
+          root.field-url,
+          root.field-user,
+          root.field-pass,
+        );
+        OnboardingState.step = 2;
+        return accept;
       }
-      Rectangle {
-        width: 100%; height: 100%;
-        border-radius: Theme.radius-pill;
-        background: Theme.surface;
-        Text { text: "Skip"; color: Theme.text-secondary; horizontal-alignment: center; vertical-alignment: center; }
-        TouchArea { clicked => { OnboardingState.step = 2; } }
-      }
+      return reject;
     }
+    Rectangle {
+      width: 100%; height: 100%;
+      border-radius: 8px;
+      background: #FFFFFF;
+      border-width: parent.has-focus ? 2px : 0px;
+      border-color: Theme.accent;
 
-    FocusScope {
-      width: 140px;
-      height: 40px;
-      key-pressed(event) => {
-        if event.text == Key.Return {
+      Text {
+        text: "Add & Continue";
+        color: #000000;
+        font-family: Theme.font-display;
+        font-size: 16px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+      TouchArea {
+        clicked => {
           AppState.save-source(
-            onb-name.text,
-            onb-type.current-index == 0 ? "m3u" : onb-type.current-index == 1 ? "xtream" : "stalker",
-            onb-url.text, "", ""
+            root.src-name,
+            root.src-type-idx == 0 ? "m3u" : root.src-type-idx == 1 ? "xtream" : "stalker",
+            root.field-url,
+            root.field-user,
+            root.field-pass,
           );
           OnboardingState.step = 2;
-          return accept;
-        }
-        return reject;
-      }
-      Rectangle {
-        width: 100%; height: 100%;
-        border-radius: Theme.radius-pill;
-        background: Theme.accent;
-        border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
-        border-color: Theme.focus-ring;
-        Text { text: "Add & Continue"; color: #FFFFFF; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
-        TouchArea {
-          clicked => {
-            AppState.save-source(
-              onb-name.text,
-              onb-type.current-index == 0 ? "m3u" : onb-type.current-index == 1 ? "xtream" : "stalker",
-              onb-url.text, "", ""
-            );
-            OnboardingState.step = 2;
-          }
         }
       }
     }

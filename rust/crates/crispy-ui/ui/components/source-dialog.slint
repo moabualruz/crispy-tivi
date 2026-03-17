@@ -3,170 +3,204 @@ import { AppState } from "../globals/app-state.slint";
 import { LineEdit, ComboBox } from "std-widgets.slint";
 
 export component SourceDialog inherits Rectangle {
+  // Form state — properties bridge values out of conditional blocks
+  in-out property <string> src-name: "";
+  in-out property <int> src-type-idx: 0;
+  in-out property <string> field-url: "";
+  in-out property <string> field-user: "";
+  in-out property <string> field-pass: "";
+
   visible: AppState.show-source-dialog;
   width: 100%;
   height: 100%;
 
   // Backdrop
   Rectangle {
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    TouchArea {
-      clicked => { AppState.show-source-dialog = false; }
-    }
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    TouchArea { clicked => { AppState.show-source-dialog = false; } }
   }
 
-  // Dialog card
+  // Dialog card — glassmorphic
   Rectangle {
-    width: 420px;
-    height: 400px;
+    width: 460px;
+    min-height: 360px;
     x: (parent.width - self.width) / 2;
     y: (parent.height - self.height) / 2;
-    border-radius: Theme.radius-lg;
-    background: Theme.is-dark ? #1C1C20 : #FFFFFF;
+    border-radius: 16px;
+    background: rgba(28, 28, 32, 0.95);
     border-width: 1px;
-    border-color: Theme.border-subtle;
+    border-color: rgba(255, 255, 255, 0.1);
 
-    // Stop click-through
-    TouchArea {}
+    TouchArea {} // block click-through
 
-    VerticalLayout {
-      padding: Theme.spacing-lg;
-      spacing: Theme.spacing-md;
-
-      Text {
-        text: "Add Source";
-        color: Theme.text-primary;
-        font-family: Theme.font-display;
-        font-size: Theme.font-size-h2;
-      }
-
-      // Name
+    Flickable {
       VerticalLayout {
-        spacing: Theme.spacing-xs;
-        Text { text: "Name"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
-        name-input := LineEdit {
-          placeholder-text: "My IPTV";
+        padding: 28px;
+        spacing: 20px;
+
+        Text {
+          text: "Add Source";
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: 28px;
+          font-weight: 700;
         }
-      }
 
-      // Type
-      VerticalLayout {
-        spacing: Theme.spacing-xs;
-        Text { text: "Type"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
-        type-combo := ComboBox {
-          model: ["M3U / M3U8", "Xtream Codes", "Stalker Portal"];
-          current-index: 0;
-          current-value: "M3U / M3U8";
-        }
-      }
-
-      // URL
-      VerticalLayout {
-        spacing: Theme.spacing-xs;
-        Text { text: "URL"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
-        url-input := LineEdit {
-          placeholder-text: "http://example.com/playlist.m3u";
-        }
-      }
-
-      // Username (for Xtream/Stalker)
-      if type-combo.current-index > 0: VerticalLayout {
-        spacing: Theme.spacing-xs;
-        Text { text: "Username"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
-        user-input := LineEdit {
-          placeholder-text: "username";
-        }
-      }
-
-      // Password (for Xtream/Stalker)
-      if type-combo.current-index > 0: VerticalLayout {
-        spacing: Theme.spacing-xs;
-        Text { text: "Password"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
-        pass-input := LineEdit {
-          placeholder-text: "password";
-          input-type: password;
-        }
-      }
-
-      // Actions
-      HorizontalLayout {
-        spacing: Theme.spacing-md;
-        alignment: end;
-
-        // Cancel
-        FocusScope {
-          width: 80px;
-          height: 40px;
-          key-pressed(event) => {
-            if event.text == Key.Return {
-              AppState.show-source-dialog = false;
-              return accept;
-            }
-            return reject;
+        // Name (all types)
+        VerticalLayout {
+          spacing: 6px;
+          Text { text: "Source Name"; color: Theme.text-secondary; font-size: 13px; }
+          LineEdit {
+            placeholder-text: "My IPTV Provider";
+            edited => { root.src-name = self.text; }
           }
-          Rectangle {
-            width: 100%; height: 100%;
-            border-radius: Theme.radius-sm;
-            background: Theme.surface;
-            border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
-            border-color: Theme.focus-ring;
-            Text {
-              text: "Cancel";
-              color: Theme.text-primary;
-              horizontal-alignment: center;
-              vertical-alignment: center;
-            }
-            TouchArea {
-              clicked => { AppState.show-source-dialog = false; }
+        }
+
+        // Type selector
+        VerticalLayout {
+          spacing: 6px;
+          Text { text: "Source Type"; color: Theme.text-secondary; font-size: 13px; }
+          ComboBox {
+            model: ["M3U / M3U8", "Xtream Codes", "Stalker Portal"];
+            current-index <=> root.src-type-idx;
+            selected => {
+              root.field-url = "";
+              root.field-user = "";
+              root.field-pass = "";
             }
           }
         }
 
-        // Save
-        FocusScope {
-          width: 80px;
-          height: 40px;
-          key-pressed(event) => {
-            if event.text == Key.Return {
-              AppState.save-source(
-                name-input.text,
-                type-combo.current-index == 0 ? "m3u"
-                  : type-combo.current-index == 1 ? "xtream"
-                  : "stalker",
-                url-input.text,
-                "", ""
-              );
-              AppState.show-source-dialog = false;
-              return accept;
-            }
-            return reject;
+        // ── M3U ──
+        if root.src-type-idx == 0: VerticalLayout {
+          spacing: 6px;
+          Text { text: "Playlist URL"; color: Theme.text-secondary; font-size: 13px; }
+          LineEdit {
+            placeholder-text: "http://example.com/playlist.m3u";
+            edited => { root.field-url = self.text; }
           }
-          Rectangle {
-            width: 100%; height: 100%;
-            border-radius: Theme.radius-sm;
-            background: Theme.accent;
-            border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
-            border-color: Theme.focus-ring;
-            Text {
-              text: "Save";
-              color: #FFFFFF;
-              font-weight: 600;
-              horizontal-alignment: center;
-              vertical-alignment: center;
+        }
+
+        // ── Xtream Codes ──
+        if root.src-type-idx == 1: VerticalLayout {
+          spacing: 6px;
+          Text { text: "Server URL"; color: Theme.text-secondary; font-size: 13px; }
+          LineEdit {
+            placeholder-text: "http://provider.com:8080";
+            edited => { root.field-url = self.text; }
+          }
+        }
+        if root.src-type-idx == 1: VerticalLayout {
+          spacing: 6px;
+          Text { text: "Username"; color: Theme.text-secondary; font-size: 13px; }
+          LineEdit {
+            placeholder-text: "username";
+            edited => { root.field-user = self.text; }
+          }
+        }
+        if root.src-type-idx == 1: VerticalLayout {
+          spacing: 6px;
+          Text { text: "Password"; color: Theme.text-secondary; font-size: 13px; }
+          LineEdit {
+            placeholder-text: "password";
+            input-type: password;
+            edited => { root.field-pass = self.text; }
+          }
+        }
+
+        // ── Stalker Portal ──
+        if root.src-type-idx == 2: VerticalLayout {
+          spacing: 6px;
+          Text { text: "Portal URL"; color: Theme.text-secondary; font-size: 13px; }
+          LineEdit {
+            placeholder-text: "http://portal.example.com/c/";
+            edited => { root.field-url = self.text; }
+          }
+        }
+        if root.src-type-idx == 2: VerticalLayout {
+          spacing: 6px;
+          Text { text: "MAC Address"; color: Theme.text-secondary; font-size: 13px; }
+          LineEdit {
+            placeholder-text: "00:1A:79:XX:XX:XX";
+            edited => { root.field-user = self.text; }
+          }
+        }
+
+        // ── Actions ──
+        HorizontalLayout {
+          spacing: 12px;
+          alignment: end;
+
+          // Cancel
+          FocusScope {
+            width: 100px;
+            height: 44px;
+            key-pressed(event) => {
+              if event.text == Key.Return || event.text == Key.Escape {
+                AppState.show-source-dialog = false;
+                return accept;
+              }
+              return reject;
             }
-            TouchArea {
-              clicked => {
+            Rectangle {
+              width: 100%; height: 100%;
+              border-radius: 8px;
+              background: rgba(255, 255, 255, 0.1);
+              border-width: parent.has-focus ? 2px : 1px;
+              border-color: parent.has-focus ? #FFFFFF : rgba(255, 255, 255, 0.1);
+              Text {
+                text: "Cancel";
+                color: Theme.text-primary;
+                font-family: Theme.font-display;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+              }
+              TouchArea { clicked => { AppState.show-source-dialog = false; } }
+            }
+          }
+
+          // Save
+          FocusScope {
+            width: 120px;
+            height: 44px;
+            key-pressed(event) => {
+              if event.text == Key.Return {
                 AppState.save-source(
-                  name-input.text,
-                  type-combo.current-index == 0 ? "m3u"
-                    : type-combo.current-index == 1 ? "xtream"
-                    : "stalker",
-                  url-input.text,
-                  "", ""
+                  root.src-name,
+                  root.src-type-idx == 0 ? "m3u" : root.src-type-idx == 1 ? "xtream" : "stalker",
+                  root.field-url, root.field-user, root.field-pass,
                 );
                 AppState.show-source-dialog = false;
+                return accept;
+              }
+              return reject;
+            }
+            Rectangle {
+              width: 100%; height: 100%;
+              border-radius: 8px;
+              background: #FFFFFF;
+              border-width: parent.has-focus ? 2px : 0px;
+              border-color: Theme.accent;
+              Text {
+                text: "Add Source";
+                color: #000000;
+                font-family: Theme.font-display;
+                font-size: 15px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+              }
+              TouchArea {
+                clicked => {
+                  AppState.save-source(
+                    root.src-name,
+                    root.src-type-idx == 0 ? "m3u" : root.src-type-idx == 1 ? "xtream" : "stalker",
+                    root.field-url, root.field-user, root.field-pass,
+                  );
+                  AppState.show-source-dialog = false;
+                }
               }
             }
           }

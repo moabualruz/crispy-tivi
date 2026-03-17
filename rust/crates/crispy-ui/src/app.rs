@@ -367,9 +367,7 @@ pub(crate) fn init(
         }
     });
 
-    onboarding.on_skip(move || {
-        tracing::info!("Onboarding skipped");
-    });
+    // No skip — onboarding is mandatory per design spec
 
     // Wire diagnostics
     let diag = ui.global::<super::DiagnosticsState>();
