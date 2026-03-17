@@ -2,6 +2,11 @@
 name = "crispy-server"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "crispy-server-standalone"
+path = "src/bin/crispy-server-standalone.rs"
 
 [dependencies]
 crispy-core = { path = "../crispy-core" }

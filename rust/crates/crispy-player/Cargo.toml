@@ -1,0 +1,18 @@
+[package]
+name = "crispy-player"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["mpv"]
+mpv = []
+gstreamer-backend = []
+
+[dependencies]
+crispy-core = { path = "../crispy-core" }
+thiserror.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true

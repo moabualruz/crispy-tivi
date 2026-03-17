@@ -1,9 +1,8 @@
-//! CrispyTivi companion server for Flutter web
-//! clients.
+//! CrispyTivi standalone headless server.
 //!
 //! Runs `crispy-core` business logic as a WebSocket
-//! server. Flutter web connects to `/ws` instead of
-//! using browser-local storage.
+//! server. Browser (Slint WASM) clients connect to
+//! `/ws` for API access.
 //!
 //! ## Endpoints
 //!

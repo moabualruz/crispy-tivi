@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/crispy-core",
     "crates/crispy-server",
+    "crates/crispy-player",
     "crates/crispy-ui",
 ]
 
@@ -34,3 +35,10 @@ reqwest = { version = "0.12", default-features = false, features = [
     "gzip",
 ] }
 tokio-util = { version = "0.7", features = ["io"] }
+slint = "1.15"
+slint-build = "1.15"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+image = "0.25"
+rust-i18n = "3"
