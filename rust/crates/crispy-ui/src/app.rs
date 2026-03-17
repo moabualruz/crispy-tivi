@@ -31,7 +31,7 @@ pub(crate) fn resolve_db_path() -> String {
 /// # Safety of the returned pointer
 /// The pointer is valid for the lifetime of the Slint callbacks that own the
 /// `MpvBackend`.  The caller must not call `mpv_destroy` on it — the
-/// `libmpv::Mpv` destructor handles teardown.
+/// `MpvBackend::drop` handles teardown via `mpv_terminate_destroy`.
 pub(crate) fn init(
     ui: &super::AppWindow,
     rt: &tokio::runtime::Handle,

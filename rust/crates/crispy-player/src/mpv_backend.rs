@@ -1,62 +1,116 @@
-//! libmpv video backend.
+//! libmpv video backend using raw libmpv-sys FFI.
 //!
-//! Uses the `libmpv` crate for hardware-accelerated video playback.
-//! ABSOLUTE RULE: Hardware decode is mandatory (`hwdec=auto`).
+//! Bypasses the `libmpv` crate's version check (which rejects newer mpv DLLs).
+//! The mpv 2.x C API is backward-compatible with 1.x calls.
+//! ABSOLUTE RULE: Hardware decode is mandatory (`hwdec=auto-safe`).
 
+use std::ffi::{CStr, CString};
+use std::ptr;
 use std::sync::{Arc, Mutex};
 
 use crate::backend::{PlayerBackend, PlayerError, PlayerState};
 
-/// libmpv-based video player backend.
+/// libmpv-based video player backend using raw FFI.
 pub struct MpvBackend {
-    mpv: libmpv::Mpv,
+    handle: *mut libmpv_sys::mpv_handle,
     state: Arc<Mutex<PlayerState>>,
 }
 
+// Safety: mpv_handle is thread-safe per mpv documentation (commands can be sent from any thread)
+unsafe impl Send for MpvBackend {}
+unsafe impl Sync for MpvBackend {}
+
 impl MpvBackend {
-    /// Create a new mpv backend instance with hardware decoding enabled.
-    /// Return the raw mpv handle so it can be shared with the render context.
-    ///
-    /// # Safety
-    /// The returned pointer is valid for the lifetime of this `MpvBackend`.
-    /// The caller must not call `mpv_destroy` or `mpv_terminate_destroy` on it —
-    /// the `libmpv::Mpv` destructor owns the handle.
+    /// Get the raw mpv handle for sharing with the render context.
     pub fn raw_handle(&self) -> *mut libmpv_sys::mpv_handle {
-        self.mpv.ctx.as_ptr()
+        self.handle
     }
 
+    /// Create a new mpv backend with GPU-first quality settings.
     pub fn new() -> Result<Self, PlayerError> {
-        let mpv = libmpv::Mpv::new().map_err(|e| PlayerError::Playback(e.to_string()))?;
+        let handle = unsafe { libmpv_sys::mpv_create() };
+        if handle.is_null() {
+            return Err(PlayerError::NotInitialized);
+        }
 
-        mpv.set_property("hwdec", "auto-safe")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set hwdec: {e}")))?;
-        mpv.set_property("vo", "gpu-next")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set vo: {e}")))?;
-        mpv.set_property("gpu-hwdec-interop", "all")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set gpu-hwdec-interop: {e}")))?;
-        mpv.set_property("profile", "gpu-hq")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set profile: {e}")))?;
-        mpv.set_property("video-sync", "display-resample")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set video-sync: {e}")))?;
-        mpv.set_property("interpolation", "yes")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set interpolation: {e}")))?;
-        mpv.set_property("tscale", "oversample")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set tscale: {e}")))?;
-        mpv.set_property("deinterlace", "yes")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set deinterlace: {e}")))?;
-        mpv.set_property("keep-open", "yes")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set keep-open: {e}")))?;
-        mpv.set_property("cache", "yes")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set cache: {e}")))?;
-        mpv.set_property("demuxer-max-bytes", "150MiB")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set demuxer-max-bytes: {e}")))?;
+        // Set quality properties BEFORE mpv_initialize
+        let props = [
+            ("hwdec", "auto-safe"),
+            ("vo", "gpu-next"),
+            ("gpu-hwdec-interop", "all"),
+            ("profile", "gpu-hq"),
+            ("video-sync", "display-resample"),
+            ("interpolation", "yes"),
+            ("tscale", "oversample"),
+            ("deinterlace", "yes"),
+            ("keep-open", "yes"),
+            ("cache", "yes"),
+            ("demuxer-max-bytes", "150MiB"),
+        ];
 
-        tracing::info!("MpvBackend initialized with gpu-hq profile and auto-safe hwdec");
+        for (key, value) in &props {
+            let k = CString::new(*key).unwrap();
+            let v = CString::new(*value).unwrap();
+            let ret = unsafe { libmpv_sys::mpv_set_option_string(handle, k.as_ptr(), v.as_ptr()) };
+            if ret < 0 {
+                tracing::warn!(key = %key, value = %value, code = ret, "mpv option failed (non-fatal)");
+            }
+        }
+
+        let ret = unsafe { libmpv_sys::mpv_initialize(handle) };
+        if ret < 0 {
+            unsafe { libmpv_sys::mpv_destroy(handle) };
+            return Err(PlayerError::Playback(format!(
+                "mpv_initialize failed with code {ret}"
+            )));
+        }
+
+        tracing::info!("MpvBackend initialized (raw FFI, gpu-hq, hwdec=auto-safe)");
 
         Ok(Self {
-            mpv,
+            handle,
             state: Arc::new(Mutex::new(PlayerState::Idle)),
         })
+    }
+
+    /// Send a command to mpv (e.g., "loadfile", "stop").
+    fn command(&self, args: &[&str]) -> Result<(), PlayerError> {
+        let c_args: Vec<CString> = args.iter().map(|a| CString::new(*a).unwrap()).collect();
+        let mut ptrs: Vec<*const i8> = c_args.iter().map(|a| a.as_ptr()).collect();
+        ptrs.push(ptr::null());
+
+        let ret = unsafe { libmpv_sys::mpv_command(self.handle, ptrs.as_ptr() as *mut *const i8) };
+        if ret < 0 {
+            let err_str = unsafe {
+                CStr::from_ptr(libmpv_sys::mpv_error_string(ret))
+                    .to_string_lossy()
+                    .to_string()
+            };
+            return Err(PlayerError::Playback(format!(
+                "mpv command {:?} failed: {err_str}",
+                args
+            )));
+        }
+        Ok(())
+    }
+
+    /// Set a string property on mpv.
+    fn set_property_string(&self, key: &str, value: &str) -> Result<(), PlayerError> {
+        let k = CString::new(key).unwrap();
+        let v = CString::new(value).unwrap();
+        let ret =
+            unsafe { libmpv_sys::mpv_set_property_string(self.handle, k.as_ptr(), v.as_ptr()) };
+        if ret < 0 {
+            let err_str = unsafe {
+                CStr::from_ptr(libmpv_sys::mpv_error_string(ret))
+                    .to_string_lossy()
+                    .to_string()
+            };
+            return Err(PlayerError::Playback(format!(
+                "set_property {key}={value} failed: {err_str}"
+            )));
+        }
+        Ok(())
     }
 }
 
@@ -64,11 +118,7 @@ impl PlayerBackend for MpvBackend {
     fn play(&self, url: &str) -> Result<(), PlayerError> {
         tracing::info!(url = %url, "MpvBackend: play");
         *self.state.lock().unwrap() = PlayerState::Buffering;
-
-        self.mpv
-            .command("loadfile", &[url, "replace"])
-            .map_err(|e| PlayerError::Playback(format!("loadfile failed: {e}")))?;
-
+        self.command(&["loadfile", url, "replace"])?;
         *self.state.lock().unwrap() = PlayerState::Playing;
         Ok(())
     }
@@ -77,15 +127,11 @@ impl PlayerBackend for MpvBackend {
         let current = *self.state.lock().unwrap();
         match current {
             PlayerState::Playing => {
-                self.mpv
-                    .set_property("pause", true)
-                    .map_err(|e| PlayerError::Playback(format!("pause failed: {e}")))?;
+                self.set_property_string("pause", "yes")?;
                 *self.state.lock().unwrap() = PlayerState::Paused;
             }
             PlayerState::Paused => {
-                self.mpv
-                    .set_property("pause", false)
-                    .map_err(|e| PlayerError::Playback(format!("unpause failed: {e}")))?;
+                self.set_property_string("pause", "no")?;
                 *self.state.lock().unwrap() = PlayerState::Playing;
             }
             _ => {}
@@ -94,24 +140,18 @@ impl PlayerBackend for MpvBackend {
     }
 
     fn seek(&self, position_secs: f64) -> Result<(), PlayerError> {
-        self.mpv
-            .command("seek", &[&position_secs.to_string(), "absolute"])
-            .map_err(|e| PlayerError::Playback(format!("seek failed: {e}")))?;
+        self.command(&["seek", &position_secs.to_string(), "absolute"])?;
         Ok(())
     }
 
     fn set_volume(&self, volume: f32) -> Result<(), PlayerError> {
-        let vol = (volume * 100.0).clamp(0.0, 100.0) as i64;
-        self.mpv
-            .set_property("volume", vol)
-            .map_err(|e| PlayerError::Playback(format!("set volume failed: {e}")))?;
+        let vol = (volume * 100.0).clamp(0.0, 100.0);
+        self.set_property_string("volume", &vol.to_string())?;
         Ok(())
     }
 
     fn stop(&self) -> Result<(), PlayerError> {
-        self.mpv
-            .command("stop", &[])
-            .map_err(|e| PlayerError::Playback(format!("stop failed: {e}")))?;
+        self.command(&["stop"])?;
         *self.state.lock().unwrap() = PlayerState::Stopped;
         Ok(())
     }
@@ -121,20 +161,27 @@ impl PlayerBackend for MpvBackend {
     }
 }
 
+impl Drop for MpvBackend {
+    fn drop(&mut self) {
+        if !self.handle.is_null() {
+            unsafe {
+                libmpv_sys::mpv_terminate_destroy(self.handle);
+            }
+            tracing::info!("MpvBackend destroyed");
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // Note: These tests require libmpv-2.dll in PATH or alongside the test binary.
-    // They will be skipped in CI without the native library.
-
     #[test]
-    fn test_mpv_backend_state_default() {
-        // Only test if libmpv is available
+    fn test_mpv_backend_init() {
         match MpvBackend::new() {
             Ok(backend) => assert_eq!(backend.state(), PlayerState::Idle),
-            Err(_) => {
-                eprintln!("libmpv not available — skipping test");
+            Err(e) => {
+                eprintln!("libmpv not available — skipping test: {e}");
             }
         }
     }

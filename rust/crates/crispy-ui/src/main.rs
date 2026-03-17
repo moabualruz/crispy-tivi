@@ -120,7 +120,7 @@ fn main() -> anyhow::Result<()> {
                     slint::RenderingState::RenderingTeardown => {
                         // Drop underlay before the GL context is destroyed.
                         // The mpv handle is owned by MpvBackend — do NOT call
-                        // mpv_destroy here; libmpv::Mpv's Drop impl handles it.
+                        // mpv_destroy here; MpvBackend's Drop handles it.
                         drop(underlay_cell_clone.borrow_mut().take());
                         tracing::info!("VideoUnderlay released");
                     }
