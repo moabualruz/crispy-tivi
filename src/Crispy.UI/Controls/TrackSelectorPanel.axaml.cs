@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 
+using Crispy.Application.Player.Models;
 using Crispy.UI.ViewModels;
 using Crispy.UI.Views;
 
@@ -48,7 +49,7 @@ public partial class TrackSelectorPanel : UserControl
         }
 
         // Sync current state into the track selector VM
-        _trackSelectorViewModel.UpdateFromState(vm.PlayerService.State);
+        SyncFromViewModel(vm);
 
         // Listen for future state changes to keep tracks synced while panel is open
         vm.PropertyChanged -= OnPlayerPropertyChanged;
@@ -63,8 +64,36 @@ public partial class TrackSelectorPanel : UserControl
             or nameof(PlayerViewModel.IsLive))
         {
             if (DataContext is PlayerViewModel vm && _trackSelectorViewModel is not null)
-                _trackSelectorViewModel.UpdateFromState(vm.PlayerService.State);
+                SyncFromViewModel(vm);
         }
+    }
+
+    private void SyncFromViewModel(PlayerViewModel vm)
+    {
+        if (_trackSelectorViewModel is null) return;
+
+        // Build a synthetic state from ViewModel properties rather than re-reading
+        // from the service (which may not yet reflect the latest push in tests).
+        var state = new PlayerState(
+            Mode: vm.Mode,
+            IsPlaying: vm.IsPlaying,
+            IsBuffering: vm.IsBuffering,
+            IsMuted: vm.IsMuted,
+            Volume: vm.Volume,
+            Rate: vm.Rate,
+            Position: vm.Position,
+            Duration: vm.Duration,
+            IsLive: vm.IsLive,
+            Timeshift: null,
+            IsAudioOnly: vm.IsAudioOnly,
+            ErrorMessage: vm.ErrorMessage,
+            AudioTracks: vm.AudioTracks,
+            SubtitleTracks: vm.SubtitleTracks,
+            CurrentVideoWidth: null,
+            CurrentVideoHeight: null,
+            CurrentRequest: null);
+
+        _trackSelectorViewModel.UpdateFromState(state);
     }
 
     private void WireBackdropDismiss()
