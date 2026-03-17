@@ -22,7 +22,10 @@ public sealed class MovieRepository : IMovieRepository
     public async Task<Movie?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
-        return await ctx.Movies.FindAsync([id], ct).ConfigureAwait(false);
+        return await ctx.Movies
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.Id == id, ct)
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -30,6 +33,7 @@ public sealed class MovieRepository : IMovieRepository
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
         return await ctx.Movies
+            .AsNoTracking()
             .Where(m => m.SourceId == sourceId)
             .ToListAsync(ct)
             .ConfigureAwait(false);

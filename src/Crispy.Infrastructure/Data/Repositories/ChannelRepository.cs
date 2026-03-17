@@ -23,6 +23,7 @@ public sealed class ChannelRepository : IChannelRepository
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
         return await ctx.Channels
+            .AsNoTracking()
             .Include(c => c.StreamEndpoints)
             .FirstOrDefaultAsync(c => c.Id == id, ct)
             .ConfigureAwait(false);
@@ -33,6 +34,7 @@ public sealed class ChannelRepository : IChannelRepository
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
         return await ctx.Channels
+            .AsNoTracking()
             .Where(c => c.SourceId == sourceId)
             .Include(c => c.StreamEndpoints)
             .OrderBy(c => c.TvgChno ?? int.MaxValue)

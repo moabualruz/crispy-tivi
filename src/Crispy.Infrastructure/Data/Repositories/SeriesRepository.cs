@@ -22,7 +22,7 @@ public sealed class SeriesRepository : ISeriesRepository
     public async Task<Series?> GetByIdAsync(int id, bool includeEpisodes = false, CancellationToken ct = default)
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
-        var query = ctx.SeriesItems.AsQueryable();
+        var query = ctx.SeriesItems.AsNoTracking().AsQueryable();
         if (includeEpisodes)
             query = query.Include(s => s.Episodes);
         return await query.FirstOrDefaultAsync(s => s.Id == id, ct).ConfigureAwait(false);
@@ -33,6 +33,7 @@ public sealed class SeriesRepository : ISeriesRepository
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
         return await ctx.SeriesItems
+            .AsNoTracking()
             .Where(s => s.SourceId == sourceId)
             .ToListAsync(ct)
             .ConfigureAwait(false);
