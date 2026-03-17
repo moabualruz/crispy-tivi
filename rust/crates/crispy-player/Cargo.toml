@@ -10,6 +10,8 @@ crispy-core = { path = "../crispy-core" }
 thiserror.workspace = true
 tracing.workspace = true
 libmpv = "2.0"
+libmpv-sys = "3"
+glow = "0.16"
 
 [build-dependencies]
 reqwest = { version = "0.12", features = ["blocking", "rustls-tls-native-roots"] }

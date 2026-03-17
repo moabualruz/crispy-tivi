@@ -8,6 +8,7 @@
 
 mod backend;
 pub mod mpv_backend;
+pub mod video_underlay;
 
 pub use backend::{PlayerBackend, PlayerError, PlayerState};
 

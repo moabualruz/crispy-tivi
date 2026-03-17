@@ -1258,7 +1258,9 @@ version = "0.1.1"
 dependencies = [
  "crispy-core",
  "flate2",
+ "glow",
  "libmpv",
+ "libmpv-sys",
  "reqwest",
  "tar",
  "thiserror 2.0.18",
