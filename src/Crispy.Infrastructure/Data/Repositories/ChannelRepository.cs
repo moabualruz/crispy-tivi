@@ -61,7 +61,7 @@ public sealed class ChannelRepository : IChannelRepository
         // Build lookup dictionaries: one by TvgId, one by Title (for channels without TvgId).
         var byTvgId = existingChannels
             .Where(c => c.TvgId is not null)
-            .ToDictionary(c => (c.SourceId, TvgId: c.TvgId!.ToUpperInvariant()));
+            .ToDictionary(c => (c.SourceId, TvgId: c.TvgId!.ToUpperInvariant()), c => c);
         var byTitle = existingChannels
             .Where(c => c.TvgId is null)
             .GroupBy(c => (c.SourceId, c.Title))

@@ -63,6 +63,7 @@ public sealed class JellyfinSyncService : ISourceParser
             var movies = new List<Movie>();
             var series = new List<Series>();
             var episodes = new List<Episode>();
+            var episodeSeriesNames = new Dictionary<int, string>();
             var channels = new List<Channel>();
 
             foreach (var lib in libraries)
@@ -89,7 +90,11 @@ public sealed class JellyfinSyncService : ISourceParser
                         foreach (var i in episodeItems)
                         {
                             var playbackInfo = await FetchPlaybackInfoSafeAsync(client, i.Id, ct).ConfigureAwait(false);
-                            episodes.Add(MapEpisode(i, source.Id, seriesItems, client, playbackInfo));
+                            var ep = MapEpisode(i, source.Id, seriesItems, client, playbackInfo);
+                            var seriesName = i.SeriesName;
+                            if (!string.IsNullOrEmpty(seriesName))
+                                episodeSeriesNames[episodes.Count] = seriesName;
+                            episodes.Add(ep);
                         }
 
                         break;
@@ -115,6 +120,8 @@ public sealed class JellyfinSyncService : ISourceParser
                 Channels = channels,
                 Movies = movies,
                 Series = series,
+                Episodes = episodes,
+                EpisodeSeriesNames = episodeSeriesNames,
             };
         }
         catch (HttpRequestException ex) when (IsConnectivityError(ex))
