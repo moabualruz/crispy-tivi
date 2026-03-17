@@ -1,5 +1,13 @@
 slint::include_modules!();
 
+// Force discrete GPU on hybrid laptops (NVIDIA Optimus / AMD PowerXpress)
+#[cfg(target_os = "windows")]
+#[unsafe(no_mangle)]
+pub static NvOptimusEnablement: u32 = 1;
+#[cfg(target_os = "windows")]
+#[unsafe(no_mangle)]
+pub static AmdPowerXpressRequestHighPerformance: i32 = 1;
+
 mod app;
 mod data;
 mod i18n;
