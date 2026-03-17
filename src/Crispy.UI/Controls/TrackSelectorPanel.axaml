@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:views="using:Crispy.UI.Views"
+             x:Class="Crispy.UI.Controls.TrackSelectorPanel"
+             x:DataType="vm:PlayerViewModel"
+             IsHitTestVisible="True">
+
+  <!-- Slide-in panel from right side of OSD overlay.
+       Visibility controlled by IsTrackSelectorOpen on PlayerViewModel.
+       Contains TrackSelectorView bound to its own TrackSelectorViewModel. -->
+
+  <Grid>
+    <!-- Semi-transparent backdrop — tapping dismisses -->
+    <Border Background="#40000000"
+            IsHitTestVisible="True"
+            x:Name="Backdrop" />
+
+    <!-- Panel slides from right -->
+    <Border HorizontalAlignment="Right"
+            VerticalAlignment="Stretch"
+            Width="360"
+            Background="#F0121212"
+            CornerRadius="16,0,0,16"
+            Padding="0,8"
+            x:Name="PanelBorder">
+      <Grid RowDefinitions="Auto,*">
+
+        <!-- Header with close button -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="20,8,12,4">
+          <TextBlock Text="Tracks &amp; Speed"
+                     Foreground="White"
+                     FontSize="16"
+                     FontWeight="SemiBold"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Content="&#x2715;"
+                  Command="{Binding CloseTrackSelectorCommand}"
+                  Background="Transparent"
+                  Foreground="#80FFFFFF"
+                  FontSize="18"
+                  Padding="8,4"
+                  x:Name="CloseButton" />
+        </Grid>
+
+        <!-- Embedded TrackSelectorView — bound to its own ViewModel via code-behind -->
+        <ContentControl Grid.Row="1"
+                        x:Name="TrackSelectorHost" />
+
+      </Grid>
+    </Border>
+  </Grid>
+
+</UserControl>
