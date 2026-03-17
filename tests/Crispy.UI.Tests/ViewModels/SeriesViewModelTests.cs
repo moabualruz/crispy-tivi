@@ -118,8 +118,11 @@ public class SeriesViewModelTests
         var sourceRepo = Substitute.For<ISourceRepository>();
         sourceRepo.GetAllAsync()
             .Returns(Task.FromResult<IReadOnlyList<Source>>([MakeSource(1, "IPTV1")]));
+        var allSeries = new List<Series> { MakeSeries(1, 1), MakeSeries(2, 1) };
+        seriesRepo.GetAllAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Series>>(allSeries));
         seriesRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<Series>>([MakeSeries(1, 1), MakeSeries(2, 1)]));
+            .Returns(Task.FromResult<IReadOnlyList<Series>>(allSeries));
 
         var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
         await Task.Delay(100);
@@ -166,6 +169,9 @@ public class SeriesViewModelTests
                 MakeSource(1, "IPTV1"),
                 MakeSource(2, "IPTV2"),
             ]));
+        var allSeries = new List<Series> { MakeSeries(1, 1), MakeSeries(2, 2) };
+        seriesRepo.GetAllAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Series>>(allSeries));
         seriesRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Series>>([MakeSeries(1, 1)]));
         seriesRepo.GetBySourceAsync(2, Arg.Any<CancellationToken>())
@@ -174,7 +180,7 @@ public class SeriesViewModelTests
         var sut = new SeriesViewModel(seriesRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
         await Task.Delay(100);
 
-        // Default is "All Sources" so both series should be present
+        // Default is "All Sources" so GetAllAsync returns both series
         sut.Series.Should().HaveCount(2);
     }
 

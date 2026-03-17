@@ -80,8 +80,11 @@ public class LiveTvViewModelTests
         var source = MakeSource(1, "IPTV1");
         sourceRepo.GetAllAsync()
             .Returns(Task.FromResult<IReadOnlyList<Source>>([source]));
+        var channels = new List<Channel> { MakeChannel(1, 1), MakeChannel(2, 1) };
+        channelRepo.GetAllAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>(channels));
         channelRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<Channel>>([MakeChannel(1, 1), MakeChannel(2, 1)]));
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>(channels));
 
         var sut = MakeSut(channelRepo, sourceRepo);
 
@@ -200,6 +203,9 @@ public class LiveTvViewModelTests
         var source2 = MakeSource(2, "IPTV2");
         sourceRepo.GetAllAsync()
             .Returns(Task.FromResult<IReadOnlyList<Source>>([source1, source2]));
+        var allChannels = new List<Channel> { MakeChannel(1, 1), MakeChannel(2, 1), MakeChannel(3, 2) };
+        channelRepo.GetAllAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>(allChannels));
         channelRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Channel>>([MakeChannel(1, 1), MakeChannel(2, 1)]));
         channelRepo.GetBySourceAsync(2, Arg.Any<CancellationToken>())
@@ -208,9 +214,9 @@ public class LiveTvViewModelTests
         var sut = MakeSut(channelRepo, sourceRepo);
         await Task.Delay(100);
 
-        // "All Sources" is the initial selection — should union from both sources.
+        // "All Sources" is the initial selection — should return all channels via GetAllAsync.
         sut.SelectedSourceFilter!.SourceId.Should().BeNull("initial filter is All Sources");
-        sut.Channels.Should().HaveCount(3, "union of source1 (2 channels) + source2 (1 channel)");
+        sut.Channels.Should().HaveCount(3, "GetAllAsync returns all 3 channels");
     }
 
     [Fact]
@@ -248,14 +254,17 @@ public class LiveTvViewModelTests
         var source = MakeSource(1, "IPTV1");
         sourceRepo.GetAllAsync()
             .Returns(Task.FromResult<IReadOnlyList<Source>>([source]));
+        var channels = new List<Channel>
+        {
+            MakeChannel(1, 1, "Sports"),
+            MakeChannel(2, 1, "News"),
+            MakeChannel(3, 1, "Sports"),
+            MakeChannel(4, 1, null),   // no group — excluded from chips
+        };
+        channelRepo.GetAllAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>(channels));
         channelRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<Channel>>(
-            [
-                MakeChannel(1, 1, "Sports"),
-                MakeChannel(2, 1, "News"),
-                MakeChannel(3, 1, "Sports"),
-                MakeChannel(4, 1, null),   // no group — excluded from chips
-            ]));
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>(channels));
 
         var sut = MakeSut(channelRepo, sourceRepo);
         await Task.Delay(100);
@@ -273,13 +282,16 @@ public class LiveTvViewModelTests
         var source = MakeSource(1, "IPTV1");
         sourceRepo.GetAllAsync()
             .Returns(Task.FromResult<IReadOnlyList<Source>>([source]));
+        var channels = new List<Channel>
+        {
+            MakeChannel(1, 1, "Sports"),
+            MakeChannel(2, 1, "News"),
+            MakeChannel(3, 1, "Sports"),
+        };
+        channelRepo.GetAllAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>(channels));
         channelRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<Channel>>(
-            [
-                MakeChannel(1, 1, "Sports"),
-                MakeChannel(2, 1, "News"),
-                MakeChannel(3, 1, "Sports"),
-            ]));
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>(channels));
 
         var sut = MakeSut(channelRepo, sourceRepo);
         await Task.Delay(100);
@@ -299,13 +311,16 @@ public class LiveTvViewModelTests
         var source = MakeSource(1, "IPTV1");
         sourceRepo.GetAllAsync()
             .Returns(Task.FromResult<IReadOnlyList<Source>>([source]));
+        var channels = new List<Channel>
+        {
+            MakeChannel(1, 1, "Sports"),
+            MakeChannel(2, 1, "News"),
+            MakeChannel(3, 1, "Sports"),
+        };
+        channelRepo.GetAllAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>(channels));
         channelRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<Channel>>(
-            [
-                MakeChannel(1, 1, "Sports"),
-                MakeChannel(2, 1, "News"),
-                MakeChannel(3, 1, "Sports"),
-            ]));
+            .Returns(Task.FromResult<IReadOnlyList<Channel>>(channels));
 
         var sut = MakeSut(channelRepo, sourceRepo);
         await Task.Delay(100);
