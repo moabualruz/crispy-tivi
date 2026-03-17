@@ -183,6 +183,60 @@ public class SyncPipelineTests : IDisposable
             "all 550 channels across multiple batches must be inserted");
     }
 
+    [Fact]
+    public async Task RunAsync_PersistsMovies_WhenParseResultContainsMovies()
+    {
+        var movies = new List<Movie>
+        {
+            new() { Title = "Movie 1", SourceId = _testSource.Id, StreamUrl = "http://test/m1.mp4" },
+            new() { Title = "Movie 2", SourceId = _testSource.Id, StreamUrl = "http://test/m2.mp4" },
+        };
+        var parser = new FakeParser(new ParseResult { Movies = movies });
+        var pipeline = new SyncPipeline(_factory, _epgFactory, _movieRepo, _seriesRepo, NullLogger<SyncPipeline>.Instance);
+
+        await pipeline.RunAsync(_testSource, parser, CancellationToken.None);
+
+        await _movieRepo.Received(1).UpsertRangeAsync(
+            Arg.Is<IReadOnlyList<Movie>>(m => m.Count == 2),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RunAsync_PersistsSeries_WhenParseResultContainsSeries()
+    {
+        var series = new List<Series>
+        {
+            new() { Title = "Series 1", SourceId = _testSource.Id },
+            new() { Title = "Series 2", SourceId = _testSource.Id },
+            new() { Title = "Series 3", SourceId = _testSource.Id },
+        };
+        var parser = new FakeParser(new ParseResult { Series = series });
+        var pipeline = new SyncPipeline(_factory, _epgFactory, _movieRepo, _seriesRepo, NullLogger<SyncPipeline>.Instance);
+
+        await pipeline.RunAsync(_testSource, parser, CancellationToken.None);
+
+        await _seriesRepo.Received(1).UpsertRangeAsync(
+            Arg.Is<IReadOnlyList<Series>>(s => s.Count == 3),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RunAsync_SkipsMovieUpsert_WhenNoMoviesInResult()
+    {
+        var channels = MakeChannels(2);
+        var parser = new FakeParser(new ParseResult { Channels = channels });
+        var pipeline = new SyncPipeline(_factory, _epgFactory, _movieRepo, _seriesRepo, NullLogger<SyncPipeline>.Instance);
+
+        await pipeline.RunAsync(_testSource, parser, CancellationToken.None);
+
+        await _movieRepo.DidNotReceive().UpsertRangeAsync(
+            Arg.Any<IEnumerable<Movie>>(),
+            Arg.Any<CancellationToken>());
+        await _seriesRepo.DidNotReceive().UpsertRangeAsync(
+            Arg.Any<IEnumerable<Series>>(),
+            Arg.Any<CancellationToken>());
+    }
+
     public void Dispose()
     {
         _factory.Dispose();
