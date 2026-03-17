@@ -725,10 +725,13 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
     private void CloseSleepTimerPanel() => IsSleepTimerPanelOpen = false;
 
     [RelayCommand]
-    private void SetSleepTimer(TimeSpan duration)
+    private void SetSleepTimer(string durationString)
     {
-        _sleepTimerService.SetTimer(duration);
-        IsSleepTimerPanelOpen = false;
+        if (TimeSpan.TryParse(durationString, out var duration))
+        {
+            _sleepTimerService.SetTimer(duration);
+            IsSleepTimerPanelOpen = false;
+        }
     }
 
     [RelayCommand]

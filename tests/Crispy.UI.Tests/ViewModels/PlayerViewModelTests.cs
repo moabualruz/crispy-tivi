@@ -593,9 +593,8 @@ public class PlayerViewModelTests
     [Fact]
     public void SetSleepTimerCommand_CallsService_SetTimer()
     {
-        var duration = TimeSpan.FromMinutes(30);
-        _sut.SetSleepTimerCommand.Execute(duration);
-        _sleepTimerService.Received(1).SetTimer(duration);
+        _sut.SetSleepTimerCommand.Execute("0:30:00");
+        _sleepTimerService.Received(1).SetTimer(TimeSpan.FromMinutes(30));
     }
 
     // ─── SleepTimerRemaining reflected from service ────────────────────────────
