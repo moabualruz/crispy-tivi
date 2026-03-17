@@ -1292,8 +1292,11 @@ version = "0.1.1"
 dependencies = [
  "anyhow",
  "chrono",
+ "crispy-core",
  "crispy-player",
  "crispy-server",
+ "glow",
+ "libmpv-sys",
  "rust-i18n",
  "slint",
  "slint-build",

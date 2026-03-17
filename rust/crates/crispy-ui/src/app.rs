@@ -1,5 +1,9 @@
 //! Application setup — initializes CrispyService and wires Slint callbacks.
 
+use std::{cell::RefCell, rc::Rc};
+
+use crispy_player::PlayerBackend;
+use crispy_player::mpv_backend::MpvBackend;
 use crispy_server::CrispyService;
 use crispy_server::models::Source;
 use slint::ComponentHandle;
@@ -18,7 +22,14 @@ pub(crate) fn resolve_db_path() -> String {
 }
 
 /// Initialize the app: create CrispyService, load settings, wire callbacks.
-pub(crate) fn init(ui: &super::AppWindow) -> anyhow::Result<CrispyService> {
+///
+/// Returns `(service, backend_available)` — `backend_available` is `true` when
+/// `MpvBackend` initialised successfully.  The backend itself is owned by the
+/// Slint callbacks (via `Rc<RefCell<Option<MpvBackend>>>`).
+pub(crate) fn init(
+    ui: &super::AppWindow,
+    rt: &tokio::runtime::Handle,
+) -> anyhow::Result<(CrispyService, bool)> {
     let db_path = resolve_db_path();
     tracing::info!(db_path = %db_path, "Opening database");
 
@@ -73,9 +84,10 @@ pub(crate) fn init(ui: &super::AppWindow) -> anyhow::Result<CrispyService> {
         }
     });
 
-    // Wire source save callback
+    // Wire source save callback — saves then immediately triggers a sync.
     let svc = service.clone();
     let ui_weak = ui.as_weak();
+    let rt_save = rt.clone();
     app_state.on_save_source(move |name, stype, url, user, pass| {
         let source = Source {
             id: format!("src_{}", chrono::Utc::now().timestamp_millis()),
@@ -116,6 +128,14 @@ pub(crate) fn init(ui: &super::AppWindow) -> anyhow::Result<CrispyService> {
         if let Some(ui) = ui_weak.upgrade() {
             super::data::load_sources(&ui, &svc);
         }
+        // Trigger sync immediately after saving.
+        super::sync::trigger_sync(
+            &rt_save,
+            svc.clone(),
+            source.id.clone(),
+            source.source_type.clone(),
+            ui_weak.clone(),
+        );
     });
 
     // Wire source delete callback
@@ -129,6 +149,33 @@ pub(crate) fn init(ui: &super::AppWindow) -> anyhow::Result<CrispyService> {
         }
         if let Some(ui) = ui_weak.upgrade() {
             super::data::reload_all(&ui, &svc);
+        }
+    });
+
+    // Wire manual sync callback — triggered by UI "Sync now" button.
+    let svc = service.clone();
+    let ui_weak = ui.as_weak();
+    let rt_sync = rt.clone();
+    app_state.on_sync_source(move |source_id| {
+        let sid = source_id.to_string();
+        tracing::info!(source_id = %sid, "Manual sync requested");
+        // Look up the source type to pass to trigger_sync.
+        match svc.get_source(&sid) {
+            Ok(Some(source)) => {
+                super::sync::trigger_sync(
+                    &rt_sync,
+                    svc.clone(),
+                    sid,
+                    source.source_type.clone(),
+                    ui_weak.clone(),
+                );
+            }
+            Ok(None) => {
+                tracing::warn!(source_id = %sid, "Source not found for sync");
+            }
+            Err(e) => {
+                tracing::error!(error = %e, source_id = %sid, "Failed to look up source for sync");
+            }
         }
     });
 
@@ -167,14 +214,30 @@ pub(crate) fn init(ui: &super::AppWindow) -> anyhow::Result<CrispyService> {
         }
     });
 
+    // Create MpvBackend — graceful if libmpv is unavailable.
+    let backend = match MpvBackend::new() {
+        Ok(b) => {
+            tracing::info!("MpvBackend initialized");
+            Some(b)
+        }
+        Err(e) => {
+            tracing::warn!(error = %e, "MpvBackend unavailable — playback disabled");
+            None
+        }
+    };
+
+    // Wrap in Rc<RefCell<...>> so multiple callbacks can share it.
+    let backend_cell: Rc<RefCell<Option<MpvBackend>>> = Rc::new(RefCell::new(backend));
+
     // Wire play-channel callback
     let svc = service.clone();
     let ui_weak = ui.as_weak();
+    let backend_play = backend_cell.clone();
     app_state.on_play_channel(move |channel_id| {
         let cid = channel_id.to_string();
         tracing::info!(channel_id = %cid, "Play channel");
 
-        // Look up channel to get stream URL and metadata
+        // Look up channel to get stream URL and metadata.
         let channels = svc
             .get_channels_by_ids(std::slice::from_ref(&cid))
             .unwrap_or_default();
@@ -188,12 +251,21 @@ pub(crate) fn init(ui: &super::AppWindow) -> anyhow::Result<CrispyService> {
             player.set_is_live(true);
             player.set_is_playing(true);
             player.set_show_osd(true);
-            // Actual playback via PlayerBackend deferred to Phase 3.1
-            tracing::info!(
-                url = %ch.stream_url,
-                name = %ch.name,
-                "Stream ready (playback backend not yet connected)"
-            );
+
+            // Start playback via MpvBackend.
+            if let Some(ref b) = *backend_play.borrow() {
+                if let Err(e) = b.play(&ch.stream_url) {
+                    tracing::error!(error = %e, url = %ch.stream_url, "Playback failed");
+                } else {
+                    tracing::info!(url = %ch.stream_url, name = %ch.name, "Playback started");
+                }
+            } else {
+                tracing::warn!(
+                    url = %ch.stream_url,
+                    name = %ch.name,
+                    "MpvBackend unavailable — stream URL ready but not playing"
+                );
+            }
         }
     });
 
@@ -203,7 +275,13 @@ pub(crate) fn init(ui: &super::AppWindow) -> anyhow::Result<CrispyService> {
 
     player_state.on_play_pause({
         let ui_weak = ui_weak.clone();
+        let backend_pause = backend_cell.clone();
         move || {
+            if let Some(ref b) = *backend_pause.borrow()
+                && let Err(e) = b.pause()
+            {
+                tracing::error!(error = %e, "Pause/unpause failed");
+            }
             if let Some(ui) = ui_weak.upgrade() {
                 let ps = ui.global::<super::PlayerState>();
                 ps.set_is_paused(!ps.get_is_paused());
@@ -214,7 +292,13 @@ pub(crate) fn init(ui: &super::AppWindow) -> anyhow::Result<CrispyService> {
 
     player_state.on_stop({
         let ui_weak = ui_weak.clone();
+        let backend_stop = backend_cell.clone();
         move || {
+            if let Some(ref b) = *backend_stop.borrow()
+                && let Err(e) = b.stop()
+            {
+                tracing::error!(error = %e, "Stop failed");
+            }
             if let Some(ui) = ui_weak.upgrade() {
                 let ps = ui.global::<super::PlayerState>();
                 ps.set_is_playing(false);
@@ -328,5 +412,8 @@ pub(crate) fn init(ui: &super::AppWindow) -> anyhow::Result<CrispyService> {
         ui.global::<super::OnboardingState>().set_is_active(true);
     }
 
-    Ok(service)
+    // Report whether the backend is available so main.rs can set up the render handle.
+    let backend_available = backend_cell.borrow().is_some();
+
+    Ok((service, backend_available))
 }

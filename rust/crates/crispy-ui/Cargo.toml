@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+crispy-core = { path = "../crispy-core" }
 crispy-server = { path = "../crispy-server" }
 crispy-player = { path = "../crispy-player" }
 slint.workspace = true
@@ -14,6 +15,8 @@ tracing-subscriber.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
 rust-i18n.workspace = true
+glow = "0.16"
+libmpv-sys = "3.1.0"
 
 [build-dependencies]
 slint-build.workspace = true
