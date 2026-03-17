@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Crispy.UI.ViewModels"
              xmlns:entities="using:Crispy.Domain.Entities"
+             xmlns:asyncImage="using:AsyncImageLoader"
              x:Class="Crispy.UI.Views.LiveTvView"
              x:DataType="vm:LiveTvViewModel">
 
@@ -87,10 +88,9 @@
                   Background="Transparent">
             <Grid ColumnDefinitions="48,*"
                   Margin="8,6">
-              <!-- Logo (TvgLogo is a URL — use reflection binding for Avalonia's built-in URI→Bitmap converter) -->
+              <!-- Logo (TvgLogo is a URL — AsyncImageLoader downloads + caches) -->
               <Image Grid.Column="0"
-                     x:CompileBindings="False"
-                     Source="{Binding TvgLogo}"
+                     asyncImage:ImageLoader.Source="{Binding TvgLogo}"
                      Width="40"
                      Height="40"
                      Stretch="Uniform" />

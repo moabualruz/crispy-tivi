@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:asyncImage="using:AsyncImageLoader"
              x:Class="Crispy.UI.Controls.OsdOverlay"
              x:DataType="vm:PlayerViewModel"
              Background="Transparent"
@@ -32,8 +33,7 @@
                 CornerRadius="4"
                 Background="#1AFFFFFF"
                 Margin="6,0,10,0">
-          <Image x:CompileBindings="False"
-                 Source="{Binding Osd.ChannelLogoUrl}"
+          <Image asyncImage:ImageLoader.Source="{Binding Osd.ChannelLogoUrl}"
                  Stretch="Uniform" />
         </Border>
 
@@ -202,8 +202,7 @@
               Margin="0,0,48,0"
               Width="300">
         <StackPanel Spacing="8">
-          <Image x:CompileBindings="False"
-                 Source="{Binding Osd.ChannelLogoUrl}"
+          <Image asyncImage:ImageLoader.Source="{Binding Osd.ChannelLogoUrl}"
                  Width="64" Height="64"
                  Stretch="Uniform"
                  HorizontalAlignment="Center" />
