@@ -37,9 +37,25 @@ export global Theme {
     ? rgba(255, 255, 255, 0.1)
     : rgba(0, 0, 0, 0.08);
 
-  // --- Focus ---
-  out property <brush> focus-ring: is-dark ? #FFFFFF : #0A0A0C;
+  // --- Focus (D-Pad first — stark white focus ring) ---
+  out property <brush> focus-ring: #FFFFFF;
   out property <length> focus-ring-width: 2px;
+  out property <brush> focus-glow: rgba(255, 255, 255, 0.2);
+
+  // --- Card Surface (glassmorphic) ---
+  out property <brush> card-surface: is-dark
+    ? rgba(28, 28, 32, 0.8)
+    : rgba(245, 245, 247, 0.9);
+  out property <brush> card-border: rgba(255, 255, 255, 0.1);
+
+  // --- Button Styles ---
+  out property <brush> btn-primary-bg: #FFFFFF;
+  out property <brush> btn-primary-fg: #000000;
+  out property <brush> btn-secondary-bg: rgba(255, 255, 255, 0.15);
+  out property <brush> btn-secondary-fg: #FFFFFF;
+
+  // --- Live Badge ---
+  out property <brush> live-badge: accent-gradient;
 
   // --- Typography ---
   out property <string> font-display: "Outfit";

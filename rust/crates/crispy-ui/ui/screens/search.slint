@@ -12,16 +12,41 @@ export component SearchScreen inherits Rectangle {
     spacing: Theme.spacing-md;
 
     // Search input
-    search-input := LineEdit {
-      placeholder-text: "Search channels, movies, series...";
-      accepted => {
-        AppState.search-text = self.text;
-        AppState.perform-search(self.text);
+    FocusScope {
+      width: 100%;
+      height: 44px;
+      key-pressed(event) => {
+        if event.text == Key.Return {
+          AppState.search-text = search-input.text;
+          AppState.perform-search(search-input.text);
+          return accept;
+        }
+        return reject;
       }
-      edited => {
-        if self.text.character-count >= 2 {
-          AppState.search-text = self.text;
-          AppState.perform-search(self.text);
+      Rectangle {
+        width: 100%; height: 100%;
+        border-radius: 30px;
+        background: rgba(255, 255, 255, 0.1);
+        border-width: parent.has-focus ? 2px : 2px;
+        border-color: parent.has-focus ? #FFFFFF : rgba(255, 255, 255, 0.1);
+
+        HorizontalLayout {
+          padding-left: Theme.spacing-md;
+          padding-right: Theme.spacing-md;
+
+          search-input := LineEdit {
+            placeholder-text: "Search channels, movies, series...";
+            accepted => {
+              AppState.search-text = self.text;
+              AppState.perform-search(self.text);
+            }
+            edited => {
+              if self.text.character-count >= 2 {
+                AppState.search-text = self.text;
+                AppState.perform-search(self.text);
+              }
+            }
+          }
         }
       }
     }

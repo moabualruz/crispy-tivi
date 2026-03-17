@@ -141,10 +141,10 @@ export component SettingsScreen inherits Rectangle {
 
       // Sources section
       Rectangle {
-        border-radius: Theme.radius-md;
-        background: Theme.surface;
+        border-radius: 12px;
+        background: rgba(28, 28, 32, 0.8);
         border-width: 1px;
-        border-color: Theme.border-subtle;
+        border-color: rgba(255, 255, 255, 0.1);
 
         VerticalLayout {
           padding: Theme.spacing-md;
@@ -175,12 +175,12 @@ export component SettingsScreen inherits Rectangle {
               Rectangle {
                 width: 100%; height: 100%;
                 border-radius: Theme.radius-sm;
-                background: Theme.accent;
+                background: #FFFFFF;
                 border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
                 border-color: Theme.focus-ring;
                 Text {
                   text: "+ Add";
-                  color: #FFFFFF;
+                  color: #000000;
                   font-size: Theme.font-size-caption;
                   font-weight: 600;
                   horizontal-alignment: center;
@@ -209,10 +209,10 @@ export component SettingsScreen inherits Rectangle {
 
       // Appearance section
       Rectangle {
-        border-radius: Theme.radius-md;
-        background: Theme.surface;
+        border-radius: 12px;
+        background: rgba(28, 28, 32, 0.8);
         border-width: 1px;
-        border-color: Theme.border-subtle;
+        border-color: rgba(255, 255, 255, 0.1);
 
         VerticalLayout {
           padding: Theme.spacing-md;
@@ -257,12 +257,12 @@ export component SettingsScreen inherits Rectangle {
                 Rectangle {
                   width: 100%; height: 100%;
                   border-radius: Theme.radius-pill;
-                  background: Theme.theme-mode == item.mode ? Theme.accent : Theme.surface-glass;
+                  background: Theme.theme-mode == item.mode ? Theme.accent : rgba(255, 255, 255, 0.15);
                   border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
                   border-color: Theme.focus-ring;
                   Text {
                     text: item.label;
-                    color: Theme.theme-mode == item.mode ? #FFFFFF : Theme.text-secondary;
+                    color: Theme.theme-mode == item.mode ? #FFFFFF : rgba(255, 255, 255, 0.60);
                     font-size: Theme.font-size-small;
                     font-weight: 500;
                     horizontal-alignment: center;
@@ -308,10 +308,10 @@ export component SettingsScreen inherits Rectangle {
 
       // About
       Rectangle {
-        border-radius: Theme.radius-md;
-        background: Theme.surface;
+        border-radius: 12px;
+        background: rgba(28, 28, 32, 0.8);
         border-width: 1px;
-        border-color: Theme.border-subtle;
+        border-color: rgba(255, 255, 255, 0.1);
         VerticalLayout {
           padding: Theme.spacing-md;
           spacing: Theme.spacing-sm;
