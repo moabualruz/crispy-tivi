@@ -47,15 +47,34 @@ public sealed class ChannelRepository : IChannelRepository
     public async Task<int> UpsertRangeAsync(IEnumerable<Channel> channels, CancellationToken ct = default)
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
-        int count = 0;
+        var channelList = channels.ToList();
+        if (channelList.Count == 0)
+            return 0;
 
-        foreach (var ch in channels)
+        // Batch-load all existing channels for the source(s) in one query.
+        var sourceIds = channelList.Select(c => c.SourceId).Distinct().ToList();
+        var existingChannels = await ctx.Channels
+            .Where(c => sourceIds.Contains(c.SourceId))
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        // Build lookup dictionaries: one by TvgId, one by Title (for channels without TvgId).
+        var byTvgId = existingChannels
+            .Where(c => c.TvgId is not null)
+            .ToDictionary(c => (c.SourceId, TvgId: c.TvgId!.ToUpperInvariant()));
+        var byTitle = existingChannels
+            .Where(c => c.TvgId is null)
+            .GroupBy(c => (c.SourceId, c.Title))
+            .ToDictionary(g => g.Key, g => g.First());
+
+        int count = 0;
+        foreach (var ch in channelList)
         {
-            var existing = ch.TvgId is not null
-                ? await ctx.Channels.FirstOrDefaultAsync(
-                    c => c.SourceId == ch.SourceId && c.TvgId == ch.TvgId, ct).ConfigureAwait(false)
-                : await ctx.Channels.FirstOrDefaultAsync(
-                    c => c.SourceId == ch.SourceId && c.Title == ch.Title, ct).ConfigureAwait(false);
+            Channel? existing = null;
+            if (ch.TvgId is not null)
+                byTvgId.TryGetValue((ch.SourceId, ch.TvgId?.ToUpperInvariant() ?? ""), out existing);
+            else
+                byTitle.TryGetValue((ch.SourceId, ch.Title), out existing);
 
             if (existing is null)
             {
