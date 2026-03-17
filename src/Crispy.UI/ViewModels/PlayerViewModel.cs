@@ -839,6 +839,17 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
     }
 
     [RelayCommand]
+    private async Task CycleAudioTrackAsync()
+    {
+        var tracks = AudioTracks;
+        if (tracks.Count == 0) return;
+        var current = tracks.FirstOrDefault(t => t.IsSelected);
+        var currentIdx = current is null ? -1 : FindIndex(tracks, t => t.Id == current.Id);
+        var idx = currentIdx < 0 ? 0 : (currentIdx + 1) % tracks.Count;
+        await _playerService.SetAudioTrackAsync(tracks[idx].Id);
+    }
+
+    [RelayCommand]
     private void NextEpisode() => EpisodesWatchedCount++;
 
     [RelayCommand]

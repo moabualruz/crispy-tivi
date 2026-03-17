@@ -30,6 +30,25 @@ public class InputRoutingService : IInputRoutingService  // UI-layer interface (
         Key.Space,          // universal play/pause
     ];
 
+    // ── Player shortcut keys (only when watching) ──────────────────────────
+
+    private static readonly HashSet<Key> PlayerShortcutKeys =
+    [
+        Key.M,              // toggle mute
+        Key.A,              // cycle audio track
+        Key.S,              // cycle subtitle track
+    ];
+
+    // ── Volume/seek keys (only when watching) ──────────────────────────────
+
+    private static readonly HashSet<Key> VolumeSeekKeys =
+    [
+        Key.Up,             // volume up
+        Key.Down,           // volume down
+        Key.Left,           // seek backward
+        Key.Right,          // seek forward
+    ];
+
     // ── Navigation keys (arrow cluster + confirm/back) ───────────────────────
 
     private static readonly HashSet<Key> NavigationKeys =
@@ -71,7 +90,17 @@ public class InputRoutingService : IInputRoutingService  // UI-layer interface (
         if (key == Key.F && modifiers == KeyModifiers.None)
             return KeyHandleResult.Handled;
 
-        // ── 5. Navigation keys ───────────────────────────────────────────────
+        // ── 5. Player shortcut keys (M/A/S) → player when watching ──────────
+        if (PlayerShortcutKeys.Contains(key) && modifiers == KeyModifiers.None &&
+            currentState is AppState.Watching or AppState.BrowsingWhilePlaying)
+            return KeyHandleResult.Handled;
+
+        // ── 6. Volume/seek keys (Up/Down/Left/Right) → player when watching ─
+        if (VolumeSeekKeys.Contains(key) && modifiers == KeyModifiers.None &&
+            currentState is AppState.Watching)
+            return KeyHandleResult.Handled;
+
+        // ── 7. Navigation keys ───────────────────────────────────────────────
         if (NavigationKeys.Contains(key))
         {
             return currentState switch

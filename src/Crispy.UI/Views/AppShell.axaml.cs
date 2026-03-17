@@ -6,8 +6,6 @@ using Avalonia.VisualTree;
 
 using Crispy.UI.ViewModels;
 
-using LibVLCSharp.Avalonia;
-
 namespace Crispy.UI.Views;
 
 /// <summary>
@@ -81,21 +79,32 @@ public partial class AppShell : UserControl
                 () => _rail?.FocusPrimaryList(),
                 DispatcherPriority.Loaded);
 
-            // Wire VideoView.MediaPlayer to VlcPlayerService.NativePlayerHandle once.
-            // Deferred to DispatcherPriority.Loaded because VideoView uses NativeControlHost
-            // which requires the visual tree to be fully attached before setting MediaPlayer.
+            // On desktop, wrap OverlayContent in a LibVLCSharp.Avalonia.VideoView
+            // for NativeControlHost airspace fix. On Android/iOS/Browser, skip —
+            // Avalonia renders via Skia directly, no airspace issue.
             if (DataContext is AppShellViewModel shellVm)
             {
-                Dispatcher.UIThread.Post(() =>
+                if (!OperatingSystem.IsAndroid() && !OperatingSystem.IsIOS() && !OperatingSystem.IsBrowser())
                 {
-                    var videoView = this.FindControl<VideoView>("VideoView");
-                    if (videoView is not null
-                        && shellVm.Player.PlayerService.NativePlayerHandle
-                            is LibVLCSharp.Shared.MediaPlayer mp)
+                    Dispatcher.UIThread.Post(() =>
                     {
-                        videoView.MediaPlayer = mp;
-                    }
-                }, DispatcherPriority.Loaded);
+                        var videoLayer = this.FindControl<Panel>("VideoLayer");
+                        var overlayContent = this.FindControl<Grid>("OverlayContent");
+                        if (videoLayer is not null && overlayContent is not null)
+                        {
+                            var videoView = new LibVLCSharp.Avalonia.VideoView();
+                            videoLayer.Children.Remove(overlayContent);
+                            videoView.Content = overlayContent;
+                            videoLayer.Children.Add(videoView);
+
+                            if (shellVm.Player.PlayerService.NativePlayerHandle
+                                is LibVLCSharp.Shared.MediaPlayer mp)
+                            {
+                                videoView.MediaPlayer = mp;
+                            }
+                        }
+                    }, DispatcherPriority.Loaded);
+                }
 
                 SubscribeFullscreen(shellVm);
             }
@@ -159,6 +168,25 @@ public partial class AppShell : UserControl
 
     // ─── Keyboard routing ─────────────────────────────────────────────────────
 
+    /// <summary>Volume step applied per Up/Down key press (5%).</summary>
+    private const float VolumeStep = 0.05f;
+
+    /// <summary>Seek step applied per Left/Right key press (10 seconds).</summary>
+    private static readonly TimeSpan SeekStep = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// Derives the current <see cref="Crispy.Application.Services.AppState"/>
+    /// from the AppShellViewModel's layer visibility flags.
+    /// </summary>
+    private static Application.Services.AppState GetAppState(AppShellViewModel vm)
+    {
+        if (vm.IsVideoVisible && !vm.IsContentVisible)
+            return Application.Services.AppState.Watching;
+        if (vm.IsVideoVisible && vm.IsContentVisible)
+            return Application.Services.AppState.BrowsingWhilePlaying;
+        return Application.Services.AppState.Browsing;
+    }
+
     /// <inheritdoc />
     protected override void OnKeyDown(KeyEventArgs e)
     {
@@ -167,16 +195,71 @@ public partial class AppShell : UserControl
         if (DataContext is not AppShellViewModel vm)
             return;
 
+        var appState = GetAppState(vm);
+        var isWatching = appState is Application.Services.AppState.Watching
+            or Application.Services.AppState.BrowsingWhilePlaying;
+
         switch (e.Key)
         {
+            // ── Player shortcuts (only when watching) ───────────────────────
+            case Key.Space when isWatching:
+                if (vm.Player.IsPlaying)
+                    vm.Player.PauseCommand.Execute(null);
+                else
+                    vm.Player.ResumeCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case Key.M when isWatching:
+                vm.Player.ToggleMuteCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case Key.A when isWatching:
+                vm.Player.CycleAudioTrackCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case Key.S when isWatching:
+                vm.Player.CycleSubtitleTrackCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case Key.Up when isWatching && appState is Application.Services.AppState.Watching:
+                var volUp = Math.Min(1.0f, vm.Player.Volume + VolumeStep);
+                vm.Player.SetVolumeCommand.Execute(volUp);
+                e.Handled = true;
+                break;
+
+            case Key.Down when isWatching && appState is Application.Services.AppState.Watching:
+                var volDown = Math.Max(0.0f, vm.Player.Volume - VolumeStep);
+                vm.Player.SetVolumeCommand.Execute(volDown);
+                e.Handled = true;
+                break;
+
+            case Key.Left when appState is Application.Services.AppState.Watching:
+                var seekBack = vm.Player.Position - SeekStep;
+                if (seekBack < TimeSpan.Zero) seekBack = TimeSpan.Zero;
+                vm.Player.SeekCommand.Execute(seekBack);
+                e.Handled = true;
+                break;
+
+            case Key.Right when appState is Application.Services.AppState.Watching:
+                var seekFwd = vm.Player.Position + SeekStep;
+                if (seekFwd > vm.Player.Duration) seekFwd = vm.Player.Duration;
+                vm.Player.SeekCommand.Execute(seekFwd);
+                e.Handled = true;
+                break;
+
+            // ── Fullscreen toggle ───────────────────────────────────────────
             case Key.F:
                 vm.ToggleFullscreenCommand.Execute(null);
                 e.Handled = true;
                 break;
 
+            // ── Escape / Back ───────────────────────────────────────────────
             case Key.Escape:
             case Key.Back:
-                // Exit fullscreen first if active; otherwise go back in navigation
                 if (vm.IsFullscreen)
                 {
                     vm.ToggleFullscreenCommand.Execute(null);
@@ -189,8 +272,8 @@ public partial class AppShell : UserControl
                 }
                 break;
 
+            // ── Enter on rail → confirm + focus content ─────────────────────
             case Key.Enter:
-                // If focus is on a rail item, confirm and move focus into content
                 if (_rail is not null)
                 {
                     var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
