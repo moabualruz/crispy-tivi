@@ -43,25 +43,35 @@ public sealed class SeriesRepository : ISeriesRepository
     public async Task<int> UpsertRangeAsync(IEnumerable<Series> series, CancellationToken ct = default)
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var seriesList = series.ToList();
+        if (seriesList.Count == 0)
+            return 0;
+
+        // Batch-load all existing series for the source(s) in one query.
+        var sourceIds = seriesList.Select(s => s.SourceId).Distinct().ToList();
+        var existingSeries = await ctx.SeriesItems
+            .Where(s => sourceIds.Contains(s.SourceId))
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        var byKey = new Dictionary<(int SourceId, string Title), Series>();
+        foreach (var es in existingSeries)
+            byKey.TryAdd((es.SourceId, es.Title), es);
+
         var count = 0;
-
-        foreach (var item in series)
+        foreach (var item in seriesList)
         {
-            var existing = await ctx.SeriesItems
-                .FirstOrDefaultAsync(s => s.SourceId == item.SourceId && s.Title == item.Title, ct)
-                .ConfigureAwait(false);
-
-            if (existing is null)
-            {
-                ctx.SeriesItems.Add(item);
-                count++;
-            }
-            else
+            if (byKey.TryGetValue((item.SourceId, item.Title), out var existing))
             {
                 existing.Overview = item.Overview;
                 existing.Thumbnail = item.Thumbnail;
                 if (item.TmdbId.HasValue && !existing.TmdbId.HasValue)
                     existing.TmdbId = item.TmdbId;
+            }
+            else
+            {
+                ctx.SeriesItems.Add(item);
+                count++;
             }
         }
 
@@ -73,28 +83,35 @@ public sealed class SeriesRepository : ISeriesRepository
     public async Task<int> UpsertEpisodesAsync(IEnumerable<Episode> episodes, CancellationToken ct = default)
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var episodeList = episodes.ToList();
+        if (episodeList.Count == 0)
+            return 0;
+
+        // Batch-load all existing episodes for the referenced series in one query.
+        var seriesIds = episodeList.Select(e => e.SeriesId).Distinct().ToList();
+        var existingEpisodes = await ctx.Episodes
+            .Where(e => seriesIds.Contains(e.SeriesId))
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        var byKey = new Dictionary<(int SeriesId, int Season, int Episode), Episode>();
+        foreach (var ee in existingEpisodes)
+            byKey.TryAdd((ee.SeriesId, ee.SeasonNumber, ee.EpisodeNumber), ee);
+
         var count = 0;
-
-        foreach (var ep in episodes)
+        foreach (var ep in episodeList)
         {
-            var existing = await ctx.Episodes
-                .FirstOrDefaultAsync(e =>
-                    e.SeriesId == ep.SeriesId &&
-                    e.SeasonNumber == ep.SeasonNumber &&
-                    e.EpisodeNumber == ep.EpisodeNumber, ct)
-                .ConfigureAwait(false);
-
-            if (existing is null)
-            {
-                ctx.Episodes.Add(ep);
-                count++;
-            }
-            else
+            if (byKey.TryGetValue((ep.SeriesId, ep.SeasonNumber, ep.EpisodeNumber), out var existing))
             {
                 existing.StreamUrl = ep.StreamUrl;
                 existing.Overview = ep.Overview;
                 existing.RuntimeMinutes = ep.RuntimeMinutes;
                 existing.Thumbnail = ep.Thumbnail;
+            }
+            else
+            {
+                ctx.Episodes.Add(ep);
+                count++;
             }
         }
 

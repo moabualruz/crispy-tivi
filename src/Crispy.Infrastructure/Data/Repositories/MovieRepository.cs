@@ -43,20 +43,25 @@ public sealed class MovieRepository : IMovieRepository
     public async Task<int> UpsertRangeAsync(IEnumerable<Movie> movies, CancellationToken ct = default)
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var movieList = movies.ToList();
+        if (movieList.Count == 0)
+            return 0;
+
+        // Batch-load all existing movies for the source(s) in one query.
+        var sourceIds = movieList.Select(m => m.SourceId).Distinct().ToList();
+        var existingMovies = await ctx.Movies
+            .Where(m => sourceIds.Contains(m.SourceId))
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        var byKey = new Dictionary<(int SourceId, string Title), Movie>();
+        foreach (var em in existingMovies)
+            byKey.TryAdd((em.SourceId, em.Title), em);
+
         var count = 0;
-
-        foreach (var movie in movies)
+        foreach (var movie in movieList)
         {
-            var existing = await ctx.Movies
-                .FirstOrDefaultAsync(m => m.SourceId == movie.SourceId && m.Title == movie.Title, ct)
-                .ConfigureAwait(false);
-
-            if (existing is null)
-            {
-                ctx.Movies.Add(movie);
-                count++;
-            }
-            else
+            if (byKey.TryGetValue((movie.SourceId, movie.Title), out var existing))
             {
                 existing.StreamUrl = movie.StreamUrl;
                 existing.Overview = movie.Overview;
@@ -65,6 +70,11 @@ public sealed class MovieRepository : IMovieRepository
                 existing.Thumbnail = movie.Thumbnail;
                 if (movie.TmdbId.HasValue && !existing.TmdbId.HasValue)
                     existing.TmdbId = movie.TmdbId;
+            }
+            else
+            {
+                ctx.Movies.Add(movie);
+                count++;
             }
         }
 
