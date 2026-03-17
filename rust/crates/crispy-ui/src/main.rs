@@ -9,7 +9,9 @@ pub static NvOptimusEnablement: u32 = 1;
 pub static AmdPowerXpressRequestHighPerformance: i32 = 1;
 
 mod app;
+mod cache;
 mod data;
+mod events;
 mod i18n;
 #[allow(dead_code)]
 mod provider;
