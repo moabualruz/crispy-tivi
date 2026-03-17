@@ -87,8 +87,9 @@
                   Background="Transparent">
             <Grid ColumnDefinitions="48,*"
                   Margin="8,6">
-              <!-- Logo -->
+              <!-- Logo (TvgLogo is a URL — use reflection binding for Avalonia's built-in URI→Bitmap converter) -->
               <Image Grid.Column="0"
+                     x:CompileBindings="False"
                      Source="{Binding TvgLogo}"
                      Width="40"
                      Height="40"

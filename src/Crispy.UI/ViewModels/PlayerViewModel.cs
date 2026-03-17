@@ -134,6 +134,14 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
     [ObservableProperty]
     private bool _isPlaying;
 
+    /// <summary>
+    /// True when media is loaded (playing or paused). False only when stopped (no media).
+    /// Used by AppShellViewModel to distinguish pause from stop — pause keeps watching mode,
+    /// stop exits to browsing.
+    /// </summary>
+    [ObservableProperty]
+    private bool _hasActiveMedia;
+
     [ObservableProperty]
     private bool _isBuffering;
 
@@ -403,6 +411,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
         RunOnUiThread(() =>
         {
             IsPlaying = state.IsPlaying;
+            HasActiveMedia = state.CurrentRequest is not null;
             IsBuffering = state.IsBuffering;
             IsLive = state.IsLive;
             IsAudioOnly = state.IsAudioOnly;
@@ -584,6 +593,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
         RetryCount = 0;
         Osd.ChannelName = request.Title;
         Osd.ChannelLogoUrl = request.ChannelLogoUrl;
+        PlaybackStarted?.Invoke(this, EventArgs.Empty);
         await _playerService.PlayAsync(request);
     }
 
@@ -802,6 +812,15 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
                 }
         return null;
     }
+
+    /// <summary>Raised when new playback starts (new content or channel switch).</summary>
+    public event EventHandler? PlaybackStarted;
+
+    /// <summary>Raised when the user wants to exit watching mode (back to browsing with mini-player).</summary>
+    public event EventHandler? ExitWatchingRequested;
+
+    [RelayCommand]
+    private void ExitWatching() => ExitWatchingRequested?.Invoke(this, EventArgs.Empty);
 
     /// <summary>Raised when external player launch is requested (Android / iOS).</summary>
 #pragma warning disable CS0067 // event used inside #if ANDROID / #if IOS blocks

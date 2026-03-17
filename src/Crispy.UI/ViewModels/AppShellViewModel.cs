@@ -84,8 +84,15 @@ public partial class AppShellViewModel : ViewModelBase
         Player = player;
         Navigation = navigation;
 
-        // Subscribe to player IsPlaying changes to keep mini-player bar in sync
+        // Subscribe to player state changes and events
         Player.PropertyChanged += OnPlayerPropertyChanged;
+        Player.ExitWatchingRequested += (_, _) => EnterBrowsingMode();
+        Player.PlaybackStarted += (_, _) =>
+        {
+            // New content or channel switch — always enter watching mode
+            if (!IsVideoVisible || IsContentVisible)
+                EnterWatchingMode();
+        };
     }
 
     // ─── State transitions ────────────────────────────────────────────────────
@@ -260,12 +267,15 @@ public partial class AppShellViewModel : ViewModelBase
         {
             if (Player.IsPlaying && !IsVideoVisible)
             {
-                // Playback just started — enter watching mode
+                // Playback just started from idle — enter watching mode
                 EnterWatchingMode();
             }
-            else if (!Player.IsPlaying && IsVideoVisible)
+        }
+        else if (e.PropertyName is nameof(PlayerViewModel.HasActiveMedia))
+        {
+            if (!Player.HasActiveMedia && IsVideoVisible)
             {
-                // Playback stopped — return to browsing, hide video
+                // Media fully stopped (not paused) — return to browsing
                 IsVideoVisible = false;
                 IsPlayerOverlayVisible = false;
                 IsMiniPlayerVisible = false;

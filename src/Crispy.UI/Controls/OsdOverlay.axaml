@@ -13,20 +13,32 @@
             IsVisible="{Binding Osd.IsOsdVisible}"
             Background="#CC000000"
             Padding="16,8">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto">
+
+        <!-- Back to browsing (keeps playing in mini-player) -->
+        <Button Grid.Column="0"
+                Content="&#x2190;"
+                Command="{Binding ExitWatchingCommand}"
+                Background="Transparent"
+                Foreground="White"
+                FontSize="20"
+                Padding="8,4"
+                VerticalAlignment="Center"
+                ToolTip.Tip="Back to browsing" />
 
         <!-- Channel logo -->
-        <Border Grid.Column="0"
+        <Border Grid.Column="1"
                 Width="36" Height="36"
                 CornerRadius="4"
                 Background="#1AFFFFFF"
-                Margin="0,0,10,0">
-          <Image Source="{Binding Osd.ChannelLogoUrl}"
+                Margin="6,0,10,0">
+          <Image x:CompileBindings="False"
+                 Source="{Binding Osd.ChannelLogoUrl}"
                  Stretch="Uniform" />
         </Border>
 
         <!-- Channel name + programme -->
-        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+        <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="1">
           <TextBlock Text="{Binding Osd.ChannelName}"
                      FontSize="15"
                      FontWeight="SemiBold"
@@ -37,7 +49,7 @@
         </StackPanel>
 
         <!-- LIVE badge (live and NOT timeshifted) -->
-        <Border Grid.Column="2"
+        <Border Grid.Column="3"
                 Margin="8,0"
                 Padding="8,3"
                 CornerRadius="4"
@@ -55,7 +67,7 @@
         </Border>
 
         <!-- Timeshift offset badge -->
-        <Border Grid.Column="2"
+        <Border Grid.Column="3"
                 Margin="8,0"
                 Padding="8,3"
                 CornerRadius="4"
@@ -67,7 +79,7 @@
         </Border>
 
         <!-- Quality badge -->
-        <Border Grid.Column="3"
+        <Border Grid.Column="4"
                 Padding="6,3"
                 CornerRadius="4"
                 Background="#881AFFFF"
@@ -79,7 +91,7 @@
         </Border>
 
         <!-- Sleep timer countdown -->
-        <Border Grid.Column="4"
+        <Border Grid.Column="5"
                 Padding="6,3"
                 CornerRadius="4"
                 Background="#881AFFFF"
@@ -190,7 +202,8 @@
               Margin="0,0,48,0"
               Width="300">
         <StackPanel Spacing="8">
-          <Image Source="{Binding Osd.ChannelLogoUrl}"
+          <Image x:CompileBindings="False"
+                 Source="{Binding Osd.ChannelLogoUrl}"
                  Width="64" Height="64"
                  Stretch="Uniform"
                  HorizontalAlignment="Center" />
