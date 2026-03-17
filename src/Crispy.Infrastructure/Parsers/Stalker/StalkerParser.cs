@@ -91,9 +91,19 @@ public sealed class StalkerParser : ISourceParser
                             {
                                 foreach (var item in items.EnumerateArray())
                                 {
+                                    var cmd = item.TryGetProperty("cmd", out var c) ? c.GetString() : null;
+                                    // Strip ffrt2:// or similar prefixes — keep only the HTTP URL
+                                    if (cmd is not null && !cmd.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        var httpIdx = cmd.IndexOf("http", StringComparison.OrdinalIgnoreCase);
+                                        cmd = httpIdx >= 0 ? cmd[httpIdx..] : null;
+                                    }
+
                                     movies.Add(new Movie
                                     {
                                         Title = item.TryGetProperty("name", out var mn) ? mn.GetString() ?? "Unknown" : "Unknown",
+                                        StreamUrl = cmd,
+                                        Thumbnail = item.TryGetProperty("screenshot_uri", out var ss) ? ss.GetString() : null,
                                         SourceId = source.Id,
                                     });
                                 }
