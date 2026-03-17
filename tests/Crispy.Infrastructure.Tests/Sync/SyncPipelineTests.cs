@@ -221,6 +221,103 @@ public class SyncPipelineTests : IDisposable
     }
 
     [Fact]
+    public async Task RunAsync_PersistsEpisodes_WhenParseResultContainsEpisodes()
+    {
+        var series = new List<Series>
+        {
+            new() { Title = "Breaking Bad", SourceId = _testSource.Id },
+        };
+
+        // After UpsertRangeAsync, GetBySourceAsync returns series with real IDs
+        var persistedSeries = new List<Series>
+        {
+            new() { Id = 42, Title = "Breaking Bad", SourceId = _testSource.Id },
+        };
+        _seriesRepo.GetBySourceAsync(_testSource.Id, Arg.Any<CancellationToken>())
+            .Returns(persistedSeries);
+
+        var episodes = new List<Episode>
+        {
+            new() { Title = "Pilot", SourceId = _testSource.Id, SeriesId = 1, SeasonNumber = 1, EpisodeNumber = 1 },
+            new() { Title = "Cat's in the Bag", SourceId = _testSource.Id, SeriesId = 1, SeasonNumber = 1, EpisodeNumber = 2 },
+        };
+        var episodeSeriesNames = new Dictionary<int, string>
+        {
+            { 0, "Breaking Bad" },
+            { 1, "Breaking Bad" },
+        };
+
+        var parser = new FakeParser(new ParseResult
+        {
+            Series = series,
+            Episodes = episodes,
+            EpisodeSeriesNames = episodeSeriesNames,
+        });
+        var pipeline = new SyncPipeline(_factory, _epgFactory, _movieRepo, _seriesRepo, NullLogger<SyncPipeline>.Instance);
+
+        await pipeline.RunAsync(_testSource, parser, CancellationToken.None);
+
+        await _seriesRepo.Received(1).UpsertEpisodesAsync(
+            Arg.Is<IEnumerable<Episode>>(e => e.Count() == 2 && e.All(ep => ep.SeriesId == 42)),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RunAsync_SkipsEpisodesWithUnresolvableSeriesName()
+    {
+        var series = new List<Series>
+        {
+            new() { Title = "Breaking Bad", SourceId = _testSource.Id },
+        };
+
+        var persistedSeries = new List<Series>
+        {
+            new() { Id = 42, Title = "Breaking Bad", SourceId = _testSource.Id },
+        };
+        _seriesRepo.GetBySourceAsync(_testSource.Id, Arg.Any<CancellationToken>())
+            .Returns(persistedSeries);
+
+        var episodes = new List<Episode>
+        {
+            new() { Title = "Pilot", SourceId = _testSource.Id, SeriesId = 1, SeasonNumber = 1, EpisodeNumber = 1 },
+            new() { Title = "Unknown Ep", SourceId = _testSource.Id, SeriesId = 1, SeasonNumber = 1, EpisodeNumber = 1 },
+        };
+        var episodeSeriesNames = new Dictionary<int, string>
+        {
+            { 0, "Breaking Bad" },     // resolvable
+            { 1, "NonExistentShow" },   // unresolvable
+        };
+
+        var parser = new FakeParser(new ParseResult
+        {
+            Series = series,
+            Episodes = episodes,
+            EpisodeSeriesNames = episodeSeriesNames,
+        });
+        var pipeline = new SyncPipeline(_factory, _epgFactory, _movieRepo, _seriesRepo, NullLogger<SyncPipeline>.Instance);
+
+        await pipeline.RunAsync(_testSource, parser, CancellationToken.None);
+
+        // Only 1 episode should be persisted (the one matching "Breaking Bad")
+        await _seriesRepo.Received(1).UpsertEpisodesAsync(
+            Arg.Is<IEnumerable<Episode>>(e => e.Count() == 1 && e.First().SeriesId == 42),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RunAsync_SkipsEpisodeUpsert_WhenNoEpisodesInResult()
+    {
+        var parser = new FakeParser(new ParseResult { Channels = MakeChannels(1) });
+        var pipeline = new SyncPipeline(_factory, _epgFactory, _movieRepo, _seriesRepo, NullLogger<SyncPipeline>.Instance);
+
+        await pipeline.RunAsync(_testSource, parser, CancellationToken.None);
+
+        await _seriesRepo.DidNotReceive().UpsertEpisodesAsync(
+            Arg.Any<IEnumerable<Episode>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task RunAsync_SkipsMovieUpsert_WhenNoMoviesInResult()
     {
         var channels = MakeChannels(2);
