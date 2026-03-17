@@ -14,9 +14,10 @@ import { SettingsScreen } from "screens/settings.slint";
 import { PlayerScreen, PlayerState } from "screens/player.slint";
 import { OnboardingScreen, OnboardingState } from "screens/onboarding.slint";
 import { SourceDialog } from "components/source-dialog.slint";
+import { DiagnosticsPanel, DiagnosticsState } from "components/diagnostics-panel.slint";
 
 // Re-export for Rust access
-export { PlayerState, OnboardingState }
+export { PlayerState, OnboardingState, DiagnosticsState }
 
 export component AppWindow inherits Window {
   title: "CrispyTivi";
@@ -25,6 +26,34 @@ export component AppWindow inherits Window {
   preferred-width: 1280px;
   preferred-height: 720px;
   background: Theme.background;
+
+  // Global keyboard shortcut handler
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      // F12 = toggle diagnostics
+      if event.text == Key.F12 {
+        DiagnosticsState.toggle();
+        return accept;
+      }
+      // Escape = stop player or close dialogs
+      if event.text == Key.Escape {
+        if DiagnosticsState.visible {
+          DiagnosticsState.visible = false;
+          return accept;
+        }
+        if AppState.show-source-dialog {
+          AppState.show-source-dialog = false;
+          return accept;
+        }
+        if PlayerState.is-playing {
+          PlayerState.stop();
+          return accept;
+        }
+      }
+      return reject;
+    }
+  }
 
   // Onboarding overlay (first-run)
   if OnboardingState.is-active: OnboardingScreen {
@@ -57,6 +86,7 @@ export component AppWindow inherits Window {
     }
   }
 
-  // Modal overlay
+  // Modal overlays
   if !OnboardingState.is-active: SourceDialog {}
+  DiagnosticsPanel {}
 }

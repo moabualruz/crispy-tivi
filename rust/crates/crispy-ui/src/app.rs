@@ -281,8 +281,41 @@ pub(crate) fn init(ui: &super::AppWindow) -> anyhow::Result<CrispyService> {
         tracing::info!("Onboarding skipped");
     });
 
+    // Wire diagnostics
+    let diag = ui.global::<super::DiagnosticsState>();
+    diag.set_app_version(env!("CARGO_PKG_VERSION").into());
+    diag.set_slint_version("1.15".into());
+    diag.set_db_path(db_path.clone().into());
+    diag.set_log_level(
+        std::env::var("CRISPY_LOG")
+            .unwrap_or_else(|_| "info".to_string())
+            .into(),
+    );
+
+    let ui_weak = ui.as_weak();
+    diag.on_toggle(move || {
+        if let Some(ui) = ui_weak.upgrade() {
+            let d = ui.global::<super::DiagnosticsState>();
+            d.set_visible(!d.get_visible());
+        }
+    });
+
+    diag.on_export_logs(|| {
+        tracing::info!("Log export requested (not yet implemented)");
+    });
+
     // Load initial data
     super::data::reload_all(ui, &service);
+
+    // Update diagnostics counts
+    let sources = service.get_sources().unwrap_or_default();
+    let all_stats = service.get_source_stats().unwrap_or_default();
+    let total_channels: i64 = all_stats.iter().map(|s| s.channel_count).sum();
+    let total_vod: i64 = all_stats.iter().map(|s| s.vod_count).sum();
+    let diag = ui.global::<super::DiagnosticsState>();
+    diag.set_source_count(sources.len() as i32);
+    diag.set_channel_count(total_channels as i32);
+    diag.set_vod_count(total_vod as i32);
 
     // Show onboarding if first run
     let is_first_run = service

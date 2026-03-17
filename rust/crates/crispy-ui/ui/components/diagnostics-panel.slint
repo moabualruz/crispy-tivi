@@ -1,0 +1,164 @@
+import { Theme } from "../globals/theme.slint";
+
+export global DiagnosticsState {
+  in-out property <bool> visible: false;
+  in-out property <string> app-version: "";
+  in-out property <string> rust-version: "";
+  in-out property <string> slint-version: "";
+  in-out property <string> db-path: "";
+  in-out property <int> source-count: 0;
+  in-out property <int> channel-count: 0;
+  in-out property <int> vod-count: 0;
+  in-out property <string> log-level: "";
+
+  callback toggle();
+  callback export-logs();
+}
+
+export component DiagnosticsPanel inherits Rectangle {
+  visible: DiagnosticsState.visible;
+  width: 100%;
+  height: 100%;
+
+  // Backdrop
+  Rectangle {
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    TouchArea { clicked => { DiagnosticsState.visible = false; } }
+  }
+
+  // Panel
+  Rectangle {
+    x: parent.width - 360px;
+    width: 360px;
+    height: 100%;
+    background: Theme.is-dark ? #1C1C20 : #FFFFFF;
+    border-width: 1px;
+    border-color: Theme.border-subtle;
+
+    TouchArea {} // Block click-through
+
+    VerticalLayout {
+      padding: Theme.spacing-lg;
+      spacing: Theme.spacing-md;
+
+      HorizontalLayout {
+        Text {
+          text: "Diagnostics";
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: Theme.font-size-h2;
+          horizontal-stretch: 1;
+        }
+        Rectangle {
+          width: 32px; height: 32px;
+          border-radius: 16px;
+          Text {
+            text: "✕";
+            color: Theme.text-secondary;
+            font-size: 18px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+          TouchArea { clicked => { DiagnosticsState.visible = false; } }
+        }
+      }
+
+      // App info
+      VerticalLayout {
+        spacing: Theme.spacing-xs;
+        Text { text: "Application"; color: Theme.accent; font-size: Theme.font-size-caption; font-weight: 600; }
+
+        HorizontalLayout {
+          Text { text: "Version"; color: Theme.text-secondary; font-size: Theme.font-size-caption; horizontal-stretch: 1; }
+          Text { text: DiagnosticsState.app-version; color: Theme.text-primary; font-size: Theme.font-size-caption; }
+        }
+        HorizontalLayout {
+          Text { text: "Slint"; color: Theme.text-secondary; font-size: Theme.font-size-caption; horizontal-stretch: 1; }
+          Text { text: DiagnosticsState.slint-version; color: Theme.text-primary; font-size: Theme.font-size-caption; }
+        }
+        HorizontalLayout {
+          Text { text: "Log Level"; color: Theme.text-secondary; font-size: Theme.font-size-caption; horizontal-stretch: 1; }
+          Text { text: DiagnosticsState.log-level; color: Theme.text-primary; font-size: Theme.font-size-caption; }
+        }
+      }
+
+      Rectangle { height: 1px; background: Theme.border-subtle; }
+
+      // Data stats
+      VerticalLayout {
+        spacing: Theme.spacing-xs;
+        Text { text: "Data"; color: Theme.accent; font-size: Theme.font-size-caption; font-weight: 600; }
+
+        HorizontalLayout {
+          Text { text: "Database"; color: Theme.text-secondary; font-size: Theme.font-size-caption; horizontal-stretch: 1; }
+          Text { text: DiagnosticsState.db-path; color: Theme.text-primary; font-size: Theme.font-size-small; overflow: elide; max-width: 200px; }
+        }
+        HorizontalLayout {
+          Text { text: "Sources"; color: Theme.text-secondary; font-size: Theme.font-size-caption; horizontal-stretch: 1; }
+          Text { text: DiagnosticsState.source-count; color: Theme.text-primary; font-size: Theme.font-size-caption; }
+        }
+        HorizontalLayout {
+          Text { text: "Channels"; color: Theme.text-secondary; font-size: Theme.font-size-caption; horizontal-stretch: 1; }
+          Text { text: DiagnosticsState.channel-count; color: Theme.text-primary; font-size: Theme.font-size-caption; }
+        }
+        HorizontalLayout {
+          Text { text: "VOD Items"; color: Theme.text-secondary; font-size: Theme.font-size-caption; horizontal-stretch: 1; }
+          Text { text: DiagnosticsState.vod-count; color: Theme.text-primary; font-size: Theme.font-size-caption; }
+        }
+      }
+
+      Rectangle { height: 1px; background: Theme.border-subtle; }
+
+      // Keyboard shortcuts
+      VerticalLayout {
+        spacing: Theme.spacing-xs;
+        Text { text: "Keyboard Shortcuts"; color: Theme.accent; font-size: Theme.font-size-caption; font-weight: 600; }
+
+        HorizontalLayout {
+          Text { text: "F12"; color: Theme.text-secondary; font-size: Theme.font-size-small; width: 60px; }
+          Text { text: "Toggle diagnostics"; color: Theme.text-primary; font-size: Theme.font-size-small; }
+        }
+        HorizontalLayout {
+          Text { text: "Escape"; color: Theme.text-secondary; font-size: Theme.font-size-small; width: 60px; }
+          Text { text: "Stop playback / Go back"; color: Theme.text-primary; font-size: Theme.font-size-small; }
+        }
+        HorizontalLayout {
+          Text { text: "Space"; color: Theme.text-secondary; font-size: Theme.font-size-small; width: 60px; }
+          Text { text: "Play / Pause"; color: Theme.text-primary; font-size: Theme.font-size-small; }
+        }
+        HorizontalLayout {
+          Text { text: "M"; color: Theme.text-secondary; font-size: Theme.font-size-small; width: 60px; }
+          Text { text: "Mute / Unmute"; color: Theme.text-primary; font-size: Theme.font-size-small; }
+        }
+      }
+
+      // Spacer
+      Rectangle { vertical-stretch: 1; }
+
+      // Export logs button
+      FocusScope {
+        height: 40px;
+        key-pressed(event) => {
+          if event.text == Key.Return { DiagnosticsState.export-logs(); return accept; }
+          return reject;
+        }
+        Rectangle {
+          width: 100%; height: 100%;
+          border-radius: Theme.radius-sm;
+          background: Theme.surface;
+          border-width: parent.has-focus ? Theme.focus-ring-width : 1px;
+          border-color: parent.has-focus ? Theme.focus-ring : Theme.border-subtle;
+          Text {
+            text: "Export Logs";
+            color: Theme.text-primary;
+            font-size: Theme.font-size-caption;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+          TouchArea { clicked => { DiagnosticsState.export-logs(); } }
+        }
+      }
+    }
+  }
+}
