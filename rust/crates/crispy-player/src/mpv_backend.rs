@@ -15,6 +15,16 @@ pub struct MpvBackend {
 
 impl MpvBackend {
     /// Create a new mpv backend instance with hardware decoding enabled.
+    /// Return the raw mpv handle so it can be shared with the render context.
+    ///
+    /// # Safety
+    /// The returned pointer is valid for the lifetime of this `MpvBackend`.
+    /// The caller must not call `mpv_destroy` or `mpv_terminate_destroy` on it —
+    /// the `libmpv::Mpv` destructor owns the handle.
+    pub fn raw_handle(&self) -> *mut libmpv_sys::mpv_handle {
+        self.mpv.ctx.as_ptr()
+    }
+
     pub fn new() -> Result<Self, PlayerError> {
         let mpv = libmpv::Mpv::new().map_err(|e| PlayerError::Playback(e.to_string()))?;
 

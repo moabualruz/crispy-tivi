@@ -30,49 +30,21 @@ fn main() -> anyhow::Result<()> {
 
     let ui = AppWindow::new()?;
 
-    let (_service, backend_available) = app::init(&ui, rt.handle())?;
+    // app::init creates MpvBackend and wires all Slint callbacks.
+    // It returns the raw mpv handle so the render context (VideoUnderlay) shares
+    // the exact same mpv instance — playback commands and GL rendering go to one handle.
+    let (_service, mpv_render_handle) = app::init(&ui, rt.handle())?;
 
     // Set up Slint rendering notifier for the libmpv video underlay.
     //
     // The VideoUnderlay bridges libmpv's OpenGL renderer into Slint's GL context
     // via an FBO (Layer 0). Slint's UI canvas renders transparently on top (Layer 1).
     //
-    // NOTE: VideoUnderlay requires a raw *mut mpv_handle shared with the playback
-    // backend. Until MpvBackend exposes its handle, we create a dedicated mpv context
-    // here solely for the render context. Both handle instances share the same media
-    // pipeline once unified in a future refactor (see Task 8).
-    //
     // The underlay is held in Rc<RefCell<Option<...>>> so it can be initialised on
     // the first RenderingSetup call and released on RenderingTeardown — all on the
     // GL thread, which is the requirement for all glow/libmpv-sys GL calls.
     use crispy_player::video_underlay::VideoUnderlay;
     use std::{cell::RefCell, rc::Rc};
-
-    // Obtain a raw mpv handle for the render context.
-    // Safety: mpv_create returns a valid handle or null on OOM.
-    let mpv_render_handle: Option<*mut libmpv_sys::mpv_handle> = if backend_available {
-        let handle = unsafe { libmpv_sys::mpv_create() };
-        if handle.is_null() {
-            tracing::warn!("mpv_create returned null — video underlay disabled");
-            None
-        } else {
-            // Initialise the handle so it's ready for a render context.
-            let rc = unsafe { libmpv_sys::mpv_initialize(handle) };
-            if rc < 0 {
-                tracing::warn!(
-                    error_code = rc,
-                    "mpv_initialize failed — video underlay disabled"
-                );
-                unsafe { libmpv_sys::mpv_destroy(handle) };
-                None
-            } else {
-                tracing::info!("Render mpv handle initialised");
-                Some(handle)
-            }
-        }
-    } else {
-        None
-    };
 
     let underlay_cell: Rc<RefCell<Option<VideoUnderlay>>> = Rc::new(RefCell::new(None));
 
@@ -147,10 +119,10 @@ fn main() -> anyhow::Result<()> {
 
                     slint::RenderingState::RenderingTeardown => {
                         // Drop underlay before the GL context is destroyed.
+                        // The mpv handle is owned by MpvBackend — do NOT call
+                        // mpv_destroy here; libmpv::Mpv's Drop impl handles it.
                         drop(underlay_cell_clone.borrow_mut().take());
                         tracing::info!("VideoUnderlay released");
-                        // Clean up the dedicated render handle.
-                        unsafe { libmpv_sys::mpv_destroy(raw_handle) };
                     }
 
                     _ => {}

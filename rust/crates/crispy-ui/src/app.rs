@@ -23,13 +23,19 @@ pub(crate) fn resolve_db_path() -> String {
 
 /// Initialize the app: create CrispyService, load settings, wire callbacks.
 ///
-/// Returns `(service, backend_available)` — `backend_available` is `true` when
-/// `MpvBackend` initialised successfully.  The backend itself is owned by the
-/// Slint callbacks (via `Rc<RefCell<Option<MpvBackend>>>`).
+/// Returns `(service, mpv_raw_handle)` — the raw mpv handle is `Some` when
+/// `MpvBackend` initialised successfully and must be used for the render context
+/// in `main.rs`.  The backend itself is owned by the Slint callbacks
+/// (via `Rc<RefCell<Option<MpvBackend>>>`).
+///
+/// # Safety of the returned pointer
+/// The pointer is valid for the lifetime of the Slint callbacks that own the
+/// `MpvBackend`.  The caller must not call `mpv_destroy` on it — the
+/// `libmpv::Mpv` destructor handles teardown.
 pub(crate) fn init(
     ui: &super::AppWindow,
     rt: &tokio::runtime::Handle,
-) -> anyhow::Result<(CrispyService, bool)> {
+) -> anyhow::Result<(CrispyService, Option<*mut libmpv_sys::mpv_handle>)> {
     let db_path = resolve_db_path();
     tracing::info!(db_path = %db_path, "Opening database");
 
@@ -412,8 +418,11 @@ pub(crate) fn init(
         ui.global::<super::OnboardingState>().set_is_active(true);
     }
 
-    // Report whether the backend is available so main.rs can set up the render handle.
-    let backend_available = backend_cell.borrow().is_some();
+    // Extract the raw mpv handle before the backend moves into closures.
+    // The pointer remains valid because backend_cell keeps the MpvBackend alive
+    // for the entire Slint callback lifetime.
+    let mpv_raw_handle: Option<*mut libmpv_sys::mpv_handle> =
+        backend_cell.borrow().as_ref().map(|b| b.raw_handle());
 
-    Ok((service, backend_available))
+    Ok((service, mpv_raw_handle))
 }
