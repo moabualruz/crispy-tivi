@@ -1,7 +1,7 @@
 import { Theme } from "../globals/theme.slint";
+import { ActionButton } from "./action-button.slint";
 
 export component EmptyState inherits Rectangle {
-  in property <string> icon: "📭";
   in property <string> title: "Nothing here yet";
   in property <string> subtitle: "";
   in property <string> cta-text: "";
@@ -10,20 +10,35 @@ export component EmptyState inherits Rectangle {
 
   VerticalLayout {
     alignment: center;
-    spacing: Theme.spacing-md;
+    spacing: Theme.spacing-lg;
 
-    Text {
-      text: icon;
-      font-size: 48px;
-      horizontal-alignment: center;
+    // Icon circle
+    HorizontalLayout {
+      alignment: center;
+
+      Rectangle {
+        width: 80px;
+        height: 80px;
+        border-radius: 40px;
+        background: Theme.btn-secondary-bg;
+        border-width: 1px;
+        border-color: Theme.card-border;
+
+        @children
+      }
     }
+
+    // Title
     Text {
       text: title;
       color: Theme.text-primary;
       font-family: Theme.font-display;
       font-size: Theme.font-size-h2;
+      font-weight: 700;
       horizontal-alignment: center;
     }
+
+    // Subtitle
     if subtitle != "": Text {
       text: subtitle;
       color: Theme.text-secondary;
@@ -33,38 +48,16 @@ export component EmptyState inherits Rectangle {
       wrap: word-wrap;
       max-width: 400px;
     }
-    if cta-text != "": FocusScope {
-      width: 200px;
-      height: 44px;
 
-      key-pressed(event) => {
-        if event.text == Key.Return || event.text == " " {
-          root.cta-clicked();
-          return accept;
-        }
-        return reject;
-      }
+    // CTA button (primary: white bg, black text)
+    if cta-text != "": HorizontalLayout {
+      alignment: center;
 
-      Rectangle {
-        width: 100%;
-        height: 100%;
-        border-radius: 8px;
-        background: #FFFFFF;
-        border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
-        border-color: Theme.focus-ring;
-
-        Text {
-          text: cta-text;
-          color: #000000;
-          font-family: Theme.font-display;
-          font-size: Theme.font-size-body;
-          font-weight: 700;
-          horizontal-alignment: center;
-          vertical-alignment: center;
-        }
-        TouchArea {
-          clicked => { root.cta-clicked(); }
-        }
+      ActionButton {
+        label: cta-text;
+        is-primary: true;
+        width: 200px;
+        clicked => { root.cta-clicked(); }
       }
     }
   }

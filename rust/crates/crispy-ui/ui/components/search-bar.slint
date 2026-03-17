@@ -1,0 +1,36 @@
+import { Theme } from "../globals/theme.slint";
+import { IconSearch } from "icons.slint";
+import { LineEdit } from "std-widgets.slint";
+
+export component SearchBar inherits Rectangle {
+  in-out property <string> text <=> input.text;
+  in property <string> placeholder: "Search...";
+
+  callback accepted(string);
+  callback edited(string);
+
+  width: 100%;
+  height: 52px;
+  border-radius: 26px; // perfectly round ends
+  background: Theme.card-surface;
+  border-width: 2px;
+  border-color: Theme.card-border;
+
+  HorizontalLayout {
+    padding-left: Theme.spacing-lg;
+    padding-right: Theme.spacing-lg;
+    spacing: Theme.spacing-sm;
+
+    // Search icon
+    IconSearch {
+      size: 24px;
+      fill: Theme.text-primary;
+    }
+
+    input := LineEdit {
+      placeholder-text: root.placeholder;
+      accepted => { root.accepted(self.text); }
+      edited => { root.edited(self.text); }
+    }
+  }
+}

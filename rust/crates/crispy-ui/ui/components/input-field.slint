@@ -1,0 +1,30 @@
+import { Theme } from "../globals/theme.slint";
+import { LineEdit } from "std-widgets.slint";
+
+export component InputField inherits VerticalLayout {
+  in property <string> label;
+  in property <string> placeholder-text;
+  in property <InputType> input-type: InputType.text;
+  in-out property <string> text <=> input.text;
+
+  callback edited(string);
+  callback accepted(string);
+
+  spacing: 6px;
+
+  Text {
+    text: root.label;
+    color: Theme.text-secondary;
+    font-size: 13px;
+    font-family: Theme.font-body;
+  }
+
+  input := LineEdit {
+    placeholder-text: root.placeholder-text;
+    input-type: root.input-type;
+    height: 48px;
+
+    edited => { root.edited(self.text); }
+    accepted => { root.accepted(self.text); }
+  }
+}

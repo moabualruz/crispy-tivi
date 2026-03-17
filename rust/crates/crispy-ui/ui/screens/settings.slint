@@ -1,6 +1,8 @@
 import { Theme } from "../globals/theme.slint";
 import { AppState, SourceData } from "../globals/app-state.slint";
 import { ScrollView } from "std-widgets.slint";
+import { ActionButton } from "../components/action-button.slint";
+import { FilterChip } from "../components/filter-chip.slint";
 
 component SourceRow inherits FocusScope {
   in property <SourceData> source;
@@ -82,40 +84,23 @@ component SourceRow inherits FocusScope {
         }
       }
 
-      // Sync button
-      Rectangle {
-        width: 32px;
-        height: 32px;
-        border-radius: 16px;
-        background: Theme.surface;
+      // Actions
+      HorizontalLayout {
+        spacing: Theme.spacing-sm;
+        alignment: end;
         vertical-stretch: 0;
 
-        Text {
-          text: "🔄";
-          font-size: 16px;
-          horizontal-alignment: center;
-          vertical-alignment: center;
-        }
-        TouchArea {
+        ActionButton {
+          label: "Sync";
+          width: 80px;
+          height: 32px;
           clicked => { AppState.sync-source(source.id); }
         }
-      }
 
-      // Delete button
-      Rectangle {
-        width: 32px;
-        height: 32px;
-        border-radius: 16px;
-        background: Theme.surface;
-        vertical-stretch: 0;
-
-        Text {
-          text: "🗑";
-          font-size: 16px;
-          horizontal-alignment: center;
-          vertical-alignment: center;
-        }
-        TouchArea {
+        ActionButton {
+          label: "Delete";
+          width: 80px;
+          height: 32px;
           clicked => { AppState.delete-source(source.id); }
         }
       }
@@ -127,12 +112,16 @@ export component SettingsScreen inherits Rectangle {
   background: transparent;
 
   ScrollView {
-    VerticalLayout {
-      padding-top: Theme.screen-padding-top;
-      padding-left: Theme.spacing-xl;
-      padding-right: Theme.spacing-xl;
-      padding-bottom: Theme.spacing-xl;
-      spacing: Theme.spacing-lg;
+    HorizontalLayout {
+      alignment: center;
+
+      VerticalLayout {
+        max-width: 800px;
+        padding-top: Theme.screen-padding-top;
+        padding-left: Theme.spacing-xl;
+        padding-right: Theme.spacing-xl;
+        padding-bottom: Theme.spacing-xl;
+        spacing: Theme.spacing-lg;
 
       // Header
       Text {
@@ -165,34 +154,12 @@ export component SettingsScreen inherits Rectangle {
             }
 
             // Add source button
-            FocusScope {
-              width: 100px;
+            ActionButton {
+              label: "+ Add Source";
+              width: 120px;
               height: 32px;
-              key-pressed(event) => {
-                if event.text == Key.Return {
-                  AppState.show-source-dialog = true;
-                  return accept;
-                }
-                return reject;
-              }
-              Rectangle {
-                width: 100%; height: 100%;
-                border-radius: Theme.radius-sm;
-                background: #FFFFFF;
-                border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
-                border-color: Theme.focus-ring;
-                Text {
-                  text: "+ Add";
-                  color: #000000;
-                  font-size: Theme.font-size-caption;
-                  font-weight: 600;
-                  horizontal-alignment: center;
-                  vertical-alignment: center;
-                }
-                TouchArea {
-                  clicked => { AppState.show-source-dialog = true; }
-                }
-              }
+              is-primary: true;
+              clicked => { AppState.show-source-dialog = true; }
             }
           }
 
@@ -242,41 +209,16 @@ export component SettingsScreen inherits Rectangle {
             }
             HorizontalLayout {
               spacing: Theme.spacing-xs;
-              for item[idx] in [
+              for item in [
                 { label: "System", mode: 0 },
                 { label: "Dark", mode: 1 },
                 { label: "Light", mode: 2 },
-              ]: FocusScope {
-                width: 72px;
-                height: 32px;
-                key-pressed(event) => {
-                  if event.text == Key.Return {
-                    Theme.theme-mode = item.mode;
-                    AppState.set-theme(item.mode);
-                    return accept;
-                  }
-                  return reject;
-                }
-                Rectangle {
-                  width: 100%; height: 100%;
-                  border-radius: Theme.radius-pill;
-                  background: Theme.theme-mode == item.mode ? Theme.accent : rgba(255, 255, 255, 0.15);
-                  border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
-                  border-color: Theme.focus-ring;
-                  Text {
-                    text: item.label;
-                    color: Theme.theme-mode == item.mode ? #FFFFFF : rgba(255, 255, 255, 0.60);
-                    font-size: Theme.font-size-small;
-                    font-weight: 500;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                  }
-                  TouchArea {
-                    clicked => {
-                      Theme.theme-mode = item.mode;
-                      AppState.set-theme(item.mode);
-                    }
-                  }
+              ]: FilterChip {
+                label: item.label;
+                active: Theme.theme-mode == item.mode;
+                activated => {
+                  Theme.theme-mode = item.mode;
+                  AppState.set-theme(item.mode);
                 }
               }
             }
@@ -293,17 +235,22 @@ export component SettingsScreen inherits Rectangle {
               vertical-alignment: center;
               horizontal-stretch: 1;
             }
-            Text {
-              text: AppState.active-language == "en" ? "English"
-                : AppState.active-language == "ar" ? "العربية"
-                : AppState.active-language == "de" ? "Deutsch"
-                : AppState.active-language == "fr" ? "Français"
-                : AppState.active-language == "es" ? "Español"
-                : "English";
-              color: Theme.text-secondary;
-              font-family: Theme.font-body;
-              font-size: Theme.font-size-body;
-              vertical-alignment: center;
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              for lang in [
+                { code: "en", label: "English" },
+                { code: "ar", label: "العربية" },
+                { code: "de", label: "Deutsch" },
+                { code: "fr", label: "Français" },
+                { code: "es", label: "Español" },
+              ]: FilterChip {
+                label: lang.label;
+                active: AppState.active-language == lang.code;
+                activated => {
+                  AppState.set-language(lang.code);
+                  AppState.active-language = lang.code;
+                }
+              }
             }
           }
         }
@@ -339,4 +286,5 @@ export component SettingsScreen inherits Rectangle {
       }
     }
   }
+}
 }

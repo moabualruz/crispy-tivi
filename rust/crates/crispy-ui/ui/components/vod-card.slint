@@ -26,6 +26,13 @@ export component VodCard inherits FocusScope {
     border-color: root.has-focus ? Theme.focus-ring : Theme.card-border;
     clip: true;
 
+    // Focus glow effect
+    drop-shadow-blur: root.has-focus ? 12px : 0px;
+    drop-shadow-color: root.has-focus ? Theme.focus-glow : transparent;
+
+    animate border-color { duration: 150ms; }
+    animate drop-shadow-blur { duration: 200ms; }
+
     VerticalLayout {
       // Poster area
       Rectangle {
@@ -44,7 +51,28 @@ export component VodCard inherits FocusScope {
           yr-text := Text {
             text: item.year;
             color: Theme.text-secondary;
+            font-family: Theme.font-body;
             font-size: Theme.font-size-small;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+        }
+
+        // Rating badge
+        if item.rating != "": Rectangle {
+          x: parent.width - self.width - Theme.spacing-xs;
+          y: Theme.spacing-xs;
+          width: rating-text.preferred-width + 12px;
+          height: 20px;
+          border-radius: 10px;
+          background: Theme.accent;
+
+          rating-text := Text {
+            text: item.rating;
+            color: #FFFFFF;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-small;
+            font-weight: 600;
             horizontal-alignment: center;
             vertical-alignment: center;
           }
@@ -68,6 +96,7 @@ export component VodCard inherits FocusScope {
         if item.genre != "": Text {
           text: item.genre;
           color: Theme.text-secondary;
+          font-family: Theme.font-body;
           font-size: Theme.font-size-small;
           overflow: elide;
           wrap: no-wrap;

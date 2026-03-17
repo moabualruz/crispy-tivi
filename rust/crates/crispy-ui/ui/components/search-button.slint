@@ -1,0 +1,54 @@
+import { Theme } from "../globals/theme.slint";
+import { IconSearch } from "icons.slint";
+
+export component SearchButton inherits FocusScope {
+  in property <string> text: "Search";
+  callback clicked();
+  
+  width: 160px;
+  height: 44px;
+
+  key-pressed(event) => {
+    if event.text == Key.Return || event.text == " " {
+      root.clicked();
+      return accept;
+    }
+    return reject;
+  }
+
+  Rectangle {
+    width: 100%;
+    height: 100%;
+    border-radius: 22px; // pill shape
+    background: rgba(255, 255, 255, 0.1);
+    border-width: 2px;
+    border-color: root.has-focus ? Theme.focus-ring : rgba(255, 255, 255, 0.1);
+
+    animate border-color { duration: 150ms; }
+
+    HorizontalLayout {
+      padding-left: 16px;
+      padding-right: 16px;
+      spacing: 8px;
+      alignment: center;
+
+      IconSearch {
+        size: 20px;
+        fill: Theme.text-secondary;
+      }
+
+      Text {
+        text: root.text;
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+        font-weight: 500;
+        vertical-alignment: center;
+      }
+    }
+
+    TouchArea {
+      clicked => { root.clicked(); }
+    }
+  }
+}

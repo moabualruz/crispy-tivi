@@ -1,0 +1,40 @@
+import { Theme } from "../globals/theme.slint";
+
+export component FilterChip inherits FocusScope {
+  in property <string> label;
+  in property <bool> active: false;
+  callback activated();
+
+  width: label-text.preferred-width + 32px;
+  height: 32px;
+
+  key-pressed(event) => {
+    if event.text == Key.Return {
+      root.activated();
+      return accept;
+    }
+    return reject;
+  }
+
+  Rectangle {
+    width: 100%; height: 100%;
+    border-radius: Theme.radius-pill;
+    background: root.active ? Theme.accent-gradient : Theme.btn-secondary-bg;
+    border-width: root.has-focus ? Theme.focus-ring-width : 0px;
+    border-color: Theme.focus-ring;
+
+    animate background { duration: 150ms; }
+
+    label-text := Text {
+      text: root.label;
+      color: #FFFFFF;
+      font-size: Theme.font-size-small;
+      font-weight: root.active ? 700 : 500;
+      horizontal-alignment: center;
+      vertical-alignment: center;
+    }
+    TouchArea {
+      clicked => { root.activated(); }
+    }
+  }
+}

@@ -1,11 +1,13 @@
 import { Theme } from "../globals/theme.slint";
 import { AppState } from "../globals/app-state.slint";
+import { IconPlay, IconPause, IconSettings, IconVolumeUp, IconVolumeMute } from "../components/icons.slint";
 
 // Player state exposed from Rust
 export global PlayerState {
   in-out property <bool> is-playing: false;
   in-out property <bool> is-paused: false;
   in-out property <bool> is-buffering: false;
+  in-out property <bool> is-fullscreen: false;
   in-out property <string> current-title: "";
   in-out property <string> current-group: "";
   in-out property <string> current-channel-id: "";
@@ -25,6 +27,37 @@ export global PlayerState {
   callback show-controls();
 }
 
+// OSD circular button — 50px per design spec
+component OsdButton inherits FocusScope {
+  in property <length> btn-size: 50px;
+  callback activated();
+
+  width: btn-size;
+  height: btn-size;
+
+  key-pressed(event) => {
+    if event.text == Key.Return || event.text == " " {
+      root.activated();
+      return accept;
+    }
+    return reject;
+  }
+
+  Rectangle {
+    width: 100%; height: 100%;
+    border-radius: btn-size / 2;
+    background: rgba(255, 255, 255, 0.15);
+    border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+    border-color: Theme.focus-ring;
+
+    animate background { duration: 150ms; }
+
+    @children
+
+    TouchArea { clicked => { root.activated(); } }
+  }
+}
+
 component VolumeSlider inherits Rectangle {
   width: 120px;
   height: 4px;
@@ -37,6 +70,8 @@ component VolumeSlider inherits Rectangle {
     height: 100%;
     border-radius: 2px;
     background: #FFFFFF;
+
+    animate width { duration: 100ms; }
   }
 
   TouchArea {
@@ -47,30 +82,35 @@ component VolumeSlider inherits Rectangle {
 }
 
 component SeekBar inherits Rectangle {
-  height: 4px;
+  // Razor-thin line that expands on focus (per design spec)
+  height: self.has-hover ? 8px : 3px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.2);
 
-  // Progress
+  animate height { duration: 150ms; easing: ease-out; }
+
+  property <bool> has-hover: seek-area.has-hover;
+
+  // Progress fill
   Rectangle {
     x: 0;
     width: PlayerState.duration > 0 ? parent.width * (PlayerState.position / PlayerState.duration) : 0;
     height: 100%;
     border-radius: 2px;
-    background: Theme.accent;
+    background: Theme.accent-gradient;
   }
 
-  // Seek knob
-  if PlayerState.duration > 0: Rectangle {
-    x: parent.width * (PlayerState.position / PlayerState.duration) - 8px;
-    y: -6px;
-    width: 16px;
-    height: 16px;
-    border-radius: 8px;
+  // Seek knob (visible on hover)
+  if PlayerState.duration > 0 && root.has-hover: Rectangle {
+    x: parent.width * (PlayerState.position / PlayerState.duration) - 7px;
+    y: (parent.height - 14px) / 2;
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
     background: #FFFFFF;
   }
 
-  TouchArea {
+  seek-area := TouchArea {
     clicked => {
       if PlayerState.duration > 0 {
         PlayerState.seek(self.mouse-x / parent.width * PlayerState.duration);
@@ -82,118 +122,22 @@ component SeekBar inherits Rectangle {
 component OsdControls inherits Rectangle {
   // Gradient overlay at bottom
   Rectangle {
-    y: parent.height - 250px;
-    height: 250px;
+    y: parent.height - 280px;
+    height: 280px;
     width: parent.width;
     background: @linear-gradient(180deg, rgba(10,10,12,0) 0%, rgba(10,10,12,0.85) 100%);
   }
 
   VerticalLayout {
-    y: parent.height - 160px;
-    height: 140px;
-    padding-left: 40px;
-    padding-right: 40px;
-    padding-bottom: 24px;
+    y: parent.height - 180px;
+    height: 160px;
+    padding-left: Theme.content-padding-h;
+    padding-right: Theme.content-padding-h;
+    padding-bottom: Theme.spacing-lg;
     alignment: end;
     spacing: Theme.spacing-md;
 
-    // Transport controls
-    HorizontalLayout {
-      alignment: center;
-      spacing: Theme.spacing-xl;
-
-      // Play/Pause
-      FocusScope {
-        width: 56px;
-        height: 56px;
-        key-pressed(event) => {
-          if event.text == Key.Return || event.text == " " {
-            PlayerState.play-pause();
-            return accept;
-          }
-          return reject;
-        }
-        Rectangle {
-          width: 100%; height: 100%;
-          border-radius: 28px;
-          background: rgba(255, 255, 255, 0.15);
-          border-width: parent.has-focus ? 2px : 0px;
-          border-color: #FFFFFF;
-
-          Text {
-            text: PlayerState.is-paused ? "▶" : "⏸";
-            color: #FFFFFF;
-            font-size: 24px;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-          }
-          TouchArea { clicked => { PlayerState.play-pause(); } }
-        }
-      }
-
-      // Stop
-      FocusScope {
-        width: 48px;
-        height: 48px;
-        key-pressed(event) => {
-          if event.text == Key.Return || event.text == Key.Escape {
-            PlayerState.stop();
-            return accept;
-          }
-          return reject;
-        }
-        Rectangle {
-          width: 100%; height: 100%;
-          border-radius: 24px;
-          background: rgba(255, 255, 255, 0.1);
-          border-width: parent.has-focus ? 2px : 0px;
-          border-color: #FFFFFF;
-
-          Text {
-            text: "⏹";
-            color: #FFFFFF;
-            font-size: 20px;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-          }
-          TouchArea { clicked => { PlayerState.stop(); } }
-        }
-      }
-
-      // Volume
-      HorizontalLayout {
-        spacing: Theme.spacing-sm;
-        FocusScope {
-          width: 36px;
-          height: 36px;
-          key-pressed(event) => {
-            if event.text == Key.Return {
-              PlayerState.toggle-mute();
-              return accept;
-            }
-            return reject;
-          }
-          Rectangle {
-            width: 100%; height: 100%;
-            border-radius: 18px;
-            Text {
-              text: PlayerState.is-muted ? "🔇" : "🔊";
-              color: #FFFFFF;
-              font-size: 18px;
-              horizontal-alignment: center;
-              vertical-alignment: center;
-            }
-            TouchArea { clicked => { PlayerState.toggle-mute(); } }
-          }
-        }
-        VolumeSlider { }
-      }
-    }
-
-    // Seek bar (hidden for live, shown for VOD/catchup)
-    if !PlayerState.is-live: SeekBar {}
-
-    // Metadata
+    // Metadata row
     HorizontalLayout {
       alignment: start;
       spacing: Theme.spacing-sm;
@@ -202,10 +146,11 @@ component OsdControls inherits Rectangle {
         width: 48px;
         height: 22px;
         border-radius: 4px;
-        background: Theme.accent;
+        background: Theme.accent-gradient;
         Text {
           text: "LIVE";
           color: #FFFFFF;
+          font-family: Theme.font-display;
           font-size: 11px;
           font-weight: 700;
           horizontal-alignment: center;
@@ -225,8 +170,52 @@ component OsdControls inherits Rectangle {
         if PlayerState.current-group != "": Text {
           text: PlayerState.current-group;
           color: rgba(255, 255, 255, 0.6);
+          font-family: Theme.font-body;
           font-size: Theme.font-size-caption;
         }
+      }
+    }
+
+    // Seek bar (hidden for live, shown for VOD/catchup)
+    if !PlayerState.is-live: SeekBar {}
+
+    // Transport controls — circular 50px glass buttons
+    HorizontalLayout {
+      alignment: center;
+      spacing: Theme.spacing-xl;
+
+      // Play/Pause
+      OsdButton {
+        btn-size: 56px;
+        activated => { PlayerState.play-pause(); }
+        if PlayerState.is-paused: IconPlay { size: 28px; fill: #FFFFFF; }
+        if !PlayerState.is-paused: IconPause { size: 28px; fill: #FFFFFF; }
+      }
+
+      // Settings placeholder instead of Stop for modern cinematic OSD
+      OsdButton {
+        activated => { /* Open settings */ }
+        IconSettings { size: 24px; fill: #FFFFFF; }
+      }
+
+      // Fullscreen toggle (placeholder text for now)
+      OsdButton {
+        activated => { PlayerState.is-fullscreen = !PlayerState.is-fullscreen; }
+        Text { text: PlayerState.is-fullscreen ? "][ " : "[ ]"; color: #FFFFFF; font-size: 20px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+      }
+
+      // Volume
+      HorizontalLayout {
+        spacing: Theme.spacing-sm;
+        alignment: center;
+
+        OsdButton {
+          btn-size: 40px;
+          activated => { PlayerState.toggle-mute(); }
+          if PlayerState.is-muted: IconVolumeMute { size: 20px; fill: #FFFFFF; }
+          if !PlayerState.is-muted: IconVolumeUp { size: 20px; fill: #FFFFFF; }
+        }
+        VolumeSlider {}
       }
     }
   }
@@ -237,37 +226,34 @@ export component PlayerScreen inherits Rectangle {
   width: 100%;
   height: 100%;
 
-  // Video surface placeholder (Layer 0 — libmpv underlay goes here in Phase 3.1)
+  // Video surface — libmpv OpenGL underlay renders here
   Rectangle {
     width: 100%;
     height: 100%;
     background: #000000;
 
-    if PlayerState.is-buffering: Text {
-      text: "Buffering...";
-      color: rgba(255, 255, 255, 0.6);
-      font-size: Theme.font-size-body;
-      horizontal-alignment: center;
-      vertical-alignment: center;
-    }
+    if PlayerState.is-buffering: VerticalLayout {
+      alignment: center;
+      spacing: Theme.spacing-sm;
 
-    if !PlayerState.is-playing && !PlayerState.is-buffering: Text {
-      text: "No stream playing";
-      color: rgba(255, 255, 255, 0.4);
-      font-size: Theme.font-size-body;
-      horizontal-alignment: center;
-      vertical-alignment: center;
+      Text {
+        text: "Buffering...";
+        color: rgba(255, 255, 255, 0.6);
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+        horizontal-alignment: center;
+      }
     }
   }
 
-  // OSD overlay (Layer 2)
-  if PlayerState.show-osd: OsdControls {
+  // OSD overlay (Layer 2) — auto-hides after 3s (managed by Rust timer)
+  if PlayerState.is-playing && PlayerState.show-osd: OsdControls {
     width: 100%;
     height: 100%;
   }
 
   // Touch/click to show/hide OSD
-  TouchArea {
+  if PlayerState.is-playing: TouchArea {
     clicked => { PlayerState.show-controls(); }
   }
 }

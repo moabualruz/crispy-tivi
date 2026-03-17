@@ -2,103 +2,24 @@ import { Theme } from "../globals/theme.slint";
 import { AppState, ChannelData, VodData } from "../globals/app-state.slint";
 import { EmptyState } from "../components/empty-state.slint";
 import { VodCard } from "../components/vod-card.slint";
+import { LoadingIndicator } from "../components/loading-indicator.slint";
+import { IconPlay, IconTv } from "../components/icons.slint";
+import { ChannelPill } from "../components/channel-pill.slint";
+import { SectionHeader } from "../components/section-header.slint";
 import { ScrollView } from "std-widgets.slint";
-
-component ChannelPill inherits FocusScope {
-  in property <ChannelData> channel;
-  callback clicked();
-
-  width: 200px;
-  height: 48px;
-
-  key-pressed(event) => {
-    if event.text == Key.Return { root.clicked(); return accept; }
-    return reject;
-  }
-
-  Rectangle {
-    width: 100%; height: 100%;
-    border-radius: 12px;
-    background: rgba(28, 28, 32, 0.8);
-    border-width: 1px;
-    border-color: root.has-focus ? #FFFFFF : rgba(255, 255, 255, 0.1);
-
-    HorizontalLayout {
-      padding-left: Theme.spacing-md;
-      padding-right: Theme.spacing-md;
-      spacing: Theme.spacing-sm;
-
-      Text {
-        text: channel.name;
-        color: Theme.text-primary;
-        font-family: Theme.font-body;
-        font-size: Theme.font-size-caption;
-        vertical-alignment: center;
-        overflow: elide;
-        horizontal-stretch: 1;
-      }
-      Text {
-        text: "▶";
-        color: Theme.accent;
-        font-size: 14px;
-        vertical-alignment: center;
-      }
-    }
-    TouchArea { clicked => { root.clicked(); } }
-  }
-}
-
-component SectionHeader inherits HorizontalLayout {
-  in property <string> title;
-  callback see-all();
-
-  spacing: Theme.spacing-md;
-
-  Text {
-    text: title;
-    color: Theme.text-primary;
-    font-family: Theme.font-display;
-    font-size: 32px;
-    font-weight: 700;
-    horizontal-stretch: 1;
-    vertical-alignment: center;
-  }
-
-  FocusScope {
-    width: 80px;
-    height: 32px;
-    key-pressed(event) => {
-      if event.text == Key.Return { root.see-all(); return accept; }
-      return reject;
-    }
-    Rectangle {
-      width: 100%; height: 100%;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.2);
-      border-width: parent.has-focus ? 1px : 0px;
-      border-color: #FFFFFF;
-      Text {
-        text: "See All";
-        color: #FFFFFF;
-        font-size: Theme.font-size-small;
-        font-weight: 600;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-      }
-      TouchArea { clicked => { root.see-all(); } }
-    }
-  }
-}
 
 export component HomeScreen inherits Rectangle {
   background: transparent;
 
   if AppState.sources.length == 0: EmptyState {
-    icon: "📺";
     title: "Welcome to CrispyTivi";
     subtitle: "Add a source to get started with live TV, movies, and series.";
     cta-text: "Add Source";
-    cta-clicked => { AppState.navigate(6); }
+    cta-clicked => {
+      AppState.active-screen = 6;
+      AppState.navigate(6);
+    }
+    IconTv { size: 32px; fill: Theme.text-secondary; }
   }
 
   if AppState.sources.length > 0: ScrollView {
@@ -109,14 +30,15 @@ export component HomeScreen inherits Rectangle {
       padding-bottom: Theme.spacing-xl;
       spacing: Theme.spacing-xl;
 
-      // Hero area — edge-to-edge, 70% viewport height
+      // Hero area — edge-to-edge
       Rectangle {
-        height: 70%;
         min-height: 400px;
-        background: @linear-gradient(135deg, rgba(255, 75, 43, 0.25) 0%, rgba(10, 10, 12, 0.95) 100%);
+        background: @linear-gradient(135deg, rgba(255, 75, 43, 0.2) 0%, rgba(10, 10, 12, 0.95) 60%, rgba(255, 65, 108, 0.1) 100%);
 
         VerticalLayout {
-          padding: Theme.spacing-xl;
+          padding-left: Theme.content-padding-h;
+          padding-right: Theme.content-padding-h;
+          padding-bottom: Theme.spacing-xl;
           alignment: end;
           spacing: Theme.spacing-sm;
 
@@ -124,7 +46,7 @@ export component HomeScreen inherits Rectangle {
             text: "CrispyTivi";
             color: Theme.text-primary;
             font-family: Theme.font-display;
-            font-size: 64px;
+            font-size: Theme.font-size-hero;
             font-weight: 800;
           }
           Text {
@@ -144,16 +66,22 @@ export component HomeScreen inherits Rectangle {
 
         SectionHeader {
           title: "Live Channels";
-          see-all => { AppState.navigate(1); }
+          see-all => {
+            AppState.active-screen = 1;
+            AppState.navigate(1);
+          }
         }
 
-        HorizontalLayout {
-          spacing: Theme.spacing-sm;
-          // Show first 4 channels
-          for ch[idx] in AppState.channels: ChannelPill {
-            visible: idx < 4;
-            channel: ch;
-            clicked => { AppState.play-channel(ch.id); }
+        ScrollView {
+          height: 70px; // Accommodate 48px Pill + dropshadows/focus rings
+          HorizontalLayout {
+            spacing: Theme.spacing-sm;
+            alignment: start;
+            for ch[idx] in AppState.channels: ChannelPill {
+              visible: idx < 20; // Increased limit because it's now scrollable natively!
+              channel: ch;
+              clicked => { AppState.play-channel(ch.id); }
+            }
           }
         }
       }
@@ -166,14 +94,22 @@ export component HomeScreen inherits Rectangle {
 
         SectionHeader {
           title: "Movies";
-          see-all => { AppState.navigate(3); }
+          see-all => {
+            AppState.active-screen = 3;
+            AppState.navigate(3);
+          }
         }
 
-        HorizontalLayout {
-          spacing: Theme.spacing-md;
-          for movie[idx] in AppState.movies: VodCard {
-            visible: idx < 6;
-            item: movie;
+        ScrollView {
+          height: 310px; // Accommodate 280px VodCard + focus dropshadows
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            alignment: start;
+            for movie[idx] in AppState.movies: VodCard {
+              visible: idx < 20;
+              item: movie;
+              clicked => { AppState.play-channel(movie.id); }
+            }
           }
         }
       }
@@ -186,14 +122,22 @@ export component HomeScreen inherits Rectangle {
 
         SectionHeader {
           title: "Series";
-          see-all => { AppState.navigate(4); }
+          see-all => {
+            AppState.active-screen = 4;
+            AppState.navigate(4);
+          }
         }
 
-        HorizontalLayout {
-          spacing: Theme.spacing-md;
-          for show[idx] in AppState.series: VodCard {
-            visible: idx < 6;
-            item: show;
+        ScrollView {
+          height: 310px; // Accommodate 280px VodCard + focus dropshadows
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            alignment: start;
+            for show[idx] in AppState.series: VodCard {
+              visible: idx < 20;
+              item: show;
+              clicked => { AppState.play-channel(show.id); }
+            }
           }
         }
       }

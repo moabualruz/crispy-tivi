@@ -1,4 +1,7 @@
 //! Application setup — initializes CrispyService and wires Slint callbacks.
+//!
+//! All heavy data operations are async (tokio tasks). The UI thread only
+//! handles lightweight state changes and callback dispatch.
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -7,6 +10,8 @@ use crispy_player::mpv_backend::MpvBackend;
 use crispy_server::CrispyService;
 use crispy_server::models::Source;
 use slint::ComponentHandle;
+
+use super::data::AsyncDataState;
 
 /// Resolve the database path from env or default.
 pub(crate) fn resolve_db_path() -> String {
@@ -23,15 +28,7 @@ pub(crate) fn resolve_db_path() -> String {
 
 /// Initialize the app: create CrispyService, load settings, wire callbacks.
 ///
-/// Returns `(service, mpv_raw_handle)` — the raw mpv handle is `Some` when
-/// `MpvBackend` initialised successfully and must be used for the render context
-/// in `main.rs`.  The backend itself is owned by the Slint callbacks
-/// (via `Rc<RefCell<Option<MpvBackend>>>`).
-///
-/// # Safety of the returned pointer
-/// The pointer is valid for the lifetime of the Slint callbacks that own the
-/// `MpvBackend`.  The caller must not call `mpv_destroy` on it — the
-/// `MpvBackend::drop` handles teardown via `mpv_terminate_destroy`.
+/// Returns `(service, mpv_raw_handle)`.
 pub(crate) fn init(
     ui: &super::AppWindow,
     rt: &tokio::runtime::Handle,
@@ -41,11 +38,14 @@ pub(crate) fn init(
 
     let service = CrispyService::open(&db_path)?;
 
+    // Shared async state for pagination + search generation
+    let async_state = AsyncDataState::new();
+
     // Load persisted theme preference (0=system, 1=dark, 2=light)
     let theme_mode: i32 = service
         .get_setting("theme")?
         .and_then(|v| v.parse().ok())
-        .unwrap_or(1); // Default to dark
+        .unwrap_or(1);
 
     let theme = ui.global::<super::Theme>();
     theme.set_theme_mode(theme_mode);
@@ -60,26 +60,26 @@ pub(crate) fn init(
     app_state.set_is_rtl(super::i18n::is_rtl(&lang));
     super::i18n::set_locale(&lang);
 
-    // Wire navigation callback
-    app_state.on_navigate(|screen_index| {
+    // ── Navigation (instant — UI thread only) ──
+    let ui_weak = ui.as_weak();
+    app_state.on_navigate(move |screen_index| {
         tracing::debug!(screen = screen_index, "Navigate to screen");
+        if let Some(ui) = ui_weak.upgrade() {
+            ui.global::<super::AppState>()
+                .set_active_screen(screen_index);
+        }
     });
 
-    // Wire theme callback
+    // ── Theme (lightweight persist) ──
     let svc = service.clone();
     app_state.on_set_theme(move |mode| {
-        let label = match mode {
-            0 => "system",
-            1 => "dark",
-            _ => "light",
-        };
-        tracing::info!(theme = label, "Theme changed");
+        tracing::info!(theme = mode, "Theme changed");
         if let Err(e) = svc.set_setting("theme", &mode.to_string()) {
             tracing::error!(error = %e, "Failed to persist theme");
         }
     });
 
-    // Wire language callback
+    // ── Language (lightweight persist) ──
     let svc = service.clone();
     app_state.on_set_language(move |lang| {
         let lang_str = lang.to_string();
@@ -90,10 +90,11 @@ pub(crate) fn init(
         }
     });
 
-    // Wire source save callback — saves then immediately triggers a sync.
+    // ── Source save (sync save + async sync trigger) ──
     let svc = service.clone();
     let ui_weak = ui.as_weak();
     let rt_save = rt.clone();
+    let state_save = async_state.clone();
     app_state.on_save_source(move |name, stype, url, user, pass| {
         let source = Source {
             id: format!("src_{}", chrono::Utc::now().timestamp_millis()),
@@ -131,41 +132,43 @@ pub(crate) fn init(
             tracing::error!(error = %e, "Failed to save source");
             return;
         }
+        // Update sources list immediately (tiny)
         if let Some(ui) = ui_weak.upgrade() {
             super::data::load_sources(&ui, &svc);
         }
-        // Trigger sync immediately after saving.
+        // Trigger async sync
         super::sync::trigger_sync(
             &rt_save,
             svc.clone(),
             source.id.clone(),
             source.source_type.clone(),
             ui_weak.clone(),
+            state_save.clone(),
         );
     });
 
-    // Wire source delete callback
+    // ── Source delete (sync delete + async reload) ──
     let svc = service.clone();
     let ui_weak = ui.as_weak();
+    let rt_del = rt.clone();
+    let state_del = async_state.clone();
     app_state.on_delete_source(move |source_id| {
         tracing::info!(source_id = %source_id, "Deleting source");
         if let Err(e) = svc.delete_source(&source_id) {
             tracing::error!(error = %e, "Failed to delete source");
             return;
         }
-        if let Some(ui) = ui_weak.upgrade() {
-            super::data::reload_all(&ui, &svc);
-        }
+        super::data::reload_all_async(&rt_del, svc.clone(), ui_weak.clone(), state_del.clone());
     });
 
-    // Wire manual sync callback — triggered by UI "Sync now" button.
+    // ── Manual sync (async) ──
     let svc = service.clone();
     let ui_weak = ui.as_weak();
     let rt_sync = rt.clone();
+    let state_sync = async_state.clone();
     app_state.on_sync_source(move |source_id| {
         let sid = source_id.to_string();
         tracing::info!(source_id = %sid, "Manual sync requested");
-        // Look up the source type to pass to trigger_sync.
         match svc.get_source(&sid) {
             Ok(Some(source)) => {
                 super::sync::trigger_sync(
@@ -174,33 +177,78 @@ pub(crate) fn init(
                     sid,
                     source.source_type.clone(),
                     ui_weak.clone(),
+                    state_sync.clone(),
                 );
             }
-            Ok(None) => {
-                tracing::warn!(source_id = %sid, "Source not found for sync");
-            }
-            Err(e) => {
-                tracing::error!(error = %e, source_id = %sid, "Failed to look up source for sync");
-            }
+            Ok(None) => tracing::warn!(source_id = %sid, "Source not found for sync"),
+            Err(e) => tracing::error!(error = %e, "Failed to look up source"),
         }
     });
 
-    // Wire search callback
+    // ── Search (async + debounced via generation counter) ──
     let svc = service.clone();
     let ui_weak = ui.as_weak();
+    let rt_search = rt.clone();
+    let state_search = async_state.clone();
     app_state.on_perform_search(move |query| {
         let query_str = query.to_string();
         if query_str.is_empty() {
             return;
         }
-        if let Some(ui) = ui_weak.upgrade() {
-            super::data::perform_search(&ui, &svc, &query_str);
-        }
+        super::data::search_async(
+            &rt_search,
+            svc.clone(),
+            ui_weak.clone(),
+            state_search.clone(),
+            query_str,
+        );
     });
 
-    // Wire channel favorite toggle (uses default profile for now)
+    // ── Lazy loading callbacks ──
     let svc = service.clone();
     let ui_weak = ui.as_weak();
+    let rt_more_ch = rt.clone();
+    let state_more_ch = async_state.clone();
+    app_state.on_load_more_channels(move || {
+        super::data::load_channels_next_page(
+            &rt_more_ch,
+            svc.clone(),
+            ui_weak.clone(),
+            state_more_ch.clone(),
+        );
+    });
+
+    let svc = service.clone();
+    let ui_weak = ui.as_weak();
+    let rt_more_m = rt.clone();
+    let state_more_m = async_state.clone();
+    app_state.on_load_more_movies(move || {
+        super::data::load_more_movies(
+            &rt_more_m,
+            svc.clone(),
+            ui_weak.clone(),
+            state_more_m.clone(),
+        );
+    });
+
+    let svc = service.clone();
+    let ui_weak = ui.as_weak();
+    let rt_more_s = rt.clone();
+    let state_more_s = async_state.clone();
+    app_state.on_load_more_series(move || {
+        super::data::load_more_series(
+            &rt_more_s,
+            svc.clone(),
+            ui_weak.clone(),
+            state_more_s.clone(),
+        );
+    });
+
+    // ── Favorite toggle (optimistic UI + async persist) ──
+    let svc = service.clone();
+    let ui_weak = ui.as_weak();
+    let rt_fav = rt.clone();
+    let state_fav = async_state.clone();
     app_state.on_toggle_favorite(move |channel_id| {
         let cid = channel_id.to_string();
         let profile = "default";
@@ -215,12 +263,16 @@ pub(crate) fn init(
             tracing::error!(error = %e, "Failed to toggle favorite");
             return;
         }
-        if let Some(ui) = ui_weak.upgrade() {
-            super::data::load_channels(&ui, &svc);
-        }
+        // Async reload channels to reflect updated favorites
+        super::data::load_channels_first_page(
+            &rt_fav,
+            svc.clone(),
+            ui_weak.clone(),
+            state_fav.clone(),
+        );
     });
 
-    // Create MpvBackend — graceful if libmpv is unavailable.
+    // ── MpvBackend ──
     let backend = match MpvBackend::new() {
         Ok(b) => {
             tracing::info!("MpvBackend initialized");
@@ -232,10 +284,9 @@ pub(crate) fn init(
         }
     };
 
-    // Wrap in Rc<RefCell<...>> so multiple callbacks can share it.
     let backend_cell: Rc<RefCell<Option<MpvBackend>>> = Rc::new(RefCell::new(backend));
 
-    // Wire play-channel callback
+    // ── Play channel (lightweight lookup + mpv command) ──
     let svc = service.clone();
     let ui_weak = ui.as_weak();
     let backend_play = backend_cell.clone();
@@ -243,7 +294,6 @@ pub(crate) fn init(
         let cid = channel_id.to_string();
         tracing::info!(channel_id = %cid, "Play channel");
 
-        // Look up channel to get stream URL and metadata.
         let channels = svc
             .get_channels_by_ids(std::slice::from_ref(&cid))
             .unwrap_or_default();
@@ -256,9 +306,9 @@ pub(crate) fn init(
             player.set_current_channel_id(ch.id.clone().into());
             player.set_is_live(true);
             player.set_is_playing(true);
+            player.set_is_fullscreen(false);
             player.set_show_osd(true);
 
-            // Start playback via MpvBackend.
             if let Some(ref b) = *backend_play.borrow() {
                 if let Err(e) = b.play(&ch.stream_url) {
                     tracing::error!(error = %e, url = %ch.stream_url, "Playback failed");
@@ -266,16 +316,12 @@ pub(crate) fn init(
                     tracing::info!(url = %ch.stream_url, name = %ch.name, "Playback started");
                 }
             } else {
-                tracing::warn!(
-                    url = %ch.stream_url,
-                    name = %ch.name,
-                    "MpvBackend unavailable — stream URL ready but not playing"
-                );
+                tracing::warn!("MpvBackend unavailable — stream URL ready but not playing");
             }
         }
     });
 
-    // Wire player control callbacks
+    // ── Player control callbacks ──
     let ui_weak = ui.as_weak();
     let player_state = ui.global::<super::PlayerState>();
 
@@ -291,7 +337,6 @@ pub(crate) fn init(
             if let Some(ui) = ui_weak.upgrade() {
                 let ps = ui.global::<super::PlayerState>();
                 ps.set_is_paused(!ps.get_is_paused());
-                tracing::debug!(paused = ps.get_is_paused(), "Play/pause toggled");
             }
         }
     });
@@ -310,6 +355,7 @@ pub(crate) fn init(
                 ps.set_is_playing(false);
                 ps.set_is_paused(false);
                 ps.set_is_buffering(false);
+                ps.set_is_fullscreen(false);
                 ps.set_current_title(Default::default());
                 tracing::info!("Playback stopped");
             }
@@ -317,7 +363,7 @@ pub(crate) fn init(
     });
 
     player_state.on_seek(|position| {
-        tracing::debug!(position, "Seek requested (backend not connected)");
+        tracing::debug!(position, "Seek requested");
     });
 
     player_state.on_set_volume({
@@ -351,11 +397,12 @@ pub(crate) fn init(
         }
     });
 
-    // Wire onboarding callbacks
+    // ── Onboarding ──
     let onboarding = ui.global::<super::OnboardingState>();
-
     let svc = service.clone();
     let ui_weak = ui.as_weak();
+    let rt_onboard = rt.clone();
+    let state_onboard = async_state.clone();
     onboarding.on_complete(move || {
         tracing::info!("Onboarding complete");
         if let Err(e) = svc.set_setting("onboarding_done", "true") {
@@ -363,13 +410,17 @@ pub(crate) fn init(
         }
         if let Some(ui) = ui_weak.upgrade() {
             ui.global::<super::OnboardingState>().set_is_active(false);
-            super::data::reload_all(&ui, &svc);
         }
+        // Async reload everything
+        super::data::reload_all_async(
+            &rt_onboard,
+            svc.clone(),
+            ui_weak.clone(),
+            state_onboard.clone(),
+        );
     });
 
-    // No skip — onboarding is mandatory per design spec
-
-    // Wire diagnostics
+    // ── Diagnostics ──
     let diag = ui.global::<super::DiagnosticsState>();
     diag.set_app_version(env!("CARGO_PKG_VERSION").into());
     diag.set_slint_version("1.15".into());
@@ -392,10 +443,10 @@ pub(crate) fn init(
         tracing::info!("Log export requested (not yet implemented)");
     });
 
-    // Load initial data
-    super::data::reload_all(ui, &service);
+    // ── Initial data load (async — UI shows immediately) ──
+    super::data::load_initial(ui, &service, rt, async_state.clone());
 
-    // Update diagnostics counts
+    // Diagnostics counts
     let sources = service.get_sources().unwrap_or_default();
     let all_stats = service.get_source_stats().unwrap_or_default();
     let total_channels: i64 = all_stats.iter().map(|s| s.channel_count).sum();
@@ -416,9 +467,6 @@ pub(crate) fn init(
         ui.global::<super::OnboardingState>().set_is_active(true);
     }
 
-    // Extract the raw mpv handle before the backend moves into closures.
-    // The pointer remains valid because backend_cell keeps the MpvBackend alive
-    // for the entire Slint callback lifetime.
     let mpv_raw_handle: Option<*mut libmpv_sys::mpv_handle> =
         backend_cell.borrow().as_ref().map(|b| b.raw_handle());
 

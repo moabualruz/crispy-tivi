@@ -21,8 +21,8 @@ export { PlayerState, OnboardingState, DiagnosticsState }
 
 export component AppWindow inherits Window {
   title: "CrispyTivi";
-  min-width: 800px;
-  min-height: 600px;
+  min-width: 320px;
+  min-height: 480px;
   preferred-width: 1280px;
   preferred-height: 720px;
   background: Theme.background;
@@ -35,44 +35,56 @@ export component AppWindow inherits Window {
       if event.text == Key.Escape {
         if DiagnosticsState.visible { DiagnosticsState.visible = false; return accept; }
         if AppState.show-source-dialog { AppState.show-source-dialog = false; return accept; }
+        if PlayerState.is-fullscreen {
+          PlayerState.is-fullscreen = false;
+          return accept;
+        }
         if PlayerState.is-playing { PlayerState.stop(); return accept; }
       }
       return reject;
     }
   }
 
-  // Onboarding (fullscreen, above everything)
+  // Onboarding (fullscreen, above everything — mandatory, no skip)
   if OnboardingState.is-active: OnboardingScreen { width: 100%; height: 100%; }
 
-  // Player (fullscreen, no nav)
-  if !OnboardingState.is-active: PlayerScreen {
-    visible: PlayerState.is-playing || PlayerState.is-buffering;
-    width: 100%;
-    height: 100%;
-  }
-
-  // Main content — FULL WIDTH (no side rail)
-  if !PlayerState.is-playing && !PlayerState.is-buffering && !OnboardingState.is-active: Rectangle {
+  // ── 3-Layer Architecture (when not onboarding) ──
+  if !OnboardingState.is-active: Rectangle {
     width: 100%; height: 100%;
-    background: Theme.background;
 
-    // Layer 0: Full-width screens (content fills entire window)
-    if AppState.active-screen == 0: HomeScreen { width: 100%; height: 100%; }
-    if AppState.active-screen == 1: LiveTvScreen { width: 100%; height: 100%; }
-    if AppState.active-screen == 2: EpgScreen { width: 100%; height: 100%; }
-    if AppState.active-screen == 3: MoviesScreen { width: 100%; height: 100%; }
-    if AppState.active-screen == 4: SeriesScreen { width: 100%; height: 100%; }
-    if AppState.active-screen == 5: SearchScreen { width: 100%; height: 100%; }
-    if AppState.active-screen == 6: SettingsScreen { width: 100%; height: 100%; }
-
-    // Layer 1: Top nav overlay (floats OVER content)
-    if AppState.nav-visible: TopNav {
-      y: 0;
+    // Layer 0: Video underlay — always present, behind everything
+    // libmpv renders into this area via OpenGL FBO in main.rs
+    PlayerScreen {
       width: 100%;
+      height: 100%;
+      // When not playing, this is just a black rectangle (the app background)
+      // When playing fullscreen, OSD shows on top
+    }
+
+    // Layer 1: UI content — transparent over video when playing
+    if !PlayerState.is-fullscreen: Rectangle {
+      width: 100%; height: 100%;
+      // Semi-transparent background only when NOT playing video
+      background: PlayerState.is-playing ? transparent : Theme.background;
+
+      // Screen content (full-width, no side rail)
+      if AppState.active-screen == 0: HomeScreen { width: 100%; height: 100%; }
+      if AppState.active-screen == 1: LiveTvScreen { width: 100%; height: 100%; }
+      if AppState.active-screen == 2: EpgScreen { width: 100%; height: 100%; }
+      if AppState.active-screen == 3: MoviesScreen { width: 100%; height: 100%; }
+      if AppState.active-screen == 4: SeriesScreen { width: 100%; height: 100%; }
+      if AppState.active-screen == 5: SearchScreen { width: 100%; height: 100%; }
+      if AppState.active-screen == 6: SettingsScreen { width: 100%; height: 100%; }
+
+      // Top nav overlay (floats OVER content, z-index 20 equivalent)
+      if AppState.nav-visible: TopNav {
+        y: 0;
+        width: 100%;
+      }
     }
   }
 
-  // Modals
+  // Modals (above everything except onboarding)
   if !OnboardingState.is-active: SourceDialog {}
   DiagnosticsPanel {}
 }

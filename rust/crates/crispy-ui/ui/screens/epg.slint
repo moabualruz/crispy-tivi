@@ -1,5 +1,7 @@
 import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
 import { EmptyState } from "../components/empty-state.slint";
+import { IconTv } from "../components/icons.slint";
 
 export component EpgScreen inherits Rectangle {
   background: transparent;
@@ -18,12 +20,15 @@ export component EpgScreen inherits Rectangle {
       // EPG grid area — 70% width
       Rectangle {
         horizontal-stretch: 70;
-        background: transparent;
+        border-radius: Theme.radius-md;
+        background: Theme.card-surface;
+        border-width: 1px;
+        border-color: Theme.card-border;
 
         EmptyState {
-          icon: "📅";
           title: "No Programme Guide";
           subtitle: "EPG data will appear once you add a source with guide information.";
+          IconTv { size: 32px; fill: Theme.text-secondary; }
         }
       }
 
@@ -34,6 +39,17 @@ export component EpgScreen inherits Rectangle {
         border-radius: Theme.radius-md;
         border-width: 1px;
         border-color: Theme.border-subtle;
+
+        VerticalLayout {
+          alignment: center;
+          Text {
+            text: "Preview";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
+            horizontal-alignment: center;
+          }
+        }
       }
     }
   }

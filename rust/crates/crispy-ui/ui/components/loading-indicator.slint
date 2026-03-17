@@ -1,0 +1,33 @@
+import { Theme } from "../globals/theme.slint";
+
+// Pulsing loading indicator — glassmorphic, matches Cinematic Utility design
+export component LoadingIndicator inherits Rectangle {
+  in property <string> message: "Loading...";
+
+  VerticalLayout {
+    alignment: center;
+    spacing: Theme.spacing-md;
+
+    // Pulsing dot row
+    HorizontalLayout {
+      alignment: center;
+      spacing: Theme.spacing-sm;
+
+      for i in [0, 1, 2]: Rectangle {
+        width: 10px;
+        height: 10px;
+        border-radius: 5px;
+        background: Theme.accent;
+        opacity: 0.3 + mod(animation-tick() / 400ms + i, 3) * 0.3;
+      }
+    }
+
+    Text {
+      text: message;
+      color: Theme.text-secondary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-caption;
+      horizontal-alignment: center;
+    }
+  }
+}

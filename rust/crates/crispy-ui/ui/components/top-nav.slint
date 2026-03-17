@@ -1,15 +1,17 @@
 import { Theme } from "../globals/theme.slint";
 import { AppState } from "../globals/app-state.slint";
 import { NavItem } from "nav-item.slint";
+import { ProfileButton } from "profile-button.slint";
+import { SearchButton } from "search-button.slint";
 
 export component TopNav inherits Rectangle {
   width: 100%;
-  height: 72px;
-  background: transparent;
+  height: Theme.top-nav-height;
+  background: Theme.surface-glass;
 
   HorizontalLayout {
-    padding-left: 40px;
-    padding-right: 40px;
+    padding-left: Theme.content-padding-h;
+    padding-right: Theme.content-padding-h;
     alignment: space-between;
 
     // Left group: profile bubble + nav items
@@ -18,122 +20,65 @@ export component TopNav inherits Rectangle {
       alignment: start;
 
       // Profile bubble
-      FocusScope {
-        width: 44px;
-        height: 44px;
-
-        key-pressed(event) => {
-          if event.text == Key.Return || event.text == " " {
-            AppState.navigate(6);
-            return accept;
-          }
-          return reject;
-        }
-
-        Rectangle {
-          width: 44px;
-          height: 44px;
-          border-radius: 22px;
-          background: Theme.accent;
-          border-width: 2px;
-          border-color: parent.has-focus ? #FFFFFF : transparent;
-
-          Text {
-            text: "P";
-            color: #FFFFFF;
-            font-family: Theme.font-body;
-            font-size: 16px;
-            font-weight: 700;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-          }
-
-          TouchArea {
-            clicked => { AppState.navigate(6); }
-          }
+      ProfileButton {
+        initial: "P";
+        clicked => {
+          AppState.active-screen = 6;
+          AppState.navigate(6);
         }
       }
 
       Rectangle { width: 16px; }
 
+      // Nav items — For You (0), Live (1), Movies (3), Shows (4), Library (6)
       NavItem {
         label: "For You";
-        icon-text: "";
         active: AppState.active-screen == 0;
-        clicked => { AppState.navigate(0); }
+        clicked => {
+          AppState.active-screen = 0;
+          AppState.navigate(0);
+        }
       }
       NavItem {
         label: "Live";
-        icon-text: "";
-        active: AppState.active-screen == 1;
-        clicked => { AppState.navigate(1); }
+        active: AppState.active-screen == 1 || AppState.active-screen == 2;
+        clicked => {
+          AppState.active-screen = 1;
+          AppState.navigate(1);
+        }
       }
       NavItem {
         label: "Movies";
-        icon-text: "";
         active: AppState.active-screen == 3;
-        clicked => { AppState.navigate(3); }
+        clicked => {
+          AppState.active-screen = 3;
+          AppState.navigate(3);
+        }
       }
       NavItem {
         label: "Shows";
-        icon-text: "";
         active: AppState.active-screen == 4;
-        clicked => { AppState.navigate(4); }
+        clicked => {
+          AppState.active-screen = 4;
+          AppState.navigate(4);
+        }
       }
       NavItem {
         label: "Library";
-        icon-text: "";
-        active: AppState.active-screen == 5 || AppState.active-screen == 6;
-        clicked => { AppState.navigate(6); }
+        active: AppState.active-screen == 6;
+        clicked => {
+          AppState.active-screen = 6;
+          AppState.navigate(6);
+        }
       }
     }
 
     // Right: Search pill
-    FocusScope {
-      width: 160px;
-      height: 44px;
-
-      key-pressed(event) => {
-        if event.text == Key.Return || event.text == " " {
-          AppState.navigate(5);
-          return accept;
-        }
-        return reject;
-      }
-
-      Rectangle {
-        width: 100%;
-        height: 100%;
-        border-radius: 22px;
-        background: rgba(255, 255, 255, 0.1);
-        border-width: 2px;
-        border-color: parent.has-focus ? #FFFFFF : rgba(255, 255, 255, 0.1);
-
-        HorizontalLayout {
-          padding-left: 16px;
-          padding-right: 16px;
-          spacing: 8px;
-          alignment: center;
-
-          Text {
-            text: "🔍";
-            font-size: 16px;
-            vertical-alignment: center;
-          }
-
-          Text {
-            text: "Search";
-            color: rgba(255, 255, 255, 0.60);
-            font-family: Theme.font-body;
-            font-size: Theme.font-size-body;
-            font-weight: 500;
-            vertical-alignment: center;
-          }
-        }
-
-        TouchArea {
-          clicked => { AppState.navigate(5); }
-        }
+    SearchButton {
+      text: "Search";
+      clicked => {
+        AppState.active-screen = 5;
+        AppState.navigate(5);
       }
     }
   }

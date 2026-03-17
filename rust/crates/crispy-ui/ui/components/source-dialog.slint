@@ -1,7 +1,9 @@
 import { Theme } from "../globals/theme.slint";
 import { AppState } from "../globals/app-state.slint";
 import { LineEdit, ComboBox } from "std-widgets.slint";
-
+import { ActionButton } from "action-button.slint";
+import { InputField } from "input-field.slint";
+import { Dropdown } from "dropdown.slint";
 export component SourceDialog inherits Rectangle {
   // Form state — properties bridge values out of conditional blocks
   in-out property <string> src-name: "";
@@ -48,83 +50,59 @@ export component SourceDialog inherits Rectangle {
         }
 
         // Name (all types)
-        VerticalLayout {
-          spacing: 6px;
-          Text { text: "Source Name"; color: Theme.text-secondary; font-size: 13px; }
-          LineEdit {
-            placeholder-text: "My IPTV Provider";
-            edited => { root.src-name = self.text; }
-          }
+        InputField {
+          label: "Source Name";
+          placeholder-text: "My IPTV Provider";
+          edited(v) => { root.src-name = v; }
         }
 
         // Type selector
-        VerticalLayout {
-          spacing: 6px;
-          Text { text: "Source Type"; color: Theme.text-secondary; font-size: 13px; }
-          ComboBox {
-            model: ["M3U / M3U8", "Xtream Codes", "Stalker Portal"];
-            current-index <=> root.src-type-idx;
-            selected => {
-              root.field-url = "";
-              root.field-user = "";
-              root.field-pass = "";
-            }
+        Dropdown {
+          label: "Source Type";
+          model: ["M3U / M3U8", "Xtream Codes", "Stalker Portal"];
+          current-index <=> root.src-type-idx;
+          selected => {
+            root.field-url = "";
+            root.field-user = "";
+            root.field-pass = "";
           }
         }
 
         // ── M3U ──
-        if root.src-type-idx == 0: VerticalLayout {
-          spacing: 6px;
-          Text { text: "Playlist URL"; color: Theme.text-secondary; font-size: 13px; }
-          LineEdit {
-            placeholder-text: "http://example.com/playlist.m3u";
-            edited => { root.field-url = self.text; }
-          }
+        if root.src-type-idx == 0: InputField {
+          label: "Playlist URL";
+          placeholder-text: "http://example.com/playlist.m3u";
+          edited(v) => { root.field-url = v; }
         }
 
         // ── Xtream Codes ──
-        if root.src-type-idx == 1: VerticalLayout {
-          spacing: 6px;
-          Text { text: "Server URL"; color: Theme.text-secondary; font-size: 13px; }
-          LineEdit {
-            placeholder-text: "http://provider.com:8080";
-            edited => { root.field-url = self.text; }
-          }
+        if root.src-type-idx == 1: InputField {
+          label: "Server URL";
+          placeholder-text: "http://provider.com:8080";
+          edited(v) => { root.field-url = v; }
         }
-        if root.src-type-idx == 1: VerticalLayout {
-          spacing: 6px;
-          Text { text: "Username"; color: Theme.text-secondary; font-size: 13px; }
-          LineEdit {
-            placeholder-text: "username";
-            edited => { root.field-user = self.text; }
-          }
+        if root.src-type-idx == 1: InputField {
+          label: "Username";
+          placeholder-text: "username";
+          edited(v) => { root.field-user = v; }
         }
-        if root.src-type-idx == 1: VerticalLayout {
-          spacing: 6px;
-          Text { text: "Password"; color: Theme.text-secondary; font-size: 13px; }
-          LineEdit {
-            placeholder-text: "password";
-            input-type: password;
-            edited => { root.field-pass = self.text; }
-          }
+        if root.src-type-idx == 1: InputField {
+          label: "Password";
+          placeholder-text: "password";
+          input-type: password;
+          edited(v) => { root.field-pass = v; }
         }
 
         // ── Stalker Portal ──
-        if root.src-type-idx == 2: VerticalLayout {
-          spacing: 6px;
-          Text { text: "Portal URL"; color: Theme.text-secondary; font-size: 13px; }
-          LineEdit {
-            placeholder-text: "http://portal.example.com/c/";
-            edited => { root.field-url = self.text; }
-          }
+        if root.src-type-idx == 2: InputField {
+          label: "Portal URL";
+          placeholder-text: "http://portal.example.com/c/";
+          edited(v) => { root.field-url = v; }
         }
-        if root.src-type-idx == 2: VerticalLayout {
-          spacing: 6px;
-          Text { text: "MAC Address"; color: Theme.text-secondary; font-size: 13px; }
-          LineEdit {
-            placeholder-text: "00:1A:79:XX:XX:XX";
-            edited => { root.field-user = self.text; }
-          }
+        if root.src-type-idx == 2: InputField {
+          label: "MAC Address";
+          placeholder-text: "00:1A:79:XX:XX:XX";
+          edited(v) => { root.field-user = v; }
         }
 
         // ── Actions ──
@@ -132,76 +110,23 @@ export component SourceDialog inherits Rectangle {
           spacing: 12px;
           alignment: end;
 
-          // Cancel
-          FocusScope {
+          ActionButton {
+            label: "Cancel";
             width: 100px;
-            height: 44px;
-            key-pressed(event) => {
-              if event.text == Key.Return || event.text == Key.Escape {
-                AppState.show-source-dialog = false;
-                return accept;
-              }
-              return reject;
-            }
-            Rectangle {
-              width: 100%; height: 100%;
-              border-radius: 8px;
-              background: rgba(255, 255, 255, 0.1);
-              border-width: parent.has-focus ? 2px : 1px;
-              border-color: parent.has-focus ? #FFFFFF : rgba(255, 255, 255, 0.1);
-              Text {
-                text: "Cancel";
-                color: Theme.text-primary;
-                font-family: Theme.font-display;
-                font-weight: 600;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-              }
-              TouchArea { clicked => { AppState.show-source-dialog = false; } }
-            }
+            clicked => { AppState.show-source-dialog = false; }
           }
 
-          // Save
-          FocusScope {
+          ActionButton {
+            label: "Add Source";
+            is-primary: true;
             width: 120px;
-            height: 44px;
-            key-pressed(event) => {
-              if event.text == Key.Return {
-                AppState.save-source(
-                  root.src-name,
-                  root.src-type-idx == 0 ? "m3u" : root.src-type-idx == 1 ? "xtream" : "stalker",
-                  root.field-url, root.field-user, root.field-pass,
-                );
-                AppState.show-source-dialog = false;
-                return accept;
-              }
-              return reject;
-            }
-            Rectangle {
-              width: 100%; height: 100%;
-              border-radius: 8px;
-              background: #FFFFFF;
-              border-width: parent.has-focus ? 2px : 0px;
-              border-color: Theme.accent;
-              Text {
-                text: "Add Source";
-                color: #000000;
-                font-family: Theme.font-display;
-                font-size: 15px;
-                font-weight: 700;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-              }
-              TouchArea {
-                clicked => {
-                  AppState.save-source(
-                    root.src-name,
-                    root.src-type-idx == 0 ? "m3u" : root.src-type-idx == 1 ? "xtream" : "stalker",
-                    root.field-url, root.field-user, root.field-pass,
-                  );
-                  AppState.show-source-dialog = false;
-                }
-              }
+            clicked => {
+              AppState.save-source(
+                root.src-name,
+                root.src-type-idx == 0 ? "m3u" : root.src-type-idx == 1 ? "xtream" : "stalker",
+                root.field-url, root.field-user, root.field-pass,
+              );
+              AppState.show-source-dialog = false;
             }
           }
         }

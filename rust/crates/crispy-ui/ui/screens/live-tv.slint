@@ -2,76 +2,329 @@ import { Theme } from "../globals/theme.slint";
 import { AppState } from "../globals/app-state.slint";
 import { EmptyState } from "../components/empty-state.slint";
 import { ChannelCard } from "../components/channel-card.slint";
+import { LoadingIndicator } from "../components/loading-indicator.slint";
+import { IconTv } from "../components/icons.slint";
+import { FilterChip } from "../components/filter-chip.slint";
 import { ListView } from "std-widgets.slint";
+
+// Sub-view tabs: 0 = Channels, 1 = EPG
+component LiveSubTab inherits FocusScope {
+  in property <string> label;
+  in property <bool> active: false;
+  callback activated();
+
+  width: 100px;
+  height: 36px;
+
+  key-pressed(event) => {
+    if event.text == Key.Return { root.activated(); return accept; }
+    return reject;
+  }
+
+  Rectangle {
+    width: 100%; height: 100%;
+    border-radius: Theme.radius-pill;
+    background: root.active
+      ? rgba(255, 255, 255, 0.15)
+      : root.has-focus
+        ? rgba(255, 255, 255, 0.08)
+        : transparent;
+    border-width: root.has-focus ? Theme.focus-ring-width : root.active ? 1px : 0px;
+    border-color: root.has-focus ? Theme.focus-ring : rgba(255, 255, 255, 0.2);
+
+    animate background { duration: 150ms; }
+
+    Text {
+      text: root.label;
+      color: root.active ? Theme.text-primary : Theme.text-secondary;
+      font-family: root.active ? Theme.font-display : Theme.font-body;
+      font-size: Theme.font-size-caption;
+      font-weight: root.active ? 700 : 500;
+      horizontal-alignment: center;
+      vertical-alignment: center;
+    }
+    TouchArea { clicked => { root.activated(); } }
+  }
+}
+
+// EPG time slot header
+component EpgTimeHeader inherits HorizontalLayout {
+  height: 32px;
+  spacing: 0px;
+
+  for hour in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]: Rectangle {
+    width: 120px;
+    height: 100%;
+    background: transparent;
+    border-width: 0px;
+
+    Text {
+      text: hour < 10 ? "0" + hour + ":00" : hour + ":00";
+      color: Theme.text-secondary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-small;
+      horizontal-alignment: center;
+      vertical-alignment: center;
+    }
+  }
+}
+
+// EPG programme block
+component EpgBlock inherits FocusScope {
+  in property <string> title;
+  in property <int> duration-slots: 2; // each slot = 30min = 60px
+
+  width: duration-slots * 60px;
+  height: 48px;
+
+  key-pressed(event) => {
+    if event.text == Key.Return { return accept; }
+    return reject;
+  }
+
+  Rectangle {
+    width: 100%; height: 100%;
+    border-radius: Theme.radius-sm;
+    background: root.has-focus ? rgba(255, 255, 255, 0.15) : Theme.card-surface;
+    border-width: root.has-focus ? Theme.focus-ring-width : 1px;
+    border-color: root.has-focus ? Theme.focus-ring : Theme.card-border;
+
+    Text {
+      text: root.title;
+      color: Theme.text-primary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-small;
+      overflow: elide;
+      vertical-alignment: center;
+      x: Theme.spacing-sm;
+    }
+  }
+}
 
 export component LiveTvScreen inherits Rectangle {
   background: transparent;
 
-  if AppState.channels.length == 0: EmptyState {
-    icon: "📡";
+  // Sub-view state: 0 = Channels, 1 = EPG
+  in-out property <int> active-sub-view: 0;
+
+  // Loading state
+  if AppState.is-loading-channels && AppState.channels.length == 0: LoadingIndicator {
+    message: "Loading channels...";
+  }
+
+  // Empty state (only if not loading)
+  if !AppState.is-loading-channels && AppState.channels.length == 0: EmptyState {
     title: "No Channels";
     subtitle: "Add an IPTV source to browse live channels.";
     cta-text: "Add Source";
-    cta-clicked => { AppState.navigate(6); }
+    cta-clicked => {
+      AppState.active-screen = 6;
+      AppState.navigate(6);
+    }
+    IconTv { size: 32px; fill: Theme.text-secondary; }
   }
 
   if AppState.channels.length > 0: VerticalLayout {
     padding-top: Theme.screen-padding-top;
-    padding-left: Theme.spacing-lg;
-    padding-right: Theme.spacing-lg;
+    padding-left: Theme.content-padding-h;
+    padding-right: Theme.content-padding-h;
     padding-bottom: Theme.spacing-lg;
     spacing: Theme.spacing-md;
 
-    // Header
-    Text {
-      text: "Live TV";
-      color: Theme.text-primary;
-      font-family: Theme.font-display;
-      font-size: Theme.font-size-h1;
-    }
+    // Header row: title + sub-view tabs
+    HorizontalLayout {
+      spacing: Theme.spacing-lg;
 
-    // Group filter chips
-    if AppState.channel-groups.length > 0: HorizontalLayout {
-      spacing: Theme.spacing-xs;
-      height: 36px;
+      Text {
+        text: "Live TV";
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-h1;
+        font-weight: 700;
+        vertical-alignment: center;
+        horizontal-stretch: 1;
+      }
 
-      // "All" chip
-      FocusScope {
-        width: 60px;
-        height: 32px;
-        key-pressed(event) => {
-          if event.text == Key.Return {
-            AppState.active-channel-group = "";
-            return accept;
-          }
-          return reject;
+      // Sub-view tabs
+      HorizontalLayout {
+        spacing: Theme.spacing-xs;
+        alignment: center;
+
+        LiveSubTab {
+          label: "Channels";
+          active: root.active-sub-view == 0;
+          activated => { root.active-sub-view = 0; }
         }
-        Rectangle {
-          width: 100%; height: 100%;
-          border-radius: Theme.radius-pill;
-          background: AppState.active-channel-group == "" ? Theme.accent : Theme.surface;
-          border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
-          border-color: Theme.focus-ring;
-          Text {
-            text: "All";
-            color: AppState.active-channel-group == "" ? #FFFFFF : Theme.text-secondary;
-            font-size: Theme.font-size-small;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-          }
-          TouchArea {
-            clicked => { AppState.active-channel-group = ""; }
-          }
+        LiveSubTab {
+          label: "EPG";
+          active: root.active-sub-view == 1;
+          activated => { root.active-sub-view = 1; }
         }
       }
     }
 
-    // Channel list
-    ListView {
-      for ch in AppState.channels: ChannelCard {
-        channel: ch;
-        visible: AppState.active-channel-group == "" || ch.group == AppState.active-channel-group;
-        clicked => { AppState.play-channel(ch.id); }
+    // ── Channels sub-view ──
+    if root.active-sub-view == 0: VerticalLayout {
+      spacing: Theme.spacing-sm;
+      vertical-stretch: 1;
+
+      // Group filter chips
+      if AppState.channel-groups.length > 0: HorizontalLayout {
+        spacing: Theme.spacing-xs;
+        height: 36px;
+
+        FilterChip {
+          label: "All";
+          active: AppState.active-channel-group == "";
+          activated => {
+            AppState.active-channel-group = "";
+            AppState.filter-channels("", "");
+          }
+        }
+
+        // Dynamic group chips
+        for grp in AppState.channel-groups: FilterChip {
+          label: grp;
+          active: AppState.active-channel-group == grp;
+          activated => {
+            AppState.active-channel-group = grp;
+            AppState.filter-channels(grp, "");
+          }
+        }
+      }
+
+      // Channel list
+      ListView {
+        for ch in AppState.channels: ChannelCard {
+          channel: ch;
+          visible: AppState.active-channel-group == "" || ch.group == AppState.active-channel-group;
+          clicked => { AppState.play-channel(ch.id); }
+        }
+      }
+
+      // Load more trigger (outside ListView — Slint only allows single for child)
+      if AppState.has-more-channels: FocusScope {
+        width: 100%;
+        height: 44px;
+        key-pressed(event) => {
+          if event.text == Key.Return { AppState.load-more-channels(); return accept; }
+          return reject;
+        }
+        Rectangle {
+          width: 100%; height: 100%;
+          border-radius: Theme.radius-sm;
+          background: Theme.btn-secondary-bg;
+          border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+          border-color: Theme.focus-ring;
+
+          Text {
+            text: "Load More (" + (AppState.total-channel-count - AppState.channels.length) + " remaining)";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+          TouchArea { clicked => { AppState.load-more-channels(); } }
+        }
+      }
+    }
+
+    // ── EPG sub-view ──
+    if root.active-sub-view == 1: HorizontalLayout {
+      spacing: Theme.spacing-lg;
+      vertical-stretch: 1;
+
+      // EPG grid area — 70%
+      Rectangle {
+        horizontal-stretch: 70;
+        border-radius: Theme.radius-md;
+        background: Theme.card-surface;
+        border-width: 1px;
+        border-color: Theme.card-border;
+        clip: true;
+
+        VerticalLayout {
+          padding: Theme.spacing-sm;
+          spacing: Theme.spacing-xs;
+
+          // Time header
+          EpgTimeHeader {}
+
+          // Channel rows with programme blocks
+          if AppState.channels.length > 0: ListView {
+            for ch in AppState.channels: HorizontalLayout {
+              height: 56px;
+              spacing: Theme.spacing-xs;
+
+              // Channel name column
+              Rectangle {
+                width: 140px;
+                height: 100%;
+                background: transparent;
+
+                HorizontalLayout {
+                  padding-left: Theme.spacing-sm;
+                  spacing: Theme.spacing-sm;
+
+                  Text {
+                    text: ch.number > 0 ? ch.number : "";
+                    color: Theme.text-secondary;
+                    font-size: Theme.font-size-small;
+                    width: 28px;
+                    vertical-alignment: center;
+                    horizontal-alignment: center;
+                  }
+                  Text {
+                    text: ch.name;
+                    color: Theme.text-primary;
+                    font-family: Theme.font-body;
+                    font-size: Theme.font-size-caption;
+                    font-weight: 600;
+                    overflow: elide;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                  }
+                }
+              }
+
+              // Programme blocks placeholder
+              EpgBlock {
+                title: ch.now-playing != "" ? ch.now-playing : "No EPG data";
+                duration-slots: 4;
+              }
+            }
+          }
+
+          if AppState.channels.length == 0: Text {
+            text: "No EPG data available";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-body;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+        }
+      }
+
+      // PiP mini-player area — ~25%
+      Rectangle {
+        horizontal-stretch: 25;
+        border-radius: Theme.radius-md;
+        background: #000000;
+        border-width: 1px;
+        border-color: Theme.border-subtle;
+
+        VerticalLayout {
+          alignment: center;
+          Text {
+            text: "Preview";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
+            horizontal-alignment: center;
+          }
+        }
       }
     }
   }
