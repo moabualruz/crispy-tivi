@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net9.0-android</TargetFramework>
-    <SupportedOSPlatformVersion>21</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion>26</SupportedOSPlatformVersion>
     <OutputType>Exe</OutputType>
     <RootNamespace>Crispy.Android</RootNamespace>
     <ApplicationId>com.crispy.tivi</ApplicationId>
@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Crispy.UI\Crispy.UI.csproj" />
+    <ProjectReference Include="..\Crispy.Infrastructure\Crispy.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

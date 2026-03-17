@@ -63,7 +63,7 @@
     <PackageVersion Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
     <PackageVersion Include="VideoLAN.LibVLC.Linux" Version="3.0.21" />
     <PackageVersion Include="VideoLAN.LibVLC.Mac" Version="3.0.21" />
-    <PackageVersion Include="VideoLAN.LibVLC.Android" Version="3.0.21" />
+    <PackageVersion Include="VideoLAN.LibVLC.Android" Version="3.1.2" />
 
     <!-- Reactive Extensions (used by player services) -->
     <PackageVersion Include="System.Reactive" Version="6.0.1" />

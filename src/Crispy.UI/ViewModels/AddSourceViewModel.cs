@@ -155,10 +155,17 @@ public partial class AddSourceViewModel : ViewModelBase
             }
 
             var created = await _sourceRepository.CreateAsync(source);
+            Console.WriteLine($"[SYNC] Source created: Id={created.Id}, Name={created.Name}, Type={created.SourceType}");
             _messenger.Send(new SourceSavedMessage(created));
 
             // Trigger sync in background — don't await (UI should navigate immediately)
-            _ = _syncService.SyncSourceAsync(created.Id);
+            _ = _syncService.SyncSourceAsync(created.Id).ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                    Console.WriteLine($"[SYNC] SyncSourceAsync FAULTED: {t.Exception?.InnerException}");
+                else
+                    Console.WriteLine($"[SYNC] SyncSourceAsync completed for source {created.Id}");
+            });
 
             if (_navigationService.CanGoBack)
             {

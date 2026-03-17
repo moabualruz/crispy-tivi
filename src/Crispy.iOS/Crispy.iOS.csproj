@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Crispy.UI\Crispy.UI.csproj" />
+    <ProjectReference Include="..\Crispy.Infrastructure\Crispy.Infrastructure.csproj" />
   </ItemGroup>
 
   <!-- No VLC NuGet for iOS: LibVLCSharp.iOS requires manual xcframework integration.

@@ -35,8 +35,8 @@ public sealed class AndroidMediaSessionBridge : IMediaSessionService, IDisposabl
 
         _session = new MediaSession(context, "CrispyTivi");
         _session.SetFlags(
-            (int)(MediaSessionFlags.HandlesMediaButtons |
-                  MediaSessionFlags.HandlesTransportControls));
+            MediaSessionFlags.HandlesMediaButtons |
+            MediaSessionFlags.HandlesTransportControls);
         _session.Active = true;
     }
 
@@ -66,9 +66,9 @@ public sealed class AndroidMediaSessionBridge : IMediaSessionService, IDisposabl
             }
         }
 
-        var metadataBuilder = new MediaMetadata.Builder()
-            .PutString(MediaMetadata.MetadataKeyTitle, title)
-            .PutString(MediaMetadata.MetadataKeyArtist, artist ?? string.Empty);
+        var metadataBuilder = new MediaMetadata.Builder()!
+            .PutString(MediaMetadata.MetadataKeyTitle, title)!
+            .PutString(MediaMetadata.MetadataKeyArtist, artist ?? string.Empty)!;
 
         if (artwork != null)
         {
@@ -77,17 +77,17 @@ public sealed class AndroidMediaSessionBridge : IMediaSessionService, IDisposabl
 
         _session.SetMetadata(metadataBuilder.Build());
 
-        var stateBuilder = new PlaybackState.Builder()
+        var stateBuilder = new PlaybackState.Builder()!
             .SetActions(
                 PlaybackState.ActionPlay |
                 PlaybackState.ActionPause |
                 PlaybackState.ActionStop |
                 PlaybackState.ActionSkipToNext |
-                PlaybackState.ActionSkipToPrevious)
+                PlaybackState.ActionSkipToPrevious)!
             .SetState(
                 isPlaying ? PlaybackStateCode.Playing : PlaybackStateCode.Paused,
                 PlaybackState.PlaybackPositionUnknown,
-                1.0f);
+                1.0f)!;
 
         _session.SetPlaybackState(stateBuilder.Build());
     }

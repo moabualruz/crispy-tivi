@@ -85,6 +85,9 @@ public partial class MultiviewView : UserControl
 
     private static void TryWireVideoView(MultiviewSlotViewModel slotVm, Border surface)
     {
+        // VideoView (NativeControlHost) is desktop-only; skip on mobile/browser
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || OperatingSystem.IsBrowser()) return;
+
         var videoViewType = Type.GetType(
             "LibVLCSharp.Avalonia.VideoView, LibVLCSharp.Avalonia",
             throwOnError: false);
