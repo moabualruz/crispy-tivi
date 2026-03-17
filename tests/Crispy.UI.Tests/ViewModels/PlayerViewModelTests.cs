@@ -1610,4 +1610,63 @@ public class PlayerViewModelTests
         // Assert — verify OSD sync specifically (PlayerViewModel.IsTimeshifted tested elsewhere)
         _sut.Osd.IsTimeshifted.Should().BeTrue("OsdViewModel.IsTimeshifted must be synced from PlaybackMode");
     }
+
+    // ─── Multiview activation (PLR-29 / GAP-07) ────────────────────────────────
+
+    [Fact]
+    public void ActivateMultiviewCommand_SetsIsMultiviewActiveTrue()
+    {
+        _sut.IsMultiviewActive.Should().BeFalse("multiview starts inactive");
+
+        _sut.ActivateMultiviewCommand.Execute(null);
+
+        _sut.IsMultiviewActive.Should().BeTrue("ActivateMultiview must set IsMultiviewActive to true");
+    }
+
+    [Fact]
+    public void DeactivateMultiviewCommand_SetsIsMultiviewActiveFalse()
+    {
+        _sut.ActivateMultiviewCommand.Execute(null);
+        _sut.IsMultiviewActive.Should().BeTrue();
+
+        _sut.DeactivateMultiviewCommand.Execute(null);
+
+        _sut.IsMultiviewActive.Should().BeFalse("DeactivateMultiview must set IsMultiviewActive to false");
+    }
+
+    [Fact]
+    public void ActivateMultiviewCommand_RaisesMultiviewActivatedEvent()
+    {
+        var raised = false;
+        _sut.MultiviewActivated += (_, _) => raised = true;
+
+        _sut.ActivateMultiviewCommand.Execute(null);
+
+        raised.Should().BeTrue("ActivateMultiview must raise MultiviewActivated event");
+    }
+
+    [Fact]
+    public void DeactivateMultiviewCommand_RaisesMultiviewDeactivatedEvent()
+    {
+        var raised = false;
+        _sut.MultiviewDeactivated += (_, _) => raised = true;
+
+        _sut.ActivateMultiviewCommand.Execute(null);
+        _sut.DeactivateMultiviewCommand.Execute(null);
+
+        raised.Should().BeTrue("DeactivateMultiview must raise MultiviewDeactivated event");
+    }
+
+    [Fact]
+    public void ActivateMultiviewCommand_IsIdempotent_WhenAlreadyActive()
+    {
+        _sut.ActivateMultiviewCommand.Execute(null);
+        var eventCount = 0;
+        _sut.MultiviewActivated += (_, _) => eventCount++;
+
+        _sut.ActivateMultiviewCommand.Execute(null);
+
+        _sut.IsMultiviewActive.Should().BeTrue();
+        eventCount.Should().Be(1, "event fires each invocation regardless of prior state");
+    }
 }
