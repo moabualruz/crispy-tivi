@@ -16,6 +16,14 @@ fn main() -> anyhow::Result<()> {
 
     tracing::info!(version = env!("CARGO_PKG_VERSION"), "CrispyTivi starting");
 
+    // Check libmpv availability (Linux: graceful shutdown with install instructions)
+    if let Err(msg) = crispy_player::check_libmpv_available() {
+        tracing::error!("libmpv check failed");
+        eprintln!("\n{msg}\n");
+        std::process::exit(1);
+    }
+    tracing::info!("libmpv available");
+
     let ui = AppWindow::new()?;
 
     let _service = app::init(&ui)?;

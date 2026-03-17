@@ -28,6 +28,9 @@ coverage-results/
 pkg/
 dist/
 
+# Bundled native dependencies (downloaded per-platform)
+third-party/
+
 # Logs
 logs/
 my_test_log.txt
