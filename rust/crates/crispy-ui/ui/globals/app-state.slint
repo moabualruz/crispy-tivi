@@ -128,6 +128,7 @@ export global AppState {
 
   // VOD operations
   callback filter-vod(/* category */ string, /* item-type */ string);
+  callback play-vod(/* vod-id */ string);
 
   // Lazy loading — UI triggers when scrolled near end
   callback load-more-channels();

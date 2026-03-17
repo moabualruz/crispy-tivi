@@ -175,7 +175,7 @@ impl DataEngine {
         self.send(DataEvent::SourcesReady { sources });
 
         // Channels — first page
-        let (ch_page, _total, _has_more) = filter_channels(
+        let (ch_page, total, has_more) = filter_channels(
             &self.cache.all_channels,
             &self.filters.active_group,
             &self.cache.favorites,
@@ -185,10 +185,12 @@ impl DataEngine {
         self.send(DataEvent::ChannelsReady {
             channels: ch_page,
             groups: self.cache.channel_groups.clone(),
+            total,
+            has_more,
         });
 
         // Movies — first page
-        let (mov_page, _cats, _total, _has_more) = filter_vod(
+        let (mov_page, cats, total, has_more) = filter_vod(
             &self.cache.all_vod,
             "movie",
             &self.filters.active_vod_category,
@@ -197,11 +199,13 @@ impl DataEngine {
         );
         self.send(DataEvent::MoviesReady {
             movies: mov_page,
-            categories: self.cache.vod_categories.clone(),
+            categories: cats,
+            total,
+            has_more,
         });
 
         // Series — first page
-        let (ser_page, _cats, _total, _has_more) = filter_vod(
+        let (ser_page, cats, total, has_more) = filter_vod(
             &self.cache.all_vod,
             "series",
             &self.filters.active_vod_category,
@@ -210,7 +214,9 @@ impl DataEngine {
         );
         self.send(DataEvent::SeriesReady {
             series: ser_page,
-            categories: self.cache.vod_categories.clone(),
+            categories: cats,
+            total,
+            has_more,
         });
     }
 
@@ -237,7 +243,7 @@ impl DataEngine {
             }
 
             HighPriorityEvent::PlayVod { vod_id } => {
-                if let Some(vod) = self.cache.all_vod.iter().find(|v| v.id == vod_id) {
+                if let Some(vod) = self.cache.find_vod(&vod_id) {
                     let url = vod.stream_url.clone();
                     let title = vod.name.clone();
                     self.send(DataEvent::PlaybackReady { url, title });
@@ -250,11 +256,11 @@ impl DataEngine {
             }
 
             HighPriorityEvent::FilterContent { query } => {
-                self.filters.search_query = query.clone();
+                self.filters.active_group = query;
                 self.channel_offset = 0;
 
-                // Apply as a text filter on the active screen
-                let (ch_page, _total, _has_more) = filter_channels(
+                // Apply as a group filter on channels
+                let (ch_page, total, has_more) = filter_channels(
                     &self.cache.all_channels,
                     &self.filters.active_group,
                     &self.cache.favorites,
@@ -264,6 +270,8 @@ impl DataEngine {
                 self.send(DataEvent::ChannelsReady {
                     channels: ch_page,
                     groups: self.cache.channel_groups.clone(),
+                    total,
+                    has_more,
                 });
             }
 
@@ -391,36 +399,45 @@ impl DataEngine {
             HighPriorityEvent::LoadMore { kind } => match kind {
                 LoadingKind::Channels => {
                     self.channel_offset += CHANNEL_PAGE_SIZE;
-                    let (page, _total, _has_more) = filter_channels(
+                    let (page, _total, has_more) = filter_channels(
                         &self.cache.all_channels,
                         &self.filters.active_group,
                         &self.cache.favorites,
                         self.channel_offset,
                         CHANNEL_PAGE_SIZE,
                     );
-                    self.send(DataEvent::ChannelsAppend { channels: page });
+                    self.send(DataEvent::ChannelsAppend {
+                        channels: page,
+                        has_more,
+                    });
                 }
                 LoadingKind::Movies => {
                     self.movie_offset += VOD_PAGE_SIZE;
-                    let (page, _cats, _total, _has_more) = filter_vod(
+                    let (page, _cats, _total, has_more) = filter_vod(
                         &self.cache.all_vod,
                         "movie",
                         &self.filters.active_vod_category,
                         self.movie_offset,
                         VOD_PAGE_SIZE,
                     );
-                    self.send(DataEvent::MoviesAppend { movies: page });
+                    self.send(DataEvent::MoviesAppend {
+                        movies: page,
+                        has_more,
+                    });
                 }
                 LoadingKind::Series => {
                     self.series_offset += VOD_PAGE_SIZE;
-                    let (page, _cats, _total, _has_more) = filter_vod(
+                    let (page, _cats, _total, has_more) = filter_vod(
                         &self.cache.all_vod,
                         "series",
                         &self.filters.active_vod_category,
                         self.series_offset,
                         VOD_PAGE_SIZE,
                     );
-                    self.send(DataEvent::SeriesAppend { series: page });
+                    self.send(DataEvent::SeriesAppend {
+                        series: page,
+                        has_more,
+                    });
                 }
                 other => {
                     debug!(?other, "LoadMore: unhandled kind");
@@ -459,6 +476,47 @@ impl DataEngine {
                 self.send(DataEvent::ScreenChanged {
                     screen: Screen::Epg,
                 });
+            }
+
+            HighPriorityEvent::FilterVod {
+                category,
+                item_type,
+            } => {
+                self.filters.active_vod_category = category;
+                match item_type.as_str() {
+                    "movie" => {
+                        self.movie_offset = 0;
+                        let (page, cats, total, has_more) = filter_vod(
+                            &self.cache.all_vod,
+                            "movie",
+                            &self.filters.active_vod_category,
+                            0,
+                            VOD_PAGE_SIZE,
+                        );
+                        self.send(DataEvent::MoviesReady {
+                            movies: page,
+                            categories: cats,
+                            total,
+                            has_more,
+                        });
+                    }
+                    _ => {
+                        self.series_offset = 0;
+                        let (page, cats, total, has_more) = filter_vod(
+                            &self.cache.all_vod,
+                            "series",
+                            &self.filters.active_vod_category,
+                            0,
+                            VOD_PAGE_SIZE,
+                        );
+                        self.send(DataEvent::SeriesReady {
+                            series: page,
+                            categories: cats,
+                            total,
+                            has_more,
+                        });
+                    }
+                }
             }
         }
     }
@@ -562,6 +620,9 @@ impl DataEngine {
                     .map(|s| s.source_type.clone())
                     .unwrap_or_default();
 
+                self.send(DataEvent::LoadingStarted {
+                    kind: LoadingKind::Sync,
+                });
                 self.send(DataEvent::SyncStarted {
                     source_id: source_id.clone(),
                 });
@@ -577,6 +638,9 @@ impl DataEngine {
                     .map(|s| (s.id.clone(), s.source_type.clone()))
                     .collect();
 
+                self.send(DataEvent::LoadingStarted {
+                    kind: LoadingKind::Sync,
+                });
                 for (source_id, source_type) in sources_snap {
                     self.send(DataEvent::SyncStarted {
                         source_id: source_id.clone(),
@@ -691,6 +755,9 @@ impl DataEngine {
                 self.series_offset = 0;
 
                 self.send(DataEvent::SyncCompleted { result });
+                self.send(DataEvent::LoadingFinished {
+                    kind: LoadingKind::Sync,
+                });
                 self.emit_initial_data();
             }
 
@@ -704,6 +771,9 @@ impl DataEngine {
                 self.send(DataEvent::SyncFailed {
                     source_id: sid,
                     error: err,
+                });
+                self.send(DataEvent::LoadingFinished {
+                    kind: LoadingKind::Sync,
                 });
             }
         }
@@ -738,7 +808,7 @@ impl DataEngine {
 
     /// Re-emit the current filtered channel page (offset 0).
     fn emit_filtered_channels(&self) {
-        let (page, _total, _has_more) = filter_channels(
+        let (page, total, has_more) = filter_channels(
             &self.cache.all_channels,
             &self.filters.active_group,
             &self.cache.favorites,
@@ -748,12 +818,14 @@ impl DataEngine {
         self.send(DataEvent::ChannelsReady {
             channels: page,
             groups: self.cache.channel_groups.clone(),
+            total,
+            has_more,
         });
     }
 
     /// Re-emit the current filtered VOD pages (movies + series, offset 0).
     fn emit_filtered_vod(&self) {
-        let (movies, _cats, _total, _has_more) = filter_vod(
+        let (movies, cats, total, has_more) = filter_vod(
             &self.cache.all_vod,
             "movie",
             &self.filters.active_vod_category,
@@ -762,10 +834,12 @@ impl DataEngine {
         );
         self.send(DataEvent::MoviesReady {
             movies,
-            categories: self.cache.vod_categories.clone(),
+            categories: cats,
+            total,
+            has_more,
         });
 
-        let (series, _cats, _total, _has_more) = filter_vod(
+        let (series, cats, total, has_more) = filter_vod(
             &self.cache.all_vod,
             "series",
             &self.filters.active_vod_category,
@@ -774,7 +848,9 @@ impl DataEngine {
         );
         self.send(DataEvent::SeriesReady {
             series,
-            categories: self.cache.vod_categories.clone(),
+            categories: cats,
+            total,
+            has_more,
         });
     }
 }

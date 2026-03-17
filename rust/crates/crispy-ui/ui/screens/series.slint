@@ -51,7 +51,7 @@ export component SeriesScreen inherits Rectangle {
             row: floor(idx / 5);
             col: mod(idx, 5);
             item: show;
-            clicked => { AppState.play-channel(show.id); }
+            clicked => { AppState.play-vod(show.id); }
           }
         }
 

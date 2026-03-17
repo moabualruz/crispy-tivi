@@ -6,7 +6,10 @@
 //! 3. `spawn_data_listener()` — maps DataEvents to Slint properties
 //! 4. `apply_data_event()` — pure DataEvent → Slint property mapping
 
-use std::sync::{Arc, Mutex};
+use std::sync::{
+    Arc, Mutex,
+    atomic::{AtomicBool, Ordering},
+};
 
 use crispy_player::PlayerBackend;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
@@ -74,7 +77,7 @@ pub(crate) fn wire(
     ps.on_toggle_mute({
         let tx = player_tx.clone();
         move || {
-            if let Err(e) = tx.try_send(PlayerEvent::SetMute { muted: true }) {
+            if let Err(e) = tx.try_send(PlayerEvent::ToggleMute) {
                 tracing::warn!(error = %e, "player_tx full: ToggleMute dropped");
             }
         }
@@ -256,11 +259,23 @@ pub(crate) fn wire(
 
     app.on_filter_vod({
         let tx = high_tx.clone();
-        move |category, _item_type| {
-            if let Err(e) = tx.try_send(HighPriorityEvent::FilterContent {
-                query: category.to_string(),
+        move |category, item_type| {
+            if let Err(e) = tx.try_send(HighPriorityEvent::FilterVod {
+                category: category.to_string(),
+                item_type: item_type.to_string(),
             }) {
                 tracing::warn!(error = %e, "high_tx full: FilterVod dropped");
+            }
+        }
+    });
+
+    app.on_play_vod({
+        let tx = high_tx.clone();
+        move |vod_id| {
+            if let Err(e) = tx.try_send(HighPriorityEvent::PlayVod {
+                vod_id: vod_id.to_string(),
+            }) {
+                tracing::warn!(error = %e, "high_tx full: PlayVod dropped");
             }
         }
     });
@@ -383,15 +398,12 @@ pub(crate) fn spawn_player_handler(
                     });
                 }
 
-                PlayerEvent::SetMute { muted } => {
-                    let m = *muted;
+                PlayerEvent::ToggleMute => {
                     let ui_w = ui_weak.clone();
                     let _ = slint::invoke_from_event_loop(move || {
                         if let Some(ui) = ui_w.upgrade() {
                             let ps = ui.global::<super::PlayerState>();
-                            // Toggle if muted=true signal used as toggle trigger
-                            let next = if m { !ps.get_is_muted() } else { false };
-                            ps.set_is_muted(next);
+                            ps.set_is_muted(!ps.get_is_muted());
                         }
                     });
                 }
@@ -445,11 +457,23 @@ pub(crate) fn spawn_data_listener(
     ui_weak: slint::Weak<super::AppWindow>,
     mut data_rx: mpsc::Receiver<DataEvent>,
     backend: Arc<Mutex<Option<crispy_player::mpv_backend::MpvBackend>>>,
+    render_context_ready: Arc<AtomicBool>,
 ) {
     tokio::spawn(async move {
         while let Some(event) = data_rx.recv().await {
             match event {
                 DataEvent::PlaybackReady { url, title } => {
+                    // Wait for the render context to be ready before playing
+                    // (prevents video-only-audio race condition on first play)
+                    let mut waited = 0u32;
+                    while !render_context_ready.load(Ordering::Acquire) && waited < 50 {
+                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                        waited += 1;
+                    }
+                    if waited >= 50 {
+                        tracing::warn!("Render context not ready after 5s — playing anyway");
+                    }
+
                     // Play on the backend (thread-safe mpv call)
                     let result = {
                         let guard = backend.lock().unwrap();
@@ -500,68 +524,90 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             app.set_sources(ModelRc::new(VecModel::from(items)));
         }
 
-        DataEvent::ChannelsReady { channels, groups: in_groups } => {
+        DataEvent::ChannelsReady {
+            channels,
+            groups: in_groups,
+            total,
+            has_more,
+        } => {
             let items: Vec<super::ChannelData> =
                 channels.iter().map(channel_info_to_slint).collect();
             app.set_channels(ModelRc::new(VecModel::from(items)));
-            
+            app.set_total_channel_count(total);
+            app.set_has_more_channels(has_more);
+
             // Populate groups from the complete state-provided list
-            let sc_groups: Vec<SharedString> =
-                in_groups.into_iter().map(|s| SharedString::from(s.as_str())).collect();
+            let sc_groups: Vec<SharedString> = in_groups
+                .into_iter()
+                .map(|s| SharedString::from(s.as_str()))
+                .collect();
             app.set_channel_groups(ModelRc::new(VecModel::from(sc_groups)));
         }
 
-        DataEvent::MoviesReady { movies, categories: in_categories } => {
+        DataEvent::MoviesReady {
+            movies,
+            categories: in_categories,
+            total,
+            has_more,
+        } => {
             let items: Vec<super::VodData> = movies.iter().map(vod_info_to_slint).collect();
             app.set_movies(ModelRc::new(VecModel::from(items)));
-            
-            let sc_cats: Vec<super::CategoryData> = in_categories.into_iter().map(|c| {
-                super::CategoryData {
+            app.set_total_movie_count(total);
+            app.set_has_more_movies(has_more);
+
+            let sc_cats: Vec<super::CategoryData> = in_categories
+                .into_iter()
+                .map(|c| super::CategoryData {
                     name: SharedString::from(c.as_str()),
                     category_type: SharedString::from("movie"),
-                }
-            }).collect();
+                })
+                .collect();
             app.set_vod_categories(ModelRc::new(VecModel::from(sc_cats)));
         }
 
-        DataEvent::SeriesReady { series, categories: in_categories } => {
+        DataEvent::SeriesReady {
+            series,
+            categories: in_categories,
+            total,
+            has_more,
+        } => {
             let items: Vec<super::VodData> = series.iter().map(vod_info_to_slint).collect();
             app.set_series(ModelRc::new(VecModel::from(items)));
-            
-            // To prevent Series from blowing away Movie categories when not intended, we could
-            // aggregate them. For now, since they don't have separate properties, let's just set them.
-            // When navigating, FilterContent triggers a dedicated rebuild anyway.
-            let sc_cats: Vec<super::CategoryData> = in_categories.into_iter().map(|c| {
-                super::CategoryData {
+            app.set_total_series_count(total);
+            app.set_has_more_series(has_more);
+
+            let sc_cats: Vec<super::CategoryData> = in_categories
+                .into_iter()
+                .map(|c| super::CategoryData {
                     name: SharedString::from(c.as_str()),
                     category_type: SharedString::from("series"),
-                }
-            }).collect();
-            // We append to existing vod categories instead of replacing if it's the initial populate, but
-            // replacing is safer to ensure it matches current filtered type.
+                })
+                .collect();
             app.set_vod_categories(ModelRc::new(VecModel::from(sc_cats)));
         }
 
-        DataEvent::ChannelsAppend { channels } => {
-            // Extend existing model
+        DataEvent::ChannelsAppend { channels, has_more } => {
             let existing = app.get_channels();
             let mut items: Vec<super::ChannelData> = existing.iter().collect();
             items.extend(channels.iter().map(channel_info_to_slint));
             app.set_channels(ModelRc::new(VecModel::from(items)));
+            app.set_has_more_channels(has_more);
         }
 
-        DataEvent::MoviesAppend { movies } => {
+        DataEvent::MoviesAppend { movies, has_more } => {
             let existing = app.get_movies();
             let mut items: Vec<super::VodData> = existing.iter().collect();
             items.extend(movies.iter().map(vod_info_to_slint));
             app.set_movies(ModelRc::new(VecModel::from(items)));
+            app.set_has_more_movies(has_more);
         }
 
-        DataEvent::SeriesAppend { series } => {
+        DataEvent::SeriesAppend { series, has_more } => {
             let existing = app.get_series();
             let mut items: Vec<super::VodData> = existing.iter().collect();
             items.extend(series.iter().map(vod_info_to_slint));
             app.set_series(ModelRc::new(VecModel::from(items)));
+            app.set_has_more_series(has_more);
         }
 
         DataEvent::SearchResults {

@@ -168,8 +168,8 @@ pub enum PlayerEvent {
     SeekRelative { delta_secs: f64 },
     /// Set absolute volume (0.0 – 1.0).
     SetVolume { volume: f32 },
-    /// Mute or unmute audio.
-    SetMute { muted: bool },
+    /// Toggle mute state.
+    ToggleMute,
     /// Show or hide the on-screen display overlay.
     ShowControls { visible: bool },
     /// Enter or exit fullscreen mode.
@@ -217,6 +217,8 @@ pub enum HighPriorityEvent {
     SelectEpgDate { offset_days: i32 },
     /// Jump the EPG timeline to a specific channel.
     JumpEpgToChannel { channel_id: String },
+    /// Filter VOD items by category and type (movie vs series).
+    FilterVod { category: String, item_type: String },
 }
 
 // ── NormalEvent ──────────────────────────────────────────────────────────────
@@ -264,17 +266,41 @@ pub enum DataEvent {
     /// Initial source list is ready for display.
     SourcesReady { sources: Vec<SourceInfo> },
     /// Full (first-page) channel list is ready.
-    ChannelsReady { channels: Vec<ChannelInfo>, groups: Vec<String> },
+    ChannelsReady {
+        channels: Vec<ChannelInfo>,
+        groups: Vec<String>,
+        total: i32,
+        has_more: bool,
+    },
     /// Full (first-page) movies list is ready.
-    MoviesReady { movies: Vec<VodInfo>, categories: Vec<String> },
+    MoviesReady {
+        movies: Vec<VodInfo>,
+        categories: Vec<String>,
+        total: i32,
+        has_more: bool,
+    },
     /// Full (first-page) series list is ready.
-    SeriesReady { series: Vec<VodInfo>, categories: Vec<String> },
+    SeriesReady {
+        series: Vec<VodInfo>,
+        categories: Vec<String>,
+        total: i32,
+        has_more: bool,
+    },
     /// Additional channels appended (pagination).
-    ChannelsAppend { channels: Vec<ChannelInfo> },
+    ChannelsAppend {
+        channels: Vec<ChannelInfo>,
+        has_more: bool,
+    },
     /// Additional movies appended (pagination).
-    MoviesAppend { movies: Vec<VodInfo> },
+    MoviesAppend {
+        movies: Vec<VodInfo>,
+        has_more: bool,
+    },
     /// Additional series appended (pagination).
-    SeriesAppend { series: Vec<VodInfo> },
+    SeriesAppend {
+        series: Vec<VodInfo>,
+        has_more: bool,
+    },
     /// Full-text search results.
     SearchResults {
         query: String,

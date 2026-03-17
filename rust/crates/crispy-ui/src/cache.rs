@@ -45,6 +45,11 @@ impl AppDataCache {
         self.all_channels.iter().find(|c| c.id == id)
     }
 
+    /// Find a VOD item by its ID. Returns `None` if not present.
+    pub fn find_vod(&self, id: &str) -> Option<&VodItem> {
+        self.all_vod.iter().find(|v| v.id == id)
+    }
+
     /// Toggle the favorite state for a channel ID.
     ///
     /// Returns `true` if the channel is now a favorite, `false` if removed.
@@ -92,7 +97,6 @@ impl AppDataCache {
 pub struct FilterState {
     pub active_group: String,
     pub active_vod_category: String,
-    pub search_query: String,
     pub active_screen: Screen,
 }
 
@@ -101,7 +105,6 @@ impl Default for FilterState {
         Self {
             active_group: String::new(),
             active_vod_category: String::new(),
-            search_query: String::new(),
             active_screen: Screen::Home,
         }
     }
@@ -526,6 +529,18 @@ mod tests {
     }
 
     // ── rebuild helpers ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_find_vod_returns_item_when_present() {
+        let mut cache = AppDataCache::empty();
+        cache.all_vod = vec![
+            make_vod("v1", "Dune", "movie", Some("SciFi")),
+            make_vod("v2", "Inception", "movie", Some("SciFi")),
+        ];
+        assert!(cache.find_vod("v1").is_some());
+        assert_eq!(cache.find_vod("v1").unwrap().name, "Dune");
+        assert!(cache.find_vod("v99").is_none());
+    }
 
     #[test]
     fn test_rebuild_groups_deduplicates_and_sorts() {

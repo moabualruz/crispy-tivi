@@ -18,7 +18,10 @@ mod i18n;
 mod provider;
 mod sync_task;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{
+    Arc, Mutex,
+    atomic::{AtomicBool, Ordering},
+};
 
 use crispy_player::mpv_backend::MpvBackend;
 use crispy_server::CrispyService;
@@ -103,10 +106,10 @@ fn main() -> anyhow::Result<()> {
 
     // ── Bounded channels (5 queues) ──────────────────────────────────────
     let (player_tx, player_rx) = tokio::sync::mpsc::channel(64);
-    let (high_tx, high_rx) = tokio::sync::mpsc::channel(128);
-    let (normal_tx, normal_rx) = tokio::sync::mpsc::channel(64);
+    let (high_tx, high_rx) = tokio::sync::mpsc::channel(256);
+    let (normal_tx, normal_rx) = tokio::sync::mpsc::channel(128);
     let (sync_result_tx, sync_result_rx) = tokio::sync::mpsc::channel(32);
-    let (data_tx, data_rx) = tokio::sync::mpsc::channel(256);
+    let (data_tx, data_rx) = tokio::sync::mpsc::channel(512);
 
     // ── Wire Slint callbacks → queues ────────────────────────────────────
     event_bridge::wire(&ui, player_tx, high_tx, normal_tx);
@@ -129,11 +132,19 @@ fn main() -> anyhow::Result<()> {
 
     let backend_shared: Arc<Mutex<Option<MpvBackend>>> = Arc::new(Mutex::new(backend));
 
+    // Flag: set to true once the OpenGL render context is ready for mpv
+    let render_context_ready = Arc::new(AtomicBool::new(false));
+
     // ── Spawn player handler (PlayerEvent → MpvBackend) ──────────────────
     event_bridge::spawn_player_handler(ui.as_weak(), player_rx, backend_shared.clone());
 
     // ── Spawn data listener (DataEvent → Slint properties) ───────────────
-    event_bridge::spawn_data_listener(ui.as_weak(), data_rx, backend_shared);
+    event_bridge::spawn_data_listener(
+        ui.as_weak(),
+        data_rx,
+        backend_shared,
+        Arc::clone(&render_context_ready),
+    );
 
     // ── Spawn DataEngine (event loop: queues → cache → DataEvents) ───────
     let engine = data_engine::DataEngine::new(
@@ -148,7 +159,7 @@ fn main() -> anyhow::Result<()> {
     rt.spawn(engine.run());
 
     // ── Video underlay (libmpv OpenGL → Slint rendering pipeline) ────────
-    setup_video_underlay(&ui, mpv_render_handle);
+    setup_video_underlay(&ui, mpv_render_handle, Arc::clone(&render_context_ready));
 
     tracing::info!("UI ready, entering event loop");
     ui.run()?;
@@ -163,7 +174,11 @@ fn main() -> anyhow::Result<()> {
 ///
 /// The VideoUnderlay bridges libmpv's OpenGL renderer into Slint's GL context
 /// via an FBO (Layer 0). Slint's UI canvas renders transparently on top (Layer 1).
-fn setup_video_underlay(ui: &AppWindow, mpv_render_handle: Option<*mut libmpv_sys::mpv_handle>) {
+fn setup_video_underlay(
+    ui: &AppWindow,
+    mpv_render_handle: Option<*mut libmpv_sys::mpv_handle>,
+    render_context_ready: Arc<AtomicBool>,
+) {
     use crispy_player::video_underlay::VideoUnderlay;
     use std::{cell::RefCell, rc::Rc};
 
@@ -199,6 +214,7 @@ fn setup_video_underlay(ui: &AppWindow, mpv_render_handle: Option<*mut libmpv_sy
                     Ok(underlay) => {
                         tracing::info!("VideoUnderlay created ({w}x{h})");
                         *underlay_cell_clone.borrow_mut() = Some(underlay);
+                        render_context_ready.store(true, Ordering::Release);
                     }
                     Err(e) => {
                         tracing::error!(error = %e, "VideoUnderlay creation failed");
