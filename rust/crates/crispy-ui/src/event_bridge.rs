@@ -500,28 +500,46 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             app.set_sources(ModelRc::new(VecModel::from(items)));
         }
 
-        DataEvent::ChannelsReady { channels } => {
+        DataEvent::ChannelsReady { channels, groups: in_groups } => {
             let items: Vec<super::ChannelData> =
                 channels.iter().map(channel_info_to_slint).collect();
             app.set_channels(ModelRc::new(VecModel::from(items)));
-            // Populate groups from the channel list
-            let mut groups: Vec<SharedString> = channels
-                .iter()
-                .filter_map(|c| c.channel_group.as_deref().map(SharedString::from))
-                .collect();
-            groups.sort();
-            groups.dedup();
-            app.set_channel_groups(ModelRc::new(VecModel::from(groups)));
+            
+            // Populate groups from the complete state-provided list
+            let sc_groups: Vec<SharedString> =
+                in_groups.into_iter().map(|s| SharedString::from(s.as_str())).collect();
+            app.set_channel_groups(ModelRc::new(VecModel::from(sc_groups)));
         }
 
-        DataEvent::MoviesReady { movies } => {
+        DataEvent::MoviesReady { movies, categories: in_categories } => {
             let items: Vec<super::VodData> = movies.iter().map(vod_info_to_slint).collect();
             app.set_movies(ModelRc::new(VecModel::from(items)));
+            
+            let sc_cats: Vec<super::CategoryData> = in_categories.into_iter().map(|c| {
+                super::CategoryData {
+                    name: SharedString::from(c.as_str()),
+                    category_type: SharedString::from("movie"),
+                }
+            }).collect();
+            app.set_vod_categories(ModelRc::new(VecModel::from(sc_cats)));
         }
 
-        DataEvent::SeriesReady { series } => {
+        DataEvent::SeriesReady { series, categories: in_categories } => {
             let items: Vec<super::VodData> = series.iter().map(vod_info_to_slint).collect();
             app.set_series(ModelRc::new(VecModel::from(items)));
+            
+            // To prevent Series from blowing away Movie categories when not intended, we could
+            // aggregate them. For now, since they don't have separate properties, let's just set them.
+            // When navigating, FilterContent triggers a dedicated rebuild anyway.
+            let sc_cats: Vec<super::CategoryData> = in_categories.into_iter().map(|c| {
+                super::CategoryData {
+                    name: SharedString::from(c.as_str()),
+                    category_type: SharedString::from("series"),
+                }
+            }).collect();
+            // We append to existing vod categories instead of replacing if it's the initial populate, but
+            // replacing is safer to ensure it matches current filtered type.
+            app.set_vod_categories(ModelRc::new(VecModel::from(sc_cats)));
         }
 
         DataEvent::ChannelsAppend { channels } => {

@@ -182,7 +182,10 @@ impl DataEngine {
             0,
             CHANNEL_PAGE_SIZE,
         );
-        self.send(DataEvent::ChannelsReady { channels: ch_page });
+        self.send(DataEvent::ChannelsReady {
+            channels: ch_page,
+            groups: self.cache.channel_groups.clone(),
+        });
 
         // Movies — first page
         let (mov_page, _cats, _total, _has_more) = filter_vod(
@@ -192,7 +195,10 @@ impl DataEngine {
             0,
             VOD_PAGE_SIZE,
         );
-        self.send(DataEvent::MoviesReady { movies: mov_page });
+        self.send(DataEvent::MoviesReady {
+            movies: mov_page,
+            categories: self.cache.vod_categories.clone(),
+        });
 
         // Series — first page
         let (ser_page, _cats, _total, _has_more) = filter_vod(
@@ -202,7 +208,10 @@ impl DataEngine {
             0,
             VOD_PAGE_SIZE,
         );
-        self.send(DataEvent::SeriesReady { series: ser_page });
+        self.send(DataEvent::SeriesReady {
+            series: ser_page,
+            categories: self.cache.vod_categories.clone(),
+        });
     }
 
     // ── High-priority event handler ───────────────────────────────────────
@@ -252,7 +261,10 @@ impl DataEngine {
                     0,
                     CHANNEL_PAGE_SIZE,
                 );
-                self.send(DataEvent::ChannelsReady { channels: ch_page });
+                self.send(DataEvent::ChannelsReady {
+                    channels: ch_page,
+                    groups: self.cache.channel_groups.clone(),
+                });
             }
 
             HighPriorityEvent::Search { query } => {
@@ -733,7 +745,10 @@ impl DataEngine {
             0,
             CHANNEL_PAGE_SIZE,
         );
-        self.send(DataEvent::ChannelsReady { channels: page });
+        self.send(DataEvent::ChannelsReady {
+            channels: page,
+            groups: self.cache.channel_groups.clone(),
+        });
     }
 
     /// Re-emit the current filtered VOD pages (movies + series, offset 0).
@@ -745,7 +760,10 @@ impl DataEngine {
             0,
             VOD_PAGE_SIZE,
         );
-        self.send(DataEvent::MoviesReady { movies });
+        self.send(DataEvent::MoviesReady {
+            movies,
+            categories: self.cache.vod_categories.clone(),
+        });
 
         let (series, _cats, _total, _has_more) = filter_vod(
             &self.cache.all_vod,
@@ -754,6 +772,9 @@ impl DataEngine {
             0,
             VOD_PAGE_SIZE,
         );
-        self.send(DataEvent::SeriesReady { series });
+        self.send(DataEvent::SeriesReady {
+            series,
+            categories: self.cache.vod_categories.clone(),
+        });
     }
 }

@@ -1,5 +1,4 @@
 import { Theme } from "../globals/theme.slint";
-import { LineEdit } from "std-widgets.slint";
 
 export component InputField inherits VerticalLayout {
   in property <string> label;
@@ -10,21 +9,55 @@ export component InputField inherits VerticalLayout {
   callback edited(string);
   callback accepted(string);
 
-  spacing: 6px;
+  spacing: Theme.spacing-sm;
 
   Text {
     text: root.label;
     color: Theme.text-secondary;
-    font-size: 13px;
+    font-size: Theme.font-size-caption;
     font-family: Theme.font-body;
   }
 
-  input := LineEdit {
-    placeholder-text: root.placeholder-text;
-    input-type: root.input-type;
+  FocusScope {
     height: 48px;
 
-    edited => { root.edited(self.text); }
-    accepted => { root.accepted(self.text); }
+    Rectangle {
+      width: 100%; height: 100%;
+      border-radius: Theme.radius-md;
+      background: parent.has-focus ? rgba(255, 255, 255, 0.1) : Theme.card-surface;
+      border-width: parent.has-focus ? Theme.focus-ring-width : 1px;
+      border-color: parent.has-focus ? Theme.focus-ring : Theme.card-border;
+
+      HorizontalLayout {
+        padding-left: Theme.spacing-md;
+        padding-right: Theme.spacing-md;
+
+        input := TextInput {
+          text: "";
+          color: Theme.text-primary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-body;
+          single-line: true;
+          input-type: root.input-type;
+          vertical-alignment: center;
+          selection-background-color: rgba(255, 255, 255, 0.3); // non-vibrant highlight!
+          selection-foreground-color: Theme.text-primary;
+
+          edited => { root.edited(self.text); }
+          accepted => { root.accepted(self.text); }
+        }
+      }
+
+      // Placeholder text overlay if empty
+      if input.text == "": Text {
+        x: Theme.spacing-md;
+        y: (parent.height - self.height) / 2;
+        text: root.placeholder-text;
+        color: rgba(255, 255, 255, 0.3);
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+        vertical-alignment: center;
+      }
+    }
   }
 }

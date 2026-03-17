@@ -44,23 +44,16 @@ export component MoviesScreen inherits Rectangle {
       VerticalLayout {
         spacing: Theme.spacing-md;
 
-    ScrollView {
-      height: 310px; // Provide explicit bounded height because of VerticalLayout inside a Horizontal ScrollView! Wait, is our parent ScrollView or VerticalLayout? Let's check.
-      // Ah, wait! The parent here was ScrollView -> VerticalLayout -> HorizontalLayout.
-      // So let's wrap HorizontalLayout in a ScrollView!
-      // But we already have a ScrollView encompassing the whole screen!
-      // If we change it to a lane, we can keep the outer vertical ScrollView, and inner horizontal ScrollView
-      HorizontalLayout {
-        spacing: Theme.spacing-md;
-        alignment: start;
-
-        for movie[idx] in AppState.movies: VodCard {
-          visible: idx < 30; // increase limit
-          item: movie;
-          clicked => { AppState.play-channel(movie.id); }
+        GridLayout {
+          spacing: Theme.spacing-md;
+          
+          for movie[idx] in AppState.movies: VodCard {
+            row: floor(idx / 5);
+            col: mod(idx, 5);
+            item: movie;
+            clicked => { AppState.play-channel(movie.id); }
+          }
         }
-      }
-    }
 
         // Load more
         if AppState.has-more-movies: ActionButton {

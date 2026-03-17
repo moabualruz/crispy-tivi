@@ -264,11 +264,11 @@ pub enum DataEvent {
     /// Initial source list is ready for display.
     SourcesReady { sources: Vec<SourceInfo> },
     /// Full (first-page) channel list is ready.
-    ChannelsReady { channels: Vec<ChannelInfo> },
+    ChannelsReady { channels: Vec<ChannelInfo>, groups: Vec<String> },
     /// Full (first-page) movies list is ready.
-    MoviesReady { movies: Vec<VodInfo> },
+    MoviesReady { movies: Vec<VodInfo>, categories: Vec<String> },
     /// Full (first-page) series list is ready.
-    SeriesReady { series: Vec<VodInfo> },
+    SeriesReady { series: Vec<VodInfo>, categories: Vec<String> },
     /// Additional channels appended (pagination).
     ChannelsAppend { channels: Vec<ChannelInfo> },
     /// Additional movies appended (pagination).

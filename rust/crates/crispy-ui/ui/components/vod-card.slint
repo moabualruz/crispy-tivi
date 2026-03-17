@@ -1,5 +1,6 @@
 import { Theme } from "../globals/theme.slint";
 import { VodData } from "../globals/app-state.slint";
+import { IconMovie } from "icons.slint";
 
 export component VodCard inherits FocusScope {
   in property <VodData> item;
@@ -38,6 +39,15 @@ export component VodCard inherits FocusScope {
       Rectangle {
         height: 220px;
         background: @linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.6) 100%);
+
+        IconMovie {
+          width: 48px;
+          height: 48px;
+          x: (parent.width - self.width) / 2;
+          y: (parent.height - self.height) / 2;
+          fill: Theme.text-secondary;
+          opacity: 0.2;
+        }
 
         // Year badge
         if item.year != "": Rectangle {

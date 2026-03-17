@@ -118,9 +118,9 @@ export component SettingsScreen inherits Rectangle {
       VerticalLayout {
         max-width: 800px;
         padding-top: Theme.screen-padding-top;
-        padding-left: Theme.spacing-xl;
-        padding-right: Theme.spacing-xl;
-        padding-bottom: Theme.spacing-xl;
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        padding-bottom: Theme.spacing-2xl;
         spacing: Theme.spacing-lg;
 
       // Header
@@ -225,6 +225,7 @@ export component SettingsScreen inherits Rectangle {
           }
 
           // Language row
+      // Language row
           HorizontalLayout {
             spacing: Theme.spacing-md;
             Text {
@@ -235,15 +236,18 @@ export component SettingsScreen inherits Rectangle {
               vertical-alignment: center;
               horizontal-stretch: 1;
             }
-            HorizontalLayout {
+            GridLayout {
               spacing: Theme.spacing-xs;
-              for lang in [
+
+              for lang[idx] in [
                 { code: "en", label: "English" },
                 { code: "ar", label: "العربية" },
                 { code: "de", label: "Deutsch" },
                 { code: "fr", label: "Français" },
                 { code: "es", label: "Español" },
               ]: FilterChip {
+                row: floor(idx / 3);
+                col: mod(idx, 3);
                 label: lang.label;
                 active: AppState.active-language == lang.code;
                 activated => {

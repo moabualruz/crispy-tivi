@@ -33,8 +33,6 @@ component StepIndicator inherits HorizontalLayout {
   }
 }
 
-// Note: PrimaryButton and FieldLabel were removed.
-
 // ─── Step 0: Welcome ───
 component WelcomeStep inherits Rectangle {
   background: transparent;
@@ -142,7 +140,7 @@ component AddSourceStep inherits Rectangle {
       alignment: center;
 
       Rectangle {
-        width: 480px;
+        width: 540px;
         border-radius: Theme.radius-lg;
         background: Theme.card-surface;
         border-width: 1px;
@@ -162,7 +160,7 @@ component AddSourceStep inherits Rectangle {
           // Type selector
           Dropdown {
             label: "Source Type";
-            model: ["M3U / M3U8", "Xtream Codes", "Stalker Portal"];
+            model: ["M3U", "Xtream", "Stalker"];
             current-index <=> root.src-type-idx;
             selected => {
               root.field-url = "";
@@ -192,6 +190,8 @@ component AddSourceStep inherits Rectangle {
           if root.src-type-idx == 1: InputField {
             label: "Password";
             placeholder-text: "password";
+            // Slint TextInput currently doesn't natively support password masking directly out of standard properties!
+            // Wait, standard LineEdit had input-type: InputType.password. Our custom one overrides it directly.
             input-type: InputType.password;
             edited(val) => { root.field-pass = val; }
           }
@@ -270,7 +270,7 @@ component PreferencesStep inherits Rectangle {
       alignment: center;
 
       Rectangle {
-        width: 400px;
+        width: 440px;
         border-radius: Theme.radius-lg;
         background: Theme.card-surface;
         border-width: 1px;
@@ -293,7 +293,7 @@ component PreferencesStep inherits Rectangle {
 
             HorizontalLayout {
               spacing: Theme.spacing-sm;
-              alignment: center;
+              alignment: start;
 
               for item in [
                 { label: "System", mode: 0 },
@@ -321,17 +321,18 @@ component PreferencesStep inherits Rectangle {
               font-weight: 500;
             }
 
-            HorizontalLayout {
+            GridLayout {
               spacing: Theme.spacing-xs;
-              alignment: center;
 
-              for lang in [
+              for lang[idx] in [
                 { code: "en", label: "English" },
                 { code: "ar", label: "العربية" },
                 { code: "de", label: "Deutsch" },
                 { code: "fr", label: "Français" },
                 { code: "es", label: "Español" },
               ]: FilterChip {
+                row: floor(idx / 3);
+                col: mod(idx, 3);
                 label: lang.label;
                 active: AppState.active-language == lang.code;
                 activated => {
@@ -373,11 +374,18 @@ component DoneStep inherits Rectangle {
         width: 96px;
         height: 96px;
         border-radius: 48px;
-        background: Theme.accent-gradient;
+        background: Theme.btn-primary-bg;
 
-        IconCheck {
-          size: 48px;
-          fill: #FFFFFF;
+        VerticalLayout {
+          alignment: center;
+          HorizontalLayout {
+            alignment: center;
+            IconCheck {
+              width: 48px;
+              height: 48px;
+              fill: Theme.btn-primary-fg;
+            }
+          }
         }
       }
     }
@@ -427,29 +435,32 @@ export component OnboardingScreen inherits Rectangle {
   }
 
   ScrollView {
-    HorizontalLayout {
+    width: 100%;
+    height: 100%;
+    
+    VerticalLayout {
+      // Ensure the content area always spans at least the height of the screen for centering
+      min-height: root.height;
+      width: root.width;
       alignment: center;
-      padding-left: Theme.spacing-xl;
-      padding-right: Theme.spacing-xl;
-
+      padding-top: Theme.spacing-2xl;
+      padding-bottom: Theme.spacing-2xl;
+      
       VerticalLayout {
-        max-width: 800px;
-        padding-top: Theme.spacing-2xl;
-        padding-bottom: Theme.spacing-2xl;
         alignment: center;
         spacing: Theme.spacing-xl;
 
-        // Step content
-        Rectangle {
-          // Allow contents to dictate height
-          if OnboardingState.step == 0: WelcomeStep { width: 100%; }
-          if OnboardingState.step == 1: AddSourceStep { width: 100%; }
-          if OnboardingState.step == 2: PreferencesStep { width: 100%; }
-          if OnboardingState.step == 3: DoneStep { width: 100%; }
-        }
+        if OnboardingState.step == 0: WelcomeStep {  }
+        if OnboardingState.step == 1: AddSourceStep {  }
+        if OnboardingState.step == 2: PreferencesStep {  }
+        if OnboardingState.step == 3: DoneStep {  }
 
         // Step indicator at bottom
-        StepIndicator { current-step: OnboardingState.step; }
+        HorizontalLayout {
+          alignment: center;
+          padding-top: Theme.spacing-xl;
+          StepIndicator { current-step: OnboardingState.step; }
+        }
       }
     }
   }

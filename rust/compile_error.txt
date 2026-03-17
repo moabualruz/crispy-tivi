@@ -1,0 +1,32 @@
+warning: crispy-player@0.1.1: Using bundled mpv from \\?\F:\work\crispy-tivi\third-party\mpv\windows-x64
+   Compiling crispy-ui v0.1.1 (F:\work\crispy-tivi\rust\crates\crispy-ui)
+error: failed to run custom build command for `crispy-ui v0.1.1 (F:\work\crispy-tivi\rust\crates\crispy-ui)`
+
+Caused by:
+  process didn't exit successfully: `F:\work\crispy-tivi\rust\target\debug\build\crispy-ui-4ed1727b53f8e9d0\build-script-build` (exit code: 101)
+  --- stderr
+  error: Syntax error: expected '}'
+   --> F:\work\crispy-tivi\rust\crates\crispy-ui\ui\screens\movies.slint:1:1
+    |
+  1 | import { Theme } from "../globals/theme.slint";
+    | ^
+    |
+  error: Syntax error: expected '}'
+   --> F:\work\crispy-tivi\rust\crates\crispy-ui\ui\screens\movies.slint:1:1
+    |
+  1 | import { Theme } from "../globals/theme.slint";
+    | ^
+  error: Syntax error: expected '}'
+   --> F:\work\crispy-tivi\rust\crates\crispy-ui\ui\screens\series.slint:1:1
+    |
+  1 | import { Theme } from "../globals/theme.slint";
+    | ^
+  error: Syntax error: expected '}'
+   --> F:\work\crispy-tivi\rust\crates\crispy-ui\ui\screens\series.slint:1:1
+    |
+  1 | import { Theme } from "../globals/theme.slint";
+    | ^
+
+  thread 'main' (40820) panicked at crates\crispy-ui\build.rs:2:43:
+  called `Result::unwrap()` on an `Err` value: CompileError(["F:\\work\\crispy-tivi\\rust\\crates\\crispy-ui\\ui\\screens\\movies.slint:1: Syntax error: expected '}'", "F:\\work\\crispy-tivi\\rust\\crates\\crispy-ui\\ui\\screens\\movies.slint:1: Syntax error: expected '}'", "F:\\work\\crispy-tivi\\rust\\crates\\crispy-ui\\ui\\screens\\series.slint:1: Syntax error: expected '}'", "F:\\work\\crispy-tivi\\rust\\crates\\crispy-ui\\ui\\screens\\series.slint:1: Syntax error: expected '}'"])
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

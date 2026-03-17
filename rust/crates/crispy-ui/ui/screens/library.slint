@@ -1,0 +1,29 @@
+import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+
+export component LibraryScreen inherits Rectangle {
+  width: 100%; height: 100%;
+  background: transparent;
+
+  VerticalLayout {
+    padding-top: Theme.screen-padding-top;
+    padding-left: Theme.content-padding-h;
+    padding-right: Theme.content-padding-h;
+    spacing: Theme.spacing-xl;
+
+    Text {
+      text: "Your Library";
+      color: Theme.text-primary;
+      font-family: Theme.font-display;
+      font-size: Theme.font-size-hero;
+      font-weight: 700;
+    }
+
+    Text {
+      text: "Favorites and Continue Watching will appear here.";
+      color: Theme.text-secondary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-h2;
+    }
+  }
+}
