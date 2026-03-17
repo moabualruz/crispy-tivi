@@ -1,0 +1,58 @@
+# Clear CI caches (libmpv, Rust, etc.)
+# Manual trigger only.
+
+name: Clear Cache
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Which cache to clear"
+        required: true
+        type: choice
+        options:
+          - libmpv-only
+          - rust-only
+          - all
+
+permissions:
+  actions: write
+
+jobs:
+  clear:
+    name: Clear Cache
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: List caches
+        run: gh cache list --limit 50
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Clear libmpv cache
+        if: inputs.target == 'libmpv-only' || inputs.target == 'all'
+        run: |
+          gh cache list --limit 100 --json key,id \
+            --jq '.[] | select(.key | startswith("libmpv-")) | .id' \
+          | xargs -I{} gh cache delete {} || true
+          echo "libmpv caches cleared"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Clear Rust build cache
+        if: inputs.target == 'rust-only' || inputs.target == 'all'
+        run: |
+          gh cache list --limit 100 --json key,id \
+            --jq '.[] | select(.key | startswith("v3-rust-slint")) | .id' \
+          | xargs -I{} gh cache delete {} || true
+          echo "Rust caches cleared"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Verify
+        run: |
+          echo "Remaining caches:"
+          gh cache list --limit 50
+        env:
+          GH_TOKEN: ${{ github.token }}
