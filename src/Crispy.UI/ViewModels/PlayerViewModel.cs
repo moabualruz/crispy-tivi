@@ -186,6 +186,11 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
     [ObservableProperty]
     private bool _isTrackSelectorOpen;
 
+    // ─── Sleep timer panel ────────────────────────────────────────────────
+
+    [ObservableProperty]
+    private bool _isSleepTimerPanelOpen;
+
     // ─── Quality display ─────────────────────────────────────────────────────
 
     [ObservableProperty]
@@ -714,10 +719,24 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
     public void HandleDigitKey(string digit) => AccumulateDirectTune(digit);
 
     [RelayCommand]
-    private void OpenSleepTimer() { /* opens sleep timer panel */ }
+    private void OpenSleepTimer() => IsSleepTimerPanelOpen = true;
 
     [RelayCommand]
-    private void SetSleepTimer(TimeSpan duration) => _sleepTimerService.SetTimer(duration);
+    private void CloseSleepTimerPanel() => IsSleepTimerPanelOpen = false;
+
+    [RelayCommand]
+    private void SetSleepTimer(TimeSpan duration)
+    {
+        _sleepTimerService.SetTimer(duration);
+        IsSleepTimerPanelOpen = false;
+    }
+
+    [RelayCommand]
+    private void CancelSleepTimer()
+    {
+        _sleepTimerService.Cancel();
+        IsSleepTimerPanelOpen = false;
+    }
 
     [RelayCommand]
     private void AutoPlayNext()

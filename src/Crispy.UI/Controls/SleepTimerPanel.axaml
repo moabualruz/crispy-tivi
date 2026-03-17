@@ -1,0 +1,132 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             x:Class="Crispy.UI.Controls.SleepTimerPanel"
+             x:DataType="vm:PlayerViewModel"
+             IsHitTestVisible="True">
+
+  <!-- Sleep timer duration picker popup.
+       Visibility controlled by IsSleepTimerPanelOpen on PlayerViewModel.
+       Preset durations: 15m, 30m, 45m, 1h, 2h. Cancel when active. -->
+
+  <Grid>
+    <!-- Semi-transparent backdrop — tapping dismisses -->
+    <Border Background="#40000000"
+            IsHitTestVisible="True"
+            x:Name="Backdrop" />
+
+    <!-- Panel slides from right -->
+    <Border HorizontalAlignment="Right"
+            VerticalAlignment="Stretch"
+            Width="300"
+            Background="#F0121212"
+            CornerRadius="16,0,0,16"
+            Padding="0,8"
+            x:Name="PanelBorder">
+      <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header with close button -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="20,8,12,4">
+          <TextBlock Text="Sleep Timer"
+                     Foreground="White"
+                     FontSize="16"
+                     FontWeight="SemiBold"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Content="&#x2715;"
+                  Command="{Binding CloseSleepTimerPanelCommand}"
+                  Background="Transparent"
+                  Foreground="#80FFFFFF"
+                  FontSize="18"
+                  Padding="8,4"
+                  x:Name="CloseButton" />
+        </Grid>
+
+        <!-- Preset duration buttons -->
+        <StackPanel Grid.Row="1" Spacing="4" Margin="16,12">
+          <Button Content="15 minutes"
+                  Command="{Binding SetSleepTimerCommand}"
+                  CommandParameter="0:15:00"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Left"
+                  Background="#1AFFFFFF"
+                  Foreground="White"
+                  Padding="16,12"
+                  CornerRadius="8"
+                  x:Name="Btn15" />
+          <Button Content="30 minutes"
+                  Command="{Binding SetSleepTimerCommand}"
+                  CommandParameter="0:30:00"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Left"
+                  Background="#1AFFFFFF"
+                  Foreground="White"
+                  Padding="16,12"
+                  CornerRadius="8"
+                  x:Name="Btn30" />
+          <Button Content="45 minutes"
+                  Command="{Binding SetSleepTimerCommand}"
+                  CommandParameter="0:45:00"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Left"
+                  Background="#1AFFFFFF"
+                  Foreground="White"
+                  Padding="16,12"
+                  CornerRadius="8"
+                  x:Name="Btn45" />
+          <Button Content="1 hour"
+                  Command="{Binding SetSleepTimerCommand}"
+                  CommandParameter="1:00:00"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Left"
+                  Background="#1AFFFFFF"
+                  Foreground="White"
+                  Padding="16,12"
+                  CornerRadius="8"
+                  x:Name="Btn60" />
+          <Button Content="2 hours"
+                  Command="{Binding SetSleepTimerCommand}"
+                  CommandParameter="2:00:00"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Left"
+                  Background="#1AFFFFFF"
+                  Foreground="White"
+                  Padding="16,12"
+                  CornerRadius="8"
+                  x:Name="Btn120" />
+        </StackPanel>
+
+        <!-- Active timer display + cancel -->
+        <Border Grid.Row="2"
+                Margin="16,0,16,12"
+                Padding="16,12"
+                CornerRadius="8"
+                Background="#1AFFFFFF"
+                IsVisible="{Binding SleepTimerRemaining, Converter={x:Static ObjectConverters.IsNotNull}}">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Timer active"
+                         Foreground="#B3FFFFFF"
+                         FontSize="12" />
+              <TextBlock Text="{Binding SleepTimerRemaining}"
+                         Foreground="White"
+                         FontSize="18"
+                         FontWeight="SemiBold" />
+            </StackPanel>
+            <Button Grid.Column="1"
+                    Content="Cancel"
+                    Command="{Binding CancelSleepTimerCommand}"
+                    Background="Transparent"
+                    Foreground="#FFE53935"
+                    FontSize="14"
+                    Padding="8,4"
+                    VerticalAlignment="Center"
+                    x:Name="CancelButton" />
+          </Grid>
+        </Border>
+
+      </Grid>
+    </Border>
+  </Grid>
+
+</UserControl>
