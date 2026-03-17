@@ -119,6 +119,7 @@ pub(crate) fn spawn_sync(
 ///
 /// Errors fetching the source list are logged and silently dropped —
 /// callers should not depend on this function returning an error.
+#[allow(dead_code)]
 pub(crate) fn spawn_sync_all(
     rt: &tokio::runtime::Handle,
     svc: crispy_server::CrispyService,

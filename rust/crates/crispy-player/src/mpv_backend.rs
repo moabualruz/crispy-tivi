@@ -34,9 +34,13 @@ impl MpvBackend {
         }
 
         // Set quality properties BEFORE mpv_initialize
+        // vo=libmpv is MANDATORY when using mpv_render_context_create().
+        // vo=gpu-next creates its own window — causes the "detached player" bug.
+        // All GPU quality settings (hwdec, interpolation, etc.) still work with vo=libmpv
+        // because the render context provides the OpenGL surface.
         let props = [
             ("hwdec", "auto-safe"),
-            ("vo", "gpu-next"),
+            ("vo", "libmpv"),
             ("gpu-hwdec-interop", "all"),
             ("profile", "gpu-hq"),
             ("video-sync", "display-resample"),

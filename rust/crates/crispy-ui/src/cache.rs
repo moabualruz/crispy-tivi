@@ -374,7 +374,10 @@ mod tests {
         let (page, total, has_more) = filter_channels(&channels, "UK", &favs, 0, CHANNEL_PAGE_SIZE);
         assert_eq!(total, 2);
         assert_eq!(page.len(), 2);
-        assert!(page.iter().all(|c| c.channel_group.as_deref() == Some("UK")));
+        assert!(
+            page.iter()
+                .all(|c| c.channel_group.as_deref() == Some("UK"))
+        );
         assert!(!has_more);
     }
 
@@ -412,7 +415,10 @@ mod tests {
         let (page, total, _) = filter_channels(&channels, "Favorites", &favs, 0, CHANNEL_PAGE_SIZE);
         assert_eq!(total, 1);
         assert_eq!(page[0].id, "c2");
-        assert!(page[0].is_favorite, "channel in Favorites group must have is_favorite=true");
+        assert!(
+            page[0].is_favorite,
+            "channel in Favorites group must have is_favorite=true"
+        );
     }
 
     // ── filter_vod ───────────────────────────────────────────────────────────

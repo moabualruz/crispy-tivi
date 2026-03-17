@@ -148,10 +148,7 @@ pub enum SyncResult {
         vod_count: u32,
     },
     /// Sync failed with a human-readable error.
-    Failed {
-        source_id: String,
-        error: String,
-    },
+    Failed { source_id: String, error: String },
 }
 
 // ── PlayerEvent ─────────────────────────────────────────────────────────────
