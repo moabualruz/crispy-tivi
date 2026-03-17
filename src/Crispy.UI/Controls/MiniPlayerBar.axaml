@@ -1,48 +1,79 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:controls="using:Crispy.UI.Controls"
+             xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:asyncImage="using:AsyncImageLoader"
              x:Class="Crispy.UI.Controls.MiniPlayerBar"
+             x:DataType="vm:PlayerViewModel"
              Height="64">
 
   <Border Background="{DynamicResource SurfaceSecondaryBrush}"
           CornerRadius="8 8 0 0"
           Padding="12 8">
     <Grid ColumnDefinitions="48,*,Auto">
-      <!-- Thumbnail placeholder -->
+      <!-- Channel logo / play icon fallback -->
       <Border Grid.Column="0"
               Width="48"
               Height="48"
               Background="{DynamicResource SurfaceTertiaryBrush}"
-              CornerRadius="4">
-        <TextBlock Text="&#x25B6;"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Foreground="{DynamicResource TextDisabledBrush}"
-                   FontSize="16" />
+              CornerRadius="4"
+              ClipToBounds="True">
+        <Panel>
+          <Image asyncImage:ImageLoader.Source="{Binding ChannelLogoUrl}"
+                 Width="48"
+                 Height="48"
+                 Stretch="UniformToFill"
+                 IsVisible="{Binding ChannelLogoUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Text="&#x25B6;"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     Foreground="{DynamicResource TextDisabledBrush}"
+                     FontSize="16"
+                     IsVisible="{Binding ChannelLogoUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}" />
+        </Panel>
       </Border>
 
-      <!-- Title placeholder -->
+      <!-- Channel name + current programme (live bindings) -->
       <StackPanel Grid.Column="1"
                   Margin="12 0 0 0"
                   VerticalAlignment="Center">
-        <TextBlock Text="Mini Player"
+        <!-- Active media: show channel name -->
+        <TextBlock Text="{Binding ChannelName, FallbackValue='No media playing'}"
                    FontSize="14"
                    FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextPrimaryBrush}" />
-        <TextBlock Text="No media playing"
+                   Foreground="{DynamicResource TextPrimaryBrush}"
+                   IsVisible="{Binding HasActiveMedia}" />
+        <!-- Active media: show current programme -->
+        <TextBlock Text="{Binding CurrentProgramme}"
                    FontSize="11"
-                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   IsVisible="{Binding HasActiveMedia}" />
+        <!-- No active media: fallback text -->
+        <TextBlock Text="No media playing"
+                   FontSize="14"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextDisabledBrush}"
+                   IsVisible="{Binding !HasActiveMedia}" />
       </StackPanel>
 
-      <!-- Play/Pause button placeholder -->
-      <Button Grid.Column="2"
-              Content="&#x23F8;"
-              FontSize="20"
-              Background="Transparent"
-              Foreground="{DynamicResource TextPrimaryBrush}"
-              VerticalAlignment="Center"
-              Padding="12 8"
-              IsEnabled="False" />
+      <!-- Play/Pause toggle button -->
+      <Panel Grid.Column="2"
+             VerticalAlignment="Center">
+        <Button Content="&#x25B6;"
+                FontSize="20"
+                Background="Transparent"
+                Foreground="{DynamicResource TextPrimaryBrush}"
+                Padding="12 8"
+                Command="{Binding ResumeCommand}"
+                IsVisible="{Binding !IsPlaying}"
+                IsEnabled="{Binding HasActiveMedia}" />
+        <Button Content="&#x23F8;"
+                FontSize="20"
+                Background="Transparent"
+                Foreground="{DynamicResource TextPrimaryBrush}"
+                Padding="12 8"
+                Command="{Binding PauseCommand}"
+                IsVisible="{Binding IsPlaying}" />
+      </Panel>
     </Grid>
   </Border>
 

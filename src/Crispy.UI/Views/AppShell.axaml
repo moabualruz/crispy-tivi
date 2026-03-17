@@ -2,7 +2,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Crispy.UI.ViewModels"
              xmlns:controls="using:Crispy.UI.Controls"
-             xmlns:vlc="using:LibVLCSharp.Avalonia"
              x:Class="Crispy.UI.Views.AppShell"
              x:DataType="vm:AppShellViewModel">
 
@@ -10,19 +9,16 @@
     AppShell: 3-layer root container.
 
     Layer 0 (ZIndex=0): VideoLayer — persistent video surface, starts hidden.
+         On desktop: dynamically wraps OverlayContent in vlc:VideoView (NativeControlHost)
+         for airspace fix. On Android: plain Panel (Skia renders directly, no airspace issue).
     Layer 1 (ZIndex=1): ContentLayer — navigation rail + page content.
     Layer 2 (ZIndex=2): PlayerOverlay — OSD, auto-hides.
     MiniPlayerBar — always at bottom when playing + browsing.
   -->
   <Grid>
 
-    <!-- ═══ LAYER 0: Video Surface (LibVLCSharp NativeControlHost) ═══════════
-         VideoView.Content renders in a floating transparent overlay window
-         ON TOP of the native video — this is how we solve airspace.
-         ALL UI that must appear over video goes inside VideoView.Content. -->
-    <vlc:VideoView x:Name="VideoView"
-                   ZIndex="0">
-      <Grid>
+    <Panel x:Name="VideoLayer" ZIndex="0">
+      <Grid x:Name="OverlayContent">
         <!-- Content / Navigation — renders in floating overlay on top of video -->
         <Grid x:Name="ContentLayer"
               IsVisible="{Binding IsContentVisible}"
@@ -78,9 +74,10 @@
         <!-- Mini Player Bar — renders in floating overlay on top of video -->
         <controls:MiniPlayerBar VerticalAlignment="Bottom"
                                 ZIndex="3"
-                                IsVisible="{Binding IsMiniPlayerVisible}" />
+                                DataContext="{Binding Player}"
+                                IsVisible="{Binding $parent[UserControl].((vm:AppShellViewModel)DataContext).IsMiniPlayerVisible}" />
       </Grid>
-    </vlc:VideoView>
+    </Panel>
 
   </Grid>
 
