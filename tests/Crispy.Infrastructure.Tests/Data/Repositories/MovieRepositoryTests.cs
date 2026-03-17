@@ -123,6 +123,43 @@ public sealed class MovieRepositoryTests : IDisposable
     }
 
     // -------------------------------------------------------------------------
+    // GetAllAsync
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GetAllAsync_ReturnsAllMovies_AcrossSources()
+    {
+        var source1 = await SeedSourceAsync();
+        var source2 = await SeedSourceAsync();
+        await SeedMovieAsync(source1.Id, "Movie A");
+        await SeedMovieAsync(source2.Id, "Movie B");
+
+        var result = await _sut.GetAllAsync();
+
+        result.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_ReturnsEmpty_WhenNoMoviesExist()
+    {
+        var result = await _sut.GetAllAsync();
+
+        result.Should().BeEmpty();
+    }
+
+    // -------------------------------------------------------------------------
+    // UpsertRangeAsync — empty list
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task UpsertRangeAsync_ReturnsZero_WhenEmptyList()
+    {
+        var count = await _sut.UpsertRangeAsync([]);
+
+        count.Should().Be(0);
+    }
+
+    // -------------------------------------------------------------------------
     // UpsertRangeAsync — insert path
     // -------------------------------------------------------------------------
 

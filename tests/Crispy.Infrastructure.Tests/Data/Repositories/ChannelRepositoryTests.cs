@@ -121,6 +121,65 @@ public sealed class ChannelRepositoryTests : IDisposable
     }
 
     // -------------------------------------------------------------------------
+    // GetAllAsync
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GetAllAsync_ReturnsAllChannels_AcrossSources()
+    {
+        var (_, source) = await SeedProfileAndSourceAsync();
+        await SeedChannelAsync(source.Id, "Ch1", tvgId: "ch1");
+        await SeedChannelAsync(source.Id, "Ch2", tvgId: "ch2");
+
+        var result = await _sut.GetAllAsync();
+
+        result.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_ReturnsEmpty_WhenNoChannelsExist()
+    {
+        var result = await _sut.GetAllAsync();
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAllAsync_IncludesStreamEndpoints()
+    {
+        var (_, source) = await SeedProfileAndSourceAsync();
+        var ch = await SeedChannelAsync(source.Id, "WithEndpoint", tvgId: "ep1");
+
+        // Add a stream endpoint
+        await using var ctx = _factory.CreateDbContext();
+        ctx.StreamEndpoints.Add(new StreamEndpoint
+        {
+            ChannelId = ch.Id,
+            SourceId = source.Id,
+            Url = "http://stream.ts",
+            Priority = 1,
+        });
+        await ctx.SaveChangesAsync();
+
+        var result = await _sut.GetAllAsync();
+
+        result.Should().ContainSingle()
+            .Which.StreamEndpoints.Should().ContainSingle();
+    }
+
+    // -------------------------------------------------------------------------
+    // UpsertRangeAsync — empty list
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task UpsertRangeAsync_ReturnsZero_WhenEmptyList()
+    {
+        var count = await _sut.UpsertRangeAsync([]);
+
+        count.Should().Be(0);
+    }
+
+    // -------------------------------------------------------------------------
     // UpsertRangeAsync — insert path
     // -------------------------------------------------------------------------
 

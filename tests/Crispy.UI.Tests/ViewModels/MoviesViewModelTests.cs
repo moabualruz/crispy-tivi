@@ -33,6 +33,8 @@ public class MoviesViewModelTests
 
         _movieRepo.GetBySourceAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(new List<Movie>());
+        _movieRepo.GetAllAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<Movie>());
         _sourceRepo.GetAllAsync()
             .Returns(new List<Source>());
 
@@ -128,7 +130,7 @@ public class MoviesViewModelTests
         var sourceRepo = Substitute.For<ISourceRepository>();
         sourceRepo.GetAllAsync()
             .Returns(Task.FromResult<IReadOnlyList<Source>>([MakeSource(1, "IPTV1")]));
-        movieRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
+        movieRepo.GetAllAsync(Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Movie>>([MakeMovie(1, 1), MakeMovie(2, 1)]));
 
         var sut = new MoviesViewModel(movieRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
@@ -166,7 +168,7 @@ public class MoviesViewModelTests
     }
 
     [Fact]
-    public async Task LoadAsync_AllSourcesFilter_AggregatesMoviesFromAllSources()
+    public async Task LoadAsync_AllSourcesFilter_UsesGetAllAsync()
     {
         var movieRepo = Substitute.For<IMovieRepository>();
         var sourceRepo = Substitute.For<ISourceRepository>();
@@ -176,16 +178,15 @@ public class MoviesViewModelTests
                 MakeSource(1, "IPTV1"),
                 MakeSource(2, "IPTV2"),
             ]));
-        movieRepo.GetBySourceAsync(1, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<Movie>>([MakeMovie(1, 1)]));
-        movieRepo.GetBySourceAsync(2, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<Movie>>([MakeMovie(2, 2)]));
+        movieRepo.GetAllAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Movie>>([MakeMovie(1, 1), MakeMovie(2, 2)]));
 
         var sut = new MoviesViewModel(movieRepo, sourceRepo, Substitute.For<INavigationService>(), Substitute.For<IPlayerController>());
         await Task.Delay(100);
 
-        // Default is "All Sources" so both movies should be present
+        // Default is "All Sources" — uses single GetAllAsync call
         sut.Movies.Should().HaveCount(2);
+        await movieRepo.Received().GetAllAsync(Arg.Any<CancellationToken>());
     }
 
     // ── Filter selection ───────────────────────────────────────────────────────

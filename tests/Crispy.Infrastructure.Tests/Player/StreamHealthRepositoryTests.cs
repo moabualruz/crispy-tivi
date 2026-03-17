@@ -26,6 +26,9 @@ public class StreamHealthRepositoryTests
         public Task<IReadOnlyList<Channel>> GetBySourceAsync(int sourceId, CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<Channel>>([]);
 
+        public Task<IReadOnlyList<Channel>> GetAllAsync(CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<Channel>>([]);
+
         public Task<int> UpsertRangeAsync(IEnumerable<Channel> channels, CancellationToken ct = default)
             => Task.FromResult(0);
 
