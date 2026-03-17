@@ -1,0 +1,40 @@
+[nav]
+home = "Startseite"
+live-tv = "Live-TV"
+guide = "Programmführer"
+movies = "Filme"
+series = "Serien"
+search = "Suche"
+settings = "Einstellungen"
+
+[home]
+title = "CrispyTivi"
+welcome-title = "Willkommen bei CrispyTivi"
+welcome-subtitle = "Füge eine Quelle hinzu, um mit Live-TV, Filmen und Serien zu starten."
+
+[empty]
+add-source = "Quelle hinzufügen"
+no-channels = "Keine Kanäle"
+no-channels-subtitle = "Füge eine IPTV-Quelle hinzu, um Live-Kanäle zu durchsuchen."
+no-epg = "Kein Programmführer"
+no-epg-subtitle = "EPG-Daten erscheinen, sobald du eine Quelle mit Programminformationen hinzufügst."
+no-movies = "Keine Filme"
+no-movies-subtitle = "Filme aus deinen IPTV- und Medienserver-Quellen erscheinen hier."
+no-series = "Keine Serien"
+no-series-subtitle = "TV-Serien aus deinen Quellen erscheinen hier."
+search-placeholder = "Kanäle, Filme, Serien suchen..."
+search-hint = "Tippe, um in allen Quellen zu suchen"
+
+[settings]
+title = "Einstellungen"
+sources = "Quellen"
+no-sources = "Keine Quellen konfiguriert. Füge eine IPTV-Quelle oder einen Medienserver hinzu."
+appearance = "Erscheinungsbild"
+theme = "Thema"
+theme-system = "System"
+theme-dark = "Dunkel"
+theme-light = "Hell"
+dark-mode = "Dunkler Modus"
+language = "Sprache"
+about = "Über"
+tagline = "Plattformübergreifender IPTV- und Medienplayer"

@@ -1,0 +1,50 @@
+import { Theme } from "../globals/theme.slint";
+
+export component SearchScreen inherits Rectangle {
+  background: transparent;
+
+  VerticalLayout {
+    padding: Theme.spacing-xl;
+    spacing: Theme.spacing-md;
+
+    // Search input placeholder
+    Rectangle {
+      height: 48px;
+      border-radius: Theme.radius-pill;
+      background: Theme.surface;
+      border-width: 1px;
+      border-color: Theme.border-subtle;
+
+      HorizontalLayout {
+        padding-left: Theme.spacing-md;
+        spacing: Theme.spacing-sm;
+
+        Text {
+          text: "🔍";
+          font-size: 20px;
+          vertical-alignment: center;
+        }
+        Text {
+          text: "Search channels, movies, series...";
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-body;
+          vertical-alignment: center;
+        }
+      }
+    }
+
+    // Empty results area
+    Rectangle {
+      vertical-stretch: 1;
+      Text {
+        text: "Type to search across all sources";
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+    }
+  }
+}

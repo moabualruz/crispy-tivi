@@ -1,0 +1,71 @@
+// Design system tokens — "Cinematic Utility"
+// Reference: .ai/crispy_tivi_design_spec.md
+
+export global Theme {
+  // --- Mode ---
+  // 0 = System, 1 = Dark, 2 = Light
+  in-out property <int> theme-mode: 1;
+
+  // Resolved dark flag (System resolves to dark by default; Rust overrides based on OS)
+  out property <bool> is-dark: theme-mode == 2 ? false : true;
+
+  // --- Surface Colors ---
+  out property <brush> background: is-dark
+    ? #0A0A0C
+    : #F5F5F7;
+  out property <brush> surface: is-dark
+    ? rgba(28, 28, 32, 0.8)
+    : rgba(245, 245, 247, 0.9);
+  out property <brush> surface-glass: is-dark
+    ? rgba(10, 10, 12, 0.65)
+    : rgba(255, 255, 255, 0.75);
+
+  // --- Text Colors ---
+  out property <brush> text-primary: is-dark
+    ? rgba(255, 255, 255, 0.95)
+    : rgba(10, 10, 12, 0.95);
+  out property <brush> text-secondary: is-dark
+    ? rgba(255, 255, 255, 0.60)
+    : rgba(10, 10, 12, 0.55);
+
+  // --- Accent ---
+  out property <brush> accent: #FF4B2B;
+  out property <brush> accent-gradient: @linear-gradient(135deg, #FF4B2B 0%, #FF416C 100%);
+
+  // --- Borders ---
+  out property <brush> border-subtle: is-dark
+    ? rgba(255, 255, 255, 0.1)
+    : rgba(0, 0, 0, 0.08);
+
+  // --- Focus ---
+  out property <brush> focus-ring: is-dark ? #FFFFFF : #0A0A0C;
+  out property <length> focus-ring-width: 2px;
+
+  // --- Typography ---
+  out property <string> font-display: "Outfit";
+  out property <string> font-body: "Inter";
+  out property <length> font-size-hero: 64px;
+  out property <length> font-size-h1: 32px;
+  out property <length> font-size-h2: 24px;
+  out property <length> font-size-body: 16px;
+  out property <length> font-size-caption: 14px;
+  out property <length> font-size-small: 12px;
+
+  // --- Spacing ---
+  out property <length> spacing-xs: 4px;
+  out property <length> spacing-sm: 8px;
+  out property <length> spacing-md: 16px;
+  out property <length> spacing-lg: 24px;
+  out property <length> spacing-xl: 32px;
+  out property <length> spacing-2xl: 48px;
+
+  // --- Radii ---
+  out property <length> radius-sm: 8px;
+  out property <length> radius-md: 12px;
+  out property <length> radius-lg: 16px;
+  out property <length> radius-pill: 999px;
+
+  // --- Navigation ---
+  out property <length> nav-rail-collapsed: 72px;
+  out property <length> nav-rail-expanded: 256px;
+}

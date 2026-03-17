@@ -1,0 +1,17 @@
+export global AppState {
+  // Current active screen index
+  // 0=Home, 1=LiveTV, 2=EPG, 3=Movies, 4=Series, 5=Search, 6=Settings
+  in-out property <int> active-screen: 0;
+
+  // Navigation state
+  in-out property <bool> nav-expanded: false;
+
+  // Localization
+  in-out property <string> active-language: "en";
+  in-out property <bool> is-rtl: false;
+
+  // Callbacks to Rust
+  callback navigate(/* screen-index */ int);
+  callback set-theme(/* theme-mode: 0=system, 1=dark, 2=light */ int);
+  callback set-language(/* lang-code */ string);
+}

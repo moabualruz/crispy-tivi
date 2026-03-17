@@ -1,0 +1,15 @@
+import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+import { EmptyState } from "../components/empty-state.slint";
+
+export component SeriesScreen inherits Rectangle {
+  background: transparent;
+
+  EmptyState {
+    icon: "🎭";
+    title: "No Series";
+    subtitle: "TV series from your sources will appear here.";
+    cta-text: "Add Source";
+    cta-clicked => { AppState.navigate(6); }
+  }
+}

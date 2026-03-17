@@ -1,0 +1,40 @@
+[nav]
+home = "Home"
+live-tv = "Live TV"
+guide = "Guide"
+movies = "Movies"
+series = "Series"
+search = "Search"
+settings = "Settings"
+
+[home]
+title = "CrispyTivi"
+welcome-title = "Welcome to CrispyTivi"
+welcome-subtitle = "Add a source to get started with live TV, movies, and series."
+
+[empty]
+add-source = "Add Source"
+no-channels = "No Channels"
+no-channels-subtitle = "Add an IPTV source to browse live channels."
+no-epg = "No Programme Guide"
+no-epg-subtitle = "EPG data will appear once you add a source with guide information."
+no-movies = "No Movies"
+no-movies-subtitle = "Movies from your IPTV and media server sources will appear here."
+no-series = "No Series"
+no-series-subtitle = "TV series from your sources will appear here."
+search-placeholder = "Search channels, movies, series..."
+search-hint = "Type to search across all sources"
+
+[settings]
+title = "Settings"
+sources = "Sources"
+no-sources = "No sources configured. Add an IPTV source or media server to get started."
+appearance = "Appearance"
+theme = "Theme"
+theme-system = "System"
+theme-dark = "Dark"
+theme-light = "Light"
+dark-mode = "Dark Mode"
+language = "Language"
+about = "About"
+tagline = "Cross-platform IPTV & media player"

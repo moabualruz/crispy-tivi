@@ -1,0 +1,71 @@
+import { Theme } from "../globals/theme.slint";
+
+export component EmptyState inherits Rectangle {
+  in property <string> icon: "📭";
+  in property <string> title: "Nothing here yet";
+  in property <string> subtitle: "";
+  in property <string> cta-text: "";
+
+  callback cta-clicked();
+
+  VerticalLayout {
+    alignment: center;
+    spacing: Theme.spacing-md;
+
+    Text {
+      text: icon;
+      font-size: 48px;
+      horizontal-alignment: center;
+    }
+    Text {
+      text: title;
+      color: Theme.text-primary;
+      font-family: Theme.font-display;
+      font-size: Theme.font-size-h2;
+      horizontal-alignment: center;
+    }
+    if subtitle != "": Text {
+      text: subtitle;
+      color: Theme.text-secondary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-body;
+      horizontal-alignment: center;
+      wrap: word-wrap;
+      max-width: 400px;
+    }
+    if cta-text != "": FocusScope {
+      width: 200px;
+      height: 44px;
+
+      key-pressed(event) => {
+        if event.text == Key.Return || event.text == " " {
+          root.cta-clicked();
+          return accept;
+        }
+        return reject;
+      }
+
+      Rectangle {
+        width: 100%;
+        height: 100%;
+        border-radius: Theme.radius-pill;
+        background: Theme.accent;
+        border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+        border-color: Theme.focus-ring;
+
+        Text {
+          text: cta-text;
+          color: #FFFFFF;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-body;
+          font-weight: 600;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+        TouchArea {
+          clicked => { root.cta-clicked(); }
+        }
+      }
+    }
+  }
+}

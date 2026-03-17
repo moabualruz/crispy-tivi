@@ -5,7 +5,17 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-slint = "1.8"
+crispy-server = { path = "../crispy-server" }
+crispy-player = { path = "../crispy-player" }
+slint.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+rust-i18n.workspace = true
 
 [build-dependencies]
-slint-build = "1.8"
+slint-build.workspace = true
+
+[lints]
+workspace = true

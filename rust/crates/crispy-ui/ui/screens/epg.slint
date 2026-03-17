@@ -1,0 +1,12 @@
+import { Theme } from "../globals/theme.slint";
+import { EmptyState } from "../components/empty-state.slint";
+
+export component EpgScreen inherits Rectangle {
+  background: transparent;
+
+  EmptyState {
+    icon: "📅";
+    title: "No Programme Guide";
+    subtitle: "EPG data will appear once you add a source with guide information.";
+  }
+}

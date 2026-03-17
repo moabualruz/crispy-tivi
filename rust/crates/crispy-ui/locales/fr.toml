@@ -1,0 +1,40 @@
+[nav]
+home = "Accueil"
+live-tv = "TV en direct"
+guide = "Guide"
+movies = "Films"
+series = "Séries"
+search = "Recherche"
+settings = "Paramètres"
+
+[home]
+title = "CrispyTivi"
+welcome-title = "Bienvenue sur CrispyTivi"
+welcome-subtitle = "Ajoutez une source pour commencer avec la TV en direct, les films et les séries."
+
+[empty]
+add-source = "Ajouter une source"
+no-channels = "Aucune chaîne"
+no-channels-subtitle = "Ajoutez une source IPTV pour parcourir les chaînes en direct."
+no-epg = "Aucun guide des programmes"
+no-epg-subtitle = "Les données EPG apparaîtront une fois que vous aurez ajouté une source avec des informations de guide."
+no-movies = "Aucun film"
+no-movies-subtitle = "Les films de vos sources IPTV et serveurs multimédias apparaîtront ici."
+no-series = "Aucune série"
+no-series-subtitle = "Les séries TV de vos sources apparaîtront ici."
+search-placeholder = "Rechercher chaînes, films, séries..."
+search-hint = "Tapez pour rechercher dans toutes les sources"
+
+[settings]
+title = "Paramètres"
+sources = "Sources"
+no-sources = "Aucune source configurée. Ajoutez une source IPTV ou un serveur multimédia pour commencer."
+appearance = "Apparence"
+theme = "Thème"
+theme-system = "Système"
+theme-dark = "Sombre"
+theme-light = "Clair"
+dark-mode = "Mode sombre"
+language = "Langue"
+about = "À propos"
+tagline = "Lecteur multimédia et IPTV multiplateforme"

@@ -1,0 +1,40 @@
+[nav]
+home = "Inicio"
+live-tv = "TV en vivo"
+guide = "Guía"
+movies = "Películas"
+series = "Series"
+search = "Buscar"
+settings = "Ajustes"
+
+[home]
+title = "CrispyTivi"
+welcome-title = "Bienvenido a CrispyTivi"
+welcome-subtitle = "Agrega una fuente para empezar con TV en vivo, películas y series."
+
+[empty]
+add-source = "Agregar fuente"
+no-channels = "Sin canales"
+no-channels-subtitle = "Agrega una fuente IPTV para explorar canales en vivo."
+no-epg = "Sin guía de programación"
+no-epg-subtitle = "Los datos de EPG aparecerán cuando agregues una fuente con información de guía."
+no-movies = "Sin películas"
+no-movies-subtitle = "Las películas de tus fuentes IPTV y servidores multimedia aparecerán aquí."
+no-series = "Sin series"
+no-series-subtitle = "Las series de TV de tus fuentes aparecerán aquí."
+search-placeholder = "Buscar canales, películas, series..."
+search-hint = "Escribe para buscar en todas las fuentes"
+
+[settings]
+title = "Ajustes"
+sources = "Fuentes"
+no-sources = "No hay fuentes configuradas. Agrega una fuente IPTV o servidor multimedia para comenzar."
+appearance = "Apariencia"
+theme = "Tema"
+theme-system = "Sistema"
+theme-dark = "Oscuro"
+theme-light = "Claro"
+dark-mode = "Modo oscuro"
+language = "Idioma"
+about = "Acerca de"
+tagline = "Reproductor IPTV y multimedia multiplataforma"

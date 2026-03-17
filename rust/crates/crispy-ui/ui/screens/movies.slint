@@ -1,0 +1,15 @@
+import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+import { EmptyState } from "../components/empty-state.slint";
+
+export component MoviesScreen inherits Rectangle {
+  background: transparent;
+
+  EmptyState {
+    icon: "🎬";
+    title: "No Movies";
+    subtitle: "Movies from your IPTV and media server sources will appear here.";
+    cta-text: "Add Source";
+    cta-clicked => { AppState.navigate(6); }
+  }
+}

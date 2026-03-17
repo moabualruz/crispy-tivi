@@ -1,0 +1,37 @@
+import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+import { EmptyState } from "../components/empty-state.slint";
+
+export component HomeScreen inherits Rectangle {
+  background: transparent;
+
+  VerticalLayout {
+    padding: Theme.spacing-xl;
+
+    // Hero area placeholder
+    Rectangle {
+      height: 300px;
+      border-radius: Theme.radius-lg;
+      background: Theme.surface;
+
+      Text {
+        text: "CrispyTivi";
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-hero;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+    }
+
+    Rectangle { height: Theme.spacing-xl; }
+
+    EmptyState {
+      icon: "📺";
+      title: "Welcome to CrispyTivi";
+      subtitle: "Add a source to get started with live TV, movies, and series.";
+      cta-text: "Add Source";
+      cta-clicked => { AppState.navigate(6); }
+    }
+  }
+}

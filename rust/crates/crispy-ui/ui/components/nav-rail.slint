@@ -1,0 +1,92 @@
+import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+import { NavItem } from "nav-item.slint";
+
+export component NavRail inherits Rectangle {
+  width: AppState.nav-expanded ? Theme.nav-rail-expanded : Theme.nav-rail-collapsed;
+  background: Theme.surface-glass;
+
+  // Right border
+  Rectangle {
+    x: parent.width - 1px;
+    width: 1px;
+    background: Theme.border-subtle;
+  }
+
+  VerticalLayout {
+    padding-top: Theme.spacing-lg;
+    padding-bottom: Theme.spacing-lg;
+    spacing: Theme.spacing-xs;
+    alignment: start;
+
+    // Brand mark
+    Rectangle {
+      height: 48px;
+      Text {
+        text: "CT";
+        color: Theme.accent;
+        font-family: Theme.font-display;
+        font-size: 20px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+    }
+
+    Rectangle { height: Theme.spacing-lg; }
+
+    NavItem {
+      label: "Home";
+      icon-text: "🏠";
+      active: AppState.active-screen == 0;
+      nav-expanded: AppState.nav-expanded;
+      clicked => { AppState.navigate(0); }
+    }
+    NavItem {
+      label: "Live TV";
+      icon-text: "📺";
+      active: AppState.active-screen == 1;
+      nav-expanded: AppState.nav-expanded;
+      clicked => { AppState.navigate(1); }
+    }
+    NavItem {
+      label: "Guide";
+      icon-text: "📅";
+      active: AppState.active-screen == 2;
+      nav-expanded: AppState.nav-expanded;
+      clicked => { AppState.navigate(2); }
+    }
+    NavItem {
+      label: "Movies";
+      icon-text: "🎬";
+      active: AppState.active-screen == 3;
+      nav-expanded: AppState.nav-expanded;
+      clicked => { AppState.navigate(3); }
+    }
+    NavItem {
+      label: "Series";
+      icon-text: "🎭";
+      active: AppState.active-screen == 4;
+      nav-expanded: AppState.nav-expanded;
+      clicked => { AppState.navigate(4); }
+    }
+    NavItem {
+      label: "Search";
+      icon-text: "🔍";
+      active: AppState.active-screen == 5;
+      nav-expanded: AppState.nav-expanded;
+      clicked => { AppState.navigate(5); }
+    }
+
+    // Push settings to bottom
+    Rectangle { vertical-stretch: 1; }
+
+    NavItem {
+      label: "Settings";
+      icon-text: "⚙";
+      active: AppState.active-screen == 6;
+      nav-expanded: AppState.nav-expanded;
+      clicked => { AppState.navigate(6); }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+[nav]
+home = "الرئيسية"
+live-tv = "البث المباشر"
+guide = "الدليل"
+movies = "الأفلام"
+series = "المسلسلات"
+search = "البحث"
+settings = "الإعدادات"
+
+[home]
+title = "CrispyTivi"
+welcome-title = "مرحباً بك في CrispyTivi"
+welcome-subtitle = "أضف مصدراً للبدء بمشاهدة التلفزيون المباشر والأفلام والمسلسلات."
+
+[empty]
+add-source = "إضافة مصدر"
+no-channels = "لا توجد قنوات"
+no-channels-subtitle = "أضف مصدر IPTV لتصفح القنوات المباشرة."
+no-epg = "لا يوجد دليل برامج"
+no-epg-subtitle = "ستظهر بيانات البرامج عند إضافة مصدر يحتوي على معلومات الدليل."
+no-movies = "لا توجد أفلام"
+no-movies-subtitle = "ستظهر الأفلام من مصادر IPTV وخوادم الوسائط هنا."
+no-series = "لا توجد مسلسلات"
+no-series-subtitle = "ستظهر المسلسلات من مصادرك هنا."
+search-placeholder = "البحث في القنوات والأفلام والمسلسلات..."
+search-hint = "اكتب للبحث في جميع المصادر"
+
+[settings]
+title = "الإعدادات"
+sources = "المصادر"
+no-sources = "لم يتم تكوين أي مصادر. أضف مصدر IPTV أو خادم وسائط للبدء."
+appearance = "المظهر"
+theme = "السمة"
+theme-system = "النظام"
+theme-dark = "داكن"
+theme-light = "فاتح"
+dark-mode = "الوضع الداكن"
+language = "اللغة"
+about = "حول"
+tagline = "مشغل وسائط و IPTV متعدد المنصات"
