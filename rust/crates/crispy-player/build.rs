@@ -66,45 +66,85 @@ fn setup_windows(arch: &str, cache_dir: &Path) {
             resolved.display()
         );
 
-        // Copy libmpv-2.dll to OUT_DIR so it ends up next to the binary
-        let dll_src = resolved.join("libmpv-2.dll");
-        if dll_src.exists() {
-            let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-            // Walk up from OUT_DIR to find the target profile dir (e.g. target/debug/)
-            let mut target_dir = out_dir.as_path();
-            while let Some(parent) = target_dir.parent() {
-                if parent.ends_with("debug") || parent.ends_with("release") {
-                    let dll_dst = parent.join("libmpv-2.dll");
-                    if !dll_dst.exists() {
-                        fs::copy(&dll_src, &dll_dst).ok();
-                        println!("cargo:warning=Copied libmpv-2.dll to {}", dll_dst.display());
-                    }
-                    // Also copy to deps/ for test binaries
-                    let deps_dst = parent.join("deps").join("libmpv-2.dll");
-                    if !deps_dst.exists() {
-                        fs::copy(&dll_src, &deps_dst).ok();
-                    }
-                    break;
-                }
-                target_dir = parent;
-            }
-        }
-
+        copy_dll_to_target(&resolved);
         return;
     }
 
-    // Auto-download from shinchiro
-    let url = format!(
-        "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/{tag}/{archive_name}-{tag}-git-f9190e5.7z"
-    );
-    println!("cargo:warning=Downloading libmpv from {url}");
+    // Auto-download from shinchiro using gh CLI
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+    let dest_dir = manifest_dir
+        .join("..")
+        .join("..")
+        .join("..")
+        .join("third-party")
+        .join("mpv")
+        .join(platform);
+    fs::create_dir_all(&dest_dir).ok();
+
+    let pattern = format!("{archive_name}-{tag}-git-*.7z");
     println!(
-        "cargo:warning=If this fails, manually download mpv-dev and place in third-party/mpv/{platform}/"
+        "cargo:warning=Downloading libmpv via: gh release download {tag} --repo shinchiro/mpv-winbuild-cmake -p \"{pattern}\""
     );
 
-    // For now, just point to third-party if it exists, otherwise warn
+    let status = std::process::Command::new("gh")
+        .args([
+            "release",
+            "download",
+            tag,
+            "--repo",
+            "shinchiro/mpv-winbuild-cmake",
+            "-p",
+            &pattern,
+            "-D",
+            &dest_dir.to_string_lossy(),
+            "--clobber",
+        ])
+        .status();
+
+    if let Ok(s) = status
+        && s.success()
+    {
+        // Find the downloaded .7z and extract
+        if let Ok(entries) = fs::read_dir(&dest_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().is_some_and(|e| e == "7z") {
+                    println!("cargo:warning=Extracting {}", path.display());
+                    let extract_status = std::process::Command::new("7z")
+                        .args([
+                            "x",
+                            &path.to_string_lossy(),
+                            &format!("-o{}", dest_dir.to_string_lossy()),
+                            "-aoa",
+                        ])
+                        .status();
+                    if let Ok(es) = extract_status
+                        && es.success()
+                    {
+                        // Generate mpv.lib from libmpv.dll.a if needed
+                        let dll = dest_dir.join("libmpv-2.dll");
+                        let implib = dest_dir.join("mpv.lib");
+                        if dll.exists() && !implib.exists() {
+                            generate_msvc_implib(&dest_dir);
+                        }
+
+                        if let Ok(resolved) = dest_dir.canonicalize() {
+                            println!("cargo:rustc-link-search=native={}", resolved.display());
+                            println!(
+                                "cargo:warning=libmpv downloaded and extracted to {}",
+                                resolved.display()
+                            );
+                            copy_dll_to_target(&resolved);
+                        }
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
     println!(
-        "cargo:warning=libmpv not found. Place libmpv-2.dll + mpv.lib in third-party/mpv/{platform}/"
+        "cargo:warning=Auto-download failed. Manually place libmpv-2.dll + mpv.lib in third-party/mpv/{platform}/"
     );
 }
 
@@ -269,4 +309,80 @@ fn find_static_lib_in_dir(dir: &Path) -> Option<PathBuf> {
         }
     }
     None
+}
+
+/// Copy libmpv-2.dll to the target profile dir and deps/ for runtime discovery.
+fn copy_dll_to_target(mpv_dir: &Path) {
+    let dll_src = mpv_dir.join("libmpv-2.dll");
+    if !dll_src.exists() {
+        return;
+    }
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let mut target_dir = out_dir.as_path();
+    while let Some(parent) = target_dir.parent() {
+        if parent.ends_with("debug") || parent.ends_with("release") {
+            let dll_dst = parent.join("libmpv-2.dll");
+            if !dll_dst.exists() {
+                fs::copy(&dll_src, &dll_dst).ok();
+                println!("cargo:warning=Copied libmpv-2.dll to {}", dll_dst.display());
+            }
+            let deps_dst = parent.join("deps").join("libmpv-2.dll");
+            if !deps_dst.exists() {
+                fs::copy(&dll_src, &deps_dst).ok();
+            }
+            break;
+        }
+        target_dir = parent;
+    }
+}
+
+/// Generate MSVC-compatible mpv.lib from libmpv-2.dll using dlltool + objdump.
+fn generate_msvc_implib(mpv_dir: &Path) {
+    let dll = mpv_dir.join("libmpv-2.dll");
+    let def_file = mpv_dir.join("libmpv-2.def");
+    let implib = mpv_dir.join("mpv.lib");
+
+    // Generate .def from DLL exports using objdump
+    let output = std::process::Command::new("objdump")
+        .args(["-p", &dll.to_string_lossy()])
+        .output();
+
+    if let Ok(out) = output
+        && out.status.success()
+    {
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let exports: Vec<&str> = stdout
+            .lines()
+            .filter(|l| l.contains("mpv_"))
+            .filter_map(|l| l.split_whitespace().last())
+            .collect();
+
+        if !exports.is_empty() {
+            let mut def = String::from("LIBRARY libmpv-2.dll\nEXPORTS\n");
+            for e in &exports {
+                def.push_str(&format!("  {e}\n"));
+            }
+            fs::write(&def_file, &def).ok();
+
+            let status = std::process::Command::new("dlltool")
+                .args([
+                    "-d",
+                    &def_file.to_string_lossy(),
+                    "-l",
+                    &implib.to_string_lossy(),
+                    "-D",
+                    "libmpv-2.dll",
+                ])
+                .status();
+
+            if let Ok(s) = status
+                && s.success()
+            {
+                println!(
+                    "cargo:warning=Generated mpv.lib ({} exports)",
+                    exports.len()
+                );
+            }
+        }
+    }
 }
