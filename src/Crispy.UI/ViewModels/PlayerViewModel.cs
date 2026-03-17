@@ -232,6 +232,11 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
     [ObservableProperty]
     private ObservableCollection<EpgProgrammeRef> _bufferProgrammes = [];
 
+    // ─── Multiview activation (PLR-29) ────────────────────────────────────────
+
+    [ObservableProperty]
+    private bool _isMultiviewActive;
+
     // ─── Player handoff (PLR-22/23/24) ───────────────────────────────────────
 
     [ObservableProperty]
@@ -717,6 +722,26 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
 
     /// <summary>Called from code-behind keyboard handler for digit keys 0-9.</summary>
     public void HandleDigitKey(string digit) => AccumulateDirectTune(digit);
+
+    [RelayCommand]
+    private void ActivateMultiview()
+    {
+        IsMultiviewActive = true;
+        MultiviewActivated?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void DeactivateMultiview()
+    {
+        IsMultiviewActive = false;
+        MultiviewDeactivated?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Raised when the user activates multiview mode (PLR-29).</summary>
+    public event EventHandler? MultiviewActivated;
+
+    /// <summary>Raised when the user deactivates multiview mode.</summary>
+    public event EventHandler? MultiviewDeactivated;
 
     [RelayCommand]
     private void OpenSleepTimer() => IsSleepTimerPanelOpen = true;

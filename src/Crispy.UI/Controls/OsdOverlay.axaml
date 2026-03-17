@@ -272,7 +272,7 @@
         <ContentControl x:Name="SeekBarHost" />
 
         <!-- Control row -->
-        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
 
           <!-- Previous channel -->
           <Button Grid.Column="0"
@@ -359,8 +359,18 @@
                   FontSize="18"
                   Padding="8,4" />
 
-          <!-- External player -->
+          <!-- Multiview (4-up grid) -->
           <Button Grid.Column="10"
+                  Content="&#x2B1A;"
+                  Command="{Binding ActivateMultiviewCommand}"
+                  Background="Transparent"
+                  Foreground="White"
+                  FontSize="18"
+                  Padding="8,4"
+                  ToolTip.Tip="Multiview" />
+
+          <!-- External player -->
+          <Button Grid.Column="11"
                   Content="&#x2197;"
                   Command="{Binding OpenExternalPlayerCommand}"
                   Background="Transparent"
@@ -370,7 +380,7 @@
                   ToolTip.Tip="Open in external player" />
 
           <!-- Catchup restart -->
-          <Button Grid.Column="11"
+          <Button Grid.Column="12"
                   Content="&#x23EA;"
                   IsVisible="{Binding CanRestartFromCatchup}"
                   Background="Transparent"
@@ -379,7 +389,7 @@
                   Padding="8,4" />
 
           <!-- GO LIVE -->
-          <Button Grid.Column="12"
+          <Button Grid.Column="13"
                   Content="GO LIVE"
                   IsVisible="{Binding Osd.ShowGoLive}"
                   Command="{Binding GoLiveCommand}"
