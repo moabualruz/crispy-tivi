@@ -16,6 +16,7 @@ mod i18n;
 #[allow(dead_code)]
 mod provider;
 mod sync;
+mod sync_task;
 
 fn main() -> anyhow::Result<()> {
     // Initialize tracing with configurable filter
