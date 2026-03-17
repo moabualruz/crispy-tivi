@@ -1,0 +1,92 @@
+import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+import { ActionButton } from "action-button.slint";
+
+export component ProfileMenu inherits Rectangle {
+  width: 100%; height: 100%;
+  background: transparent;
+
+  callback close();
+
+  // Dimming background
+  TouchArea {
+    width: 100%; height: 100%;
+    clicked => { root.close(); }
+  }
+
+  // Slide-over panel attached to the top right
+  Rectangle {
+    x: parent.width - self.width - Theme.spacing-xl;
+    y: Theme.top-nav-height + Theme.spacing-sm;
+    width: 320px;
+    height: 280px;
+    border-radius: Theme.radius-lg;
+    background: Theme.surface;
+    border-width: 1px;
+    border-color: Theme.border-subtle;
+    clip: true;
+
+    // Glassmorphism effect overlay
+    Rectangle {
+      width: 100%; height: 100%;
+      background: Theme.card-surface;
+    }
+
+    VerticalLayout {
+      padding: Theme.spacing-lg;
+      spacing: Theme.spacing-lg;
+
+      // Header
+      HorizontalLayout {
+        alignment: start;
+        spacing: Theme.spacing-md;
+        
+        // Avatar
+        Rectangle {
+          width: 56px; height: 56px;
+          border-radius: 28px;
+          background: Theme.accent;
+          Text { 
+            text: "P"; 
+            color: Theme.background; 
+            font-weight: 700; 
+            font-size: 20px;
+            font-family: Theme.font-display;
+            horizontal-alignment: center; 
+            vertical-alignment: center; 
+          }
+        }
+
+        VerticalLayout {
+          alignment: center;
+          Text { text: "Profile 1"; color: Theme.text-primary; font-weight: 700; font-family: Theme.font-display; font-size: 18px; }
+          Text { text: "Switch Profile..."; color: Theme.text-secondary; font-size: 14px; font-family: Theme.font-body; }
+        }
+      }
+
+      Rectangle { height: 1px; width: 100%; background: Theme.border-subtle; }
+
+      // Menu Actions
+      VerticalLayout {
+        spacing: Theme.spacing-md;
+        
+        ActionButton {
+          label: "Manage Profiles";
+          clicked => {
+            // AppState.active-screen = 8; // Switcher (Phase 4)
+            root.close();
+          }
+        }
+        
+        ActionButton {
+          label: "Settings";
+          clicked => {
+            AppState.active-screen = 7;
+            AppState.navigate(7);
+            root.close();
+          }
+        }
+      }
+    }
+  }
+}

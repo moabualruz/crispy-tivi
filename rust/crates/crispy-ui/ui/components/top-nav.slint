@@ -23,8 +23,7 @@ export component TopNav inherits Rectangle {
       ProfileButton {
         initial: "P";
         clicked => {
-          AppState.active-screen = 7;
-          AppState.navigate(7);
+          AppState.show-profile-menu = true;
         }
       }
 

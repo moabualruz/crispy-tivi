@@ -36,9 +36,10 @@ component StepIndicator inherits HorizontalLayout {
 // ─── Step 0: Welcome ───
 component WelcomeStep inherits Rectangle {
   background: transparent;
+  min-height: layout.min-height;
 
   // Centered content card
-  VerticalLayout {
+  layout := VerticalLayout {
     alignment: center;
     spacing: Theme.spacing-2xl;
 
@@ -102,6 +103,7 @@ component WelcomeStep inherits Rectangle {
 // ─── Step 1: Add Source ───
 component AddSourceStep inherits Rectangle {
   background: transparent;
+  min-height: layout.min-height;
 
   in-out property <string> src-name: "";
   in-out property <int> src-type-idx: 0;
@@ -109,7 +111,7 @@ component AddSourceStep inherits Rectangle {
   in-out property <string> field-user: "";
   in-out property <string> field-pass: "";
 
-  VerticalLayout {
+  layout := VerticalLayout {
     alignment: center;
     spacing: Theme.spacing-xl;
 
@@ -238,8 +240,9 @@ component AddSourceStep inherits Rectangle {
 // ─── Step 2: Preferences ───
 component PreferencesStep inherits Rectangle {
   background: transparent;
+  min-height: layout.min-height;
 
-  VerticalLayout {
+  layout := VerticalLayout {
     alignment: center;
     spacing: Theme.spacing-xl;
 
@@ -362,8 +365,9 @@ component PreferencesStep inherits Rectangle {
 // ─── Step 3: Done ───
 component DoneStep inherits Rectangle {
   background: transparent;
+  min-height: layout.min-height;
 
-  VerticalLayout {
+  layout := VerticalLayout {
     alignment: center;
     spacing: Theme.spacing-2xl;
 
@@ -431,7 +435,7 @@ export component OnboardingScreen inherits Rectangle {
   // Subtle gradient backdrop
   Rectangle {
     width: 100%; height: 100%;
-    background: @linear-gradient(160deg, rgba(255, 75, 43, 0.08) 0%, rgba(10, 10, 12, 1.0) 40%, rgba(255, 65, 108, 0.06) 100%);
+    background: @linear-gradient(160deg, rgba(255, 255, 255, 0.05) 0%, rgba(10, 10, 12, 1.0) 40%, rgba(200, 210, 220, 0.04) 100%);
   }
 
   ScrollView {

@@ -37,9 +37,12 @@ export component ChannelPill inherits FocusScope {
         overflow: elide;
         horizontal-stretch: 1;
       }
-      IconPlay {
-        size: 14px;
-        fill: Theme.accent;
+      VerticalLayout {
+        alignment: center;
+        if root.has-focus: IconPlay {
+          size: 14px;
+          fill: Theme.accent;
+        }
       }
     }
     TouchArea { clicked => { root.clicked(); } }

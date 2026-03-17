@@ -16,6 +16,7 @@ import { PlayerScreen, PlayerState } from "screens/player.slint";
 import { OnboardingScreen, OnboardingState } from "screens/onboarding.slint";
 import { SourceDialog } from "components/source-dialog.slint";
 import { DiagnosticsPanel, DiagnosticsState } from "components/diagnostics-panel.slint";
+import { ProfileMenu } from "components/profile-menu.slint";
 
 // Re-export for Rust access
 export { PlayerState, OnboardingState, DiagnosticsState }
@@ -88,5 +89,8 @@ export component AppWindow inherits Window {
 
   // Modals (above everything except onboarding)
   if !OnboardingState.is-active: SourceDialog {}
+  if AppState.show-profile-menu && !OnboardingState.is-active: ProfileMenu {
+    close => { AppState.show-profile-menu = false; }
+  }
   DiagnosticsPanel {}
 }
