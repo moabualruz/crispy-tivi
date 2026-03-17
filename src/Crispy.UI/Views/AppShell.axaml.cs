@@ -210,6 +210,15 @@ public partial class AppShell : UserControl
                 e.Handled = true;
                 break;
 
+            // ── Multiview toggle (Ctrl+M — must precede plain M/mute) ──
+            case Key.M when isWatching && e.KeyModifiers.HasFlag(KeyModifiers.Control):
+                if (vm.Player.IsMultiviewActive)
+                    vm.Player.DeactivateMultiviewCommand.Execute(null);
+                else
+                    vm.Player.ActivateMultiviewCommand.Execute(null);
+                e.Handled = true;
+                break;
+
             case Key.M when isWatching:
                 vm.Player.ToggleMuteCommand.Execute(null);
                 e.Handled = true;
