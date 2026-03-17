@@ -1568,4 +1568,47 @@ public class PlayerViewModelTests
             "RetryCount must increment on every error even when there is no current request");
         _playerService.DidNotReceive().PlayAsync(Arg.Any<PlaybackRequest>());
     }
+
+    // ─── IsLive state propagation (GAP-03) ────────────────────────────────────
+
+    [AvaloniaFact]
+    public void IsLive_IsTrue_WhenPlayerStateEmitsIsLiveTrue()
+    {
+        // Arrange — emit a live stream state
+        var state = PlayerState.Empty with { IsLive = true, IsPlaying = true, Mode = PlaybackMode.Live };
+
+        // Act
+        _stateSubject.OnNext(state);
+
+        // Assert
+        _sut.IsLive.Should().BeTrue("PlayerViewModel.IsLive must mirror PlayerState.IsLive");
+        _sut.Osd.IsLive.Should().BeTrue("OsdViewModel.IsLive must be synced from PlayerState.IsLive");
+    }
+
+    [AvaloniaFact]
+    public void IsLive_IsFalse_WhenPlayerStateEmitsVodMode()
+    {
+        // Arrange — emit a VOD state
+        var state = PlayerState.Empty with { IsLive = false, IsPlaying = true, Mode = PlaybackMode.Vod };
+
+        // Act
+        _stateSubject.OnNext(state);
+
+        // Assert
+        _sut.IsLive.Should().BeFalse("IsLive must be false for VOD content");
+        _sut.Osd.IsLive.Should().BeFalse("OsdViewModel.IsLive must be false for VOD content");
+    }
+
+    [AvaloniaFact]
+    public void OsdIsTimeshifted_SyncedFromPlayerState_WhenModeIsTimeshifted()
+    {
+        // Arrange — emit a timeshifted state
+        var state = PlayerState.Empty with { IsLive = true, IsPlaying = true, Mode = PlaybackMode.Timeshifted };
+
+        // Act
+        _stateSubject.OnNext(state);
+
+        // Assert — verify OSD sync specifically (PlayerViewModel.IsTimeshifted tested elsewhere)
+        _sut.Osd.IsTimeshifted.Should().BeTrue("OsdViewModel.IsTimeshifted must be synced from PlaybackMode");
+    }
 }
