@@ -98,3 +98,6 @@ reports/
 
 # release
 release/
+
+# CodeSearch indexes (large binary DBs)
+.coa/

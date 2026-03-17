@@ -2,7 +2,6 @@
 resolver = "2"
 members = [
     "crates/crispy-core",
-    "crates/crispy-ffi",
     "crates/crispy-server",
 ]
 
@@ -21,7 +20,6 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 thiserror = "2"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
-flutter_rust_bridge = "=2.11.1"
 anyhow = "1"
 regex = "1"
 base64 = "0.22"
