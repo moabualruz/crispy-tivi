@@ -3,6 +3,8 @@ slint::include_modules!();
 mod app;
 mod data;
 mod i18n;
+#[allow(dead_code)]
+mod provider;
 
 fn main() -> anyhow::Result<()> {
     // Initialize tracing with configurable filter
