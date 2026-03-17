@@ -39,9 +39,6 @@ ci-logs/
 **/test_creds.local.json
 
 # AI/agent config (managed in crispy-ai-config private repo)
-.ai/
-CLAUDE.md
-GEMINI.md
 .cursorrules
 .agent/
 
@@ -64,3 +61,7 @@ release/
 .coa/
 .codesearchignore
 .fastembed_cache/
+
+# errors
+error*.txt
+erros*.json

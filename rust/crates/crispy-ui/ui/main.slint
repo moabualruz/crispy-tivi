@@ -12,6 +12,19 @@ global Theme {
     out property <string> display-font: "Outfit";
 }
 
+// Custom Icon Components using SVG Paths to replace emojis
+component IconSearch inherits Path { viewbox-width: 24; viewbox-height: 24; commands: "M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"; }
+component IconMic inherits Path { viewbox-width: 24; viewbox-height: 24; commands: "M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3s-3 1.34-3 3v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"; }
+component IconUser inherits Path { viewbox-width: 24; viewbox-height: 24; commands: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"; }
+component IconPlay inherits Path { viewbox-width: 24; viewbox-height: 24; commands: "M8 5v14l11-7z"; }
+component IconPause inherits Path { viewbox-width: 24; viewbox-height: 24; commands: "M6 19h4V5H6v14zm8-14v14h4V5h-4z"; }
+component IconStop inherits Path { viewbox-width: 24; viewbox-height: 24; commands: "M6 6h12v12H6z"; }
+component IconInfo inherits Path { viewbox-width: 24; viewbox-height: 24; commands: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"; }
+component IconCC inherits Path { viewbox-width: 24; viewbox-height: 24; commands: "M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1.5c0 .28-.22.5-.5.5h-3c-.28 0-.5-.22-.5-.5v-4c0-.28.22-.5.5-.5h3c.28 0 .5.22.5.5V11zm7 0h-1.5v-.5h-2v3h2V13H18v1.5c0 .28-.22.5-.5.5h-3c-.28 0-.5-.22-.5-.5v-4c0-.28.22-.5.5-.5h3c.28 0 .5.22.5.5V11z"; }
+component IconSettings inherits Path { viewbox-width: 24; viewbox-height: 24; commands: "M19.4 13c0-.3.1-.6.1-.9s-.1-.6-.1-.9l2.1-1.6c.2-.2.3-.5.1-.7l-2-3.5c-.1-.2-.4-.3-.6-.2l-2.5 1c-.5-.4-1.1-.7-1.7-1l-.4-2.6c0-.3-.3-.4-.5-.4h-4c-.2 0-.5.2-.5.4l-.4 2.6c-.6.3-1.2-.6-1.7 1l-2.5-1c-.2-.1-.5 0-.6.2l-2 3.5c-.1.2 0 .5.1.7l2.1 1.6c0 .3-.1.6-.1.9s.1.6.1.9l-2.1 1.6c-.2.2-.3.5-.1.7l2 3.5c.1.2.4.3.6.2l2.5-1c.5.4 1.1.7 1.7 1l.4 2.6c0 .3.3.4.5.4h4c.2 0 .5-.2.5-.4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5c.1-.2 0-.5-.1-.7l-2.1-1.6zm-7.4 2.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"; }
+component IconTv inherits Path { viewbox-width: 24; viewbox-height: 24; commands: "M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"; }
+
+
 component NavItem inherits Rectangle {
     in property <string> text;
     in property <bool> active;
@@ -41,21 +54,27 @@ component HorizontalCard inherits Rectangle {
     in property <float> progress: 0.0;
     callback clicked;
 
-    width: 250px;
-    height: 140px;
+    width: 300px;
+    height: 160px;
     border-radius: 12px;
-    background: Theme.card-surface;
+    background: @linear-gradient(135deg, #2c2c30 0%, #1a1a20 100%);
     border-width: 1px;
     border-color: Theme.border-light;
+
+    // Simulate artwork gradient
+    Rectangle {
+        y: 0; width: 100%; height: 100%; border-radius: 12px; clip: true;
+        background: @linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.85) 100%);
+    }
 
     Text {
         text: root.title;
         color: Theme.text-primary;
         font-weight: 700;
         font-family: Theme.display-font;
-        font-size: 16px;
+        font-size: 18px;
         x: 15px;
-        y: parent.height - 35px;
+        y: parent.height - 40px;
     }
 
     if root.progress > 0.0 : Rectangle {
@@ -83,9 +102,15 @@ component VerticalCard inherits Rectangle {
     width: 160px;
     height: 240px;
     border-radius: 12px;
-    background: Theme.card-surface;
+    background: @linear-gradient(135deg, #2c2c30 0%, #1a1a20 100%);
     border-width: 1px;
     border-color: Theme.border-light;
+
+    // Simulate artwork
+    Rectangle {
+        y: 0; width: 100%; height: 100%; border-radius: 12px; clip: true;
+        background: @linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.85) 100%);
+    }
 
     Text {
         text: root.title;
@@ -94,7 +119,7 @@ component VerticalCard inherits Rectangle {
         font-family: Theme.display-font;
         font-size: 16px;
         x: 15px;
-        y: parent.height - 30px;
+        y: parent.height - 35px;
     }
 
     TouchArea { clicked => { root.clicked() } }
@@ -107,18 +132,18 @@ component DiscoverScreen inherits Rectangle {
         VerticalLayout {
             padding: 40px;
             padding-top: 100px; // Space for the top nav
-            spacing: 40px;
+            spacing: 50px;
 
             // Hero
             VerticalLayout {
                 spacing: 20px;
-                height: 350px;
+                height: 400px;
                 alignment: center;
 
                 Text {
                     text: "DUNE\nPART TWO";
                     font-family: Theme.display-font;
-                    font-size: 72px;
+                    font-size: 80px;
                     font-weight: 800;
                     color: Theme.text-primary;
                 }
@@ -133,19 +158,27 @@ component DiscoverScreen inherits Rectangle {
                 HorizontalLayout {
                     spacing: 15px;
                     Rectangle {
-                        width: 160px; height: 50px;
+                        width: 170px; height: 50px;
                         border-radius: 8px;
                         background: Theme.text-primary;
-                        Text { text: "▶ Watch Now"; color: black; font-weight: 700; font-size: 18px; vertical-alignment: center; horizontal-alignment: center; }
+                        HorizontalLayout {
+                            alignment: center; spacing: 8px; padding: 12px;
+                            IconPlay { fill: black; width: 20px; height: 20px; }
+                            Text { text: "Watch Now"; color: black; font-weight: 700; font-size: 18px; vertical-alignment: center; }
+                        }
                         TouchArea { clicked => { root.watch-clicked() } }
                     }
                     Rectangle {
-                        width: 160px; height: 50px;
+                        width: 150px; height: 50px;
                         border-radius: 8px;
-                        background: rgba(255, 255, 255, 0.2);
+                        background: rgba(255, 255, 255, 0.15);
                         border-width: 2px;
                         border-color: transparent;
-                        Text { text: "ⓘ More Info"; color: white; font-weight: 700; font-size: 18px; vertical-alignment: center; horizontal-alignment: center; }
+                        HorizontalLayout {
+                            alignment: center; spacing: 8px; padding: 12px;
+                            IconInfo { fill: white; width: 22px; height: 22px; }
+                            Text { text: "More Info"; color: white; font-weight: 700; font-size: 18px; vertical-alignment: center; }
+                        }
                     }
                 }
             }
@@ -158,6 +191,7 @@ component DiscoverScreen inherits Rectangle {
                     spacing: 20px;
                     HorizontalCard { title: "Planet Earth III"; progress: 0.4; clicked => { root.watch-clicked() } }
                     HorizontalCard { title: "Stranger Things S4"; progress: 0.85; clicked => { root.watch-clicked() } }
+                    HorizontalCard { title: "The Last Of Us"; progress: 0.15; clicked => { root.watch-clicked() } }
                 }
             }
 
@@ -170,6 +204,7 @@ component DiscoverScreen inherits Rectangle {
                     VerticalCard { title: "The Batman"; clicked => { root.watch-clicked() } }
                     VerticalCard { title: "Oppenheimer"; clicked => { root.watch-clicked() } }
                     VerticalCard { title: "Dune Part Two"; clicked => { root.watch-clicked() } }
+                    VerticalCard { title: "Interstellar"; clicked => { root.watch-clicked() } }
                 }
             }
         }
@@ -183,14 +218,15 @@ component EpgProgram inherits Rectangle {
     callback clicked;
 
     width: root.prog-width;
-    height: 60px;
+    height: 65px;
     background: Theme.card-surface;
     border-radius: 8px;
     border-width: 1px;
     border-color: Theme.border-light;
 
     VerticalLayout {
-        padding-left: 10px;
+        padding-left: 12px;
+        padding-right: 12px;
         alignment: center;
         Text { text: root.title; color: Theme.text-primary; font-weight: 600; font-size: 16px; overflow: elide; }
         Text { text: root.time; color: Theme.text-secondary; font-size: 12px; }
@@ -202,57 +238,81 @@ component EpgProgram inherits Rectangle {
 component LiveTvScreen inherits Rectangle {
     callback play-program;
     
-    // PiP Box representation
-    Rectangle {
-        x: root.width - 340px - 40px;
-        y: 40px;
-        width: 340px;
-        height: 190px;
-        background: black;
-        border-radius: 12px;
-        border-width: 2px;
-        border-color: Theme.border-light;
-        Text { text: "Live Video Area"; color: Theme.text-secondary; horizontal-alignment: center; vertical-alignment: center; }
-    }
-
     VerticalLayout {
         padding: 40px;
         padding-top: 100px;
+        alignment: start;
         spacing: 30px;
 
+        // Header Row with Title and PiP
         HorizontalLayout {
-            Text {
-                text: "📺 Channel Guide";
-                font-family: Theme.display-font;
-                font-size: 40px;
-                font-weight: 800;
-                color: Theme.text-primary;
+            vertical-stretch: 0;
+            alignment: space-between;
+            
+            HorizontalLayout {
+                spacing: 15px;
+                alignment: start;
+                IconTv { fill: Theme.text-primary; width: 40px; height: 40px; }
+                Text {
+                    text: "Channel Guide";
+                    font-family: Theme.display-font;
+                    font-size: 36px;
+                    font-weight: 800;
+                    color: Theme.text-primary;
+                    vertical-alignment: center;
+                }
+            }
+
+            // PiP Box representation attached cleanly to the right
+            Rectangle {
+                width: 340px;
+                height: 190px;
+                background: #000;
+                border-radius: 12px;
+                border-width: 1px;
+                border-color: Theme.border-light;
+                Text { text: "Live Video Playing..."; color: Theme.text-secondary; horizontal-alignment: center; vertical-alignment: center; }
             }
         }
 
-        VerticalLayout {
-            spacing: 10px;
-            
-            // Row 1
-            HorizontalLayout {
-                spacing: 10px; height: 60px;
-                Rectangle { width: 100px; background: rgba(28,28,32,0.4); border-radius: 8px; Text { text: "BBC 1"; color: white; horizontal-alignment: center; vertical-alignment: center; font-weight: 700; } }
-                EpgProgram { title: "News at Ten"; prog-width: 200px; clicked => { root.play-program() } }
-                EpgProgram { title: "Match of the Day"; prog-width: 400px; clicked => { root.play-program() } }
-            }
-            // Row 2
-            HorizontalLayout {
-                spacing: 10px; height: 60px;
-                Rectangle { width: 100px; background: rgba(28,28,32,0.4); border-radius: 8px; Text { text: "BBC 2"; color: white; horizontal-alignment: center; vertical-alignment: center; font-weight: 700; } }
-                EpgProgram { title: "Top Gear: Special"; prog-width: 400px; clicked => { root.play-program() } }
-                EpgProgram { title: "QI"; prog-width: 200px; clicked => { root.play-program() } }
-            }
-            // Row 3
-            HorizontalLayout {
-                spacing: 10px; height: 60px;
-                Rectangle { width: 100px; background: rgba(28,28,32,0.4); border-radius: 8px; Text { text: "ITV 1"; color: white; horizontal-alignment: center; vertical-alignment: center; font-weight: 700; } }
-                EpgProgram { title: "Coronation St"; prog-width: 200px; clicked => { root.play-program() } }
-                EpgProgram { title: "I'm a Celebrity..."; prog-width: 400px; clicked => { root.play-program() } }
+        // The Grid Area
+        ScrollView {
+            VerticalLayout {
+                spacing: 12px;
+                alignment: start;
+                vertical-stretch: 0; // Prevent rows from spacing out vertically
+                
+                // Row 1
+                HorizontalLayout {
+                    spacing: 10px; height: 65px; vertical-stretch: 0;
+                    Rectangle { width: 100px; background: rgba(28,28,32,0.4); border-radius: 8px; Text { text: "BBC 1"; color: white; horizontal-alignment: center; vertical-alignment: center; font-weight: 700; } }
+                    EpgProgram { title: "News at Ten"; prog-width: 200px; clicked => { root.play-program() } }
+                    EpgProgram { title: "Match of the Day"; prog-width: 400px; clicked => { root.play-program() } }
+                    Rectangle { horizontal-stretch: 1; } // Push everything left
+                }
+                // Row 2
+                HorizontalLayout {
+                    spacing: 10px; height: 65px; vertical-stretch: 0;
+                    Rectangle { width: 100px; background: rgba(28,28,32,0.4); border-radius: 8px; Text { text: "BBC 2"; color: white; horizontal-alignment: center; vertical-alignment: center; font-weight: 700; } }
+                    EpgProgram { title: "Top Gear: Special"; prog-width: 400px; clicked => { root.play-program() } }
+                    EpgProgram { title: "QI"; prog-width: 200px; clicked => { root.play-program() } }
+                    Rectangle { horizontal-stretch: 1; }
+                }
+                // Row 3
+                HorizontalLayout {
+                    spacing: 10px; height: 65px; vertical-stretch: 0;
+                    Rectangle { width: 100px; background: rgba(28,28,32,0.4); border-radius: 8px; Text { text: "ITV 1"; color: white; horizontal-alignment: center; vertical-alignment: center; font-weight: 700; } }
+                    EpgProgram { title: "Coronation St"; prog-width: 200px; clicked => { root.play-program() } }
+                    EpgProgram { title: "I'm a Celebrity..."; prog-width: 400px; clicked => { root.play-program() } }
+                    Rectangle { horizontal-stretch: 1; }
+                }
+                // Row 4
+                HorizontalLayout {
+                    spacing: 10px; height: 65px; vertical-stretch: 0;
+                    Rectangle { width: 100px; background: rgba(28,28,32,0.4); border-radius: 8px; Text { text: "CH 4"; color: white; horizontal-alignment: center; vertical-alignment: center; font-weight: 700; } }
+                    EpgProgram { title: "Gogglebox"; prog-width: 610px; clicked => { root.play-program() } } // 200+400+10
+                    Rectangle { horizontal-stretch: 1; }
+                }
             }
         }
     }
@@ -285,83 +345,93 @@ component ContentGridScreen inherits Rectangle {
 component PlayerScreen inherits Rectangle {
     callback stop-clicked;
     
-    // Gradient dark bottom overlay
+    // Gradient dark bottom overlay fixed
     Rectangle {
-        y: parent.height - 250px;
-        height: 250px;
+        y: parent.height - 350px;
+        height: 350px;
         width: parent.width;
-        // Approximation of linear gradient to top
-        background: Theme.surface;
+        background: @linear-gradient(180deg, rgba(10,10,12,0) 0%, rgba(10,10,12,0.8) 50%, rgba(10,10,12,1) 100%);
     }
 
+    // Absolute positioning for controls to anchor nicely
     VerticalLayout {
         y: parent.height - 180px;
-        height: 150px;
-        padding-left: 40px; padding-right: 40px;
+        height: 140px;
+        padding-left: 60px; padding-right: 60px;
+        padding-bottom: 30px;
         alignment: end;
+        spacing: 15px;
 
-        Text { text: "CH 4 • Live"; color: Theme.text-secondary; font-family: Theme.display-font; font-weight: 700; font-size: 24px; }
-        Text { text: "Gogglebox"; color: Theme.text-primary; font-family: Theme.display-font; font-weight: 800; font-size: 48px; }
-        Text { text: "Season 22  •  Ends in 1h 15m"; color: Theme.text-primary; font-size: 16px; }
-
+        // Centered Controls
         HorizontalLayout {
-            spacing: 20px;
-            padding-bottom: 20px;
+            alignment: center;
+            spacing: 30px;
             
             Rectangle {
                 width: 50px; height: 50px; border-radius: 25px; background: rgba(255,255,255,0.1); 
-                Text { text: "⏸"; color: white; font-size: 20px; horizontal-alignment: center; vertical-alignment: center;}
+                IconPause { fill: white; width: 20px; height: 20px; x: 15px; y: 15px; }
             }
             Rectangle {
-                width: 50px; height: 50px; border-radius: 25px; background: rgba(255,255,255,0.1); 
-                Text { text: "⏹"; color: white; font-size: 20px; horizontal-alignment: center; vertical-alignment: center;}
+                width: 60px; height: 60px; border-radius: 30px; background: white; 
+                IconStop { fill: black; width: 24px; height: 24px; x: 18px; y: 18px; }
                 TouchArea { clicked => { root.stop-clicked() } }
             }
             Rectangle {
                 width: 50px; height: 50px; border-radius: 25px; background: rgba(255,255,255,0.1); 
-                Text { text: "CC"; color: white; font-size: 20px; horizontal-alignment: center; vertical-alignment: center;}
-            }
-            Rectangle {
-                width: 50px; height: 50px; border-radius: 25px; background: rgba(255,255,255,0.1); 
-                Text { text: "⚙"; color: white; font-size: 20px; horizontal-alignment: center; vertical-alignment: center;}
+                IconCC { fill: white; width: 22px; height: 22px; x: 14px; y: 14px; }
             }
         }
 
+        // Progress Bar Line
         HorizontalLayout {
             spacing: 20px;
             Text { text: "20:45"; color: white; font-family: Theme.display-font; font-weight: 600; vertical-alignment: center;}
             Rectangle {
-                height: 6px;
+                height: 4px;
                 background: rgba(255,255,255,0.3);
-                border-radius: 3px;
+                border-radius: 2px;
                 horizontal-stretch: 1;
                 Rectangle {
-                    x: 0; width: 45%; height: 100%; background: Theme.brand; border-radius: 3px;
+                    x: 0; width: 45%; height: 100%; background: Theme.brand; border-radius: 2px;
                 }
                 Rectangle {
-                    x: parent.width * 0.45 - 10px;
-                    y: -7px;
-                    width: 20px; height: 20px; border-radius: 10px; background: white;
+                    x: parent.width * 0.45 - 8px;
+                    y: -6px;
+                    width: 16px; height: 16px; border-radius: 8px; background: white;
                 }
             }
             Text { text: "22:00"; color: white; font-family: Theme.display-font; font-weight: 600; vertical-alignment: center;}
+        }
+
+        // Metadata beneath
+        HorizontalLayout {
+            alignment: start;
+            VerticalLayout {
+                spacing: 4px;
+                Text { text: "CH 4 • Live"; color: Theme.brand; font-family: Theme.display-font; font-weight: 700; font-size: 16px; }
+                Text { text: "Gogglebox"; color: Theme.text-primary; font-family: Theme.display-font; font-weight: 800; font-size: 32px; }
+            }
         }
     }
 }
 
 export component AppWindow inherits Window {
-    width: 1280px;
-    height: 720px;
+    // Make window fully responsive
+    preferred-width: 1280px;
+    preferred-height: 720px;
+    min-width: 800px;
+    min-height: 600px;
     title: "CrispyTivi";
-    background: #111;
+    background: #000;
 
     in-out property <int> active-screen: 0; // 0=Discover, 1=LiveTV, 2=Player, 3=Movies, 4=Shows, 5=Library
     in-out property <int> active-tab: 0; 
     
-    // Base layer for standard views
+    // Base layer for standard views with Ken Burns placeholder gradient
     Rectangle {
-        background: black; // Imagine ken-burns movie art here
+        background: @radial-gradient(circle, #2a111a 0%, #0a0a0c 100%);
         visible: active-screen != 2;
+        width: 100%; height: 100%;
     }
 
     if (active-screen == 0) : DiscoverScreen { watch-clicked => { active-screen = 2; } }
@@ -381,14 +451,14 @@ export component AppWindow inherits Window {
                 horizontal-stretch: 1;
                 HorizontalLayout {
                     spacing: 20px;
-                    // Profile Bubble
+                    
+                    // Profile Bubble with icon
                     Rectangle {
                         width: 44px; height: 44px;
                         border-radius: 22px;
-                        background: gray; 
-                        border-width: 2px;
-                        border-color: transparent;
-                        Text { text: "👤"; horizontal-alignment: center; vertical-alignment: center; font-size: 24px; }
+                        background: rgba(255,255,255,0.15); 
+                        IconUser { fill: white; width: 24px; height: 24px; x: 10px; y: 10px; }
+                        TouchArea { } // mock profile click
                     }
                     NavItem { text: "For You"; active: active-tab == 0; clicked => { active-tab = 0; active-screen = 0; } }
                     NavItem { text: "Live"; active: active-tab == 1; clicked => { active-tab = 1; active-screen = 1; } }
@@ -400,20 +470,21 @@ export component AppWindow inherits Window {
             
             // Search Pill
             Rectangle {
-                width: 150px;
-                height: 40px;
+                width: 160px;
+                height: 44px;
                 background: rgba(255,255,255,0.1);
-                border-width: 2px;
-                border-color: rgba(255,255,255,0.1);
-                border-radius: 20px;
+                border-width: 1px;
+                border-color: rgba(255,255,255,0.15);
+                border-radius: 22px;
                 
                 HorizontalLayout {
                     alignment: center;
-                    spacing: 8px;
-                    Text { text: "🔍"; color: Theme.text-secondary; vertical-alignment: center; font-size: 16px; }
-                    Text { text: "Search"; color: Theme.text-secondary; font-family: Theme.display-font; font-weight: 500; font-size: 18px; vertical-alignment: center; }
-                    Rectangle { width: 1px; height: 20px; background: rgba(255,255,255,0.2); }
-                    Text { text: "🎤"; color: Theme.brand; vertical-alignment: center; font-size: 16px; }
+                    spacing: 12px;
+                    padding-left: 12px; padding-right: 12px;
+                    IconSearch { fill: Theme.text-secondary; width: 18px; height: 18px; y: 13px; }
+                    Text { text: "Search"; color: Theme.text-secondary; font-family: Theme.display-font; font-weight: 500; font-size: 16px; vertical-alignment: center; }
+                    Rectangle { width: 1px; height: 20px; background: rgba(255,255,255,0.2); y: 12px; }
+                    IconMic { fill: Theme.text-primary; width: 18px; height: 18px; y: 13px; }
                 }
 
                 TouchArea {
