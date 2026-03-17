@@ -34,8 +34,7 @@ pub enum PlayerState {
 
 /// Trait that all video backends must implement.
 ///
-/// Implementations exist for libmpv (default) and GStreamer
-/// (feature-gated via `gstreamer-backend`).
+/// Single implementation: libmpv for all platforms.
 pub trait PlayerBackend: Send + Sync {
     /// Start playback of the given URL or file path.
     fn play(&self, url: &str) -> Result<(), PlayerError>;

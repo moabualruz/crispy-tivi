@@ -18,27 +18,30 @@ impl MpvBackend {
     pub fn new() -> Result<Self, PlayerError> {
         let mpv = libmpv::Mpv::new().map_err(|e| PlayerError::Playback(e.to_string()))?;
 
-        // MANDATORY: hardware decoding — never disable this
-        mpv.set_property("hwdec", "auto")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set hwdec=auto: {e}")))?;
-
-        // Video output — GPU rendering
-        mpv.set_property("vo", "gpu")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set vo=gpu: {e}")))?;
-
-        // Keep the window open after playback
+        mpv.set_property("hwdec", "auto-safe")
+            .map_err(|e| PlayerError::Playback(format!("Failed to set hwdec: {e}")))?;
+        mpv.set_property("vo", "gpu-next")
+            .map_err(|e| PlayerError::Playback(format!("Failed to set vo: {e}")))?;
+        mpv.set_property("gpu-hwdec-interop", "all")
+            .map_err(|e| PlayerError::Playback(format!("Failed to set gpu-hwdec-interop: {e}")))?;
+        mpv.set_property("profile", "gpu-hq")
+            .map_err(|e| PlayerError::Playback(format!("Failed to set profile: {e}")))?;
+        mpv.set_property("video-sync", "display-resample")
+            .map_err(|e| PlayerError::Playback(format!("Failed to set video-sync: {e}")))?;
+        mpv.set_property("interpolation", "yes")
+            .map_err(|e| PlayerError::Playback(format!("Failed to set interpolation: {e}")))?;
+        mpv.set_property("tscale", "oversample")
+            .map_err(|e| PlayerError::Playback(format!("Failed to set tscale: {e}")))?;
+        mpv.set_property("deinterlace", "yes")
+            .map_err(|e| PlayerError::Playback(format!("Failed to set deinterlace: {e}")))?;
         mpv.set_property("keep-open", "yes")
             .map_err(|e| PlayerError::Playback(format!("Failed to set keep-open: {e}")))?;
-
-        // Enable network streaming
+        mpv.set_property("cache", "yes")
+            .map_err(|e| PlayerError::Playback(format!("Failed to set cache: {e}")))?;
         mpv.set_property("demuxer-max-bytes", "150MiB")
             .map_err(|e| PlayerError::Playback(format!("Failed to set demuxer-max-bytes: {e}")))?;
 
-        // Cache for live streams
-        mpv.set_property("cache", "yes")
-            .map_err(|e| PlayerError::Playback(format!("Failed to set cache: {e}")))?;
-
-        tracing::info!("MpvBackend initialized with hwdec=auto");
+        tracing::info!("MpvBackend initialized with gpu-hq profile and auto-safe hwdec");
 
         Ok(Self {
             mpv,
