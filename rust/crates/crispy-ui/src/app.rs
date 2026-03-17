@@ -167,6 +167,98 @@ pub(crate) fn init(ui: &super::AppWindow) -> anyhow::Result<CrispyService> {
         }
     });
 
+    // Wire play-channel callback
+    let svc = service.clone();
+    let ui_weak = ui.as_weak();
+    app_state.on_play_channel(move |channel_id| {
+        let cid = channel_id.to_string();
+        tracing::info!(channel_id = %cid, "Play channel");
+
+        // Look up channel to get stream URL and metadata
+        let channels = svc.get_channels_by_ids(std::slice::from_ref(&cid)).unwrap_or_default();
+        if let Some(ch) = channels.first()
+            && let Some(ui) = ui_weak.upgrade()
+        {
+            let player = ui.global::<super::PlayerState>();
+            player.set_current_title(ch.name.clone().into());
+            player.set_current_group(ch.channel_group.clone().unwrap_or_default().into());
+            player.set_current_channel_id(ch.id.clone().into());
+            player.set_is_live(true);
+            player.set_is_playing(true);
+            player.set_show_osd(true);
+            // Actual playback via PlayerBackend deferred to Phase 3.1
+            tracing::info!(
+                url = %ch.stream_url,
+                name = %ch.name,
+                "Stream ready (playback backend not yet connected)"
+            );
+        }
+    });
+
+    // Wire player control callbacks
+    let ui_weak = ui.as_weak();
+    let player_state = ui.global::<super::PlayerState>();
+
+    player_state.on_play_pause({
+        let ui_weak = ui_weak.clone();
+        move || {
+            if let Some(ui) = ui_weak.upgrade() {
+                let ps = ui.global::<super::PlayerState>();
+                ps.set_is_paused(!ps.get_is_paused());
+                tracing::debug!(paused = ps.get_is_paused(), "Play/pause toggled");
+            }
+        }
+    });
+
+    player_state.on_stop({
+        let ui_weak = ui_weak.clone();
+        move || {
+            if let Some(ui) = ui_weak.upgrade() {
+                let ps = ui.global::<super::PlayerState>();
+                ps.set_is_playing(false);
+                ps.set_is_paused(false);
+                ps.set_is_buffering(false);
+                ps.set_current_title(Default::default());
+                tracing::info!("Playback stopped");
+            }
+        }
+    });
+
+    player_state.on_seek(|position| {
+        tracing::debug!(position, "Seek requested (backend not connected)");
+    });
+
+    player_state.on_set_volume({
+        let ui_weak = ui_weak.clone();
+        move |vol| {
+            if let Some(ui) = ui_weak.upgrade() {
+                let ps = ui.global::<super::PlayerState>();
+                ps.set_volume(vol.clamp(0.0, 1.0));
+                ps.set_is_muted(false);
+            }
+        }
+    });
+
+    player_state.on_toggle_mute({
+        let ui_weak = ui_weak.clone();
+        move || {
+            if let Some(ui) = ui_weak.upgrade() {
+                let ps = ui.global::<super::PlayerState>();
+                ps.set_is_muted(!ps.get_is_muted());
+            }
+        }
+    });
+
+    player_state.on_show_controls({
+        let ui_weak = ui_weak.clone();
+        move || {
+            if let Some(ui) = ui_weak.upgrade() {
+                let ps = ui.global::<super::PlayerState>();
+                ps.set_show_osd(!ps.get_show_osd());
+            }
+        }
+    });
+
     // Load initial data
     super::data::reload_all(ui, &service);
 

@@ -11,7 +11,11 @@ import { MoviesScreen } from "screens/movies.slint";
 import { SeriesScreen } from "screens/series.slint";
 import { SearchScreen } from "screens/search.slint";
 import { SettingsScreen } from "screens/settings.slint";
+import { PlayerScreen, PlayerState } from "screens/player.slint";
 import { SourceDialog } from "components/source-dialog.slint";
+
+// Re-export PlayerState for Rust access
+export { PlayerState }
 
 export component AppWindow inherits Window {
   title: "CrispyTivi";
@@ -21,7 +25,15 @@ export component AppWindow inherits Window {
   preferred-height: 720px;
   background: Theme.background;
 
-  HorizontalLayout {
+  // Layer 0: Player (always present, behind UI)
+  PlayerScreen {
+    visible: PlayerState.is-playing || PlayerState.is-buffering;
+    width: 100%;
+    height: 100%;
+  }
+
+  // Layer 1: UI (hidden when player is fullscreen)
+  if !PlayerState.is-playing && !PlayerState.is-buffering: HorizontalLayout {
     NavRail {}
 
     Rectangle {
