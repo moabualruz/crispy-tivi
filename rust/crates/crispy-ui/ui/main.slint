@@ -1,0 +1,425 @@
+import { ScrollView, HorizontalBox, VerticalBox, ListView } from "std-widgets.slint";
+
+global Theme {
+    out property <color> surface: rgba(10, 10, 12, 0.65);
+    out property <color> card-surface: rgba(28, 28, 32, 0.8);
+    out property <color> border-light: rgba(255, 255, 255, 0.15);
+    out property <color> text-primary: rgba(255, 255, 255, 0.95);
+    out property <color> text-secondary: rgba(255, 255, 255, 0.6);
+    out property <color> accent: #FFFFFF;
+    out property <color> brand: #FF4B2B;
+    out property <string> default-font: "Inter";
+    out property <string> display-font: "Outfit";
+}
+
+component NavItem inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    callback clicked;
+
+    width: label.preferred-width + 32px;
+    height: 40px;
+    border-radius: 20px;
+    
+    label := Text {
+        text: root.text;
+        color: root.active ? Theme.text-primary : Theme.text-secondary;
+        font-weight: root.active ? 700 : 500;
+        font-size: 20px;
+        font-family: Theme.display-font;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    
+    TouchArea {
+        clicked => { root.clicked() }
+    }
+}
+
+component HorizontalCard inherits Rectangle {
+    in property <string> title;
+    in property <float> progress: 0.0;
+    callback clicked;
+
+    width: 250px;
+    height: 140px;
+    border-radius: 12px;
+    background: Theme.card-surface;
+    border-width: 1px;
+    border-color: Theme.border-light;
+
+    Text {
+        text: root.title;
+        color: Theme.text-primary;
+        font-weight: 700;
+        font-family: Theme.display-font;
+        font-size: 16px;
+        x: 15px;
+        y: parent.height - 35px;
+    }
+
+    if root.progress > 0.0 : Rectangle {
+        y: parent.height - 4px;
+        height: 4px;
+        width: parent.width;
+        background: rgba(255, 255, 255, 0.3);
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+        clip: true;
+        Rectangle {
+            x: 0; y: 0; height: 100%;
+            width: parent.width * root.progress;
+            background: Theme.brand;
+        }
+    }
+
+    TouchArea { clicked => { root.clicked() } }
+}
+
+component VerticalCard inherits Rectangle {
+    in property <string> title;
+    callback clicked;
+
+    width: 160px;
+    height: 240px;
+    border-radius: 12px;
+    background: Theme.card-surface;
+    border-width: 1px;
+    border-color: Theme.border-light;
+
+    Text {
+        text: root.title;
+        color: Theme.text-primary;
+        font-weight: 700;
+        font-family: Theme.display-font;
+        font-size: 16px;
+        x: 15px;
+        y: parent.height - 30px;
+    }
+
+    TouchArea { clicked => { root.clicked() } }
+}
+
+component DiscoverScreen inherits Rectangle {
+    callback watch-clicked;
+
+    ScrollView {
+        VerticalLayout {
+            padding: 40px;
+            padding-top: 100px; // Space for the top nav
+            spacing: 40px;
+
+            // Hero
+            VerticalLayout {
+                spacing: 20px;
+                height: 350px;
+                alignment: center;
+
+                Text {
+                    text: "DUNE\nPART TWO";
+                    font-family: Theme.display-font;
+                    font-size: 72px;
+                    font-weight: 800;
+                    color: Theme.text-primary;
+                }
+                Text {
+                    text: "A boy becomes the Messiah of nomads on a desert planet...";
+                    font-family: Theme.default-font;
+                    font-size: 18px;
+                    color: Theme.text-secondary;
+                    wrap: word-wrap;
+                    width: 600px;
+                }
+                HorizontalLayout {
+                    spacing: 15px;
+                    Rectangle {
+                        width: 160px; height: 50px;
+                        border-radius: 8px;
+                        background: Theme.text-primary;
+                        Text { text: "▶ Watch Now"; color: black; font-weight: 700; font-size: 18px; vertical-alignment: center; horizontal-alignment: center; }
+                        TouchArea { clicked => { root.watch-clicked() } }
+                    }
+                    Rectangle {
+                        width: 160px; height: 50px;
+                        border-radius: 8px;
+                        background: rgba(255, 255, 255, 0.2);
+                        border-width: 2px;
+                        border-color: transparent;
+                        Text { text: "ⓘ More Info"; color: white; font-weight: 700; font-size: 18px; vertical-alignment: center; horizontal-alignment: center; }
+                    }
+                }
+            }
+
+            // Continue Watching
+            VerticalLayout {
+                spacing: 15px;
+                Text { text: "Continue Watching"; font-family: Theme.display-font; font-size: 24px; font-weight: 700; color: Theme.text-primary; }
+                HorizontalLayout {
+                    spacing: 20px;
+                    HorizontalCard { title: "Planet Earth III"; progress: 0.4; clicked => { root.watch-clicked() } }
+                    HorizontalCard { title: "Stranger Things S4"; progress: 0.85; clicked => { root.watch-clicked() } }
+                }
+            }
+
+            // Top Picks
+            VerticalLayout {
+                spacing: 15px;
+                Text { text: "Top Picks for You"; font-family: Theme.display-font; font-size: 24px; font-weight: 700; color: Theme.text-primary; }
+                HorizontalLayout {
+                    spacing: 20px;
+                    VerticalCard { title: "The Batman"; clicked => { root.watch-clicked() } }
+                    VerticalCard { title: "Oppenheimer"; clicked => { root.watch-clicked() } }
+                    VerticalCard { title: "Dune Part Two"; clicked => { root.watch-clicked() } }
+                }
+            }
+        }
+    }
+}
+
+component EpgProgram inherits Rectangle {
+    in property <string> title;
+    in property <string> time: "20:00 - 21:00";
+    in property <length> prog-width;
+    callback clicked;
+
+    width: root.prog-width;
+    height: 60px;
+    background: Theme.card-surface;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.border-light;
+
+    VerticalLayout {
+        padding-left: 10px;
+        alignment: center;
+        Text { text: root.title; color: Theme.text-primary; font-weight: 600; font-size: 16px; overflow: elide; }
+        Text { text: root.time; color: Theme.text-secondary; font-size: 12px; }
+    }
+    
+    TouchArea { clicked => { root.clicked() } }
+}
+
+component LiveTvScreen inherits Rectangle {
+    callback play-program;
+    
+    // PiP Box representation
+    Rectangle {
+        x: root.width - 340px - 40px;
+        y: 40px;
+        width: 340px;
+        height: 190px;
+        background: black;
+        border-radius: 12px;
+        border-width: 2px;
+        border-color: Theme.border-light;
+        Text { text: "Live Video Area"; color: Theme.text-secondary; horizontal-alignment: center; vertical-alignment: center; }
+    }
+
+    VerticalLayout {
+        padding: 40px;
+        padding-top: 100px;
+        spacing: 30px;
+
+        HorizontalLayout {
+            Text {
+                text: "📺 Channel Guide";
+                font-family: Theme.display-font;
+                font-size: 40px;
+                font-weight: 800;
+                color: Theme.text-primary;
+            }
+        }
+
+        VerticalLayout {
+            spacing: 10px;
+            
+            // Row 1
+            HorizontalLayout {
+                spacing: 10px; height: 60px;
+                Rectangle { width: 100px; background: rgba(28,28,32,0.4); border-radius: 8px; Text { text: "BBC 1"; color: white; horizontal-alignment: center; vertical-alignment: center; font-weight: 700; } }
+                EpgProgram { title: "News at Ten"; prog-width: 200px; clicked => { root.play-program() } }
+                EpgProgram { title: "Match of the Day"; prog-width: 400px; clicked => { root.play-program() } }
+            }
+            // Row 2
+            HorizontalLayout {
+                spacing: 10px; height: 60px;
+                Rectangle { width: 100px; background: rgba(28,28,32,0.4); border-radius: 8px; Text { text: "BBC 2"; color: white; horizontal-alignment: center; vertical-alignment: center; font-weight: 700; } }
+                EpgProgram { title: "Top Gear: Special"; prog-width: 400px; clicked => { root.play-program() } }
+                EpgProgram { title: "QI"; prog-width: 200px; clicked => { root.play-program() } }
+            }
+            // Row 3
+            HorizontalLayout {
+                spacing: 10px; height: 60px;
+                Rectangle { width: 100px; background: rgba(28,28,32,0.4); border-radius: 8px; Text { text: "ITV 1"; color: white; horizontal-alignment: center; vertical-alignment: center; font-weight: 700; } }
+                EpgProgram { title: "Coronation St"; prog-width: 200px; clicked => { root.play-program() } }
+                EpgProgram { title: "I'm a Celebrity..."; prog-width: 400px; clicked => { root.play-program() } }
+            }
+        }
+    }
+}
+
+component ContentGridScreen inherits Rectangle {
+    in property <string> title;
+    callback item-clicked;
+
+    ScrollView {
+        VerticalLayout {
+            padding: 40px;
+            padding-top: 100px;
+            spacing: 30px;
+
+            Text { text: root.title; font-family: Theme.display-font; font-size: 32px; font-weight: 700; color: Theme.text-primary; }
+
+            // Mock grid rows
+            for row in [1, 2, 3] : HorizontalLayout {
+                spacing: 20px;
+                for col in [1, 2, 3, 4] : VerticalCard {
+                    title: "Item " + row + "-" + col;
+                    clicked => { root.item-clicked() }
+                }
+            }
+        }
+    }
+}
+
+component PlayerScreen inherits Rectangle {
+    callback stop-clicked;
+    
+    // Gradient dark bottom overlay
+    Rectangle {
+        y: parent.height - 250px;
+        height: 250px;
+        width: parent.width;
+        // Approximation of linear gradient to top
+        background: Theme.surface;
+    }
+
+    VerticalLayout {
+        y: parent.height - 180px;
+        height: 150px;
+        padding-left: 40px; padding-right: 40px;
+        alignment: end;
+
+        Text { text: "CH 4 • Live"; color: Theme.text-secondary; font-family: Theme.display-font; font-weight: 700; font-size: 24px; }
+        Text { text: "Gogglebox"; color: Theme.text-primary; font-family: Theme.display-font; font-weight: 800; font-size: 48px; }
+        Text { text: "Season 22  •  Ends in 1h 15m"; color: Theme.text-primary; font-size: 16px; }
+
+        HorizontalLayout {
+            spacing: 20px;
+            padding-bottom: 20px;
+            
+            Rectangle {
+                width: 50px; height: 50px; border-radius: 25px; background: rgba(255,255,255,0.1); 
+                Text { text: "⏸"; color: white; font-size: 20px; horizontal-alignment: center; vertical-alignment: center;}
+            }
+            Rectangle {
+                width: 50px; height: 50px; border-radius: 25px; background: rgba(255,255,255,0.1); 
+                Text { text: "⏹"; color: white; font-size: 20px; horizontal-alignment: center; vertical-alignment: center;}
+                TouchArea { clicked => { root.stop-clicked() } }
+            }
+            Rectangle {
+                width: 50px; height: 50px; border-radius: 25px; background: rgba(255,255,255,0.1); 
+                Text { text: "CC"; color: white; font-size: 20px; horizontal-alignment: center; vertical-alignment: center;}
+            }
+            Rectangle {
+                width: 50px; height: 50px; border-radius: 25px; background: rgba(255,255,255,0.1); 
+                Text { text: "⚙"; color: white; font-size: 20px; horizontal-alignment: center; vertical-alignment: center;}
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 20px;
+            Text { text: "20:45"; color: white; font-family: Theme.display-font; font-weight: 600; vertical-alignment: center;}
+            Rectangle {
+                height: 6px;
+                background: rgba(255,255,255,0.3);
+                border-radius: 3px;
+                horizontal-stretch: 1;
+                Rectangle {
+                    x: 0; width: 45%; height: 100%; background: Theme.brand; border-radius: 3px;
+                }
+                Rectangle {
+                    x: parent.width * 0.45 - 10px;
+                    y: -7px;
+                    width: 20px; height: 20px; border-radius: 10px; background: white;
+                }
+            }
+            Text { text: "22:00"; color: white; font-family: Theme.display-font; font-weight: 600; vertical-alignment: center;}
+        }
+    }
+}
+
+export component AppWindow inherits Window {
+    width: 1280px;
+    height: 720px;
+    title: "CrispyTivi";
+    background: #111;
+
+    in-out property <int> active-screen: 0; // 0=Discover, 1=LiveTV, 2=Player, 3=Movies, 4=Shows, 5=Library
+    in-out property <int> active-tab: 0; 
+    
+    // Base layer for standard views
+    Rectangle {
+        background: black; // Imagine ken-burns movie art here
+        visible: active-screen != 2;
+    }
+
+    if (active-screen == 0) : DiscoverScreen { watch-clicked => { active-screen = 2; } }
+    if (active-screen == 1) : LiveTvScreen { play-program => { active-screen = 2; } }
+    if (active-screen == 2) : PlayerScreen { stop-clicked => { active-screen = 0; active-tab = 0; } }
+    if (active-screen == 3) : ContentGridScreen { title: "Movies"; item-clicked => { active-screen = 2; } }
+    if (active-screen == 4) : ContentGridScreen { title: "TV Shows"; item-clicked => { active-screen = 2; } }
+    if (active-screen == 5) : ContentGridScreen { title: "My Library"; item-clicked => { active-screen = 2; } }
+
+    // Google TV Nav Rail
+    if (active-screen != 2) : Rectangle {
+        y: 30px; height: 60px;
+        x: 40px; width: parent.width - 80px;
+
+        HorizontalLayout {
+            Rectangle {
+                horizontal-stretch: 1;
+                HorizontalLayout {
+                    spacing: 20px;
+                    // Profile Bubble
+                    Rectangle {
+                        width: 44px; height: 44px;
+                        border-radius: 22px;
+                        background: gray; 
+                        border-width: 2px;
+                        border-color: transparent;
+                        Text { text: "👤"; horizontal-alignment: center; vertical-alignment: center; font-size: 24px; }
+                    }
+                    NavItem { text: "For You"; active: active-tab == 0; clicked => { active-tab = 0; active-screen = 0; } }
+                    NavItem { text: "Live"; active: active-tab == 1; clicked => { active-tab = 1; active-screen = 1; } }
+                    NavItem { text: "Movies"; active: active-tab == 2; clicked => { active-tab = 2; active-screen = 3; } }
+                    NavItem { text: "Shows"; active: active-tab == 3; clicked => { active-tab = 3; active-screen = 4; } }
+                    NavItem { text: "Library"; active: active-tab == 4; clicked => { active-tab = 4; active-screen = 5; } }
+                }
+            }
+            
+            // Search Pill
+            Rectangle {
+                width: 150px;
+                height: 40px;
+                background: rgba(255,255,255,0.1);
+                border-width: 2px;
+                border-color: rgba(255,255,255,0.1);
+                border-radius: 20px;
+                
+                HorizontalLayout {
+                    alignment: center;
+                    spacing: 8px;
+                    Text { text: "🔍"; color: Theme.text-secondary; vertical-alignment: center; font-size: 16px; }
+                    Text { text: "Search"; color: Theme.text-secondary; font-family: Theme.display-font; font-weight: 500; font-size: 18px; vertical-alignment: center; }
+                    Rectangle { width: 1px; height: 20px; background: rgba(255,255,255,0.2); }
+                    Text { text: "🎤"; color: Theme.brand; vertical-alignment: center; font-size: 16px; }
+                }
+
+                TouchArea {
+                    clicked => { /* Focus search */ }
+                }
+            }
+        }
+    }
+}

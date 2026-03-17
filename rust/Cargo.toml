@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/crispy-core",
     "crates/crispy-server",
+    "crates/crispy-ui",
 ]
 
 [workspace.package]
