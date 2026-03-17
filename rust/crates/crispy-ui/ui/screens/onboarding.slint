@@ -1,0 +1,323 @@
+import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+import { LineEdit, ComboBox } from "std-widgets.slint";
+
+export global OnboardingState {
+  // 0=Welcome, 1=AddSource, 2=Preferences, 3=Done
+  in-out property <int> step: 0;
+  in-out property <bool> is-active: false;
+
+  callback complete();
+  callback skip();
+}
+
+component StepIndicator inherits HorizontalLayout {
+  in property <int> current-step;
+
+  spacing: Theme.spacing-sm;
+  alignment: center;
+
+  for i in [0, 1, 2, 3]: Rectangle {
+    width: i == current-step ? 24px : 8px;
+    height: 8px;
+    border-radius: 4px;
+    background: i == current-step ? Theme.accent : Theme.border-subtle;
+
+    animate width { duration: 200ms; easing: ease-in-out; }
+    animate background { duration: 200ms; }
+  }
+}
+
+component WelcomeStep inherits VerticalLayout {
+  alignment: center;
+  spacing: Theme.spacing-xl;
+
+  Text {
+    text: "📺";
+    font-size: 72px;
+    horizontal-alignment: center;
+  }
+  Text {
+    text: "Welcome to CrispyTivi";
+    color: Theme.text-primary;
+    font-family: Theme.font-display;
+    font-size: Theme.font-size-h1;
+    horizontal-alignment: center;
+  }
+  Text {
+    text: "Your unified streaming experience.\nLet's get you set up in a few steps.";
+    color: Theme.text-secondary;
+    font-family: Theme.font-body;
+    font-size: Theme.font-size-body;
+    horizontal-alignment: center;
+    wrap: word-wrap;
+  }
+
+  FocusScope {
+    width: 200px;
+    height: 48px;
+    key-pressed(event) => {
+      if event.text == Key.Return { OnboardingState.step = 1; return accept; }
+      return reject;
+    }
+    Rectangle {
+      width: 100%; height: 100%;
+      border-radius: Theme.radius-pill;
+      background: Theme.accent;
+      border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+      border-color: Theme.focus-ring;
+      Text {
+        text: "Get Started";
+        color: #FFFFFF;
+        font-weight: 600;
+        font-size: Theme.font-size-body;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+      TouchArea { clicked => { OnboardingState.step = 1; } }
+    }
+  }
+}
+
+component AddSourceStep inherits VerticalLayout {
+  alignment: center;
+  spacing: Theme.spacing-lg;
+
+  Text {
+    text: "Add Your First Source";
+    color: Theme.text-primary;
+    font-family: Theme.font-display;
+    font-size: Theme.font-size-h2;
+    horizontal-alignment: center;
+  }
+  Text {
+    text: "Enter your IPTV source details below.";
+    color: Theme.text-secondary;
+    font-size: Theme.font-size-body;
+    horizontal-alignment: center;
+  }
+
+  // Form
+  Rectangle {
+    width: 400px;
+    border-radius: Theme.radius-md;
+    background: Theme.surface;
+    border-width: 1px;
+    border-color: Theme.border-subtle;
+
+    VerticalLayout {
+      padding: Theme.spacing-lg;
+      spacing: Theme.spacing-md;
+
+      VerticalLayout {
+        spacing: Theme.spacing-xs;
+        Text { text: "Name"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
+        onb-name := LineEdit { placeholder-text: "My IPTV"; }
+      }
+      VerticalLayout {
+        spacing: Theme.spacing-xs;
+        Text { text: "Type"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
+        onb-type := ComboBox {
+          model: ["M3U / M3U8", "Xtream Codes", "Stalker Portal"];
+          current-index: 0;
+        }
+      }
+      VerticalLayout {
+        spacing: Theme.spacing-xs;
+        Text { text: "URL"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
+        onb-url := LineEdit { placeholder-text: "http://example.com/playlist.m3u"; }
+      }
+    }
+  }
+
+  HorizontalLayout {
+    spacing: Theme.spacing-md;
+    alignment: center;
+
+    FocusScope {
+      width: 100px;
+      height: 40px;
+      key-pressed(event) => {
+        if event.text == Key.Return { OnboardingState.step = 2; return accept; }
+        return reject;
+      }
+      Rectangle {
+        width: 100%; height: 100%;
+        border-radius: Theme.radius-pill;
+        background: Theme.surface;
+        Text { text: "Skip"; color: Theme.text-secondary; horizontal-alignment: center; vertical-alignment: center; }
+        TouchArea { clicked => { OnboardingState.step = 2; } }
+      }
+    }
+
+    FocusScope {
+      width: 140px;
+      height: 40px;
+      key-pressed(event) => {
+        if event.text == Key.Return {
+          AppState.save-source(
+            onb-name.text,
+            onb-type.current-index == 0 ? "m3u" : onb-type.current-index == 1 ? "xtream" : "stalker",
+            onb-url.text, "", ""
+          );
+          OnboardingState.step = 2;
+          return accept;
+        }
+        return reject;
+      }
+      Rectangle {
+        width: 100%; height: 100%;
+        border-radius: Theme.radius-pill;
+        background: Theme.accent;
+        border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+        border-color: Theme.focus-ring;
+        Text { text: "Add & Continue"; color: #FFFFFF; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+        TouchArea {
+          clicked => {
+            AppState.save-source(
+              onb-name.text,
+              onb-type.current-index == 0 ? "m3u" : onb-type.current-index == 1 ? "xtream" : "stalker",
+              onb-url.text, "", ""
+            );
+            OnboardingState.step = 2;
+          }
+        }
+      }
+    }
+  }
+}
+
+component PreferencesStep inherits VerticalLayout {
+  alignment: center;
+  spacing: Theme.spacing-lg;
+
+  Text {
+    text: "Preferences";
+    color: Theme.text-primary;
+    font-family: Theme.font-display;
+    font-size: Theme.font-size-h2;
+    horizontal-alignment: center;
+  }
+
+  // Theme choice
+  VerticalLayout {
+    spacing: Theme.spacing-md;
+    alignment: center;
+
+    Text { text: "Choose your theme"; color: Theme.text-secondary; font-size: Theme.font-size-body; horizontal-alignment: center; }
+
+    HorizontalLayout {
+      spacing: Theme.spacing-md;
+      alignment: center;
+
+      for item in [
+        { label: "System", mode: 0 },
+        { label: "Dark", mode: 1 },
+        { label: "Light", mode: 2 },
+      ]: FocusScope {
+        width: 90px;
+        height: 40px;
+        key-pressed(event) => {
+          if event.text == Key.Return {
+            Theme.theme-mode = item.mode;
+            AppState.set-theme(item.mode);
+            return accept;
+          }
+          return reject;
+        }
+        Rectangle {
+          width: 100%; height: 100%;
+          border-radius: Theme.radius-pill;
+          background: Theme.theme-mode == item.mode ? Theme.accent : Theme.surface;
+          border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+          border-color: Theme.focus-ring;
+          Text {
+            text: item.label;
+            color: Theme.theme-mode == item.mode ? #FFFFFF : Theme.text-secondary;
+            font-weight: 500;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+          TouchArea {
+            clicked => {
+              Theme.theme-mode = item.mode;
+              AppState.set-theme(item.mode);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  FocusScope {
+    width: 160px;
+    height: 44px;
+    key-pressed(event) => {
+      if event.text == Key.Return { OnboardingState.step = 3; return accept; }
+      return reject;
+    }
+    Rectangle {
+      width: 100%; height: 100%;
+      border-radius: Theme.radius-pill;
+      background: Theme.accent;
+      border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+      border-color: Theme.focus-ring;
+      Text { text: "Continue"; color: #FFFFFF; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+      TouchArea { clicked => { OnboardingState.step = 3; } }
+    }
+  }
+}
+
+component DoneStep inherits VerticalLayout {
+  alignment: center;
+  spacing: Theme.spacing-xl;
+
+  Text { text: "🎉"; font-size: 72px; horizontal-alignment: center; }
+  Text {
+    text: "You're All Set!";
+    color: Theme.text-primary;
+    font-family: Theme.font-display;
+    font-size: Theme.font-size-h1;
+    horizontal-alignment: center;
+  }
+  Text {
+    text: "Enjoy your streaming experience.";
+    color: Theme.text-secondary;
+    font-size: Theme.font-size-body;
+    horizontal-alignment: center;
+  }
+
+  FocusScope {
+    width: 200px;
+    height: 48px;
+    key-pressed(event) => {
+      if event.text == Key.Return { OnboardingState.complete(); return accept; }
+      return reject;
+    }
+    Rectangle {
+      width: 100%; height: 100%;
+      border-radius: Theme.radius-pill;
+      background: Theme.accent;
+      border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+      border-color: Theme.focus-ring;
+      Text { text: "Start Watching"; color: #FFFFFF; font-weight: 600; font-size: Theme.font-size-body; horizontal-alignment: center; vertical-alignment: center; }
+      TouchArea { clicked => { OnboardingState.complete(); } }
+    }
+  }
+}
+
+export component OnboardingScreen inherits Rectangle {
+  background: Theme.background;
+
+  VerticalLayout {
+    alignment: center;
+    spacing: Theme.spacing-xl;
+
+    if OnboardingState.step == 0: WelcomeStep {}
+    if OnboardingState.step == 1: AddSourceStep {}
+    if OnboardingState.step == 2: PreferencesStep {}
+    if OnboardingState.step == 3: DoneStep {}
+
+    StepIndicator { current-step: OnboardingState.step; }
+  }
+}

@@ -175,7 +175,9 @@ pub(crate) fn init(ui: &super::AppWindow) -> anyhow::Result<CrispyService> {
         tracing::info!(channel_id = %cid, "Play channel");
 
         // Look up channel to get stream URL and metadata
-        let channels = svc.get_channels_by_ids(std::slice::from_ref(&cid)).unwrap_or_default();
+        let channels = svc
+            .get_channels_by_ids(std::slice::from_ref(&cid))
+            .unwrap_or_default();
         if let Some(ch) = channels.first()
             && let Some(ui) = ui_weak.upgrade()
         {
@@ -259,8 +261,39 @@ pub(crate) fn init(ui: &super::AppWindow) -> anyhow::Result<CrispyService> {
         }
     });
 
+    // Wire onboarding callbacks
+    let onboarding = ui.global::<super::OnboardingState>();
+
+    let svc = service.clone();
+    let ui_weak = ui.as_weak();
+    onboarding.on_complete(move || {
+        tracing::info!("Onboarding complete");
+        if let Err(e) = svc.set_setting("onboarding_done", "true") {
+            tracing::error!(error = %e, "Failed to persist onboarding state");
+        }
+        if let Some(ui) = ui_weak.upgrade() {
+            ui.global::<super::OnboardingState>().set_is_active(false);
+            super::data::reload_all(&ui, &svc);
+        }
+    });
+
+    onboarding.on_skip(move || {
+        tracing::info!("Onboarding skipped");
+    });
+
     // Load initial data
     super::data::reload_all(ui, &service);
+
+    // Show onboarding if first run
+    let is_first_run = service
+        .get_setting("onboarding_done")
+        .ok()
+        .flatten()
+        .is_none();
+    if is_first_run {
+        tracing::info!("First run detected — showing onboarding");
+        ui.global::<super::OnboardingState>().set_is_active(true);
+    }
 
     Ok(service)
 }
