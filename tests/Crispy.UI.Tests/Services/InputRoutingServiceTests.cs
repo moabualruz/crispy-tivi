@@ -147,6 +147,50 @@ public class InputRoutingServiceTests
         result.Should().Be(KeyHandleResult.Handled);
     }
 
+    // ── Player shortcut keys (M/A/S) → handled when watching ──────────────
+
+    [Theory]
+    [InlineData(Key.M, AppState.Watching)]
+    [InlineData(Key.M, AppState.BrowsingWhilePlaying)]
+    [InlineData(Key.A, AppState.Watching)]
+    [InlineData(Key.A, AppState.BrowsingWhilePlaying)]
+    [InlineData(Key.S, AppState.Watching)]
+    [InlineData(Key.S, AppState.BrowsingWhilePlaying)]
+    public void PlayerShortcutKey_Handled_WhenWatchingOrBrowsingWhilePlaying(Key key, AppState state)
+    {
+        var result = _sut.HandleKey(key, KeyModifiers.None, state);
+
+        result.Should().Be(KeyHandleResult.Handled);
+    }
+
+    [Theory]
+    [InlineData(Key.M, AppState.Browsing)]
+    [InlineData(Key.M, AppState.Idle)]
+    [InlineData(Key.A, AppState.Browsing)]
+    [InlineData(Key.A, AppState.Idle)]
+    [InlineData(Key.S, AppState.Browsing)]
+    [InlineData(Key.S, AppState.Idle)]
+    public void PlayerShortcutKey_NotHandled_WhenNotWatching(Key key, AppState state)
+    {
+        var result = _sut.HandleKey(key, KeyModifiers.None, state);
+
+        result.Should().Be(KeyHandleResult.NotHandled);
+    }
+
+    // ── Volume/seek keys → handled only in Watching state ───────────────
+
+    [Theory]
+    [InlineData(Key.Up)]
+    [InlineData(Key.Down)]
+    [InlineData(Key.Left)]
+    [InlineData(Key.Right)]
+    public void VolumeSeekKey_Handled_WhenWatching(Key key)
+    {
+        var result = _sut.HandleKey(key, KeyModifiers.None, AppState.Watching);
+
+        result.Should().Be(KeyHandleResult.Handled);
+    }
+
     // ── Unbound keys not consumed ─────────────────────────────────────────────
 
     [Theory]

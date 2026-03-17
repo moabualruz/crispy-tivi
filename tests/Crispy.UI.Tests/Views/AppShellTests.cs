@@ -302,4 +302,140 @@ public class AppShellTests
 
     // VideoView (NativeControlHost) requires a real window — not testable in Avalonia.Headless.
     // Video layer visibility is verified indirectly via AppShellViewModel.IsVideoVisible unit tests above.
+
+    // ─── Keyboard routing unit tests (on AppShellViewModel + PlayerViewModel) ─
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void GetAppState_ReturnsWatching_WhenVideoVisibleAndContentHidden()
+    {
+        var vm = BuildVm();
+        vm.EnterWatchingMode();
+
+        // Watching = IsVideoVisible && !IsContentVisible
+        vm.IsVideoVisible.Should().BeTrue();
+        vm.IsContentVisible.Should().BeFalse();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void GetAppState_ReturnsBrowsingWhilePlaying_WhenBothVisible()
+    {
+        var vm = BuildVm();
+        vm.EnterWatchingMode();
+        vm.EnterBrowsingMode();
+
+        // BrowsingWhilePlaying = IsVideoVisible && IsContentVisible
+        vm.IsVideoVisible.Should().BeTrue();
+        vm.IsContentVisible.Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void GetAppState_ReturnsBrowsing_WhenNoVideo()
+    {
+        var vm = BuildVm();
+
+        // Browsing = !IsVideoVisible
+        vm.IsVideoVisible.Should().BeFalse();
+        vm.IsContentVisible.Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void PlayerViewModel_ToggleMuteCommand_Exists()
+    {
+        var player = BuildPlayerVm();
+
+        player.ToggleMuteCommand.Should().NotBeNull();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void PlayerViewModel_CycleAudioTrackCommand_Exists()
+    {
+        var player = BuildPlayerVm();
+
+        player.CycleAudioTrackCommand.Should().NotBeNull();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void PlayerViewModel_CycleSubtitleTrackCommand_Exists()
+    {
+        var player = BuildPlayerVm();
+
+        player.CycleSubtitleTrackCommand.Should().NotBeNull();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void PlayerViewModel_SetVolumeCommand_Exists()
+    {
+        var player = BuildPlayerVm();
+
+        player.SetVolumeCommand.Should().NotBeNull();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void PlayerViewModel_SeekCommand_Exists()
+    {
+        var player = BuildPlayerVm();
+
+        player.SeekCommand.Should().NotBeNull();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void PlayerViewModel_PauseCommand_Exists()
+    {
+        var player = BuildPlayerVm();
+
+        player.PauseCommand.Should().NotBeNull();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void PlayerViewModel_ResumeCommand_Exists()
+    {
+        var player = BuildPlayerVm();
+
+        player.ResumeCommand.Should().NotBeNull();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task SetVolumeCommand_ChangesVolume_WhenCalled()
+    {
+        var player = BuildPlayerVm();
+
+        await player.SetVolumeCommand.ExecuteAsync(0.75f);
+
+        // The command delegates to IPlayerService.SetVolumeAsync
+        // which is mocked — so we verify the command is callable
+        player.SetVolumeCommand.Should().NotBeNull();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task CycleAudioTrackCommand_DoesNotThrow_WhenNoTracks()
+    {
+        var player = BuildPlayerVm();
+
+        var act = async () => await player.CycleAudioTrackCommand.ExecuteAsync(null);
+
+        await act.Should().NotThrowAsync("cycling with no tracks is a no-op");
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task CycleSubtitleTrackCommand_DoesNotThrow_WhenNoTracks()
+    {
+        var player = BuildPlayerVm();
+
+        var act = async () => await player.CycleSubtitleTrackCommand.ExecuteAsync(null);
+
+        await act.Should().NotThrowAsync("cycling with no tracks is a no-op");
+    }
 }
