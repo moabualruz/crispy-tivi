@@ -1,6 +1,6 @@
 import { Theme } from "globals/theme.slint";
 import { AppState } from "globals/app-state.slint";
-import { NavRail } from "components/nav-rail.slint";
+import { TopNav } from "components/top-nav.slint";
 
 // Re-export globals so Rust can access them via ui.global::<T>()
 export { Theme, AppState }
@@ -27,66 +27,52 @@ export component AppWindow inherits Window {
   preferred-height: 720px;
   background: Theme.background;
 
-  // Global keyboard shortcut handler
+  // Global keyboard shortcuts
   FocusScope {
     width: 0; height: 0;
     key-pressed(event) => {
-      // F12 = toggle diagnostics
-      if event.text == Key.F12 {
-        DiagnosticsState.toggle();
-        return accept;
-      }
-      // Escape = stop player or close dialogs
+      if event.text == Key.F12 { DiagnosticsState.toggle(); return accept; }
       if event.text == Key.Escape {
-        if DiagnosticsState.visible {
-          DiagnosticsState.visible = false;
-          return accept;
-        }
-        if AppState.show-source-dialog {
-          AppState.show-source-dialog = false;
-          return accept;
-        }
-        if PlayerState.is-playing {
-          PlayerState.stop();
-          return accept;
-        }
+        if DiagnosticsState.visible { DiagnosticsState.visible = false; return accept; }
+        if AppState.show-source-dialog { AppState.show-source-dialog = false; return accept; }
+        if PlayerState.is-playing { PlayerState.stop(); return accept; }
       }
       return reject;
     }
   }
 
-  // Onboarding overlay (first-run)
-  if OnboardingState.is-active: OnboardingScreen {
-    width: 100%;
-    height: 100%;
-  }
+  // Onboarding (fullscreen, above everything)
+  if OnboardingState.is-active: OnboardingScreen { width: 100%; height: 100%; }
 
-  // Layer 0: Player (always present, behind UI)
+  // Player (fullscreen, no nav)
   if !OnboardingState.is-active: PlayerScreen {
     visible: PlayerState.is-playing || PlayerState.is-buffering;
     width: 100%;
     height: 100%;
   }
 
-  // Layer 1: UI (hidden when player is fullscreen or onboarding active)
-  if !PlayerState.is-playing && !PlayerState.is-buffering && !OnboardingState.is-active: HorizontalLayout {
-    NavRail {}
+  // Main content — FULL WIDTH (no side rail)
+  if !PlayerState.is-playing && !PlayerState.is-buffering && !OnboardingState.is-active: Rectangle {
+    width: 100%; height: 100%;
+    background: Theme.background;
 
-    Rectangle {
-      background: Theme.background;
-      horizontal-stretch: 1;
+    // Layer 0: Full-width screens (content fills entire window)
+    if AppState.active-screen == 0: HomeScreen { width: 100%; height: 100%; }
+    if AppState.active-screen == 1: LiveTvScreen { width: 100%; height: 100%; }
+    if AppState.active-screen == 2: EpgScreen { width: 100%; height: 100%; }
+    if AppState.active-screen == 3: MoviesScreen { width: 100%; height: 100%; }
+    if AppState.active-screen == 4: SeriesScreen { width: 100%; height: 100%; }
+    if AppState.active-screen == 5: SearchScreen { width: 100%; height: 100%; }
+    if AppState.active-screen == 6: SettingsScreen { width: 100%; height: 100%; }
 
-      if AppState.active-screen == 0: HomeScreen {}
-      if AppState.active-screen == 1: LiveTvScreen {}
-      if AppState.active-screen == 2: EpgScreen {}
-      if AppState.active-screen == 3: MoviesScreen {}
-      if AppState.active-screen == 4: SeriesScreen {}
-      if AppState.active-screen == 5: SearchScreen {}
-      if AppState.active-screen == 6: SettingsScreen {}
+    // Layer 1: Top nav overlay (floats OVER content)
+    if AppState.nav-visible: TopNav {
+      y: 0;
+      width: 100%;
     }
   }
 
-  // Modal overlays
+  // Modals
   if !OnboardingState.is-active: SourceDialog {}
   DiagnosticsPanel {}
 }

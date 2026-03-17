@@ -4,12 +4,10 @@ export component NavItem inherits FocusScope {
   in property <string> label;
   in property <string> icon-text;
   in property <bool> active: false;
-  in property <bool> nav-expanded: false;
 
   callback clicked();
 
-  width: nav-expanded ? Theme.nav-rail-expanded : Theme.nav-rail-collapsed;
-  height: 48px;
+  height: 40px;
 
   key-pressed(event) => {
     if event.text == Key.Return || event.text == " " {
@@ -28,22 +26,22 @@ export component NavItem inherits FocusScope {
     border-color: root.has-focus ? rgba(255, 255, 255, 0.5) : transparent;
 
     HorizontalLayout {
-      padding-left: 8px;
+      padding-left: 16px;
       padding-right: 16px;
       padding-top: 8px;
       padding-bottom: 8px;
       spacing: Theme.spacing-sm;
-      alignment: nav-expanded ? start : center;
+      alignment: center;
 
-      Text {
+      if icon-text != "": Text {
         text: icon-text;
         color: active ? #FFFFFF : rgba(255, 255, 255, 0.60);
-        font-size: 24px;
+        font-size: 18px;
         font-weight: active ? 700 : 500;
         vertical-alignment: center;
       }
 
-      if nav-expanded: Text {
+      Text {
         text: label;
         color: active ? #FFFFFF : rgba(255, 255, 255, 0.60);
         font-family: Theme.font-body;

@@ -16,7 +16,10 @@ export component MoviesScreen inherits Rectangle {
   }
 
   if AppState.movies.length > 0: VerticalLayout {
-    padding: Theme.spacing-lg;
+    padding-top: Theme.screen-padding-top;
+    padding-left: Theme.spacing-lg;
+    padding-right: Theme.spacing-lg;
+    padding-bottom: Theme.spacing-lg;
     spacing: Theme.spacing-md;
 
     Text {

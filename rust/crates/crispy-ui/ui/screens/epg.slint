@@ -4,9 +4,37 @@ import { EmptyState } from "../components/empty-state.slint";
 export component EpgScreen inherits Rectangle {
   background: transparent;
 
-  EmptyState {
-    icon: "📅";
-    title: "No Programme Guide";
-    subtitle: "EPG data will appear once you add a source with guide information.";
+  // EPG: 70% grid + ~25% PiP side panel, with nav clearance
+  VerticalLayout {
+    padding-top: Theme.screen-padding-top;
+
+    HorizontalLayout {
+      padding-left: Theme.content-padding-h;
+      padding-right: Theme.content-padding-h;
+      padding-bottom: Theme.spacing-lg;
+      spacing: Theme.spacing-lg;
+      vertical-stretch: 1;
+
+      // EPG grid area — 70% width
+      Rectangle {
+        horizontal-stretch: 70;
+        background: transparent;
+
+        EmptyState {
+          icon: "📅";
+          title: "No Programme Guide";
+          subtitle: "EPG data will appear once you add a source with guide information.";
+        }
+      }
+
+      // PiP mini-player area — ~25% width
+      Rectangle {
+        horizontal-stretch: 25;
+        background: #000000;
+        border-radius: Theme.radius-md;
+        border-width: 1px;
+        border-color: Theme.border-subtle;
+      }
+    }
   }
 }
