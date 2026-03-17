@@ -73,6 +73,16 @@ public sealed class XtreamClient
         => await GetJsonAsync($"/player_api.php?username={username}&password={password}&action=get_series", ct)
             .ConfigureAwait(false);
 
+    /// <summary>Returns detailed series info including seasons and episodes.</summary>
+    public async Task<JsonDocument?> GetSeriesInfoAsync(
+        string username,
+        string password,
+        string seriesId,
+        CancellationToken ct = default)
+        => await GetJsonAsync(
+            $"/player_api.php?username={Uri.EscapeDataString(username)}&password={Uri.EscapeDataString(password)}&action=get_series_info&series_id={seriesId}",
+            ct).ConfigureAwait(false);
+
     /// <summary>Returns short EPG (now/next) for a stream.</summary>
     public async Task<JsonDocument?> GetEpgAsync(
         string username,
@@ -93,11 +103,30 @@ public sealed class XtreamClient
     private async Task<JsonDocument?> GetJsonAsync(string relativeUrl, CancellationToken ct)
     {
         var url = (BaseUrl?.TrimEnd('/') ?? string.Empty) + relativeUrl;
+        Console.WriteLine($"[HTTP] GET {url}");
         using var response = await _http.GetAsync(url, ct).ConfigureAwait(false);
+        Console.WriteLine($"[HTTP] Status={response.StatusCode}, ContentLength={response.Content.Headers.ContentLength?.ToString() ?? "null"}, ContentType={response.Content.Headers.ContentType}");
         if (!response.IsSuccessStatusCode)
             return null;
 
-        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        return await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
+        // Read as bytes to diagnose Android HTTP handler differences
+        var bytes = await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+        Console.WriteLine($"[HTTP] Received {bytes.Length} bytes, first='{(char)bytes[0]}', last='{(char)bytes[^1]}'");
+
+        try
+        {
+            using var memStream = new MemoryStream(bytes);
+            return await JsonDocument.ParseAsync(memStream, cancellationToken: ct).ConfigureAwait(false);
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            // Dump context around the error position
+            var pos = (int)(ex.BytePositionInLine ?? 0);
+            var start = Math.Max(0, pos - 50);
+            var len = Math.Min(100, bytes.Length - start);
+            var context = System.Text.Encoding.UTF8.GetString(bytes, start, len);
+            Console.WriteLine($"[HTTP] JSON parse failed at byte {pos}. Context: ...{context}...");
+            throw;
+        }
     }
 }

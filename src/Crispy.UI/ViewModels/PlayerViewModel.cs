@@ -201,6 +201,14 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
     [ObservableProperty]
     private bool _isTimeshifted;
 
+    /// <summary>Total duration of the timeshift buffer. Used by LiveSeekBar as the timeline width.</summary>
+    [ObservableProperty]
+    private TimeSpan _timeshiftBufferDuration;
+
+    /// <summary>Playback offset from live edge (negative TimeSpan). Used to compute seek bar position.</summary>
+    [ObservableProperty]
+    private TimeSpan _timeshiftSeekOffset;
+
     // ─── Zap overlay ────────────────────────────────────────────────────────
 
     [ObservableProperty]
@@ -453,6 +461,8 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable, IPlayerContro
     {
         RunOnUiThread(() =>
         {
+            TimeshiftBufferDuration = ts.BufferDuration;
+            TimeshiftSeekOffset = ts.Offset;
             Osd.TimeshiftOffset = ts.OffsetDisplay;
             Osd.ShowGoLive = IsTimeshifted && !ts.IsAtLiveEdge;
         });

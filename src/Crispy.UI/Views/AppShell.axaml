@@ -47,16 +47,20 @@
 
             <!-- Content Area -->
             <SplitView.Content>
-              <Panel x:Name="ContentPanel">
+              <DockPanel x:Name="ContentPanel">
+                <!-- Mini Player Bar — docked at bottom, inside content layout -->
+                <controls:MiniPlayerBar DockPanel.Dock="Bottom"
+                                        DataContext="{Binding Player}"
+                                        IsVisible="{Binding $parent[UserControl].((vm:AppShellViewModel)DataContext).IsMiniPlayerVisible}" />
+
                 <!-- Page content with crossfade transition -->
-                <TransitioningContentControl Content="{Binding Navigation.CurrentPage}"
-                                             Margin="0 0 0 64">
+                <TransitioningContentControl Content="{Binding Navigation.CurrentPage}">
                   <TransitioningContentControl.PageTransition>
                     <CrossFade Duration="0:0:0.25" />
                   </TransitioningContentControl.PageTransition>
                 </TransitioningContentControl>
 
-              </Panel>
+              </DockPanel>
             </SplitView.Content>
 
           </SplitView>
@@ -71,11 +75,7 @@
           <controls:OsdOverlay DataContext="{Binding Player}" />
         </Grid>
 
-        <!-- Mini Player Bar — renders in floating overlay on top of video -->
-        <controls:MiniPlayerBar VerticalAlignment="Bottom"
-                                ZIndex="3"
-                                DataContext="{Binding Player}"
-                                IsVisible="{Binding $parent[UserControl].((vm:AppShellViewModel)DataContext).IsMiniPlayerVisible}" />
+        <!-- MiniPlayerBar moved inside ContentLayer DockPanel (SplitView.Content) -->
       </Grid>
     </Panel>
 

@@ -103,17 +103,74 @@ public sealed class XtreamParser : ISourceParser
                 }
             }
 
+            var episodes = new List<Episode>();
+            var episodeSeriesNames = new Dictionary<int, string>();
+
             using var seriesDoc = await _client.GetSeriesAsync(username, password, ct).ConfigureAwait(false);
             if (seriesDoc is not null)
             {
                 foreach (var el in seriesDoc.RootElement.EnumerateArray())
                 {
+                    var seriesName = el.TryGetProperty("name", out var n) ? n.GetString() ?? "Unknown" : "Unknown";
+                    var xtreamSeriesId = el.TryGetProperty("series_id", out var sid) ? sid.ToString() : null;
+
                     series.Add(new Series
                     {
-                        Title = el.TryGetProperty("name", out var n) ? n.GetString() ?? "Unknown" : "Unknown",
+                        Title = seriesName,
                         Thumbnail = el.TryGetProperty("cover", out var cover) ? cover.GetString() : null,
                         SourceId = source.Id,
                     });
+
+                    // Fetch episodes for this series
+                    if (xtreamSeriesId is not null)
+                    {
+                        try
+                        {
+                            using var infoDoc = await _client.GetSeriesInfoAsync(username, password, xtreamSeriesId, ct).ConfigureAwait(false);
+                            if (infoDoc is not null && infoDoc.RootElement.TryGetProperty("episodes", out var episodesObj))
+                            {
+                                foreach (var seasonProp in episodesObj.EnumerateObject())
+                                {
+                                    _ = int.TryParse(seasonProp.Name, out var seasonNum);
+                                    if (seasonNum == 0) seasonNum = 1;
+
+                                    foreach (var ep in seasonProp.Value.EnumerateArray())
+                                    {
+                                        var epId = ep.TryGetProperty("id", out var eid) ? eid.ToString() : null;
+                                        var epNum = ep.TryGetProperty("episode_num", out var en) && int.TryParse(en.ToString(), out var epNumVal) ? epNumVal : 1;
+                                        var epTitle = ep.TryGetProperty("title", out var et) ? et.GetString() ?? $"Episode {epNum}" : "Unknown";
+                                        var containerExt = ep.TryGetProperty("container_extension", out var ext) ? ext.GetString() : "ts";
+
+                                        string? thumbnail = null;
+                                        if (ep.TryGetProperty("info", out var info))
+                                        {
+                                            thumbnail = info.TryGetProperty("movie_image", out var img) ? img.GetString() : null;
+                                        }
+
+                                        var streamUrl = epId is not null
+                                            ? $"{baseUrl}/series/{Uri.EscapeDataString(username)}/{Uri.EscapeDataString(password)}/{epId}.{containerExt ?? "ts"}"
+                                            : null;
+
+                                        episodeSeriesNames[episodes.Count] = seriesName;
+                                        episodes.Add(new Episode
+                                        {
+                                            Title = epTitle,
+                                            SourceId = source.Id,
+                                            SeriesId = 1, // Placeholder — resolved by SyncPipeline
+                                            SeasonNumber = seasonNum,
+                                            EpisodeNumber = epNum,
+                                            StreamUrl = streamUrl,
+                                            Thumbnail = thumbnail,
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogDebug(ex, "Failed to fetch episodes for Xtream series {SeriesId}", xtreamSeriesId);
+                        }
+                    }
                 }
             }
 
@@ -123,6 +180,8 @@ public sealed class XtreamParser : ISourceParser
                 StreamEndpoints = channels.SelectMany(c => c.StreamEndpoints).ToList(),
                 Movies = movies,
                 Series = series,
+                Episodes = episodes,
+                EpisodeSeriesNames = episodeSeriesNames,
             };
         }
         catch (HttpRequestException ex)

@@ -32,18 +32,20 @@
     <!-- Content grid -->
     <Grid>
 
-      <!-- Movie grid -->
+      <!-- Movie grid — virtualized via ItemsRepeater -->
       <ScrollViewer IsVisible="{Binding !IsLoading}">
-        <ItemsControl ItemsSource="{Binding Movies}"
-                      Margin="12">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <WrapPanel Orientation="Horizontal" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
+        <ItemsRepeater ItemsSource="{Binding Movies}"
+                       Margin="12">
+          <ItemsRepeater.Layout>
+            <UniformGridLayout MinItemWidth="172"
+                               MinItemHeight="272"
+                               MinColumnSpacing="0"
+                               MinRowSpacing="0"
+                               ItemsStretch="Uniform" />
+          </ItemsRepeater.Layout>
+          <ItemsRepeater.ItemTemplate>
             <DataTemplate x:DataType="entities:Movie">
-              <Button Command="{Binding $parent[ItemsControl].((vm:MoviesViewModel)DataContext).SelectMovieCommand}"
+              <Button Command="{Binding $parent[UserControl].((vm:MoviesViewModel)DataContext).SelectMovieCommand}"
                       CommandParameter="{Binding}"
                       Padding="0"
                       Background="Transparent"
@@ -73,8 +75,8 @@
                 </Border>
               </Button>
             </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+          </ItemsRepeater.ItemTemplate>
+        </ItemsRepeater>
       </ScrollViewer>
 
       <!-- Loading overlay -->

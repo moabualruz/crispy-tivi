@@ -35,20 +35,20 @@
       <!-- Left: series grid + loading overlay -->
       <Grid Grid.Column="0">
 
-        <!-- Series grid -->
+        <!-- Series grid (virtualized) -->
         <ScrollViewer IsVisible="{Binding !IsLoading}">
-          <ItemsControl ItemsSource="{Binding Series}"
-                        Margin="12">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <WrapPanel Orientation="Horizontal" />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
+          <ItemsRepeater ItemsSource="{Binding Series}"
+                         Margin="12">
+            <ItemsRepeater.Layout>
+              <UniformGridLayout MinItemWidth="172"
+                                 MinItemHeight="272"
+                                 MinColumnSpacing="0"
+                                 MinRowSpacing="0"
+                                 ItemsStretch="Uniform" />
+            </ItemsRepeater.Layout>
+            <ItemsRepeater.ItemTemplate>
               <DataTemplate x:DataType="entities:Series">
-                <Border Width="160"
-                        Height="260"
-                        Margin="6"
+                <Border Margin="6"
                         CornerRadius="8"
                         Background="{DynamicResource SurfaceBrush}"
                         ClipToBounds="True"
@@ -81,8 +81,8 @@
                   </Button>
                 </Border>
               </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+            </ItemsRepeater.ItemTemplate>
+          </ItemsRepeater>
         </ScrollViewer>
 
         <!-- Loading overlay -->

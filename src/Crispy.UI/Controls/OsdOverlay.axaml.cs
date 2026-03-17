@@ -59,13 +59,16 @@ public partial class OsdOverlay : UserControl
         // Sync properties each state change
         vm.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName is nameof(PlayerViewModel.IsLive))
+            if (args.PropertyName is nameof(PlayerViewModel.IsLive)
+                or nameof(PlayerViewModel.IsTimeshifted))
                 UpdateSeekBarHost(vm, host);
 
             if (args.PropertyName is nameof(PlayerViewModel.Position)
                 or nameof(PlayerViewModel.Duration)
                 or nameof(PlayerViewModel.Chapters)
-                or nameof(PlayerViewModel.BufferProgrammes))
+                or nameof(PlayerViewModel.BufferProgrammes)
+                or nameof(PlayerViewModel.TimeshiftBufferDuration)
+                or nameof(PlayerViewModel.TimeshiftSeekOffset))
                 SyncSeekBarValues(vm);
         };
 
@@ -75,17 +78,35 @@ public partial class OsdOverlay : UserControl
 
     private void UpdateSeekBarHost(PlayerViewModel vm, ContentControl host)
     {
-        host.Content = vm.IsLive ? _liveSeekBar : _vodSeekBar;
+        // Show LiveSeekBar for both live and timeshifted modes
+        host.Content = (vm.IsLive || vm.IsTimeshifted) ? _liveSeekBar : _vodSeekBar;
     }
 
     private void SyncSeekBarValues(PlayerViewModel vm)
     {
         if (_liveSeekBar is not null)
         {
-            _liveSeekBar.Position = vm.Position;
-            _liveSeekBar.LiveEdge = vm.Duration == TimeSpan.Zero
-                ? vm.Position
-                : vm.Duration;
+            if (vm.IsTimeshifted && vm.TimeshiftBufferDuration > TimeSpan.Zero)
+            {
+                // Timeshifted: show buffer as the timeline, position within it
+                _liveSeekBar.LiveEdge = vm.TimeshiftBufferDuration;
+                _liveSeekBar.BufferStart = TimeSpan.Zero;
+                _liveSeekBar.BufferEnd = vm.TimeshiftBufferDuration;
+                // Offset is negative (e.g. -2:30), so position = buffer + offset
+                _liveSeekBar.Position = vm.TimeshiftBufferDuration + vm.TimeshiftSeekOffset;
+            }
+            else
+            {
+                // Live at edge: position tracks live
+                _liveSeekBar.Position = vm.Position;
+                _liveSeekBar.LiveEdge = vm.Duration == TimeSpan.Zero
+                    ? vm.Position
+                    : vm.Duration;
+                _liveSeekBar.BufferStart = TimeSpan.Zero;
+                _liveSeekBar.BufferEnd = _liveSeekBar.LiveEdge;
+            }
+
+            _liveSeekBar.Programmes = vm.BufferProgrammes;
         }
 
         if (_vodSeekBar is not null)

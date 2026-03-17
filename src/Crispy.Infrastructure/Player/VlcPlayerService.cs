@@ -153,7 +153,13 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
 
         _mediaPlayer.Paused += (_, _) => PostToUiThread(() =>
         {
-            EmitState(s => s with { IsPlaying = false });
+            // When pausing live content, transition to Timeshifted mode —
+            // VLC continues buffering and the user is now behind the live edge.
+            var newMode = _state.IsLive && _state.Mode == PlaybackMode.Live
+                ? PlaybackMode.Timeshifted
+                : _state.Mode;
+
+            EmitState(s => s with { IsPlaying = false, Mode = newMode });
         });
 
         _mediaPlayer.Stopped += (_, _) => PostToUiThread(() =>
