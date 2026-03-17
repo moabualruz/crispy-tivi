@@ -1,13 +1,16 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Crispy.UI.ViewModels"
+             xmlns:controls="using:Crispy.UI.Controls"
              xmlns:asyncImage="using:AsyncImageLoader"
              x:Class="Crispy.UI.Controls.OsdOverlay"
              x:DataType="vm:PlayerViewModel"
              Background="Transparent"
              IsHitTestVisible="True">
 
-  <Grid RowDefinitions="Auto,*,Auto">
+  <Grid>
+    <!-- Main OSD layout -->
+    <Grid RowDefinitions="Auto,*,Auto">
 
     <!-- ═══ TOP BAR ═══════════════════════════════════════════════════════════ -->
     <Border Grid.Row="0"
@@ -380,6 +383,12 @@
         </Grid>
       </StackPanel>
     </Border>
+
+    </Grid>
+
+    <!-- ═══ TRACK SELECTOR PANEL (slides from right) ═══════════════════════ -->
+    <controls:TrackSelectorPanel x:Name="TrackSelectorPanel"
+                                  IsVisible="{Binding IsTrackSelectorOpen}" />
 
   </Grid>
 
