@@ -159,6 +159,55 @@ public class XtreamParserTests
     }
 
     [Fact]
+    public async Task ParseAsync_SuccessfulAuth_MoviesHaveStreamUrl()
+    {
+        var source = TestSourceProvider.XtreamSource();
+        var handler = new FakeHttpHandler()
+            .WithResponse("get_live_streams", "[]")
+            .WithResponse("get_vod_streams", TestSourceProvider.LoadText("xtream-vod.json"))
+            .WithResponse("get_series", "[]")
+            .WithResponse("player_api.php", TestSourceProvider.LoadText("xtream-auth.json"));
+
+        var result = await MakeParser(handler).ParseAsync(source);
+
+        var baseUrl = source.Url.TrimEnd('/');
+        var user = Uri.EscapeDataString(source.Username ?? "");
+        var pass = Uri.EscapeDataString(source.Password ?? "");
+        // xtream-vod.json: stream_id 201 (mkv), 202 (mp4)
+        result.Movies[0].StreamUrl.Should().Be($"{baseUrl}/movie/{user}/{pass}/201.mkv");
+        result.Movies[1].StreamUrl.Should().Be($"{baseUrl}/movie/{user}/{pass}/202.mp4");
+    }
+
+    [Fact]
+    public async Task ParseAsync_SuccessfulAuth_MoviesHaveThumbnail()
+    {
+        var handler = new FakeHttpHandler()
+            .WithResponse("get_live_streams", "[]")
+            .WithResponse("get_vod_streams", TestSourceProvider.LoadText("xtream-vod.json"))
+            .WithResponse("get_series", "[]")
+            .WithResponse("player_api.php", TestSourceProvider.LoadText("xtream-auth.json"));
+
+        var result = await MakeParser(handler).ParseAsync(TestSourceProvider.XtreamSource());
+
+        result.Movies[0].Thumbnail.Should().Be("https://img.example.com/inception.jpg");
+        result.Movies[1].Thumbnail.Should().BeEmpty(); // empty string in JSON
+    }
+
+    [Fact]
+    public async Task ParseAsync_SuccessfulAuth_SeriesHaveThumbnail()
+    {
+        var handler = new FakeHttpHandler()
+            .WithResponse("get_live_streams", "[]")
+            .WithResponse("get_vod_streams", "[]")
+            .WithResponse("get_series", TestSourceProvider.LoadText("xtream-series.json"))
+            .WithResponse("player_api.php", TestSourceProvider.LoadText("xtream-auth.json"));
+
+        var result = await MakeParser(handler).ParseAsync(TestSourceProvider.XtreamSource());
+
+        result.Series[0].Thumbnail.Should().Be("https://img.example.com/bb.jpg");
+    }
+
+    [Fact]
     public async Task ParseAsync_SuccessfulAuth_SeriesTitleMatchJson()
     {
         var handler = new FakeHttpHandler()

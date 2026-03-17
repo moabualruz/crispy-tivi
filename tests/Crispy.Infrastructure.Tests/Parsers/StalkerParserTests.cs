@@ -97,6 +97,57 @@ public class StalkerParserTests
         result.Channels[0].Title.Should().NotBeNullOrEmpty();
     }
 
+    // ─── VOD movies ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ParseAsync_SetsMovieStreamUrl_WhenCmdPresent()
+    {
+        const string vodWithCmd =
+            """
+            {"js":{"data":[
+                {"name":"Inception","cmd":"http://vod.example.com/inception","screenshot_uri":"http://img.example.com/inception.jpg"}
+            ]}}
+            """;
+        var sut = MakeParser(vodJson: vodWithCmd);
+
+        var result = await sut.ParseAsync(MakeSource());
+
+        result.Movies.Should().HaveCount(1);
+        result.Movies[0].StreamUrl.Should().Be("http://vod.example.com/inception");
+    }
+
+    [Fact]
+    public async Task ParseAsync_SetsMovieThumbnail_WhenScreenshotUriPresent()
+    {
+        const string vodWithScreenshot =
+            """
+            {"js":{"data":[
+                {"name":"Inception","cmd":"http://vod.example.com/inception","screenshot_uri":"http://img.example.com/inception.jpg"}
+            ]}}
+            """;
+        var sut = MakeParser(vodJson: vodWithScreenshot);
+
+        var result = await sut.ParseAsync(MakeSource());
+
+        result.Movies[0].Thumbnail.Should().Be("http://img.example.com/inception.jpg");
+    }
+
+    [Fact]
+    public async Task ParseAsync_StripsNonHttpPrefix_FromMovieCmd()
+    {
+        const string vodWithPrefix =
+            """
+            {"js":{"data":[
+                {"name":"Movie","cmd":"ffrt2://http://vod.example.com/movie"}
+            ]}}
+            """;
+        var sut = MakeParser(vodJson: vodWithPrefix);
+
+        var result = await sut.ParseAsync(MakeSource());
+
+        result.Movies[0].StreamUrl.Should().Be("http://vod.example.com/movie");
+    }
+
     // ─── Channel JSON shapes ──────────────────────────────────────────────────
 
     [Fact]
