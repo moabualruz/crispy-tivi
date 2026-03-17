@@ -62,3 +62,7 @@ release/
 
 # CodeSearch indexes (large binary DBs)
 .coa/
+.fastembed_cache/
+
+.codesearchignore
+.fastembed_cache/
