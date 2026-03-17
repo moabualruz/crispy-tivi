@@ -81,13 +81,46 @@ public sealed class SyncPipeline
             _logger.LogInformation("Upserted {Count} series for source {SourceId}", parseResult.Series.Count, source.Id);
         }
 
+        // Persist episodes — resolve placeholder SeriesId using series name mapping
+        if (parseResult.Episodes.Count > 0)
+        {
+            var persistedSeries = await _seriesRepository.GetBySourceAsync(source.Id, ct).ConfigureAwait(false);
+            var seriesLookup = persistedSeries
+                .GroupBy(s => s.Title, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+
+            var resolvedEpisodes = new List<Crispy.Domain.Entities.Episode>();
+            for (var i = 0; i < parseResult.Episodes.Count; i++)
+            {
+                var ep = parseResult.Episodes[i];
+                if (parseResult.EpisodeSeriesNames.TryGetValue(i, out var seriesName)
+                    && seriesLookup.TryGetValue(seriesName, out var realSeriesId))
+                {
+                    ep.SeriesId = realSeriesId;
+                    resolvedEpisodes.Add(ep);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Episode '{Title}' (index {Index}) could not resolve SeriesId — skipped",
+                        ep.Title, i);
+                }
+            }
+
+            if (resolvedEpisodes.Count > 0)
+            {
+                await _seriesRepository.UpsertEpisodesAsync(resolvedEpisodes, ct).ConfigureAwait(false);
+                _logger.LogInformation("Upserted {Count} episodes for source {SourceId}", resolvedEpisodes.Count, source.Id);
+            }
+        }
+
         // Update missed sync counts for absent channels
         await UpdateMissedSyncAsync(source.Id, presentTvgIds, ct).ConfigureAwait(false);
 
         sw.Stop();
         _logger.LogInformation(
-            "Sync complete for source {SourceId}: {Count} channels, {MovieCount} movies, {SeriesCount} series in {Ms}ms",
-            source.Id, channelCount, parseResult.Movies.Count, parseResult.Series.Count, sw.ElapsedMilliseconds);
+            "Sync complete for source {SourceId}: {Count} channels, {MovieCount} movies, {SeriesCount} series, {EpisodeCount} episodes in {Ms}ms",
+            source.Id, channelCount, parseResult.Movies.Count, parseResult.Series.Count, parseResult.Episodes.Count, sw.ElapsedMilliseconds);
     }
 
     private static async Task<ParseResult> ProduceAsync(
