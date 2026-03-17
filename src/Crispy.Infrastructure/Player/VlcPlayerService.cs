@@ -293,11 +293,15 @@ public sealed class VlcPlayerService : IPlayerService, IDisposable
             _ => PlaybackMode.Vod,
         };
 
+        var isLive = request.ContentType is Application.Player.Models.PlaybackContentType.LiveTv
+            or Application.Player.Models.PlaybackContentType.Radio;
+
         EmitState(s => s with
         {
             Mode = mode,
             IsPlaying = true,
             IsBuffering = true,
+            IsLive = isLive,
             ErrorMessage = null,
             CurrentRequest = request,
             AudioTracks = [],
