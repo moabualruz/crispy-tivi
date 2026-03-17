@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 
 using Crispy.Application.Sources;
+using Crispy.Domain.Interfaces;
 using Crispy.Infrastructure.Data;
 
 using Microsoft.EntityFrameworkCore;
@@ -13,11 +14,14 @@ namespace Crispy.Infrastructure.Sync;
 /// <summary>
 /// Producer-consumer sync pipeline using a bounded System.Threading.Channel.
 /// Parser produces Channel entities; batch writer consumes and upserts them via EF Core.
+/// Also persists VOD movies and series from ParseResult.
 /// </summary>
 public sealed class SyncPipeline
 {
     private readonly IDbContextFactory<AppDbContext> _appFactory;
     private readonly IDbContextFactory<EpgDbContext> _epgFactory;
+    private readonly IMovieRepository _movieRepository;
+    private readonly ISeriesRepository _seriesRepository;
     private readonly ILogger<SyncPipeline> _logger;
 
     private const int ChannelCapacity = 500;
@@ -27,10 +31,14 @@ public sealed class SyncPipeline
     public SyncPipeline(
         IDbContextFactory<AppDbContext> appFactory,
         IDbContextFactory<EpgDbContext> epgFactory,
+        IMovieRepository movieRepository,
+        ISeriesRepository seriesRepository,
         ILogger<SyncPipeline> logger)
     {
         _appFactory = appFactory;
         _epgFactory = epgFactory;
+        _movieRepository = movieRepository;
+        _seriesRepository = seriesRepository;
         _logger = logger;
     }
 
@@ -51,32 +59,48 @@ public sealed class SyncPipeline
 
         var presentTvgIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int channelCount = 0;
+        ParseResult? parseResult = null;
 
         // Run producer and consumer concurrently
         var producer = ProduceAsync(parser, source, pipe.Writer, presentTvgIds, ct);
         var consumer = ConsumeAsync(source.Id, pipe.Reader, ct, count => channelCount += count);
 
         await Task.WhenAll(producer, consumer).ConfigureAwait(false);
+        parseResult = producer.Result;
+
+        // Persist VOD movies and series
+        if (parseResult.Movies.Count > 0)
+        {
+            await _movieRepository.UpsertRangeAsync(parseResult.Movies, ct).ConfigureAwait(false);
+            _logger.LogInformation("Upserted {Count} movies for source {SourceId}", parseResult.Movies.Count, source.Id);
+        }
+
+        if (parseResult.Series.Count > 0)
+        {
+            await _seriesRepository.UpsertRangeAsync(parseResult.Series, ct).ConfigureAwait(false);
+            _logger.LogInformation("Upserted {Count} series for source {SourceId}", parseResult.Series.Count, source.Id);
+        }
 
         // Update missed sync counts for absent channels
         await UpdateMissedSyncAsync(source.Id, presentTvgIds, ct).ConfigureAwait(false);
 
         sw.Stop();
         _logger.LogInformation(
-            "Sync complete for source {SourceId}: {Count} channels in {Ms}ms",
-            source.Id, channelCount, sw.ElapsedMilliseconds);
+            "Sync complete for source {SourceId}: {Count} channels, {MovieCount} movies, {SeriesCount} series in {Ms}ms",
+            source.Id, channelCount, parseResult.Movies.Count, parseResult.Series.Count, sw.ElapsedMilliseconds);
     }
 
-    private static async Task ProduceAsync(
+    private static async Task<ParseResult> ProduceAsync(
         ISourceParser parser,
         Crispy.Domain.Entities.Source source,
         ChannelWriter<TvChannel> writer,
         HashSet<string> presentTvgIds,
         CancellationToken ct)
     {
+        ParseResult result;
         try
         {
-            var result = await parser.ParseAsync(source, ct).ConfigureAwait(false);
+            result = await parser.ParseAsync(source, ct).ConfigureAwait(false);
 
             foreach (var ch in result.Channels)
             {
@@ -90,6 +114,8 @@ public sealed class SyncPipeline
         {
             writer.Complete();
         }
+
+        return result;
     }
 
     private async Task ConsumeAsync(

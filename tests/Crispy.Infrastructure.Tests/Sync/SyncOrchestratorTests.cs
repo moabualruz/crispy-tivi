@@ -11,6 +11,8 @@ using FluentAssertions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 
+using NSubstitute;
+
 using Xunit;
 
 namespace Crispy.Infrastructure.Tests.Sync;
@@ -131,7 +133,7 @@ public class SyncOrchestratorTests : IDisposable
         return new SyncOrchestrator(
             _sourceRepo,
             parsers,
-            new SyncPipeline(_dbFactory, _epgFactory, NullLogger<SyncPipeline>.Instance),
+            new SyncPipeline(_dbFactory, _epgFactory, Substitute.For<IMovieRepository>(), Substitute.For<ISeriesRepository>(), NullLogger<SyncPipeline>.Instance),
             new ChannelDeduplicator(_dbFactory),
             _scheduler,
             NullLogger<SyncOrchestrator>.Instance);

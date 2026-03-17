@@ -1,12 +1,15 @@
 using Crispy.Application.Sources;
 using Crispy.Domain.Entities;
 using Crispy.Domain.Enums;
+using Crispy.Domain.Interfaces;
 using Crispy.Infrastructure.Sync;
 using Crispy.Infrastructure.Tests.Helpers;
 
 using FluentAssertions;
 
 using Microsoft.Extensions.Logging.Abstractions;
+
+using NSubstitute;
 
 using Xunit;
 
@@ -17,12 +20,16 @@ public class SyncPipelineTests : IDisposable
 {
     private readonly TestDbContextFactory _factory;
     private readonly TestEpgDbContextFactory _epgFactory;
+    private readonly IMovieRepository _movieRepo;
+    private readonly ISeriesRepository _seriesRepo;
     private readonly Crispy.Domain.Entities.Source _testSource;
 
     public SyncPipelineTests()
     {
         _factory = new TestDbContextFactory();
         _epgFactory = new TestEpgDbContextFactory();
+        _movieRepo = Substitute.For<IMovieRepository>();
+        _seriesRepo = Substitute.For<ISeriesRepository>();
 
         using var ctx = _factory.CreateDbContext();
         var profile = new Profile { Name = "Test" };
@@ -57,7 +64,7 @@ public class SyncPipelineTests : IDisposable
     {
         var channels = MakeChannels(3);
         var parser = new FakeParser(new ParseResult { Channels = channels });
-        var pipeline = new SyncPipeline(_factory, _epgFactory, NullLogger<SyncPipeline>.Instance);
+        var pipeline = new SyncPipeline(_factory, _epgFactory, _movieRepo, _seriesRepo, NullLogger<SyncPipeline>.Instance);
 
         await pipeline.RunAsync(_testSource, parser, CancellationToken.None);
 
@@ -69,7 +76,7 @@ public class SyncPipelineTests : IDisposable
     public async Task RunAsync_SecondSync_IsFavoritePreserved()
     {
         var channels = MakeChannels(3);
-        var pipeline = new SyncPipeline(_factory, _epgFactory, NullLogger<SyncPipeline>.Instance);
+        var pipeline = new SyncPipeline(_factory, _epgFactory, _movieRepo, _seriesRepo, NullLogger<SyncPipeline>.Instance);
 
         // First sync
         await pipeline.RunAsync(_testSource, new FakeParser(new ParseResult { Channels = channels }), CancellationToken.None);
@@ -94,7 +101,7 @@ public class SyncPipelineTests : IDisposable
     public async Task RunAsync_MissingChannel_MissedSyncCountIncremented()
     {
         var allChannels = MakeChannels(3);
-        var pipeline = new SyncPipeline(_factory, _epgFactory, NullLogger<SyncPipeline>.Instance);
+        var pipeline = new SyncPipeline(_factory, _epgFactory, _movieRepo, _seriesRepo, NullLogger<SyncPipeline>.Instance);
 
         // First sync with 3 channels
         await pipeline.RunAsync(_testSource, new FakeParser(new ParseResult { Channels = allChannels }), CancellationToken.None);
@@ -111,7 +118,7 @@ public class SyncPipelineTests : IDisposable
     [Fact]
     public async Task RunAsync_EmptyParseResult_NoChannelsInserted()
     {
-        var pipeline = new SyncPipeline(_factory, _epgFactory, NullLogger<SyncPipeline>.Instance);
+        var pipeline = new SyncPipeline(_factory, _epgFactory, _movieRepo, _seriesRepo, NullLogger<SyncPipeline>.Instance);
 
         await pipeline.RunAsync(_testSource, new FakeParser(new ParseResult()), CancellationToken.None);
 
@@ -131,7 +138,7 @@ public class SyncPipelineTests : IDisposable
             TvgId = null,
             SourceId = _testSource.Id,
         };
-        var pipeline = new SyncPipeline(_factory, _epgFactory, NullLogger<SyncPipeline>.Instance);
+        var pipeline = new SyncPipeline(_factory, _epgFactory, _movieRepo, _seriesRepo, NullLogger<SyncPipeline>.Instance);
 
         // Two syncs with same ExternalId — should result in exactly one DB row
         await pipeline.RunAsync(_testSource, new FakeParser(new ParseResult { Channels = [ch] }), CancellationToken.None);
@@ -146,7 +153,7 @@ public class SyncPipelineTests : IDisposable
     public async Task RunAsync_ReappearedChannel_MissedSyncCountReset()
     {
         var channels = MakeChannels(3);
-        var pipeline = new SyncPipeline(_factory, _epgFactory, NullLogger<SyncPipeline>.Instance);
+        var pipeline = new SyncPipeline(_factory, _epgFactory, _movieRepo, _seriesRepo, NullLogger<SyncPipeline>.Instance);
 
         // Sync 1: all 3 present
         await pipeline.RunAsync(_testSource, new FakeParser(new ParseResult { Channels = channels }), CancellationToken.None);
@@ -167,7 +174,7 @@ public class SyncPipelineTests : IDisposable
     {
         // BatchSize is 500 — verify batching works by inserting > 500 channels
         var channels = MakeChannels(550);
-        var pipeline = new SyncPipeline(_factory, _epgFactory, NullLogger<SyncPipeline>.Instance);
+        var pipeline = new SyncPipeline(_factory, _epgFactory, _movieRepo, _seriesRepo, NullLogger<SyncPipeline>.Instance);
 
         await pipeline.RunAsync(_testSource, new FakeParser(new ParseResult { Channels = channels }), CancellationToken.None);
 
