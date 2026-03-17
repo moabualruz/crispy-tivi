@@ -7,4 +7,5 @@
 pub mod handlers;
 
 // Re-export crispy-core types so crispy-ui depends only on crispy-server
+pub use crispy_core::models;
 pub use crispy_core::services::CrispyService;

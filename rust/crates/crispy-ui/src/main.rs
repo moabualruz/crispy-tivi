@@ -1,6 +1,7 @@
 slint::include_modules!();
 
 mod app;
+mod data;
 mod i18n;
 
 fn main() -> anyhow::Result<()> {

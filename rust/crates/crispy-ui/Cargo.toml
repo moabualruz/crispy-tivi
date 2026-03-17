@@ -12,6 +12,7 @@ tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 anyhow.workspace = true
+chrono.workspace = true
 rust-i18n.workspace = true
 
 [build-dependencies]

@@ -1,0 +1,83 @@
+import { Theme } from "../globals/theme.slint";
+import { AppState, ChannelData } from "../globals/app-state.slint";
+
+export component ChannelCard inherits FocusScope {
+  in property <ChannelData> channel;
+
+  callback clicked();
+
+  height: 56px;
+  width: 100%;
+
+  key-pressed(event) => {
+    if event.text == Key.Return || event.text == " " {
+      root.clicked();
+      return accept;
+    }
+    return reject;
+  }
+
+  Rectangle {
+    width: 100%;
+    height: 100%;
+    border-radius: Theme.radius-sm;
+    background: root.has-focus ? Theme.surface : transparent;
+    border-width: root.has-focus ? Theme.focus-ring-width : 0px;
+    border-color: Theme.focus-ring;
+
+    HorizontalLayout {
+      padding-left: Theme.spacing-md;
+      padding-right: Theme.spacing-md;
+      spacing: Theme.spacing-md;
+
+      // Channel number
+      Text {
+        text: channel.number > 0 ? channel.number : "";
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        width: 32px;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+      }
+
+      // Channel info
+      VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        spacing: 2px;
+
+        Text {
+          text: channel.name;
+          color: Theme.text-primary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-body;
+          overflow: elide;
+        }
+        if channel.group != "": Text {
+          text: channel.group;
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-small;
+          overflow: elide;
+        }
+      }
+
+      // Favorite star
+      Text {
+        text: channel.is-favorite ? "★" : "☆";
+        color: channel.is-favorite ? Theme.accent : Theme.text-secondary;
+        font-size: 20px;
+        vertical-alignment: center;
+
+        TouchArea {
+          clicked => { AppState.toggle-favorite(channel.id); }
+        }
+      }
+    }
+
+    TouchArea {
+      clicked => { root.clicked(); }
+    }
+  }
+}

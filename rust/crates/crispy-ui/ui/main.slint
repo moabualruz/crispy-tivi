@@ -11,6 +11,7 @@ import { MoviesScreen } from "screens/movies.slint";
 import { SeriesScreen } from "screens/series.slint";
 import { SearchScreen } from "screens/search.slint";
 import { SettingsScreen } from "screens/settings.slint";
+import { SourceDialog } from "components/source-dialog.slint";
 
 export component AppWindow inherits Window {
   title: "CrispyTivi";
@@ -36,4 +37,7 @@ export component AppWindow inherits Window {
       if AppState.active-screen == 6: SettingsScreen {}
     }
   }
+
+  // Modal overlay
+  SourceDialog {}
 }

@@ -1,0 +1,177 @@
+import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+import { LineEdit, ComboBox } from "std-widgets.slint";
+
+export component SourceDialog inherits Rectangle {
+  visible: AppState.show-source-dialog;
+  width: 100%;
+  height: 100%;
+
+  // Backdrop
+  Rectangle {
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    TouchArea {
+      clicked => { AppState.show-source-dialog = false; }
+    }
+  }
+
+  // Dialog card
+  Rectangle {
+    width: 420px;
+    height: 400px;
+    x: (parent.width - self.width) / 2;
+    y: (parent.height - self.height) / 2;
+    border-radius: Theme.radius-lg;
+    background: Theme.is-dark ? #1C1C20 : #FFFFFF;
+    border-width: 1px;
+    border-color: Theme.border-subtle;
+
+    // Stop click-through
+    TouchArea {}
+
+    VerticalLayout {
+      padding: Theme.spacing-lg;
+      spacing: Theme.spacing-md;
+
+      Text {
+        text: "Add Source";
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-h2;
+      }
+
+      // Name
+      VerticalLayout {
+        spacing: Theme.spacing-xs;
+        Text { text: "Name"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
+        name-input := LineEdit {
+          placeholder-text: "My IPTV";
+        }
+      }
+
+      // Type
+      VerticalLayout {
+        spacing: Theme.spacing-xs;
+        Text { text: "Type"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
+        type-combo := ComboBox {
+          model: ["M3U / M3U8", "Xtream Codes", "Stalker Portal"];
+          current-index: 0;
+          current-value: "M3U / M3U8";
+        }
+      }
+
+      // URL
+      VerticalLayout {
+        spacing: Theme.spacing-xs;
+        Text { text: "URL"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
+        url-input := LineEdit {
+          placeholder-text: "http://example.com/playlist.m3u";
+        }
+      }
+
+      // Username (for Xtream/Stalker)
+      if type-combo.current-index > 0: VerticalLayout {
+        spacing: Theme.spacing-xs;
+        Text { text: "Username"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
+        user-input := LineEdit {
+          placeholder-text: "username";
+        }
+      }
+
+      // Password (for Xtream/Stalker)
+      if type-combo.current-index > 0: VerticalLayout {
+        spacing: Theme.spacing-xs;
+        Text { text: "Password"; color: Theme.text-secondary; font-size: Theme.font-size-caption; }
+        pass-input := LineEdit {
+          placeholder-text: "password";
+          input-type: password;
+        }
+      }
+
+      // Actions
+      HorizontalLayout {
+        spacing: Theme.spacing-md;
+        alignment: end;
+
+        // Cancel
+        FocusScope {
+          width: 80px;
+          height: 40px;
+          key-pressed(event) => {
+            if event.text == Key.Return {
+              AppState.show-source-dialog = false;
+              return accept;
+            }
+            return reject;
+          }
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-sm;
+            background: Theme.surface;
+            border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+            border-color: Theme.focus-ring;
+            Text {
+              text: "Cancel";
+              color: Theme.text-primary;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+            TouchArea {
+              clicked => { AppState.show-source-dialog = false; }
+            }
+          }
+        }
+
+        // Save
+        FocusScope {
+          width: 80px;
+          height: 40px;
+          key-pressed(event) => {
+            if event.text == Key.Return {
+              AppState.save-source(
+                name-input.text,
+                type-combo.current-index == 0 ? "m3u"
+                  : type-combo.current-index == 1 ? "xtream"
+                  : "stalker",
+                url-input.text,
+                "", ""
+              );
+              AppState.show-source-dialog = false;
+              return accept;
+            }
+            return reject;
+          }
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-sm;
+            background: Theme.accent;
+            border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+            border-color: Theme.focus-ring;
+            Text {
+              text: "Save";
+              color: #FFFFFF;
+              font-weight: 600;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+            TouchArea {
+              clicked => {
+                AppState.save-source(
+                  name-input.text,
+                  type-combo.current-index == 0 ? "m3u"
+                    : type-combo.current-index == 1 ? "xtream"
+                    : "stalker",
+                  url-input.text,
+                  "", ""
+                );
+                AppState.show-source-dialog = false;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

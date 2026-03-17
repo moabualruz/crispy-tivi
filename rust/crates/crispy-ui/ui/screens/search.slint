@@ -1,4 +1,8 @@
 import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+import { ChannelCard } from "../components/channel-card.slint";
+import { VodCard } from "../components/vod-card.slint";
+import { LineEdit, ScrollView } from "std-widgets.slint";
 
 export component SearchScreen inherits Rectangle {
   background: transparent;
@@ -7,35 +11,23 @@ export component SearchScreen inherits Rectangle {
     padding: Theme.spacing-xl;
     spacing: Theme.spacing-md;
 
-    // Search input placeholder
-    Rectangle {
-      height: 48px;
-      border-radius: Theme.radius-pill;
-      background: Theme.surface;
-      border-width: 1px;
-      border-color: Theme.border-subtle;
-
-      HorizontalLayout {
-        padding-left: Theme.spacing-md;
-        spacing: Theme.spacing-sm;
-
-        Text {
-          text: "🔍";
-          font-size: 20px;
-          vertical-alignment: center;
-        }
-        Text {
-          text: "Search channels, movies, series...";
-          color: Theme.text-secondary;
-          font-family: Theme.font-body;
-          font-size: Theme.font-size-body;
-          vertical-alignment: center;
+    // Search input
+    search-input := LineEdit {
+      placeholder-text: "Search channels, movies, series...";
+      accepted => {
+        AppState.search-text = self.text;
+        AppState.perform-search(self.text);
+      }
+      edited => {
+        if self.text.character-count >= 2 {
+          AppState.search-text = self.text;
+          AppState.perform-search(self.text);
         }
       }
     }
 
-    // Empty results area
-    Rectangle {
+    // Results
+    if AppState.search-text == "": Rectangle {
       vertical-stretch: 1;
       Text {
         text: "Type to search across all sources";
@@ -44,6 +36,60 @@ export component SearchScreen inherits Rectangle {
         font-size: Theme.font-size-body;
         horizontal-alignment: center;
         vertical-alignment: center;
+      }
+    }
+
+    if AppState.search-text != "": ScrollView {
+      VerticalLayout {
+        spacing: Theme.spacing-md;
+
+        // Channel results
+        if AppState.search-channels.length > 0: VerticalLayout {
+          spacing: Theme.spacing-sm;
+
+          Text {
+            text: "Channels";
+            color: Theme.text-primary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-body;
+            font-weight: 600;
+          }
+
+          for ch in AppState.search-channels: ChannelCard {
+            channel: ch;
+            clicked => { AppState.play-channel(ch.id); }
+          }
+        }
+
+        // VOD results
+        if AppState.search-vod.length > 0: VerticalLayout {
+          spacing: Theme.spacing-sm;
+
+          Text {
+            text: "Movies & Series";
+            color: Theme.text-primary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-body;
+            font-weight: 600;
+          }
+
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+
+            for item in AppState.search-vod: VodCard {
+              item: item;
+            }
+          }
+        }
+
+        // No results
+        if AppState.search-channels.length == 0 && AppState.search-vod.length == 0: Text {
+          text: "No results found";
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-body;
+          horizontal-alignment: center;
+        }
       }
     }
   }

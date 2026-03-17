@@ -1,10 +1,132 @@
 import { Theme } from "../globals/theme.slint";
-import { AppState } from "../globals/app-state.slint";
+import { AppState, SourceData } from "../globals/app-state.slint";
+import { ScrollView } from "std-widgets.slint";
+
+component SourceRow inherits FocusScope {
+  in property <SourceData> source;
+
+  height: 64px;
+  width: 100%;
+
+  key-pressed(event) => {
+    if event.text == Key.Delete {
+      AppState.delete-source(source.id);
+      return accept;
+    }
+    return reject;
+  }
+
+  Rectangle {
+    width: 100%; height: 100%;
+    border-radius: Theme.radius-sm;
+    background: root.has-focus ? Theme.surface-glass : transparent;
+    border-width: root.has-focus ? Theme.focus-ring-width : 0px;
+    border-color: Theme.focus-ring;
+
+    HorizontalLayout {
+      padding-left: Theme.spacing-md;
+      padding-right: Theme.spacing-md;
+      spacing: Theme.spacing-md;
+
+      // Type badge
+      Rectangle {
+        width: 48px;
+        height: 28px;
+        border-radius: Theme.radius-sm;
+        background: Theme.surface;
+        vertical-stretch: 0;
+
+        Text {
+          text: source.source-type == "m3u" ? "M3U"
+            : source.source-type == "xtream" ? "XC"
+            : source.source-type == "stalker" ? "STK"
+            : source.source-type;
+          color: Theme.accent;
+          font-size: Theme.font-size-small;
+          font-weight: 700;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+      }
+
+      // Source info
+      VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        spacing: 2px;
+
+        Text {
+          text: source.name;
+          color: Theme.text-primary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-body;
+          overflow: elide;
+        }
+        HorizontalLayout {
+          spacing: Theme.spacing-sm;
+          Text {
+            text: source.channel-count + " channels";
+            color: Theme.text-secondary;
+            font-size: Theme.font-size-small;
+          }
+          Text {
+            text: "·";
+            color: Theme.text-secondary;
+            font-size: Theme.font-size-small;
+          }
+          Text {
+            text: source.vod-count + " VOD";
+            color: Theme.text-secondary;
+            font-size: Theme.font-size-small;
+          }
+        }
+      }
+
+      // Sync button
+      Rectangle {
+        width: 32px;
+        height: 32px;
+        border-radius: 16px;
+        background: Theme.surface;
+        vertical-stretch: 0;
+
+        Text {
+          text: "🔄";
+          font-size: 16px;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+        TouchArea {
+          clicked => { AppState.sync-source(source.id); }
+        }
+      }
+
+      // Delete button
+      Rectangle {
+        width: 32px;
+        height: 32px;
+        border-radius: 16px;
+        background: Theme.surface;
+        vertical-stretch: 0;
+
+        Text {
+          text: "🗑";
+          font-size: 16px;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+        TouchArea {
+          clicked => { AppState.delete-source(source.id); }
+        }
+      }
+    }
+  }
+}
 
 export component SettingsScreen inherits Rectangle {
   background: transparent;
 
-  Flickable {
+  ScrollView {
     VerticalLayout {
       padding: Theme.spacing-xl;
       spacing: Theme.spacing-lg;
@@ -28,48 +150,59 @@ export component SettingsScreen inherits Rectangle {
           padding: Theme.spacing-md;
           spacing: Theme.spacing-sm;
 
-          Text {
-            text: "Sources";
-            color: Theme.text-primary;
-            font-family: Theme.font-body;
-            font-size: Theme.font-size-body;
-            font-weight: 600;
+          HorizontalLayout {
+            Text {
+              text: "Sources";
+              color: Theme.text-primary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-body;
+              font-weight: 600;
+              horizontal-stretch: 1;
+              vertical-alignment: center;
+            }
+
+            // Add source button
+            FocusScope {
+              width: 100px;
+              height: 32px;
+              key-pressed(event) => {
+                if event.text == Key.Return {
+                  AppState.show-source-dialog = true;
+                  return accept;
+                }
+                return reject;
+              }
+              Rectangle {
+                width: 100%; height: 100%;
+                border-radius: Theme.radius-sm;
+                background: Theme.accent;
+                border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+                border-color: Theme.focus-ring;
+                Text {
+                  text: "+ Add";
+                  color: #FFFFFF;
+                  font-size: Theme.font-size-caption;
+                  font-weight: 600;
+                  horizontal-alignment: center;
+                  vertical-alignment: center;
+                }
+                TouchArea {
+                  clicked => { AppState.show-source-dialog = true; }
+                }
+              }
+            }
           }
-          Text {
+
+          if AppState.sources.length == 0: Text {
             text: "No sources configured. Add an IPTV source or media server to get started.";
             color: Theme.text-secondary;
             font-family: Theme.font-body;
             font-size: Theme.font-size-caption;
             wrap: word-wrap;
           }
-          FocusScope {
-            height: 40px;
-            key-pressed(event) => {
-              if event.text == Key.Return || event.text == " " {
-                // Add source action (Phase 2)
-                return accept;
-              }
-              return reject;
-            }
-            Rectangle {
-              width: 100%;
-              height: 100%;
-              border-radius: Theme.radius-sm;
-              background: Theme.accent;
-              border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
-              border-color: Theme.focus-ring;
 
-              Text {
-                text: "+ Add Source";
-                color: #FFFFFF;
-                font-family: Theme.font-body;
-                font-size: Theme.font-size-caption;
-                font-weight: 600;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-              }
-              TouchArea { }
-            }
+          for src in AppState.sources: SourceRow {
+            source: src;
           }
         }
       }
@@ -93,10 +226,9 @@ export component SettingsScreen inherits Rectangle {
             font-weight: 600;
           }
 
-          // Theme selector: System / Dark / Light
+          // Theme selector
           HorizontalLayout {
             spacing: Theme.spacing-md;
-
             Text {
               text: "Theme";
               color: Theme.text-primary;
@@ -105,10 +237,8 @@ export component SettingsScreen inherits Rectangle {
               vertical-alignment: center;
               horizontal-stretch: 1;
             }
-
             HorizontalLayout {
               spacing: Theme.spacing-xs;
-
               for item[idx] in [
                 { label: "System", mode: 0 },
                 { label: "Dark", mode: 1 },
@@ -116,34 +246,28 @@ export component SettingsScreen inherits Rectangle {
               ]: FocusScope {
                 width: 72px;
                 height: 32px;
-
                 key-pressed(event) => {
-                  if event.text == Key.Return || event.text == " " {
+                  if event.text == Key.Return {
                     Theme.theme-mode = item.mode;
                     AppState.set-theme(item.mode);
                     return accept;
                   }
                   return reject;
                 }
-
                 Rectangle {
-                  width: 100%;
-                  height: 100%;
+                  width: 100%; height: 100%;
                   border-radius: Theme.radius-pill;
                   background: Theme.theme-mode == item.mode ? Theme.accent : Theme.surface-glass;
                   border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
                   border-color: Theme.focus-ring;
-
                   Text {
                     text: item.label;
                     color: Theme.theme-mode == item.mode ? #FFFFFF : Theme.text-secondary;
-                    font-family: Theme.font-body;
                     font-size: Theme.font-size-small;
                     font-weight: 500;
                     horizontal-alignment: center;
                     vertical-alignment: center;
                   }
-
                   TouchArea {
                     clicked => {
                       Theme.theme-mode = item.mode;
@@ -158,7 +282,6 @@ export component SettingsScreen inherits Rectangle {
           // Language row
           HorizontalLayout {
             spacing: Theme.spacing-md;
-
             Text {
               text: "Language";
               color: Theme.text-primary;
@@ -167,7 +290,6 @@ export component SettingsScreen inherits Rectangle {
               vertical-alignment: center;
               horizontal-stretch: 1;
             }
-
             Text {
               text: AppState.active-language == "en" ? "English"
                 : AppState.active-language == "ar" ? "العربية"
@@ -184,17 +306,15 @@ export component SettingsScreen inherits Rectangle {
         }
       }
 
-      // About section
+      // About
       Rectangle {
         border-radius: Theme.radius-md;
         background: Theme.surface;
         border-width: 1px;
         border-color: Theme.border-subtle;
-
         VerticalLayout {
           padding: Theme.spacing-md;
           spacing: Theme.spacing-sm;
-
           Text {
             text: "About";
             color: Theme.text-primary;
@@ -205,13 +325,11 @@ export component SettingsScreen inherits Rectangle {
           Text {
             text: "CrispyTivi v0.1.1";
             color: Theme.text-secondary;
-            font-family: Theme.font-body;
             font-size: Theme.font-size-caption;
           }
           Text {
             text: "Cross-platform IPTV & media player";
             color: Theme.text-secondary;
-            font-family: Theme.font-body;
             font-size: Theme.font-size-caption;
           }
         }

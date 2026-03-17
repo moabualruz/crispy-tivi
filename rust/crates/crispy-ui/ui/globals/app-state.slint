@@ -1,3 +1,59 @@
+// Data structures for Slint UI models
+export struct SourceData {
+  id: string,
+  name: string,
+  source-type: string,
+  url: string,
+  username: string,
+  password: string,
+  channel-count: int,
+  vod-count: int,
+  sync-status: string,
+}
+
+export struct ChannelData {
+  id: string,
+  name: string,
+  group: string,
+  logo-url: string,
+  stream-url: string,
+  source-id: string,
+  number: int,
+  is-favorite: bool,
+  now-playing: string,
+}
+
+export struct VodData {
+  id: string,
+  name: string,
+  stream-url: string,
+  item-type: string,
+  poster-url: string,
+  genre: string,
+  year: string,
+  rating: string,
+  source-id: string,
+  series-id: string,
+  season: int,
+  episode: int,
+}
+
+export struct EpgData {
+  channel-id: string,
+  title: string,
+  start-hour: int,
+  start-minute: int,
+  end-hour: int,
+  end-minute: int,
+  description: string,
+  has-catchup: bool,
+}
+
+export struct CategoryData {
+  name: string,
+  category-type: string,
+}
+
 export global AppState {
   // Current active screen index
   // 0=Home, 1=LiveTV, 2=EPG, 3=Movies, 4=Series, 5=Search, 6=Settings
@@ -10,8 +66,58 @@ export global AppState {
   in-out property <string> active-language: "en";
   in-out property <bool> is-rtl: false;
 
+  // Source data
+  in-out property <[SourceData]> sources: [];
+
+  // Channel data
+  in-out property <[ChannelData]> channels: [];
+  in-out property <[string]> channel-groups: [];
+  in-out property <string> active-channel-group: "";
+  in-out property <string> channel-search-text: "";
+
+  // VOD data
+  in-out property <[VodData]> movies: [];
+  in-out property <[VodData]> series: [];
+  in-out property <[CategoryData]> vod-categories: [];
+  in-out property <string> active-vod-category: "";
+
+  // Search
+  in-out property <string> search-text: "";
+  in-out property <[ChannelData]> search-channels: [];
+  in-out property <[VodData]> search-vod: [];
+
+  // Sync state
+  in-out property <bool> is-syncing: false;
+  in-out property <float> sync-progress: 0.0;
+  in-out property <string> sync-message: "";
+
+  // Source dialog state
+  in-out property <bool> show-source-dialog: false;
+  in-out property <SourceData> editing-source: {
+    id: "", name: "", source-type: "m3u", url: "",
+    username: "", password: "", channel-count: 0,
+    vod-count: 0, sync-status: ""
+  };
+
   // Callbacks to Rust
   callback navigate(/* screen-index */ int);
-  callback set-theme(/* theme-mode: 0=system, 1=dark, 2=light */ int);
+  callback set-theme(/* theme-mode */ int);
   callback set-language(/* lang-code */ string);
+
+  // Source management
+  callback save-source(/* name */ string, /* type */ string, /* url */ string, /* user */ string, /* pass */ string);
+  callback delete-source(/* source-id */ string);
+  callback sync-source(/* source-id */ string);
+  callback sync-all();
+
+  // Channel operations
+  callback toggle-favorite(/* channel-id */ string);
+  callback filter-channels(/* group */ string, /* search */ string);
+  callback play-channel(/* channel-id */ string);
+
+  // VOD operations
+  callback filter-vod(/* category */ string, /* item-type */ string);
+
+  // Search
+  callback perform-search(/* query */ string);
 }

@@ -1,15 +1,75 @@
 import { Theme } from "../globals/theme.slint";
 import { AppState } from "../globals/app-state.slint";
 import { EmptyState } from "../components/empty-state.slint";
+import { ChannelCard } from "../components/channel-card.slint";
+import { ListView } from "std-widgets.slint";
 
 export component LiveTvScreen inherits Rectangle {
   background: transparent;
 
-  EmptyState {
+  if AppState.channels.length == 0: EmptyState {
     icon: "📡";
     title: "No Channels";
     subtitle: "Add an IPTV source to browse live channels.";
     cta-text: "Add Source";
     cta-clicked => { AppState.navigate(6); }
+  }
+
+  if AppState.channels.length > 0: VerticalLayout {
+    padding: Theme.spacing-lg;
+    spacing: Theme.spacing-md;
+
+    // Header
+    Text {
+      text: "Live TV";
+      color: Theme.text-primary;
+      font-family: Theme.font-display;
+      font-size: Theme.font-size-h1;
+    }
+
+    // Group filter chips
+    if AppState.channel-groups.length > 0: HorizontalLayout {
+      spacing: Theme.spacing-xs;
+      height: 36px;
+
+      // "All" chip
+      FocusScope {
+        width: 60px;
+        height: 32px;
+        key-pressed(event) => {
+          if event.text == Key.Return {
+            AppState.active-channel-group = "";
+            return accept;
+          }
+          return reject;
+        }
+        Rectangle {
+          width: 100%; height: 100%;
+          border-radius: Theme.radius-pill;
+          background: AppState.active-channel-group == "" ? Theme.accent : Theme.surface;
+          border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+          border-color: Theme.focus-ring;
+          Text {
+            text: "All";
+            color: AppState.active-channel-group == "" ? #FFFFFF : Theme.text-secondary;
+            font-size: Theme.font-size-small;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+          TouchArea {
+            clicked => { AppState.active-channel-group = ""; }
+          }
+        }
+      }
+    }
+
+    // Channel list
+    ListView {
+      for ch in AppState.channels: ChannelCard {
+        channel: ch;
+        visible: AppState.active-channel-group == "" || ch.group == AppState.active-channel-group;
+        clicked => { AppState.play-channel(ch.id); }
+      }
+    }
   }
 }

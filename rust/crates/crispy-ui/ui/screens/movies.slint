@@ -1,15 +1,40 @@
 import { Theme } from "../globals/theme.slint";
 import { AppState } from "../globals/app-state.slint";
 import { EmptyState } from "../components/empty-state.slint";
+import { VodCard } from "../components/vod-card.slint";
+import { ScrollView } from "std-widgets.slint";
 
 export component MoviesScreen inherits Rectangle {
   background: transparent;
 
-  EmptyState {
+  if AppState.movies.length == 0: EmptyState {
     icon: "🎬";
     title: "No Movies";
     subtitle: "Movies from your IPTV and media server sources will appear here.";
     cta-text: "Add Source";
     cta-clicked => { AppState.navigate(6); }
+  }
+
+  if AppState.movies.length > 0: VerticalLayout {
+    padding: Theme.spacing-lg;
+    spacing: Theme.spacing-md;
+
+    Text {
+      text: "Movies";
+      color: Theme.text-primary;
+      font-family: Theme.font-display;
+      font-size: Theme.font-size-h1;
+    }
+
+    ScrollView {
+      VerticalLayout {
+        spacing: Theme.spacing-md;
+
+        // Grid rows (4 per row)
+        for movie[idx] in AppState.movies: VodCard {
+          item: movie;
+        }
+      }
+    }
   }
 }
