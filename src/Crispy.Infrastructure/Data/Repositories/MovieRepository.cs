@@ -40,6 +40,16 @@ public sealed class MovieRepository : IMovieRepository
     }
 
     /// <inheritdoc/>
+    public async Task<IReadOnlyList<Movie>> GetAllAsync(CancellationToken ct = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await ctx.Movies
+            .AsNoTracking()
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
     public async Task<int> UpsertRangeAsync(IEnumerable<Movie> movies, CancellationToken ct = default)
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);

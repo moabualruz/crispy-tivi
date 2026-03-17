@@ -13,6 +13,9 @@ public interface ISeriesRepository
     /// <summary>Returns all series for a given source.</summary>
     Task<IReadOnlyList<Series>> GetBySourceAsync(int sourceId, CancellationToken ct = default);
 
+    /// <summary>Returns all series across all sources.</summary>
+    Task<IReadOnlyList<Series>> GetAllAsync(CancellationToken ct = default);
+
     /// <summary>Bulk-upserts series from a parse result.</summary>
     Task<int> UpsertRangeAsync(IEnumerable<Series> series, CancellationToken ct = default);
 

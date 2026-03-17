@@ -40,6 +40,16 @@ public sealed class SeriesRepository : ISeriesRepository
     }
 
     /// <inheritdoc/>
+    public async Task<IReadOnlyList<Series>> GetAllAsync(CancellationToken ct = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await ctx.SeriesItems
+            .AsNoTracking()
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
     public async Task<int> UpsertRangeAsync(IEnumerable<Series> series, CancellationToken ct = default)
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);

@@ -130,17 +130,7 @@ public partial class MoviesViewModel : ViewModelBase, INavigationAware
 
             if (filter.SourceId is null)
             {
-                var all = new List<Movie>();
-                foreach (var f in SourceFilters)
-                {
-                    if (f.SourceId is not null)
-                    {
-                        var batch = await _movieRepository.GetBySourceAsync(f.SourceId.Value, ct);
-                        all.AddRange(batch);
-                    }
-                }
-
-                results = all;
+                results = await _movieRepository.GetAllAsync(ct);
             }
             else
             {

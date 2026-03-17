@@ -13,6 +13,9 @@ public interface IChannelRepository
     /// <summary>Returns all channels for a given source, including their stream endpoints.</summary>
     Task<IReadOnlyList<Channel>> GetBySourceAsync(int sourceId, CancellationToken ct = default);
 
+    /// <summary>Returns all channels across all sources, including stream endpoints.</summary>
+    Task<IReadOnlyList<Channel>> GetAllAsync(CancellationToken ct = default);
+
     /// <summary>Bulk-upserts channels from a parse result, returning the count of rows affected.</summary>
     Task<int> UpsertRangeAsync(IEnumerable<Channel> channels, CancellationToken ct = default);
 

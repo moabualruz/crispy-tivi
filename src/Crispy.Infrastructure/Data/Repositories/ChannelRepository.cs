@@ -44,6 +44,19 @@ public sealed class ChannelRepository : IChannelRepository
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Channel>> GetAllAsync(CancellationToken ct = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await ctx.Channels
+            .AsNoTracking()
+            .Include(c => c.StreamEndpoints)
+            .OrderBy(c => c.TvgChno ?? int.MaxValue)
+            .ThenBy(c => c.Title)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
     public async Task<int> UpsertRangeAsync(IEnumerable<Channel> channels, CancellationToken ct = default)
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);

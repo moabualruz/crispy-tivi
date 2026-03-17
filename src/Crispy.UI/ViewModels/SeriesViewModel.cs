@@ -165,17 +165,7 @@ public partial class SeriesViewModel : ViewModelBase, INavigationAware
 
             if (filter.SourceId is null)
             {
-                var all = new List<Series>();
-                foreach (var f in SourceFilters)
-                {
-                    if (f.SourceId is not null)
-                    {
-                        var batch = await _seriesRepository.GetBySourceAsync(f.SourceId.Value, ct);
-                        all.AddRange(batch);
-                    }
-                }
-
-                results = all;
+                results = await _seriesRepository.GetAllAsync(ct);
             }
             else
             {

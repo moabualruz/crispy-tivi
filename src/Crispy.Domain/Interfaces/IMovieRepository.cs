@@ -13,6 +13,9 @@ public interface IMovieRepository
     /// <summary>Returns all movies for a given source.</summary>
     Task<IReadOnlyList<Movie>> GetBySourceAsync(int sourceId, CancellationToken ct = default);
 
+    /// <summary>Returns all movies across all sources.</summary>
+    Task<IReadOnlyList<Movie>> GetAllAsync(CancellationToken ct = default);
+
     /// <summary>Bulk-upserts movies from a parse result.</summary>
     Task<int> UpsertRangeAsync(IEnumerable<Movie> movies, CancellationToken ct = default);
 }

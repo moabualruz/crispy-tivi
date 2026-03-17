@@ -161,10 +161,8 @@ public partial class LiveTvViewModel : ViewModelBase, INavigationAware
 
         if (filter.SourceId is null)
         {
-            // All Sources: load from each enabled source and union results.
-            var tasks = enabledSources.Select(s => _channelRepository.GetBySourceAsync(s.Id, ct));
-            var results = await Task.WhenAll(tasks);
-            fetched = results.SelectMany(r => r);
+            // All Sources: single query instead of per-source N+1.
+            fetched = await _channelRepository.GetAllAsync(ct);
         }
         else
         {
