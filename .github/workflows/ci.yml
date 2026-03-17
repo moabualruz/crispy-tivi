@@ -1,439 +1,283 @@
-# Branch Protection Required Checks:
-#   - rust-test, flutter-analyze, flutter-test (Tier 0)
-#   - build-windows, build-android, build-web, playwright-web, golden-tests, build-server (Tier 1)
-#
-# Tier 2 (advisory, non-blocking): build-macos, build-ios, build-linux
+# CrispyTivi CI — Rust + Slint
+# Manual trigger only. No push/PR builds.
 
 name: CI
 
 on:
   workflow_dispatch:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 env:
-  FLUTTER_VERSION: "3.41.1"
   RUST_VERSION: "1.91.1"
-  ALPHA_BASE: "0.1.0-alpha"
-  # ── Test count thresholds ────────────────────────
-  # Minimum number of passing tests required.
-  # CI fails if counts drop below these values.
-  # UPDATE these when adding new tests:
-  #   1. Run the test suite locally to get current count
-  #   2. Set threshold ~5-10% below actual count
-  #   3. Commit the updated threshold
-  RUST_TEST_THRESHOLD: 1195 # actual ~1258 as of 2026-03-13
-  FLUTTER_TEST_THRESHOLD: 3120 # actual ~3285 as of 2026-03-13
+  MPV_WIN_REPO: shinchiro/mpv-winbuild-cmake
+  MPV_WIN_TAG: "20260307"
+  MPV_DARWIN_REPO: media-kit/libmpv-darwin-build
+  MPV_DARWIN_TAG: v0.6.3
+  MPV_ANDROID_REPO: jarnedemeulemeester/libmpv-android
+  MPV_ANDROID_TAG: v0.5.1
 
 jobs:
   # =================================================================
-  # === TIER 0: Fast Gates (always required, run first) =============
+  # === Download ALL libmpv deps once, shared cache ==================
   # =================================================================
-
-  # ── Rust Tests ──────────────────────────────────
-  rust-test:
-    name: Rust Tests
+  deps:
+    name: Download Native Dependencies
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Cache libmpv
+        id: cache-mpv
+        uses: actions/cache@v4
+        with:
+          path: third-party/mpv
+          key: libmpv-${{ env.MPV_WIN_TAG }}-${{ env.MPV_DARWIN_TAG }}-${{ env.MPV_ANDROID_TAG }}
+
+      - name: Download all libmpv archives
+        if: steps.cache-mpv.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p third-party/mpv/{windows-x64,windows-arm64,macos-universal,ios-arm64,android}
+
+          echo "=== Windows x64 ==="
+          gh release download ${{ env.MPV_WIN_TAG }} \
+            --repo ${{ env.MPV_WIN_REPO }} \
+            -p "mpv-dev-x86_64-${{ env.MPV_WIN_TAG }}-git-*.7z" \
+            -D third-party/mpv/windows-x64/ --clobber
+
+          echo "=== Windows ARM64 ==="
+          gh release download ${{ env.MPV_WIN_TAG }} \
+            --repo ${{ env.MPV_WIN_REPO }} \
+            -p "mpv-dev-aarch64-${{ env.MPV_WIN_TAG }}-git-*.7z" \
+            -D third-party/mpv/windows-arm64/ --clobber
+
+          echo "=== macOS universal ==="
+          gh release download ${{ env.MPV_DARWIN_TAG }} \
+            --repo ${{ env.MPV_DARWIN_REPO }} \
+            -p "libmpv-libs_${{ env.MPV_DARWIN_TAG }}_macos-universal-video-full.tar.gz" \
+            -D third-party/mpv/macos-universal/ --clobber
+
+          echo "=== iOS universal ==="
+          gh release download ${{ env.MPV_DARWIN_TAG }} \
+            --repo ${{ env.MPV_DARWIN_REPO }} \
+            -p "libmpv-xcframeworks_${{ env.MPV_DARWIN_TAG }}_ios-universal-video-full.tar.gz" \
+            -D third-party/mpv/ios-arm64/ --clobber
+
+          echo "=== Android ==="
+          gh release download ${{ env.MPV_ANDROID_TAG }} \
+            --repo ${{ env.MPV_ANDROID_REPO }} \
+            -p "libmpv-release.aar" \
+            -D third-party/mpv/android/ --clobber
+
+          echo "=== Downloads complete ==="
+          find third-party/mpv -type f -exec ls -lh {} \;
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Extract Windows x64
+        if: steps.cache-mpv.outputs.cache-hit != 'true'
+        run: |
+          cd third-party/mpv/windows-x64
+          7z x *.7z -aoa
+          python3 -c "
+          import subprocess
+          out = subprocess.check_output(['objdump', '-p', 'libmpv-2.dll'], text=True)
+          exports = [l.split()[-1] for l in out.splitlines() if 'mpv_' in l]
+          with open('libmpv-2.def', 'w') as f:
+              f.write('LIBRARY libmpv-2.dll\nEXPORTS\n')
+              for e in exports: f.write(f'  {e}\n')
+          print(f'{len(exports)} exports')
+          "
+          dlltool -d libmpv-2.def -l mpv.lib -D libmpv-2.dll
+
+      - name: Extract Windows ARM64
+        if: steps.cache-mpv.outputs.cache-hit != 'true'
+        run: |
+          cd third-party/mpv/windows-arm64
+          7z x *.7z -aoa
+
+      - name: Extract macOS
+        if: steps.cache-mpv.outputs.cache-hit != 'true'
+        run: |
+          cd third-party/mpv/macos-universal
+          tar xzf *.tar.gz
+
+      - name: Extract iOS
+        if: steps.cache-mpv.outputs.cache-hit != 'true'
+        run: |
+          cd third-party/mpv/ios-arm64
+          tar xzf *.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libmpv-all-platforms
+          path: third-party/mpv/
+          retention-days: 7
+
+  # =================================================================
+  # === Lint & Test ==================================================
+  # =================================================================
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    needs: deps
+    steps:
+      - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
-          components: rustfmt, clippy
+          components: clippy, rustfmt
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
-          prefix-key: v2
-      - name: cargo fmt check
-        run: cargo fmt --check
-        working-directory: rust
-      - name: cargo test (threshold-enforced)
-        run: |
-          set +e
-          output=$(cargo test --workspace 2>&1)
-          exit_code=$?
-          set -e
-          echo "$output"
+          prefix-key: v3-rust-slint
 
-          if [ $exit_code -ne 0 ]; then
-            echo "::error::cargo test failed with exit code $exit_code"
-            exit $exit_code
-          fi
+      - name: Install Linux deps
+        run: sudo apt-get update && sudo apt-get install -y libmpv-dev pkg-config
 
-          count=$(echo "$output" | grep -oE "[0-9]+ passed" | grep -oE "[0-9]+")
-          total=0
-          for c in $count; do
-            total=$((total + c))
-          done
-          count=$total
-          echo "Rust tests passed: $count"
-          threshold=${{ env.RUST_TEST_THRESHOLD }}
-          if [ -z "$count" ] || [ "$count" -lt "$threshold" ]; then
-            echo "::error::Rust test count ($count) below minimum threshold ($threshold). See env.RUST_TEST_THRESHOLD in ci.yml."
-            exit 1
-          fi
+      - name: Format check
+        run: cargo fmt --all --check
         working-directory: rust
-      - name: cargo clippy
+
+      - name: Clippy
         run: cargo clippy --workspace -- -D warnings
         working-directory: rust
-      - name: Check file sizes
-        run: bash scripts/check_file_sizes.sh
 
-  # ── Flutter Analyze ─────────────────────────────
-  flutter-analyze:
-    name: Flutter Analyze
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - run: flutter pub get
-      - name: Dart format check
-        run: dart format --set-exit-if-changed lib/ test/
-      - run: flutter analyze
-      - name: Architecture boundary check
-        run: dart run scripts/check_boundary.dart
-
-  # ── Flutter Tests ───────────────────────────────
-  flutter-test:
-    name: Flutter Tests
-    runs-on: ubuntu-latest
-    needs: flutter-analyze
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - run: flutter pub get
-      - name: Run tests with coverage (threshold-enforced)
-        run: |
-          set +e
-          output=$(flutter test --coverage test/config/ test/core/ test/features/ 2>&1)
-          exit_code=$?
-          set -e
-          echo "$output"
-
-          if [ $exit_code -ne 0 ]; then
-            echo "::error::flutter test failed with exit code $exit_code"
-            exit $exit_code
-          fi
-
-          count=$(echo "$output" | grep -oE "([0-9]+ tests? passed|\+[0-9]+: All tests passed)" | head -1 | grep -oE "[0-9]+")
-          if [ -z "$count" ]; then
-            count=$(echo "$output" | grep -oP '\+(\d+)' | tail -1 | grep -oP '\d+')
-          fi
-          echo "Flutter tests passed: $count"
-          threshold=${{ env.FLUTTER_TEST_THRESHOLD }}
-          if [ -z "$count" ] || [ "$count" -lt "$threshold" ]; then
-            echo "::error::Flutter test count ($count) below minimum threshold ($threshold). See env.FLUTTER_TEST_THRESHOLD in ci.yml."
-            exit 1
-          fi
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: lcov-coverage
-          path: coverage/lcov.info
-          retention-days: 14
+      - name: Tests
+        run: cargo test --workspace
+        working-directory: rust
 
   # =================================================================
-  # === TIER 1: Required for Merge ==================================
+  # === Build Windows ================================================
   # =================================================================
-
-  # ── Golden Tests (visual regression) ────────────
-  golden-tests:
-    name: Golden Tests
-    runs-on: windows-latest
-    needs: flutter-analyze
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - run: flutter pub get
-      - name: Run golden tests
-        run: flutter test test/golden/
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: golden-failures
-          path: test/golden/failures/
-          retention-days: 14
-
-  # ── Build Windows ───────────────────────────────
   build-windows:
     name: Build Windows
     runs-on: windows-latest
-    needs: [rust-test, flutter-analyze]
+    needs: deps
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
-          prefix-key: v2
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - run: flutter pub get
-      - run: flutter build windows --release
-      - name: Run integration tests
-        run: |
-          flutter test integration_test/flows/channel_browse_test.dart -d windows
-          flutter test integration_test/flows/content_switching_flow_test.dart -d windows
-          flutter test integration_test/flows/dvr_flow_test.dart -d windows
-          flutter test integration_test/flows/epg_flow_test.dart -d windows
-          flutter test integration_test/flows/favorites_flow_test.dart -d windows
-          flutter test integration_test/flows/iptv_setup_flow_test.dart -d windows
-          flutter test integration_test/flows/mini_player_flow_test.dart -d windows
-          flutter test integration_test/flows/onboarding_flow_test.dart -d windows
-          flutter test integration_test/flows/player_flow_test.dart -d windows
-          flutter test integration_test/flows/player_speed_flow_test.dart -d windows
-          flutter test integration_test/flows/profile_flow_test.dart -d windows
-          flutter test integration_test/flows/profile_pin_flow_test.dart -d windows
-          flutter test integration_test/flows/search_flow_test.dart -d windows
-          flutter test integration_test/flows/settings_flow_test.dart -d windows
-          flutter test integration_test/flows/vod_flow_test.dart -d windows
-          flutter test integration_test/flows/vod_resume_flow_test.dart -d windows
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-release
-          path: build/windows/x64/runner/Release/
-          retention-days: 7
+          prefix-key: v3-rust-slint
 
-  # ── Build Android ───────────────────────────────
-  build-android:
-    name: Build Android
-    runs-on: ubuntu-latest
-    needs: [rust-test, flutter-analyze]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-          targets: >-
-            aarch64-linux-android,
-            armv7-linux-androideabi,
-            x86_64-linux-android
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust
-          prefix-key: v2
-      - name: Install cargo-ndk
-        run: cargo install cargo-ndk
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - name: Build Rust for Android
-        run: bash scripts/build_rust.sh android
-      - run: flutter pub get
-      - run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: android-release
-          path: build/app/outputs/flutter-apk/
-          retention-days: 7
-
-  # ── Build Web ───────────────────────────────────
-  build-web:
-    name: Build Web
-    runs-on: ubuntu-latest
-    needs: flutter-analyze
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - run: flutter pub get
-      - run: flutter build web --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: web-release
-          path: build/web/
-          retention-days: 7
-
-  # ── Playwright Web Tests ────────────────────────
-  playwright-web:
-    name: Playwright Web Tests
-    runs-on: ubuntu-latest
-    needs: [build-web]
-    steps:
-      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: web-release
-          path: build/web/
-      - name: Serve web app
-        run: npx -y http-server build/web -p 3000 -a 127.0.0.1 -c-1 --cors &
-      - name: Wait for server
-        run: npx -y wait-on http://127.0.0.1:3000 --timeout 60000
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Install Playwright
-        run: cd e2e/playwright && npm ci && npx playwright install --with-deps chromium
-      - name: Run Playwright tests
-        run: cd e2e/playwright && npx playwright test --workers=4
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: playwright-results
-          path: e2e/playwright/test-results/
-          retention-days: 14
+          name: libmpv-all-platforms
+          path: third-party/mpv/
 
-  # ── Build Server ────────────────────────────────
-  build-server:
-    name: Build Server
-    runs-on: ubuntu-latest
-    needs: rust-test
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust
-          prefix-key: v2
-      - name: Build server binary
-        run: cargo build -p crispy-server --release
+      - name: Build
+        run: cargo build -p crispy-ui --release
         working-directory: rust
+
+      - name: Bundle DLL
+        shell: bash
+        run: cp third-party/mpv/windows-x64/libmpv-2.dll rust/target/release/
+
       - uses: actions/upload-artifact@v4
         with:
-          name: server-linux
-          path: rust/target/release/crispy-server
+          name: crispy-windows-x64
+          path: |
+            rust/target/release/crispy-ui.exe
+            rust/target/release/libmpv-2.dll
           retention-days: 7
 
   # =================================================================
-  # === TIER 2: Advisory (non-blocking) =============================
+  # === Build Linux ==================================================
   # =================================================================
-
-  # ── Build Linux ─────────────────────────────────
   build-linux:
     name: Build Linux
     runs-on: ubuntu-latest
-    needs: [rust-test, flutter-analyze]
-    continue-on-error: true
+    needs: deps
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
-          prefix-key: v2
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
+          prefix-key: v3-rust-slint
+
       - name: Install Linux deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            clang cmake ninja-build \
-            libgtk-3-dev pkg-config \
-            libmpv-dev
-      - run: flutter pub get
-      - run: flutter build linux --release
+        run: sudo apt-get update && sudo apt-get install -y libmpv-dev pkg-config
+
+      - name: Build
+        run: cargo build -p crispy-ui --release
+        working-directory: rust
+
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-release
-          path: build/linux/x64/release/bundle/
+          name: crispy-linux-x64
+          path: rust/target/release/crispy-ui
           retention-days: 7
 
-  # ── Build macOS ─────────────────────────────────
+  # =================================================================
+  # === Build macOS ==================================================
+  # =================================================================
   build-macos:
     name: Build macOS
     runs-on: macos-latest
-    needs: [rust-test, flutter-analyze]
-    continue-on-error: true
+    needs: deps
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
-          targets: >-
-            x86_64-apple-darwin,
-            aarch64-apple-darwin
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
-          prefix-key: v2
-      - uses: subosito/flutter-action@v2
+          prefix-key: v3-rust-slint
+
+      - uses: actions/download-artifact@v4
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - name: Build Rust for macOS
-        run: bash scripts/build_rust.sh macos
-      - run: flutter pub get
-      - run: flutter build macos --release --obfuscate --split-debug-info=build/macos-symbols
-      - name: Package macOS app
-        run: |
-          ditto -c -k --keepParent \
-            build/macos/Build/Products/Release/crispy_tivi.app \
-            build/macos-release.zip
+          name: libmpv-all-platforms
+          path: third-party/mpv/
+
+      - name: Build
+        run: cargo build -p crispy-ui --release
+        working-directory: rust
+
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-release
-          path: build/macos-release.zip
-          compression-level: 0
-          retention-days: 7
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-dsyms
-          path: build/macos/Build/Products/Release/**/*.dSYM
+          name: crispy-macos-universal
+          path: rust/target/release/crispy-ui
           retention-days: 7
 
-  # ── Build iOS ───────────────────────────────────
-  build-ios:
-    name: Build iOS
-    runs-on: macos-latest
-    needs: [rust-test, flutter-analyze]
-    continue-on-error: true
+  # =================================================================
+  # === Build Server =================================================
+  # =================================================================
+  build-server:
+    name: Build Server
+    runs-on: ubuntu-latest
+    needs: test
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
-          targets: aarch64-apple-ios
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
-          prefix-key: v2
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - name: Build Rust for iOS
-        run: bash scripts/build_rust.sh ios
-      - run: flutter pub get
-      - run: flutter build ios --no-codesign
+          prefix-key: v3-rust-slint
+
+      - name: Build
+        run: cargo build -p crispy-server --release --bin crispy-server-standalone
+        working-directory: rust
+
       - uses: actions/upload-artifact@v4
         with:
-          name: ios-release
-          path: build/ios/iphoneos/
+          name: crispy-server-linux
+          path: rust/target/release/crispy-server-standalone
           retention-days: 7
