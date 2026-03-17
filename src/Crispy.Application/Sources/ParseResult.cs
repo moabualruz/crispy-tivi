@@ -23,6 +23,16 @@ public sealed class ParseResult
     /// <summary>TV series parsed from the source.</summary>
     public IReadOnlyList<Series> Series { get; init; } = [];
 
+    /// <summary>Episodes parsed from the source (e.g. Jellyfin). SeriesId is a placeholder until resolved by SyncPipeline.</summary>
+    public IReadOnlyList<Episode> Episodes { get; init; } = [];
+
+    /// <summary>
+    /// Maps each episode (by index in <see cref="Episodes"/>) to its parent series title.
+    /// Used by SyncPipeline to resolve real SeriesId after series upsert.
+    /// </summary>
+    public IReadOnlyDictionary<int, string> EpisodeSeriesNames { get; init; } =
+        new Dictionary<int, string>();
+
     /// <summary>Number of items skipped during parsing (malformed, unsupported format, etc.).</summary>
     public int SkippedCount { get; init; }
 
