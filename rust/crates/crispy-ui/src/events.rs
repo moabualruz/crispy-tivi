@@ -23,7 +23,8 @@ pub enum Screen {
     Movies = 3,
     Series = 4,
     Search = 5,
-    Settings = 6,
+    Library = 6,
+    Settings = 7,
 }
 
 impl Screen {
@@ -36,7 +37,8 @@ impl Screen {
             3 => Some(Self::Movies),
             4 => Some(Self::Series),
             5 => Some(Self::Search),
-            6 => Some(Self::Settings),
+            6 => Some(Self::Library),
+            7 => Some(Self::Settings),
             _ => None,
         }
     }

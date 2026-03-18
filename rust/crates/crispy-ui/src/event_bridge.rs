@@ -818,8 +818,10 @@ async fn load_images_for_ui(
 
         let _ = tx.send((ch_urls, mv_urls, sr_urls));
     });
-    
-    let Ok((channel_urls, movie_urls, series_urls)) = rx.recv() else { return; };
+
+    let Ok((channel_urls, movie_urls, series_urls)) = rx.recv() else {
+        return;
+    };
 
     // Download images with bounded concurrency (8 concurrent downloads)
     let semaphore = Arc::new(tokio::sync::Semaphore::new(8));
