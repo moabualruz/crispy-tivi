@@ -123,26 +123,39 @@ impl ImageCache {
             }
         }
 
-        // Check if we have a valid cached entry
+        // Fast path: read lock only — check if file exists on disk (no write lock contention)
         {
-            let mut entries = self.entries.write().await;
-            if let Some(entry) = entries.get_mut(&hash) {
-                let age = now.saturating_sub(entry.last_accessed);
-                entry.last_accessed = now;
+            let entries = self.entries.read().await;
+            if entries.contains_key(&hash) {
+                // Cache hit — decode from disk without holding write lock
+                if let Some(buf) = self.decode_buffer_from_disk(&hash).await {
+                    // Touch last_accessed in background (non-blocking)
+                    let this = self.clone();
+                    let hash_clone = hash.clone();
+                    let url_owned = url.to_owned();
+                    let ttl = self.ttl.as_secs();
+                    let age = entries
+                        .get(&hash)
+                        .map(|e| now.saturating_sub(e.last_accessed))
+                        .unwrap_or(0);
+                    drop(entries); // release read lock before spawning
 
-                // Try decode from disk
-                if let Some(buf) = self.decode_buffer_from_disk(&hash) {
-                    // Background revalidate if >80% TTL elapsed
-                    if age > self.ttl.as_secs() * 80 / 100 {
-                        let this = self.clone();
-                        let url_owned = url.to_owned();
-                        let hash_clone = hash.clone();
-                        tokio::spawn(async move {
+                    tokio::spawn(async move {
+                        // Update last_accessed
+                        {
+                            let mut entries = this.entries.write().await;
+                            if let Some(entry) = entries.get_mut(&hash_clone) {
+                                entry.last_accessed = now_secs();
+                            }
+                        }
+                        // Background revalidate if >80% TTL elapsed
+                        if age > ttl * 80 / 100 {
                             let _ = this
                                 .download_and_cache_buffer(&url_owned, &hash_clone, now_secs())
                                 .await;
-                        });
-                    }
+                        }
+                    });
+
                     return Some(buf);
                 }
             }
@@ -182,7 +195,7 @@ impl ImageCache {
             Err(e) => {
                 tracing::debug!(url, error = %e, "Image download failed");
                 self.mark_failed(hash).await;
-                return self.decode_buffer_from_disk(hash);
+                return self.decode_buffer_from_disk(hash).await;
             }
         };
 
@@ -192,7 +205,7 @@ impl ImageCache {
             if let Some(entry) = entries.get_mut(hash) {
                 entry.last_accessed = now;
             }
-            return self.decode_buffer_from_disk(hash);
+            return self.decode_buffer_from_disk(hash).await;
         }
 
         if !response.status().is_success() {
@@ -246,14 +259,19 @@ impl ImageCache {
         decode_buffer_bytes(&bytes)
     }
 
-    /// Decode an image from disk cache.
-    fn decode_buffer_from_disk(
+    /// Decode an image from disk cache (offloaded to blocking thread pool).
+    async fn decode_buffer_from_disk(
         &self,
         hash: &str,
     ) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
         let path = self.cache_path(hash);
-        let bytes = std::fs::read(&path).ok()?;
-        decode_buffer_bytes(&bytes)
+        tokio::task::spawn_blocking(move || {
+            let bytes = std::fs::read(&path).ok()?;
+            decode_buffer_bytes(&bytes)
+        })
+        .await
+        .ok()
+        .flatten()
     }
 
     /// Remove entries that exceed the max size quota (LRU eviction).

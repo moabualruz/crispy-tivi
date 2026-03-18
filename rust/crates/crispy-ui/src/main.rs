@@ -83,12 +83,17 @@ fn main() -> anyhow::Result<()> {
     app_state.set_is_rtl(i18n::is_rtl(&lang));
     i18n::set_locale(&lang);
 
-    // Show onboarding if first run
+    // Show onboarding if first run (check both keys for backwards compat)
     let is_first_run = service
         .get_setting("onboarding_done")
         .ok()
         .flatten()
-        .is_none();
+        .is_none()
+        && service
+            .get_setting("onboarding_complete")
+            .ok()
+            .flatten()
+            .is_none();
     if is_first_run {
         tracing::info!("First run detected — showing onboarding");
         ui.global::<OnboardingState>().set_is_active(true);
