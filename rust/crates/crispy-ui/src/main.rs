@@ -50,6 +50,23 @@ fn resolve_db_path() -> String {
 }
 
 fn main() -> anyhow::Result<()> {
+    // Slint debug builds need a larger stack due to deeply nested components.
+    const STACK_SIZE: usize = 8 * 1024 * 1024; // 8 MB
+    let builder = std::thread::Builder::new()
+        .name("crispy-main".into())
+        .stack_size(STACK_SIZE);
+    let handler = builder.spawn(|| match real_main() {
+        Ok(()) => {}
+        Err(e) => {
+            eprintln!("Fatal: {e:#}");
+            std::process::exit(1);
+        }
+    })?;
+    handler.join().unwrap();
+    Ok(())
+}
+
+fn real_main() -> anyhow::Result<()> {
     // Initialize tracing with configurable filter
     let filter = std::env::var("CRISPY_LOG")
         .unwrap_or_else(|_| "info,crispy_ui=debug,crispy_core=info".to_string());
