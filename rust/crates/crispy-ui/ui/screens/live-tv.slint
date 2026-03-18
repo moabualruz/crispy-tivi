@@ -207,25 +207,6 @@ export component LiveTvScreen inherits Rectangle {
         }
       }
 
-      // Load-more button below ListView
-      if AppState.has-more-channels: Rectangle {
-        height: 48px;
-        border-radius: Theme.radius-md;
-        background: Theme.card-surface;
-        border-width: 1px;
-        border-color: Theme.card-border;
-        HorizontalLayout {
-          alignment: center;
-          Text {
-            text: "Load more channels...";
-            color: Theme.text-secondary;
-            font-size: Theme.font-size-caption;
-            vertical-alignment: center;
-          }
-        }
-        TouchArea { clicked => { AppState.load-more-channels(); } }
-        init => { AppState.load-more-channels(); }
-      }
 
     }
 

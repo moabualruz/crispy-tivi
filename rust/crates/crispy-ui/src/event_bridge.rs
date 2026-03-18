@@ -301,9 +301,20 @@ pub(crate) fn wire(
             for item in data[..end].iter() {
                 model.push(channel_info_to_slint(item));
             }
+            let has_more = end < data.len();
+            drop(data);
             if let Some(ui) = app_w.upgrade() {
                 ui.global::<super::AppState>()
-                    .set_has_more_channels(end < data.len());
+                    .set_has_more_channels(has_more);
+            }
+            // Auto-chain: schedule next chunk load
+            if has_more {
+                let w = app_w.clone();
+                slint::Timer::single_shot(std::time::Duration::from_millis(16), move || {
+                    if let Some(ui) = w.upgrade() {
+                        ui.global::<super::AppState>().invoke_load_more_channels();
+                    }
+                });
             }
         }
     });
@@ -321,9 +332,18 @@ pub(crate) fn wire(
             for item in data[..end].iter() {
                 model.push(vod_info_to_slint(item));
             }
+            let has_more = end < data.len();
+            drop(data);
             if let Some(ui) = app_w.upgrade() {
-                ui.global::<super::AppState>()
-                    .set_has_more_movies(end < data.len());
+                ui.global::<super::AppState>().set_has_more_movies(has_more);
+            }
+            if has_more {
+                let w = app_w.clone();
+                slint::Timer::single_shot(std::time::Duration::from_millis(16), move || {
+                    if let Some(ui) = w.upgrade() {
+                        ui.global::<super::AppState>().invoke_load_more_movies();
+                    }
+                });
             }
         }
     });
@@ -341,9 +361,18 @@ pub(crate) fn wire(
             for item in data[..end].iter() {
                 model.push(vod_info_to_slint(item));
             }
+            let has_more = end < data.len();
+            drop(data);
             if let Some(ui) = app_w.upgrade() {
-                ui.global::<super::AppState>()
-                    .set_has_more_series(end < data.len());
+                ui.global::<super::AppState>().set_has_more_series(has_more);
+            }
+            if has_more {
+                let w = app_w.clone();
+                slint::Timer::single_shot(std::time::Duration::from_millis(16), move || {
+                    if let Some(ui) = w.upgrade() {
+                        ui.global::<super::AppState>().invoke_load_more_series();
+                    }
+                });
             }
         }
     });
@@ -370,6 +399,15 @@ pub(crate) fn wire(
                     .set_has_more_channels(has_more);
             }
             loader.load_channels(&app_w, Some((current, CHUNK_SIZE)));
+            // Auto-chain next chunk
+            if has_more {
+                let w = app_w.clone();
+                slint::Timer::single_shot(std::time::Duration::from_millis(16), move || {
+                    if let Some(ui) = w.upgrade() {
+                        ui.global::<super::AppState>().invoke_load_more_channels();
+                    }
+                });
+            }
         }
     });
 
@@ -394,6 +432,14 @@ pub(crate) fn wire(
                 ui.global::<super::AppState>().set_has_more_movies(has_more);
             }
             loader.load_movies(&app_w, Some((current, CHUNK_SIZE)));
+            if has_more {
+                let w = app_w.clone();
+                slint::Timer::single_shot(std::time::Duration::from_millis(16), move || {
+                    if let Some(ui) = w.upgrade() {
+                        ui.global::<super::AppState>().invoke_load_more_movies();
+                    }
+                });
+            }
         }
     });
 
@@ -418,6 +464,14 @@ pub(crate) fn wire(
                 ui.global::<super::AppState>().set_has_more_series(has_more);
             }
             loader.load_series(&app_w, Some((current, CHUNK_SIZE)));
+            if has_more {
+                let w = app_w.clone();
+                slint::Timer::single_shot(std::time::Duration::from_millis(16), move || {
+                    if let Some(ui) = w.upgrade() {
+                        ui.global::<super::AppState>().invoke_load_more_series();
+                    }
+                });
+            }
         }
     });
 
