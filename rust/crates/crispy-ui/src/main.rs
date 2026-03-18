@@ -21,6 +21,7 @@ mod provider;
 #[allow(dead_code)]
 mod scroll_controller;
 mod sync_task;
+#[allow(dead_code)]
 mod windowed_model;
 
 use std::sync::{
