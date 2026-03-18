@@ -56,16 +56,35 @@ export component AppWindow inherits Window {
   //   Profile/Source dialog:   OverlayLayer on top of whatever is below
   // ════════════════════════════════════════════════════════════════════════
 
-  // Layer visibility + opacity (controllable from Rust or Slint logic)
-  // Opacity applies to the ENTIRE layer — enables fade transitions between layers
-  property <bool> show-screen-layer: !PlayerState.is-fullscreen && !OnboardingState.is-active;
-  property <float> screen-layer-opacity: 1.0;
+  // ── Layer control properties ──
+  // Each layer has: visibility, opacity, position (x/y), size (w/h)
+  // Set these from outside (Rust or Slint logic) — layers just react.
+  // Defaults: full-size, full-opacity, origin (0,0).
+  // Animate on change for smooth transitions (e.g. PiP mini-player).
 
-  property <bool> show-osd-layer: PlayerState.is-playing && !OnboardingState.is-active;
-  property <float> osd-layer-opacity: 1.0;
+  // ScreenLayer
+  property <bool>   show-screen-layer: !PlayerState.is-fullscreen && !OnboardingState.is-active;
+  property <float>  screen-layer-opacity: 1.0;
+  property <length> screen-layer-x: 0;
+  property <length> screen-layer-y: 0;
+  property <length> screen-layer-w: root.width;
+  property <length> screen-layer-h: root.height;
 
-  property <bool> show-overlay-layer: !OnboardingState.is-active;
-  property <float> overlay-layer-opacity: 1.0;
+  // OsdLayer
+  property <bool>   show-osd-layer: PlayerState.is-playing && !OnboardingState.is-active;
+  property <float>  osd-layer-opacity: 1.0;
+  property <length> osd-layer-x: 0;
+  property <length> osd-layer-y: 0;
+  property <length> osd-layer-w: root.width;
+  property <length> osd-layer-h: root.height;
+
+  // OverlayLayer
+  property <bool>   show-overlay-layer: !OnboardingState.is-active;
+  property <float>  overlay-layer-opacity: 1.0;
+  property <length> overlay-layer-x: 0;
+  property <length> overlay-layer-y: 0;
+  property <length> overlay-layer-w: root.width;
+  property <length> overlay-layer-h: root.height;
 
   // Global keyboard shortcuts
   FocusScope {
@@ -87,9 +106,14 @@ export component AppWindow inherits Window {
 
   // ── LAYER 2: ScreenLayer ──────────────────────────────────────────────
   if show-screen-layer: Rectangle {
-    width: 100%; height: 100%;
+    x: screen-layer-x;
+    y: screen-layer-y;
+    width: screen-layer-w;
+    height: screen-layer-h;
     opacity: screen-layer-opacity;
+    clip: true;
     background: Theme.background; // OPAQUE — covers VideoLayer
+    animate x, y, width, height { duration: 300ms; easing: ease-in-out; }
     animate opacity { duration: 300ms; easing: ease-in-out; }
 
     // Screen router
@@ -111,9 +135,14 @@ export component AppWindow inherits Window {
 
   // ── LAYER 3: OsdLayer ─────────────────────────────────────────────────
   if show-osd-layer: Rectangle {
-    width: 100%; height: 100%;
-    background: transparent;
+    x: osd-layer-x;
+    y: osd-layer-y;
+    width: osd-layer-w;
+    height: osd-layer-h;
     opacity: osd-layer-opacity;
+    clip: true;
+    background: transparent;
+    animate x, y, width, height { duration: 300ms; easing: ease-in-out; }
     animate opacity { duration: 300ms; easing: ease-in-out; }
 
     PlayerScreen {
@@ -128,9 +157,14 @@ export component AppWindow inherits Window {
 
   // Modals (only when not onboarding)
   if show-overlay-layer: Rectangle {
-    width: 100%; height: 100%;
-    background: transparent;
+    x: overlay-layer-x;
+    y: overlay-layer-y;
+    width: overlay-layer-w;
+    height: overlay-layer-h;
     opacity: overlay-layer-opacity;
+    clip: true;
+    background: transparent;
+    animate x, y, width, height { duration: 300ms; easing: ease-in-out; }
     animate opacity { duration: 200ms; easing: ease-in-out; }
 
     SourceDialog {}
