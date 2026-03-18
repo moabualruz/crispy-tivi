@@ -25,7 +25,7 @@ use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
 /// Current schema version.
-const SCHEMA_VERSION: u32 = 35;
+const SCHEMA_VERSION: u32 = 36;
 
 // ── Table name constants ──────────────────────────────────
 
@@ -160,6 +160,7 @@ impl Database {
         tx.execute_batch(CREATE_DB_EPG_MAPPINGS)?;
         tx.execute_batch(CREATE_DB_SMART_GROUPS)?;
         tx.execute_batch(CREATE_DB_SMART_GROUP_MEMBERS)?;
+        tx.execute_batch(CREATE_DB_RETRY_QUEUE)?;
         tx.execute_batch(CREATE_INDEXES)?;
 
         tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
@@ -312,6 +313,11 @@ impl Database {
         if from_version < 35 {
             tx.execute_batch(CREATE_DB_SMART_GROUPS)?;
             tx.execute_batch(CREATE_DB_SMART_GROUP_MEMBERS)?;
+        }
+
+        // v36: Add durable retry queue for background operations.
+        if from_version < 36 {
+            tx.execute_batch(CREATE_DB_RETRY_QUEUE)?;
         }
 
         tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
@@ -658,6 +664,19 @@ CREATE TABLE IF NOT EXISTS db_smart_group_members (
     PRIMARY KEY (group_id, channel_id)
 );";
 
+const CREATE_DB_RETRY_QUEUE: &str = "\
+CREATE TABLE IF NOT EXISTS db_retry_queue (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    operation TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    next_retry_at TEXT NOT NULL,
+    max_lifetime TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_retry_queue_next \
+    ON db_retry_queue (next_retry_at);";
+
 // ── Indexes ──────────────────────────────────────────────
 
 const CREATE_INDEXES: &str = "\
@@ -738,6 +757,7 @@ mod tests {
             "db_profile_source_access",
             "db_recordings",
             "db_reminders",
+            "db_retry_queue",
             "db_saved_layouts",
             "db_search_history",
             "db_settings",
@@ -755,7 +775,7 @@ mod tests {
             "db_watchlist",
         ];
 
-        assert_eq!(tables.len(), 27, "expected 27 tables");
+        assert_eq!(tables.len(), 29, "expected 29 tables");
         for name in &expected {
             assert!(tables.contains(&name.to_string()), "missing table: {name}",);
         }
@@ -789,6 +809,7 @@ mod tests {
             "idx_epg_channel",
             "idx_epg_source",
             "idx_reminders_notify",
+            "idx_retry_queue_next",
             "idx_source_access",
             "idx_vod_items_series",
             "idx_vod_source",
@@ -796,7 +817,7 @@ mod tests {
             "idx_watch_history_source",
         ];
 
-        assert_eq!(indexes.len(), 13, "expected 13 indexes",);
+        assert_eq!(indexes.len(), 14, "expected 14 indexes",);
         for name in &expected {
             assert!(indexes.contains(&name.to_string()), "missing index: {name}",);
         }

@@ -285,6 +285,135 @@ pub(crate) fn wire(
         }
     });
 
+    app.on_open_vod_detail({
+        let tx = high_tx.clone();
+        let ui_w = ui.as_weak();
+        let sd = Arc::clone(&shared_data);
+        move |vod_id| {
+            // Populate detail item from SharedData so the detail screen shows immediately
+            let id = vod_id.to_string();
+            let found = {
+                let movies = sd.movies.lock().unwrap();
+                let series = sd.series.lock().unwrap();
+                movies
+                    .iter()
+                    .find(|v| v.id == id)
+                    .or_else(|| series.iter().find(|v| v.id == id))
+                    .cloned()
+            };
+            if let Some(vod) = found {
+                let ui_w2 = ui_w.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(ui) = ui_w2.upgrade() {
+                        let app = ui.global::<super::AppState>();
+                        app.set_vod_detail_item(vod_info_to_slint(&vod));
+                        app.set_show_vod_detail(true);
+                    }
+                });
+            }
+            if let Err(e) = tx.try_send(HighPriorityEvent::OpenVodDetail { vod_id: id }) {
+                tracing::warn!(error = %e, "high_tx full: OpenVodDetail dropped");
+            }
+        }
+    });
+
+    app.on_toggle_vod_favorite({
+        let tx = high_tx.clone();
+        move |vod_id| {
+            if let Err(e) = tx.try_send(HighPriorityEvent::ToggleVodFavorite {
+                vod_id: vod_id.to_string(),
+            }) {
+                tracing::warn!(error = %e, "high_tx full: ToggleVodFavorite dropped");
+            }
+        }
+    });
+
+    app.on_open_series_detail({
+        let tx = high_tx.clone();
+        let ui_w = ui.as_weak();
+        let sd = Arc::clone(&shared_data);
+        move |series_id| {
+            let id = series_id.to_string();
+            let found = {
+                let series = sd.series.lock().unwrap();
+                series.iter().find(|v| v.id == id).cloned()
+            };
+            if let Some(s) = found {
+                let ui_w2 = ui_w.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(ui) = ui_w2.upgrade() {
+                        let app = ui.global::<super::AppState>();
+                        app.set_series_detail_item(vod_info_to_slint(&s));
+                        app.set_series_active_season(1);
+                        app.set_series_episodes(ModelRc::new(VecModel::default()));
+                        app.set_show_series_detail(true);
+                    }
+                });
+            }
+            if let Err(e) = tx.try_send(HighPriorityEvent::OpenSeriesDetail { series_id: id }) {
+                tracing::warn!(error = %e, "high_tx full: OpenSeriesDetail dropped");
+            }
+        }
+    });
+
+    app.on_select_series_season({
+        move |_season| {
+            // Episode list population is future EPG/series module work.
+            // Season selection stored in AppState.series-active-season (set by Slint directly).
+            tracing::debug!(
+                season = _season,
+                "SelectSeriesSeason — no-op until series episode API"
+            );
+        }
+    });
+
+    app.on_play_episode({
+        let tx = high_tx.clone();
+        move |series_id, season, episode| {
+            // Construct a synthesized VOD id for the episode
+            let ep_id = format!("{series_id}:s{season}e{episode}");
+            if let Err(e) = tx.try_send(HighPriorityEvent::PlayVod { vod_id: ep_id }) {
+                tracing::warn!(error = %e, "high_tx full: PlayEpisode dropped");
+            }
+        }
+    });
+
+    app.on_select_epg_date({
+        let tx = high_tx.clone();
+        let ui_w = ui.as_weak();
+        move |offset_days| {
+            let ui_w2 = ui_w.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(ui) = ui_w2.upgrade() {
+                    ui.global::<super::AppState>()
+                        .set_epg_selected_date_offset(offset_days);
+                }
+            });
+            if let Err(e) = tx.try_send(HighPriorityEvent::SelectEpgDate { offset_days }) {
+                tracing::warn!(error = %e, "high_tx full: SelectEpgDate dropped");
+            }
+        }
+    });
+
+    app.on_jump_epg_to_channel({
+        let tx = high_tx.clone();
+        let ui_w = ui.as_weak();
+        move |channel_id| {
+            let id = channel_id.to_string();
+            let ui_w2 = ui_w.clone();
+            let id2 = id.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(ui) = ui_w2.upgrade() {
+                    ui.global::<super::AppState>()
+                        .set_epg_jump_channel_id(SharedString::from(id2.as_str()));
+                }
+            });
+            if let Err(e) = tx.try_send(HighPriorityEvent::JumpEpgToChannel { channel_id: id }) {
+                tracing::warn!(error = %e, "high_tx full: JumpEpgToChannel dropped");
+            }
+        }
+    });
+
     // ── Scroll callbacks: incremental Rc<VecModel> push/remove ─────────
     app.on_scroll_channels({
         let loader = image_loader.clone();
@@ -974,6 +1103,8 @@ pub(crate) fn channel_info_to_slint(c: &ChannelInfo) -> super::ChannelData {
         source_id: SharedString::from(c.source_id.as_deref().unwrap_or("")),
         number: c.number.unwrap_or(0),
         is_favorite: c.is_favorite,
+        has_catchup: c.has_catchup,
+        resolution: SharedString::from(c.resolution.as_deref().unwrap_or("")),
         now_playing: SharedString::default(),
         logo: Default::default(),
     }
@@ -986,9 +1117,13 @@ pub(crate) fn vod_info_to_slint(v: &VodInfo) -> super::VodData {
         stream_url: SharedString::from(v.stream_url.as_str()),
         item_type: SharedString::from(v.item_type.as_str()),
         poster_url: SharedString::from(v.poster_url.as_deref().unwrap_or("")),
+        backdrop_url: SharedString::from(v.backdrop_url.as_deref().unwrap_or("")),
+        description: SharedString::from(v.description.as_deref().unwrap_or("")),
         genre: SharedString::default(),
         year: SharedString::from(v.year.map(|y| y.to_string()).unwrap_or_default().as_str()),
         rating: SharedString::from(v.rating.as_deref().unwrap_or("")),
+        duration_minutes: v.duration_minutes.unwrap_or(0),
+        is_favorite: v.is_favorite,
         source_id: SharedString::from(v.source_id.as_deref().unwrap_or("")),
         series_id: SharedString::default(),
         season: 0,

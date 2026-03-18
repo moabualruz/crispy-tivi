@@ -12,9 +12,13 @@ mod cache;
 mod data_engine;
 mod event_bridge;
 mod events;
+#[allow(dead_code)]
+mod focus;
 mod i18n;
 mod image_cache;
 mod image_loader;
+#[allow(dead_code)]
+mod input;
 #[allow(dead_code)]
 mod provider;
 #[allow(dead_code)]
@@ -189,6 +193,26 @@ fn main() -> anyhow::Result<()> {
         shared_data,
     );
 
+    // ── Wire SyncProgress callback → DataEvent::SyncProgress ─────────────
+    // The global sync_progress callback in crispy-core is set once here so
+    // every sync function (m3u_sync, xtream_sync, stalker_sync) can emit
+    // progress without knowing about the UI channel.
+    {
+        let progress_tx = data_tx.clone();
+        crispy_core::sync_progress::set_progress_callback(std::sync::Arc::new(
+            move |p: &crispy_core::models::SyncProgress| {
+                let percent = (p.progress * 100.0).clamp(0.0, 100.0) as u8;
+                let event = events::DataEvent::SyncProgress {
+                    source_id: p.source_id.clone(),
+                    percent,
+                };
+                if let Err(e) = progress_tx.try_send(event) {
+                    tracing::debug!(error = %e, "SyncProgress dropped (channel full)");
+                }
+            },
+        ));
+    }
+
     // ── Spawn DataEngine (event loop: queues → cache → DataEvents) ───────
     let engine = data_engine::DataEngine::new(
         service,
@@ -310,5 +334,19 @@ fn setup_video_underlay(
         Err(e) => {
             tracing::error!(error = ?e, "Failed to register rendering notifier");
         }
+    }
+}
+
+// ── Smoke tests ───────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    /// Verify i-slint-backend-testing initializes without panicking.
+    ///
+    /// This must be called before any Slint window creation in tests.
+    #[test]
+    fn test_slint_headless_backend_initializes() {
+        i_slint_backend_testing::init_no_event_loop();
+        // If we reach here the testing backend is available and initialized.
     }
 }

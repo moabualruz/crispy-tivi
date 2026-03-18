@@ -1,29 +1,177 @@
 import { Theme } from "../globals/theme.slint";
-import { AppState } from "../globals/app-state.slint";
+import { AppState, VodData, ChannelData } from "../globals/app-state.slint";
+import { EmptyState } from "../components/empty-state.slint";
+import { FilterChip } from "../components/filter-chip.slint";
+import { VodCard } from "../components/vod-card.slint";
+import { ChannelCard } from "../components/channel-card.slint";
+import { ScrollView } from "std-widgets.slint";
+import { IconStar, IconTv } from "../components/icons.slint";
 
 export component LibraryScreen inherits Rectangle {
   width: 100%; height: 100%;
   background: transparent;
 
+  // Active library tab: 0=Favorites 1=Watchlist 2=Recordings
+  property <int> active-tab: 0;
+
   VerticalLayout {
     padding-top: Theme.screen-padding-top;
-    padding-left: Theme.content-padding-h;
-    padding-right: Theme.content-padding-h;
-    spacing: Theme.spacing-xl;
+    spacing: 0px;
 
-    Text {
-      text: "Your Library";
-      color: Theme.text-primary;
-      font-family: Theme.font-display;
-      font-size: Theme.font-size-hero;
-      font-weight: 700;
+    // Header + tab bar
+    VerticalLayout {
+      padding-left: Theme.content-padding-h;
+      padding-right: Theme.content-padding-h;
+      padding-bottom: Theme.spacing-md;
+      spacing: Theme.spacing-md;
+
+      Text {
+        text: "Your Library";
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-h1;
+        font-weight: 700;
+      }
+
+      HorizontalLayout {
+        spacing: Theme.spacing-xs;
+
+        for tab-info in [
+          { idx: 0, label: "Favorites" },
+          { idx: 1, label: "Watchlist" },
+          { idx: 2, label: "Recordings" },
+        ]: FilterChip {
+          label: tab-info.label;
+          active: root.active-tab == tab-info.idx;
+          activated => { root.active-tab = tab-info.idx; }
+        }
+      }
     }
 
-    Text {
-      text: "Favorites and Continue Watching will appear here.";
-      color: Theme.text-secondary;
-      font-family: Theme.font-body;
-      font-size: Theme.font-size-h2;
+    // ── Favorites tab ──────────────────────────────────────────────────────
+    // Shows favorited channels and movies from the windowed model.
+    // Full favorites list requires a dedicated Rust-filtered model (future work).
+    if root.active-tab == 0: ScrollView {
+      width: 100%;
+      vertical-stretch: 1;
+
+      VerticalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        padding-top: Theme.spacing-lg;
+        padding-bottom: Theme.spacing-2xl;
+        spacing: Theme.spacing-xl;
+
+        // Favorite channels — shown from windowed model (starred items visible here)
+        if AppState.channels.length > 0: VerticalLayout {
+          spacing: Theme.spacing-sm;
+
+          Text {
+            text: "Channels";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+          }
+
+          for ch in AppState.channels: ChannelCard {
+            channel: ch;
+            clicked => { AppState.play-channel(ch.id); }
+          }
+        }
+
+        // Favorite movies — shown from windowed model
+        if AppState.movies.length > 0: VerticalLayout {
+          spacing: Theme.spacing-sm;
+
+          Text {
+            text: "Movies";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+          }
+
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            for mv in AppState.movies: VodCard {
+              item: mv;
+              clicked => { AppState.open-vod-detail(mv.id); }
+            }
+          }
+        }
+
+        // Empty state when no data loaded
+        if AppState.channels.length == 0 && AppState.movies.length == 0: EmptyState {
+          title: "No favorites yet";
+          subtitle: "Star channels and movies to find them here quickly.";
+          cta-text: "Browse Live TV";
+          cta-clicked => {
+            AppState.active-screen = 1;
+            AppState.navigate(1);
+          }
+          IconStar { size: 32px; fill: Theme.text-secondary; }
+        }
+      }
+    }
+
+    // ── Watchlist tab ──────────────────────────────────────────────────────
+    if root.active-tab == 1: ScrollView {
+      width: 100%;
+      vertical-stretch: 1;
+
+      VerticalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        padding-top: Theme.spacing-lg;
+        padding-bottom: Theme.spacing-2xl;
+        spacing: Theme.spacing-xl;
+
+        if AppState.series.length > 0: VerticalLayout {
+          spacing: Theme.spacing-sm;
+
+          Text {
+            text: "Series";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+          }
+
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            for sr in AppState.series: VodCard {
+              item: sr;
+              clicked => { AppState.open-series-detail(sr.id); }
+            }
+          }
+        }
+
+        if AppState.series.length == 0: EmptyState {
+          title: "Watchlist is empty";
+          subtitle: "Add series to your watchlist to track what to watch next.";
+          cta-text: "Browse Series";
+          cta-clicked => {
+            AppState.active-screen = 4;
+            AppState.navigate(4);
+          }
+        }
+      }
+    }
+
+    // ── Recordings tab ─────────────────────────────────────────────────────
+    if root.active-tab == 2: Rectangle {
+      vertical-stretch: 1;
+
+      EmptyState {
+        title: "No recordings";
+        subtitle: "DVR recording is coming in v2. Catchup playback is available on supported channels.";
+        cta-text: "View Live TV";
+        cta-clicked => {
+          AppState.active-screen = 1;
+          AppState.navigate(1);
+        }
+      }
     }
   }
 }

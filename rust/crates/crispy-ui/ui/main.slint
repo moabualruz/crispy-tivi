@@ -14,6 +14,8 @@ import { SettingsScreen } from "screens/settings.slint";
 import { LibraryScreen } from "screens/library.slint";
 import { PlayerScreen, PlayerState } from "screens/player.slint";
 import { OnboardingScreen, OnboardingState } from "screens/onboarding.slint";
+import { VodDetailScreen } from "screens/vod-detail.slint";
+import { SeriesDetailScreen } from "screens/series-detail.slint";
 import { SourceDialog } from "components/source-dialog.slint";
 import { DiagnosticsPanel, DiagnosticsState } from "components/diagnostics-panel.slint";
 import { ProfileMenu } from "components/profile-menu.slint";
@@ -94,6 +96,8 @@ export component AppWindow inherits Window {
       if event.text == Key.Escape {
         if DiagnosticsState.visible { DiagnosticsState.visible = false; return accept; }
         if AppState.show-source-dialog { AppState.show-source-dialog = false; return accept; }
+        if AppState.show-vod-detail { AppState.show-vod-detail = false; return accept; }
+        if AppState.show-series-detail { AppState.show-series-detail = false; return accept; }
         if PlayerState.is-fullscreen {
           PlayerState.is-fullscreen = false;
           return accept;
@@ -175,6 +179,16 @@ export component AppWindow inherits Window {
     background: transparent;
     animate x, y, width, height { duration: 300ms; easing: ease-in-out; }
     animate opacity { duration: 200ms; easing: ease-in-out; }
+
+    // Detail screens — full-screen overlays above the browse screens
+    VodDetailScreen {
+      width: 100%; height: 100%;
+      visible: AppState.show-vod-detail;
+    }
+    SeriesDetailScreen {
+      width: 100%; height: 100%;
+      visible: AppState.show-series-detail;
+    }
 
     SourceDialog {}
     ProfileMenu {

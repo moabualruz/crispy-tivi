@@ -4,19 +4,27 @@
 //! server. Browser (Slint WASM) clients connect to
 //! `/ws` for API access.
 //!
-//! ## Endpoints
+//! ## Endpoints (HTTP server, `--port`)
 //!
-//! - `GET /health` — liveness probe
-//! - `GET /proxy?url=<url>` — CORS relay proxy
-//!   (images, M3U8 playlists with URL rewriting,
-//!   TS segments)
-//! - `GET /ws` — WebSocket upgrade
+//! - `GET /health`        — liveness probe
+//! - `GET /proxy?url=<u>` — CORS relay proxy (images, M3U8, TS)
+//! - `GET /ws`            — WebSocket upgrade (API)
+//! - `GET /`              — Static WASM files (when `--static-dir` set)
 //!
-//! ## Configuration
+//! ## WebSocket server (`--ws-port`)
 //!
-//! - `CRISPY_DB_PATH` — SQLite path (default:
-//!   `~/.crispytivi/crispy_tivi_v2.sqlite`)
-//! - `CRISPY_PORT` — listen port (default: `8080`)
+//! Dedicated port for WebSocket-only clients that want to avoid
+//! sharing a port with the HTTP static-file server.
+//! Serves only `/ws`.
+//!
+//! ## Configuration (CLI args take precedence over env vars)
+//!
+//! | CLI arg          | Env var                 | Default                             |
+//! |------------------|-------------------------|-------------------------------------|
+//! | `--port`         | `CRISPY_HTTP_PORT`      | `8080`                              |
+//! | `--ws-port`      | `CRISPY_WS_PORT`        | `8081`                              |
+//! | `--static-dir`   | `CRISPY_STATIC_DIR`     | *(unset — static serving disabled)* |
+//! | `--db`           | `CRISPY_DB_PATH`        | `~/.crispytivi/data/…sqlite`        |
 
 use std::sync::Arc;
 
@@ -33,9 +41,11 @@ use axum::{
 use tokio::sync::broadcast;
 use tokio::time;
 use tower_http::cors::{AllowOrigin, CorsLayer};
+use tower_http::services::ServeDir;
 
 use crispy_core::events::{DataChangeEvent, serialize_event};
 use crispy_core::services::CrispyService;
+use crispy_server::config::ServerConfig;
 use crispy_server::handlers::handle_message;
 
 // ── Shared state ────────────────────────────────────
@@ -307,93 +317,90 @@ async fn ws_handler(mut socket: WebSocket, state: AppState) {
 
 // ── CORS configuration ──────────────────────────────
 
-/// Build a CORS layer from `CRISPY_ALLOWED_ORIGINS` env var.
+/// Build a CORS layer from a comma-separated origins string.
 ///
-/// - Unset / empty → allow any origin (dev mode).
-/// - Set → restrict to the comma-separated list of origins.
-fn build_cors_layer() -> CorsLayer {
+/// - Empty string → allow any origin (dev mode).
+/// - Non-empty   → restrict to the listed origins.
+fn build_cors_layer(origins: &str) -> CorsLayer {
     let base = CorsLayer::new()
         .allow_methods(tower_http::cors::Any)
         .allow_headers(tower_http::cors::Any);
 
-    match std::env::var("CRISPY_ALLOWED_ORIGINS").ok().as_deref() {
-        None | Some("") => base.allow_origin(tower_http::cors::Any),
-        Some(origins) => {
-            let list: Vec<HeaderValue> = origins
-                .split(',')
-                .filter_map(|o| o.trim().parse::<HeaderValue>().ok())
-                .collect();
-            if list.is_empty() {
-                base.allow_origin(tower_http::cors::Any)
-            } else {
-                base.allow_origin(AllowOrigin::list(list))
-            }
-        }
+    if origins.is_empty() {
+        return base.allow_origin(tower_http::cors::Any);
+    }
+
+    let list: Vec<HeaderValue> = origins
+        .split(',')
+        .filter_map(|o| o.trim().parse::<HeaderValue>().ok())
+        .collect();
+
+    if list.is_empty() {
+        base.allow_origin(tower_http::cors::Any)
+    } else {
+        base.allow_origin(AllowOrigin::list(list))
     }
 }
 
-// ── DB path resolution ──────────────────────────────
+// ── CLI arg parsing ──────────────────────────────────
 
-/// Resolve the database path from env or default.
-fn resolve_db_path() -> String {
-    if let Ok(p) = std::env::var("CRISPY_DB_PATH") {
-        return p;
-    }
-    // Default: ~/.crispytivi/data/crispy_tivi_v2.sqlite
-    let home = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .unwrap_or_else(|_| ".".to_string());
-    let dir = format!("{home}/.crispytivi/data");
-    // Ensure the directory exists.
-    let _ = std::fs::create_dir_all(&dir);
-    format!("{dir}/crispy_tivi_v2.sqlite")
-}
-
-/// Resolve the port from CLI args, env, config json, or default 8080.
-fn resolve_port() -> u16 {
-    // 1. Check CLI args: --port <number>
-    let mut args = std::env::args();
+/// Parse CLI arguments, overlaying on top of `ServerConfig::from_env()`.
+///
+/// Recognized flags (all optional):
+/// - `--port <u16>`        HTTP server port
+/// - `--ws-port <u16>`     WebSocket-only server port
+/// - `--static-dir <path>` Directory of WASM static files to serve
+/// - `--db <path>`         SQLite database path
+fn parse_cli_args(mut cfg: ServerConfig) -> ServerConfig {
+    let mut args = std::env::args().peekable();
     while let Some(arg) = args.next() {
-        if arg == "--port"
-            && let Some(port_str) = args.next()
-            && let Ok(port) = port_str.parse()
-        {
-            return port;
+        match arg.as_str() {
+            "--port" => {
+                if let Some(v) = args.next()
+                    && let Ok(p) = v.parse()
+                {
+                    cfg.http_port = p;
+                }
+            }
+            "--ws-port" => {
+                if let Some(v) = args.next()
+                    && let Ok(p) = v.parse()
+                {
+                    cfg.ws_port = p;
+                }
+            }
+            "--static-dir" => {
+                if let Some(v) = args.next() {
+                    cfg.static_dir = Some(v);
+                }
+            }
+            "--db" => {
+                if let Some(v) = args.next() {
+                    cfg.db_path = v;
+                }
+            }
+            _ => {}
         }
     }
-
-    // 2. Check Environment Variable
-    if let Ok(port_str) = std::env::var("CRISPY_PORT")
-        && let Ok(port) = port_str.parse()
-    {
-        return port;
-    }
-
-    // 3. Fallback to `assets/config/app_config.json` if available
-    if let Ok(config_str) = std::fs::read_to_string("../../assets/config/app_config.json")
-        && let Ok(json) = serde_json::from_str::<serde_json::Value>(&config_str)
-        && let Some(port) = json
-            .get("api")
-            .and_then(|a| a.get("backendPort"))
-            .and_then(|p| p.as_u64())
-    {
-        return port as u16;
-    }
-
-    // 4. Default
-    8080
+    cfg
 }
 
 // ── Main ────────────────────────────────────────────
 
 #[tokio::main]
 async fn main() {
-    let db_path = resolve_db_path();
-    let port = resolve_port();
+    // Config: env vars first, then CLI args override.
+    let cfg = parse_cli_args(ServerConfig::from_env());
 
-    println!("DB path: {db_path}");
+    println!("CrispyTivi standalone server");
+    println!("  DB path   : {}", cfg.db_path);
+    println!("  HTTP port : {}", cfg.http_port);
+    println!("  WS port   : {}", cfg.ws_port);
+    if let Some(ref dir) = cfg.static_dir {
+        println!("  Static dir: {dir}");
+    }
 
-    let service = CrispyService::open(&db_path).expect("Failed to open database");
+    let service = CrispyService::open(&cfg.db_path).expect("Failed to open database");
 
     let (event_tx, _) = broadcast::channel::<String>(256);
     let tx_clone = event_tx.clone();
@@ -404,25 +411,110 @@ async fn main() {
 
     let state = AppState {
         svc: service,
-        event_tx,
+        event_tx: event_tx.clone(),
     };
 
-    let cors = build_cors_layer();
+    let cors = build_cors_layer(&cfg.cors_origins);
 
-    let app = Router::new()
+    // ── HTTP server router ───────────────────────────
+    // Includes health, proxy, WS, and optional static files.
+    let mut http_router = Router::new()
         .route("/health", get(health))
         .route("/proxy", get(cors_proxy))
+        .route("/ws", get(ws_upgrade));
+
+    if let Some(ref static_dir) = cfg.static_dir {
+        // Serve static WASM build output.  `ServeDir` automatically
+        // serves `index.html` for directory requests.
+        http_router = http_router.nest_service("/", ServeDir::new(static_dir));
+    } else {
+        http_router = http_router.fallback(any(|| async { (StatusCode::NOT_FOUND, "Not Found") }));
+    }
+
+    let http_app = http_router.with_state(state.clone()).layer(cors.clone());
+
+    // ── WS-only server router ────────────────────────
+    // Dedicated port so WASM clients can connect to `/ws` directly
+    // without sharing the static-file port.
+    let ws_app = Router::new()
         .route("/ws", get(ws_upgrade))
+        .route("/health", get(health))
         .fallback(any(|| async { (StatusCode::NOT_FOUND, "Not Found") }))
         .with_state(state)
         .layer(cors);
 
-    let addr = format!("0.0.0.0:{port}");
-    println!("CrispyTivi server listening on :{port}");
+    // ── Bind both listeners ──────────────────────────
+    let http_addr = format!("0.0.0.0:{}", cfg.http_port);
+    let ws_addr = format!("0.0.0.0:{}", cfg.ws_port);
 
-    let listener = tokio::net::TcpListener::bind(&addr)
+    let http_listener = tokio::net::TcpListener::bind(&http_addr)
         .await
-        .unwrap_or_else(|e| panic!("Failed to bind {addr}: {e}"));
+        .unwrap_or_else(|e| panic!("Failed to bind HTTP {http_addr}: {e}"));
 
-    axum::serve(listener, app).await.expect("Server error");
+    let ws_listener = tokio::net::TcpListener::bind(&ws_addr)
+        .await
+        .unwrap_or_else(|e| panic!("Failed to bind WS {ws_addr}: {e}"));
+
+    println!("HTTP server listening on http://{http_addr}");
+    println!("WS   server listening on ws://{ws_addr}/ws");
+
+    // ── Graceful shutdown ────────────────────────────
+    // Both servers shut down together when SIGINT or SIGTERM arrives.
+    let shutdown = async {
+        let ctrl_c = async {
+            tokio::signal::ctrl_c()
+                .await
+                .expect("Failed to install Ctrl+C handler");
+        };
+
+        #[cfg(unix)]
+        let sigterm = async {
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                .expect("Failed to install SIGTERM handler")
+                .recv()
+                .await;
+        };
+
+        #[cfg(not(unix))]
+        let sigterm = std::future::pending::<()>();
+
+        tokio::select! {
+            _ = ctrl_c => {},
+            _ = sigterm => {},
+        }
+
+        println!("Shutdown signal received — stopping servers.");
+    };
+
+    // Use a broadcast channel to fan-out the shutdown signal to both tasks.
+    let (shutdown_tx, _) = broadcast::channel::<()>(1);
+    let mut shutdown_rx1 = shutdown_tx.subscribe();
+    let mut shutdown_rx2 = shutdown_tx.subscribe();
+
+    // Spawn HTTP server
+    let http_handle = tokio::spawn(async move {
+        axum::serve(http_listener, http_app)
+            .with_graceful_shutdown(async move {
+                let _ = shutdown_rx1.recv().await;
+            })
+            .await
+            .expect("HTTP server error");
+    });
+
+    // Spawn WS server
+    let ws_handle = tokio::spawn(async move {
+        axum::serve(ws_listener, ws_app)
+            .with_graceful_shutdown(async move {
+                let _ = shutdown_rx2.recv().await;
+            })
+            .await
+            .expect("WS server error");
+    });
+
+    // Wait for shutdown signal, then notify both tasks.
+    shutdown.await;
+    let _ = shutdown_tx.send(());
+
+    let _ = tokio::join!(http_handle, ws_handle);
+    println!("Server stopped.");
 }

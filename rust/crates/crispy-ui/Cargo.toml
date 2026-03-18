@@ -25,6 +25,11 @@ serde_json.workspace = true
 dirs = "6"
 base64.workspace = true
 
+[dev-dependencies]
+i-slint-backend-testing = "1.15"
+mockall.workspace = true
+insta.workspace = true
+
 [build-dependencies]
 slint-build.workspace = true
 

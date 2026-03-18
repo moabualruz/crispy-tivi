@@ -642,29 +642,200 @@ impl DataEngine {
             }
 
             NormalEvent::ClearWatchHistory => {
-                info!("ClearWatchHistory: no-op until watch history is implemented");
+                // Load all entries then delete each one — clear_all_watch_history
+                // is implemented as a bulk delete via load + delete loop since the
+                // service does not yet expose a single-call bulk-delete method.
+                // TODO: add CrispyService::clear_all_watch_history() for efficiency.
+                let svc = self.provider.clone();
+                match self
+                    .rt
+                    .spawn_blocking(move || {
+                        let entries = svc.load_watch_history()?;
+                        let count = entries.len();
+                        for e in &entries {
+                            svc.delete_watch_history(&e.id)?;
+                        }
+                        Ok::<usize, crispy_core::database::DbError>(count)
+                    })
+                    .await
+                {
+                    Ok(Ok(n)) => {
+                        info!(deleted = n, "Watch history cleared");
+                        self.send(DataEvent::DiagnosticsInfo {
+                            report: format!("Watch history cleared ({n} entries removed)"),
+                        });
+                    }
+                    Ok(Err(e)) => {
+                        error!(error = %e, "Failed to clear watch history");
+                        self.send(DataEvent::Error {
+                            message: format!("Failed to clear watch history: {e}"),
+                        });
+                    }
+                    Err(e) => {
+                        error!(error = %e, "clear_watch_history task panicked");
+                    }
+                }
             }
 
             NormalEvent::ExportSettings { path } => {
-                info!(path, "ExportSettings requested — not yet implemented");
+                // Export all key-value settings to a JSON file.
+                // Settings are fetched via individual get_setting calls on known keys;
+                // a full dump is obtained by reading the DB directly.
+                // TODO: add CrispyService::get_all_settings() returning Vec<(String,String)>.
+                let svc = self.provider.clone();
+                let path_clone = path.clone();
+                match self
+                    .rt
+                    .spawn_blocking(move || {
+                        // Enumerate the well-known settings keys.
+                        let known_keys = [
+                            "theme",
+                            "language",
+                            "onboarding_done",
+                            "server_mode",
+                            "hw_decode",
+                            "volume",
+                            "epg_days_ahead",
+                        ];
+                        let mut map = std::collections::HashMap::new();
+                        for key in &known_keys {
+                            if let Ok(Some(val)) = svc.get_setting(key) {
+                                map.insert(key.to_string(), val);
+                            }
+                        }
+                        let json = serde_json::to_string_pretty(&map).map_err(|e| {
+                            crispy_core::database::DbError::Migration(e.to_string())
+                        })?;
+                        std::fs::write(&path_clone, json).map_err(|e| {
+                            crispy_core::database::DbError::Migration(e.to_string())
+                        })?;
+                        Ok::<usize, crispy_core::database::DbError>(map.len())
+                    })
+                    .await
+                {
+                    Ok(Ok(n)) => {
+                        info!(path, count = n, "Settings exported");
+                        self.send(DataEvent::DiagnosticsInfo {
+                            report: format!("Settings exported to {path} ({n} keys)"),
+                        });
+                    }
+                    Ok(Err(e)) => {
+                        error!(error = %e, path, "Failed to export settings");
+                        self.send(DataEvent::Error {
+                            message: format!("Failed to export settings: {e}"),
+                        });
+                    }
+                    Err(e) => {
+                        error!(error = %e, "export_settings task panicked");
+                    }
+                }
             }
 
             NormalEvent::ImportSettings { path } => {
-                info!(path, "ImportSettings requested — not yet implemented");
+                let svc = self.provider.clone();
+                let path_clone = path.clone();
+                match self
+                    .rt
+                    .spawn_blocking(move || -> Result<usize, String> {
+                        let json =
+                            std::fs::read_to_string(&path_clone).map_err(|e| e.to_string())?;
+                        let settings: std::collections::HashMap<String, String> =
+                            serde_json::from_str(&json).map_err(|e| e.to_string())?;
+                        let count = settings.len();
+                        for (key, value) in &settings {
+                            svc.set_setting(key, value).map_err(|e| e.to_string())?;
+                        }
+                        Ok(count)
+                    })
+                    .await
+                {
+                    Ok(Ok(n)) => {
+                        info!(path, count = n, "Settings imported");
+                        self.send(DataEvent::DiagnosticsInfo {
+                            report: format!("Imported {n} settings from {path}"),
+                        });
+                    }
+                    Ok(Err(e)) => {
+                        error!(error = %e, path, "Failed to import settings");
+                        self.send(DataEvent::Error {
+                            message: format!("Failed to import settings: {e}"),
+                        });
+                    }
+                    Err(e) => {
+                        error!(error = %e, "import_settings task panicked");
+                    }
+                }
             }
 
             NormalEvent::UpdateEpgMapping {
                 channel_id,
                 epg_channel_id,
             } => {
-                info!(
-                    channel_id,
-                    epg_channel_id, "UpdateEpgMapping — not yet implemented"
-                );
+                use crispy_server::models::EpgMapping;
+                let svc = self.provider.clone();
+                let cid = channel_id.clone();
+                let eid = epg_channel_id.clone();
+                match self
+                    .rt
+                    .spawn_blocking(move || {
+                        let mapping = EpgMapping {
+                            channel_id: cid,
+                            epg_channel_id: eid,
+                            confidence: 1.0,
+                            source: "manual".to_string(),
+                            locked: true,
+                            created_at: chrono::Utc::now().timestamp(),
+                        };
+                        svc.save_epg_mapping(&mapping)
+                    })
+                    .await
+                {
+                    Ok(Ok(())) => {
+                        info!(channel_id, epg_channel_id, "EPG mapping updated");
+                    }
+                    Ok(Err(e)) => {
+                        error!(error = %e, channel_id, "Failed to update EPG mapping");
+                        self.send(DataEvent::Error {
+                            message: format!("Failed to update EPG mapping: {e}"),
+                        });
+                    }
+                    Err(e) => {
+                        error!(error = %e, "update_epg_mapping task panicked");
+                    }
+                }
             }
 
             NormalEvent::RefreshEpg => {
-                info!("RefreshEpg — not yet implemented");
+                // EPG refresh: trigger a sync for all enabled sources that have
+                // an EPG URL configured.
+                let sources_with_epg: Vec<(String, String)> = self
+                    .cache
+                    .sources
+                    .iter()
+                    .filter(|s| s.enabled && !s.epg_url.as_deref().unwrap_or("").is_empty())
+                    .map(|s| (s.id.clone(), s.source_type.clone()))
+                    .collect();
+
+                if sources_with_epg.is_empty() {
+                    info!("RefreshEpg: no sources with EPG URL configured");
+                    self.send(DataEvent::DiagnosticsInfo {
+                        report: "No sources with EPG URL — nothing to refresh".to_string(),
+                    });
+                } else {
+                    info!(
+                        count = sources_with_epg.len(),
+                        "RefreshEpg: triggering sync for EPG sources"
+                    );
+                    self.send(DataEvent::LoadingStarted {
+                        kind: LoadingKind::Sync,
+                    });
+                    for (source_id, source_type) in sources_with_epg {
+                        self.send(DataEvent::SyncStarted {
+                            source_id: source_id.clone(),
+                        });
+                        self.spawn_sync(source_id, source_type);
+                    }
+                }
             }
         }
     }

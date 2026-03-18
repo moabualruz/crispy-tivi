@@ -1,14 +1,83 @@
 import { Theme } from "../globals/theme.slint";
 import { AppState } from "../globals/app-state.slint";
 import { EmptyState } from "../components/empty-state.slint";
+import { FilterChip } from "../components/filter-chip.slint";
 import { IconTv } from "../components/icons.slint";
+
+// Day label for the date picker bar
+component DayChip inherits FocusScope {
+  in property <int> offset: 0;    // 0=today, -1=yesterday, +1=tomorrow
+  in property <string> label: "Today";
+  in property <bool> active: false;
+
+  callback activated();
+
+  width: chip-rect.preferred-width + Theme.spacing-lg;
+  height: 36px;
+
+  key-pressed(event) => {
+    if event.text == Key.Return { root.activated(); return accept; }
+    return reject;
+  }
+
+  chip-rect := Rectangle {
+    width: 100%; height: 100%;
+    border-radius: Theme.radius-pill;
+    background: root.active
+      ? Theme.btn-primary-bg
+      : (root.has-focus ? Theme.surface-glass : Theme.card-surface);
+    border-width: root.has-focus ? Theme.focus-ring-width : 1px;
+    border-color: root.has-focus ? Theme.focus-ring : Theme.card-border;
+    animate background { duration: 150ms; }
+
+    lbl := Text {
+      text: root.label;
+      color: root.active ? Theme.btn-primary-fg : Theme.text-primary;
+      font-family: root.active ? Theme.font-display : Theme.font-body;
+      font-size: Theme.font-size-caption;
+      font-weight: root.active ? 700 : 500;
+      horizontal-alignment: center;
+      vertical-alignment: center;
+    }
+    TouchArea { clicked => { root.activated(); } }
+  }
+}
 
 export component EpgScreen inherits Rectangle {
   background: transparent;
 
-  // EPG: 70% grid + ~25% PiP side panel, with nav clearance
   VerticalLayout {
     padding-top: Theme.screen-padding-top;
+
+    // ── Date navigation bar ──────────────────────────────────────────────
+    HorizontalLayout {
+      padding-left: Theme.content-padding-h;
+      padding-right: Theme.content-padding-h;
+      padding-bottom: Theme.spacing-md;
+      spacing: Theme.spacing-xs;
+
+      // 7 days back + today + 3 days forward = 11 chips
+      for day-info in [
+        { offset: -7, label: "-7d" },
+        { offset: -6, label: "-6d" },
+        { offset: -5, label: "-5d" },
+        { offset: -4, label: "-4d" },
+        { offset: -3, label: "-3d" },
+        { offset: -2, label: "-2d" },
+        { offset: -1, label: "Yesterday" },
+        { offset:  0, label: "Today" },
+        { offset:  1, label: "Tomorrow" },
+        { offset:  2, label: "+2d" },
+        { offset:  3, label: "+3d" },
+      ]: DayChip {
+        offset: day-info.offset;
+        label: day-info.label;
+        active: AppState.epg-selected-date-offset == day-info.offset;
+        activated => {
+          AppState.select-epg-date(day-info.offset);
+        }
+      }
+    }
 
     HorizontalLayout {
       padding-left: Theme.content-padding-h;
@@ -28,6 +97,11 @@ export component EpgScreen inherits Rectangle {
         EmptyState {
           title: "No Programme Guide";
           subtitle: "EPG data will appear once you add a source with guide information.";
+          cta-text: "Go to Settings";
+          cta-clicked => {
+            AppState.active-screen = 7;
+            AppState.navigate(7);
+          }
           IconTv { size: 32px; fill: Theme.text-secondary; }
         }
       }
@@ -42,11 +116,23 @@ export component EpgScreen inherits Rectangle {
 
         VerticalLayout {
           alignment: center;
+          spacing: Theme.spacing-xs;
+
           Text {
             text: "Preview";
             color: Theme.text-secondary;
             font-family: Theme.font-body;
             font-size: Theme.font-size-caption;
+            horizontal-alignment: center;
+          }
+
+          if AppState.epg-selected-date-offset != 0: Text {
+            text: AppState.epg-selected-date-offset < 0
+              ? "Catch-up: " + (-AppState.epg-selected-date-offset) + "d ago"
+              : "Scheduled: +" + AppState.epg-selected-date-offset + "d";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-small;
             horizontal-alignment: center;
           }
         }

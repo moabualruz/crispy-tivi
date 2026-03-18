@@ -1,0 +1,11 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="bbc1.uk" tvg-name="BBC One" tvg-logo="https://example.com/logos/bbc1.png" group-title="UK News",BBC One
+http://example.com/live/user/pass/1001.ts
+#EXTINF:-1 tvg-id="cnn.us" tvg-name="CNN" tvg-logo="https://example.com/logos/cnn.png" group-title="US News",CNN International
+http://example.com/live/user/pass/1002.ts
+#EXTINF:-1 tvg-id="espn.us" tvg-name="ESPN" tvg-logo="https://example.com/logos/espn.png" group-title="Sports",ESPN
+http://example.com/live/user/pass/1003.ts
+#EXTINF:-1 tvg-id="hbo.us" tvg-name="HBO" tvg-logo="" group-title="Movies",HBO
+http://example.com/live/user/pass/1004.ts
+#EXTINF:-1 tvg-id="" tvg-name="Local Channel" tvg-logo="" group-title="Local",Local Channel 5
+http://example.com/live/user/pass/1005.ts

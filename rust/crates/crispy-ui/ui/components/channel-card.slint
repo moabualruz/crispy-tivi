@@ -118,6 +118,39 @@ export component ChannelCard inherits FocusScope {
         max-width: 200px;
       }
 
+      // Quality badge
+      if channel.resolution != "": Rectangle {
+        width: res-lbl.preferred-width + 10px;
+        height: 20px;
+        border-radius: 4px;
+        background: Theme.surface-glass;
+        border-width: 1px;
+        border-color: Theme.border-subtle;
+        res-lbl := Text {
+          text: channel.resolution;
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-small;
+          font-weight: 700;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+      }
+
+      // Catchup badge
+      if channel.has-catchup: Rectangle {
+        width: 26px; height: 20px;
+        border-radius: 4px;
+        background: Theme.brand-gradient;
+        Text {
+          text: "⏮";
+          color: #FFFFFF;
+          font-size: 10px;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+      }
+
       // Favorite star
       FocusScope {
         width: 32px;

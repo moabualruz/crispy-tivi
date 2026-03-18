@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tv SYSTEM "xmltv.dtd">
+<tv generator-info-name="crispy-tivi-test" generator-info-url="https://example.com">
+  <channel id="bbc1.uk">
+    <display-name lang="en">BBC One</display-name>
+    <icon src="https://example.com/logos/bbc1.png"/>
+  </channel>
+  <channel id="cnn.us">
+    <display-name lang="en">CNN International</display-name>
+    <icon src="https://example.com/logos/cnn.png"/>
+  </channel>
+  <programme start="20260318060000 +0000" stop="20260318070000 +0000" channel="bbc1.uk">
+    <title lang="en">Morning News</title>
+    <desc lang="en">The latest news and headlines from around the world.</desc>
+    <category lang="en">News</category>
+  </programme>
+  <programme start="20260318070000 +0000" stop="20260318080000 +0000" channel="bbc1.uk">
+    <title lang="en">Breakfast Show</title>
+    <desc lang="en">Start your morning right with news, weather and interviews.</desc>
+    <category lang="en">Talk</category>
+  </programme>
+  <programme start="20260318080000 +0000" stop="20260318090000 +0000" channel="bbc1.uk">
+    <title lang="en">Documentary Hour</title>
+    <desc lang="en">An in-depth look at nature and science.</desc>
+    <category lang="en">Documentary</category>
+  </programme>
+  <programme start="20260318060000 +0000" stop="20260318070000 +0000" channel="cnn.us">
+    <title lang="en">Early Edition</title>
+    <desc lang="en">Breaking news coverage from CNN.</desc>
+    <category lang="en">News</category>
+  </programme>
+  <programme start="20260318070000 +0000" stop="20260318080000 +0000" channel="cnn.us">
+    <title lang="en">World Business Today</title>
+    <desc lang="en">Global financial news and market updates.</desc>
+    <category lang="en">Business</category>
+  </programme>
+  <programme start="20260318080000 +0000" stop="20260318090000 +0000" channel="cnn.us">
+    <title lang="en">Connect the World</title>
+    <desc lang="en">International news stories connecting global events.</desc>
+    <category lang="en">News</category>
+  </programme>
+</tv>

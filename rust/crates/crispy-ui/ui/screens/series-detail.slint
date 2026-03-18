@@ -1,0 +1,413 @@
+import { Theme } from "../globals/theme.slint";
+import { AppState, VodData } from "../globals/app-state.slint";
+import { ScrollView } from "std-widgets.slint";
+import { IconMovie, IconStar, IconStarOutline } from "../components/icons.slint";
+import { FilterChip } from "../components/filter-chip.slint";
+import { EmptyState } from "../components/empty-state.slint";
+
+// Single episode row in the episode list
+component EpisodeRow inherits FocusScope {
+  in property <VodData> ep;
+  in property <int> index;
+
+  callback play-episode();
+
+  height: 72px;
+  width: 100%;
+
+  key-pressed(event) => {
+    if event.text == Key.Return { root.play-episode(); return accept; }
+    return reject;
+  }
+
+  Rectangle {
+    width: 100%; height: 100%;
+    border-radius: Theme.radius-sm;
+    background: root.has-focus ? rgba(255,255,255,0.08) : transparent;
+    border-width: root.has-focus ? Theme.focus-ring-width : 0px;
+    border-color: Theme.focus-ring;
+    animate background { duration: 150ms; }
+
+    HorizontalLayout {
+      padding-left: Theme.spacing-md;
+      padding-right: Theme.spacing-md;
+      spacing: Theme.spacing-md;
+
+      // Episode number badge
+      Rectangle {
+        width: 40px;
+        height: 40px;
+        border-radius: Theme.radius-sm;
+        background: Theme.card-surface;
+        border-width: 1px;
+        border-color: Theme.card-border;
+        ep-num := Text {
+          text: ep.episode > 0 ? ep.episode : root.index + 1;
+          color: Theme.text-secondary;
+          font-family: Theme.font-display;
+          font-size: Theme.font-size-body;
+          font-weight: 700;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+      }
+
+      // Thumbnail (poster if available)
+      Rectangle {
+        width: 96px;
+        height: 54px;
+        border-radius: Theme.radius-sm;
+        background: Theme.card-surface;
+        border-width: 1px;
+        border-color: Theme.card-border;
+        clip: true;
+        if ep.poster.width > 0: Image {
+          source: ep.poster;
+          width: 100%; height: 100%;
+          image-fit: cover;
+        }
+        if ep.poster.width == 0: IconMovie {
+          width: 28px; height: 28px;
+          x: (parent.width - self.width) / 2;
+          y: (parent.height - self.height) / 2;
+          fill: Theme.text-secondary;
+          opacity: 0.25;
+        }
+      }
+
+      // Episode info
+      VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        spacing: 2px;
+
+        Text {
+          text: ep.name != "" ? ep.name : "Episode " + (root.index + 1);
+          color: Theme.text-primary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-body;
+          font-weight: 600;
+          overflow: elide;
+        }
+        if ep.description != "": Text {
+          text: ep.description;
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-small;
+          overflow: elide;
+          wrap: no-wrap;
+        }
+      }
+
+      // Duration
+      if ep.duration-minutes > 0: Text {
+        text: ep.duration-minutes + " min";
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        vertical-alignment: center;
+      }
+
+      // Play indicator on focus
+      if root.has-focus: Rectangle {
+        width: 32px;
+        height: 32px;
+        border-radius: 16px;
+        background: Theme.btn-primary-bg;
+        Text {
+          text: "▶";
+          color: Theme.btn-primary-fg;
+          font-size: Theme.font-size-caption;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+      }
+    }
+
+    TouchArea { clicked => { root.play-episode(); } }
+  }
+}
+
+export component SeriesDetailScreen inherits Rectangle {
+  background: transparent;
+  visible: AppState.show-series-detail;
+
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      if event.text == Key.Escape {
+        AppState.show-series-detail = false;
+        return accept;
+      }
+      return reject;
+    }
+  }
+
+  Rectangle {
+    width: 100%; height: 100%;
+    background: Theme.background;
+  }
+
+  ScrollView {
+    width: 100%; height: 100%;
+
+    VerticalLayout {
+      spacing: 0px;
+
+      // ── Hero ────────────────────────────────────────────────────────────
+      Rectangle {
+        width: 100%;
+        height: 320px;
+        clip: true;
+        background: rgba(10,10,12,1);
+
+        Rectangle {
+          width: 100%; height: 100%;
+          background: @linear-gradient(180deg,
+            rgba(10,10,12,0.0) 0%,
+            rgba(10,10,12,0.75) 65%,
+            rgba(10,10,12,1.0) 100%);
+        }
+
+        HorizontalLayout {
+          y: parent.height - self.height - Theme.spacing-xl;
+          x: Theme.content-padding-h;
+          width: parent.width - Theme.content-padding-h * 2;
+          spacing: Theme.spacing-xl;
+          alignment: start;
+
+          // Poster
+          Rectangle {
+            width: 110px;
+            height: 165px;
+            border-radius: Theme.radius-md;
+            background: Theme.card-surface;
+            border-width: 1px;
+            border-color: Theme.card-border;
+            clip: true;
+            if AppState.series-detail-item.poster.width > 0: Image {
+              source: AppState.series-detail-item.poster;
+              width: 100%; height: 100%;
+              image-fit: cover;
+            }
+            if AppState.series-detail-item.poster.width == 0: IconMovie {
+              width: 40px; height: 40px;
+              x: (parent.width - self.width) / 2;
+              y: (parent.height - self.height) / 2;
+              fill: Theme.text-secondary;
+              opacity: 0.3;
+            }
+          }
+
+          // Title + meta
+          VerticalLayout {
+            vertical-stretch: 1;
+            alignment: end;
+            spacing: Theme.spacing-sm;
+
+            Text {
+              text: AppState.series-detail-item.name;
+              color: Theme.text-primary;
+              font-family: Theme.font-display;
+              font-size: Theme.font-size-h1;
+              font-weight: 800;
+              wrap: word-wrap;
+            }
+            HorizontalLayout {
+              spacing: Theme.spacing-sm;
+              if AppState.series-detail-item.year != "": Text {
+                text: AppState.series-detail-item.year;
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                vertical-alignment: center;
+              }
+              if AppState.series-detail-item.rating != "": Rectangle {
+                width: sr.preferred-width + 10px;
+                height: 20px;
+                border-radius: 4px;
+                background: Theme.surface-glass;
+                border-width: 1px;
+                border-color: Theme.border-subtle;
+                sr := Text {
+                  text: AppState.series-detail-item.rating;
+                  color: Theme.text-secondary;
+                  font-family: Theme.font-body;
+                  font-size: Theme.font-size-small;
+                  horizontal-alignment: center;
+                  vertical-alignment: center;
+                }
+              }
+              if AppState.series-detail-item.genre != "": Text {
+                text: AppState.series-detail-item.genre;
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                vertical-alignment: center;
+              }
+            }
+          }
+        }
+      }
+
+      // ── Action row ──────────────────────────────────────────────────────
+      HorizontalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        padding-top: Theme.spacing-md;
+        padding-bottom: Theme.spacing-md;
+        spacing: Theme.spacing-md;
+
+        fav-btn := FocusScope {
+          width: 160px; height: 44px;
+          key-pressed(event) => {
+            if event.text == Key.Return {
+              AppState.toggle-vod-favorite(AppState.series-detail-item.id);
+              return accept;
+            }
+            return reject;
+          }
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-md;
+            background: fav-btn.has-focus ? Theme.surface-glass : Theme.btn-secondary-bg;
+            border-width: fav-btn.has-focus ? Theme.focus-ring-width : 1px;
+            border-color: fav-btn.has-focus ? Theme.focus-ring : Theme.border-subtle;
+            HorizontalLayout {
+              alignment: center; spacing: Theme.spacing-xs;
+              if AppState.series-detail-item.is-favorite: IconStar {
+                size: 16px; fill: Theme.accent;
+              }
+              if !AppState.series-detail-item.is-favorite: IconStarOutline {
+                size: 16px; fill: Theme.btn-secondary-fg;
+              }
+              Text {
+                text: AppState.series-detail-item.is-favorite ? "In Watchlist" : "+ Watchlist";
+                color: Theme.btn-secondary-fg;
+                font-family: Theme.font-display;
+                font-size: Theme.font-size-caption;
+                font-weight: 600;
+                vertical-alignment: center;
+              }
+            }
+            TouchArea { clicked => { AppState.toggle-vod-favorite(AppState.series-detail-item.id); } }
+          }
+        }
+
+        Rectangle { horizontal-stretch: 1; }
+
+        sback-btn := FocusScope {
+          width: 100px; height: 44px;
+          key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Escape {
+              AppState.show-series-detail = false;
+              return accept;
+            }
+            return reject;
+          }
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-md;
+            background: sback-btn.has-focus ? Theme.surface-glass : transparent;
+            border-width: sback-btn.has-focus ? Theme.focus-ring-width : 1px;
+            border-color: sback-btn.has-focus ? Theme.focus-ring : Theme.border-subtle;
+            Text {
+              text: "← Back";
+              color: Theme.text-secondary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-caption;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+            TouchArea { clicked => { AppState.show-series-detail = false; } }
+          }
+        }
+      }
+
+      // ── Description ─────────────────────────────────────────────────────
+      if AppState.series-detail-item.description != "": VerticalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        padding-bottom: Theme.spacing-lg;
+        spacing: Theme.spacing-xs;
+
+        Text {
+          text: "About";
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: Theme.font-size-h2;
+          font-weight: 700;
+        }
+        Text {
+          text: AppState.series-detail-item.description;
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-body;
+          wrap: word-wrap;
+        }
+      }
+
+      // ── Season picker ────────────────────────────────────────────────────
+      VerticalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        padding-bottom: Theme.spacing-md;
+        spacing: Theme.spacing-sm;
+
+        Text {
+          text: "Season";
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: Theme.font-size-h2;
+          font-weight: 700;
+        }
+
+        HorizontalLayout {
+          spacing: Theme.spacing-xs;
+          for s in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]: FilterChip {
+            label: "S" + s;
+            active: AppState.series-active-season == s;
+            activated => {
+              AppState.series-active-season = s;
+              AppState.select-series-season(s);
+            }
+          }
+        }
+      }
+
+      // ── Episode list ─────────────────────────────────────────────────────
+      VerticalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        padding-bottom: Theme.spacing-2xl;
+        spacing: 2px;
+
+        Text {
+          text: "Episodes";
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: Theme.font-size-h2;
+          font-weight: 700;
+        }
+
+        if AppState.series-episodes.length == 0: EmptyState {
+          title: "No episodes";
+          subtitle: "No episodes found for this season.";
+          cta-text: "";
+        }
+
+        for ep[i] in AppState.series-episodes: EpisodeRow {
+          ep: ep;
+          index: i;
+          play-episode => {
+            AppState.play-episode(
+              AppState.series-detail-item.id,
+              AppState.series-active-season,
+              ep.episode > 0 ? ep.episode : i + 1,
+            );
+          }
+        }
+      }
+    }
+  }
+}

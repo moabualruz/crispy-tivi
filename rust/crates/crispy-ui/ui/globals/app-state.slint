@@ -20,6 +20,8 @@ export struct ChannelData {
   source-id: string,
   number: int,
   is-favorite: bool,
+  has-catchup: bool,
+  resolution: string,
   now-playing: string,
   logo: image,
 }
@@ -30,9 +32,13 @@ export struct VodData {
   stream-url: string,
   item-type: string,
   poster-url: string,
+  backdrop-url: string,
+  description: string,
   genre: string,
   year: string,
   rating: string,
+  duration-minutes: int,
+  is-favorite: bool,
   source-id: string,
   series-id: string,
   season: int,
@@ -58,9 +64,36 @@ export struct CategoryData {
 
 export global AppState {
   // Current active screen index
-  // 0=Home, 1=LiveTV, 2=EPG, 3=Movies, 4=Series, 5=Search, 6=Settings
+  // 0=Home, 1=LiveTV, 2=EPG, 3=Movies, 4=Series, 5=Search, 6=Library, 7=Settings
+  // 8=VodDetail, 9=SeriesDetail
   in-out property <int> active-screen: 0;
-  
+
+  // VOD detail screen data
+  in-out property <bool> show-vod-detail: false;
+  in-out property <VodData> vod-detail-item: {
+    id: "", name: "", stream-url: "", item-type: "movie",
+    poster-url: "", backdrop-url: "", description: "", genre: "",
+    year: "", rating: "", duration-minutes: 0, is-favorite: false,
+    source-id: "", series-id: "", season: 0, episode: 0,
+    poster: @image-url(""),
+  };
+
+  // Series detail screen data
+  in-out property <bool> show-series-detail: false;
+  in-out property <VodData> series-detail-item: {
+    id: "", name: "", stream-url: "", item-type: "series",
+    poster-url: "", backdrop-url: "", description: "", genre: "",
+    year: "", rating: "", duration-minutes: 0, is-favorite: false,
+    source-id: "", series-id: "", season: 0, episode: 0,
+    poster: @image-url(""),
+  };
+  in-out property <[VodData]> series-episodes: [];
+  in-out property <int> series-active-season: 1;
+
+  // EPG state
+  in-out property <int> epg-selected-date-offset: 0;  // 0=today, -1=yesterday, +1=tomorrow
+  in-out property <string> epg-jump-channel-id: "";
+
   // Profile Slide-Over Window
   in-out property <bool> show-profile-menu: false;
 
@@ -136,6 +169,17 @@ export global AppState {
   // VOD operations
   callback filter-vod(/* category */ string, /* item-type */ string);
   callback play-vod(/* vod-id */ string);
+  callback open-vod-detail(/* vod-id */ string);
+  callback toggle-vod-favorite(/* vod-id */ string);
+
+  // Series operations
+  callback open-series-detail(/* series-id */ string);
+  callback select-series-season(/* season */ int);
+  callback play-episode(/* series-id */ string, /* season */ int, /* episode */ int);
+
+  // EPG operations
+  callback select-epg-date(/* offset-days */ int);
+  callback jump-epg-to-channel(/* channel-id */ string);
 
   // Search (debounced in Rust — UI fires immediately)
   callback perform-search(/* query */ string);

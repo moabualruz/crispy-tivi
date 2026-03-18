@@ -12,6 +12,9 @@ tracing.workspace = true
 libmpv-sys = "3"  # raw FFI only — bypasses version check for newer mpv DLLs
 glow = "0.16"
 
+[dev-dependencies]
+mockall.workspace = true
+
 [build-dependencies]
 reqwest = { version = "0.12", features = ["blocking", "rustls-tls-native-roots"] }
 zip = "2"

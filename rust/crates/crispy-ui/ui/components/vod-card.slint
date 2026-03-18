@@ -1,6 +1,6 @@
 import { Theme } from "../globals/theme.slint";
-import { VodData } from "../globals/app-state.slint";
-import { IconMovie } from "icons.slint";
+import { AppState, VodData } from "../globals/app-state.slint";
+import { IconMovie, IconStar } from "icons.slint";
 
 export component VodCard inherits FocusScope {
   in property <VodData> item;
@@ -92,6 +92,39 @@ export component VodCard inherits FocusScope {
             font-family: Theme.font-body;
             font-size: Theme.font-size-small;
             font-weight: 600;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+        }
+
+        // Favorite star (bottom-right of poster)
+        if item.is-favorite: Rectangle {
+          x: parent.width - self.width - Theme.spacing-xs;
+          y: parent.height - self.height - Theme.spacing-xs;
+          width: 24px; height: 24px;
+          border-radius: 12px;
+          background: rgba(0,0,0,0.55);
+          IconStar {
+            size: 14px;
+            fill: Theme.accent;
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+          }
+        }
+
+        // Duration badge (bottom-left of poster)
+        if item.duration-minutes > 0: Rectangle {
+          x: Theme.spacing-xs;
+          y: parent.height - self.height - Theme.spacing-xs;
+          width: dur-text.preferred-width + 10px;
+          height: 20px;
+          border-radius: 10px;
+          background: rgba(0, 0, 0, 0.6);
+          dur-text := Text {
+            text: item.duration-minutes + "m";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-small;
             horizontal-alignment: center;
             vertical-alignment: center;
           }

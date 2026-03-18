@@ -132,6 +132,7 @@ pub struct VodInfo {
 ///
 /// Derived from `crispy_core::models::Source` — only display fields.
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)] // enabled + last_sync_error wired in Epoch 1 (Settings screen)
 pub struct SourceInfo {
     pub id: String,
     pub name: String,
@@ -164,6 +165,7 @@ pub enum SyncResult {
 ///
 /// Processed directly by the EventBridge on the Slint thread.
 #[derive(Debug)]
+#[allow(dead_code)] // SeekRelative, SetFullscreen, NextAudioTrack, NextSubtitleTrack, SetSpeed wired in Epoch 2 (OSD)
 pub enum PlayerEvent {
     /// Pause or resume the current stream.
     TogglePause,
@@ -232,6 +234,7 @@ pub enum HighPriorityEvent {
 ///
 /// Covers background and configuration operations.
 #[derive(Debug)]
+#[allow(dead_code)] // ClearWatchHistory, ExportSettings, ImportSettings, UpdateEpgMapping, RefreshEpg wired in Epoch 2
 pub enum NormalEvent {
     /// Persist a new or updated source to the database.
     SaveSource { input: SourceInput },
@@ -267,6 +270,7 @@ pub enum NormalEvent {
 /// All payloads use plain Rust types (`ChannelInfo`, `VodInfo`, etc.).
 /// EventBridge converts these to Slint model types before applying them.
 #[derive(Debug)]
+#[allow(dead_code)] // SearchResults.query + SyncProgress wired in Epoch 2
 pub enum DataEvent {
     /// Initial source list is ready for display.
     SourcesReady { sources: Vec<SourceInfo> },

@@ -10,7 +10,7 @@ mod backend;
 pub mod mpv_backend;
 pub mod video_underlay;
 
-pub use backend::{PlayerBackend, PlayerError, PlayerState};
+pub use backend::{BufferStats, PlayerBackend, PlayerError, PlayerState, TrackInfo, VideoInfo};
 
 /// Check if libmpv is available on this system.
 /// On Linux, libmpv must be installed via the system package manager.

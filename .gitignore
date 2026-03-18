@@ -68,3 +68,7 @@ release/
 # errors
 error*.txt
 erros*.json
+
+# proptest regression files (auto-generated, not for commit)
+.proptest-regressions/
+**/.proptest-regressions/

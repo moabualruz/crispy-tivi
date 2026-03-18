@@ -1,0 +1,17 @@
+[
+  {
+    "category_id": "1",
+    "category_name": "UK News",
+    "parent_id": 0
+  },
+  {
+    "category_id": "2",
+    "category_name": "US News",
+    "parent_id": 0
+  },
+  {
+    "category_id": "3",
+    "category_name": "Sports",
+    "parent_id": 0
+  }
+]

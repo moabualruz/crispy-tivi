@@ -1,0 +1,385 @@
+import { Theme } from "../globals/theme.slint";
+import { AppState, VodData } from "../globals/app-state.slint";
+import { ActionButton } from "../components/action-button.slint";
+import { ScrollView } from "std-widgets.slint";
+import { IconMovie, IconStar, IconStarOutline } from "../components/icons.slint";
+
+// Quality badge pill
+component QualityBadge inherits Rectangle {
+  in property <string> label: "HD";
+  width: lbl.preferred-width + Theme.spacing-md;
+  height: 22px;
+  border-radius: Theme.radius-pill;
+  background: Theme.card-surface;
+  border-width: 1px;
+  border-color: Theme.card-border;
+
+  lbl := Text {
+    text: root.label;
+    color: Theme.text-primary;
+    font-family: Theme.font-body;
+    font-size: Theme.font-size-small;
+    font-weight: 700;
+    horizontal-alignment: center;
+    vertical-alignment: center;
+  }
+}
+
+// Source badge showing source name + quality
+component SourceBadge inherits Rectangle {
+  in property <string> source-name: "";
+  in property <string> quality: "";
+
+  width: row.preferred-width + Theme.spacing-lg;
+  height: 32px;
+  border-radius: Theme.radius-sm;
+  background: Theme.card-surface;
+  border-width: 1px;
+  border-color: Theme.card-border;
+
+  row := HorizontalLayout {
+    spacing: Theme.spacing-xs;
+    padding-left: Theme.spacing-sm;
+    padding-right: Theme.spacing-sm;
+
+    Text {
+      text: root.source-name;
+      color: Theme.text-primary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-caption;
+      vertical-alignment: center;
+    }
+    if root.quality != "": QualityBadge { label: root.quality; }
+  }
+}
+
+export component VodDetailScreen inherits Rectangle {
+  background: transparent;
+  visible: AppState.show-vod-detail;
+
+  // Dismiss detail on Escape
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      if event.text == Key.Escape {
+        AppState.show-vod-detail = false;
+        return accept;
+      }
+      return reject;
+    }
+  }
+
+  // ── Backdrop fill ──────────────────────────────────────────────────────
+  Rectangle {
+    width: 100%; height: 100%;
+    background: Theme.background;
+  }
+
+  // ── Scrollable content ─────────────────────────────────────────────────
+  ScrollView {
+    width: 100%; height: 100%;
+
+    VerticalLayout {
+      spacing: 0px;
+
+      // ── Hero area — backdrop + poster overlay ──────────────────────────
+      Rectangle {
+        width: 100%;
+        height: 360px;
+        clip: true;
+        background: rgba(10, 10, 12, 1);
+
+        // Backdrop image (full-bleed, darkened)
+        if AppState.vod-detail-item.backdrop-url != "": Rectangle {
+          width: 100%; height: 100%;
+          opacity: 0.45;
+          // Backdrop loaded by image loader into a future field; placeholder gradient used
+          background: @linear-gradient(180deg, rgba(30,30,40,0.0) 0%, rgba(10,10,12,1.0) 100%);
+        }
+
+        // Dark gradient overlay bottom
+        Rectangle {
+          width: 100%; height: 100%;
+          background: @linear-gradient(180deg,
+            rgba(10,10,12,0.0) 0%,
+            rgba(10,10,12,0.7) 70%,
+            rgba(10,10,12,1.0) 100%);
+        }
+
+        // Poster + meta row at bottom of hero
+        HorizontalLayout {
+          y: parent.height - self.height - Theme.spacing-xl;
+          x: Theme.content-padding-h;
+          width: parent.width - Theme.content-padding-h * 2;
+          spacing: Theme.spacing-xl;
+          alignment: start;
+
+          // Poster card
+          Rectangle {
+            width: 130px;
+            height: 195px;
+            border-radius: Theme.radius-md;
+            background: Theme.card-surface;
+            border-width: 1px;
+            border-color: Theme.card-border;
+            clip: true;
+
+            if AppState.vod-detail-item.poster.width > 0: Image {
+              source: AppState.vod-detail-item.poster;
+              width: 100%; height: 100%;
+              image-fit: cover;
+            }
+            if AppState.vod-detail-item.poster.width == 0: IconMovie {
+              width: 48px; height: 48px;
+              x: (parent.width - self.width) / 2;
+              y: (parent.height - self.height) / 2;
+              fill: Theme.text-secondary;
+              opacity: 0.3;
+            }
+          }
+
+          // Title + metadata block
+          VerticalLayout {
+            vertical-stretch: 1;
+            alignment: end;
+            spacing: Theme.spacing-sm;
+
+            Text {
+              text: AppState.vod-detail-item.name;
+              color: Theme.text-primary;
+              font-family: Theme.font-display;
+              font-size: Theme.font-size-h1;
+              font-weight: 800;
+              wrap: word-wrap;
+            }
+
+            // Metadata row: year · rating · duration · genre
+            HorizontalLayout {
+              spacing: Theme.spacing-sm;
+
+              if AppState.vod-detail-item.year != "": Text {
+                text: AppState.vod-detail-item.year;
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                vertical-alignment: center;
+              }
+              if AppState.vod-detail-item.rating != "": Rectangle {
+                width: rt.preferred-width + 10px;
+                height: 20px;
+                border-radius: 4px;
+                background: Theme.surface-glass;
+                border-width: 1px;
+                border-color: Theme.border-subtle;
+                rt := Text {
+                  text: AppState.vod-detail-item.rating;
+                  color: Theme.text-secondary;
+                  font-family: Theme.font-body;
+                  font-size: Theme.font-size-small;
+                  horizontal-alignment: center;
+                  vertical-alignment: center;
+                }
+              }
+              if AppState.vod-detail-item.duration-minutes > 0: Text {
+                text: AppState.vod-detail-item.duration-minutes + " min";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                vertical-alignment: center;
+              }
+              if AppState.vod-detail-item.genre != "": Text {
+                text: AppState.vod-detail-item.genre;
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                vertical-alignment: center;
+              }
+            }
+          }
+        }
+      }
+
+      // ── Action row ─────────────────────────────────────────────────────
+      HorizontalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        padding-top: Theme.spacing-lg;
+        padding-bottom: Theme.spacing-lg;
+        spacing: Theme.spacing-md;
+
+        // Play button (primary)
+        play-btn := FocusScope {
+          width: 140px;
+          height: 48px;
+          key-pressed(event) => {
+            if event.text == Key.Return {
+              AppState.play-vod(AppState.vod-detail-item.id);
+              return accept;
+            }
+            return reject;
+          }
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-md;
+            background: play-btn.has-focus ? Theme.btn-primary-bg : Theme.btn-primary-bg;
+            border-width: play-btn.has-focus ? Theme.focus-ring-width : 0px;
+            border-color: Theme.focus-ring;
+            HorizontalLayout {
+              alignment: center;
+              spacing: Theme.spacing-xs;
+              Text {
+                text: "▶  Play";
+                color: Theme.btn-primary-fg;
+                font-family: Theme.font-display;
+                font-size: Theme.font-size-body;
+                font-weight: 700;
+                vertical-alignment: center;
+              }
+            }
+            TouchArea { clicked => { AppState.play-vod(AppState.vod-detail-item.id); } }
+          }
+        }
+
+        // Watchlist button (secondary)
+        wl-btn := FocusScope {
+          width: 160px;
+          height: 48px;
+          key-pressed(event) => {
+            if event.text == Key.Return {
+              AppState.toggle-vod-favorite(AppState.vod-detail-item.id);
+              return accept;
+            }
+            return reject;
+          }
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-md;
+            background: wl-btn.has-focus ? Theme.surface-glass : Theme.btn-secondary-bg;
+            border-width: wl-btn.has-focus ? Theme.focus-ring-width : 1px;
+            border-color: wl-btn.has-focus ? Theme.focus-ring : Theme.border-subtle;
+            HorizontalLayout {
+              alignment: center;
+              spacing: Theme.spacing-xs;
+              if AppState.vod-detail-item.is-favorite: IconStar {
+                size: 18px;
+                fill: Theme.accent;
+              }
+              if !AppState.vod-detail-item.is-favorite: IconStarOutline {
+                size: 18px;
+                fill: Theme.btn-secondary-fg;
+              }
+              Text {
+                text: AppState.vod-detail-item.is-favorite ? "In Watchlist" : "+ Watchlist";
+                color: Theme.btn-secondary-fg;
+                font-family: Theme.font-display;
+                font-size: Theme.font-size-caption;
+                font-weight: 600;
+                vertical-alignment: center;
+              }
+            }
+            TouchArea { clicked => { AppState.toggle-vod-favorite(AppState.vod-detail-item.id); } }
+          }
+        }
+
+        // Back button
+        Rectangle { horizontal-stretch: 1; }
+        back-btn := FocusScope {
+          width: 100px;
+          height: 48px;
+          key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Escape {
+              AppState.show-vod-detail = false;
+              return accept;
+            }
+            return reject;
+          }
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-md;
+            background: back-btn.has-focus ? Theme.surface-glass : transparent;
+            border-width: back-btn.has-focus ? Theme.focus-ring-width : 1px;
+            border-color: back-btn.has-focus ? Theme.focus-ring : Theme.border-subtle;
+            Text {
+              text: "← Back";
+              color: Theme.text-secondary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-caption;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+            TouchArea { clicked => { AppState.show-vod-detail = false; } }
+          }
+        }
+      }
+
+      // ── Watch on — available sources ───────────────────────────────────
+      VerticalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        padding-bottom: Theme.spacing-xl;
+        spacing: Theme.spacing-sm;
+
+        Text {
+          text: "Watch on";
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: Theme.font-size-h2;
+          font-weight: 700;
+        }
+        HorizontalLayout {
+          spacing: Theme.spacing-sm;
+          // Source badge comes from the source-id stored on the item
+          if AppState.vod-detail-item.source-id != "": SourceBadge {
+            source-name: AppState.vod-detail-item.source-id;
+            quality: "";
+          }
+        }
+      }
+
+      // ── Description ────────────────────────────────────────────────────
+      if AppState.vod-detail-item.description != "": VerticalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        padding-bottom: Theme.spacing-xl;
+        spacing: Theme.spacing-sm;
+
+        Text {
+          text: "Overview";
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: Theme.font-size-h2;
+          font-weight: 700;
+        }
+        Text {
+          text: AppState.vod-detail-item.description;
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-body;
+          wrap: word-wrap;
+        }
+      }
+
+      // ── Similar titles placeholder ──────────────────────────────────────
+      VerticalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        padding-bottom: Theme.spacing-2xl;
+        spacing: Theme.spacing-sm;
+
+        Text {
+          text: "More Like This";
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: Theme.font-size-h2;
+          font-weight: 700;
+        }
+        Text {
+          text: "Browse the Movies screen for more content.";
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-caption;
+        }
+      }
+    }
+  }
+}

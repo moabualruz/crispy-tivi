@@ -8,6 +8,9 @@
 pub mod algorithms;
 pub mod backup;
 pub mod database;
+pub mod i18n;
+
+pub mod errors;
 pub mod events;
 pub mod gpu;
 pub mod http_client;

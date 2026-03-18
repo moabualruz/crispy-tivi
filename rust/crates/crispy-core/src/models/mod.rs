@@ -5,6 +5,10 @@
 //! `Debug, Clone, Serialize, Deserialize` for
 //! interop and diagnostics.
 
+pub mod content_rating;
+pub mod stream_quality;
+pub use content_rating::ContentRating;
+
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
