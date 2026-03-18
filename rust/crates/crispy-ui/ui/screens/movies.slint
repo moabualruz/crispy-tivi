@@ -66,7 +66,7 @@ export component MoviesScreen inherits Rectangle {
             row: floor(idx / columns);
             col: mod(idx, columns);
             item: movie;
-            clicked => { AppState.play-vod(movie.id); }
+            clicked => { AppState.open-vod-detail(movie.id); }
           }
         }
       }

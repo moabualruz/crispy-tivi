@@ -1,6 +1,6 @@
 import { Theme } from "../globals/theme.slint";
 import { AppState } from "../globals/app-state.slint";
-import { IconPlay, IconPause, IconSettings, IconVolumeUp, IconVolumeMute } from "../components/icons.slint";
+import { IconPlay, IconPause, IconSettings, IconVolumeUp, IconVolumeMute, IconBack } from "../components/icons.slint";
 
 // Player state exposed from Rust
 export global PlayerState {
@@ -178,6 +178,13 @@ component OsdControls inherits Rectangle {
     alignment: center;
     spacing: Theme.spacing-xl;
 
+    // Back / Stop button — exits playback and returns to browsing
+    OsdButton {
+      btn-size: 48px;
+      activated => { PlayerState.stop(); }
+      IconBack { size: 24px; fill: #FFFFFF; }
+    }
+
     OsdButton {
       btn-size: 48px;
       activated => { /* Open settings */ }
@@ -265,14 +272,15 @@ export component PlayerScreen inherits Rectangle {
     }
   }
 
-  // OSD overlay (Layer 2) — auto-hides after 3s (managed by Rust timer)
-  if PlayerState.is-playing && PlayerState.show-osd: OsdControls {
-    width: 100%;
-    height: 100%;
+  // Touch/click to show OSD when it's hidden — MUST be before OsdControls so OSD buttons get clicks
+  if (PlayerState.is-playing || PlayerState.is-paused) && !PlayerState.show-osd && !PlayerState.is-paused: TouchArea {
+    clicked => { PlayerState.show-controls(); }
   }
 
-  // Touch/click to show/hide OSD
-  if PlayerState.is-playing: TouchArea {
-    clicked => { PlayerState.show-controls(); }
+  // OSD overlay (Layer 2) — auto-hides after 3s when playing (managed by Rust timer)
+  // Always visible when paused so user can resume or exit
+  if (PlayerState.is-playing || PlayerState.is-paused) && (PlayerState.show-osd || PlayerState.is-paused): OsdControls {
+    width: 100%;
+    height: 100%;
   }
 }
