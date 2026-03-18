@@ -95,7 +95,7 @@ export component SearchScreen inherits Rectangle {
                 row: floor(idx / columns);
                 col: mod(idx, columns);
                 item: item;
-                clicked => { AppState.play-channel(item.id); }
+                clicked => { AppState.play-vod(item.id); }
               }
             }
           }
