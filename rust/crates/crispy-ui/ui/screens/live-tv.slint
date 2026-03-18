@@ -223,7 +223,6 @@ export component LiveTvScreen inherits Rectangle {
             height: 100%;
             for ch in AppState.channels: ChannelCard {
               channel: ch;
-              visible: AppState.active-channel-group == "" || ch.group == AppState.active-channel-group;
               clicked => { AppState.play-channel(ch.id); }
             }
           }
