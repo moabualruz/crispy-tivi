@@ -1340,6 +1340,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
+ "tracing",
  "unic-langid",
  "unicode-normalization",
  "url",
@@ -1387,6 +1388,8 @@ dependencies = [
  "tokio-test",
  "tokio-util",
  "tower-http",
+ "tracing",
+ "url",
  "wiremock",
 ]
 

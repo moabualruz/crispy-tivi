@@ -58,62 +58,105 @@ component OsdButton inherits FocusScope {
   }
 }
 
-component VolumeSlider inherits Rectangle {
+component VolumeSlider inherits FocusScope {
   width: 120px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.3);
+  height: 16px;
 
-  Rectangle {
-    x: 0;
-    width: parent.width * PlayerState.volume;
-    height: 100%;
-    border-radius: 2px;
-    background: #FFFFFF;
-
-    animate width { duration: 100ms; }
+  key-pressed(event) => {
+    if event.text == Key.RightArrow {
+      PlayerState.set-volume(min(1.0, PlayerState.volume + 0.05));
+      return accept;
+    } else if event.text == Key.LeftArrow {
+      PlayerState.set-volume(max(0.0, PlayerState.volume - 0.05));
+      return accept;
+    }
+    return reject;
   }
 
-  TouchArea {
-    clicked => {
-      PlayerState.set-volume(self.mouse-x / parent.width);
+  Rectangle {
+    width: 120px;
+    height: 4px;
+    y: (parent.height - self.height) / 2;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.3);
+    border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+    border-color: Theme.focus-ring;
+
+    Rectangle {
+      x: 0;
+      width: parent.width * PlayerState.volume;
+      height: 100%;
+      border-radius: 2px;
+      background: #FFFFFF;
+
+      animate width { duration: 100ms; }
+    }
+
+    TouchArea {
+      clicked => {
+        PlayerState.set-volume(self.mouse-x / parent.width);
+      }
     }
   }
 }
 
-component SeekBar inherits Rectangle {
-  // Razor-thin line that expands on focus (per design spec)
-  height: self.has-hover ? 8px : 3px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.2);
+component SeekBar inherits FocusScope {
+  // Razor-thin line that expands on focus/hover (per design spec)
+  height: (root.has-focus || seek-area.has-hover) ? 16px : 8px;
 
   animate height { duration: 150ms; easing: ease-out; }
 
-  property <bool> has-hover: seek-area.has-hover;
-
-  // Progress fill
-  Rectangle {
-    x: 0;
-    width: PlayerState.duration > 0 ? parent.width * (PlayerState.position / PlayerState.duration) : 0;
-    height: 100%;
-    border-radius: 2px;
-    background: Theme.accent-gradient;
-  }
-
-  // Seek knob (visible on hover)
-  if PlayerState.duration > 0 && root.has-hover: Rectangle {
-    x: parent.width * (PlayerState.position / PlayerState.duration) - 7px;
-    y: (parent.height - 14px) / 2;
-    width: 14px;
-    height: 14px;
-    border-radius: 7px;
-    background: #FFFFFF;
-  }
-
-  seek-area := TouchArea {
-    clicked => {
+  // Left/Right D-pad: seek by 10 seconds
+  key-pressed(event) => {
+    if event.text == Key.RightArrow {
       if PlayerState.duration > 0 {
-        PlayerState.seek(self.mouse-x / parent.width * PlayerState.duration);
+        PlayerState.seek(min(PlayerState.duration, PlayerState.position + 10.0));
+      }
+      return accept;
+    } else if event.text == Key.LeftArrow {
+      if PlayerState.duration > 0 {
+        PlayerState.seek(max(0.0, PlayerState.position - 10.0));
+      }
+      return accept;
+    }
+    return reject;
+  }
+
+  inner := Rectangle {
+    width: 100%;
+    height: root.has-focus ? 8px : 3px;
+    y: (parent.height - self.height) / 2;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.2);
+    border-width: root.has-focus ? Theme.focus-ring-width : 0px;
+    border-color: Theme.focus-ring;
+
+    animate height { duration: 150ms; easing: ease-out; }
+
+    // Progress fill
+    Rectangle {
+      x: 0;
+      width: PlayerState.duration > 0 ? parent.width * (PlayerState.position / PlayerState.duration) : 0;
+      height: 100%;
+      border-radius: 2px;
+      background: Theme.accent-gradient;
+    }
+
+    // Seek knob (visible on focus/hover)
+    if PlayerState.duration > 0 && (root.has-focus || seek-area.has-hover): Rectangle {
+      x: parent.width * (PlayerState.position / PlayerState.duration) - 7px;
+      y: (parent.height - 14px) / 2;
+      width: 14px;
+      height: 14px;
+      border-radius: 7px;
+      background: #FFFFFF;
+    }
+
+    seek-area := TouchArea {
+      clicked => {
+        if PlayerState.duration > 0 {
+          PlayerState.seek(self.mouse-x / parent.width * PlayerState.duration);
+        }
       }
     }
   }

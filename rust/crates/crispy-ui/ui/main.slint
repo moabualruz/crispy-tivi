@@ -72,16 +72,21 @@ export component AppWindow inherits Window {
   property <length> screen-layer-w: root.width;
   property <length> screen-layer-h: root.height;
 
-  // OsdLayer
-  property <bool>   show-osd-layer: PlayerState.is-playing && !OnboardingState.is-active;
+  // OsdLayer — M-019: hidden when an overlay is showing (mutually exclusive with OverlayLayer)
+  property <bool>   show-osd-layer: PlayerState.is-playing && !OnboardingState.is-active &&
+    !(AppState.show-vod-detail || AppState.show-series-detail ||
+      AppState.show-source-dialog || AppState.show-profile-menu);
   property <float>  osd-layer-opacity: 1.0;
   property <length> osd-layer-x: 0;
   property <length> osd-layer-y: 0;
   property <length> osd-layer-w: root.width;
   property <length> osd-layer-h: root.height;
 
-  // OverlayLayer
-  property <bool>   show-overlay-layer: !OnboardingState.is-active;
+  // OverlayLayer — only active when at least one overlay is actually showing
+  // M-015: must not capture input when no overlay is visible
+  property <bool>   show-overlay-layer: !OnboardingState.is-active &&
+    (AppState.show-vod-detail || AppState.show-series-detail ||
+     AppState.show-source-dialog || AppState.show-profile-menu);
   property <float>  overlay-layer-opacity: 1.0;
   property <length> overlay-layer-x: 0;
   property <length> overlay-layer-y: 0;
@@ -102,7 +107,13 @@ export component AppWindow inherits Window {
           PlayerState.is-fullscreen = false;
           return accept;
         }
-        if PlayerState.is-playing { PlayerState.stop(); return accept; }
+        if PlayerState.is-playing {
+          // M-016: also dismiss any open overlays when playback stops
+          AppState.show-vod-detail = false;
+          AppState.show-series-detail = false;
+          PlayerState.stop();
+          return accept;
+        }
       }
       return reject;
     }
@@ -153,6 +164,18 @@ export component AppWindow inherits Window {
     background: transparent;
     animate x, y, width, height { duration: 300ms; easing: ease-in-out; }
     animate opacity { duration: 300ms; easing: ease-in-out; }
+
+    // C-001: Escape/Back hides OSD and returns to screen layer
+    FocusScope {
+      width: 0; height: 0;
+      key-pressed(event) => {
+        if event.text == Key.Escape || event.text == Key.Back {
+          PlayerState.stop();
+          return accept;
+        }
+        return reject;
+      }
+    }
 
     PlayerScreen {
       width: 100%;

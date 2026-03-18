@@ -14,6 +14,31 @@ use crate::parsers::{vod, xtream};
 use crate::services::CrispyService;
 use crate::sync_progress::emit_progress;
 
+/// Validates that a source base URL is safe to fetch (M-067).
+///
+/// Only `http` and `https` schemes are accepted. Any other scheme
+/// is logged at `WARN` level and rejected with an error.
+fn validate_source_url(url: &str) -> Result<()> {
+    let parsed =
+        url::Url::parse(url).map_err(|e| anyhow::anyhow!("Invalid source URL '{}': {}", url, e))?;
+    match parsed.scheme() {
+        "http" | "https" => Ok(()),
+        scheme => {
+            tracing::warn!(
+                security = "url_validation",
+                url = url,
+                scheme = scheme,
+                "Rejected source URL with disallowed scheme"
+            );
+            Err(anyhow::anyhow!(
+                "Disallowed URL scheme '{}' in source URL '{}': only http/https are permitted",
+                scheme,
+                url
+            ))
+        }
+    }
+}
+
 /// Verifies Xtream credentials by calling the player API.
 ///
 /// Returns `Ok(true)` if authenticated, `Ok(false)` if auth rejected,
@@ -24,6 +49,7 @@ pub async fn verify_xtream_credentials(
     password: &str,
     accept_invalid_certs: bool,
 ) -> Result<bool> {
+    validate_source_url(base_url)?;
     // Build URL: {base}/player_api.php?username=X&password=Y
     // (action omitted = returns account info)
     let url =
@@ -63,6 +89,7 @@ pub async fn sync_xtream_source(
     source_id: &str,
     accept_invalid_certs: bool,
 ) -> Result<SyncReport> {
+    validate_source_url(base_url)?;
     let base = xtream::normalize_base_url(base_url);
     emit_progress(source_id, "categories", 0.0, "Fetching categories");
 

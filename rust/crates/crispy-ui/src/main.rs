@@ -200,6 +200,8 @@ fn real_main() -> anyhow::Result<()> {
 
     // ── Spawn player handler (PlayerEvent → MpvBackend) ──────────────────
     event_bridge::spawn_player_handler(ui.as_weak(), player_rx, backend_shared.clone());
+    // M-004/005/006/007: poll mpv position/duration every 500ms and push to PlayerState
+    event_bridge::spawn_position_poller(ui.as_weak(), backend_shared.clone());
 
     // ── Spawn data listener (DataEvent → Slint properties) ───────────────
     event_bridge::spawn_data_listener(

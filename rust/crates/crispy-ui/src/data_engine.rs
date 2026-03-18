@@ -438,18 +438,93 @@ impl DataEngine {
 
             HighPriorityEvent::SelectEpgDate { offset_days } => {
                 debug!(offset_days, "SelectEpgDate — EPG date navigation");
-                // EPG data loading is handled by a future EPG module;
-                // ScreenChanged drives the UI to refresh.
+                self.filters.epg_date_offset = offset_days;
+                self.filters.active_screen = Screen::Epg;
+                // EPG programme data is loaded by the EPG sync pipeline and not yet
+                // queryable via a per-date CrispyService call. Persist the selected
+                // offset so subsequent render passes use the right date, then inform
+                // the UI that the screen and date context have changed.
+                let date_label = if offset_days == 0 {
+                    "Today".to_string()
+                } else if offset_days == -1 {
+                    "Yesterday".to_string()
+                } else if offset_days < 0 {
+                    format!("{} days ago", -offset_days)
+                } else {
+                    format!("+{offset_days} days")
+                };
+                info!(offset_days, date_label, "EPG date selected");
                 self.send(DataEvent::ScreenChanged {
                     screen: Screen::Epg,
+                });
+                self.send(DataEvent::DiagnosticsInfo {
+                    report: format!("EPG date: {date_label} (offset {offset_days})"),
                 });
             }
 
             HighPriorityEvent::JumpEpgToChannel { channel_id } => {
                 debug!(channel_id, "JumpEpgToChannel");
+                self.filters.epg_focused_channel_id = channel_id.clone();
+                self.filters.active_screen = Screen::Epg;
+                // Look up the channel name for a more helpful log/diagnostic.
+                let ch_name = self
+                    .cache
+                    .all_channels
+                    .iter()
+                    .find(|c| c.id == channel_id)
+                    .map(|c| c.name.as_str())
+                    .unwrap_or("unknown");
+                info!(channel_id, ch_name, "EPG jump-to-channel");
                 self.send(DataEvent::ScreenChanged {
                     screen: Screen::Epg,
                 });
+                self.send(DataEvent::DiagnosticsInfo {
+                    report: format!("EPG focus: channel '{ch_name}' ({channel_id})"),
+                });
+            }
+
+            HighPriorityEvent::SelectSeriesSeason { series_id, season } => {
+                debug!(series_id, season, "SelectSeriesSeason — loading episodes");
+                let svc = self.provider.clone();
+                let sid = series_id.clone();
+                match self.rt.spawn_blocking(move || svc.load_vod_items()).await {
+                    Ok(Ok(all_items)) => {
+                        let episodes: Vec<VodInfo> = all_items
+                            .iter()
+                            .filter(|v| {
+                                v.series_id.as_deref() == Some(sid.as_str())
+                                    && v.season_number == Some(season)
+                                    && v.item_type == "episode"
+                            })
+                            .map(crate::cache::vod_to_info)
+                            .collect();
+                        info!(
+                            series_id,
+                            season,
+                            episode_count = episodes.len(),
+                            "SelectSeriesSeason: episodes loaded"
+                        );
+                        // Episodes are delivered as a SeriesReady payload so EventBridge
+                        // can populate the series_episodes VecModel without a new DataEvent
+                        // variant (events.rs is frozen for new variants beyond this file).
+                        self.send(DataEvent::SeriesReady {
+                            series: Arc::new(episodes),
+                            categories: vec![],
+                            total: 0,
+                        });
+                    }
+                    Ok(Err(e)) => {
+                        error!(error = %e, series_id, season, "Failed to load episodes for season");
+                        self.send(DataEvent::Error {
+                            message: format!(
+                                "Failed to load episodes for series {series_id} season {season}: {e}"
+                            ),
+                        });
+                    }
+                    Err(e) => {
+                        error!(error = %e, "select_series_season task panicked");
+                    }
+                }
             }
 
             HighPriorityEvent::FilterVod {

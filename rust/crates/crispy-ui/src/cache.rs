@@ -96,6 +96,10 @@ pub struct FilterState {
     pub active_group: String,
     pub active_vod_category: String,
     pub active_screen: Screen,
+    /// EPG date offset from today (0 = today, -1 = yesterday, +1 = tomorrow).
+    pub epg_date_offset: i32,
+    /// Channel ID to focus/scroll to in the EPG grid.
+    pub epg_focused_channel_id: String,
 }
 
 impl Default for FilterState {
@@ -104,6 +108,8 @@ impl Default for FilterState {
             active_group: String::new(),
             active_vod_category: String::new(),
             active_screen: Screen::Home,
+            epg_date_offset: 0,
+            epg_focused_channel_id: String::new(),
         }
     }
 }

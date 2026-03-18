@@ -65,17 +65,97 @@ struct ProxyParams {
     url: String,
 }
 
+/// Returns `true` if the host string resolves to a private/loopback address
+/// that must not be reachable via the proxy (SSRF prevention).
+fn is_private_host(host: &str) -> bool {
+    use std::net::IpAddr;
+    use std::str::FromStr;
+
+    // Reject plain "localhost" and any *.local / *.internal hostnames.
+    let lower = host.to_ascii_lowercase();
+    if lower == "localhost"
+        || lower.ends_with(".local")
+        || lower.ends_with(".internal")
+        || lower.ends_with(".localhost")
+    {
+        return true;
+    }
+
+    // Parse as an IP address and check against private/reserved ranges.
+    if let Ok(addr) = IpAddr::from_str(host) {
+        return match addr {
+            IpAddr::V4(v4) => {
+                let o = v4.octets();
+                // 127.0.0.0/8  — loopback
+                o[0] == 127
+                // 10.0.0.0/8   — RFC-1918
+                || o[0] == 10
+                // 172.16.0.0/12 — RFC-1918
+                || (o[0] == 172 && (16..=31).contains(&o[1]))
+                // 192.168.0.0/16 — RFC-1918
+                || (o[0] == 192 && o[1] == 168)
+                // 169.254.0.0/16 — link-local
+                || (o[0] == 169 && o[1] == 254)
+            }
+            IpAddr::V6(v6) => {
+                // ::1 loopback
+                v6.is_loopback()
+                // fd00::/8 — unique local (ULA)
+                || v6.segments()[0] & 0xfe00 == 0xfc00
+            }
+        };
+    }
+
+    false
+}
+
+/// Validates a proxy target URL for SSRF safety (C-009).
+///
+/// Returns `Ok(())` when the URL is acceptable, or `Err(message)` with
+/// a human-readable explanation of why it was rejected.
+fn validate_proxy_url(raw: &str) -> Result<(), String> {
+    let parsed = url::Url::parse(raw).map_err(|e| format!("Malformed URL: {e}"))?;
+
+    match parsed.scheme() {
+        "http" | "https" => {}
+        scheme => {
+            return Err(format!(
+                "URL scheme '{scheme}' is not allowed; only http and https are permitted"
+            ));
+        }
+    }
+
+    let host = parsed
+        .host_str()
+        .ok_or_else(|| "URL has no host".to_string())?;
+
+    if is_private_host(host) {
+        return Err(format!(
+            "URL host '{host}' resolves to a private or reserved address and cannot be proxied"
+        ));
+    }
+
+    Ok(())
+}
+
 /// CORS relay proxy for browser-based playback.
 ///
 /// Fetches the upstream URL server-side and re-serves the
 /// content with CORS headers. For M3U8 playlists, rewrites
 /// segment and key URLs to also route through the proxy.
 ///
-/// Only allows `http://` and `https://` URLs to prevent SSRF.
+/// Only `http://` and `https://` URLs targeting public hosts are allowed
+/// (SSRF prevention — C-009).
 async fn cors_proxy(Query(params): Query<ProxyParams>) -> impl IntoResponse {
-    // Validate URL scheme to prevent SSRF
-    if !params.url.starts_with("http://") && !params.url.starts_with("https://") {
-        return StatusCode::BAD_REQUEST.into_response();
+    // Validate URL: scheme + private-IP check (C-009).
+    if let Err(reason) = validate_proxy_url(&params.url) {
+        tracing::warn!(
+            security = "ssrf_block",
+            url = %params.url,
+            reason = %reason,
+            "Proxy request rejected"
+        );
+        return (StatusCode::BAD_REQUEST, reason).into_response();
     }
 
     let client = reqwest::Client::builder()

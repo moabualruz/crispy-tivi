@@ -424,6 +424,12 @@ pub(crate) fn wire(
             tracing::debug!(delta, "[SCROLL] scroll-channels FIRED");
             let Some(ui) = ui_w.upgrade() else { return };
             let app = ui.global::<super::AppState>();
+            // M-008: nav auto-hide — hide on scroll down, show on scroll up
+            if delta > 0 {
+                app.set_nav_visible(false);
+            } else if delta < 0 {
+                app.set_nav_visible(true);
+            }
             let data = sd.channels.lock().unwrap();
             if data.is_empty() {
                 while model.row_count() > 0 {
@@ -503,6 +509,12 @@ pub(crate) fn wire(
             tracing::debug!(delta, "[SCROLL] scroll-movies FIRED");
             let Some(ui) = ui_w.upgrade() else { return };
             let app = ui.global::<super::AppState>();
+            // M-008: nav auto-hide
+            if delta > 0 {
+                app.set_nav_visible(false);
+            } else if delta < 0 {
+                app.set_nav_visible(true);
+            }
             let data = sd.movies.lock().unwrap();
             if data.is_empty() {
                 while model.row_count() > 0 {
@@ -577,6 +589,12 @@ pub(crate) fn wire(
             tracing::debug!(delta, "[SCROLL] scroll-series FIRED");
             let Some(ui) = ui_w.upgrade() else { return };
             let app = ui.global::<super::AppState>();
+            // M-008: nav auto-hide
+            if delta > 0 {
+                app.set_nav_visible(false);
+            } else if delta < 0 {
+                app.set_nav_visible(true);
+            }
             let data = sd.series.lock().unwrap();
             if data.is_empty() {
                 while model.row_count() > 0 {
@@ -736,10 +754,13 @@ pub(crate) fn spawn_player_handler(
 
                 PlayerEvent::SeekRelative { delta_secs } => {
                     let delta = *delta_secs;
-                    tracing::debug!(
-                        delta,
-                        "SeekRelative (no-op until mpv exposes relative seek)"
-                    );
+                    let result = {
+                        let guard = backend.lock().unwrap();
+                        guard.as_ref().map(|b| b.seek_relative(delta))
+                    };
+                    if let Some(Err(e)) = result {
+                        tracing::error!(error = %e, delta, "SeekRelative failed");
+                    }
                 }
 
                 PlayerEvent::SetVolume { volume } => {
@@ -780,6 +801,22 @@ pub(crate) fn spawn_player_handler(
                             ps.set_show_osd(if v { !ps.get_show_osd() } else { false });
                         }
                     });
+                    // M-034: reset OSD auto-hide timer on ShowControls
+                    if v {
+                        let ui_w2 = ui_weak.clone();
+                        tokio::spawn(async move {
+                            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                            let _ = slint::invoke_from_event_loop(move || {
+                                if let Some(ui) = ui_w2.upgrade() {
+                                    let ps = ui.global::<super::PlayerState>();
+                                    // Only hide if still showing OSD and not paused
+                                    if ps.get_show_osd() && !ps.get_is_paused() {
+                                        ps.set_show_osd(false);
+                                    }
+                                }
+                            });
+                        });
+                    }
                 }
 
                 PlayerEvent::SetFullscreen { fullscreen } => {
@@ -793,13 +830,39 @@ pub(crate) fn spawn_player_handler(
                 }
 
                 PlayerEvent::NextAudioTrack => {
-                    tracing::debug!("NextAudioTrack (mpv cycle audio)");
-                    // mpv: "cycle audio" — TODO when track API is exposed
+                    let guard = backend.lock().unwrap();
+                    if let Some(b) = guard.as_ref() {
+                        let tracks = b.get_audio_tracks();
+                        if tracks.len() > 1 {
+                            // Cycle to next audio track
+                            let current = tracks.iter().position(|t| t.is_default).unwrap_or(0);
+                            let next = (current + 1) % tracks.len();
+                            if let Err(e) = b.set_audio_track(tracks[next].id) {
+                                tracing::error!(error = %e, "NextAudioTrack failed");
+                            } else {
+                                tracing::info!(track_id = tracks[next].id, title = ?tracks[next].title, "Audio track switched");
+                            }
+                        }
+                    }
                 }
 
                 PlayerEvent::NextSubtitleTrack => {
-                    tracing::debug!("NextSubtitleTrack (mpv cycle sub)");
-                    // mpv: "cycle sub" — TODO when track API is exposed
+                    let guard = backend.lock().unwrap();
+                    if let Some(b) = guard.as_ref() {
+                        let tracks = b.get_subtitle_tracks();
+                        let current = tracks.iter().position(|t| t.is_default);
+                        let next_id = match current {
+                            Some(idx) if idx + 1 < tracks.len() => Some(tracks[idx + 1].id),
+                            Some(_) => None, // cycle past last = disable subs
+                            None if !tracks.is_empty() => Some(tracks[0].id),
+                            None => None,
+                        };
+                        if let Err(e) = b.set_subtitle_track(next_id) {
+                            tracing::error!(error = %e, "NextSubtitleTrack failed");
+                        } else {
+                            tracing::info!(track_id = ?next_id, "Subtitle track switched");
+                        }
+                    }
                 }
 
                 PlayerEvent::SetSpeed { speed } => {
@@ -808,6 +871,49 @@ pub(crate) fn spawn_player_handler(
             }
         }
         tracing::info!("player_handler task exited");
+    });
+}
+
+// ── spawn_position_poller ─────────────────────────────────────────────────────
+
+/// M-004/M-005/M-006/M-007: Poll mpv every 500ms for position, duration, is-live, current-group
+/// and push values to PlayerState on the UI thread.
+pub(crate) fn spawn_position_poller(
+    ui_weak: slint::Weak<super::AppWindow>,
+    backend: Arc<Mutex<Option<crispy_player::mpv_backend::MpvBackend>>>,
+) {
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+
+            let (playing, pos, dur) = {
+                let guard = backend.lock().unwrap();
+                if let Some(b) = guard.as_ref() {
+                    let pos = b.get_position() as f32;
+                    let dur = b.get_duration() as f32;
+                    (true, pos, dur)
+                } else {
+                    (false, 0.0f32, 0.0f32)
+                }
+            };
+
+            if !playing {
+                continue;
+            }
+
+            let ui_w = ui_weak.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(ui) = ui_w.upgrade() {
+                    let ps = ui.global::<super::PlayerState>();
+                    if ps.get_is_playing() {
+                        ps.set_position(pos);
+                        ps.set_duration(dur);
+                        // M-006: live = no finite duration (duration == 0 or NaN for live streams)
+                        ps.set_is_live(dur <= 0.0 || dur.is_nan());
+                    }
+                }
+            });
+        }
     });
 }
 
@@ -876,15 +982,28 @@ pub(crate) fn spawn_data_listener(
                         tracing::error!(error = %e, url = %url, "PlaybackReady: play failed");
                     }
                     let title_clone = title.clone();
+                    // M-007: look up group from SharedData by matching stream url or title
+                    let group_str = {
+                        let channels = shared_data.channels.lock().unwrap();
+                        channels
+                            .iter()
+                            .find(|c| c.stream_url == url || c.name == title)
+                            .and_then(|c| c.channel_group.clone())
+                            .unwrap_or_default()
+                    };
                     let ui_w = ui_weak.clone();
                     let _ = slint::invoke_from_event_loop(move || {
                         if let Some(ui) = ui_w.upgrade() {
                             let ps = ui.global::<super::PlayerState>();
                             ps.set_current_title(SharedString::from(title_clone.as_str()));
+                            ps.set_current_group(SharedString::from(group_str.as_str()));
                             ps.set_is_playing(true);
                             ps.set_is_fullscreen(true);
                             ps.set_is_buffering(false);
                             ps.set_show_osd(true);
+                            // M-006: is_live = true by default at playback start;
+                            // spawn_position_poller refines once duration is known
+                            ps.set_is_live(true);
                         }
                     });
                 }
@@ -910,10 +1029,12 @@ pub(crate) fn spawn_data_listener(
 /// MUST be called on the UI thread (inside `invoke_from_event_loop` or directly).
 pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
     let app = ui.global::<super::AppState>();
-    let _ps = ui.global::<super::PlayerState>();
 
     match event {
         DataEvent::SourcesReady { sources } => {
+            // M-009: update diagnostics source count
+            ui.global::<super::DiagnosticsState>()
+                .set_source_count(sources.len() as i32);
             let items: Vec<super::SourceData> = sources.iter().map(source_info_to_slint).collect();
             app.set_sources(ModelRc::new(VecModel::from(items)));
         }
@@ -924,6 +1045,9 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             total,
             ..
         } => {
+            // M-010: update diagnostics channel count
+            ui.global::<super::DiagnosticsState>()
+                .set_channel_count(total);
             // Windowed: scroll callback (delta=0) does full reset
             app.set_channel_window_start(0);
             app.set_total_channel_count(total);
@@ -950,6 +1074,12 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             total,
             ..
         } => {
+            // M-011: accumulate vod count in diagnostics
+            {
+                let diag = ui.global::<super::DiagnosticsState>();
+                let prev = diag.get_vod_count();
+                diag.set_vod_count(prev + total);
+            }
             app.set_movie_window_start(0);
             app.set_total_movie_count(total);
             // Trigger scroll callback so images load for initial viewport
@@ -975,6 +1105,12 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             total,
             ..
         } => {
+            // M-011: accumulate series vod count in diagnostics
+            {
+                let diag = ui.global::<super::DiagnosticsState>();
+                let prev = diag.get_vod_count();
+                diag.set_vod_count(prev + total);
+            }
             app.set_series_window_start(0);
             app.set_total_series_count(total);
             // Trigger scroll callback so images load for initial viewport
@@ -1078,7 +1214,25 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
 
         DataEvent::DiagnosticsInfo { report } => {
             tracing::info!(report = %report, "Diagnostics");
-            // DiagnosticsState has no text property in current .slint — log only
+            // M-009/010/011: parse counts from report format "sources=N channels=N vod=N ..."
+            let diag = ui.global::<super::DiagnosticsState>();
+            let mut source_count: i32 = 0;
+            let mut channel_count: i32 = 0;
+            let mut vod_count: i32 = 0;
+            for part in report.split_whitespace() {
+                if let Some(v) = part.strip_prefix("sources=") {
+                    source_count = v.parse().unwrap_or(0);
+                } else if let Some(v) = part.strip_prefix("channels=") {
+                    channel_count = v.parse().unwrap_or(0);
+                } else if let Some(v) = part.strip_prefix("vod=") {
+                    vod_count = v.parse().unwrap_or(0);
+                }
+            }
+            if source_count > 0 || channel_count > 0 || vod_count > 0 {
+                diag.set_source_count(source_count);
+                diag.set_channel_count(channel_count);
+                diag.set_vod_count(vod_count);
+            }
         }
 
         DataEvent::Error { message } => {

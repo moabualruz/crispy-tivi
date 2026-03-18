@@ -10,6 +10,18 @@ import { SearchBar } from "../components/search-bar.slint";
 export component SearchScreen inherits Rectangle {
   background: transparent;
 
+  // M-018: Escape navigates back to Home
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      if event.text == Key.Escape {
+        AppState.navigate(0);
+        return accept;
+      }
+      return reject;
+    }
+  }
+
   VerticalLayout {
     padding-top: Theme.screen-padding-top;
     padding-left: Theme.content-padding-h;

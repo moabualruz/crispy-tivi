@@ -8,6 +8,11 @@
 //! Each profile also has an insecure variant that accepts self-signed
 //! TLS certificates, accessible via `get_shared_client(true)` and
 //! `get_fast_client(true)`.
+//!
+//! # Security audit
+//!
+//! Any use of the insecure variants is logged at `WARN` level via
+//! [`tracing`] so that every TLS bypass leaves an audit trail.
 
 use std::sync::OnceLock;
 use std::time::Duration;
@@ -95,8 +100,16 @@ fn insecure_fast_client() -> &'static Client {
 }
 
 /// Returns the appropriate general-purpose client based on TLS policy.
+///
+/// When `accept_invalid_certs` is `true`, emits a `WARN` log so that
+/// every TLS-bypass activation is captured in the audit trail (M-066/M-068).
 pub fn get_shared_client(accept_invalid_certs: bool) -> &'static Client {
     if accept_invalid_certs {
+        tracing::warn!(
+            security = "tls_bypass",
+            client = "shared",
+            "Insecure HTTP client activated: TLS certificate verification disabled"
+        );
         insecure_shared_client()
     } else {
         shared_client()
@@ -104,8 +117,16 @@ pub fn get_shared_client(accept_invalid_certs: bool) -> &'static Client {
 }
 
 /// Returns the appropriate fast client based on TLS policy.
+///
+/// When `accept_invalid_certs` is `true`, emits a `WARN` log so that
+/// every TLS-bypass activation is captured in the audit trail (M-066/M-068).
 pub fn get_fast_client(accept_invalid_certs: bool) -> &'static Client {
     if accept_invalid_certs {
+        tracing::warn!(
+            security = "tls_bypass",
+            client = "fast",
+            "Insecure HTTP client activated: TLS certificate verification disabled"
+        );
         insecure_fast_client()
     } else {
         fast_client()
