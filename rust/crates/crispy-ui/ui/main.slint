@@ -27,7 +27,9 @@ export component AppWindow inherits Window {
   min-height: 480px;
   preferred-width: 1280px;
   preferred-height: 720px;
-  background: Theme.background;
+  // Window background is transparent so the mpv OpenGL underlay (Layer 0) is visible.
+  // Each screen provides its own opaque background when video isn't playing.
+  background: transparent;
 
   // Global keyboard shortcuts
   FocusScope {

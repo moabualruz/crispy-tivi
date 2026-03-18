@@ -239,15 +239,17 @@ component OsdControls inherits Rectangle {
 }
 
 export component PlayerScreen inherits Rectangle {
-  background: #000000;
+  // MUST be transparent — mpv OpenGL underlay renders BEHIND the Slint canvas.
+  // An opaque background here covers the video entirely.
+  background: transparent;
   width: 100%;
   height: 100%;
 
-  // Video surface — libmpv OpenGL underlay renders here
+  // Video surface area — transparent to let underlay show through
   Rectangle {
     width: 100%;
     height: 100%;
-    background: #000000;
+    background: transparent;
 
     if PlayerState.is-buffering: VerticalLayout {
       alignment: center;
