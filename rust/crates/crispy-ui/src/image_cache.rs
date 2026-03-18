@@ -36,11 +36,17 @@ struct CacheEntry {
 
 // ── ImageCache ───────────────────────────────────────────────────────────────
 
+/// How long to suppress retries for a URL that failed (404, connection error, etc.).
+const FAILURE_SUPPRESS_SECS: u64 = 3600; // 1 hour
+
 #[derive(Clone)]
 pub struct ImageCache {
     client: Client,
     cache_dir: PathBuf,
     entries: Arc<RwLock<HashMap<String, CacheEntry>>>,
+    /// URLs that failed recently — maps hash → timestamp of failure.
+    /// Prevents hammering broken URLs on every scroll/page.
+    failed: Arc<RwLock<HashMap<String, u64>>>,
     ttl: Duration,
     max_bytes: u64,
 }
@@ -58,6 +64,7 @@ impl ImageCache {
             client,
             cache_dir,
             entries: Arc::new(RwLock::new(HashMap::new())),
+            failed: Arc::new(RwLock::new(HashMap::new())),
             ttl: Duration::from_secs(DEFAULT_TTL_SECS),
             max_bytes: DEFAULT_MAX_BYTES,
         };
@@ -93,13 +100,28 @@ impl ImageCache {
         &self,
         url: &str,
     ) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
-        // Handle data: URIs (inline base64-encoded images)
-        if let Some(buf) = Self::decode_data_uri(url) {
-            return Some(buf);
+        // Handle data: and s:1: URIs (inline encoded images) — never fall through to HTTP
+        if url.starts_with("data:") || url.starts_with("s:1:") {
+            return Self::decode_data_uri(url);
+        }
+
+        // Only attempt HTTP/HTTPS URLs
+        if !url.starts_with("http://") && !url.starts_with("https://") {
+            return None;
         }
 
         let hash = Self::url_to_hash(url);
         let now = now_secs();
+
+        // Check failure cache — don't retry recently failed URLs
+        {
+            let failed = self.failed.read().await;
+            if let Some(&fail_time) = failed.get(&hash)
+                && now.saturating_sub(fail_time) < FAILURE_SUPPRESS_SECS
+            {
+                return None;
+            }
+        }
 
         // Check if we have a valid cached entry
         {
@@ -159,6 +181,7 @@ impl ImageCache {
             Ok(r) => r,
             Err(e) => {
                 tracing::debug!(url, error = %e, "Image download failed");
+                self.mark_failed(hash).await;
                 return self.decode_buffer_from_disk(hash);
             }
         };
@@ -174,6 +197,7 @@ impl ImageCache {
 
         if !response.status().is_success() {
             tracing::debug!(url, status = %response.status(), "Image download non-success");
+            self.mark_failed(hash).await;
             return None;
         }
 
@@ -286,6 +310,12 @@ impl ImageCache {
             );
             self.save_index(&entries);
         }
+    }
+
+    /// Record a URL hash as failed so we don't retry it for a while.
+    async fn mark_failed(&self, hash: &str) {
+        let mut failed = self.failed.write().await;
+        failed.insert(hash.to_owned(), now_secs());
     }
 
     /// SHA256 hash of a URL, used as the cache file name.
