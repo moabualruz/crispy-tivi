@@ -7,7 +7,6 @@ import { LoadingIndicator } from "../components/loading-indicator.slint";
 import { IconTv } from "../components/icons.slint";
 import { FilterChip } from "../components/filter-chip.slint";
 import { ListView } from "std-widgets.slint";
-import { ScrollIndicator } from "../components/scroll-indicator.slint";
 
 // Sub-view tabs: 0 = Channels, 1 = EPG
 component LiveSubTab inherits FocusScope {
@@ -199,7 +198,7 @@ export component LiveTvScreen inherits Rectangle {
         }
       }
 
-      // Channel list with scroll indicator
+      // Channel list with scroll indicator + windowed VecModel
       HorizontalLayout {
         vertical-stretch: 1;
 
@@ -228,11 +227,6 @@ export component LiveTvScreen inherits Rectangle {
           }
         }
 
-        ScrollIndicator {
-          total-items: AppState.total-channel-count;
-          visible-items: 20;
-          window-start: AppState.channel-window-start;
-        }
       }
 
     }

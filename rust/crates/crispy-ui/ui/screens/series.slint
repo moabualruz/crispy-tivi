@@ -5,7 +5,6 @@ import { VodCard } from "../components/vod-card.slint";
 import { LoadingIndicator } from "../components/loading-indicator.slint";
 import { IconTv } from "../components/icons.slint";
 import { ScrollView } from "std-widgets.slint";
-import { ScrollIndicator } from "../components/scroll-indicator.slint";
 
 export component SeriesScreen inherits Rectangle {
   background: transparent;
@@ -82,11 +81,6 @@ export component SeriesScreen inherits Rectangle {
         }
       }
 
-      ScrollIndicator {
-        total-items: AppState.total-series-count;
-        visible-items: 20;
-        window-start: AppState.series-window-start;
-      }
     }
   }
 }

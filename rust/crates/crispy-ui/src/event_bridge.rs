@@ -47,6 +47,13 @@ fn refresh_channel_window(app: &super::AppState, data: &[ChannelInfo], start: us
     let end = (start + CHANNEL_WINDOW * 3).min(data.len());
     let s = start.min(data.len());
     let items: Vec<super::ChannelData> = data[s..end].iter().map(channel_info_to_slint).collect();
+    tracing::debug!(
+        start = s,
+        end,
+        window_items = items.len(),
+        total = data.len(),
+        "[SCROLL] refresh_channel_window"
+    );
     app.set_channels(ModelRc::new(VecModel::from(items)));
 }
 
@@ -54,6 +61,13 @@ fn refresh_movie_window(app: &super::AppState, data: &[VodInfo], start: usize) {
     let end = (start + VOD_WINDOW * 3).min(data.len());
     let s = start.min(data.len());
     let items: Vec<super::VodData> = data[s..end].iter().map(vod_info_to_slint).collect();
+    tracing::debug!(
+        start = s,
+        end,
+        window_items = items.len(),
+        total = data.len(),
+        "[SCROLL] refresh_movie_window"
+    );
     app.set_movies(ModelRc::new(VecModel::from(items)));
 }
 
@@ -61,6 +75,13 @@ fn refresh_series_window(app: &super::AppState, data: &[VodInfo], start: usize) 
     let end = (start + VOD_WINDOW * 3).min(data.len());
     let s = start.min(data.len());
     let items: Vec<super::VodData> = data[s..end].iter().map(vod_info_to_slint).collect();
+    tracing::debug!(
+        start = s,
+        end,
+        window_items = items.len(),
+        total = data.len(),
+        "[SCROLL] refresh_series_window"
+    );
     app.set_series(ModelRc::new(VecModel::from(items)));
 }
 
@@ -299,6 +320,7 @@ pub(crate) fn wire(
         let ui_w = ui.as_weak();
         let sd = Arc::clone(&shared_data);
         move |delta| {
+            tracing::debug!(delta, "[SCROLL] scroll-channels FIRED");
             let Some(ui) = ui_w.upgrade() else { return };
             let app = ui.global::<super::AppState>();
             let data = sd.channels.lock().unwrap();
@@ -313,11 +335,24 @@ pub(crate) fn wire(
                 old_start.saturating_sub((-delta) as usize)
             };
             if new_start != old_start {
+                tracing::debug!(
+                    old_start,
+                    new_start,
+                    max_start,
+                    "[SCROLL] channels window SHIFT"
+                );
                 app.set_channel_window_start(new_start as i32);
                 refresh_channel_window(&app, &data, new_start);
                 drop(data);
                 let img_start = new_start.saturating_sub(CHANNEL_WINDOW);
+                tracing::debug!(
+                    img_start,
+                    img_count = CHANNEL_WINDOW * 3,
+                    "[IMG] channels image load for viewport"
+                );
                 loader.load_channels(&ui_w, Some((img_start, CHANNEL_WINDOW * 3)));
+            } else {
+                tracing::debug!(old_start, "[SCROLL] channels no shift needed");
             }
         }
     });
@@ -327,6 +362,7 @@ pub(crate) fn wire(
         let ui_w = ui.as_weak();
         let sd = Arc::clone(&shared_data);
         move |delta| {
+            tracing::debug!(delta, "[SCROLL] scroll-movies FIRED");
             let Some(ui) = ui_w.upgrade() else { return };
             let app = ui.global::<super::AppState>();
             let data = sd.movies.lock().unwrap();
@@ -341,10 +377,21 @@ pub(crate) fn wire(
                 old_start.saturating_sub((-delta) as usize)
             };
             if new_start != old_start {
+                tracing::debug!(
+                    old_start,
+                    new_start,
+                    max_start,
+                    "[SCROLL] movies window SHIFT"
+                );
                 app.set_movie_window_start(new_start as i32);
                 refresh_movie_window(&app, &data, new_start);
                 drop(data);
                 let img_start = new_start.saturating_sub(VOD_WINDOW);
+                tracing::debug!(
+                    img_start,
+                    img_count = VOD_WINDOW * 3,
+                    "[IMG] movies image load for viewport"
+                );
                 loader.load_movies(&ui_w, Some((img_start, VOD_WINDOW * 3)));
             }
         }
@@ -355,6 +402,7 @@ pub(crate) fn wire(
         let ui_w = ui.as_weak();
         let sd = Arc::clone(&shared_data);
         move |delta| {
+            tracing::debug!(delta, "[SCROLL] scroll-series FIRED");
             let Some(ui) = ui_w.upgrade() else { return };
             let app = ui.global::<super::AppState>();
             let data = sd.series.lock().unwrap();
@@ -369,10 +417,21 @@ pub(crate) fn wire(
                 old_start.saturating_sub((-delta) as usize)
             };
             if new_start != old_start {
+                tracing::debug!(
+                    old_start,
+                    new_start,
+                    max_start,
+                    "[SCROLL] series window SHIFT"
+                );
                 app.set_series_window_start(new_start as i32);
                 refresh_series_window(&app, &data, new_start);
                 drop(data);
                 let img_start = new_start.saturating_sub(VOD_WINDOW);
+                tracing::debug!(
+                    img_start,
+                    img_count = VOD_WINDOW * 3,
+                    "[IMG] series image load for viewport"
+                );
                 loader.load_series(&ui_w, Some((img_start, VOD_WINDOW * 3)));
             }
         }
@@ -573,12 +632,24 @@ pub(crate) fn spawn_data_listener(
             // Store full datasets in SharedData (off UI thread)
             match &event {
                 DataEvent::ChannelsReady { channels, .. } => {
+                    tracing::debug!(
+                        count = channels.len(),
+                        "[DATA] ChannelsReady → SharedData stored"
+                    );
                     *shared_data.channels.lock().unwrap() = Arc::clone(channels);
                 }
                 DataEvent::MoviesReady { movies, .. } => {
+                    tracing::debug!(
+                        count = movies.len(),
+                        "[DATA] MoviesReady → SharedData stored"
+                    );
                     *shared_data.movies.lock().unwrap() = Arc::clone(movies);
                 }
                 DataEvent::SeriesReady { series, .. } => {
+                    tracing::debug!(
+                        count = series.len(),
+                        "[DATA] SeriesReady → SharedData stored"
+                    );
                     *shared_data.series.lock().unwrap() = Arc::clone(series);
                 }
                 _ => {}

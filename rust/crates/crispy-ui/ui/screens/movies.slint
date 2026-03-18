@@ -5,7 +5,6 @@ import { VodCard } from "../components/vod-card.slint";
 import { LoadingIndicator } from "../components/loading-indicator.slint";
 import { IconMovie } from "../components/icons.slint";
 import { ScrollView } from "std-widgets.slint";
-import { ScrollIndicator } from "../components/scroll-indicator.slint";
 
 export component MoviesScreen inherits Rectangle {
   background: transparent;
@@ -82,11 +81,6 @@ export component MoviesScreen inherits Rectangle {
         }
       }
 
-      ScrollIndicator {
-        total-items: AppState.total-movie-count;
-        visible-items: 20;
-        window-start: AppState.movie-window-start;
-      }
     }
   }
 }

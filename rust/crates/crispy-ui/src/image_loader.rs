@@ -77,17 +77,35 @@ impl ImageLoader {
         let total = model.row_count();
         let (start, count) = viewport.unwrap_or((0, total));
         let end = (start + count).min(total);
+        let mut enqueued = 0u32;
+        let mut skipped_cached = 0u32;
+        let mut skipped_no_url = 0u32;
         for i in start..end {
-            if let Some(item) = model.row_data(i)
-                && !item.logo_url.is_empty()
-                && item.logo.size().width == 0
-            {
+            if let Some(item) = model.row_data(i) {
+                if item.logo_url.is_empty() {
+                    skipped_no_url += 1;
+                    continue;
+                }
+                if item.logo.size().width > 0 {
+                    skipped_cached += 1;
+                    continue;
+                }
+                enqueued += 1;
                 let _ = self.channel_tx.send(ImageRequest {
                     idx: i,
                     url: item.logo_url.to_string(),
                 });
             }
         }
+        tracing::debug!(
+            start,
+            end,
+            total,
+            enqueued,
+            skipped_cached,
+            skipped_no_url,
+            "[IMG] load_channels"
+        );
     }
 
     /// Enqueue images for movies in viewport range only.
@@ -101,17 +119,35 @@ impl ImageLoader {
         let total = model.row_count();
         let (start, count) = viewport.unwrap_or((0, total));
         let end = (start + count).min(total);
+        let mut enqueued = 0u32;
+        let mut skipped_cached = 0u32;
+        let mut skipped_no_url = 0u32;
         for i in start..end {
-            if let Some(item) = model.row_data(i)
-                && !item.poster_url.is_empty()
-                && item.poster.size().width == 0
-            {
+            if let Some(item) = model.row_data(i) {
+                if item.poster_url.is_empty() {
+                    skipped_no_url += 1;
+                    continue;
+                }
+                if item.poster.size().width > 0 {
+                    skipped_cached += 1;
+                    continue;
+                }
+                enqueued += 1;
                 let _ = self.movie_tx.send(ImageRequest {
                     idx: i,
                     url: item.poster_url.to_string(),
                 });
             }
         }
+        tracing::debug!(
+            start,
+            end,
+            total,
+            enqueued,
+            skipped_cached,
+            skipped_no_url,
+            "[IMG] load_movies"
+        );
     }
 
     /// Enqueue images for series in viewport range only.
@@ -125,17 +161,35 @@ impl ImageLoader {
         let total = model.row_count();
         let (start, count) = viewport.unwrap_or((0, total));
         let end = (start + count).min(total);
+        let mut enqueued = 0u32;
+        let mut skipped_cached = 0u32;
+        let mut skipped_no_url = 0u32;
         for i in start..end {
-            if let Some(item) = model.row_data(i)
-                && !item.poster_url.is_empty()
-                && item.poster.size().width == 0
-            {
+            if let Some(item) = model.row_data(i) {
+                if item.poster_url.is_empty() {
+                    skipped_no_url += 1;
+                    continue;
+                }
+                if item.poster.size().width > 0 {
+                    skipped_cached += 1;
+                    continue;
+                }
+                enqueued += 1;
                 let _ = self.series_tx.send(ImageRequest {
                     idx: i,
                     url: item.poster_url.to_string(),
                 });
             }
         }
+        tracing::debug!(
+            start,
+            end,
+            total,
+            enqueued,
+            skipped_cached,
+            skipped_no_url,
+            "[IMG] load_series"
+        );
     }
 
     /// Spawn a consumer task that drains a queue with N concurrent workers.
