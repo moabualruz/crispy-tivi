@@ -36,8 +36,9 @@ struct CacheEntry {
 
 // ── ImageCache ───────────────────────────────────────────────────────────────
 
-/// How long to suppress retries for a URL that failed (404, connection error, etc.).
-const FAILURE_SUPPRESS_SECS: u64 = 3600; // 1 hour
+/// Session-permanent failure suppression — once a URL fails, it is never retried
+/// until the app restarts. The `failed` map is in-memory only (not persisted),
+/// so restart naturally clears it.
 
 #[derive(Clone)]
 pub struct ImageCache {
@@ -113,12 +114,10 @@ impl ImageCache {
         let hash = Self::url_to_hash(url);
         let now = now_secs();
 
-        // Check failure cache — don't retry recently failed URLs
+        // Check failure cache — don't retry URLs that failed this session
         {
             let failed = self.failed.read().await;
-            if let Some(&fail_time) = failed.get(&hash)
-                && now.saturating_sub(fail_time) < FAILURE_SUPPRESS_SECS
-            {
+            if failed.contains_key(&hash) {
                 return None;
             }
         }

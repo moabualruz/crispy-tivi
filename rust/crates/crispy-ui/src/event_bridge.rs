@@ -513,14 +513,15 @@ pub(crate) fn spawn_data_listener(
                 let loader = image_loader.clone();
                 let ui_w = ui_weak.clone();
                 let _ = slint::invoke_from_event_loop(move || {
+                    // Load only the first viewport worth of images (not all items)
                     if lc {
-                        loader.load_channels(&ui_w);
+                        loader.load_channels(&ui_w, None);
                     }
                     if lm {
-                        loader.load_movies(&ui_w);
+                        loader.load_movies(&ui_w, None);
                     }
                     if ls {
-                        loader.load_series(&ui_w);
+                        loader.load_series(&ui_w, None);
                     }
                 });
             }
