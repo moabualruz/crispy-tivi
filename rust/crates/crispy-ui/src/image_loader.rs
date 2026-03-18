@@ -66,12 +66,18 @@ impl ImageLoader {
         }
     }
 
-    /// Enqueue all pending images for channels.
-    pub fn load_channels(&self, ui_weak: &slint::Weak<super::AppWindow>) {
+    /// Enqueue images for channels in viewport range only.
+    pub fn load_channels(
+        &self,
+        ui_weak: &slint::Weak<super::AppWindow>,
+        viewport: Option<(usize, usize)>,
+    ) {
         let Some(ui) = ui_weak.upgrade() else { return };
-        let app = ui.global::<super::AppState>();
-        let model = app.get_channels();
-        for i in 0..model.row_count() {
+        let model = ui.global::<super::AppState>().get_channels();
+        let total = model.row_count();
+        let (start, count) = viewport.unwrap_or((0, total));
+        let end = (start + count).min(total);
+        for i in start..end {
             if let Some(item) = model.row_data(i)
                 && !item.logo_url.is_empty()
                 && item.logo.size().width == 0
@@ -84,12 +90,18 @@ impl ImageLoader {
         }
     }
 
-    /// Enqueue all pending images for movies.
-    pub fn load_movies(&self, ui_weak: &slint::Weak<super::AppWindow>) {
+    /// Enqueue images for movies in viewport range only.
+    pub fn load_movies(
+        &self,
+        ui_weak: &slint::Weak<super::AppWindow>,
+        viewport: Option<(usize, usize)>,
+    ) {
         let Some(ui) = ui_weak.upgrade() else { return };
-        let app = ui.global::<super::AppState>();
-        let model = app.get_movies();
-        for i in 0..model.row_count() {
+        let model = ui.global::<super::AppState>().get_movies();
+        let total = model.row_count();
+        let (start, count) = viewport.unwrap_or((0, total));
+        let end = (start + count).min(total);
+        for i in start..end {
             if let Some(item) = model.row_data(i)
                 && !item.poster_url.is_empty()
                 && item.poster.size().width == 0
@@ -102,12 +114,18 @@ impl ImageLoader {
         }
     }
 
-    /// Enqueue all pending images for series.
-    pub fn load_series(&self, ui_weak: &slint::Weak<super::AppWindow>) {
+    /// Enqueue images for series in viewport range only.
+    pub fn load_series(
+        &self,
+        ui_weak: &slint::Weak<super::AppWindow>,
+        viewport: Option<(usize, usize)>,
+    ) {
         let Some(ui) = ui_weak.upgrade() else { return };
-        let app = ui.global::<super::AppState>();
-        let model = app.get_series();
-        for i in 0..model.row_count() {
+        let model = ui.global::<super::AppState>().get_series();
+        let total = model.row_count();
+        let (start, count) = viewport.unwrap_or((0, total));
+        let end = (start + count).min(total);
+        for i in start..end {
             if let Some(item) = model.row_data(i)
                 && !item.poster_url.is_empty()
                 && item.poster.size().width == 0
