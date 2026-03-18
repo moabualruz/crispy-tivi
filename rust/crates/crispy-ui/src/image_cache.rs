@@ -84,14 +84,20 @@ impl ImageCache {
         }
     }
 
-    /// Fetch an image from cache or network. Returns decoded Slint Image.
+    /// Fetch an image from cache or network. Returns decoded Slint SharedPixelBuffer.
     ///
+    /// Handles HTTP URLs (with ETag caching) and `data:` URIs (inline base64).
     /// Touch-refreshes TTL on every access. Only revalidates via HTTP when
     /// >80% of TTL has elapsed.
     pub async fn get_image_buffer(
         &self,
         url: &str,
     ) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
+        // Handle data: URIs (inline base64-encoded images)
+        if let Some(buf) = Self::decode_data_uri(url) {
+            return Some(buf);
+        }
+
         let hash = Self::url_to_hash(url);
         let now = now_secs();
 
@@ -131,8 +137,11 @@ impl ImageCache {
         hash: &str,
         now: u64,
     ) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
-        // Build request with conditional headers
-        let mut req = self.client.get(url);
+        // Build request with User-Agent (required by Wikimedia and others) + conditional headers
+        let mut req = self.client.get(url).header(
+            "User-Agent",
+            "CrispyTivi/0.1 (IPTV Player; +https://github.com/crispy-tivi)",
+        );
         {
             let entries = self.entries.read().await;
             if let Some(entry) = entries.get(hash)
@@ -280,6 +289,23 @@ impl ImageCache {
         let mut hasher = Sha256::new();
         hasher.update(url.as_bytes());
         format!("{:x}", hasher.finalize())
+    }
+
+    /// Decode a `data:image/...;base64,...` URI directly into a pixel buffer.
+    /// Returns `None` if the URL is not a data URI or decoding fails.
+    fn decode_data_uri(url: &str) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
+        let url = url.strip_prefix("data:")?;
+        // Format: image/png;base64,<data> or image/jpeg;base64,<data>
+        let (_mime, rest) = url.split_once(';')?;
+        let data = rest.strip_prefix("base64,")?;
+        if data.is_empty() {
+            return None;
+        }
+        use base64::Engine;
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(data)
+            .ok()?;
+        decode_buffer_bytes(&bytes)
     }
 
     /// Path to the cached file for a given hash.
