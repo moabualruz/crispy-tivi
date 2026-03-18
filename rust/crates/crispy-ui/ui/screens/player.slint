@@ -122,102 +122,119 @@ component SeekBar inherits Rectangle {
 component OsdControls inherits Rectangle {
   // Gradient overlay at bottom
   Rectangle {
-    y: parent.height - 280px;
-    height: 280px;
+    y: parent.height - 240px;
+    height: 240px;
     width: parent.width;
-    background: @linear-gradient(180deg, rgba(10,10,12,0) 0%, rgba(10,10,12,0.85) 100%);
+    background: @linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 100%);
   }
 
-  VerticalLayout {
+  // Metadata (Top left of the OSD area)
+  HorizontalLayout {
     y: parent.height - 180px;
-    height: 160px;
-    padding-left: Theme.content-padding-h;
-    padding-right: Theme.content-padding-h;
-    padding-bottom: Theme.spacing-lg;
-    alignment: end;
+    x: Theme.content-padding-h;
+    width: parent.width - Theme.content-padding-h * 2;
+    alignment: start;
     spacing: Theme.spacing-md;
 
-    // Metadata row
-    HorizontalLayout {
-      alignment: start;
-      spacing: Theme.spacing-sm;
-
-      if PlayerState.is-live: Rectangle {
-        width: 48px;
-        height: 22px;
-        border-radius: 4px;
-        background: Theme.accent-gradient;
-        Text {
-          text: "LIVE";
-          color: #FFFFFF;
-          font-family: Theme.font-display;
-          font-size: 11px;
-          font-weight: 700;
-          horizontal-alignment: center;
-          vertical-alignment: center;
-        }
+    if PlayerState.is-live: Rectangle {
+      width: 48px;
+      height: 22px;
+      border-radius: 4px;
+      background: Theme.live-badge;
+      y: 4px;
+      Text {
+        text: "LIVE";
+        color: #FFFFFF;
+        font-family: Theme.font-display;
+        font-size: 11px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
       }
+    }
 
+    VerticalLayout {
+      spacing: 4px;
+      Text {
+        text: PlayerState.current-title;
+        color: #FFFFFF;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-h1;
+        font-weight: 700;
+      }
+      if PlayerState.current-group != "": Text {
+        text: PlayerState.current-group;
+        color: rgba(255, 255, 255, 0.7);
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+      }
+    }
+  }
+
+  // Transport controls (Center)
+  HorizontalLayout {
+    y: parent.height - 100px;
+    width: parent.width;
+    alignment: center;
+    spacing: Theme.spacing-xl;
+
+    OsdButton {
+      btn-size: 48px;
+      activated => { /* Open settings */ }
+      IconSettings { size: 24px; fill: #FFFFFF; }
+    }
+
+    // Play/Pause (Larger central button)
+    OsdButton {
+      btn-size: 64px;
+      activated => { PlayerState.play-pause(); }
       VerticalLayout {
-        spacing: 2px;
-        Text {
-          text: PlayerState.current-title;
-          color: #FFFFFF;
-          font-family: Theme.font-display;
-          font-size: Theme.font-size-h2;
-          font-weight: 700;
-        }
-        if PlayerState.current-group != "": Text {
-          text: PlayerState.current-group;
-          color: rgba(255, 255, 255, 0.6);
-          font-family: Theme.font-body;
-          font-size: Theme.font-size-caption;
+        alignment: center;
+        HorizontalLayout {
+          alignment: center;
+          if PlayerState.is-paused: IconPlay { size: 32px; fill: #FFFFFF; }
+          if !PlayerState.is-paused: IconPause { size: 32px; fill: #FFFFFF; }
         }
       }
     }
 
-    // Seek bar (hidden for live, shown for VOD/catchup)
-    if !PlayerState.is-live: SeekBar {}
+    OsdButton {
+      btn-size: 48px;
+      activated => { PlayerState.is-fullscreen = !PlayerState.is-fullscreen; }
+      Text { text: PlayerState.is-fullscreen ? "><" : "<>"; color: #FFFFFF; font-size: 18px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+    }
+  }
 
-    // Transport controls — circular 50px glass buttons
-    HorizontalLayout {
-      alignment: center;
-      spacing: Theme.spacing-xl;
+  // Volume slider (Bottom right)
+  HorizontalLayout {
+    y: parent.height - 80px;
+    x: parent.width - Theme.content-padding-h - 200px;
+    width: 200px;
+    spacing: Theme.spacing-md;
+    alignment: end;
 
-      // Play/Pause
-      OsdButton {
-        btn-size: 56px;
-        activated => { PlayerState.play-pause(); }
-        if PlayerState.is-paused: IconPlay { size: 28px; fill: #FFFFFF; }
-        if !PlayerState.is-paused: IconPause { size: 28px; fill: #FFFFFF; }
-      }
-
-      // Settings placeholder instead of Stop for modern cinematic OSD
-      OsdButton {
-        activated => { /* Open settings */ }
-        IconSettings { size: 24px; fill: #FFFFFF; }
-      }
-
-      // Fullscreen toggle (placeholder text for now)
-      OsdButton {
-        activated => { PlayerState.is-fullscreen = !PlayerState.is-fullscreen; }
-        Text { text: PlayerState.is-fullscreen ? "][ " : "[ ]"; color: #FFFFFF; font-size: 20px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
-      }
-
-      // Volume
-      HorizontalLayout {
-        spacing: Theme.spacing-sm;
+    OsdButton {
+      btn-size: 40px;
+      activated => { PlayerState.toggle-mute(); }
+      VerticalLayout {
         alignment: center;
-
-        OsdButton {
-          btn-size: 40px;
-          activated => { PlayerState.toggle-mute(); }
+        HorizontalLayout {
+          alignment: center;
           if PlayerState.is-muted: IconVolumeMute { size: 20px; fill: #FFFFFF; }
           if !PlayerState.is-muted: IconVolumeUp { size: 20px; fill: #FFFFFF; }
         }
-        VolumeSlider {}
       }
     }
+    VerticalLayout {
+      alignment: center;
+      VolumeSlider {}
+    }
+  }
+
+  // Seek bar (Absolute bottom edge for VOD)
+  if !PlayerState.is-live: SeekBar {
+    y: parent.height - self.height;
+    width: parent.width;
   }
 }
 

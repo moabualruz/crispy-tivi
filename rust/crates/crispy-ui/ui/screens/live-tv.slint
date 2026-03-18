@@ -2,6 +2,7 @@ import { Theme } from "../globals/theme.slint";
 import { AppState } from "../globals/app-state.slint";
 import { EmptyState } from "../components/empty-state.slint";
 import { ChannelCard } from "../components/channel-card.slint";
+import { ScrollView } from "std-widgets.slint";
 import { LoadingIndicator } from "../components/loading-indicator.slint";
 import { IconTv } from "../components/icons.slint";
 import { FilterChip } from "../components/filter-chip.slint";
@@ -169,26 +170,30 @@ export component LiveTvScreen inherits Rectangle {
       vertical-stretch: 1;
 
       // Group filter chips
-      if AppState.channel-groups.length > 0: HorizontalLayout {
-        spacing: Theme.spacing-xs;
-        height: 36px;
+      if AppState.channel-groups.length > 0: ScrollView {
+        height: 48px; // Leave room for focus ring dropshadow/clipping
+        HorizontalLayout {
+          padding-top: 4px;
+          padding-bottom: 4px;
+          spacing: Theme.spacing-sm;
 
-        FilterChip {
-          label: "All";
-          active: AppState.active-channel-group == "";
-          activated => {
-            AppState.active-channel-group = "";
-            AppState.filter-channels("", "");
+          FilterChip {
+            label: "All";
+            active: AppState.active-channel-group == "";
+            activated => {
+              AppState.active-channel-group = "";
+              AppState.filter-channels("", "");
+            }
           }
-        }
 
-        // Dynamic group chips
-        for grp in AppState.channel-groups: FilterChip {
-          label: grp;
-          active: AppState.active-channel-group == grp;
-          activated => {
-            AppState.active-channel-group = grp;
-            AppState.filter-channels(grp, "");
+          // Dynamic group chips
+          for grp in AppState.channel-groups: FilterChip {
+            label: grp;
+            active: AppState.active-channel-group == grp;
+            activated => {
+              AppState.active-channel-group = grp;
+              AppState.filter-channels(grp, "");
+            }
           }
         }
       }

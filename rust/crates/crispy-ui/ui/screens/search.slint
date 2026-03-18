@@ -86,12 +86,17 @@ export component SearchScreen inherits Rectangle {
             font-weight: 700;
           }
 
-          HorizontalLayout {
-            spacing: Theme.spacing-md;
+          VerticalLayout {
+            property <int> columns: max(2, floor((root.width - Theme.spacing-md) / 176px));
+            GridLayout {
+              spacing: Theme.spacing-md;
 
-            for item in AppState.search-vod: VodCard {
-              item: item;
-              clicked => { AppState.play-channel(item.id); }
+              for item[idx] in AppState.search-vod: VodCard {
+                row: floor(idx / columns);
+                col: mod(idx, columns);
+                item: item;
+                clicked => { AppState.play-channel(item.id); }
+              }
             }
           }
         }

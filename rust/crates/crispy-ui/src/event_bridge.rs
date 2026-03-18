@@ -458,9 +458,18 @@ pub(crate) fn spawn_data_listener(
     mut data_rx: mpsc::Receiver<DataEvent>,
     backend: Arc<Mutex<Option<crispy_player::mpv_backend::MpvBackend>>>,
     render_context_ready: Arc<AtomicBool>,
+    image_cache: Arc<crate::image_cache::ImageCache>,
 ) {
     tokio::spawn(async move {
         while let Some(event) = data_rx.recv().await {
+            // After applying data events, trigger image prefetch
+            let should_load_images = matches!(
+                &event,
+                DataEvent::ChannelsReady { .. }
+                    | DataEvent::MoviesReady { .. }
+                    | DataEvent::SeriesReady { .. }
+            );
+
             match event {
                 DataEvent::PlaybackReady { url, title } => {
                     // Wait for the render context to be ready before playing
@@ -503,6 +512,15 @@ pub(crate) fn spawn_data_listener(
                         }
                     });
                 }
+            }
+
+            // Prefetch images for newly loaded content
+            if should_load_images {
+                let cache = Arc::clone(&image_cache);
+                let ui_w = ui_weak.clone();
+                tokio::spawn(async move {
+                    load_images_for_ui(&ui_w, &cache).await;
+                });
             }
         }
         tracing::info!("data_listener task exited");
@@ -720,6 +738,7 @@ fn channel_info_to_slint(c: &ChannelInfo) -> super::ChannelData {
         number: c.number.unwrap_or(0),
         is_favorite: c.is_favorite,
         now_playing: SharedString::default(),
+        logo: Default::default(),
     }
 }
 
@@ -737,6 +756,7 @@ fn vod_info_to_slint(v: &VodInfo) -> super::VodData {
         series_id: SharedString::default(),
         season: 0,
         episode: 0,
+        poster: Default::default(),
     }
 }
 
@@ -751,5 +771,122 @@ fn source_info_to_slint(s: &SourceInfo) -> super::SourceData {
         channel_count: 0,
         vod_count: 0,
         sync_status: SharedString::from(s.last_sync_status.as_deref().unwrap_or("")),
+    }
+}
+
+// ── Image loading ─────────────────────────────────────────────────────────────
+
+/// Fetch images for currently visible channels and VOD items, updating the
+/// Slint model in-place as each image is decoded.
+async fn load_images_for_ui(
+    ui_weak: &slint::Weak<super::AppWindow>,
+    image_cache: &Arc<crate::image_cache::ImageCache>,
+) {
+    // Collect URLs from the current Slint models
+    let (tx, rx) = std::sync::mpsc::channel();
+    let ui_w = ui_weak.clone();
+    let _ = slint::invoke_from_event_loop(move || {
+        let Some(ui) = ui_w.upgrade() else {
+            let _ = tx.send((Vec::new(), Vec::new(), Vec::new()));
+            return;
+        };
+        let app = ui.global::<super::AppState>();
+
+        let ch_urls: Vec<(usize, String)> = app
+            .get_channels()
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| !c.logo_url.is_empty())
+            .map(|(i, c)| (i, c.logo_url.to_string()))
+            .collect();
+
+        let mv_urls: Vec<(usize, String)> = app
+            .get_movies()
+            .iter()
+            .enumerate()
+            .filter(|(_, v)| !v.poster_url.is_empty())
+            .map(|(i, v)| (i, v.poster_url.to_string()))
+            .collect();
+
+        let sr_urls: Vec<(usize, String)> = app
+            .get_series()
+            .iter()
+            .enumerate()
+            .filter(|(_, v)| !v.poster_url.is_empty())
+            .map(|(i, v)| (i, v.poster_url.to_string()))
+            .collect();
+
+        let _ = tx.send((ch_urls, mv_urls, sr_urls));
+    });
+    
+    let Ok((channel_urls, movie_urls, series_urls)) = rx.recv() else { return; };
+
+    // Download images with bounded concurrency (8 concurrent downloads)
+    let semaphore = Arc::new(tokio::sync::Semaphore::new(8));
+
+    // Channel logos
+    for (idx, url) in channel_urls {
+        let cache = Arc::clone(image_cache);
+        let sem = Arc::clone(&semaphore);
+        let ui_w = ui_weak.clone();
+        tokio::spawn(async move {
+            let _permit = sem.acquire().await;
+            if let Some(buf) = cache.get_image_buffer(&url).await {
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(ui) = ui_w.upgrade() {
+                        let app = ui.global::<super::AppState>();
+                        let model = app.get_channels();
+                        if let Some(mut item) = model.row_data(idx) {
+                            item.logo = slint::Image::from_rgba8(buf);
+                            model.set_row_data(idx, item);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // Movie posters
+    for (idx, url) in movie_urls {
+        let cache = Arc::clone(image_cache);
+        let sem = Arc::clone(&semaphore);
+        let ui_w = ui_weak.clone();
+        tokio::spawn(async move {
+            let _permit = sem.acquire().await;
+            if let Some(buf) = cache.get_image_buffer(&url).await {
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(ui) = ui_w.upgrade() {
+                        let app = ui.global::<super::AppState>();
+                        let model = app.get_movies();
+                        if let Some(mut item) = model.row_data(idx) {
+                            item.poster = slint::Image::from_rgba8(buf);
+                            model.set_row_data(idx, item);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // Series posters
+    for (idx, url) in series_urls {
+        let cache = Arc::clone(image_cache);
+        let sem = Arc::clone(&semaphore);
+        let ui_w = ui_weak.clone();
+        tokio::spawn(async move {
+            let _permit = sem.acquire().await;
+            if let Some(buf) = cache.get_image_buffer(&url).await {
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(ui) = ui_w.upgrade() {
+                        let app = ui.global::<super::AppState>();
+                        let model = app.get_series();
+                        if let Some(mut item) = model.row_data(idx) {
+                            item.poster = slint::Image::from_rgba8(buf);
+                            model.set_row_data(idx, item);
+                        }
+                    }
+                });
+            }
+        });
     }
 }

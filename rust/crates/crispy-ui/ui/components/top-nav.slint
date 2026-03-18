@@ -3,6 +3,7 @@ import { AppState } from "../globals/app-state.slint";
 import { NavItem } from "nav-item.slint";
 import { ProfileButton } from "profile-button.slint";
 import { SearchButton } from "search-button.slint";
+import { ScrollView } from "std-widgets.slint";
 
 export component TopNav inherits Rectangle {
   width: 100%;
@@ -15,59 +16,68 @@ export component TopNav inherits Rectangle {
     alignment: space-between;
 
     // Left group: profile bubble + nav items
-    HorizontalLayout {
-      spacing: 4px;
-      alignment: start;
+    ScrollView {
+      vertical-stretch: 0;
+      horizontal-stretch: 1;
+      height: 100%;
 
-      // Profile bubble
-      ProfileButton {
-        initial: "P";
-        clicked => {
-          AppState.show-profile-menu = true;
-        }
-      }
+      HorizontalLayout {
+        spacing: 4px;
+        alignment: start;
 
-      Rectangle { width: 16px; }
+        // Profile bubble
+        VerticalLayout {
+          alignment: center;
+          ProfileButton {
+            initial: "P";
+            clicked => {
+              AppState.show-profile-menu = true;
+            }
+          }
+        }
 
-      // Nav items — For You (0), Live (1), Movies (3), Shows (4), Library (6)
-      NavItem {
-        label: "For You";
-        active: AppState.active-screen == 0;
-        clicked => {
-          AppState.active-screen = 0;
-          AppState.navigate(0);
+        Rectangle { width: 16px; }
+
+        // Nav items — For You (0), Live (1), Movies (3), Shows (4), Library (6)
+        NavItem {
+          label: "For You";
+          active: AppState.active-screen == 0;
+          clicked => {
+            AppState.active-screen = 0;
+            AppState.navigate(0);
+          }
         }
-      }
-      NavItem {
-        label: "Live";
-        active: AppState.active-screen == 1 || AppState.active-screen == 2;
-        clicked => {
-          AppState.active-screen = 1;
-          AppState.navigate(1);
+        NavItem {
+          label: "Live";
+          active: AppState.active-screen == 1 || AppState.active-screen == 2;
+          clicked => {
+            AppState.active-screen = 1;
+            AppState.navigate(1);
+          }
         }
-      }
-      NavItem {
-        label: "Movies";
-        active: AppState.active-screen == 3;
-        clicked => {
-          AppState.active-screen = 3;
-          AppState.navigate(3);
+        NavItem {
+          label: "Movies";
+          active: AppState.active-screen == 3;
+          clicked => {
+            AppState.active-screen = 3;
+            AppState.navigate(3);
+          }
         }
-      }
-      NavItem {
-        label: "Shows";
-        active: AppState.active-screen == 4;
-        clicked => {
-          AppState.active-screen = 4;
-          AppState.navigate(4);
+        NavItem {
+          label: "Shows";
+          active: AppState.active-screen == 4;
+          clicked => {
+            AppState.active-screen = 4;
+            AppState.navigate(4);
+          }
         }
-      }
-      NavItem {
-        label: "Library";
-        active: AppState.active-screen == 6;
-        clicked => {
-          AppState.active-screen = 6;
-          AppState.navigate(6);
+        NavItem {
+          label: "Library";
+          active: AppState.active-screen == 6;
+          clicked => {
+            AppState.active-screen = 6;
+            AppState.navigate(6);
+          }
         }
       }
     }
