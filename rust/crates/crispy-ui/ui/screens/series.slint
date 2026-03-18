@@ -39,74 +39,37 @@ export component SeriesScreen inherits Rectangle {
       font-weight: 700;
     }
 
-    HorizontalLayout {
+    ScrollView {
       vertical-stretch: 1;
 
-      Rectangle {
-        horizontal-stretch: 1;
-
-        FocusScope {
-          width: 100%;
-          height: 100%;
-
-          key-pressed(event) => {
-            if event.text == Key.DownArrow {
-              AppState.scroll-series(1);
-              return accept;
-            }
-            if event.text == Key.UpArrow {
-              AppState.scroll-series(-1);
-              return accept;
-            }
-            return reject;
-          }
-
-          sv := ScrollView {
-            width: 100%;
-            height: 100%;
-
-            VerticalLayout {
-              spacing: Theme.spacing-md;
-
-              // Responsive columns calculation
-              // 160px card width + 16px spacing = ~176px per card
-              property <int> columns: max(2, floor((root.width - Theme.content-padding-h * 2 + Theme.spacing-md) / 176px));
-
-              GridLayout {
-                spacing: Theme.spacing-md;
-
-                for show[idx] in AppState.series: VodCard {
-                  row: floor(idx / columns);
-                  col: mod(idx, columns);
-                  item: show;
-                  clicked => { AppState.play-vod(show.id); }
-                }
-              }
-            }
-          }
+      scrolled() => {
+        if self.viewport-height > 0px
+          && (-self.viewport-y + self.visible-height > self.viewport-height - 200px) {
+          AppState.scroll-series(5);
         }
-
-        // Mouse/touch scroll: shift window when near edges
-        TouchArea {
-          width: 100%;
-          height: 100%;
-          scroll-event(event) => {
-            if event.delta-y < 0px
-              && sv.viewport-height > 0px
-              && (-sv.viewport-y + sv.height > sv.viewport-height - 200px) {
-              AppState.scroll-series(5);
-            }
-            if event.delta-y > 0px
-              && sv.viewport-y < 0px
-              && (-sv.viewport-y < 200px)
-              && AppState.series-window-start > 0 {
-              AppState.scroll-series(-5);
-            }
-            return reject;
-          }
+        if self.viewport-y < 0px
+          && (-self.viewport-y < 200px)
+          && AppState.series-window-start > 0 {
+          AppState.scroll-series(-5);
         }
       }
 
+      VerticalLayout {
+        spacing: Theme.spacing-md;
+
+        property <int> columns: max(2, floor((root.width - Theme.content-padding-h * 2 + Theme.spacing-md) / 176px));
+
+        GridLayout {
+          spacing: Theme.spacing-md;
+
+          for show[idx] in AppState.series: VodCard {
+            row: floor(idx / columns);
+            col: mod(idx, columns);
+            item: show;
+            clicked => { AppState.play-vod(show.id); }
+          }
+        }
+      }
     }
   }
 }

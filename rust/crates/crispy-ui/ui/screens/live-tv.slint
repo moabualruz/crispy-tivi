@@ -2,11 +2,10 @@ import { Theme } from "../globals/theme.slint";
 import { AppState } from "../globals/app-state.slint";
 import { EmptyState } from "../components/empty-state.slint";
 import { ChannelCard } from "../components/channel-card.slint";
-import { ScrollView } from "std-widgets.slint";
+import { ScrollView, ListView } from "std-widgets.slint";
 import { LoadingIndicator } from "../components/loading-indicator.slint";
 import { IconTv } from "../components/icons.slint";
 import { FilterChip } from "../components/filter-chip.slint";
-import { ListView } from "std-widgets.slint";
 
 // Sub-view tabs: 0 = Channels, 1 = EPG
 component LiveSubTab inherits FocusScope {
@@ -198,60 +197,31 @@ export component LiveTvScreen inherits Rectangle {
         }
       }
 
-      // Channel list with scroll indicator + windowed VecModel
-      HorizontalLayout {
+      // Channel list — ScrollView with scrolled() for window shifting
+      ScrollView {
         vertical-stretch: 1;
 
-        Rectangle {
-          horizontal-stretch: 1;
-
-          FocusScope {
-            width: 100%;
-            height: 100%;
-
-            key-pressed(event) => {
-              if event.text == Key.DownArrow {
-                AppState.scroll-channels(1);
-                return accept;
-              }
-              if event.text == Key.UpArrow {
-                AppState.scroll-channels(-1);
-                return accept;
-              }
-              return reject;
-            }
-
-            lv := ListView {
-              width: 100%;
-              height: 100%;
-              for ch in AppState.channels: ChannelCard {
-                channel: ch;
-                clicked => { AppState.play-channel(ch.id); }
-              }
-            }
+        scrolled() => {
+          // Near bottom: shift window forward
+          if self.viewport-height > 0px
+            && (-self.viewport-y + self.visible-height > self.viewport-height - 200px) {
+            AppState.scroll-channels(5);
           }
-
-          // Mouse/touch scroll: shift window when near edges
-          TouchArea {
-            width: 100%;
-            height: 100%;
-            scroll-event(event) => {
-              if event.delta-y < 0px
-                && lv.viewport-height > 0px
-                && (-lv.viewport-y + lv.height > lv.viewport-height - 200px) {
-                AppState.scroll-channels(5);
-              }
-              if event.delta-y > 0px
-                && lv.viewport-y < 0px
-                && (-lv.viewport-y < 200px)
-                && AppState.channel-window-start > 0 {
-                AppState.scroll-channels(-5);
-              }
-              return reject;
-            }
+          // Near top: shift window backward
+          if self.viewport-y < 0px
+            && (-self.viewport-y < 200px)
+            && AppState.channel-window-start > 0 {
+            AppState.scroll-channels(-5);
           }
         }
 
+        VerticalLayout {
+          spacing: Theme.spacing-xs;
+          for ch in AppState.channels: ChannelCard {
+            channel: ch;
+            clicked => { AppState.play-channel(ch.id); }
+          }
+        }
       }
 
     }
