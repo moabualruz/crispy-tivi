@@ -59,7 +59,7 @@ export component HomeScreen inherits Rectangle {
       }
 
       // Recent channels
-      if AppState.channels.length > 0: VerticalLayout {
+      if AppState.home-channels.length > 0: VerticalLayout {
         padding-left: Theme.content-padding-h;
         padding-right: Theme.content-padding-h;
         spacing: Theme.spacing-md;
@@ -77,8 +77,7 @@ export component HomeScreen inherits Rectangle {
           HorizontalLayout {
             spacing: Theme.spacing-sm;
             alignment: start;
-            for ch[idx] in AppState.channels: ChannelPill {
-              visible: idx < 20; // Increased limit because it's now scrollable natively!
+            for ch in AppState.home-channels: ChannelPill {
               channel: ch;
               clicked => { AppState.play-channel(ch.id); }
             }
@@ -87,7 +86,7 @@ export component HomeScreen inherits Rectangle {
       }
 
       // Movies row
-      if AppState.movies.length > 0: VerticalLayout {
+      if AppState.home-movies.length > 0: VerticalLayout {
         padding-left: Theme.content-padding-h;
         padding-right: Theme.content-padding-h;
         spacing: Theme.spacing-md;
@@ -105,17 +104,16 @@ export component HomeScreen inherits Rectangle {
           HorizontalLayout {
             spacing: Theme.spacing-md;
             alignment: start;
-            for movie[idx] in AppState.movies: VodCard {
-              visible: idx < 20;
+            for movie in AppState.home-movies: VodCard {
               item: movie;
-              clicked => { AppState.play-channel(movie.id); }
+              clicked => { AppState.play-vod(movie.id); }
             }
           }
         }
       }
 
       // Series row
-      if AppState.series.length > 0: VerticalLayout {
+      if AppState.home-series.length > 0: VerticalLayout {
         padding-left: Theme.content-padding-h;
         padding-right: Theme.content-padding-h;
         spacing: Theme.spacing-md;
@@ -133,10 +131,9 @@ export component HomeScreen inherits Rectangle {
           HorizontalLayout {
             spacing: Theme.spacing-md;
             alignment: start;
-            for show[idx] in AppState.series: VodCard {
-              visible: idx < 20;
+            for show in AppState.home-series: VodCard {
               item: show;
-              clicked => { AppState.play-channel(show.id); }
+              clicked => { AppState.play-vod(show.id); }
             }
           }
         }

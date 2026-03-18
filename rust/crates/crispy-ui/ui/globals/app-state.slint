@@ -88,6 +88,11 @@ export global AppState {
   in-out property <string> active-channel-group: "";
   in-out property <string> channel-search-text: "";
 
+  // Home screen preview lanes (small fixed slices, not the full model)
+  in-out property <[ChannelData]> home-channels: [];
+  in-out property <[VodData]> home-movies: [];
+  in-out property <[VodData]> home-series: [];
+
   // VOD data (WindowedModel — virtual scroll)
   in-out property <[VodData]> movies: [];
   in-out property <[VodData]> series: [];

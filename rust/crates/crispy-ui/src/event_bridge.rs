@@ -739,6 +739,14 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
                 .map(|s| SharedString::from(s.as_str()))
                 .collect();
             app.set_channel_groups(ModelRc::new(VecModel::from(sc_groups)));
+            // Home preview: first 20 items
+            let home_ch: Vec<super::ChannelData> = channels
+                .iter()
+                .take(20)
+                .map(channel_info_to_slint)
+                .collect();
+            tracing::debug!(count = home_ch.len(), "[DATA] home-channels set");
+            app.set_home_channels(ModelRc::new(VecModel::from(home_ch)));
         }
 
         DataEvent::MoviesReady {
@@ -760,6 +768,11 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
                 })
                 .collect();
             app.set_vod_categories(ModelRc::new(VecModel::from(sc_cats)));
+            // Home preview: first 20 items
+            let home_mv: Vec<super::VodData> =
+                movies.iter().take(20).map(vod_info_to_slint).collect();
+            tracing::debug!(count = home_mv.len(), "[DATA] home-movies set");
+            app.set_home_movies(ModelRc::new(VecModel::from(home_mv)));
         }
 
         DataEvent::SeriesReady {
@@ -781,6 +794,11 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
                 })
                 .collect();
             app.set_vod_categories(ModelRc::new(VecModel::from(sc_cats)));
+            // Home preview: first 20 items
+            let home_sr: Vec<super::VodData> =
+                series.iter().take(20).map(vod_info_to_slint).collect();
+            tracing::debug!(count = home_sr.len(), "[DATA] home-series set");
+            app.set_home_series(ModelRc::new(VecModel::from(home_sr)));
         }
 
         DataEvent::SearchResults {
