@@ -202,27 +202,52 @@ export component LiveTvScreen inherits Rectangle {
       HorizontalLayout {
         vertical-stretch: 1;
 
-        FocusScope {
+        Rectangle {
           horizontal-stretch: 1;
 
-          key-pressed(event) => {
-            if event.text == Key.DownArrow {
-              AppState.scroll-channels(1);
-              return accept;
-            }
-            if event.text == Key.UpArrow {
-              AppState.scroll-channels(-1);
-              return accept;
-            }
-            return reject;
-          }
-
-          ListView {
+          FocusScope {
             width: 100%;
             height: 100%;
-            for ch in AppState.channels: ChannelCard {
-              channel: ch;
-              clicked => { AppState.play-channel(ch.id); }
+
+            key-pressed(event) => {
+              if event.text == Key.DownArrow {
+                AppState.scroll-channels(1);
+                return accept;
+              }
+              if event.text == Key.UpArrow {
+                AppState.scroll-channels(-1);
+                return accept;
+              }
+              return reject;
+            }
+
+            lv := ListView {
+              width: 100%;
+              height: 100%;
+              for ch in AppState.channels: ChannelCard {
+                channel: ch;
+                clicked => { AppState.play-channel(ch.id); }
+              }
+            }
+          }
+
+          // Mouse/touch scroll: shift window when near edges
+          TouchArea {
+            width: 100%;
+            height: 100%;
+            scroll-event(event) => {
+              if event.delta-y < 0px
+                && lv.viewport-height > 0px
+                && (-lv.viewport-y + lv.height > lv.viewport-height - 200px) {
+                AppState.scroll-channels(5);
+              }
+              if event.delta-y > 0px
+                && lv.viewport-y < 0px
+                && (-lv.viewport-y < 200px)
+                && AppState.channel-window-start > 0 {
+                AppState.scroll-channels(-5);
+              }
+              return reject;
             }
           }
         }
