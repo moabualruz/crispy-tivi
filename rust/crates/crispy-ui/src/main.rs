@@ -15,6 +15,7 @@ mod event_bridge;
 mod events;
 mod i18n;
 mod image_cache;
+mod image_loader;
 #[allow(dead_code)]
 mod provider;
 mod sync_task;
@@ -155,6 +156,9 @@ fn main() -> anyhow::Result<()> {
         });
     }
 
+    // ── Image loader (dedicated per-type queues, 16 workers each) ────────
+    let img_loader = image_loader::ImageLoader::spawn(ui.as_weak(), Arc::clone(&image_cache));
+
     // ── Spawn player handler (PlayerEvent → MpvBackend) ──────────────────
     event_bridge::spawn_player_handler(ui.as_weak(), player_rx, backend_shared.clone());
 
@@ -164,7 +168,7 @@ fn main() -> anyhow::Result<()> {
         data_rx,
         backend_shared,
         Arc::clone(&render_context_ready),
-        Arc::clone(&image_cache),
+        img_loader,
     );
 
     // ── Spawn DataEngine (event loop: queues → cache → DataEvents) ───────

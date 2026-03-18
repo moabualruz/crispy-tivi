@@ -459,19 +459,22 @@ pub(crate) fn spawn_data_listener(
     mut data_rx: mpsc::Receiver<DataEvent>,
     backend: Arc<Mutex<Option<crispy_player::mpv_backend::MpvBackend>>>,
     render_context_ready: Arc<AtomicBool>,
-    image_cache: Arc<crate::image_cache::ImageCache>,
+    image_loader: crate::image_loader::ImageLoader,
 ) {
     tokio::spawn(async move {
         while let Some(event) = data_rx.recv().await {
-            // After applying data events, trigger image prefetch
-            let should_load_images = matches!(
+            // Determine which image queues to trigger after applying this event
+            let load_channels = matches!(
                 &event,
-                DataEvent::ChannelsReady { .. }
-                    | DataEvent::MoviesReady { .. }
-                    | DataEvent::SeriesReady { .. }
-                    | DataEvent::ChannelsAppend { .. }
-                    | DataEvent::MoviesAppend { .. }
-                    | DataEvent::SeriesAppend { .. }
+                DataEvent::ChannelsReady { .. } | DataEvent::ChannelsAppend { .. }
+            );
+            let load_movies = matches!(
+                &event,
+                DataEvent::MoviesReady { .. } | DataEvent::MoviesAppend { .. }
+            );
+            let load_series = matches!(
+                &event,
+                DataEvent::SeriesReady { .. } | DataEvent::SeriesAppend { .. }
             );
 
             match event {
@@ -519,13 +522,16 @@ pub(crate) fn spawn_data_listener(
                 }
             }
 
-            // Prefetch images for newly loaded content
-            if should_load_images {
-                let cache = Arc::clone(&image_cache);
-                let ui_w = ui_weak.clone();
-                tokio::spawn(async move {
-                    load_images_for_ui(&ui_w, &cache).await;
-                });
+            // Dispatch to dedicated per-type image queues
+            // Each queue has its own consumer with 16 concurrent workers
+            if load_channels {
+                image_loader.load_channels(&ui_weak);
+            }
+            if load_movies {
+                image_loader.load_movies(&ui_weak);
+            }
+            if load_series {
+                image_loader.load_series(&ui_weak);
             }
         }
         tracing::info!("data_listener task exited");
@@ -776,122 +782,5 @@ fn source_info_to_slint(s: &SourceInfo) -> super::SourceData {
         channel_count: 0,
         vod_count: 0,
         sync_status: SharedString::from(s.last_sync_status.as_deref().unwrap_or("")),
-    }
-}
-
-// ── Image loading ─────────────────────────────────────────────────────────────
-
-/// Fetch images for currently visible channels and VOD items, updating the
-/// Slint model in-place as each image is decoded.
-async fn load_images_for_ui(
-    ui_weak: &slint::Weak<super::AppWindow>,
-    image_cache: &Arc<crate::image_cache::ImageCache>,
-) {
-    // Collect URLs from the current Slint models (only items missing images)
-    let (tx, rx) = std::sync::mpsc::channel();
-    let ui_w = ui_weak.clone();
-    let _ = slint::invoke_from_event_loop(move || {
-        let Some(ui) = ui_w.upgrade() else {
-            let _ = tx.send((Vec::new(), Vec::new(), Vec::new()));
-            return;
-        };
-        let app = ui.global::<super::AppState>();
-
-        let ch_urls: Vec<(usize, String)> = app
-            .get_channels()
-            .iter()
-            .enumerate()
-            .filter(|(_, c)| !c.logo_url.is_empty() && c.logo.size().width == 0)
-            .map(|(i, c)| (i, c.logo_url.to_string()))
-            .collect();
-
-        let mv_urls: Vec<(usize, String)> = app
-            .get_movies()
-            .iter()
-            .enumerate()
-            .filter(|(_, v)| !v.poster_url.is_empty() && v.poster.size().width == 0)
-            .map(|(i, v)| (i, v.poster_url.to_string()))
-            .collect();
-
-        let sr_urls: Vec<(usize, String)> = app
-            .get_series()
-            .iter()
-            .enumerate()
-            .filter(|(_, v)| !v.poster_url.is_empty() && v.poster.size().width == 0)
-            .map(|(i, v)| (i, v.poster_url.to_string()))
-            .collect();
-
-        let _ = tx.send((ch_urls, mv_urls, sr_urls));
-    });
-
-    let Ok((channel_urls, movie_urls, series_urls)) = rx.recv() else {
-        return;
-    };
-
-    // Download images with high concurrency (32 concurrent downloads)
-    let semaphore = Arc::new(tokio::sync::Semaphore::new(32));
-
-    // Helper: spawn image download + UI update for a model type
-    enum ModelKind {
-        Channel,
-        Movie,
-        Series,
-    }
-
-    let all_tasks: Vec<(usize, String, ModelKind)> = channel_urls
-        .into_iter()
-        .map(|(i, u)| (i, u, ModelKind::Channel))
-        .chain(
-            movie_urls
-                .into_iter()
-                .map(|(i, u)| (i, u, ModelKind::Movie)),
-        )
-        .chain(
-            series_urls
-                .into_iter()
-                .map(|(i, u)| (i, u, ModelKind::Series)),
-        )
-        .collect();
-
-    for (idx, url, kind) in all_tasks {
-        let cache = Arc::clone(image_cache);
-        let sem = Arc::clone(&semaphore);
-        let ui_w = ui_weak.clone();
-        tokio::spawn(async move {
-            let _permit = sem.acquire().await;
-            if let Some(buf) = cache.get_image_buffer(&url).await {
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(ui) = ui_w.upgrade() {
-                        let app = ui.global::<super::AppState>();
-                        let img = slint::Image::from_rgba8(buf);
-                        match kind {
-                            ModelKind::Channel => {
-                                let model = app.get_channels();
-                                if let Some(mut item) = model.row_data(idx) {
-                                    item.logo = img;
-                                    model.set_row_data(idx, item);
-                                }
-                            }
-                            ModelKind::Movie => {
-                                let model = app.get_movies();
-                                if let Some(mut item) = model.row_data(idx) {
-                                    item.poster = img;
-                                    model.set_row_data(idx, item);
-                                }
-                            }
-                            ModelKind::Series => {
-                                let model = app.get_series();
-                                if let Some(mut item) = model.row_data(idx) {
-                                    item.poster = img;
-                                    model.set_row_data(idx, item);
-                                }
-                            }
-                        }
-                        // Force UI repaint after image update
-                        ui.window().request_redraw();
-                    }
-                });
-            }
-        });
     }
 }
