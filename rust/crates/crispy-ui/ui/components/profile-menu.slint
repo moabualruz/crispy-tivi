@@ -14,9 +14,9 @@ export component ProfileMenu inherits Rectangle {
     clicked => { root.close(); }
   }
 
-  // Slide-over panel attached to the top right
+  // Slide-over panel attached to the top left (aligned with P button)
   Rectangle {
-    x: parent.width - self.width - Theme.spacing-xl;
+    x: Theme.content-padding-h;
     y: Theme.top-nav-height + Theme.spacing-sm;
     width: 320px;
     height: 240px;
