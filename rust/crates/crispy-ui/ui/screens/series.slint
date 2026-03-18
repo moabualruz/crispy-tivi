@@ -59,6 +59,23 @@ export component SeriesScreen inherits Rectangle {
             clicked => { AppState.play-vod(show.id); }
           }
         }
+
+        // Load-more sentinel
+        if AppState.has-more-series: Rectangle {
+          height: 56px;
+          background: transparent;
+          HorizontalLayout {
+            alignment: center;
+            Text {
+              text: "Loading more series...";
+              color: Theme.text-secondary;
+              font-size: Theme.font-size-caption;
+              vertical-alignment: center;
+            }
+          }
+          TouchArea { clicked => { AppState.load-more-series(); } }
+          init => { AppState.load-more-series(); }
+        }
       }
     }
   }

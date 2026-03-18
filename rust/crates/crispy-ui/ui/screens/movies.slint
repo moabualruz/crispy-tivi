@@ -59,6 +59,23 @@ export component MoviesScreen inherits Rectangle {
             clicked => { AppState.play-vod(movie.id); }
           }
         }
+
+        // Load-more sentinel
+        if AppState.has-more-movies: Rectangle {
+          height: 56px;
+          background: transparent;
+          HorizontalLayout {
+            alignment: center;
+            Text {
+              text: "Loading more movies...";
+              color: Theme.text-secondary;
+              font-size: Theme.font-size-caption;
+              vertical-alignment: center;
+            }
+          }
+          TouchArea { clicked => { AppState.load-more-movies(); } }
+          init => { AppState.load-more-movies(); }
+        }
       }
     }
   }

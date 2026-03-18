@@ -76,10 +76,16 @@ impl DataEngine {
     pub async fn run(mut self) {
         let t0 = std::time::Instant::now();
         self.load_all_into_cache().await;
-        info!(elapsed_ms = t0.elapsed().as_millis(), "[PERF] load_all_into_cache done");
+        info!(
+            elapsed_ms = t0.elapsed().as_millis(),
+            "[PERF] load_all_into_cache done"
+        );
         let t1 = std::time::Instant::now();
         self.emit_initial_data();
-        info!(elapsed_ms = t1.elapsed().as_millis(), "[PERF] emit_initial_data done");
+        info!(
+            elapsed_ms = t1.elapsed().as_millis(),
+            "[PERF] emit_initial_data done"
+        );
 
         loop {
             tokio::select! {
