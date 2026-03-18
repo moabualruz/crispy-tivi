@@ -159,8 +159,18 @@ fn main() -> anyhow::Result<()> {
     // ── Image loader (dedicated per-type queues, 16 workers each) ────────
     let img_loader = image_loader::ImageLoader::spawn(ui.as_weak(), Arc::clone(&image_cache));
 
+    // ── Shared data store (full datasets for virtual scroll) ────────────
+    let shared_data = Arc::new(event_bridge::SharedData::new());
+
     // ── Wire Slint callbacks → queues ────────────────────────────────────
-    event_bridge::wire(&ui, player_tx, high_tx, normal_tx, img_loader.clone());
+    event_bridge::wire(
+        &ui,
+        player_tx,
+        high_tx,
+        normal_tx,
+        img_loader.clone(),
+        Arc::clone(&shared_data),
+    );
 
     // ── Spawn player handler (PlayerEvent → MpvBackend) ──────────────────
     event_bridge::spawn_player_handler(ui.as_weak(), player_rx, backend_shared.clone());
@@ -172,6 +182,7 @@ fn main() -> anyhow::Result<()> {
         backend_shared,
         Arc::clone(&render_context_ready),
         img_loader,
+        shared_data,
     );
 
     // ── Spawn DataEngine (event loop: queues → cache → DataEvents) ───────
