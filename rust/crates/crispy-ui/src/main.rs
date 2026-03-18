@@ -18,7 +18,10 @@ mod image_cache;
 mod image_loader;
 #[allow(dead_code)]
 mod provider;
+#[allow(dead_code)]
+mod scroll_controller;
 mod sync_task;
+mod windowed_model;
 
 use std::sync::{
     Arc, Mutex,
