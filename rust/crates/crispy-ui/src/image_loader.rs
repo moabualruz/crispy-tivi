@@ -29,6 +29,7 @@ enum ModelKind {
 // ── ImageLoader ──────────────────────────────────────────────────────────────
 
 /// Manages 3 dedicated image loading queues with independent consumer tasks.
+#[derive(Clone)]
 pub struct ImageLoader {
     channel_tx: mpsc::UnboundedSender<ImageRequest>,
     movie_tx: mpsc::UnboundedSender<ImageRequest>,

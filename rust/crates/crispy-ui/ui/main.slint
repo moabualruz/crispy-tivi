@@ -105,41 +105,46 @@ export component AppWindow inherits Window {
   }
 
   // ── LAYER 2: ScreenLayer ──────────────────────────────────────────────
-  if show-screen-layer: Rectangle {
+  // All screens are singleton sublayers — always instantiated (pre-rendered),
+  // shown/hidden via `visible:`. Enables instant navigation and smooth transitions.
+  Rectangle {
     x: screen-layer-x;
     y: screen-layer-y;
     width: screen-layer-w;
     height: screen-layer-h;
     opacity: screen-layer-opacity;
+    visible: show-screen-layer;
     clip: true;
     background: Theme.background; // OPAQUE — covers VideoLayer
     animate x, y, width, height { duration: 300ms; easing: ease-in-out; }
     animate opacity { duration: 300ms; easing: ease-in-out; }
 
-    // Screen router
-    if AppState.active-screen == 0: HomeScreen { width: 100%; height: 100%; }
-    if AppState.active-screen == 1: LiveTvScreen { width: 100%; height: 100%; }
-    if AppState.active-screen == 2: EpgScreen { width: 100%; height: 100%; }
-    if AppState.active-screen == 3: MoviesScreen { width: 100%; height: 100%; }
-    if AppState.active-screen == 4: SeriesScreen { width: 100%; height: 100%; }
-    if AppState.active-screen == 5: SearchScreen { width: 100%; height: 100%; }
-    if AppState.active-screen == 6: LibraryScreen { width: 100%; height: 100%; }
-    if AppState.active-screen == 7: SettingsScreen { width: 100%; height: 100%; }
+    // Singleton sublayers — each screen always exists, only one visible at a time
+    HomeScreen     { width: 100%; height: 100%; visible: AppState.active-screen == 0; }
+    LiveTvScreen   { width: 100%; height: 100%; visible: AppState.active-screen == 1; }
+    EpgScreen      { width: 100%; height: 100%; visible: AppState.active-screen == 2; }
+    MoviesScreen   { width: 100%; height: 100%; visible: AppState.active-screen == 3; }
+    SeriesScreen   { width: 100%; height: 100%; visible: AppState.active-screen == 4; }
+    SearchScreen   { width: 100%; height: 100%; visible: AppState.active-screen == 5; }
+    LibraryScreen  { width: 100%; height: 100%; visible: AppState.active-screen == 6; }
+    SettingsScreen { width: 100%; height: 100%; visible: AppState.active-screen == 7; }
 
-    // Top nav bar (floats over screen content)
-    if AppState.nav-visible: TopNav {
+    // Top nav bar (floats over all screen sublayers)
+    TopNav {
       y: 0;
       width: 100%;
+      visible: AppState.nav-visible;
     }
   }
 
   // ── LAYER 3: OsdLayer ─────────────────────────────────────────────────
-  if show-osd-layer: Rectangle {
+  Rectangle {
     x: osd-layer-x;
     y: osd-layer-y;
     width: osd-layer-w;
     height: osd-layer-h;
     opacity: osd-layer-opacity;
+    visible: show-osd-layer;
     clip: true;
     background: transparent;
     animate x, y, width, height { duration: 300ms; easing: ease-in-out; }
@@ -152,23 +157,28 @@ export component AppWindow inherits Window {
   }
 
   // ── LAYER 4: OverlayLayer ─────────────────────────────────────────────
-  // Onboarding (fullscreen, above everything — mandatory, no skip)
-  if OnboardingState.is-active: OnboardingScreen { width: 100%; height: 100%; }
+  // Onboarding — singleton, visibility controlled
+  OnboardingScreen {
+    width: 100%; height: 100%;
+    visible: OnboardingState.is-active;
+  }
 
-  // Modals (only when not onboarding)
-  if show-overlay-layer: Rectangle {
+  // Modals — singleton sublayers within OverlayLayer
+  Rectangle {
     x: overlay-layer-x;
     y: overlay-layer-y;
     width: overlay-layer-w;
     height: overlay-layer-h;
     opacity: overlay-layer-opacity;
+    visible: show-overlay-layer;
     clip: true;
     background: transparent;
     animate x, y, width, height { duration: 300ms; easing: ease-in-out; }
     animate opacity { duration: 200ms; easing: ease-in-out; }
 
     SourceDialog {}
-    if AppState.show-profile-menu: ProfileMenu {
+    ProfileMenu {
+      visible: AppState.show-profile-menu;
       close => { AppState.show-profile-menu = false; }
     }
   }

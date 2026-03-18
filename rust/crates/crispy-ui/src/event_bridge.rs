@@ -522,16 +522,25 @@ pub(crate) fn spawn_data_listener(
                 }
             }
 
-            // Dispatch to dedicated per-type image queues
-            // Each queue has its own consumer with 16 concurrent workers
-            if load_channels {
-                image_loader.load_channels(&ui_weak);
-            }
-            if load_movies {
-                image_loader.load_movies(&ui_weak);
-            }
-            if load_series {
-                image_loader.load_series(&ui_weak);
+            // Dispatch to dedicated per-type image queues via UI thread
+            // (load_* methods need ui_weak.upgrade() which requires UI thread)
+            if load_channels || load_movies || load_series {
+                let lc = load_channels;
+                let lm = load_movies;
+                let ls = load_series;
+                let loader = image_loader.clone();
+                let ui_w = ui_weak.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if lc {
+                        loader.load_channels(&ui_w);
+                    }
+                    if lm {
+                        loader.load_movies(&ui_w);
+                    }
+                    if ls {
+                        loader.load_series(&ui_w);
+                    }
+                });
             }
         }
         tracing::info!("data_listener task exited");
