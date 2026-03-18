@@ -331,8 +331,10 @@ pub(crate) fn wire(
             let max_start = data.len().saturating_sub(CHANNEL_WINDOW);
             let new_start = if delta > 0 {
                 (old_start + delta as usize).min(max_start)
-            } else {
+            } else if delta < 0 {
                 old_start.saturating_sub((-delta) as usize)
+            } else {
+                old_start // delta=0: initial load, no shift
             };
             if new_start != old_start {
                 tracing::debug!(
@@ -343,17 +345,18 @@ pub(crate) fn wire(
                 );
                 app.set_channel_window_start(new_start as i32);
                 refresh_channel_window(&app, &data, new_start);
-                drop(data);
-                let img_start = new_start.saturating_sub(CHANNEL_WINDOW);
-                tracing::debug!(
-                    img_start,
-                    img_count = CHANNEL_WINDOW * 3,
-                    "[IMG] channels image load for viewport"
-                );
-                loader.load_channels(&ui_w, Some((img_start, CHANNEL_WINDOW * 3)));
             } else {
                 tracing::debug!(old_start, "[SCROLL] channels no shift needed");
             }
+            drop(data);
+            // ALWAYS load images for current viewport (handles initial load + shift)
+            let img_start = new_start.saturating_sub(CHANNEL_WINDOW);
+            tracing::debug!(
+                img_start,
+                img_count = CHANNEL_WINDOW * 3,
+                "[IMG] channels image load for viewport"
+            );
+            loader.load_channels(&ui_w, Some((img_start, CHANNEL_WINDOW * 3)));
         }
     });
 
@@ -373,8 +376,10 @@ pub(crate) fn wire(
             let max_start = data.len().saturating_sub(VOD_WINDOW);
             let new_start = if delta > 0 {
                 (old_start + delta as usize).min(max_start)
-            } else {
+            } else if delta < 0 {
                 old_start.saturating_sub((-delta) as usize)
+            } else {
+                old_start // delta=0: initial load, no shift
             };
             if new_start != old_start {
                 tracing::debug!(
@@ -385,15 +390,16 @@ pub(crate) fn wire(
                 );
                 app.set_movie_window_start(new_start as i32);
                 refresh_movie_window(&app, &data, new_start);
-                drop(data);
-                let img_start = new_start.saturating_sub(VOD_WINDOW);
-                tracing::debug!(
-                    img_start,
-                    img_count = VOD_WINDOW * 3,
-                    "[IMG] movies image load for viewport"
-                );
-                loader.load_movies(&ui_w, Some((img_start, VOD_WINDOW * 3)));
             }
+            drop(data);
+            // ALWAYS load images for current viewport (handles initial load + shift)
+            let img_start = new_start.saturating_sub(VOD_WINDOW);
+            tracing::debug!(
+                img_start,
+                img_count = VOD_WINDOW * 3,
+                "[IMG] movies image load for viewport"
+            );
+            loader.load_movies(&ui_w, Some((img_start, VOD_WINDOW * 3)));
         }
     });
 
@@ -413,8 +419,10 @@ pub(crate) fn wire(
             let max_start = data.len().saturating_sub(VOD_WINDOW);
             let new_start = if delta > 0 {
                 (old_start + delta as usize).min(max_start)
-            } else {
+            } else if delta < 0 {
                 old_start.saturating_sub((-delta) as usize)
+            } else {
+                old_start // delta=0: initial load, no shift
             };
             if new_start != old_start {
                 tracing::debug!(
@@ -425,15 +433,16 @@ pub(crate) fn wire(
                 );
                 app.set_series_window_start(new_start as i32);
                 refresh_series_window(&app, &data, new_start);
-                drop(data);
-                let img_start = new_start.saturating_sub(VOD_WINDOW);
-                tracing::debug!(
-                    img_start,
-                    img_count = VOD_WINDOW * 3,
-                    "[IMG] series image load for viewport"
-                );
-                loader.load_series(&ui_w, Some((img_start, VOD_WINDOW * 3)));
             }
+            drop(data);
+            // ALWAYS load images for current viewport (handles initial load + shift)
+            let img_start = new_start.saturating_sub(VOD_WINDOW);
+            tracing::debug!(
+                img_start,
+                img_count = VOD_WINDOW * 3,
+                "[IMG] series image load for viewport"
+            );
+            loader.load_series(&ui_w, Some((img_start, VOD_WINDOW * 3)));
         }
     });
 
@@ -613,22 +622,16 @@ pub(crate) fn spawn_player_handler(
 /// `PlaybackReady` is handled here — it locks the shared backend and calls `play()`.
 /// Data events (ChannelsReady, etc.) carry `Arc<Vec<S>>` and are dispatched to the
 /// UI thread via `invoke_from_event_loop` where `apply_data_event` converts them to
-/// VecModel. WindowedModel will be used for scroll-driven windowing in Task 16.
+/// VecModel. Image loading is triggered exclusively via scroll callbacks in `wire()`.
 pub(crate) fn spawn_data_listener(
     ui_weak: slint::Weak<super::AppWindow>,
     mut data_rx: mpsc::Receiver<DataEvent>,
     backend: Arc<Mutex<Option<crispy_player::mpv_backend::MpvBackend>>>,
     render_context_ready: Arc<AtomicBool>,
-    image_loader: crate::image_loader::ImageLoader,
     shared_data: Arc<SharedData>,
 ) {
     tokio::spawn(async move {
         while let Some(event) = data_rx.recv().await {
-            // Determine which image queues to trigger after applying this event
-            let load_channels = matches!(&event, DataEvent::ChannelsReady { .. });
-            let load_movies = matches!(&event, DataEvent::MoviesReady { .. });
-            let load_series = matches!(&event, DataEvent::SeriesReady { .. });
-
             // Store full datasets in SharedData (off UI thread)
             match &event {
                 DataEvent::ChannelsReady { channels, .. } => {
@@ -699,26 +702,6 @@ pub(crate) fn spawn_data_listener(
                     });
                 }
             }
-
-            // Load images for initial viewport window only
-            if load_channels || load_movies || load_series {
-                let lc = load_channels;
-                let lm = load_movies;
-                let ls = load_series;
-                let loader = image_loader.clone();
-                let ui_w = ui_weak.clone();
-                let _ = slint::invoke_from_event_loop(move || {
-                    if lc {
-                        loader.load_channels(&ui_w, Some((0, CHANNEL_WINDOW * 3)));
-                    }
-                    if lm {
-                        loader.load_movies(&ui_w, Some((0, VOD_WINDOW * 3)));
-                    }
-                    if ls {
-                        loader.load_series(&ui_w, Some((0, VOD_WINDOW * 3)));
-                    }
-                });
-            }
         }
         tracing::info!("data_listener task exited");
     });
@@ -749,6 +732,8 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             app.set_channel_window_start(0);
             refresh_channel_window(&app, &channels, 0);
             app.set_total_channel_count(total);
+            // Trigger scroll callback so images load for initial viewport
+            app.invoke_scroll_channels(0);
             let sc_groups: Vec<SharedString> = in_groups
                 .into_iter()
                 .map(|s| SharedString::from(s.as_str()))
@@ -765,6 +750,8 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             app.set_movie_window_start(0);
             refresh_movie_window(&app, &movies, 0);
             app.set_total_movie_count(total);
+            // Trigger scroll callback so images load for initial viewport
+            app.invoke_scroll_movies(0);
             let sc_cats: Vec<super::CategoryData> = in_categories
                 .into_iter()
                 .map(|c| super::CategoryData {
@@ -784,6 +771,8 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             app.set_series_window_start(0);
             refresh_series_window(&app, &series, 0);
             app.set_total_series_count(total);
+            // Trigger scroll callback so images load for initial viewport
+            app.invoke_scroll_series(0);
             let sc_cats: Vec<super::CategoryData> = in_categories
                 .into_iter()
                 .map(|c| super::CategoryData {
