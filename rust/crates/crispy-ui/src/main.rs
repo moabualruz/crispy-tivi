@@ -209,7 +209,7 @@ fn real_main() -> anyhow::Result<()> {
         data_rx,
         backend_shared,
         Arc::clone(&render_context_ready),
-        shared_data,
+        Arc::clone(&shared_data),
     );
 
     // ── Wire SyncProgress callback → DataEvent::SyncProgress ─────────────
@@ -241,6 +241,7 @@ fn real_main() -> anyhow::Result<()> {
         data_tx,
         sync_result_tx,
         rt.handle().clone(),
+        shared_data,
     );
     rt.spawn(engine.run());
 
