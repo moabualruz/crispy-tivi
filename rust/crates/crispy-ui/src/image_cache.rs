@@ -138,10 +138,14 @@ impl ImageCache {
         now: u64,
     ) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
         // Build request with User-Agent (required by Wikimedia and others) + conditional headers
-        let mut req = self.client.get(url).header(
-            "User-Agent",
-            "CrispyTivi/0.1 (IPTV Player; +https://github.com/crispy-tivi)",
-        );
+        let mut req = self
+            .client
+            .get(url)
+            .header(
+                "User-Agent",
+                "CrispyTivi/0.1 (IPTV Player; +https://github.com/crispy-tivi)",
+            )
+            .header("Accept-Encoding", "identity");
         {
             let entries = self.entries.read().await;
             if let Some(entry) = entries.get(hash)
@@ -291,21 +295,35 @@ impl ImageCache {
         format!("{:x}", hasher.finalize())
     }
 
-    /// Decode a `data:image/...;base64,...` URI directly into a pixel buffer.
-    /// Returns `None` if the URL is not a data URI or decoding fails.
+    /// Decode inline image data from `data:image/...;base64,...` URIs
+    /// or Stalker-style `s:1:/images/...` pseudo-URIs.
+    /// Returns `None` if the URL is not a data/pseudo URI or decoding fails.
     fn decode_data_uri(url: &str) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
-        let url = url.strip_prefix("data:")?;
-        // Format: image/png;base64,<data> or image/jpeg;base64,<data>
-        let (_mime, rest) = url.split_once(';')?;
-        let data = rest.strip_prefix("base64,")?;
-        if data.is_empty() {
-            return None;
-        }
         use base64::Engine;
-        let bytes = base64::engine::general_purpose::STANDARD
-            .decode(data)
-            .ok()?;
-        decode_buffer_bytes(&bytes)
+
+        if let Some(rest) = url.strip_prefix("data:") {
+            // Format: image/png;base64,<data>
+            let (_mime, rest) = rest.split_once(';')?;
+            let data = rest.strip_prefix("base64,")?;
+            if data.is_empty() {
+                return None;
+            }
+            let bytes = base64::engine::general_purpose::STANDARD
+                .decode(data)
+                .ok()?;
+            return decode_buffer_bytes(&bytes);
+        }
+
+        if let Some(raw) = url.strip_prefix("s:1:/images/") {
+            // Stalker portal URL-safe base64 (no padding)
+            let padded = format!("{}{}", raw, &"==="[..((4 - raw.len() % 4) % 4)]);
+            let bytes = base64::engine::general_purpose::URL_SAFE
+                .decode(padded.as_bytes())
+                .ok()?;
+            return decode_buffer_bytes(&bytes);
+        }
+
+        None
     }
 
     /// Path to the cached file for a given hash.
