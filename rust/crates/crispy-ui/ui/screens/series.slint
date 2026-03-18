@@ -4,7 +4,6 @@ import { EmptyState } from "../components/empty-state.slint";
 import { VodCard } from "../components/vod-card.slint";
 import { LoadingIndicator } from "../components/loading-indicator.slint";
 import { IconTv } from "../components/icons.slint";
-import { ActionButton } from "../components/action-button.slint";
 import { ScrollView } from "std-widgets.slint";
 
 export component SeriesScreen inherits Rectangle {
@@ -52,18 +51,13 @@ export component SeriesScreen inherits Rectangle {
 
         GridLayout {
           spacing: Theme.spacing-md;
-          
+
           for show[idx] in AppState.series: VodCard {
             row: floor(idx / columns);
             col: mod(idx, columns);
             item: show;
             clicked => { AppState.play-vod(show.id); }
           }
-        }
-
-        if AppState.has-more-series: ActionButton {
-          label: "Load More";
-          clicked => { AppState.load-more-series(); }
         }
       }
     }

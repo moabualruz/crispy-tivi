@@ -12,14 +12,13 @@ use std::sync::{
 };
 
 use crispy_player::PlayerBackend;
-use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
+use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use tokio::sync::mpsc;
 
 use crate::events::{
     ChannelInfo, DataEvent, HighPriorityEvent, LoadingKind, NormalEvent, PlayerEvent, Screen,
     SourceInfo, SourceInput, VodInfo,
 };
-
 // ── wire ─────────────────────────────────────────────────────────────────────
 
 /// Wire all Slint callbacks to the three event queues.
@@ -168,39 +167,6 @@ pub(crate) fn wire(
                 language_tag: lang.to_string(),
             }) {
                 tracing::warn!(error = %e, "high_tx full: SetLanguage dropped");
-            }
-        }
-    });
-
-    app.on_load_more_channels({
-        let tx = high_tx.clone();
-        move || {
-            if let Err(e) = tx.try_send(HighPriorityEvent::LoadMore {
-                kind: LoadingKind::Channels,
-            }) {
-                tracing::warn!(error = %e, "high_tx full: LoadMoreChannels dropped");
-            }
-        }
-    });
-
-    app.on_load_more_movies({
-        let tx = high_tx.clone();
-        move || {
-            if let Err(e) = tx.try_send(HighPriorityEvent::LoadMore {
-                kind: LoadingKind::Movies,
-            }) {
-                tracing::warn!(error = %e, "high_tx full: LoadMoreMovies dropped");
-            }
-        }
-    });
-
-    app.on_load_more_series({
-        let tx = high_tx.clone();
-        move || {
-            if let Err(e) = tx.try_send(HighPriorityEvent::LoadMore {
-                kind: LoadingKind::Series,
-            }) {
-                tracing::warn!(error = %e, "high_tx full: LoadMoreSeries dropped");
             }
         }
     });
@@ -454,6 +420,9 @@ pub(crate) fn spawn_player_handler(
 /// Spawn a tokio task that receives DataEvents and applies them to Slint state.
 ///
 /// `PlaybackReady` is handled here — it locks the shared backend and calls `play()`.
+/// Data events (ChannelsReady, etc.) carry `Arc<Vec<S>>` and are dispatched to the
+/// UI thread via `invoke_from_event_loop` where `apply_data_event` converts them to
+/// VecModel. WindowedModel will be used for scroll-driven windowing in Task 16.
 pub(crate) fn spawn_data_listener(
     ui_weak: slint::Weak<super::AppWindow>,
     mut data_rx: mpsc::Receiver<DataEvent>,
@@ -464,18 +433,9 @@ pub(crate) fn spawn_data_listener(
     tokio::spawn(async move {
         while let Some(event) = data_rx.recv().await {
             // Determine which image queues to trigger after applying this event
-            let load_channels = matches!(
-                &event,
-                DataEvent::ChannelsReady { .. } | DataEvent::ChannelsAppend { .. }
-            );
-            let load_movies = matches!(
-                &event,
-                DataEvent::MoviesReady { .. } | DataEvent::MoviesAppend { .. }
-            );
-            let load_series = matches!(
-                &event,
-                DataEvent::SeriesReady { .. } | DataEvent::SeriesAppend { .. }
-            );
+            let load_channels = matches!(&event, DataEvent::ChannelsReady { .. });
+            let load_movies = matches!(&event, DataEvent::MoviesReady { .. });
+            let load_series = matches!(&event, DataEvent::SeriesReady { .. });
 
             match event {
                 DataEvent::PlaybackReady { url, title } => {
@@ -566,15 +526,13 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             channels,
             groups: in_groups,
             total,
-            has_more,
+            ..
         } => {
             let items: Vec<super::ChannelData> =
                 channels.iter().map(channel_info_to_slint).collect();
             app.set_channels(ModelRc::new(VecModel::from(items)));
             app.set_total_channel_count(total);
-            app.set_has_more_channels(has_more);
 
-            // Populate groups from the complete state-provided list
             let sc_groups: Vec<SharedString> = in_groups
                 .into_iter()
                 .map(|s| SharedString::from(s.as_str()))
@@ -586,12 +544,11 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             movies,
             categories: in_categories,
             total,
-            has_more,
+            ..
         } => {
             let items: Vec<super::VodData> = movies.iter().map(vod_info_to_slint).collect();
             app.set_movies(ModelRc::new(VecModel::from(items)));
             app.set_total_movie_count(total);
-            app.set_has_more_movies(has_more);
 
             let sc_cats: Vec<super::CategoryData> = in_categories
                 .into_iter()
@@ -607,12 +564,11 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             series,
             categories: in_categories,
             total,
-            has_more,
+            ..
         } => {
             let items: Vec<super::VodData> = series.iter().map(vod_info_to_slint).collect();
             app.set_series(ModelRc::new(VecModel::from(items)));
             app.set_total_series_count(total);
-            app.set_has_more_series(has_more);
 
             let sc_cats: Vec<super::CategoryData> = in_categories
                 .into_iter()
@@ -622,30 +578,6 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
                 })
                 .collect();
             app.set_vod_categories(ModelRc::new(VecModel::from(sc_cats)));
-        }
-
-        DataEvent::ChannelsAppend { channels, has_more } => {
-            let existing = app.get_channels();
-            let mut items: Vec<super::ChannelData> = existing.iter().collect();
-            items.extend(channels.iter().map(channel_info_to_slint));
-            app.set_channels(ModelRc::new(VecModel::from(items)));
-            app.set_has_more_channels(has_more);
-        }
-
-        DataEvent::MoviesAppend { movies, has_more } => {
-            let existing = app.get_movies();
-            let mut items: Vec<super::VodData> = existing.iter().collect();
-            items.extend(movies.iter().map(vod_info_to_slint));
-            app.set_movies(ModelRc::new(VecModel::from(items)));
-            app.set_has_more_movies(has_more);
-        }
-
-        DataEvent::SeriesAppend { series, has_more } => {
-            let existing = app.get_series();
-            let mut items: Vec<super::VodData> = existing.iter().collect();
-            items.extend(series.iter().map(vod_info_to_slint));
-            app.set_series(ModelRc::new(VecModel::from(items)));
-            app.set_has_more_series(has_more);
         }
 
         DataEvent::SearchResults {
@@ -747,7 +679,7 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
 
 // ── Conversion helpers ────────────────────────────────────────────────────────
 
-fn channel_info_to_slint(c: &ChannelInfo) -> super::ChannelData {
+pub(crate) fn channel_info_to_slint(c: &ChannelInfo) -> super::ChannelData {
     super::ChannelData {
         id: SharedString::from(c.id.as_str()),
         name: SharedString::from(c.name.as_str()),
@@ -762,7 +694,7 @@ fn channel_info_to_slint(c: &ChannelInfo) -> super::ChannelData {
     }
 }
 
-fn vod_info_to_slint(v: &VodInfo) -> super::VodData {
+pub(crate) fn vod_info_to_slint(v: &VodInfo) -> super::VodData {
     super::VodData {
         id: SharedString::from(v.id.as_str()),
         name: SharedString::from(v.name.as_str()),

@@ -4,7 +4,6 @@ import { EmptyState } from "../components/empty-state.slint";
 import { VodCard } from "../components/vod-card.slint";
 import { LoadingIndicator } from "../components/loading-indicator.slint";
 import { IconMovie } from "../components/icons.slint";
-import { ActionButton } from "../components/action-button.slint";
 import { ScrollView } from "std-widgets.slint";
 
 export component MoviesScreen inherits Rectangle {
@@ -52,19 +51,13 @@ export component MoviesScreen inherits Rectangle {
 
         GridLayout {
           spacing: Theme.spacing-md;
-          
+
           for movie[idx] in AppState.movies: VodCard {
             row: floor(idx / columns);
             col: mod(idx, columns);
             item: movie;
             clicked => { AppState.play-vod(movie.id); }
           }
-        }
-
-        // Load more
-        if AppState.has-more-movies: ActionButton {
-          label: "Load More";
-          clicked => { AppState.load-more-movies(); }
         }
       }
     }

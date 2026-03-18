@@ -1,5 +1,8 @@
 //! Event types for the three-queue bidirectional event bus.
 //!
+//! `ChannelsReady`, `MoviesReady`, and `SeriesReady` carry `Arc<Vec<T>>` so
+//! the WindowedModel can share ownership without copying the full dataset.
+//!
 //! # Queue Architecture
 //!
 //! - **PlayerEvent** — bridge-local, instant delivery (pause, seek, volume, etc.)
@@ -10,6 +13,8 @@
 //!
 //! All types in this module are plain Rust. Conversion to/from Slint-generated
 //! types happens in `event_bridge.rs`.
+
+use std::sync::Arc;
 
 // ── Screen ──────────────────────────────────────────────────────────────────
 
@@ -209,8 +214,6 @@ pub enum HighPriorityEvent {
     ChangeTheme { theme_name: String },
     /// Switch the active UI language by BCP-47 tag (e.g. `"en"`, `"ar"`).
     ChangeLanguage { language_tag: String },
-    /// Request the next page of a paginated content list.
-    LoadMore { kind: LoadingKind },
     /// Open the detail view for a VOD item.
     OpenVodDetail { vod_id: String },
     /// Open the detail view for a series.
@@ -267,41 +270,23 @@ pub enum NormalEvent {
 pub enum DataEvent {
     /// Initial source list is ready for display.
     SourcesReady { sources: Vec<SourceInfo> },
-    /// Full (first-page) channel list is ready.
+    /// Full channel list is ready (all filtered results for WindowedModel).
     ChannelsReady {
-        channels: Vec<ChannelInfo>,
+        channels: Arc<Vec<ChannelInfo>>,
         groups: Vec<String>,
         total: i32,
-        has_more: bool,
     },
-    /// Full (first-page) movies list is ready.
+    /// Full movies list is ready (all filtered results for WindowedModel).
     MoviesReady {
-        movies: Vec<VodInfo>,
+        movies: Arc<Vec<VodInfo>>,
         categories: Vec<String>,
         total: i32,
-        has_more: bool,
     },
-    /// Full (first-page) series list is ready.
+    /// Full series list is ready (all filtered results for WindowedModel).
     SeriesReady {
-        series: Vec<VodInfo>,
+        series: Arc<Vec<VodInfo>>,
         categories: Vec<String>,
         total: i32,
-        has_more: bool,
-    },
-    /// Additional channels appended (pagination).
-    ChannelsAppend {
-        channels: Vec<ChannelInfo>,
-        has_more: bool,
-    },
-    /// Additional movies appended (pagination).
-    MoviesAppend {
-        movies: Vec<VodInfo>,
-        has_more: bool,
-    },
-    /// Additional series appended (pagination).
-    SeriesAppend {
-        series: Vec<VodInfo>,
-        has_more: bool,
     },
     /// Full-text search results.
     SearchResults {

@@ -207,32 +207,6 @@ export component LiveTvScreen inherits Rectangle {
         }
       }
 
-      // Load more trigger (outside ListView — Slint only allows single for child)
-      if AppState.has-more-channels: FocusScope {
-        width: 100%;
-        height: 44px;
-        key-pressed(event) => {
-          if event.text == Key.Return { AppState.load-more-channels(); return accept; }
-          return reject;
-        }
-        Rectangle {
-          width: 100%; height: 100%;
-          border-radius: Theme.radius-sm;
-          background: Theme.btn-secondary-bg;
-          border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
-          border-color: Theme.focus-ring;
-
-          Text {
-            text: "Load More (" + (AppState.total-channel-count - AppState.channels.length) + " remaining)";
-            color: Theme.text-secondary;
-            font-family: Theme.font-body;
-            font-size: Theme.font-size-caption;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-          }
-          TouchArea { clicked => { AppState.load-more-channels(); } }
-        }
-      }
     }
 
     // ── EPG sub-view ──

@@ -3,8 +3,6 @@
 //! Tracks logical focus position, detects buffer zone entry,
 //! and computes window shift targets for WindowedModel.
 
-#![allow(dead_code)]
-
 pub(crate) struct ScrollController {
     /// Absolute position in the full dataset
     logical_focus: usize,

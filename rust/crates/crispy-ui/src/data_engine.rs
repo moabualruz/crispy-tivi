@@ -20,8 +20,8 @@ use tokio::sync::mpsc;
 use tracing::{debug, error, info, warn};
 
 use crate::cache::{
-    AppDataCache, CHANNEL_PAGE_SIZE, FilterState, SEARCH_MAX_RESULTS, VOD_PAGE_SIZE,
-    filter_channels, filter_vod, search_cached, source_to_info,
+    AppDataCache, FilterState, SEARCH_MAX_RESULTS, filter_channels, filter_vod, search_cached,
+    source_to_info,
 };
 use crate::events::{
     DataEvent, HighPriorityEvent, LoadingKind, NormalEvent, Screen, SourceInfo, SyncResult, VodInfo,
@@ -40,9 +40,6 @@ pub struct DataEngine {
     sync_result_tx: mpsc::Sender<SyncResult>,
     /// Arc so spawned search tasks can check if they are still current.
     search_generation: Arc<AtomicU64>,
-    channel_offset: usize,
-    movie_offset: usize,
-    series_offset: usize,
     rt: tokio::runtime::Handle,
 }
 
@@ -67,9 +64,6 @@ impl DataEngine {
             data_tx,
             sync_result_tx,
             search_generation: Arc::new(AtomicU64::new(0)),
-            channel_offset: 0,
-            movie_offset: 0,
-            series_offset: 0,
             rt,
         }
     }
@@ -174,64 +168,61 @@ impl DataEngine {
             .collect();
         self.send(DataEvent::SourcesReady { sources });
 
-        // Channels — first page
+        // Channels — send ALL (WindowedModel handles windowing)
         self.send(DataEvent::LoadingStarted {
             kind: LoadingKind::Channels,
         });
-        let (ch_page, total, has_more) = filter_channels(
+        let (ch_all, total, _) = filter_channels(
             &self.cache.all_channels,
             &self.filters.active_group,
             &self.cache.favorites,
             0,
-            CHANNEL_PAGE_SIZE,
+            usize::MAX,
         );
         self.send(DataEvent::ChannelsReady {
-            channels: ch_page,
+            channels: Arc::new(ch_all),
             groups: self.cache.channel_groups.clone(),
             total,
-            has_more,
         });
         self.send(DataEvent::LoadingFinished {
             kind: LoadingKind::Channels,
         });
 
-        // Movies — first page
+        // Movies — send ALL
         self.send(DataEvent::LoadingStarted {
             kind: LoadingKind::Movies,
         });
-        let (mov_page, cats, total, has_more) = filter_vod(
+        let (mov_all, cats, total, _) = filter_vod(
             &self.cache.all_vod,
             "movie",
             &self.filters.active_vod_category,
             0,
-            VOD_PAGE_SIZE,
+            usize::MAX,
         );
         self.send(DataEvent::MoviesReady {
-            movies: mov_page,
+            movies: Arc::new(mov_all),
             categories: cats,
             total,
-            has_more,
         });
         self.send(DataEvent::LoadingFinished {
             kind: LoadingKind::Movies,
         });
 
-        // Series — first page
+        // Series — send ALL
         self.send(DataEvent::LoadingStarted {
             kind: LoadingKind::Series,
         });
-        let (ser_page, cats, total, has_more) = filter_vod(
+        let (ser_all, cats, total, _) = filter_vod(
             &self.cache.all_vod,
             "series",
             &self.filters.active_vod_category,
             0,
-            VOD_PAGE_SIZE,
+            usize::MAX,
         );
         self.send(DataEvent::SeriesReady {
-            series: ser_page,
+            series: Arc::new(ser_all),
             categories: cats,
             total,
-            has_more,
         });
         self.send(DataEvent::LoadingFinished {
             kind: LoadingKind::Series,
@@ -275,21 +266,19 @@ impl DataEngine {
 
             HighPriorityEvent::FilterContent { query } => {
                 self.filters.active_group = query;
-                self.channel_offset = 0;
 
-                // Apply as a group filter on channels
-                let (ch_page, total, has_more) = filter_channels(
+                // Apply as a group filter on channels — send ALL to WindowedModel
+                let (ch_all, total, _) = filter_channels(
                     &self.cache.all_channels,
                     &self.filters.active_group,
                     &self.cache.favorites,
                     0,
-                    CHANNEL_PAGE_SIZE,
+                    usize::MAX,
                 );
                 self.send(DataEvent::ChannelsReady {
-                    channels: ch_page,
+                    channels: Arc::new(ch_all),
                     groups: self.cache.channel_groups.clone(),
                     total,
-                    has_more,
                 });
             }
 
@@ -419,54 +408,6 @@ impl DataEngine {
                 self.send(DataEvent::LanguageApplied { language_tag });
             }
 
-            HighPriorityEvent::LoadMore { kind } => match kind {
-                LoadingKind::Channels => {
-                    self.channel_offset += CHANNEL_PAGE_SIZE;
-                    let (page, _total, has_more) = filter_channels(
-                        &self.cache.all_channels,
-                        &self.filters.active_group,
-                        &self.cache.favorites,
-                        self.channel_offset,
-                        CHANNEL_PAGE_SIZE,
-                    );
-                    self.send(DataEvent::ChannelsAppend {
-                        channels: page,
-                        has_more,
-                    });
-                }
-                LoadingKind::Movies => {
-                    self.movie_offset += VOD_PAGE_SIZE;
-                    let (page, _cats, _total, has_more) = filter_vod(
-                        &self.cache.all_vod,
-                        "movie",
-                        &self.filters.active_vod_category,
-                        self.movie_offset,
-                        VOD_PAGE_SIZE,
-                    );
-                    self.send(DataEvent::MoviesAppend {
-                        movies: page,
-                        has_more,
-                    });
-                }
-                LoadingKind::Series => {
-                    self.series_offset += VOD_PAGE_SIZE;
-                    let (page, _cats, _total, has_more) = filter_vod(
-                        &self.cache.all_vod,
-                        "series",
-                        &self.filters.active_vod_category,
-                        self.series_offset,
-                        VOD_PAGE_SIZE,
-                    );
-                    self.send(DataEvent::SeriesAppend {
-                        series: page,
-                        has_more,
-                    });
-                }
-                other => {
-                    debug!(?other, "LoadMore: unhandled kind");
-                }
-            },
-
             HighPriorityEvent::OpenVodDetail { vod_id } => {
                 // Navigation to detail screen is handled by EventBridge; DataEngine
                 // just updates the active screen state.
@@ -508,35 +449,31 @@ impl DataEngine {
                 self.filters.active_vod_category = category;
                 match item_type.as_str() {
                     "movie" => {
-                        self.movie_offset = 0;
-                        let (page, cats, total, has_more) = filter_vod(
+                        let (all, cats, total, _) = filter_vod(
                             &self.cache.all_vod,
                             "movie",
                             &self.filters.active_vod_category,
                             0,
-                            VOD_PAGE_SIZE,
+                            usize::MAX,
                         );
                         self.send(DataEvent::MoviesReady {
-                            movies: page,
+                            movies: Arc::new(all),
                             categories: cats,
                             total,
-                            has_more,
                         });
                     }
                     _ => {
-                        self.series_offset = 0;
-                        let (page, cats, total, has_more) = filter_vod(
+                        let (all, cats, total, _) = filter_vod(
                             &self.cache.all_vod,
                             "series",
                             &self.filters.active_vod_category,
                             0,
-                            VOD_PAGE_SIZE,
+                            usize::MAX,
                         );
                         self.send(DataEvent::SeriesReady {
-                            series: page,
+                            series: Arc::new(all),
                             categories: cats,
                             total,
-                            has_more,
                         });
                     }
                 }
@@ -772,11 +709,6 @@ impl DataEngine {
                 self.cache.rebuild_groups();
                 self.cache.rebuild_vod_categories();
 
-                // Reset pagination
-                self.channel_offset = 0;
-                self.movie_offset = 0;
-                self.series_offset = 0;
-
                 self.send(DataEvent::SyncCompleted { result });
                 self.send(DataEvent::LoadingFinished {
                     kind: LoadingKind::Sync,
@@ -829,51 +761,48 @@ impl DataEngine {
         }
     }
 
-    /// Re-emit the current filtered channel page (offset 0).
+    /// Re-emit all filtered channels (for WindowedModel).
     fn emit_filtered_channels(&self) {
-        let (page, total, has_more) = filter_channels(
+        let (all, total, _) = filter_channels(
             &self.cache.all_channels,
             &self.filters.active_group,
             &self.cache.favorites,
             0,
-            CHANNEL_PAGE_SIZE,
+            usize::MAX,
         );
         self.send(DataEvent::ChannelsReady {
-            channels: page,
+            channels: Arc::new(all),
             groups: self.cache.channel_groups.clone(),
             total,
-            has_more,
         });
     }
 
-    /// Re-emit the current filtered VOD pages (movies + series, offset 0).
+    /// Re-emit all filtered VOD items (movies + series) for WindowedModel.
     fn emit_filtered_vod(&self) {
-        let (movies, cats, total, has_more) = filter_vod(
+        let (movies, cats, total, _) = filter_vod(
             &self.cache.all_vod,
             "movie",
             &self.filters.active_vod_category,
             0,
-            VOD_PAGE_SIZE,
+            usize::MAX,
         );
         self.send(DataEvent::MoviesReady {
-            movies,
+            movies: Arc::new(movies),
             categories: cats,
             total,
-            has_more,
         });
 
-        let (series, cats, total, has_more) = filter_vod(
+        let (series, cats, total, _) = filter_vod(
             &self.cache.all_vod,
             "series",
             &self.filters.active_vod_category,
             0,
-            VOD_PAGE_SIZE,
+            usize::MAX,
         );
         self.send(DataEvent::SeriesReady {
-            series,
+            series: Arc::new(series),
             categories: cats,
             total,
-            has_more,
         });
     }
 }

@@ -78,20 +78,17 @@ export global AppState {
   in-out property <int> total-channel-count: 0;   // total available in DB
   in-out property <int> total-movie-count: 0;
   in-out property <int> total-series-count: 0;
-  in-out property <bool> has-more-channels: false; // true if more pages available
-  in-out property <bool> has-more-movies: false;
-  in-out property <bool> has-more-series: false;
 
   // Source data
   in-out property <[SourceData]> sources: [];
 
-  // Channel data (paginated — loaded in chunks)
+  // Channel data (WindowedModel — virtual scroll)
   in-out property <[ChannelData]> channels: [];
   in-out property <[string]> channel-groups: [];
   in-out property <string> active-channel-group: "";
   in-out property <string> channel-search-text: "";
 
-  // VOD data (paginated — loaded in chunks)
+  // VOD data (WindowedModel — virtual scroll)
   in-out property <[VodData]> movies: [];
   in-out property <[VodData]> series: [];
   in-out property <[CategoryData]> vod-categories: [];
@@ -134,11 +131,6 @@ export global AppState {
   // VOD operations
   callback filter-vod(/* category */ string, /* item-type */ string);
   callback play-vod(/* vod-id */ string);
-
-  // Lazy loading — UI triggers when scrolled near end
-  callback load-more-channels();
-  callback load-more-movies();
-  callback load-more-series();
 
   // Search (debounced in Rust — UI fires immediately)
   callback perform-search(/* query */ string);

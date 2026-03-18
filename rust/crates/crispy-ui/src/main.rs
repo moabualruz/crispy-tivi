@@ -11,7 +11,6 @@ pub static AmdPowerXpressRequestHighPerformance: i32 = 1;
 mod cache;
 mod data_engine;
 mod event_bridge;
-#[allow(dead_code)]
 mod events;
 mod i18n;
 mod image_cache;
