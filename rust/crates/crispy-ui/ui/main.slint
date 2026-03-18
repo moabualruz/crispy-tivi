@@ -27,9 +27,45 @@ export component AppWindow inherits Window {
   min-height: 480px;
   preferred-width: 1280px;
   preferred-height: 720px;
-  // Window background is transparent so the mpv OpenGL underlay (Layer 0) is visible.
-  // Each screen provides its own opaque background when video isn't playing.
+
+  // Window background transparent so mpv OpenGL underlay (VideoLayer) is visible
   background: transparent;
+
+  // ════════════════════════════════════════════════════════════════════════
+  // 4-LAYER ARCHITECTURE
+  //
+  // Each layer is a distinct full-size view, independently shown/hidden.
+  // Layer names are for isolation — z-order is determined by declaration order.
+  //
+  //   1. VideoLayer   — mpv OpenGL underlay (rendered by main.rs, behind Slint canvas)
+  //                     Always present at the GL level. Transparent window bg lets it show.
+  //
+  //   2. ScreenLayer  — App screens (Home, Live, Movies, etc.) + TopNav
+  //                     OPAQUE background. Shown when browsing. Hidden when video is fullscreen.
+  //
+  //   3. OsdLayer     — Player OSD controls (play/pause, seek, volume, title)
+  //                     TRANSPARENT background. Shown when playing video. Hidden when browsing.
+  //
+  //   4. OverlayLayer — Full-screen overlays (Onboarding, Profile Menu, Source Dialog, Diagnostics)
+  //                     Shown/hidden independently per overlay. Always on top when visible.
+  //
+  // Visibility rules:
+  //   Browsing (not playing):  ScreenLayer=VISIBLE, OsdLayer=HIDDEN
+  //   Playing fullscreen:      ScreenLayer=HIDDEN,  OsdLayer=VISIBLE  (video shows through)
+  //   Onboarding:              OverlayLayer only (everything else hidden)
+  //   Profile/Source dialog:   OverlayLayer on top of whatever is below
+  // ════════════════════════════════════════════════════════════════════════
+
+  // Layer visibility + opacity (controllable from Rust or Slint logic)
+  // Opacity applies to the ENTIRE layer — enables fade transitions between layers
+  property <bool> show-screen-layer: !PlayerState.is-fullscreen && !OnboardingState.is-active;
+  property <float> screen-layer-opacity: 1.0;
+
+  property <bool> show-osd-layer: PlayerState.is-playing && !OnboardingState.is-active;
+  property <float> osd-layer-opacity: 1.0;
+
+  property <bool> show-overlay-layer: !OnboardingState.is-active;
+  property <float> overlay-layer-opacity: 1.0;
 
   // Global keyboard shortcuts
   FocusScope {
@@ -49,57 +85,58 @@ export component AppWindow inherits Window {
     }
   }
 
-  // Onboarding (fullscreen, above everything — mandatory, no skip)
-  if OnboardingState.is-active: OnboardingScreen { width: 100%; height: 100%; }
-
-  // ── Named Layer Architecture (when not onboarding) ──
-  //
-  // VideoLayer:   mpv OpenGL underlay — always behind Slint canvas (rendered in main.rs)
-  // ScreenLayer:  app screens with OPAQUE background — covers video when browsing
-  // OsdLayer:     player OSD controls — transparent, only visible during playback
-  // OverlayLayer: modals (profile menu, source dialog, diagnostics)
-  //
-  // Fullscreen video: hide ScreenLayer, show OsdLayer only
-  // Browsing: show ScreenLayer (opaque), hide OsdLayer
-
-  if !OnboardingState.is-active: Rectangle {
+  // ── LAYER 2: ScreenLayer ──────────────────────────────────────────────
+  if show-screen-layer: Rectangle {
     width: 100%; height: 100%;
+    opacity: screen-layer-opacity;
+    background: Theme.background; // OPAQUE — covers VideoLayer
+    animate opacity { duration: 300ms; easing: ease-in-out; }
 
-    // ── ScreenLayer: app content with opaque background ──
-    // Hidden during fullscreen playback so the mpv underlay shows through.
-    // During normal browsing (even if audio is playing in background), screens are visible.
-    if !PlayerState.is-fullscreen: Rectangle {
-      width: 100%; height: 100%;
-      background: Theme.background; // OPAQUE — covers video underlay
+    // Screen router
+    if AppState.active-screen == 0: HomeScreen { width: 100%; height: 100%; }
+    if AppState.active-screen == 1: LiveTvScreen { width: 100%; height: 100%; }
+    if AppState.active-screen == 2: EpgScreen { width: 100%; height: 100%; }
+    if AppState.active-screen == 3: MoviesScreen { width: 100%; height: 100%; }
+    if AppState.active-screen == 4: SeriesScreen { width: 100%; height: 100%; }
+    if AppState.active-screen == 5: SearchScreen { width: 100%; height: 100%; }
+    if AppState.active-screen == 6: LibraryScreen { width: 100%; height: 100%; }
+    if AppState.active-screen == 7: SettingsScreen { width: 100%; height: 100%; }
 
-      // Screen content (full-width, no side rail)
-      if AppState.active-screen == 0: HomeScreen { width: 100%; height: 100%; }
-      if AppState.active-screen == 1: LiveTvScreen { width: 100%; height: 100%; }
-      if AppState.active-screen == 2: EpgScreen { width: 100%; height: 100%; }
-      if AppState.active-screen == 3: MoviesScreen { width: 100%; height: 100%; }
-      if AppState.active-screen == 4: SeriesScreen { width: 100%; height: 100%; }
-      if AppState.active-screen == 5: SearchScreen { width: 100%; height: 100%; }
-      if AppState.active-screen == 6: LibraryScreen { width: 100%; height: 100%; }
-      if AppState.active-screen == 7: SettingsScreen { width: 100%; height: 100%; }
-
-      // Top nav (floats over screen content)
-      if AppState.nav-visible: TopNav {
-        y: 0;
-        width: 100%;
-      }
+    // Top nav bar (floats over screen content)
+    if AppState.nav-visible: TopNav {
+      y: 0;
+      width: 100%;
     }
+  }
 
-    // ── OsdLayer: player controls — transparent, only during playback ──
-    if PlayerState.is-playing: PlayerScreen {
+  // ── LAYER 3: OsdLayer ─────────────────────────────────────────────────
+  if show-osd-layer: Rectangle {
+    width: 100%; height: 100%;
+    background: transparent;
+    opacity: osd-layer-opacity;
+    animate opacity { duration: 300ms; easing: ease-in-out; }
+
+    PlayerScreen {
       width: 100%;
       height: 100%;
     }
   }
 
-  // ── OverlayLayer: modals above everything except onboarding ──
-  if !OnboardingState.is-active: SourceDialog {}
-  if AppState.show-profile-menu && !OnboardingState.is-active: ProfileMenu {
-    close => { AppState.show-profile-menu = false; }
+  // ── LAYER 4: OverlayLayer ─────────────────────────────────────────────
+  // Onboarding (fullscreen, above everything — mandatory, no skip)
+  if OnboardingState.is-active: OnboardingScreen { width: 100%; height: 100%; }
+
+  // Modals (only when not onboarding)
+  if show-overlay-layer: Rectangle {
+    width: 100%; height: 100%;
+    background: transparent;
+    opacity: overlay-layer-opacity;
+    animate opacity { duration: 200ms; easing: ease-in-out; }
+
+    SourceDialog {}
+    if AppState.show-profile-menu: ProfileMenu {
+      close => { AppState.show-profile-menu = false; }
+    }
   }
   DiagnosticsPanel {}
 }
