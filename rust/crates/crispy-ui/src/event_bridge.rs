@@ -570,7 +570,9 @@ pub(crate) fn spawn_data_listener(
             let load_movies = matches!(&event, DataEvent::MoviesReady { .. });
             let load_series = matches!(&event, DataEvent::SeriesReady { .. });
 
-            // Store full datasets in shared store (off UI thread — cheap Arc clone)
+            // Store full datasets in shared store (off UI thread — cheap Arc clone).
+            // Slint types (Image) are !Send, so conversion happens on UI thread
+            // via apply_data_event. All items are converted — ListView virtualizes rendering.
             match &event {
                 DataEvent::ChannelsReady { channels, .. } => {
                     *shared_data.channels.lock().unwrap() = Arc::clone(channels);
@@ -676,11 +678,10 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             total,
             ..
         } => {
-            // Only put a windowed slice into VecModel (full data is in SharedData)
-            app.set_channel_window_start(0);
-            refresh_channel_window(&app, &channels, 0);
+            let items: Vec<super::ChannelData> =
+                channels.iter().map(channel_info_to_slint).collect();
+            app.set_channels(ModelRc::new(VecModel::from(items)));
             app.set_total_channel_count(total);
-
             let sc_groups: Vec<SharedString> = in_groups
                 .into_iter()
                 .map(|s| SharedString::from(s.as_str()))
@@ -694,10 +695,9 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             total,
             ..
         } => {
-            app.set_movie_window_start(0);
-            refresh_movie_window(&app, &movies, 0);
+            let items: Vec<super::VodData> = movies.iter().map(vod_info_to_slint).collect();
+            app.set_movies(ModelRc::new(VecModel::from(items)));
             app.set_total_movie_count(total);
-
             let sc_cats: Vec<super::CategoryData> = in_categories
                 .into_iter()
                 .map(|c| super::CategoryData {
@@ -714,10 +714,9 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             total,
             ..
         } => {
-            app.set_series_window_start(0);
-            refresh_series_window(&app, &series, 0);
+            let items: Vec<super::VodData> = series.iter().map(vod_info_to_slint).collect();
+            app.set_series(ModelRc::new(VecModel::from(items)));
             app.set_total_series_count(total);
-
             let sc_cats: Vec<super::CategoryData> = in_categories
                 .into_iter()
                 .map(|c| super::CategoryData {
