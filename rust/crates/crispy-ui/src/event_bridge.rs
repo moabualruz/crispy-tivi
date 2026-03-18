@@ -20,6 +20,102 @@ use crate::events::{
     SourceInfo, SourceInput, VodInfo,
 };
 
+// ── Send-safe intermediate structs ───────────────────────────────────────────
+// Slint's `Image` is !Send, so generated ChannelData/VodData can't cross thread
+// boundaries. These structs hold all the Send-safe fields (SharedString, i32, bool).
+// Conversion: ChannelInfo → PreparedChannel (background) → ChannelData (UI thread).
+
+struct PreparedChannel {
+    id: SharedString,
+    name: SharedString,
+    group: SharedString,
+    logo_url: SharedString,
+    stream_url: SharedString,
+    source_id: SharedString,
+    number: i32,
+    is_favorite: bool,
+    now_playing: SharedString,
+}
+
+struct PreparedVod {
+    id: SharedString,
+    name: SharedString,
+    stream_url: SharedString,
+    item_type: SharedString,
+    poster_url: SharedString,
+    genre: SharedString,
+    year: SharedString,
+    rating: SharedString,
+    source_id: SharedString,
+    series_id: SharedString,
+    season: i32,
+    episode: i32,
+}
+
+fn prepare_channel(c: &ChannelInfo) -> PreparedChannel {
+    PreparedChannel {
+        id: SharedString::from(c.id.as_str()),
+        name: SharedString::from(c.name.as_str()),
+        group: SharedString::from(c.channel_group.as_deref().unwrap_or("")),
+        logo_url: SharedString::from(c.logo_url.as_deref().unwrap_or("")),
+        stream_url: SharedString::from(c.stream_url.as_str()),
+        source_id: SharedString::from(c.source_id.as_deref().unwrap_or("")),
+        number: c.number.unwrap_or(0),
+        is_favorite: c.is_favorite,
+        now_playing: SharedString::default(),
+    }
+}
+
+fn prepare_vod(v: &VodInfo) -> PreparedVod {
+    PreparedVod {
+        id: SharedString::from(v.id.as_str()),
+        name: SharedString::from(v.name.as_str()),
+        stream_url: SharedString::from(v.stream_url.as_str()),
+        item_type: SharedString::from(v.item_type.as_str()),
+        poster_url: SharedString::from(v.poster_url.as_deref().unwrap_or("")),
+        genre: SharedString::default(),
+        year: SharedString::from(v.year.map(|y| y.to_string()).unwrap_or_default().as_str()),
+        rating: SharedString::from(v.rating.as_deref().unwrap_or("")),
+        source_id: SharedString::from(v.source_id.as_deref().unwrap_or("")),
+        series_id: SharedString::default(),
+        season: 0,
+        episode: 0,
+    }
+}
+
+fn finalize_channel(p: PreparedChannel) -> super::ChannelData {
+    super::ChannelData {
+        id: p.id,
+        name: p.name,
+        group: p.group,
+        logo_url: p.logo_url,
+        stream_url: p.stream_url,
+        source_id: p.source_id,
+        number: p.number,
+        is_favorite: p.is_favorite,
+        now_playing: p.now_playing,
+        logo: Default::default(),
+    }
+}
+
+fn finalize_vod(p: PreparedVod) -> super::VodData {
+    super::VodData {
+        id: p.id,
+        name: p.name,
+        stream_url: p.stream_url,
+        item_type: p.item_type,
+        poster_url: p.poster_url,
+        genre: p.genre,
+        year: p.year,
+        rating: p.rating,
+        source_id: p.source_id,
+        series_id: p.series_id,
+        season: p.season,
+        episode: p.episode,
+        poster: Default::default(),
+    }
+}
+
 // ── Shared data stores ──────────────────────────────────────────────────────
 // Full datasets live here (Send+Sync). The UI thread only gets a windowed
 // slice via VecModel. Scroll callbacks read from these to update the slice.
@@ -570,18 +666,49 @@ pub(crate) fn spawn_data_listener(
             let load_movies = matches!(&event, DataEvent::MoviesReady { .. });
             let load_series = matches!(&event, DataEvent::SeriesReady { .. });
 
-            // Store full datasets in shared store (off UI thread — cheap Arc clone).
-            // Slint types (Image) are !Send, so conversion happens on UI thread
-            // via apply_data_event. All items are converted — ListView virtualizes rendering.
+            // Store full datasets in shared store + prepare Send-safe Slint data
+            // off the UI thread. Only the trivial finalize (adding Image::default())
+            // happens on the UI thread.
             match &event {
                 DataEvent::ChannelsReady { channels, .. } => {
                     *shared_data.channels.lock().unwrap() = Arc::clone(channels);
+                    let prepared: Vec<PreparedChannel> =
+                        channels.iter().map(prepare_channel).collect();
+                    let ui_w = ui_weak.clone();
+                    let _ = slint::invoke_from_event_loop(move || {
+                        if let Some(ui) = ui_w.upgrade() {
+                            let items: Vec<super::ChannelData> =
+                                prepared.into_iter().map(finalize_channel).collect();
+                            ui.global::<super::AppState>()
+                                .set_channels(ModelRc::new(VecModel::from(items)));
+                        }
+                    });
                 }
                 DataEvent::MoviesReady { movies, .. } => {
                     *shared_data.movies.lock().unwrap() = Arc::clone(movies);
+                    let prepared: Vec<PreparedVod> = movies.iter().map(prepare_vod).collect();
+                    let ui_w = ui_weak.clone();
+                    let _ = slint::invoke_from_event_loop(move || {
+                        if let Some(ui) = ui_w.upgrade() {
+                            let items: Vec<super::VodData> =
+                                prepared.into_iter().map(finalize_vod).collect();
+                            ui.global::<super::AppState>()
+                                .set_movies(ModelRc::new(VecModel::from(items)));
+                        }
+                    });
                 }
                 DataEvent::SeriesReady { series, .. } => {
                     *shared_data.series.lock().unwrap() = Arc::clone(series);
+                    let prepared: Vec<PreparedVod> = series.iter().map(prepare_vod).collect();
+                    let ui_w = ui_weak.clone();
+                    let _ = slint::invoke_from_event_loop(move || {
+                        if let Some(ui) = ui_w.upgrade() {
+                            let items: Vec<super::VodData> =
+                                prepared.into_iter().map(finalize_vod).collect();
+                            ui.global::<super::AppState>()
+                                .set_series(ModelRc::new(VecModel::from(items)));
+                        }
+                    });
                 }
                 _ => {}
             }
@@ -672,15 +799,13 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             app.set_sources(ModelRc::new(VecModel::from(items)));
         }
 
+        // VecModel is set off-thread via prepare→finalize in spawn_data_listener.
+        // Here we only update metadata (totals, groups, categories).
         DataEvent::ChannelsReady {
-            channels,
             groups: in_groups,
             total,
             ..
         } => {
-            let items: Vec<super::ChannelData> =
-                channels.iter().map(channel_info_to_slint).collect();
-            app.set_channels(ModelRc::new(VecModel::from(items)));
             app.set_total_channel_count(total);
             let sc_groups: Vec<SharedString> = in_groups
                 .into_iter()
@@ -690,13 +815,10 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
         }
 
         DataEvent::MoviesReady {
-            movies,
             categories: in_categories,
             total,
             ..
         } => {
-            let items: Vec<super::VodData> = movies.iter().map(vod_info_to_slint).collect();
-            app.set_movies(ModelRc::new(VecModel::from(items)));
             app.set_total_movie_count(total);
             let sc_cats: Vec<super::CategoryData> = in_categories
                 .into_iter()
@@ -709,13 +831,10 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
         }
 
         DataEvent::SeriesReady {
-            series,
             categories: in_categories,
             total,
             ..
         } => {
-            let items: Vec<super::VodData> = series.iter().map(vod_info_to_slint).collect();
-            app.set_series(ModelRc::new(VecModel::from(items)));
             app.set_total_series_count(total);
             let sc_cats: Vec<super::CategoryData> = in_categories
                 .into_iter()
