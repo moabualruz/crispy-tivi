@@ -349,14 +349,9 @@ pub(crate) fn wire(
                 tracing::debug!(old_start, "[SCROLL] channels no shift needed");
             }
             drop(data);
-            // ALWAYS load images for current viewport (handles initial load + shift)
-            let img_start = new_start.saturating_sub(CHANNEL_WINDOW);
-            tracing::debug!(
-                img_start,
-                img_count = CHANNEL_WINDOW * 3,
-                "[IMG] channels image load for viewport"
-            );
-            loader.load_channels(&ui_w, Some((img_start, CHANNEL_WINDOW * 3)));
+            // Load images for ALL items in the VecModel window (they're the rendered ones)
+            tracing::debug!("[IMG] channels image load for VecModel window");
+            loader.load_channels(&ui_w, None);
         }
     });
 
@@ -392,14 +387,8 @@ pub(crate) fn wire(
                 refresh_movie_window(&app, &data, new_start);
             }
             drop(data);
-            // ALWAYS load images for current viewport (handles initial load + shift)
-            let img_start = new_start.saturating_sub(VOD_WINDOW);
-            tracing::debug!(
-                img_start,
-                img_count = VOD_WINDOW * 3,
-                "[IMG] movies image load for viewport"
-            );
-            loader.load_movies(&ui_w, Some((img_start, VOD_WINDOW * 3)));
+            tracing::debug!("[IMG] movies image load for VecModel window");
+            loader.load_movies(&ui_w, None);
         }
     });
 
@@ -435,14 +424,8 @@ pub(crate) fn wire(
                 refresh_series_window(&app, &data, new_start);
             }
             drop(data);
-            // ALWAYS load images for current viewport (handles initial load + shift)
-            let img_start = new_start.saturating_sub(VOD_WINDOW);
-            tracing::debug!(
-                img_start,
-                img_count = VOD_WINDOW * 3,
-                "[IMG] series image load for viewport"
-            );
-            loader.load_series(&ui_w, Some((img_start, VOD_WINDOW * 3)));
+            tracing::debug!("[IMG] series image load for VecModel window");
+            loader.load_series(&ui_w, None);
         }
     });
 
