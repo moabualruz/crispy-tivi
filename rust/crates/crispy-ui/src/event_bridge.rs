@@ -25,11 +25,16 @@ use crate::events::{
 ///
 /// Called on the UI thread during `app::init`. Uses `try_send` throughout —
 /// if a queue is full the event is logged and dropped (non-fatal).
+/// Virtual scroll window sizes — must match WindowedModel sizes in the plan.
+const CHANNEL_WINDOW: usize = 30;
+const VOD_WINDOW: usize = 45;
+
 pub(crate) fn wire(
     ui: &super::AppWindow,
     player_tx: mpsc::Sender<PlayerEvent>,
     high_tx: mpsc::Sender<HighPriorityEvent>,
     normal_tx: mpsc::Sender<NormalEvent>,
+    image_loader: crate::image_loader::ImageLoader,
 ) {
     // ── PlayerState callbacks ─────────────────────────────────────────────
 
@@ -246,25 +251,44 @@ pub(crate) fn wire(
         }
     });
 
-    // ── Virtual scroll callbacks (D-pad focus tracking) ──────────────
+    // ── Virtual scroll callbacks (D-pad tracking + image pre-load) ────
+    // Each scroll fires image loading for current window ± 1 page buffer.
     app.on_scroll_channels({
+        let loader = image_loader.clone();
+        let ui_w = ui.as_weak();
         move |delta| {
-            // For now, just track focus index — full WindowedModel wiring
-            // will come when the !Send issue is resolved with Slint's
-            // upcoming thread-safe model support.
             tracing::debug!(delta, "scroll-channels");
+            let Some(ui) = ui_w.upgrade() else { return };
+            let ws = ui.global::<super::AppState>().get_channel_window_start() as usize;
+            let start = ws.saturating_sub(CHANNEL_WINDOW);
+            let count = CHANNEL_WINDOW * 3; // prev + current + next page
+            loader.load_channels(&ui_w, Some((start, count)));
         }
     });
 
     app.on_scroll_movies({
+        let loader = image_loader.clone();
+        let ui_w = ui.as_weak();
         move |delta| {
             tracing::debug!(delta, "scroll-movies");
+            let Some(ui) = ui_w.upgrade() else { return };
+            let ws = ui.global::<super::AppState>().get_movie_window_start() as usize;
+            let start = ws.saturating_sub(VOD_WINDOW);
+            let count = VOD_WINDOW * 3;
+            loader.load_movies(&ui_w, Some((start, count)));
         }
     });
 
     app.on_scroll_series({
+        let loader = image_loader.clone();
+        let ui_w = ui.as_weak();
         move |delta| {
             tracing::debug!(delta, "scroll-series");
+            let Some(ui) = ui_w.upgrade() else { return };
+            let ws = ui.global::<super::AppState>().get_series_window_start() as usize;
+            let start = ws.saturating_sub(VOD_WINDOW);
+            let count = VOD_WINDOW * 3;
+            loader.load_series(&ui_w, Some((start, count)));
         }
     });
 
@@ -513,15 +537,15 @@ pub(crate) fn spawn_data_listener(
                 let loader = image_loader.clone();
                 let ui_w = ui_weak.clone();
                 let _ = slint::invoke_from_event_loop(move || {
-                    // Load only the first viewport worth of images (not all items)
+                    // Load images for the initial viewport + 1 page ahead
                     if lc {
-                        loader.load_channels(&ui_w, None);
+                        loader.load_channels(&ui_w, Some((0, CHANNEL_WINDOW * 2)));
                     }
                     if lm {
-                        loader.load_movies(&ui_w, None);
+                        loader.load_movies(&ui_w, Some((0, VOD_WINDOW * 2)));
                     }
                     if ls {
-                        loader.load_series(&ui_w, None);
+                        loader.load_series(&ui_w, Some((0, VOD_WINDOW * 2)));
                     }
                 });
             }

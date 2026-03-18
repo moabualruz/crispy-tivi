@@ -121,9 +121,6 @@ fn main() -> anyhow::Result<()> {
     let (sync_result_tx, sync_result_rx) = tokio::sync::mpsc::channel(32);
     let (data_tx, data_rx) = tokio::sync::mpsc::channel(512);
 
-    // ── Wire Slint callbacks → queues ────────────────────────────────────
-    event_bridge::wire(&ui, player_tx, high_tx, normal_tx);
-
     // ── MpvBackend (shared between player handler and data listener) ─────
     let backend = match MpvBackend::new() {
         Ok(b) => {
@@ -161,6 +158,9 @@ fn main() -> anyhow::Result<()> {
 
     // ── Image loader (dedicated per-type queues, 16 workers each) ────────
     let img_loader = image_loader::ImageLoader::spawn(ui.as_weak(), Arc::clone(&image_cache));
+
+    // ── Wire Slint callbacks → queues ────────────────────────────────────
+    event_bridge::wire(&ui, player_tx, high_tx, normal_tx, img_loader.clone());
 
     // ── Spawn player handler (PlayerEvent → MpvBackend) ──────────────────
     event_bridge::spawn_player_handler(ui.as_weak(), player_rx, backend_shared.clone());
