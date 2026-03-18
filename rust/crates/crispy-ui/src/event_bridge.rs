@@ -373,13 +373,30 @@ pub(crate) fn wire(
     });
 
     app.on_select_series_season({
-        move |_season| {
-            // Episode list population is future EPG/series module work.
-            // Season selection stored in AppState.series-active-season (set by Slint directly).
-            tracing::debug!(
-                season = _season,
-                "SelectSeriesSeason — no-op until series episode API"
-            );
+        let tx = high_tx.clone();
+        let ui_w = ui.as_weak();
+        move |season| {
+            // Update the active season in UI immediately
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                app.set_series_active_season(season);
+            }
+            // Send event to DataEngine which will load episodes and emit SeriesReady
+            let event = crate::events::HighPriorityEvent::SelectSeriesSeason {
+                series_id: ui_w
+                    .upgrade()
+                    .map(|ui| {
+                        ui.global::<super::AppState>()
+                            .get_series_detail_item()
+                            .id
+                            .to_string()
+                    })
+                    .unwrap_or_default(),
+                season,
+            };
+            if let Err(e) = tx.try_send(event) {
+                tracing::warn!(error = %e, "high_tx full: SelectSeriesSeason dropped");
+            }
         }
     });
 

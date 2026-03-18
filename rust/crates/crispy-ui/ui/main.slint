@@ -101,6 +101,7 @@ export component AppWindow inherits Window {
       if event.text == Key.Escape {
         if DiagnosticsState.visible { DiagnosticsState.visible = false; return accept; }
         if AppState.show-profile-picker { AppState.show-profile-picker = false; return accept; }
+        if AppState.show-profile-menu { AppState.show-profile-menu = false; return accept; }
         if AppState.show-source-dialog { AppState.show-source-dialog = false; return accept; }
         if AppState.show-vod-detail { AppState.show-vod-detail = false; return accept; }
         if AppState.show-series-detail { AppState.show-series-detail = false; return accept; }
