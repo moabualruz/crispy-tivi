@@ -11,35 +11,11 @@ use crate::http_client::get_shared_client;
 use crate::models::SyncReport;
 use crate::parsers::{m3u, vod};
 use crate::services::CrispyService;
+use crate::services::url_validator::validate_url;
 use crate::sync_progress::emit_progress;
 
-/// Validates that a source URL is safe to fetch (M-067).
-///
-/// Only `http` and `https` schemes are accepted. Any other scheme
-/// is logged at `WARN` level and rejected with an error.
-fn validate_source_url(url: &str) -> Result<()> {
-    let parsed =
-        url::Url::parse(url).map_err(|e| anyhow::anyhow!("Invalid source URL '{}': {}", url, e))?;
-    match parsed.scheme() {
-        "http" | "https" => Ok(()),
-        scheme => {
-            tracing::warn!(
-                security = "url_validation",
-                url = url,
-                scheme = scheme,
-                "Rejected source URL with disallowed scheme"
-            );
-            Err(anyhow::anyhow!(
-                "Disallowed URL scheme '{}' in source URL '{}': only http/https are permitted",
-                scheme,
-                url
-            ))
-        }
-    }
-}
-
 pub async fn verify_m3u_url(url: &str, accept_invalid_certs: bool) -> Result<bool> {
-    validate_source_url(url)?;
+    validate_url(url).map_err(anyhow::Error::from)?;
     let client = get_shared_client(accept_invalid_certs);
     let req = client.head(url).send().await;
     match req {
@@ -61,7 +37,7 @@ pub async fn sync_m3u_source(
     source_id: &str,
     accept_invalid_certs: bool,
 ) -> Result<SyncReport> {
-    validate_source_url(url)?;
+    validate_url(url).map_err(anyhow::Error::from)?;
     emit_progress(source_id, "downloading", 0.0, "Downloading M3U playlist");
 
     // 1. Download M3U content.

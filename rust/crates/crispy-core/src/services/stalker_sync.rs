@@ -14,32 +14,8 @@ use crate::http_client::{get_fast_client, get_shared_client};
 use crate::models::SyncReport;
 use crate::parsers::stalker;
 use crate::services::CrispyService;
+use crate::services::url_validator::validate_url;
 use crate::sync_progress::emit_progress;
-
-/// Validates that a source base URL is safe to fetch (M-067).
-///
-/// Only `http` and `https` schemes are accepted. Any other scheme
-/// is logged at `WARN` level and rejected with an error.
-fn validate_source_url(url: &str) -> Result<()> {
-    let parsed =
-        url::Url::parse(url).map_err(|e| anyhow!("Invalid source URL '{}': {}", url, e))?;
-    match parsed.scheme() {
-        "http" | "https" => Ok(()),
-        scheme => {
-            tracing::warn!(
-                security = "url_validation",
-                url = url,
-                scheme = scheme,
-                "Rejected source URL with disallowed scheme"
-            );
-            Err(anyhow!(
-                "Disallowed URL scheme '{}' in source URL '{}': only http/https are permitted",
-                scheme,
-                url
-            ))
-        }
-    }
-}
 
 // ── Constants ────────────────────────────────────────
 
@@ -125,6 +101,9 @@ async fn try_authenticate(
         "{}?type=stb&action=do_auth&login=&password=&device_id={}&device_id2={}&JsHttpRequest=1-xml",
         portal_url, device_id, device_id
     );
+    // Log only the base portal URL — the full auth_url contains login/password
+    // query parameters and must never appear in logs.
+    tracing::debug!(portal_url = %portal_url, "stalker do_auth request");
 
     let auth_resp = get_fast_client(accept_invalid_certs)
         .get(&auth_url)
@@ -293,7 +272,7 @@ pub async fn verify_stalker_portal(
     mac_address: &str,
     accept_invalid_certs: bool,
 ) -> Result<bool> {
-    validate_source_url(base_url)?;
+    validate_url(base_url).map_err(anyhow::Error::from)?;
     if !validate_mac_address(mac_address) {
         return Ok(false);
     }
@@ -323,7 +302,7 @@ pub async fn sync_stalker_source(
     source_id: &str,
     accept_invalid_certs: bool,
 ) -> Result<SyncReport> {
-    validate_source_url(base_url)?;
+    validate_url(base_url).map_err(anyhow::Error::from)?;
     let base = base_url.trim_end_matches('/').to_string();
     emit_progress(
         source_id,

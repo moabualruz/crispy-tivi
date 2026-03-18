@@ -974,6 +974,8 @@ pub(crate) fn spawn_player_handler(
                             ps.set_is_paused(false);
                             ps.set_is_buffering(false);
                             ps.set_current_title(Default::default());
+                            ps.set_current_channel_id(Default::default());
+                            ps.set_current_group(Default::default());
                         }
                     });
                 }
@@ -1103,7 +1105,16 @@ pub(crate) fn spawn_player_handler(
                 }
 
                 PlayerEvent::SetSpeed { speed } => {
-                    tracing::debug!(speed, "SetSpeed (no-op until speed property exposed)");
+                    let spd = *speed;
+                    let result = {
+                        let guard = backend.lock().unwrap();
+                        guard.as_ref().map(|b| b.set_speed(f64::from(spd)))
+                    };
+                    if let Some(Err(e)) = result {
+                        tracing::error!(error = %e, speed = spd, "SetSpeed failed");
+                    } else {
+                        tracing::debug!(speed = spd, "Playback speed set");
+                    }
                 }
             }
         }
@@ -1220,13 +1231,17 @@ pub(crate) fn spawn_data_listener(
                     }
                     let title_clone = title.clone();
                     // M-007: look up group from SharedData by matching stream url or title
-                    let group_str = {
+                    let (group_str, channel_id_str) = {
                         let channels = shared_data.channels.lock().unwrap();
-                        channels
+                        let found = channels
                             .iter()
-                            .find(|c| c.stream_url == url || c.name == title)
-                            .and_then(|c| c.channel_group.clone())
-                            .unwrap_or_default()
+                            .find(|c| c.stream_url == url || c.name == title);
+                        (
+                            found
+                                .and_then(|c| c.channel_group.clone())
+                                .unwrap_or_default(),
+                            found.map(|c| c.id.clone()).unwrap_or_default(),
+                        )
                     };
                     let ui_w = ui_weak.clone();
                     let _ = slint::invoke_from_event_loop(move || {
@@ -1234,6 +1249,7 @@ pub(crate) fn spawn_data_listener(
                             let ps = ui.global::<super::PlayerState>();
                             ps.set_current_title(SharedString::from(title_clone.as_str()));
                             ps.set_current_group(SharedString::from(group_str.as_str()));
+                            ps.set_current_channel_id(SharedString::from(channel_id_str.as_str()));
                             ps.set_is_playing(true);
                             ps.set_is_fullscreen(true);
                             ps.set_is_buffering(false);
@@ -1611,12 +1627,12 @@ fn source_info_to_slint(s: &SourceInfo) -> super::SourceData {
 pub(crate) fn build_slint_profiles(sd: &SharedData) -> Vec<super::ProfileData> {
     // Avatar colour palette — cycles by avatar_index
     const AVATAR_COLORS: &[u32] = &[
-        0xFF_4B2B_FF, // crispy brand orange/red
-        0xFF_2196F3,  // blue
-        0xFF_4CAF50,  // green
-        0xFF_9C27B0,  // purple
-        0xFF_FF9800,  // amber
-        0xFF_00BCD4,  // cyan
+        0xFF4B_2BFF, // crispy brand orange/red
+        0xFF_2196F3, // blue
+        0xFF_4CAF50, // green
+        0xFF_9C27B0, // purple
+        0xFF_FF9800, // amber
+        0xFF_00BCD4, // cyan
     ];
 
     let active_id = sd.active_profile_id.lock().unwrap().clone();
