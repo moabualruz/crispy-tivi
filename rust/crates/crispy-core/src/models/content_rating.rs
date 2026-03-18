@@ -123,7 +123,7 @@ impl ContentRating {
         }
     }
 
-    fn to_mpaa(&self) -> &'static str {
+    fn to_mpaa(self) -> &'static str {
         match self {
             ContentRating::Everyone => "G",
             ContentRating::ParentalGuidance => "PG",
@@ -151,7 +151,7 @@ impl ContentRating {
         }
     }
 
-    fn to_bbfc(&self) -> &'static str {
+    fn to_bbfc(self) -> &'static str {
         match self {
             ContentRating::Everyone => "U",
             ContentRating::ParentalGuidance => "PG",
@@ -179,7 +179,7 @@ impl ContentRating {
         }
     }
 
-    fn to_fsk(&self) -> &'static str {
+    fn to_fsk(self) -> &'static str {
         match self {
             ContentRating::Everyone => "FSK 0",
             ContentRating::ParentalGuidance => "FSK 6",
@@ -206,7 +206,7 @@ impl ContentRating {
         }
     }
 
-    fn to_pegi(&self) -> &'static str {
+    fn to_pegi(self) -> &'static str {
         match self {
             ContentRating::Everyone => "PEGI 3",
             ContentRating::ParentalGuidance => "PEGI 7",
@@ -233,7 +233,7 @@ impl ContentRating {
         }
     }
 
-    fn to_acb(&self) -> &'static str {
+    fn to_acb(self) -> &'static str {
         match self {
             ContentRating::Everyone => "G",
             ContentRating::ParentalGuidance => "PG",
@@ -260,7 +260,7 @@ impl ContentRating {
         }
     }
 
-    fn to_cbfc(&self) -> &'static str {
+    fn to_cbfc(self) -> &'static str {
         match self {
             ContentRating::Everyone => "U",
             ContentRating::ParentalGuidance => "U/A 7+",
@@ -286,7 +286,7 @@ impl ContentRating {
         }
     }
 
-    fn to_eirin(&self) -> &'static str {
+    fn to_eirin(self) -> &'static str {
         match self {
             ContentRating::Everyone => "G",
             ContentRating::ParentalGuidance | ContentRating::KidsPlus => "PG12",

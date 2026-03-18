@@ -95,10 +95,10 @@ impl ViewingTracker {
         let current_time = now.time();
 
         // ── Bedtime check ─────────────────────────────────────────────────────
-        if let Some(bedtime) = limits.bedtime {
-            if current_time >= bedtime {
-                return ViewingStatus::Bedtime;
-            }
+        if let Some(bedtime) = limits.bedtime
+            && current_time >= bedtime
+        {
+            return ViewingStatus::Bedtime;
         }
 
         // ── Daily quota check ─────────────────────────────────────────────────

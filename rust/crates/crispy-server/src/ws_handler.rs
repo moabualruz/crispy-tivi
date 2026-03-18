@@ -134,10 +134,10 @@ async fn run_connection(mut socket: WebSocket, state: WsState) {
 fn process_text_message(svc: &CrispyService, text: &str) -> String {
     // Fast path: JSON-level ping (used by WASM clients that can't send
     // raw WebSocket Ping frames).
-    if let Ok(v) = serde_json::from_str::<serde_json::Value>(text) {
-        if v.get("ping").is_some() {
-            return r#"{"pong":true}"#.to_string();
-        }
+    if let Ok(v) = serde_json::from_str::<serde_json::Value>(text)
+        && v.get("ping").is_some()
+    {
+        return r#"{"pong":true}"#.to_string();
     }
 
     // Parse into WsRequest so we can echo `id` in any error response.

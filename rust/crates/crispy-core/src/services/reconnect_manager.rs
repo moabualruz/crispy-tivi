@@ -106,11 +106,11 @@ impl ReconnectManager {
         }
 
         // Check give-up window.
-        if let Some(started) = self.started_at {
-            if started.elapsed() >= GIVE_UP_AFTER {
-                self.state = ReconnectState::GaveUp;
-                return None;
-            }
+        if let Some(started) = self.started_at
+            && started.elapsed() >= GIVE_UP_AFTER
+        {
+            self.state = ReconnectState::GaveUp;
+            return None;
         }
 
         let idx = (self.attempt as usize).saturating_sub(1);

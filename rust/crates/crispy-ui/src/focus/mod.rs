@@ -8,6 +8,3 @@
 pub mod algorithm;
 pub mod manager;
 pub mod types;
-
-pub use manager::FocusManager;
-pub use types::{Direction, FocusNode, FocusZone, Rect};

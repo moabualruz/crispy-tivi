@@ -136,7 +136,7 @@ impl PinLockout {
         }
 
         // 5+ consecutive failures → permanent lock
-        if rec.consecutive >= COOLDOWN_SCHEDULE.len() + 1 {
+        if rec.consecutive > COOLDOWN_SCHEDULE.len() {
             return Err(LockoutError::PermanentlyLocked);
         }
 

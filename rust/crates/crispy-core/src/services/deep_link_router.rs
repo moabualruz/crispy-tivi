@@ -61,10 +61,10 @@ fn path_segments(path: &str) -> Vec<&str> {
 /// Extract a query parameter value from `?key=value&…`.
 fn query_param<'a>(query: &'a str, key: &str) -> Option<&'a str> {
     for pair in query.split('&') {
-        if let Some(rest) = pair.strip_prefix(key) {
-            if let Some(val) = rest.strip_prefix('=') {
-                return Some(val);
-            }
+        if let Some(rest) = pair.strip_prefix(key)
+            && let Some(val) = rest.strip_prefix('=')
+        {
+            return Some(val);
         }
     }
     None

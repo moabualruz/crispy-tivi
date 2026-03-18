@@ -142,7 +142,7 @@ impl FeatureFlags {
 
         let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         // Re-apply in-memory kill switches to the freshly loaded flags.
-        for (k, _) in &guard.kill_switches {
+        for k in guard.kill_switches.keys() {
             if let Some(f) = flags.get_mut(k) {
                 f.killed = true;
             }
@@ -159,10 +159,10 @@ impl FeatureFlags {
     pub fn kill_switch(&self, flag: &str) {
         let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         guard.kill_switches.insert(flag.to_string(), true);
-        if let Some(cache) = &mut guard.cache {
-            if let Some(f) = cache.flags.get_mut(flag) {
-                f.killed = true;
-            }
+        if let Some(cache) = &mut guard.cache
+            && let Some(f) = cache.flags.get_mut(flag)
+        {
+            f.killed = true;
         }
     }
 
@@ -170,10 +170,10 @@ impl FeatureFlags {
     pub fn unkill(&self, flag: &str) {
         let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         guard.kill_switches.remove(flag);
-        if let Some(cache) = &mut guard.cache {
-            if let Some(f) = cache.flags.get_mut(flag) {
-                f.killed = false;
-            }
+        if let Some(cache) = &mut guard.cache
+            && let Some(f) = cache.flags.get_mut(flag)
+        {
+            f.killed = false;
         }
     }
 

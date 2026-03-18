@@ -41,7 +41,7 @@ pub fn is_radio_channel(channel: &Channel) -> bool {
 }
 
 /// Filter `channels` returning only those identified as radio/audio streams.
-pub fn get_radio_channels<'a>(channels: &'a [Channel]) -> Vec<&'a Channel> {
+pub fn get_radio_channels(channels: &[Channel]) -> Vec<&Channel> {
     channels.iter().filter(|c| is_radio_channel(c)).collect()
 }
 

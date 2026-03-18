@@ -186,13 +186,12 @@ impl UpdateChecker {
             .skipped_version
             .clone();
 
-        if !is_forced {
-            if let Some(skip) = &skipped {
-                if *skip == version_str {
-                    self.record_checked(None);
-                    return None;
-                }
-            }
+        if !is_forced
+            && let Some(skip) = &skipped
+            && *skip == version_str
+        {
+            self.record_checked(None);
+            return None;
         }
 
         let info = UpdateInfo {

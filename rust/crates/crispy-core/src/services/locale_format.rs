@@ -39,12 +39,11 @@ pub fn format_number(n: f64, locale: &str) -> String {
     let is_ar = locale.starts_with("ar");
 
     // Decide decimal places based on whether there's a fractional part.
-    let formatted = if n.fract() == 0.0 {
+    if n.fract() == 0.0 {
         format_integer(n as i64, is_ar)
     } else {
         format_decimal(n, is_ar)
-    };
-    formatted
+    }
 }
 
 fn format_integer(n: i64, arabic: bool) -> String {
@@ -82,7 +81,7 @@ fn insert_thousands(n: u64, sep: &str) -> String {
     let len = chars.len();
     let mut out = String::with_capacity(s.len() + (len / 3) * sep.len());
     for (i, ch) in chars.iter().enumerate() {
-        if i > 0 && (len - i) % 3 == 0 {
+        if i > 0 && (len - i).is_multiple_of(3) {
             out.push_str(sep);
         }
         out.push(*ch);

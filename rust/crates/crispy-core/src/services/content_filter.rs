@@ -77,17 +77,17 @@ pub fn is_blocked(content: &ContentItem, policy: &ProfileContentPolicy) -> bool 
     }
 
     // ── Per-channel block ─────────────────────────────────────────────────────
-    if let Some(ch_id) = &content.channel_id {
-        if policy.blocked_channel_ids.contains(ch_id.as_str()) {
-            return true;
-        }
+    if let Some(ch_id) = &content.channel_id
+        && policy.blocked_channel_ids.contains(ch_id.as_str())
+    {
+        return true;
     }
 
     // ── Per-VOD block ─────────────────────────────────────────────────────────
-    if let Some(vod_id) = &content.vod_item_id {
-        if policy.blocked_vod_ids.contains(vod_id.as_str()) {
-            return true;
-        }
+    if let Some(vod_id) = &content.vod_item_id
+        && policy.blocked_vod_ids.contains(vod_id.as_str())
+    {
+        return true;
     }
 
     // ── Per-genre block (case-insensitive both sides) ─────────────────────────

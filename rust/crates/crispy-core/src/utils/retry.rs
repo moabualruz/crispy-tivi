@@ -8,7 +8,6 @@
 //! if jitter: delay += rand(0..delay * 0.25)
 //! ```
 
-use std::future::Future;
 use std::time::Duration;
 
 /// Configuration for retry-with-backoff behaviour.
@@ -60,7 +59,7 @@ impl RetryConfig {
                 .unwrap_or_default()
                 .subsec_nanos() as u64;
             let pseudo = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
-            let jitter_ms = (pseudo % (capped_ms / 4 + 1)) as u64;
+            let jitter_ms = pseudo % (capped_ms / 4 + 1);
             capped_ms + jitter_ms
         } else {
             capped_ms

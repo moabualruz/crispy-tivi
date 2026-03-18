@@ -74,16 +74,16 @@ impl OfflineOutbox {
         // For position updates, apply last-write-wins by
         // replacing any existing unsynced entry for the same
         // content_id before inserting the new one.
-        if action_type == "position_update" {
-            if let Some(content_id) = payload.get("content_id").and_then(|v| v.as_str()) {
-                conn.execute(
-                    "DELETE FROM db_offline_outbox \
-                     WHERE action_type = 'position_update' \
-                       AND synced = 0 \
-                       AND json_extract(payload, '$.content_id') = ?1",
-                    params![content_id],
-                )?;
-            }
+        if action_type == "position_update"
+            && let Some(content_id) = payload.get("content_id").and_then(|v| v.as_str())
+        {
+            conn.execute(
+                "DELETE FROM db_offline_outbox \
+                 WHERE action_type = 'position_update' \
+                   AND synced = 0 \
+                   AND json_extract(payload, '$.content_id') = ?1",
+                params![content_id],
+            )?;
         }
 
         conn.execute(

@@ -42,6 +42,7 @@ pub enum I18nError {
 ///
 /// Bundles are stored behind an `Arc<RwLock<…>>` so the service can
 /// be cloned and shared across threads without copying message data.
+///
 #[derive(Clone)]
 pub struct I18nService {
     inner: Arc<RwLock<I18nInner>>,
@@ -60,6 +61,9 @@ impl I18nService {
     /// Create a new, empty service. No messages are available until
     /// `load_locale` is called.
     pub fn new() -> Self {
+        // FluentBundle<FluentResource> is not Send/Sync; the RwLock wrapper
+        // provides the required synchronisation — Arc usage is intentional.
+        #[allow(clippy::arc_with_non_send_sync)]
         Self {
             inner: Arc::new(RwLock::new(I18nInner {
                 bundles: HashMap::new(),

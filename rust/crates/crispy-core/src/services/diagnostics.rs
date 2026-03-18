@@ -142,6 +142,9 @@ impl DiagnosticsService {
     /// Compute and record health for a source from raw sync statistics.
     ///
     /// `errors` / `total_syncs` drive the `SourceStatus` heuristic.
+    // Nine parameters are intentional: each maps to a distinct source health
+    // field with no natural grouping that wouldn't obscure the call sites.
+    #[allow(clippy::too_many_arguments)]
     pub fn record_source_stats(
         &self,
         source_id: impl Into<String>,
