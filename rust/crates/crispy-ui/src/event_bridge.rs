@@ -468,6 +468,9 @@ pub(crate) fn spawn_data_listener(
                 DataEvent::ChannelsReady { .. }
                     | DataEvent::MoviesReady { .. }
                     | DataEvent::SeriesReady { .. }
+                    | DataEvent::ChannelsAppend { .. }
+                    | DataEvent::MoviesAppend { .. }
+                    | DataEvent::SeriesAppend { .. }
             );
 
             match event {
@@ -782,7 +785,7 @@ async fn load_images_for_ui(
     ui_weak: &slint::Weak<super::AppWindow>,
     image_cache: &Arc<crate::image_cache::ImageCache>,
 ) {
-    // Collect URLs from the current Slint models
+    // Collect URLs from the current Slint models (only items missing images)
     let (tx, rx) = std::sync::mpsc::channel();
     let ui_w = ui_weak.clone();
     let _ = slint::invoke_from_event_loop(move || {
@@ -796,7 +799,7 @@ async fn load_images_for_ui(
             .get_channels()
             .iter()
             .enumerate()
-            .filter(|(_, c)| !c.logo_url.is_empty())
+            .filter(|(_, c)| !c.logo_url.is_empty() && c.logo.size().width == 0)
             .map(|(i, c)| (i, c.logo_url.to_string()))
             .collect();
 
@@ -804,7 +807,7 @@ async fn load_images_for_ui(
             .get_movies()
             .iter()
             .enumerate()
-            .filter(|(_, v)| !v.poster_url.is_empty())
+            .filter(|(_, v)| !v.poster_url.is_empty() && v.poster.size().width == 0)
             .map(|(i, v)| (i, v.poster_url.to_string()))
             .collect();
 
@@ -812,7 +815,7 @@ async fn load_images_for_ui(
             .get_series()
             .iter()
             .enumerate()
-            .filter(|(_, v)| !v.poster_url.is_empty())
+            .filter(|(_, v)| !v.poster_url.is_empty() && v.poster.size().width == 0)
             .map(|(i, v)| (i, v.poster_url.to_string()))
             .collect();
 
@@ -823,55 +826,32 @@ async fn load_images_for_ui(
         return;
     };
 
-    // Download images with bounded concurrency (8 concurrent downloads)
-    let semaphore = Arc::new(tokio::sync::Semaphore::new(8));
+    // Download images with high concurrency (32 concurrent downloads)
+    let semaphore = Arc::new(tokio::sync::Semaphore::new(32));
 
-    // Channel logos
-    for (idx, url) in channel_urls {
-        let cache = Arc::clone(image_cache);
-        let sem = Arc::clone(&semaphore);
-        let ui_w = ui_weak.clone();
-        tokio::spawn(async move {
-            let _permit = sem.acquire().await;
-            if let Some(buf) = cache.get_image_buffer(&url).await {
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(ui) = ui_w.upgrade() {
-                        let app = ui.global::<super::AppState>();
-                        let model = app.get_channels();
-                        if let Some(mut item) = model.row_data(idx) {
-                            item.logo = slint::Image::from_rgba8(buf);
-                            model.set_row_data(idx, item);
-                        }
-                    }
-                });
-            }
-        });
+    // Helper: spawn image download + UI update for a model type
+    enum ModelKind {
+        Channel,
+        Movie,
+        Series,
     }
 
-    // Movie posters
-    for (idx, url) in movie_urls {
-        let cache = Arc::clone(image_cache);
-        let sem = Arc::clone(&semaphore);
-        let ui_w = ui_weak.clone();
-        tokio::spawn(async move {
-            let _permit = sem.acquire().await;
-            if let Some(buf) = cache.get_image_buffer(&url).await {
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(ui) = ui_w.upgrade() {
-                        let app = ui.global::<super::AppState>();
-                        let model = app.get_movies();
-                        if let Some(mut item) = model.row_data(idx) {
-                            item.poster = slint::Image::from_rgba8(buf);
-                            model.set_row_data(idx, item);
-                        }
-                    }
-                });
-            }
-        });
-    }
+    let all_tasks: Vec<(usize, String, ModelKind)> = channel_urls
+        .into_iter()
+        .map(|(i, u)| (i, u, ModelKind::Channel))
+        .chain(
+            movie_urls
+                .into_iter()
+                .map(|(i, u)| (i, u, ModelKind::Movie)),
+        )
+        .chain(
+            series_urls
+                .into_iter()
+                .map(|(i, u)| (i, u, ModelKind::Series)),
+        )
+        .collect();
 
-    // Series posters
-    for (idx, url) in series_urls {
+    for (idx, url, kind) in all_tasks {
         let cache = Arc::clone(image_cache);
         let sem = Arc::clone(&semaphore);
         let ui_w = ui_weak.clone();
@@ -881,11 +861,32 @@ async fn load_images_for_ui(
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(ui) = ui_w.upgrade() {
                         let app = ui.global::<super::AppState>();
-                        let model = app.get_series();
-                        if let Some(mut item) = model.row_data(idx) {
-                            item.poster = slint::Image::from_rgba8(buf);
-                            model.set_row_data(idx, item);
+                        let img = slint::Image::from_rgba8(buf);
+                        match kind {
+                            ModelKind::Channel => {
+                                let model = app.get_channels();
+                                if let Some(mut item) = model.row_data(idx) {
+                                    item.logo = img;
+                                    model.set_row_data(idx, item);
+                                }
+                            }
+                            ModelKind::Movie => {
+                                let model = app.get_movies();
+                                if let Some(mut item) = model.row_data(idx) {
+                                    item.poster = img;
+                                    model.set_row_data(idx, item);
+                                }
+                            }
+                            ModelKind::Series => {
+                                let model = app.get_series();
+                                if let Some(mut item) = model.row_data(idx) {
+                                    item.poster = img;
+                                    model.set_row_data(idx, item);
+                                }
+                            }
                         }
+                        // Force UI repaint after image update
+                        ui.window().request_redraw();
                     }
                 });
             }

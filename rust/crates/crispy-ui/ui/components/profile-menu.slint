@@ -19,12 +19,15 @@ export component ProfileMenu inherits Rectangle {
     x: parent.width - self.width - Theme.spacing-xl;
     y: Theme.top-nav-height + Theme.spacing-sm;
     width: 320px;
-    height: 280px;
+    height: 240px;
     border-radius: Theme.radius-lg;
     background: Theme.surface;
     border-width: 1px;
     border-color: Theme.border-subtle;
     clip: true;
+
+    // Absorb clicks so they don't pass through to the dimming layer
+    TouchArea { width: 100%; height: 100%; }
 
     // Glassmorphism effect overlay
     Rectangle {
@@ -40,27 +43,26 @@ export component ProfileMenu inherits Rectangle {
       HorizontalLayout {
         alignment: start;
         spacing: Theme.spacing-md;
-        
+
         // Avatar
         Rectangle {
           width: 56px; height: 56px;
           border-radius: 28px;
           background: Theme.accent;
-          Text { 
-            text: "P"; 
-            color: Theme.background; 
-            font-weight: 700; 
+          Text {
+            text: "P";
+            color: Theme.background;
+            font-weight: 700;
             font-size: 20px;
             font-family: Theme.font-display;
-            horizontal-alignment: center; 
-            vertical-alignment: center; 
+            horizontal-alignment: center;
+            vertical-alignment: center;
           }
         }
 
         VerticalLayout {
           alignment: center;
           Text { text: "Profile 1"; color: Theme.text-primary; font-weight: 700; font-family: Theme.font-display; font-size: 18px; }
-          Text { text: "Switch Profile..."; color: Theme.text-secondary; font-size: 14px; font-family: Theme.font-body; }
         }
       }
 
@@ -69,15 +71,7 @@ export component ProfileMenu inherits Rectangle {
       // Menu Actions
       VerticalLayout {
         spacing: Theme.spacing-md;
-        
-        ActionButton {
-          label: "Manage Profiles";
-          clicked => {
-            // AppState.active-screen = 8; // Switcher (Phase 4)
-            root.close();
-          }
-        }
-        
+
         ActionButton {
           label: "Settings";
           clicked => {

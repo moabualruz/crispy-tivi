@@ -144,11 +144,11 @@ export component SettingsScreen inherits Rectangle {
           padding-bottom: Theme.spacing-2xl;
           spacing: Theme.spacing-lg;
 
-          // Header
+          // Header with close button
           HorizontalLayout {
             spacing: Theme.spacing-md;
-            alignment: start;
-            
+            alignment: space-between;
+
             Text {
               text: "Settings";
               color: Theme.text-primary;
@@ -156,6 +156,43 @@ export component SettingsScreen inherits Rectangle {
               font-size: Theme.font-size-h2;
               font-weight: 700;
               vertical-alignment: center;
+              horizontal-stretch: 1;
+            }
+
+            // Close button — returns to Home
+            close-btn := FocusScope {
+              width: 36px;
+              height: 36px;
+              key-pressed(event) => {
+                if event.text == Key.Return || event.text == Key.Escape {
+                  AppState.active-screen = 0;
+                  AppState.navigate(0);
+                  return accept;
+                }
+                return reject;
+              }
+              Rectangle {
+                width: 100%; height: 100%;
+                border-radius: 18px;
+                background: close-btn.has-focus ? Theme.surface-glass : transparent;
+                border-width: close-ta.has-hover ? 1px : 0px;
+                border-color: Theme.border-subtle;
+
+                Text {
+                  text: "✕";
+                  color: close-ta.has-hover ? Theme.text-primary : Theme.text-secondary;
+                  font-size: 18px;
+                  horizontal-alignment: center;
+                  vertical-alignment: center;
+                }
+
+                close-ta := TouchArea {
+                  clicked => {
+                    AppState.active-screen = 0;
+                    AppState.navigate(0);
+                  }
+                }
+              }
             }
           }
 

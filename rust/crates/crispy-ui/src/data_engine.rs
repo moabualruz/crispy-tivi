@@ -650,8 +650,8 @@ impl DataEngine {
             }
 
             NormalEvent::CompleteOnboarding => {
-                if let Err(e) = self.provider.set_setting("onboarding_complete", "true") {
-                    error!(error = %e, "Failed to persist onboarding_complete");
+                if let Err(e) = self.provider.set_setting("onboarding_done", "true") {
+                    error!(error = %e, "Failed to persist onboarding_done");
                 }
                 self.send(DataEvent::OnboardingDismissed);
                 self.load_all_into_cache().await;
