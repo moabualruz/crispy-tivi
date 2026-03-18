@@ -198,21 +198,28 @@ export component LiveTvScreen inherits Rectangle {
         }
       }
 
-      // Channel list — ScrollView with scrolled() for window shifting
+      // Channel list — ScrollView with viewport-y compensation on shift
       ScrollView {
         vertical-stretch: 1;
 
+        // Approx item height: 56px card + spacing
+        property <length> item-stride: 56px + Theme.spacing-xs;
+
         scrolled() => {
-          // Near bottom: shift window forward by half-window
+          // Near bottom: shift window forward
           if self.viewport-height > 0px
-            && (-self.viewport-y + self.visible-height > self.viewport-height - 500px) {
-            AppState.scroll-channels(30);
+            && (-self.viewport-y + self.visible-height > self.viewport-height - 300px) {
+            AppState.scroll-channels(15);
+            // Compensate viewport for items removed from top
+            self.viewport-y = self.viewport-y + 15 * self.item-stride;
           }
-          // Near top: shift window backward by half-window
+          // Near top: shift window backward
           if self.viewport-y < 0px
-            && (-self.viewport-y < 500px)
+            && (-self.viewport-y < 300px)
             && AppState.channel-window-start > 0 {
-            AppState.scroll-channels(-30);
+            AppState.scroll-channels(-15);
+            // Compensate viewport for items added at top
+            self.viewport-y = self.viewport-y - 15 * self.item-stride;
           }
         }
 

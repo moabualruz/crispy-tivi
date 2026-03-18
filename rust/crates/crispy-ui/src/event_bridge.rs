@@ -6,13 +6,14 @@
 //! 3. `spawn_data_listener()` — maps DataEvents to Slint properties
 //! 4. `apply_data_event()` — pure DataEvent → Slint property mapping
 
+use std::rc::Rc;
 use std::sync::{
     Arc, Mutex,
     atomic::{AtomicBool, Ordering},
 };
 
 use crispy_player::PlayerBackend;
-use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
+use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use tokio::sync::mpsc;
 
 use crate::events::{
@@ -21,7 +22,7 @@ use crate::events::{
 };
 
 // ── Virtual scroll constants ────────────────────────────────────────────────
-const CHANNEL_WINDOW: usize = 30;
+const CHANNEL_WINDOW: usize = 15;
 const VOD_WINDOW: usize = 45;
 
 // ── Shared data stores ──────────────────────────────────────────────────────
@@ -40,49 +41,6 @@ impl SharedData {
             series: Mutex::new(Arc::new(Vec::new())),
         }
     }
-}
-
-/// Set VecModel to a windowed slice from the shared data store.
-fn refresh_channel_window(app: &super::AppState, data: &[ChannelInfo], start: usize) {
-    let end = (start + CHANNEL_WINDOW * 3).min(data.len());
-    let s = start.min(data.len());
-    let items: Vec<super::ChannelData> = data[s..end].iter().map(channel_info_to_slint).collect();
-    tracing::debug!(
-        start = s,
-        end,
-        window_items = items.len(),
-        total = data.len(),
-        "[SCROLL] refresh_channel_window"
-    );
-    app.set_channels(ModelRc::new(VecModel::from(items)));
-}
-
-fn refresh_movie_window(app: &super::AppState, data: &[VodInfo], start: usize) {
-    let end = (start + VOD_WINDOW * 3).min(data.len());
-    let s = start.min(data.len());
-    let items: Vec<super::VodData> = data[s..end].iter().map(vod_info_to_slint).collect();
-    tracing::debug!(
-        start = s,
-        end,
-        window_items = items.len(),
-        total = data.len(),
-        "[SCROLL] refresh_movie_window"
-    );
-    app.set_movies(ModelRc::new(VecModel::from(items)));
-}
-
-fn refresh_series_window(app: &super::AppState, data: &[VodInfo], start: usize) {
-    let end = (start + VOD_WINDOW * 3).min(data.len());
-    let s = start.min(data.len());
-    let items: Vec<super::VodData> = data[s..end].iter().map(vod_info_to_slint).collect();
-    tracing::debug!(
-        start = s,
-        end,
-        window_items = items.len(),
-        total = data.len(),
-        "[SCROLL] refresh_series_window"
-    );
-    app.set_series(ModelRc::new(VecModel::from(items)));
 }
 
 // ── wire ─────────────────────────────────────────────────────────────────────
@@ -162,6 +120,19 @@ pub(crate) fn wire(
     // ── AppState callbacks ────────────────────────────────────────────────
 
     let app = ui.global::<super::AppState>();
+
+    // ── Persistent VecModels (Rc, UI-thread only) ────────────────────
+    // Created ONCE. Scroll callbacks mutate via push/remove/insert.
+    // Setting ModelRc::from(rc.clone()) means Slint keeps the SAME model
+    // instance — viewport-y is never reset by model replacement.
+    let channel_model: Rc<VecModel<super::ChannelData>> = Rc::new(VecModel::default());
+    app.set_channels(ModelRc::from(channel_model.clone()));
+
+    let movie_model: Rc<VecModel<super::VodData>> = Rc::new(VecModel::default());
+    app.set_movies(ModelRc::from(movie_model.clone()));
+
+    let series_model: Rc<VecModel<super::VodData>> = Rc::new(VecModel::default());
+    app.set_series(ModelRc::from(series_model.clone()));
 
     app.on_navigate({
         let tx = high_tx.clone();
@@ -314,42 +285,81 @@ pub(crate) fn wire(
         }
     });
 
-    // ── Scroll callbacks: shift VecModel window + load images ─────────
+    // ── Scroll callbacks: incremental Rc<VecModel> push/remove ─────────
     app.on_scroll_channels({
         let loader = image_loader.clone();
         let ui_w = ui.as_weak();
         let sd = Arc::clone(&shared_data);
+        let model = Rc::clone(&channel_model);
         move |delta| {
             tracing::debug!(delta, "[SCROLL] scroll-channels FIRED");
             let Some(ui) = ui_w.upgrade() else { return };
             let app = ui.global::<super::AppState>();
             let data = sd.channels.lock().unwrap();
             if data.is_empty() {
+                while model.row_count() > 0 {
+                    model.remove(model.row_count() - 1);
+                }
                 return;
             }
-            let old_start = app.get_channel_window_start() as usize;
-            let max_start = data.len().saturating_sub(CHANNEL_WINDOW);
-            let new_start = if delta > 0 {
-                (old_start + delta as usize).min(max_start)
-            } else if delta < 0 {
-                old_start.saturating_sub((-delta) as usize)
+
+            let window_size = CHANNEL_WINDOW * 3;
+
+            if delta == 0 {
+                // Full reset: clear and repopulate
+                let start = app.get_channel_window_start() as usize;
+                let end = (start + window_size).min(data.len());
+                while model.row_count() > 0 {
+                    model.remove(model.row_count() - 1);
+                }
+                for item in data[start..end].iter() {
+                    model.push(channel_info_to_slint(item));
+                }
+                tracing::debug!(start, end, count = end - start, "[SCROLL] channels RESET");
             } else {
-                old_start // delta=0: initial load, no shift
-            };
-            if new_start != old_start {
-                tracing::debug!(
-                    old_start,
-                    new_start,
-                    max_start,
-                    "[SCROLL] channels window SHIFT"
-                );
-                app.set_channel_window_start(new_start as i32);
-                refresh_channel_window(&app, &data, new_start);
-            } else {
-                tracing::debug!(old_start, "[SCROLL] channels no shift needed");
+                let old_start = app.get_channel_window_start() as usize;
+                let max_start = data.len().saturating_sub(CHANNEL_WINDOW);
+                let new_start = if delta > 0 {
+                    (old_start + delta as usize).min(max_start)
+                } else {
+                    old_start.saturating_sub((-delta) as usize)
+                };
+
+                if new_start != old_start {
+                    let old_end = (old_start + window_size).min(data.len());
+                    let new_end = (new_start + window_size).min(data.len());
+
+                    if new_start > old_start {
+                        // Forward: push new items at end, then remove old from start
+                        for i in old_end..new_end {
+                            model.push(channel_info_to_slint(&data[i]));
+                        }
+                        let remove_count = (new_start - old_start).min(model.row_count());
+                        for _ in 0..remove_count {
+                            model.remove(0);
+                        }
+                    } else {
+                        // Backward: insert at start, remove from end
+                        for i in (new_start..old_start).rev() {
+                            model.insert(0, channel_info_to_slint(&data[i]));
+                        }
+                        while model.row_count() > new_end.saturating_sub(new_start) {
+                            model.remove(model.row_count() - 1);
+                        }
+                    }
+
+                    app.set_channel_window_start(new_start as i32);
+                    tracing::debug!(
+                        old_start,
+                        new_start,
+                        max_start,
+                        "[SCROLL] channels window SHIFT"
+                    );
+                } else {
+                    tracing::debug!(old_start, "[SCROLL] channels no shift needed");
+                }
             }
             drop(data);
-            // Load images for ALL items in the VecModel window (they're the rendered ones)
             tracing::debug!("[IMG] channels image load for VecModel window");
             loader.load_channels(&ui_w, None);
         }
@@ -359,32 +369,69 @@ pub(crate) fn wire(
         let loader = image_loader.clone();
         let ui_w = ui.as_weak();
         let sd = Arc::clone(&shared_data);
+        let model = Rc::clone(&movie_model);
         move |delta| {
             tracing::debug!(delta, "[SCROLL] scroll-movies FIRED");
             let Some(ui) = ui_w.upgrade() else { return };
             let app = ui.global::<super::AppState>();
             let data = sd.movies.lock().unwrap();
             if data.is_empty() {
+                while model.row_count() > 0 {
+                    model.remove(model.row_count() - 1);
+                }
                 return;
             }
-            let old_start = app.get_movie_window_start() as usize;
-            let max_start = data.len().saturating_sub(VOD_WINDOW);
-            let new_start = if delta > 0 {
-                (old_start + delta as usize).min(max_start)
-            } else if delta < 0 {
-                old_start.saturating_sub((-delta) as usize)
+
+            let window_size = VOD_WINDOW * 3;
+
+            if delta == 0 {
+                let start = app.get_movie_window_start() as usize;
+                let end = (start + window_size).min(data.len());
+                while model.row_count() > 0 {
+                    model.remove(model.row_count() - 1);
+                }
+                for item in data[start..end].iter() {
+                    model.push(vod_info_to_slint(item));
+                }
+                tracing::debug!(start, end, count = end - start, "[SCROLL] movies RESET");
             } else {
-                old_start // delta=0: initial load, no shift
-            };
-            if new_start != old_start {
-                tracing::debug!(
-                    old_start,
-                    new_start,
-                    max_start,
-                    "[SCROLL] movies window SHIFT"
-                );
-                app.set_movie_window_start(new_start as i32);
-                refresh_movie_window(&app, &data, new_start);
+                let old_start = app.get_movie_window_start() as usize;
+                let max_start = data.len().saturating_sub(VOD_WINDOW);
+                let new_start = if delta > 0 {
+                    (old_start + delta as usize).min(max_start)
+                } else {
+                    old_start.saturating_sub((-delta) as usize)
+                };
+
+                if new_start != old_start {
+                    let old_end = (old_start + window_size).min(data.len());
+                    let new_end = (new_start + window_size).min(data.len());
+
+                    if new_start > old_start {
+                        for i in old_end..new_end {
+                            model.push(vod_info_to_slint(&data[i]));
+                        }
+                        let remove_count = (new_start - old_start).min(model.row_count());
+                        for _ in 0..remove_count {
+                            model.remove(0);
+                        }
+                    } else {
+                        for i in (new_start..old_start).rev() {
+                            model.insert(0, vod_info_to_slint(&data[i]));
+                        }
+                        while model.row_count() > new_end.saturating_sub(new_start) {
+                            model.remove(model.row_count() - 1);
+                        }
+                    }
+
+                    app.set_movie_window_start(new_start as i32);
+                    tracing::debug!(
+                        old_start,
+                        new_start,
+                        max_start,
+                        "[SCROLL] movies window SHIFT"
+                    );
+                }
             }
             drop(data);
             tracing::debug!("[IMG] movies image load for VecModel window");
@@ -396,32 +443,69 @@ pub(crate) fn wire(
         let loader = image_loader.clone();
         let ui_w = ui.as_weak();
         let sd = Arc::clone(&shared_data);
+        let model = Rc::clone(&series_model);
         move |delta| {
             tracing::debug!(delta, "[SCROLL] scroll-series FIRED");
             let Some(ui) = ui_w.upgrade() else { return };
             let app = ui.global::<super::AppState>();
             let data = sd.series.lock().unwrap();
             if data.is_empty() {
+                while model.row_count() > 0 {
+                    model.remove(model.row_count() - 1);
+                }
                 return;
             }
-            let old_start = app.get_series_window_start() as usize;
-            let max_start = data.len().saturating_sub(VOD_WINDOW);
-            let new_start = if delta > 0 {
-                (old_start + delta as usize).min(max_start)
-            } else if delta < 0 {
-                old_start.saturating_sub((-delta) as usize)
+
+            let window_size = VOD_WINDOW * 3;
+
+            if delta == 0 {
+                let start = app.get_series_window_start() as usize;
+                let end = (start + window_size).min(data.len());
+                while model.row_count() > 0 {
+                    model.remove(model.row_count() - 1);
+                }
+                for item in data[start..end].iter() {
+                    model.push(vod_info_to_slint(item));
+                }
+                tracing::debug!(start, end, count = end - start, "[SCROLL] series RESET");
             } else {
-                old_start // delta=0: initial load, no shift
-            };
-            if new_start != old_start {
-                tracing::debug!(
-                    old_start,
-                    new_start,
-                    max_start,
-                    "[SCROLL] series window SHIFT"
-                );
-                app.set_series_window_start(new_start as i32);
-                refresh_series_window(&app, &data, new_start);
+                let old_start = app.get_series_window_start() as usize;
+                let max_start = data.len().saturating_sub(VOD_WINDOW);
+                let new_start = if delta > 0 {
+                    (old_start + delta as usize).min(max_start)
+                } else {
+                    old_start.saturating_sub((-delta) as usize)
+                };
+
+                if new_start != old_start {
+                    let old_end = (old_start + window_size).min(data.len());
+                    let new_end = (new_start + window_size).min(data.len());
+
+                    if new_start > old_start {
+                        for i in old_end..new_end {
+                            model.push(vod_info_to_slint(&data[i]));
+                        }
+                        let remove_count = (new_start - old_start).min(model.row_count());
+                        for _ in 0..remove_count {
+                            model.remove(0);
+                        }
+                    } else {
+                        for i in (new_start..old_start).rev() {
+                            model.insert(0, vod_info_to_slint(&data[i]));
+                        }
+                        while model.row_count() > new_end.saturating_sub(new_start) {
+                            model.remove(model.row_count() - 1);
+                        }
+                    }
+
+                    app.set_series_window_start(new_start as i32);
+                    tracing::debug!(
+                        old_start,
+                        new_start,
+                        max_start,
+                        "[SCROLL] series window SHIFT"
+                    );
+                }
             }
             drop(data);
             tracing::debug!("[IMG] series image load for VecModel window");
@@ -711,9 +795,8 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             total,
             ..
         } => {
-            // Windowed: only first page, scroll callbacks load more
+            // Windowed: scroll callback (delta=0) does full reset
             app.set_channel_window_start(0);
-            refresh_channel_window(&app, &channels, 0);
             app.set_total_channel_count(total);
             // Trigger scroll callback so images load for initial viewport
             app.invoke_scroll_channels(0);
@@ -739,7 +822,6 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             ..
         } => {
             app.set_movie_window_start(0);
-            refresh_movie_window(&app, &movies, 0);
             app.set_total_movie_count(total);
             // Trigger scroll callback so images load for initial viewport
             app.invoke_scroll_movies(0);
@@ -765,7 +847,6 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             ..
         } => {
             app.set_series_window_start(0);
-            refresh_series_window(&app, &series, 0);
             app.set_total_series_count(total);
             // Trigger scroll callback so images load for initial viewport
             app.invoke_scroll_series(0);
