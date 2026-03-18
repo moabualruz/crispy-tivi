@@ -187,7 +187,6 @@ fn main() -> anyhow::Result<()> {
         data_rx,
         backend_shared,
         Arc::clone(&render_context_ready),
-        img_loader,
         shared_data,
     );
 

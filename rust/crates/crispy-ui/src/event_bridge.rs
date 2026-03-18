@@ -288,9 +288,11 @@ pub(crate) fn wire(
     let series_vec = Rc::new(VecModel::<super::VodData>::default());
     app.set_series(ModelRc::from(series_vec.clone()));
 
+    // ── Refresh callbacks: clear + load first page from SharedData ────
     app.on_refresh_channels({
         let model = channel_vec.clone();
         let sd = Arc::clone(&shared_data);
+        let loader = image_loader.clone();
         let app_w = ui.as_weak();
         move || {
             while model.row_count() > 0 {
@@ -307,21 +309,14 @@ pub(crate) fn wire(
                 ui.global::<super::AppState>()
                     .set_has_more_channels(has_more);
             }
-            // Auto-chain: schedule next chunk load
-            if has_more {
-                let w = app_w.clone();
-                slint::Timer::single_shot(std::time::Duration::from_millis(16), move || {
-                    if let Some(ui) = w.upgrade() {
-                        ui.global::<super::AppState>().invoke_load_more_channels();
-                    }
-                });
-            }
+            loader.load_channels(&app_w, Some((0, CHUNK_SIZE)));
         }
     });
 
     app.on_refresh_movies({
         let model = movie_vec.clone();
         let sd = Arc::clone(&shared_data);
+        let loader = image_loader.clone();
         let app_w = ui.as_weak();
         move || {
             while model.row_count() > 0 {
@@ -337,20 +332,14 @@ pub(crate) fn wire(
             if let Some(ui) = app_w.upgrade() {
                 ui.global::<super::AppState>().set_has_more_movies(has_more);
             }
-            if has_more {
-                let w = app_w.clone();
-                slint::Timer::single_shot(std::time::Duration::from_millis(16), move || {
-                    if let Some(ui) = w.upgrade() {
-                        ui.global::<super::AppState>().invoke_load_more_movies();
-                    }
-                });
-            }
+            loader.load_movies(&app_w, Some((0, CHUNK_SIZE)));
         }
     });
 
     app.on_refresh_series({
         let model = series_vec.clone();
         let sd = Arc::clone(&shared_data);
+        let loader = image_loader.clone();
         let app_w = ui.as_weak();
         move || {
             while model.row_count() > 0 {
@@ -366,17 +355,11 @@ pub(crate) fn wire(
             if let Some(ui) = app_w.upgrade() {
                 ui.global::<super::AppState>().set_has_more_series(has_more);
             }
-            if has_more {
-                let w = app_w.clone();
-                slint::Timer::single_shot(std::time::Duration::from_millis(16), move || {
-                    if let Some(ui) = w.upgrade() {
-                        ui.global::<super::AppState>().invoke_load_more_series();
-                    }
-                });
-            }
+            loader.load_series(&app_w, Some((0, CHUNK_SIZE)));
         }
     });
 
+    // ── Load-more callbacks: append next page on scroll demand ──────
     app.on_load_more_channels({
         let model = channel_vec.clone();
         let sd = Arc::clone(&shared_data);
@@ -399,15 +382,6 @@ pub(crate) fn wire(
                     .set_has_more_channels(has_more);
             }
             loader.load_channels(&app_w, Some((current, CHUNK_SIZE)));
-            // Auto-chain next chunk
-            if has_more {
-                let w = app_w.clone();
-                slint::Timer::single_shot(std::time::Duration::from_millis(16), move || {
-                    if let Some(ui) = w.upgrade() {
-                        ui.global::<super::AppState>().invoke_load_more_channels();
-                    }
-                });
-            }
         }
     });
 
@@ -432,14 +406,6 @@ pub(crate) fn wire(
                 ui.global::<super::AppState>().set_has_more_movies(has_more);
             }
             loader.load_movies(&app_w, Some((current, CHUNK_SIZE)));
-            if has_more {
-                let w = app_w.clone();
-                slint::Timer::single_shot(std::time::Duration::from_millis(16), move || {
-                    if let Some(ui) = w.upgrade() {
-                        ui.global::<super::AppState>().invoke_load_more_movies();
-                    }
-                });
-            }
         }
     });
 
@@ -464,21 +430,47 @@ pub(crate) fn wire(
                 ui.global::<super::AppState>().set_has_more_series(has_more);
             }
             loader.load_series(&app_w, Some((current, CHUNK_SIZE)));
-            if has_more {
-                let w = app_w.clone();
-                slint::Timer::single_shot(std::time::Duration::from_millis(16), move || {
-                    if let Some(ui) = w.upgrade() {
-                        ui.global::<super::AppState>().invoke_load_more_series();
-                    }
-                });
+        }
+    });
+
+    // ── Scroll callbacks: triggered by Slint when near scroll edges ──
+    // These call load-more to append the next page when user scrolls
+    // to the bottom of the current VecModel window.
+    app.on_scroll_channels({
+        let app_w = ui.as_weak();
+        move |_delta| {
+            if let Some(ui) = app_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                if app.get_has_more_channels() {
+                    app.invoke_load_more_channels();
+                }
             }
         }
     });
 
-    // ── Virtual scroll callbacks (D-pad — placeholder) ──────────────
-    app.on_scroll_channels(move |_delta| {});
-    app.on_scroll_movies(move |_delta| {});
-    app.on_scroll_series(move |_delta| {});
+    app.on_scroll_movies({
+        let app_w = ui.as_weak();
+        move |_delta| {
+            if let Some(ui) = app_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                if app.get_has_more_movies() {
+                    app.invoke_load_more_movies();
+                }
+            }
+        }
+    });
+
+    app.on_scroll_series({
+        let app_w = ui.as_weak();
+        move |_delta| {
+            if let Some(ui) = app_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                if app.get_has_more_series() {
+                    app.invoke_load_more_series();
+                }
+            }
+        }
+    });
 
     // ── OnboardingState ───────────────────────────────────────────────────
 
@@ -662,16 +654,10 @@ pub(crate) fn spawn_data_listener(
     mut data_rx: mpsc::Receiver<DataEvent>,
     backend: Arc<Mutex<Option<crispy_player::mpv_backend::MpvBackend>>>,
     render_context_ready: Arc<AtomicBool>,
-    image_loader: crate::image_loader::ImageLoader,
     shared_data: Arc<SharedData>,
 ) {
     tokio::spawn(async move {
         while let Some(event) = data_rx.recv().await {
-            // Determine which image queues to trigger after applying this event
-            let load_channels = matches!(&event, DataEvent::ChannelsReady { .. });
-            let load_movies = matches!(&event, DataEvent::MoviesReady { .. });
-            let load_series = matches!(&event, DataEvent::SeriesReady { .. });
-
             // Store data in SharedData, then trigger refresh callback on UI thread.
             // The refresh callback (wired in wire()) populates the Rc<VecModel>
             // with the first CHUNK_SIZE items. No VecModel creation in async context.
@@ -754,29 +740,7 @@ pub(crate) fn spawn_data_listener(
                 }
             }
 
-            // Dispatch image loading with a short delay so all 3 data models
-            // get populated via refresh callbacks first.
-            if load_channels || load_movies || load_series {
-                let lc = load_channels;
-                let lm = load_movies;
-                let ls = load_series;
-                let loader = image_loader.clone();
-                let ui_w = ui_weak.clone();
-                tokio::spawn(async move {
-                    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-                    let _ = slint::invoke_from_event_loop(move || {
-                        if lc {
-                            loader.load_channels(&ui_w, Some((0, CHUNK_SIZE)));
-                        }
-                        if lm {
-                            loader.load_movies(&ui_w, Some((0, CHUNK_SIZE)));
-                        }
-                        if ls {
-                            loader.load_series(&ui_w, Some((0, CHUNK_SIZE)));
-                        }
-                    });
-                });
-            }
+            // Image loading handled by refresh/load-more callbacks in wire().
         }
         tracing::info!("data_listener task exited");
     });
