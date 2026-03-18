@@ -1,0 +1,33 @@
+import { Theme } from "../globals/theme.slint";
+
+export component ScrollIndicator inherits Rectangle {
+  in property <int> total-items;
+  in property <int> visible-items;
+  in property <int> window-start;
+
+  width: 4px;
+  background: transparent;
+
+  // Track
+  Rectangle {
+    width: parent.width;
+    height: parent.height;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  // Thumb
+  Rectangle {
+    property <float> ratio: total-items > 0 ? max(0.1, min(1.0, visible-items / max(1, total-items))) : 1.0;
+    property <float> position: total-items > visible-items
+      ? window-start / max(1, (total-items - visible-items))
+      : 0.0;
+
+    y: parent.height * min(1.0 - self.ratio, max(0.0, self.position));
+    height: max(20px, parent.height * self.ratio);
+    width: parent.width;
+    border-radius: 2px;
+    background: Theme.accent-gradient;
+    opacity: 0.6;
+  }
+}

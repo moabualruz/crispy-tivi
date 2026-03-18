@@ -246,6 +246,28 @@ pub(crate) fn wire(
         }
     });
 
+    // ── Virtual scroll callbacks (D-pad focus tracking) ──────────────
+    app.on_scroll_channels({
+        move |delta| {
+            // For now, just track focus index — full WindowedModel wiring
+            // will come when the !Send issue is resolved with Slint's
+            // upcoming thread-safe model support.
+            tracing::debug!(delta, "scroll-channels");
+        }
+    });
+
+    app.on_scroll_movies({
+        move |delta| {
+            tracing::debug!(delta, "scroll-movies");
+        }
+    });
+
+    app.on_scroll_series({
+        move |delta| {
+            tracing::debug!(delta, "scroll-series");
+        }
+    });
+
     // ── OnboardingState ───────────────────────────────────────────────────
 
     let onboarding = ui.global::<super::OnboardingState>();

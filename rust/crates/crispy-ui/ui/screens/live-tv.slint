@@ -7,6 +7,7 @@ import { LoadingIndicator } from "../components/loading-indicator.slint";
 import { IconTv } from "../components/icons.slint";
 import { FilterChip } from "../components/filter-chip.slint";
 import { ListView } from "std-widgets.slint";
+import { ScrollIndicator } from "../components/scroll-indicator.slint";
 
 // Sub-view tabs: 0 = Channels, 1 = EPG
 component LiveSubTab inherits FocusScope {
@@ -198,12 +199,38 @@ export component LiveTvScreen inherits Rectangle {
         }
       }
 
-      // Channel list
-      ListView {
-        for ch in AppState.channels: ChannelCard {
-          channel: ch;
-          visible: AppState.active-channel-group == "" || ch.group == AppState.active-channel-group;
-          clicked => { AppState.play-channel(ch.id); }
+      // Channel list with scroll indicator
+      HorizontalLayout {
+        vertical-stretch: 1;
+
+        FocusScope {
+          horizontal-stretch: 1;
+
+          key-pressed(event) => {
+            if event.text == Key.DownArrow {
+              AppState.scroll-channels(1);
+              return accept;
+            }
+            if event.text == Key.UpArrow {
+              AppState.scroll-channels(-1);
+              return accept;
+            }
+            return reject;
+          }
+
+          ListView {
+            for ch in AppState.channels: ChannelCard {
+              channel: ch;
+              visible: AppState.active-channel-group == "" || ch.group == AppState.active-channel-group;
+              clicked => { AppState.play-channel(ch.id); }
+            }
+          }
+        }
+
+        ScrollIndicator {
+          total-items: AppState.total-channel-count;
+          visible-items: 20;
+          window-start: AppState.channel-window-start;
         }
       }
 
