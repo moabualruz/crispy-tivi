@@ -12,56 +12,24 @@ use std::sync::{
 };
 
 use crispy_player::PlayerBackend;
-use std::rc::Rc;
-
-use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
+use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use tokio::sync::mpsc;
 
 use crate::events::{
     ChannelInfo, DataEvent, HighPriorityEvent, LoadingKind, NormalEvent, PlayerEvent, Screen,
     SourceInfo, SourceInput, VodInfo,
 };
-
-// ── Shared data stores ──────────────────────────────────────────────────────
-// Full datasets live here (Send+Sync). The UI thread gets chunked slices via
-// Rc<VecModel> managed in wire(). refresh-* loads first chunk, load-more-*
-// appends subsequent chunks.
-
-/// Items per chunk for infinite scroll loading.
-const CHUNK_SIZE: usize = 500;
-
-pub(crate) struct SharedData {
-    pub channels: Mutex<Arc<Vec<ChannelInfo>>>,
-    pub movies: Mutex<Arc<Vec<VodInfo>>>,
-    pub series: Mutex<Arc<Vec<VodInfo>>>,
-}
-
-impl SharedData {
-    pub fn new() -> Self {
-        Self {
-            channels: Mutex::new(Arc::new(Vec::new())),
-            movies: Mutex::new(Arc::new(Vec::new())),
-            series: Mutex::new(Arc::new(Vec::new())),
-        }
-    }
-}
 // ── wire ─────────────────────────────────────────────────────────────────────
 
 /// Wire all Slint callbacks to the three event queues.
 ///
 /// Called on the UI thread during `app::init`. Uses `try_send` throughout —
 /// if a queue is full the event is logged and dropped (non-fatal).
-/// Virtual scroll window sizes — must match WindowedModel sizes in the plan.
-const CHANNEL_WINDOW: usize = 30;
-const VOD_WINDOW: usize = 45;
-
 pub(crate) fn wire(
     ui: &super::AppWindow,
     player_tx: mpsc::Sender<PlayerEvent>,
     high_tx: mpsc::Sender<HighPriorityEvent>,
     normal_tx: mpsc::Sender<NormalEvent>,
-    image_loader: crate::image_loader::ImageLoader,
-    shared_data: Arc<SharedData>,
 ) {
     // ── PlayerState callbacks ─────────────────────────────────────────────
 
@@ -278,197 +246,25 @@ pub(crate) fn wire(
         }
     });
 
-    // ── Chunked VecModel (infinite scroll) ────────────────────────────
-    // Models live on the UI thread (Rc). refresh-* clears and loads first
-    // chunk from SharedData. load-more-* appends next chunk.
-    let channel_vec = Rc::new(VecModel::<super::ChannelData>::default());
-    app.set_channels(ModelRc::from(channel_vec.clone()));
-    let movie_vec = Rc::new(VecModel::<super::VodData>::default());
-    app.set_movies(ModelRc::from(movie_vec.clone()));
-    let series_vec = Rc::new(VecModel::<super::VodData>::default());
-    app.set_series(ModelRc::from(series_vec.clone()));
-
-    // ── Refresh callbacks: clear + load first page from SharedData ────
-    app.on_refresh_channels({
-        let model = channel_vec.clone();
-        let sd = Arc::clone(&shared_data);
-        let loader = image_loader.clone();
-        let app_w = ui.as_weak();
-        move || {
-            while model.row_count() > 0 {
-                model.remove(model.row_count() - 1);
-            }
-            let data = sd.channels.lock().unwrap();
-            let end = CHUNK_SIZE.min(data.len());
-            for item in data[..end].iter() {
-                model.push(channel_info_to_slint(item));
-            }
-            let has_more = end < data.len();
-            drop(data);
-            if let Some(ui) = app_w.upgrade() {
-                ui.global::<super::AppState>()
-                    .set_has_more_channels(has_more);
-            }
-            loader.load_channels(&app_w, Some((0, CHUNK_SIZE)));
-        }
-    });
-
-    app.on_refresh_movies({
-        let model = movie_vec.clone();
-        let sd = Arc::clone(&shared_data);
-        let loader = image_loader.clone();
-        let app_w = ui.as_weak();
-        move || {
-            while model.row_count() > 0 {
-                model.remove(model.row_count() - 1);
-            }
-            let data = sd.movies.lock().unwrap();
-            let end = CHUNK_SIZE.min(data.len());
-            for item in data[..end].iter() {
-                model.push(vod_info_to_slint(item));
-            }
-            let has_more = end < data.len();
-            drop(data);
-            if let Some(ui) = app_w.upgrade() {
-                ui.global::<super::AppState>().set_has_more_movies(has_more);
-            }
-            loader.load_movies(&app_w, Some((0, CHUNK_SIZE)));
-        }
-    });
-
-    app.on_refresh_series({
-        let model = series_vec.clone();
-        let sd = Arc::clone(&shared_data);
-        let loader = image_loader.clone();
-        let app_w = ui.as_weak();
-        move || {
-            while model.row_count() > 0 {
-                model.remove(model.row_count() - 1);
-            }
-            let data = sd.series.lock().unwrap();
-            let end = CHUNK_SIZE.min(data.len());
-            for item in data[..end].iter() {
-                model.push(vod_info_to_slint(item));
-            }
-            let has_more = end < data.len();
-            drop(data);
-            if let Some(ui) = app_w.upgrade() {
-                ui.global::<super::AppState>().set_has_more_series(has_more);
-            }
-            loader.load_series(&app_w, Some((0, CHUNK_SIZE)));
-        }
-    });
-
-    // ── Load-more callbacks: append next page on scroll demand ──────
-    app.on_load_more_channels({
-        let model = channel_vec.clone();
-        let sd = Arc::clone(&shared_data);
-        let loader = image_loader.clone();
-        let app_w = ui.as_weak();
-        move || {
-            let data = sd.channels.lock().unwrap();
-            let current = model.row_count();
-            if current >= data.len() {
-                return;
-            }
-            let end = (current + CHUNK_SIZE).min(data.len());
-            for item in data[current..end].iter() {
-                model.push(channel_info_to_slint(item));
-            }
-            let has_more = end < data.len();
-            drop(data);
-            if let Some(ui) = app_w.upgrade() {
-                ui.global::<super::AppState>()
-                    .set_has_more_channels(has_more);
-            }
-            loader.load_channels(&app_w, Some((current, CHUNK_SIZE)));
-        }
-    });
-
-    app.on_load_more_movies({
-        let model = movie_vec.clone();
-        let sd = Arc::clone(&shared_data);
-        let loader = image_loader.clone();
-        let app_w = ui.as_weak();
-        move || {
-            let data = sd.movies.lock().unwrap();
-            let current = model.row_count();
-            if current >= data.len() {
-                return;
-            }
-            let end = (current + CHUNK_SIZE).min(data.len());
-            for item in data[current..end].iter() {
-                model.push(vod_info_to_slint(item));
-            }
-            let has_more = end < data.len();
-            drop(data);
-            if let Some(ui) = app_w.upgrade() {
-                ui.global::<super::AppState>().set_has_more_movies(has_more);
-            }
-            loader.load_movies(&app_w, Some((current, CHUNK_SIZE)));
-        }
-    });
-
-    app.on_load_more_series({
-        let model = series_vec.clone();
-        let sd = Arc::clone(&shared_data);
-        let loader = image_loader.clone();
-        let app_w = ui.as_weak();
-        move || {
-            let data = sd.series.lock().unwrap();
-            let current = model.row_count();
-            if current >= data.len() {
-                return;
-            }
-            let end = (current + CHUNK_SIZE).min(data.len());
-            for item in data[current..end].iter() {
-                model.push(vod_info_to_slint(item));
-            }
-            let has_more = end < data.len();
-            drop(data);
-            if let Some(ui) = app_w.upgrade() {
-                ui.global::<super::AppState>().set_has_more_series(has_more);
-            }
-            loader.load_series(&app_w, Some((current, CHUNK_SIZE)));
-        }
-    });
-
-    // ── Scroll callbacks: triggered by Slint when near scroll edges ──
-    // These call load-more to append the next page when user scrolls
-    // to the bottom of the current VecModel window.
+    // ── Virtual scroll callbacks (D-pad focus tracking) ──────────────
     app.on_scroll_channels({
-        let app_w = ui.as_weak();
-        move |_delta| {
-            if let Some(ui) = app_w.upgrade() {
-                let app = ui.global::<super::AppState>();
-                if app.get_has_more_channels() {
-                    app.invoke_load_more_channels();
-                }
-            }
+        move |delta| {
+            // For now, just track focus index — full WindowedModel wiring
+            // will come when the !Send issue is resolved with Slint's
+            // upcoming thread-safe model support.
+            tracing::debug!(delta, "scroll-channels");
         }
     });
 
     app.on_scroll_movies({
-        let app_w = ui.as_weak();
-        move |_delta| {
-            if let Some(ui) = app_w.upgrade() {
-                let app = ui.global::<super::AppState>();
-                if app.get_has_more_movies() {
-                    app.invoke_load_more_movies();
-                }
-            }
+        move |delta| {
+            tracing::debug!(delta, "scroll-movies");
         }
     });
 
     app.on_scroll_series({
-        let app_w = ui.as_weak();
-        move |_delta| {
-            if let Some(ui) = app_w.upgrade() {
-                let app = ui.global::<super::AppState>();
-                if app.get_has_more_series() {
-                    app.invoke_load_more_series();
-                }
-            }
+        move |delta| {
+            tracing::debug!(delta, "scroll-series");
         }
     });
 
@@ -654,46 +450,14 @@ pub(crate) fn spawn_data_listener(
     mut data_rx: mpsc::Receiver<DataEvent>,
     backend: Arc<Mutex<Option<crispy_player::mpv_backend::MpvBackend>>>,
     render_context_ready: Arc<AtomicBool>,
-    shared_data: Arc<SharedData>,
+    image_loader: crate::image_loader::ImageLoader,
 ) {
     tokio::spawn(async move {
         while let Some(event) = data_rx.recv().await {
-            // Store data in SharedData, then trigger refresh callback on UI thread.
-            // The refresh callback (wired in wire()) populates the Rc<VecModel>
-            // with the first CHUNK_SIZE items. No VecModel creation in async context.
-            match &event {
-                DataEvent::ChannelsReady { channels, .. } => {
-                    tracing::info!(count = channels.len(), "[PERF] ChannelsReady received");
-                    *shared_data.channels.lock().unwrap() = Arc::clone(channels);
-                    let ui_w = ui_weak.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
-                        if let Some(ui) = ui_w.upgrade() {
-                            ui.global::<super::AppState>().invoke_refresh_channels();
-                        }
-                    });
-                }
-                DataEvent::MoviesReady { movies, .. } => {
-                    tracing::info!(count = movies.len(), "[PERF] MoviesReady received");
-                    *shared_data.movies.lock().unwrap() = Arc::clone(movies);
-                    let ui_w = ui_weak.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
-                        if let Some(ui) = ui_w.upgrade() {
-                            ui.global::<super::AppState>().invoke_refresh_movies();
-                        }
-                    });
-                }
-                DataEvent::SeriesReady { series, .. } => {
-                    tracing::info!(count = series.len(), "[PERF] SeriesReady received");
-                    *shared_data.series.lock().unwrap() = Arc::clone(series);
-                    let ui_w = ui_weak.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
-                        if let Some(ui) = ui_w.upgrade() {
-                            ui.global::<super::AppState>().invoke_refresh_series();
-                        }
-                    });
-                }
-                _ => {}
-            }
+            // Determine which image queues to trigger after applying this event
+            let load_channels = matches!(&event, DataEvent::ChannelsReady { .. });
+            let load_movies = matches!(&event, DataEvent::MoviesReady { .. });
+            let load_series = matches!(&event, DataEvent::SeriesReady { .. });
 
             match event {
                 DataEvent::PlaybackReady { url, title } => {
@@ -740,7 +504,26 @@ pub(crate) fn spawn_data_listener(
                 }
             }
 
-            // Image loading handled by refresh/load-more callbacks in wire().
+            // Dispatch to dedicated per-type image queues via UI thread
+            // (load_* methods need ui_weak.upgrade() which requires UI thread)
+            if load_channels || load_movies || load_series {
+                let lc = load_channels;
+                let lm = load_movies;
+                let ls = load_series;
+                let loader = image_loader.clone();
+                let ui_w = ui_weak.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if lc {
+                        loader.load_channels(&ui_w);
+                    }
+                    if lm {
+                        loader.load_movies(&ui_w);
+                    }
+                    if ls {
+                        loader.load_series(&ui_w);
+                    }
+                });
+            }
         }
         tracing::info!("data_listener task exited");
     });
@@ -761,14 +544,17 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
             app.set_sources(ModelRc::new(VecModel::from(items)));
         }
 
-        // VecModel is populated by refresh callbacks in wire().
-        // Here we only update metadata (totals, groups, categories).
         DataEvent::ChannelsReady {
+            channels,
             groups: in_groups,
             total,
             ..
         } => {
+            let items: Vec<super::ChannelData> =
+                channels.iter().map(channel_info_to_slint).collect();
+            app.set_channels(ModelRc::new(VecModel::from(items)));
             app.set_total_channel_count(total);
+
             let sc_groups: Vec<SharedString> = in_groups
                 .into_iter()
                 .map(|s| SharedString::from(s.as_str()))
@@ -777,11 +563,15 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
         }
 
         DataEvent::MoviesReady {
+            movies,
             categories: in_categories,
             total,
             ..
         } => {
+            let items: Vec<super::VodData> = movies.iter().map(vod_info_to_slint).collect();
+            app.set_movies(ModelRc::new(VecModel::from(items)));
             app.set_total_movie_count(total);
+
             let sc_cats: Vec<super::CategoryData> = in_categories
                 .into_iter()
                 .map(|c| super::CategoryData {
@@ -793,11 +583,15 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
         }
 
         DataEvent::SeriesReady {
+            series,
             categories: in_categories,
             total,
             ..
         } => {
+            let items: Vec<super::VodData> = series.iter().map(vod_info_to_slint).collect();
+            app.set_series(ModelRc::new(VecModel::from(items)));
             app.set_total_series_count(total);
+
             let sc_cats: Vec<super::CategoryData> = in_categories
                 .into_iter()
                 .map(|c| super::CategoryData {

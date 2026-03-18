@@ -135,17 +135,6 @@ export global AppState {
   // Search (debounced in Rust — UI fires immediately)
   callback perform-search(/* query */ string);
 
-  // ── Chunked data loading (infinite scroll) ──
-  callback refresh-channels();
-  callback refresh-movies();
-  callback refresh-series();
-  callback load-more-channels();
-  callback load-more-movies();
-  callback load-more-series();
-  in-out property <bool> has-more-channels: false;
-  in-out property <bool> has-more-movies: false;
-  in-out property <bool> has-more-series: false;
-
   // ── Virtual scroll — D-pad focus tracking ──
   callback scroll-channels(/* delta: +1 down, -1 up */ int);
   callback scroll-movies(/* delta */ int);

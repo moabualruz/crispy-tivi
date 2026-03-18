@@ -66,66 +66,30 @@ impl ImageLoader {
         }
     }
 
-    /// Enqueue pending images for channels in the visible viewport.
-    ///
-    /// `viewport` is `(start_index, count)`. Pass `None` to load the first 50.
-    pub fn load_channels(
-        &self,
-        ui_weak: &slint::Weak<super::AppWindow>,
-        viewport: Option<(usize, usize)>,
-    ) {
+    /// Enqueue all pending images for channels.
+    pub fn load_channels(&self, ui_weak: &slint::Weak<super::AppWindow>) {
         let Some(ui) = ui_weak.upgrade() else { return };
         let app = ui.global::<super::AppState>();
         let model = app.get_channels();
-        let total = model.row_count();
-        let (start, count) = viewport.unwrap_or((0, 50));
-        let end = (start + count).min(total);
-        let mut enqueued = 0u32;
-        let mut skipped_empty = 0u32;
-        let mut skipped_loaded = 0u32;
-        for i in start..end {
-            if let Some(item) = model.row_data(i) {
-                if item.logo_url.is_empty() {
-                    skipped_empty += 1;
-                    continue;
-                }
-                if item.logo.size().width > 0 {
-                    skipped_loaded += 1;
-                    continue;
-                }
-                enqueued += 1;
+        for i in 0..model.row_count() {
+            if let Some(item) = model.row_data(i)
+                && !item.logo_url.is_empty()
+                && item.logo.size().width == 0
+            {
                 let _ = self.channel_tx.send(ImageRequest {
                     idx: i,
                     url: item.logo_url.to_string(),
                 });
             }
         }
-        tracing::info!(
-            total,
-            start,
-            end,
-            enqueued,
-            skipped_empty,
-            skipped_loaded,
-            "[PERF] image load_channels"
-        );
     }
 
-    /// Enqueue pending images for movies in the visible viewport.
-    ///
-    /// `viewport` is `(start_index, count)`. Pass `None` to load the first 50.
-    pub fn load_movies(
-        &self,
-        ui_weak: &slint::Weak<super::AppWindow>,
-        viewport: Option<(usize, usize)>,
-    ) {
+    /// Enqueue all pending images for movies.
+    pub fn load_movies(&self, ui_weak: &slint::Weak<super::AppWindow>) {
         let Some(ui) = ui_weak.upgrade() else { return };
         let app = ui.global::<super::AppState>();
         let model = app.get_movies();
-        let total = model.row_count();
-        let (start, count) = viewport.unwrap_or((0, 50));
-        let end = (start + count).min(total);
-        for i in start..end {
+        for i in 0..model.row_count() {
             if let Some(item) = model.row_data(i)
                 && !item.poster_url.is_empty()
                 && item.poster.size().width == 0
@@ -138,21 +102,12 @@ impl ImageLoader {
         }
     }
 
-    /// Enqueue pending images for series in the visible viewport.
-    ///
-    /// `viewport` is `(start_index, count)`. Pass `None` to load the first 50.
-    pub fn load_series(
-        &self,
-        ui_weak: &slint::Weak<super::AppWindow>,
-        viewport: Option<(usize, usize)>,
-    ) {
+    /// Enqueue all pending images for series.
+    pub fn load_series(&self, ui_weak: &slint::Weak<super::AppWindow>) {
         let Some(ui) = ui_weak.upgrade() else { return };
         let app = ui.global::<super::AppState>();
         let model = app.get_series();
-        let total = model.row_count();
-        let (start, count) = viewport.unwrap_or((0, 50));
-        let end = (start + count).min(total);
-        for i in start..end {
+        for i in 0..model.row_count() {
             if let Some(item) = model.row_data(i)
                 && !item.poster_url.is_empty()
                 && item.poster.size().width == 0
@@ -190,21 +145,9 @@ impl ImageLoader {
                         Err(_) => return,
                     };
 
-                    let t0 = std::time::Instant::now();
                     let Some(buf) = cache.get_image_buffer(&req.url).await else {
-                        tracing::debug!(
-                            idx = req.idx,
-                            elapsed_ms = t0.elapsed().as_millis(),
-                            url = %req.url,
-                            "[IMG] download FAILED or cache-suppressed"
-                        );
                         return;
                     };
-                    tracing::debug!(
-                        idx = req.idx,
-                        elapsed_ms = t0.elapsed().as_millis(),
-                        "[IMG] download OK"
-                    );
 
                     let idx = req.idx;
                     let _ = slint::invoke_from_event_loop(move || {

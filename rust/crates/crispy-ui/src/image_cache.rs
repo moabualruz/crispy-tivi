@@ -36,9 +36,8 @@ struct CacheEntry {
 
 // ── ImageCache ───────────────────────────────────────────────────────────────
 
-/// Session-permanent failure suppression — once a URL fails, it is never retried
-/// until the app restarts. The `failed` map is in-memory only (not persisted),
-/// so restart naturally clears it.
+/// Session-permanent failure suppression — once a URL fails, never retried
+/// until app restart. The `failed` map is in-memory only (not persisted).
 
 #[derive(Clone)]
 pub struct ImageCache {
