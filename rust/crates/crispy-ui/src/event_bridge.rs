@@ -353,6 +353,7 @@ pub(crate) fn spawn_player_handler(
                         if let Some(ui) = ui_w.upgrade() {
                             let ps = ui.global::<super::PlayerState>();
                             ps.set_is_playing(false);
+                            ps.set_is_fullscreen(false);
                             ps.set_is_paused(false);
                             ps.set_is_buffering(false);
                             ps.set_current_title(Default::default());
@@ -501,6 +502,7 @@ pub(crate) fn spawn_data_listener(
                             let ps = ui.global::<super::PlayerState>();
                             ps.set_current_title(SharedString::from(title_clone.as_str()));
                             ps.set_is_playing(true);
+                            ps.set_is_fullscreen(true);
                             ps.set_is_buffering(false);
                             ps.set_show_osd(true);
                         }
