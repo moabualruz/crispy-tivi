@@ -143,7 +143,7 @@ impl ImageCache {
             .get(url)
             .header(
                 "User-Agent",
-                "CrispyTivi/0.1 (IPTV Player; +https://github.com/crispy-tivi)",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
             )
             .header("Accept-Encoding", "identity");
         {
