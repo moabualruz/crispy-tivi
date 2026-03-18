@@ -12,9 +12,14 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
+use chrono::{Datelike, Timelike};
+
 use crispy_player::PlayerBackend;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use tokio::sync::mpsc;
+
+use crispy_server::models::EpgEntry;
+use crispy_server::models::UserProfile;
 
 use crate::events::{
     ChannelInfo, DataEvent, HighPriorityEvent, LoadingKind, NormalEvent, PlayerEvent, Screen,
@@ -27,10 +32,18 @@ const VOD_WINDOW: usize = 45;
 
 // ── Shared data stores ──────────────────────────────────────────────────────
 /// Full datasets (Send+Sync). VecModel only gets a windowed slice.
+/// EPG entries and profiles are populated by DataEngine during startup
+/// and read by EventBridge when building Slint property payloads.
 pub(crate) struct SharedData {
     pub channels: Mutex<Arc<Vec<ChannelInfo>>>,
     pub movies: Mutex<Arc<Vec<VodInfo>>>,
     pub series: Mutex<Arc<Vec<VodInfo>>>,
+    /// EPG entries keyed by channel_id, populated from CrispyService on startup / sync.
+    pub epg_entries: Mutex<std::collections::HashMap<String, Vec<EpgEntry>>>,
+    /// All user profiles loaded from DB on startup.
+    pub profiles: Mutex<Vec<UserProfile>>,
+    /// ID of the currently active profile (empty = default).
+    pub active_profile_id: Mutex<String>,
 }
 
 impl SharedData {
@@ -39,6 +52,9 @@ impl SharedData {
             channels: Mutex::new(Arc::new(Vec::new())),
             movies: Mutex::new(Arc::new(Vec::new())),
             series: Mutex::new(Arc::new(Vec::new())),
+            epg_entries: Mutex::new(std::collections::HashMap::new()),
+            profiles: Mutex::new(Vec::new()),
+            active_profile_id: Mutex::new(String::new()),
         }
     }
 }
@@ -687,6 +703,176 @@ pub(crate) fn wire(
     diag.on_export_logs(|| {
         tracing::info!("Log export requested (not yet implemented)");
     });
+
+    // ── Hero callbacks ────────────────────────────────────────────────────
+
+    app.on_hero_play({
+        let tx = high_tx.clone();
+        let sd = Arc::clone(&shared_data);
+        move |item_id| {
+            let id = item_id.to_string();
+            // Determine content type from SharedData to route to channel or VOD playback
+            let content_type = {
+                let channels = sd.channels.lock().unwrap();
+                if channels.iter().any(|c| c.id == id) {
+                    "live"
+                } else {
+                    "vod"
+                }
+                .to_string()
+            };
+            let event = if content_type == "live" {
+                HighPriorityEvent::PlayChannel { channel_id: id }
+            } else {
+                HighPriorityEvent::PlayVod { vod_id: id }
+            };
+            if let Err(e) = tx.try_send(event) {
+                tracing::warn!(error = %e, "high_tx full: HeroPlay dropped");
+            }
+        }
+    });
+
+    app.on_hero_detail({
+        let tx = high_tx.clone();
+        let sd = Arc::clone(&shared_data);
+        move |item_id| {
+            let id = item_id.to_string();
+            // Route to VOD detail; live channels have no detail screen
+            let is_channel = {
+                let channels = sd.channels.lock().unwrap();
+                channels.iter().any(|c| c.id == id)
+            };
+            if is_channel {
+                tracing::debug!(item_id = id, "HeroDetail: live channel — no detail screen");
+            } else {
+                if let Err(e) = tx.try_send(HighPriorityEvent::OpenVodDetail { vod_id: id }) {
+                    tracing::warn!(error = %e, "high_tx full: HeroDetail dropped");
+                }
+            }
+        }
+    });
+
+    // ── Profile callbacks ─────────────────────────────────────────────────
+
+    app.on_switch_profile({
+        let tx = normal_tx.clone();
+        let ui_w = ui.as_weak();
+        let sd = Arc::clone(&shared_data);
+        move |profile_id| {
+            let id = profile_id.to_string();
+            // Update active profile in SharedData immediately
+            {
+                *sd.active_profile_id.lock().unwrap() = id.clone();
+            }
+            // Find profile name and update Slint on UI thread
+            let profile_name = {
+                let profiles = sd.profiles.lock().unwrap();
+                profiles
+                    .iter()
+                    .find(|p| p.id == id)
+                    .map(|p| p.name.clone())
+                    .unwrap_or_default()
+            };
+            let ui_w2 = ui_w.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(ui) = ui_w2.upgrade() {
+                    let app = ui.global::<super::AppState>();
+                    app.set_active_profile_name(SharedString::from(profile_name.as_str()));
+                    app.set_show_profile_picker(false);
+                }
+            });
+            // Persist via NormalEvent (reload content for new profile)
+            if let Err(e) = tx.try_send(NormalEvent::SyncAll) {
+                tracing::warn!(error = %e, "normal_tx full: SwitchProfile→SyncAll dropped");
+            }
+        }
+    });
+
+    app.on_create_profile({
+        let ui_w = ui.as_weak();
+        let sd = Arc::clone(&shared_data);
+        move |name, is_kids| {
+            let profile_name = name.to_string();
+            let new_id = format!("profile_{}", chrono::Utc::now().timestamp_millis());
+            let new_profile = UserProfile {
+                id: new_id,
+                name: profile_name,
+                avatar_index: 0,
+                pin: None,
+                is_child: is_kids,
+                pin_version: 0,
+                max_allowed_rating: if is_kids { 1 } else { 4 },
+                role: if is_kids { 2 } else { 1 },
+                dvr_permission: 1,
+                dvr_quota_mb: None,
+            };
+            {
+                sd.profiles.lock().unwrap().push(new_profile);
+            }
+            // Refresh profiles list in Slint
+            let slint_profiles = build_slint_profiles(&sd);
+            let active_name = {
+                let id = sd.active_profile_id.lock().unwrap().clone();
+                sd.profiles
+                    .lock()
+                    .unwrap()
+                    .iter()
+                    .find(|p| p.id == id)
+                    .map(|p| p.name.clone())
+                    .unwrap_or_else(|| "Default".to_string())
+            };
+            let ui_w2 = ui_w.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(ui) = ui_w2.upgrade() {
+                    let app = ui.global::<super::AppState>();
+                    app.set_profiles(ModelRc::new(VecModel::from(slint_profiles)));
+                    app.set_active_profile_name(SharedString::from(active_name.as_str()));
+                }
+            });
+        }
+    });
+
+    // ── Channel overlay callback ──────────────────────────────────────────
+
+    app.on_toggle_channel_overlay({
+        let ui_w = ui.as_weak();
+        move || {
+            let _ = slint::invoke_from_event_loop({
+                let ui_w2 = ui_w.clone();
+                move || {
+                    if let Some(ui) = ui_w2.upgrade() {
+                        let app = ui.global::<super::AppState>();
+                        let current = app.get_show_channel_overlay();
+                        app.set_show_channel_overlay(!current);
+                        tracing::debug!(now = !current, "toggle-channel-overlay");
+                    }
+                }
+            });
+        }
+    });
+
+    // ── Hero auto-advance timer (8s interval) ─────────────────────────────
+    {
+        let ui_w = ui.as_weak();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(8)).await;
+                let _ = slint::invoke_from_event_loop({
+                    let ui_w2 = ui_w.clone();
+                    move || {
+                        if let Some(ui) = ui_w2.upgrade() {
+                            let app = ui.global::<super::AppState>();
+                            let count = app.get_hero_items().row_count() as i32;
+                            if count > 1 {
+                                let next = (app.get_hero_index() + 1) % count;
+                                app.set_hero_index(next);
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
 }
 
 // ── spawn_player_handler ──────────────────────────────────────────────────────
@@ -1010,9 +1196,10 @@ pub(crate) fn spawn_data_listener(
 
                 other => {
                     let ui_w = ui_weak.clone();
+                    let sd2 = Arc::clone(&shared_data);
                     let _ = slint::invoke_from_event_loop(move || {
                         if let Some(ui) = ui_w.upgrade() {
-                            apply_data_event(&ui, other);
+                            apply_data_event(&ui, other, &sd2);
                         }
                     });
                 }
@@ -1027,7 +1214,9 @@ pub(crate) fn spawn_data_listener(
 /// Pure mapping: DataEvent → Slint property mutations.
 ///
 /// MUST be called on the UI thread (inside `invoke_from_event_loop` or directly).
-pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
+/// `shared_data` is used to read EPG entries, profiles, and hero item sources
+/// that are populated by DataEngine during startup / sync.
+pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_data: &SharedData) {
     let app = ui.global::<super::AppState>();
 
     match event {
@@ -1066,6 +1255,52 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
                 .collect();
             tracing::debug!(count = home_ch.len(), "[DATA] home-channels set");
             app.set_home_channels(ModelRc::new(VecModel::from(home_ch)));
+
+            // ── Hero items ────────────────────────────────────────────
+            let hero = build_hero_items(shared_data);
+            tracing::debug!(count = hero.len(), "[DATA] hero-items set from channels");
+            app.set_hero_items(ModelRc::new(VecModel::from(hero)));
+            app.set_hero_index(0);
+
+            // ── EPG rows for today ────────────────────────────────────
+            let offset = app.get_epg_selected_date_offset();
+            let epg_rows = build_epg_rows(shared_data, offset);
+            tracing::debug!(count = epg_rows.len(), "[DATA] epg-rows set");
+            app.set_epg_rows(ModelRc::new(VecModel::from(epg_rows)));
+
+            // ── EPG current time ──────────────────────────────────────
+            let now = chrono::Local::now();
+            app.set_epg_now_hour(now.hour() as i32);
+            app.set_epg_now_minute(now.minute() as i32);
+            let date_label = if offset == 0 {
+                "Today".to_string()
+            } else if offset == -1 {
+                "Yesterday".to_string()
+            } else if offset < 0 {
+                format!("{} days ago", -offset)
+            } else {
+                format!("+{offset} days")
+            };
+            app.set_epg_date_label(SharedString::from(date_label.as_str()));
+
+            // ── Profiles ──────────────────────────────────────────────
+            let slint_profiles = build_slint_profiles(shared_data);
+            if !slint_profiles.is_empty() {
+                let active_name = {
+                    let active_id = shared_data.active_profile_id.lock().unwrap().clone();
+                    shared_data
+                        .profiles
+                        .lock()
+                        .unwrap()
+                        .iter()
+                        .find(|p| p.id == active_id || active_id.is_empty())
+                        .map(|p| p.name.clone())
+                        .unwrap_or_else(|| "Default".to_string())
+                };
+                app.set_profiles(ModelRc::new(VecModel::from(slint_profiles)));
+                app.set_active_profile_name(SharedString::from(active_name.as_str()));
+                tracing::debug!("[DATA] profiles set");
+            }
         }
 
         DataEvent::MoviesReady {
@@ -1097,6 +1332,14 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent) {
                 movies.iter().take(20).map(vod_info_to_slint).collect();
             tracing::debug!(count = home_mv.len(), "[DATA] home-movies set");
             app.set_home_movies(ModelRc::new(VecModel::from(home_mv)));
+
+            // ── Hero items (refresh — movies fill remaining slots) ────
+            let hero = build_hero_items(shared_data);
+            tracing::debug!(
+                count = hero.len(),
+                "[DATA] hero-items refreshed from movies"
+            );
+            app.set_hero_items(ModelRc::new(VecModel::from(hero)));
         }
 
         DataEvent::SeriesReady {
@@ -1298,4 +1541,166 @@ fn source_info_to_slint(s: &SourceInfo) -> super::SourceData {
         vod_count: 0,
         sync_status: SharedString::from(s.last_sync_status.as_deref().unwrap_or("")),
     }
+}
+
+// ── Profile conversion helper ─────────────────────────────────────────────────
+
+/// Convert all profiles in SharedData to Slint ProfileData structs.
+///
+/// Called on the UI thread — SharedData lock is held briefly.
+pub(crate) fn build_slint_profiles(sd: &SharedData) -> Vec<super::ProfileData> {
+    // Avatar colour palette — cycles by avatar_index
+    const AVATAR_COLORS: &[u32] = &[
+        0xFF_4B2B_FF, // crispy brand orange/red
+        0xFF_2196F3,  // blue
+        0xFF_4CAF50,  // green
+        0xFF_9C27B0,  // purple
+        0xFF_FF9800,  // amber
+        0xFF_00BCD4,  // cyan
+    ];
+
+    let active_id = sd.active_profile_id.lock().unwrap().clone();
+    sd.profiles
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|p| {
+            let color_argb =
+                AVATAR_COLORS[p.avatar_index.unsigned_abs() as usize % AVATAR_COLORS.len()];
+            super::ProfileData {
+                id: SharedString::from(p.id.as_str()),
+                name: SharedString::from(p.name.as_str()),
+                avatar_color: slint::Color::from_argb_encoded(color_argb).into(),
+                is_kids: p.is_child,
+                is_active: p.id == active_id,
+                pin_protected: p.pin.is_some(),
+            }
+        })
+        .collect()
+}
+
+// ── EPG row builder ───────────────────────────────────────────────────────────
+
+/// Build EpgChannelRow items for the current day from SharedData.
+///
+/// Filters EPG entries to the 24-hour window starting at midnight today (UTC).
+/// For each channel that has entries, produces one `EpgChannelRow`.
+/// Channels with no EPG data are omitted — the EPG screen can show a placeholder.
+pub(crate) fn build_epg_rows(sd: &SharedData, offset_days: i32) -> Vec<super::EpgChannelRow> {
+    use chrono::{Local, TimeZone};
+
+    let now = Local::now();
+    let day_start = Local
+        .with_ymd_and_hms(now.year(), now.month(), now.day(), 0, 0, 0)
+        .single()
+        .unwrap_or(now);
+    let offset_dur = chrono::Duration::days(i64::from(offset_days));
+    let window_start = (day_start + offset_dur).timestamp();
+    let window_end = window_start + 86_400;
+
+    let channels_snap = sd.channels.lock().unwrap();
+    let epg_snap = sd.epg_entries.lock().unwrap();
+
+    let mut rows: Vec<super::EpgChannelRow> = Vec::new();
+
+    for ch in channels_snap.iter() {
+        let entries = match epg_snap.get(&ch.id) {
+            Some(e) if !e.is_empty() => e,
+            _ => continue,
+        };
+
+        let programmes: Vec<super::EpgData> = entries
+            .iter()
+            .filter(|e| {
+                let s = e.start_time.and_utc().timestamp();
+                let end = e.end_time.and_utc().timestamp();
+                // Include if any overlap with the day window
+                s < window_end && end > window_start
+            })
+            .map(|e| {
+                let s_ts = e.start_time.and_utc().timestamp();
+                let e_ts = e.end_time.and_utc().timestamp();
+                let duration_mins = ((e_ts - s_ts) / 60).max(0) as i32;
+                let now_ts = Local::now().timestamp();
+                let progress = if now_ts >= s_ts && e_ts > s_ts {
+                    ((now_ts - s_ts) as f32 / (e_ts - s_ts) as f32).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+                super::EpgData {
+                    channel_id: SharedString::from(e.channel_id.as_str()),
+                    channel_name: SharedString::from(ch.name.as_str()),
+                    channel_logo: Default::default(),
+                    title: SharedString::from(e.title.as_str()),
+                    start_hour: e.start_time.hour() as i32,
+                    start_minute: e.start_time.minute() as i32,
+                    end_hour: e.end_time.hour() as i32,
+                    end_minute: e.end_time.minute() as i32,
+                    duration_minutes: duration_mins,
+                    progress_percent: progress,
+                    description: SharedString::from(e.description.as_deref().unwrap_or("")),
+                    category: SharedString::from(e.category.as_deref().unwrap_or("")),
+                    has_catchup: false,
+                    is_now: now_ts >= s_ts && now_ts < e_ts,
+                }
+            })
+            .collect();
+
+        if programmes.is_empty() {
+            continue;
+        }
+
+        rows.push(super::EpgChannelRow {
+            channel_id: SharedString::from(ch.id.as_str()),
+            channel_name: SharedString::from(ch.name.as_str()),
+            channel_logo: Default::default(),
+            programmes: ModelRc::new(VecModel::from(programmes)),
+        });
+    }
+
+    rows
+}
+
+// ── Hero item builder ─────────────────────────────────────────────────────────
+
+/// Build up to 5 HeroItem structs from the first channels (with logos) or movies.
+pub(crate) fn build_hero_items(sd: &SharedData) -> Vec<super::HeroItem> {
+    let channels_snap = sd.channels.lock().unwrap();
+    let movies_snap = sd.movies.lock().unwrap();
+
+    let mut items: Vec<super::HeroItem> = Vec::with_capacity(5);
+
+    // Prefer channels that have a logo URL
+    for ch in channels_snap.iter().filter(|c| c.logo_url.is_some()) {
+        if items.len() >= 5 {
+            break;
+        }
+        items.push(super::HeroItem {
+            id: SharedString::from(ch.id.as_str()),
+            title: SharedString::from(ch.name.as_str()),
+            subtitle: SharedString::from(ch.channel_group.as_deref().unwrap_or("Live TV")),
+            backdrop: Default::default(),
+            content_type: SharedString::from("live"),
+            is_live: true,
+        });
+    }
+
+    // Fill remaining slots with movies that have a backdrop
+    for mv in movies_snap.iter().filter(|v| v.backdrop_url.is_some()) {
+        if items.len() >= 5 {
+            break;
+        }
+        items.push(super::HeroItem {
+            id: SharedString::from(mv.id.as_str()),
+            title: SharedString::from(mv.name.as_str()),
+            subtitle: SharedString::from(
+                mv.year.map(|y| y.to_string()).unwrap_or_default().as_str(),
+            ),
+            backdrop: Default::default(),
+            content_type: SharedString::from("movie"),
+            is_live: false,
+        });
+    }
+
+    items
 }

@@ -48,13 +48,44 @@ export struct VodData {
 
 export struct EpgData {
   channel-id: string,
+  channel-name: string,
+  channel-logo: image,
   title: string,
   start-hour: int,
   start-minute: int,
   end-hour: int,
   end-minute: int,
+  duration-minutes: int,
+  progress-percent: float,
   description: string,
+  category: string,
   has-catchup: bool,
+  is-now: bool,
+}
+
+export struct EpgChannelRow {
+  channel-id: string,
+  channel-name: string,
+  channel-logo: image,
+  programmes: [EpgData],
+}
+
+export struct ProfileData {
+  id: string,
+  name: string,
+  avatar-color: brush,
+  is-kids: bool,
+  is-active: bool,
+  pin-protected: bool,
+}
+
+export struct HeroItem {
+  id: string,
+  title: string,
+  subtitle: string,
+  backdrop: image,
+  content-type: string,
+  is-live: bool,
 }
 
 export struct CategoryData {
@@ -91,11 +122,25 @@ export global AppState {
   in-out property <int> series-active-season: 1;
 
   // EPG state
-  in-out property <int> epg-selected-date-offset: 0;  // 0=today, -1=yesterday, +1=tomorrow
+  in-out property <int> epg-selected-date-offset: 0;
   in-out property <string> epg-jump-channel-id: "";
+  in-out property <[EpgChannelRow]> epg-rows: [];
+  in-out property <string> epg-date-label: "Today";
+  in-out property <int> epg-now-hour: 12;
+  in-out property <int> epg-now-minute: 0;
 
-  // Profile Slide-Over Window
+  // Hero state (home screen)
+  in-out property <[HeroItem]> hero-items: [];
+  in-out property <int> hero-index: 0;
+
+  // Profile state
+  in-out property <[ProfileData]> profiles: [];
+  in-out property <string> active-profile-name: "Default";
   in-out property <bool> show-profile-menu: false;
+  in-out property <bool> show-profile-picker: false;
+
+  // Channel overlay (Live TV glass sidebar)
+  in-out property <bool> show-channel-overlay: false;
 
   // Navigation state
   in-out property <bool> nav-visible: true;
@@ -183,6 +228,17 @@ export global AppState {
 
   // Search (debounced in Rust — UI fires immediately)
   callback perform-search(/* query */ string);
+
+  // Profile operations
+  callback switch-profile(/* profile-id */ string);
+  callback create-profile(/* name */ string, /* is-kids */ bool);
+
+  // Hero operations
+  callback hero-play(/* item-id */ string);
+  callback hero-detail(/* item-id */ string);
+
+  // Channel overlay
+  callback toggle-channel-overlay();
 
   // ── Virtual scroll — D-pad focus tracking ──
   callback scroll-channels(/* delta: +1 down, -1 up */ int);

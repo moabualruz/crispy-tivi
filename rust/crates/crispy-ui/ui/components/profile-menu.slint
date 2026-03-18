@@ -1,7 +1,313 @@
 import { Theme } from "../globals/theme.slint";
-import { AppState } from "../globals/app-state.slint";
+import { AppState, ProfileData } from "../globals/app-state.slint";
 import { ActionButton } from "action-button.slint";
 
+// ── Profile Tile ────────────────────────────────────────────────────────────
+component ProfileTile inherits Rectangle {
+  in property <ProfileData> profile;
+  in property <bool> is-focused: false;
+
+  callback activated(/* profile-id */ string);
+
+  width: 140px;
+  height: 170px;
+  background: transparent;
+
+  // Focus ring
+  border-radius: Theme.radius-md;
+  border-width: is-focused ? Theme.focus-ring-width : 0px;
+  border-color: Theme.focus-ring;
+
+  animate border-width { duration: 120ms; easing: ease-out; }
+
+  VerticalLayout {
+    alignment: center;
+    spacing: Theme.spacing-sm;
+    padding: Theme.spacing-sm;
+
+    // Avatar circle
+    Rectangle {
+      width: 80px;
+      height: 80px;
+      border-radius: 40px;
+      background: profile.avatar-color;
+      // Scale up on focus
+      x: (parent.width - self.width) / 2;
+      animate width, height { duration: 150ms; easing: ease-out; }
+
+      // First letter of name
+      Text {
+        width: 100%; height: 100%;
+        text: profile.name == "" ? "?" : profile.name;
+        color: #FFFFFF;
+        font-weight: 700;
+        font-size: 28px;
+        font-family: Theme.font-display;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+
+      // Lock icon overlay (pin-protected)
+      if profile.pin-protected : Rectangle {
+        x: parent.width - 24px;
+        y: parent.height - 24px;
+        width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        background: rgba(0, 0, 0, 0.75);
+        Text {
+          width: 100%; height: 100%;
+          text: "🔒";
+          font-size: 11px;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+      }
+    }
+
+    // Name label
+    Text {
+      width: 100%;
+      text: profile.name;
+      color: is-focused ? Theme.text-primary : Theme.text-secondary;
+      font-size: Theme.font-size-body;
+      font-family: Theme.font-body;
+      font-weight: is-focused ? 700 : 400;
+      horizontal-alignment: center;
+      overflow: elide;
+      animate color { duration: 120ms; }
+    }
+
+    // Kids badge
+    if profile.is-kids : Rectangle {
+      x: (parent.width - self.width) / 2;
+      width: 42px;
+      height: 18px;
+      border-radius: 9px;
+      background: Theme.brand-gradient;
+      Text {
+        width: 100%; height: 100%;
+        text: "KIDS";
+        color: #FFFFFF;
+        font-size: 10px;
+        font-family: Theme.font-body;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+    }
+  }
+
+  // Interaction
+  TouchArea {
+    width: 100%; height: 100%;
+    clicked => { root.activated(profile.id); }
+  }
+
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      if event.text == Key.Return || event.text == " " {
+        root.activated(root.profile.id);
+        return accept;
+      }
+      return reject;
+    }
+  }
+}
+
+// ── Add Profile Tile ────────────────────────────────────────────────────────
+component AddProfileTile inherits Rectangle {
+  in property <bool> is-focused: false;
+
+  callback activated();
+
+  width: 140px;
+  height: 170px;
+  background: transparent;
+  border-radius: Theme.radius-md;
+  border-width: is-focused ? Theme.focus-ring-width : 0px;
+  border-color: Theme.focus-ring;
+  animate border-width { duration: 120ms; easing: ease-out; }
+
+  VerticalLayout {
+    alignment: center;
+    spacing: Theme.spacing-sm;
+    padding: Theme.spacing-sm;
+
+    // Plus circle
+    Rectangle {
+      x: (parent.width - self.width) / 2;
+      width: 80px;
+      height: 80px;
+      border-radius: 40px;
+      background: is-focused ? rgba(255, 255, 255, 0.15) : rgba(255, 255, 255, 0.08);
+      border-width: 2px;
+      border-color: is-focused ? Theme.focus-ring : Theme.border-subtle;
+      animate background, border-color { duration: 120ms; }
+
+      Text {
+        width: 100%; height: 100%;
+        text: "+";
+        color: is-focused ? Theme.text-primary : Theme.text-secondary;
+        font-size: 32px;
+        font-family: Theme.font-display;
+        font-weight: 300;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        animate color { duration: 120ms; }
+      }
+    }
+
+    Text {
+      width: 100%;
+      text: "Add Profile";
+      color: is-focused ? Theme.text-primary : Theme.text-secondary;
+      font-size: Theme.font-size-body;
+      font-family: Theme.font-body;
+      font-weight: is-focused ? 700 : 400;
+      horizontal-alignment: center;
+      animate color { duration: 120ms; }
+    }
+  }
+
+  TouchArea {
+    width: 100%; height: 100%;
+    clicked => { root.activated(); }
+  }
+
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      if event.text == Key.Return || event.text == " " {
+        root.activated();
+        return accept;
+      }
+      return reject;
+    }
+  }
+}
+
+// ── Profile Picker Screen ────────────────────────────────────────────────────
+// Full-screen Netflix-style profile selector.
+// Shown when AppState.show-profile-picker == true.
+// Sits above OverlayLayer, below OnboardingScreen (see main.slint).
+export component ProfilePickerScreen inherits Rectangle {
+  width: 100%; height: 100%;
+  background: rgba(10, 10, 12, 0.97);
+  visible: AppState.show-profile-picker;
+
+  // Track focused tile index: 0..profiles.length = profile tiles, last = Add Profile
+  property <int> focused-index: 0;
+  property <int> tile-count: AppState.profiles.length + 1; // +1 for Add Profile
+
+  // Keyboard navigation
+  FocusScope {
+    width: 100%; height: 100%;
+    key-pressed(event) => {
+      if event.text == Key.Escape {
+        AppState.show-profile-picker = false;
+        return accept;
+      }
+      if event.text == Key.LeftArrow {
+        if root.focused-index > 0 {
+          root.focused-index -= 1;
+        }
+        return accept;
+      }
+      if event.text == Key.RightArrow {
+        if root.focused-index < root.tile-count - 1 {
+          root.focused-index += 1;
+        }
+        return accept;
+      }
+      return reject;
+    }
+
+    VerticalLayout {
+      alignment: center;
+      spacing: Theme.spacing-2xl;
+      padding-top: Theme.spacing-2xl;
+      padding-bottom: Theme.spacing-2xl;
+
+      // Title
+      Text {
+        text: "Who's watching?";
+        color: Theme.text-primary;
+        font-size: Theme.font-size-h1;
+        font-family: Theme.font-display;
+        font-weight: 700;
+        horizontal-alignment: center;
+      }
+
+      // Tile row (max 6 profiles + Add Profile)
+      HorizontalLayout {
+        alignment: center;
+        spacing: Theme.spacing-lg;
+
+        // Profile tiles — iterate up to 6
+        if AppState.profiles.length > 0 : ProfileTile {
+          profile: AppState.profiles[0];
+          is-focused: root.focused-index == 0;
+          activated(id) => {
+            AppState.switch-profile(id);
+            AppState.show-profile-picker = false;
+          }
+        }
+        if AppState.profiles.length > 1 : ProfileTile {
+          profile: AppState.profiles[1];
+          is-focused: root.focused-index == 1;
+          activated(id) => {
+            AppState.switch-profile(id);
+            AppState.show-profile-picker = false;
+          }
+        }
+        if AppState.profiles.length > 2 : ProfileTile {
+          profile: AppState.profiles[2];
+          is-focused: root.focused-index == 2;
+          activated(id) => {
+            AppState.switch-profile(id);
+            AppState.show-profile-picker = false;
+          }
+        }
+        if AppState.profiles.length > 3 : ProfileTile {
+          profile: AppState.profiles[3];
+          is-focused: root.focused-index == 3;
+          activated(id) => {
+            AppState.switch-profile(id);
+            AppState.show-profile-picker = false;
+          }
+        }
+        if AppState.profiles.length > 4 : ProfileTile {
+          profile: AppState.profiles[4];
+          is-focused: root.focused-index == 4;
+          activated(id) => {
+            AppState.switch-profile(id);
+            AppState.show-profile-picker = false;
+          }
+        }
+        if AppState.profiles.length > 5 : ProfileTile {
+          profile: AppState.profiles[5];
+          is-focused: root.focused-index == 5;
+          activated(id) => {
+            AppState.switch-profile(id);
+            AppState.show-profile-picker = false;
+          }
+        }
+
+        // Add Profile tile — always last
+        AddProfileTile {
+          is-focused: root.focused-index == AppState.profiles.length;
+          activated => {
+            AppState.create-profile("", false);
+          }
+        }
+      }
+    }
+  }
+}
+
+// ── Profile Menu (slide-over) ────────────────────────────────────────────────
 export component ProfileMenu inherits Rectangle {
   width: 100%; height: 100%;
   background: transparent;
@@ -31,7 +337,7 @@ export component ProfileMenu inherits Rectangle {
     x: Theme.content-padding-h;
     y: Theme.top-nav-height + Theme.spacing-sm;
     width: 320px;
-    height: 240px;
+    height: 280px;
     border-radius: Theme.radius-lg;
     background: Theme.surface;
     border-width: 1px;
@@ -51,7 +357,7 @@ export component ProfileMenu inherits Rectangle {
       padding: Theme.spacing-lg;
       spacing: Theme.spacing-lg;
 
-      // Header
+      // Header — active profile name from AppState
       HorizontalLayout {
         alignment: start;
         spacing: Theme.spacing-md;
@@ -62,7 +368,7 @@ export component ProfileMenu inherits Rectangle {
           border-radius: 28px;
           background: Theme.accent;
           Text {
-            text: "P";
+            text: AppState.active-profile-name == "" ? "?" : AppState.active-profile-name;
             color: Theme.background;
             font-weight: 700;
             font-size: 20px;
@@ -74,7 +380,20 @@ export component ProfileMenu inherits Rectangle {
 
         VerticalLayout {
           alignment: center;
-          Text { text: "Profile 1"; color: Theme.text-primary; font-weight: 700; font-family: Theme.font-display; font-size: 18px; }
+          Text {
+            text: AppState.active-profile-name;
+            color: Theme.text-primary;
+            font-weight: 700;
+            font-family: Theme.font-display;
+            font-size: 18px;
+            overflow: elide;
+          }
+          Text {
+            text: "Active profile";
+            color: Theme.text-secondary;
+            font-size: Theme.font-size-caption;
+            font-family: Theme.font-body;
+          }
         }
       }
 
@@ -83,6 +402,14 @@ export component ProfileMenu inherits Rectangle {
       // Menu Actions
       VerticalLayout {
         spacing: Theme.spacing-md;
+
+        ActionButton {
+          label: "Switch Profile";
+          clicked => {
+            AppState.show-profile-picker = true;
+            root.close();
+          }
+        }
 
         ActionButton {
           label: "Settings";

@@ -101,6 +101,181 @@ component EpgBlock inherits FocusScope {
   }
 }
 
+// Compact channel row used in both full-screen list and overlay sidebar
+component ChannelRow inherits FocusScope {
+  in property <string> ch-id;
+  in property <string> ch-name;
+  in property <image> ch-logo;
+  in property <string> ch-now-playing;
+  in property <bool> compact: false;
+  callback selected(string);
+
+  height: root.compact ? 56px : 64px;
+
+  key-pressed(event) => {
+    if event.text == Key.Return {
+      root.selected(root.ch-id);
+      return accept;
+    }
+    return reject;
+  }
+
+  Rectangle {
+    width: 100%; height: 100%;
+    border-radius: Theme.radius-md;
+    background: root.has-focus
+      ? rgba(255, 255, 255, 0.1)
+      : transparent;
+    border-width: root.has-focus ? Theme.focus-ring-width : 0px;
+    border-color: Theme.focus-ring;
+
+    animate background { duration: 120ms; }
+
+    HorizontalLayout {
+      padding-left: Theme.spacing-sm;
+      padding-right: Theme.spacing-sm;
+      spacing: Theme.spacing-sm;
+      alignment: center;
+
+      // Logo circle
+      Rectangle {
+        width: root.compact ? 32px : 40px;
+        height: root.compact ? 32px : 40px;
+        border-radius: root.compact ? 16px : 20px;
+        background: Theme.card-surface;
+        clip: true;
+
+        Image {
+          width: 100%; height: 100%;
+          source: root.ch-logo;
+          image-fit: contain;
+        }
+      }
+
+      // Name + programme
+      VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        spacing: 2px;
+
+        Text {
+          text: root.ch-name;
+          color: Theme.text-primary;
+          font-family: Theme.font-body;
+          font-size: root.compact ? Theme.font-size-small : Theme.font-size-caption;
+          font-weight: 600;
+          overflow: elide;
+        }
+
+        if root.ch-now-playing != "": Text {
+          text: root.ch-now-playing;
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-small;
+          overflow: elide;
+        }
+      }
+    }
+
+    TouchArea {
+      clicked => { root.selected(root.ch-id); }
+    }
+  }
+}
+
+// Glass overlay sidebar — 30% width, right-aligned, floats over video
+component ChannelOverlaySidebar inherits FocusScope {
+  // Auto-dismiss timer countdown (seconds)
+  property <int> idle-ticks: 0;
+  property <bool> dismissed: false;
+
+  key-pressed(event) => {
+    root.idle-ticks = 0;
+    if event.text == Key.Escape {
+      AppState.show-channel-overlay = false;
+      return accept;
+    }
+    return reject;
+  }
+
+  // Tick every second; dismiss after 5 idle seconds
+  Timer {
+    interval: 1s;
+    running: AppState.show-channel-overlay;
+    triggered => {
+      root.idle-ticks += 1;
+      if root.idle-ticks >= 5 {
+        AppState.show-channel-overlay = false;
+        root.idle-ticks = 0;
+      }
+    }
+  }
+
+  Rectangle {
+    width: 100%; height: 100%;
+    background: Theme.surface-glass;
+    border-width: 0px;
+
+    // Left border accent
+    Rectangle {
+      x: 0px; y: 0px;
+      width: 1px; height: 100%;
+      background: Theme.card-border;
+    }
+
+    VerticalLayout {
+      padding: Theme.spacing-md;
+      spacing: Theme.spacing-sm;
+
+      // Sidebar header
+      Text {
+        text: "Channels";
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-body;
+        font-weight: 700;
+      }
+
+      // Compact channel list
+      ScrollView {
+        vertical-stretch: 1;
+
+        property <length> item-stride: 56px + Theme.spacing-xs;
+
+        scrolled() => {
+          root.idle-ticks = 0;
+          if self.viewport-height > 0px
+            && (-self.viewport-y + self.visible-height > self.viewport-height - 200px) {
+            AppState.scroll-channels(15);
+            self.viewport-y = self.viewport-y + 15 * self.item-stride;
+          }
+          if self.viewport-y < 0px
+            && (-self.viewport-y < 200px)
+            && AppState.channel-window-start > 0 {
+            AppState.scroll-channels(-15);
+            self.viewport-y = self.viewport-y - 15 * self.item-stride;
+          }
+        }
+
+        VerticalLayout {
+          spacing: Theme.spacing-xs;
+          for ch in AppState.channels: ChannelRow {
+            ch-id: ch.id;
+            ch-name: ch.name;
+            ch-logo: ch.logo;
+            ch-now-playing: ch.now-playing;
+            compact: true;
+            selected(id) => {
+              root.idle-ticks = 0;
+              AppState.play-channel(id);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 export component LiveTvScreen inherits Rectangle {
   background: transparent;
 
@@ -186,7 +361,6 @@ export component LiveTvScreen inherits Rectangle {
             }
           }
 
-          // Dynamic group chips
           for grp in AppState.channel-groups: FilterChip {
             label: grp;
             active: AppState.active-channel-group == grp;
@@ -198,40 +372,38 @@ export component LiveTvScreen inherits Rectangle {
         }
       }
 
-      // Channel list — ScrollView with viewport-y compensation on shift
+      // Full-screen channel list with enhanced rows
       ScrollView {
         vertical-stretch: 1;
 
-        // Approx item height: 56px card + spacing
-        property <length> item-stride: 56px + Theme.spacing-xs;
+        property <length> item-stride: 64px + Theme.spacing-xs;
 
         scrolled() => {
-          // Near bottom: shift window forward
           if self.viewport-height > 0px
             && (-self.viewport-y + self.visible-height > self.viewport-height - 300px) {
             AppState.scroll-channels(15);
-            // Compensate viewport for items removed from top
             self.viewport-y = self.viewport-y + 15 * self.item-stride;
           }
-          // Near top: shift window backward
           if self.viewport-y < 0px
             && (-self.viewport-y < 300px)
             && AppState.channel-window-start > 0 {
             AppState.scroll-channels(-15);
-            // Compensate viewport for items added at top
             self.viewport-y = self.viewport-y - 15 * self.item-stride;
           }
         }
 
         VerticalLayout {
           spacing: Theme.spacing-xs;
-          for ch in AppState.channels: ChannelCard {
-            channel: ch;
-            clicked => { AppState.play-channel(ch.id); }
+          for ch in AppState.channels: ChannelRow {
+            ch-id: ch.id;
+            ch-name: ch.name;
+            ch-logo: ch.logo;
+            ch-now-playing: ch.now-playing;
+            compact: false;
+            selected(id) => { AppState.play-channel(id); }
           }
         }
       }
-
     }
 
     // ── EPG sub-view ──
@@ -252,16 +424,13 @@ export component LiveTvScreen inherits Rectangle {
           padding: Theme.spacing-sm;
           spacing: Theme.spacing-xs;
 
-          // Time header
           EpgTimeHeader {}
 
-          // Channel rows with programme blocks
           if AppState.channels.length > 0: ListView {
             for ch in AppState.channels: HorizontalLayout {
               height: 56px;
               spacing: Theme.spacing-xs;
 
-              // Channel name column
               Rectangle {
                 width: 140px;
                 height: 100%;
@@ -292,7 +461,6 @@ export component LiveTvScreen inherits Rectangle {
                 }
               }
 
-              // Programme blocks placeholder
               EpgBlock {
                 title: ch.now-playing != "" ? ch.now-playing : "No EPG data";
                 duration-slots: 4;
@@ -330,6 +498,18 @@ export component LiveTvScreen inherits Rectangle {
           }
         }
       }
+    }
+  }
+
+  // ── Overlay sidebar — floats above all content when show-channel-overlay is true ──
+  if AppState.show-channel-overlay: Rectangle {
+    x: root.width * 0.7;
+    y: 0px;
+    width: root.width * 0.3;
+    height: root.height;
+
+    ChannelOverlaySidebar {
+      width: 100%; height: 100%;
     }
   }
 }

@@ -41,6 +41,9 @@ pub struct DataEngine {
     /// Arc so spawned search tasks can check if they are still current.
     search_generation: Arc<AtomicU64>,
     rt: tokio::runtime::Handle,
+    /// Shared data store — DataEngine populates EPG entries + profiles here
+    /// so EventBridge can read them when building Slint property payloads.
+    shared_data: std::sync::Arc<crate::event_bridge::SharedData>,
 }
 
 impl DataEngine {
@@ -53,6 +56,7 @@ impl DataEngine {
         data_tx: mpsc::Sender<DataEvent>,
         sync_result_tx: mpsc::Sender<SyncResult>,
         rt: tokio::runtime::Handle,
+        shared_data: std::sync::Arc<crate::event_bridge::SharedData>,
     ) -> Self {
         Self {
             provider,
@@ -65,6 +69,7 @@ impl DataEngine {
             sync_result_tx,
             search_generation: Arc::new(AtomicU64::new(0)),
             rt,
+            shared_data,
         }
     }
 
@@ -153,6 +158,48 @@ impl DataEngine {
         // Rebuild derived indexes
         self.cache.rebuild_groups();
         self.cache.rebuild_vod_categories();
+
+        // ── EPG entries → SharedData ──────────────────────────────────
+        match self.provider.load_epg_entries() {
+            Ok(epg_map) => {
+                let count: usize = epg_map.values().map(|v| v.len()).sum();
+                *self.shared_data.epg_entries.lock().unwrap() = epg_map;
+                debug!(
+                    entries = count,
+                    "[CACHE] EPG entries loaded into SharedData"
+                );
+            }
+            Err(e) => {
+                error!(error = %e, "[CACHE] Failed to load EPG entries");
+            }
+        }
+
+        // ── Profiles → SharedData ─────────────────────────────────────
+        match self.provider.load_profiles() {
+            Ok(profiles) => {
+                // Determine active profile from settings (fallback: first profile)
+                let active_id = self
+                    .provider
+                    .get_setting("crispy_tivi_active_profile_id")
+                    .unwrap_or(None)
+                    .unwrap_or_default();
+                let resolved_active_id = if active_id.is_empty() {
+                    profiles.first().map(|p| p.id.clone()).unwrap_or_default()
+                } else {
+                    active_id
+                };
+                debug!(
+                    count = profiles.len(),
+                    active = resolved_active_id,
+                    "[CACHE] Profiles loaded into SharedData"
+                );
+                *self.shared_data.active_profile_id.lock().unwrap() = resolved_active_id;
+                *self.shared_data.profiles.lock().unwrap() = profiles;
+            }
+            Err(e) => {
+                error!(error = %e, "[CACHE] Failed to load profiles");
+            }
+        }
 
         debug!(
             sources = self.cache.sources.len(),

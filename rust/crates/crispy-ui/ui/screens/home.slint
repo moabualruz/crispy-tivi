@@ -6,7 +6,158 @@ import { LoadingIndicator } from "../components/loading-indicator.slint";
 import { IconPlay, IconTv } from "../components/icons.slint";
 import { ChannelPill } from "../components/channel-pill.slint";
 import { SectionHeader } from "../components/section-header.slint";
+import { ActionButton } from "../components/action-button.slint";
 import { ScrollView } from "std-widgets.slint";
+
+// Dynamic hero — shown when hero-items is populated
+component HeroDynamic inherits Rectangle {
+  property <int> idx: AppState.hero-index;
+  property <string> hero-id: AppState.hero-items[idx].id;
+  property <string> hero-title: AppState.hero-items[idx].title;
+  property <string> hero-subtitle: AppState.hero-items[idx].subtitle;
+  property <bool> hero-live: AppState.hero-items[idx].is-live;
+  property <image> hero-backdrop: AppState.hero-items[idx].backdrop;
+
+  min-height: 400px;
+  clip: true;
+
+  // Backdrop image — edge-to-edge
+  Image {
+    source: root.hero-backdrop;
+    image-fit: cover;
+    width: 100%;
+    height: 100%;
+  }
+
+  // Gradient overlay: transparent top → dark bottom for text readability
+  Rectangle {
+    width: 100%;
+    height: 100%;
+    background: @linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.0) 0%,
+      rgba(10, 10, 12, 0.35) 40%,
+      rgba(10, 10, 12, 0.85) 75%,
+      rgba(10, 10, 12, 0.97) 100%
+    );
+  }
+
+  // Content — bottom-aligned
+  VerticalLayout {
+    padding-left: Theme.content-padding-h;
+    padding-right: Theme.content-padding-h;
+    padding-bottom: Theme.spacing-2xl;
+    alignment: end;
+    spacing: Theme.spacing-sm;
+
+    // LIVE badge
+    if root.hero-live: Rectangle {
+      width: 62px;
+      height: 26px;
+      border-radius: Theme.radius-pill;
+      background: Theme.brand-gradient;
+
+      Text {
+        text: "LIVE";
+        color: #FFFFFF;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-small;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+      }
+    }
+
+    // Title
+    Text {
+      text: root.hero-title;
+      color: Theme.text-primary;
+      font-family: Theme.font-display;
+      font-size: Theme.font-size-hero;
+      font-weight: 800;
+      wrap: word-wrap;
+      overflow: elide;
+    }
+
+    // Subtitle
+    Text {
+      text: root.hero-subtitle;
+      color: Theme.text-secondary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-body;
+      wrap: word-wrap;
+      overflow: elide;
+    }
+
+    // Action buttons
+    HorizontalLayout {
+      spacing: Theme.spacing-md;
+      alignment: start;
+      padding-top: Theme.spacing-sm;
+
+      ActionButton {
+        label: "▶  Play";
+        is-primary: true;
+        width: 148px;
+        clicked => { AppState.hero-play(root.hero-id); }
+      }
+
+      ActionButton {
+        label: "More Info";
+        is-primary: false;
+        width: 148px;
+        clicked => { AppState.hero-detail(root.hero-id); }
+      }
+    }
+
+    // Dot indicators showing active hero item
+    HorizontalLayout {
+      spacing: Theme.spacing-xs;
+      alignment: start;
+      padding-top: Theme.spacing-sm;
+
+      for i in AppState.hero-items.length: Rectangle {
+        property <bool> active: i == AppState.hero-index;
+        width: active ? 24px : 8px;
+        height: 8px;
+        border-radius: Theme.radius-pill;
+        background: active ? Theme.text-primary : Theme.border-subtle;
+
+        animate width { duration: 200ms; easing: ease-in-out; }
+        animate background { duration: 200ms; easing: ease-in-out; }
+      }
+    }
+  }
+}
+
+// Static fallback hero — shown when hero-items is empty
+component HeroStatic inherits Rectangle {
+  min-height: 400px;
+  background: @linear-gradient(135deg, rgba(255, 75, 43, 0.2) 0%, rgba(10, 10, 12, 0.95) 60%, rgba(255, 65, 108, 0.1) 100%);
+
+  VerticalLayout {
+    padding-left: Theme.content-padding-h;
+    padding-right: Theme.content-padding-h;
+    padding-bottom: Theme.spacing-xl;
+    alignment: end;
+    spacing: Theme.spacing-sm;
+
+    Text {
+      text: "CrispyTivi";
+      color: Theme.text-primary;
+      font-family: Theme.font-display;
+      font-size: Theme.font-size-hero;
+      font-weight: 800;
+    }
+    Text {
+      text: "Your unified streaming experience";
+      color: Theme.text-secondary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-body;
+    }
+  }
+}
 
 export component HomeScreen inherits Rectangle {
   background: transparent;
@@ -30,33 +181,9 @@ export component HomeScreen inherits Rectangle {
       padding-bottom: Theme.spacing-xl;
       spacing: Theme.spacing-xl;
 
-      // Hero area — edge-to-edge
-      Rectangle {
-        min-height: 400px;
-        background: @linear-gradient(135deg, rgba(255, 75, 43, 0.2) 0%, rgba(10, 10, 12, 0.95) 60%, rgba(255, 65, 108, 0.1) 100%);
-
-        VerticalLayout {
-          padding-left: Theme.content-padding-h;
-          padding-right: Theme.content-padding-h;
-          padding-bottom: Theme.spacing-xl;
-          alignment: end;
-          spacing: Theme.spacing-sm;
-
-          Text {
-            text: "CrispyTivi";
-            color: Theme.text-primary;
-            font-family: Theme.font-display;
-            font-size: Theme.font-size-hero;
-            font-weight: 800;
-          }
-          Text {
-            text: "Your unified streaming experience";
-            color: Theme.text-secondary;
-            font-family: Theme.font-body;
-            font-size: Theme.font-size-body;
-          }
-        }
-      }
+      // Hero — dynamic or static fallback
+      if AppState.hero-items.length > 0: HeroDynamic {}
+      if AppState.hero-items.length == 0: HeroStatic {}
 
       // Recent channels
       if AppState.home-channels.length > 0: VerticalLayout {
@@ -73,7 +200,7 @@ export component HomeScreen inherits Rectangle {
         }
 
         ScrollView {
-          height: 70px; // Accommodate 48px Pill + dropshadows/focus rings
+          height: 70px;
           HorizontalLayout {
             spacing: Theme.spacing-sm;
             alignment: start;
@@ -100,7 +227,7 @@ export component HomeScreen inherits Rectangle {
         }
 
         ScrollView {
-          height: 310px; // Accommodate 280px VodCard + focus dropshadows
+          height: 310px;
           HorizontalLayout {
             spacing: Theme.spacing-md;
             alignment: start;
@@ -127,7 +254,7 @@ export component HomeScreen inherits Rectangle {
         }
 
         ScrollView {
-          height: 310px; // Accommodate 280px VodCard + focus dropshadows
+          height: 310px;
           HorizontalLayout {
             spacing: Theme.spacing-md;
             alignment: start;
