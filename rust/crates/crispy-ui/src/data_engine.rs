@@ -175,6 +175,9 @@ impl DataEngine {
         self.send(DataEvent::SourcesReady { sources });
 
         // Channels — first page
+        self.send(DataEvent::LoadingStarted {
+            kind: LoadingKind::Channels,
+        });
         let (ch_page, total, has_more) = filter_channels(
             &self.cache.all_channels,
             &self.filters.active_group,
@@ -188,8 +191,14 @@ impl DataEngine {
             total,
             has_more,
         });
+        self.send(DataEvent::LoadingFinished {
+            kind: LoadingKind::Channels,
+        });
 
         // Movies — first page
+        self.send(DataEvent::LoadingStarted {
+            kind: LoadingKind::Movies,
+        });
         let (mov_page, cats, total, has_more) = filter_vod(
             &self.cache.all_vod,
             "movie",
@@ -203,8 +212,14 @@ impl DataEngine {
             total,
             has_more,
         });
+        self.send(DataEvent::LoadingFinished {
+            kind: LoadingKind::Movies,
+        });
 
         // Series — first page
+        self.send(DataEvent::LoadingStarted {
+            kind: LoadingKind::Series,
+        });
         let (ser_page, cats, total, has_more) = filter_vod(
             &self.cache.all_vod,
             "series",
@@ -217,6 +232,9 @@ impl DataEngine {
             categories: cats,
             total,
             has_more,
+        });
+        self.send(DataEvent::LoadingFinished {
+            kind: LoadingKind::Series,
         });
     }
 
@@ -328,6 +346,11 @@ impl DataEngine {
                         series,
                     };
                     let _ = data_tx.send(event).await;
+                    let _ = data_tx
+                        .send(DataEvent::LoadingFinished {
+                            kind: LoadingKind::Search,
+                        })
+                        .await;
                 });
             }
 
