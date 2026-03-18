@@ -19,6 +19,20 @@ export component SourceDialog inherits Rectangle {
   width: 100%;
   height: 100%;
 
+  // M-006: local Escape handler — FocusScope wrapping entire dialog catches
+  // Escape even when an input field has focus.
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      if event.text == Key.Escape {
+        root.validate-state = 0;
+        AppState.show-source-dialog = false;
+        return accept;
+      }
+      return reject;
+    }
+  }
+
   // Backdrop
   Rectangle {
     width: 100%; height: 100%;

@@ -101,16 +101,37 @@ component EpgBlock inherits FocusScope {
   }
 }
 
-// Compact channel row used in both full-screen list and overlay sidebar
+// Compact channel row used in both full-screen list and overlay sidebar.
+// M-010: Non-compact rows show a 3px accent progress bar (static 50% placeholder)
+//        below the now-playing text.
+// M-012: Fires focused-changed(id, name, programme, group) when the row gains
+//        focus so the parent screen can update the preview info panel.
 component ChannelRow inherits FocusScope {
   in property <string> ch-id;
   in property <string> ch-name;
   in property <image> ch-logo;
   in property <string> ch-now-playing;
+  in property <string> ch-group;
   in property <bool> compact: false;
   callback selected(string);
+  // Fired when this row gains focus; parent uses this to populate preview panel
+  callback focused-changed(string, string, string, string);
 
-  height: root.compact ? 56px : 64px;
+  // Non-compact rows are taller to accommodate the progress bar
+  height: root.compact ? 56px : 76px;
+
+  // Detect focus arrival via a property that mirrors has-focus
+  property <bool> focus-mirror: root.has-focus;
+  changed focus-mirror => {
+    if root.has-focus {
+      root.focused-changed(
+        root.ch-id,
+        root.ch-name,
+        root.ch-now-playing,
+        root.ch-group
+      );
+    }
+  }
 
   key-pressed(event) => {
     if event.text == Key.Return {
@@ -131,48 +152,72 @@ component ChannelRow inherits FocusScope {
 
     animate background { duration: 120ms; }
 
-    HorizontalLayout {
+    VerticalLayout {
       padding-left: Theme.spacing-sm;
       padding-right: Theme.spacing-sm;
-      spacing: Theme.spacing-sm;
-      alignment: center;
+      padding-top: Theme.spacing-xs;
+      padding-bottom: Theme.spacing-xs;
+      spacing: 4px;
 
-      // Logo circle
-      Rectangle {
-        width: root.compact ? 32px : 40px;
-        height: root.compact ? 32px : 40px;
-        border-radius: root.compact ? 16px : 20px;
-        background: Theme.card-surface;
-        clip: true;
+      HorizontalLayout {
+        spacing: Theme.spacing-sm;
+        alignment: center;
+        vertical-stretch: 1;
 
-        Image {
-          width: 100%; height: 100%;
-          source: root.ch-logo;
-          image-fit: contain;
+        // Logo circle
+        Rectangle {
+          width: root.compact ? 32px : 40px;
+          height: root.compact ? 32px : 40px;
+          border-radius: root.compact ? 16px : 20px;
+          background: Theme.card-surface;
+          clip: true;
+
+          Image {
+            width: 100%; height: 100%;
+            source: root.ch-logo;
+            image-fit: contain;
+          }
+        }
+
+        // Name + programme
+        VerticalLayout {
+          horizontal-stretch: 1;
+          alignment: center;
+          spacing: 2px;
+
+          Text {
+            text: root.ch-name;
+            color: Theme.text-primary;
+            font-family: Theme.font-body;
+            font-size: root.compact ? Theme.font-size-small : Theme.font-size-caption;
+            font-weight: 600;
+            overflow: elide;
+          }
+
+          if root.ch-now-playing != "": Text {
+            text: root.ch-now-playing;
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-small;
+            overflow: elide;
+          }
         }
       }
 
-      // Name + programme
-      VerticalLayout {
-        horizontal-stretch: 1;
-        alignment: center;
-        spacing: 2px;
+      // M-010: Thin accent progress bar — static 50% placeholder
+      // Only in non-compact rows that have programme info
+      if !root.compact && root.ch-now-playing != "": Rectangle {
+        height: 3px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.12);
 
-        Text {
-          text: root.ch-name;
-          color: Theme.text-primary;
-          font-family: Theme.font-body;
-          font-size: root.compact ? Theme.font-size-small : Theme.font-size-caption;
-          font-weight: 600;
-          overflow: elide;
-        }
-
-        if root.ch-now-playing != "": Text {
-          text: root.ch-now-playing;
-          color: Theme.text-secondary;
-          font-family: Theme.font-body;
-          font-size: Theme.font-size-small;
-          overflow: elide;
+        Rectangle {
+          x: 0px;
+          y: 0px;
+          width: parent.width * 0.5;
+          height: 100%;
+          border-radius: 2px;
+          background: Theme.brand-gradient;
         }
       }
     }
@@ -187,7 +232,6 @@ component ChannelRow inherits FocusScope {
 component ChannelOverlaySidebar inherits FocusScope {
   // Auto-dismiss timer countdown (seconds)
   property <int> idle-ticks: 0;
-  property <bool> dismissed: false;
 
   key-pressed(event) => {
     root.idle-ticks = 0;
@@ -264,6 +308,7 @@ component ChannelOverlaySidebar inherits FocusScope {
             ch-name: ch.name;
             ch-logo: ch.logo;
             ch-now-playing: ch.now-playing;
+            ch-group: ch.group;
             compact: true;
             selected(id) => {
               root.idle-ticks = 0;
@@ -276,240 +321,413 @@ component ChannelOverlaySidebar inherits FocusScope {
   }
 }
 
+// LiveTvScreen — channels list screen with:
+//   M-010: progress bar on each channel row
+//   M-011: digit key capture → channel number overlay → filter-channels commit
+//   M-012: focused channel preview info panel at top of list
 export component LiveTvScreen inherits Rectangle {
   background: transparent;
 
   // Sub-view state: 0 = Channels, 1 = EPG
   in-out property <int> active-sub-view: 0;
 
-  // Loading state
-  if AppState.is-loading-channels && AppState.channels.length == 0: LoadingIndicator {
-    message: "Loading channels...";
-  }
+  // M-012: preview panel state — updated via ChannelRow.focused-changed
+  property <string> preview-ch-name: "";
+  property <string> preview-ch-programme: "";
+  property <string> preview-ch-group: "";
 
-  // Empty state (only if not loading)
-  if !AppState.is-loading-channels && AppState.channels.length == 0: EmptyState {
-    title: "No Channels";
-    subtitle: "Add an IPTV source to browse live channels.";
-    cta-text: "Add Source";
-    cta-clicked => {
-      AppState.active-screen = 6;
-      AppState.navigate(6);
-    }
-    IconTv { size: 32px; fill: Theme.text-secondary; }
-  }
+  // M-011: channel number entry state
+  property <string> ch-entry-digits: "";
+  property <int> ch-entry-ticks: 0;
 
-  if AppState.channels.length > 0: VerticalLayout {
-    padding-top: Theme.screen-padding-top;
-    padding-left: Theme.content-padding-h;
-    padding-right: Theme.content-padding-h;
-    padding-bottom: Theme.spacing-lg;
-    spacing: Theme.spacing-md;
-
-    // Header row: title + sub-view tabs
-    HorizontalLayout {
-      spacing: Theme.spacing-lg;
-
-      Text {
-        text: "Live TV";
-        color: Theme.text-primary;
-        font-family: Theme.font-display;
-        font-size: Theme.font-size-h1;
-        font-weight: 700;
-        vertical-alignment: center;
-        horizontal-stretch: 1;
+  // Counts 100ms ticks; commits after 15 ticks (≈1.5 s) with no new digit
+  Timer {
+    interval: 100ms;
+    running: root.ch-entry-digits != "";
+    triggered => {
+      root.ch-entry-ticks += 1;
+      if root.ch-entry-ticks >= 15 {
+        AppState.filter-channels("", root.ch-entry-digits);
+        root.ch-entry-digits = "";
+        root.ch-entry-ticks = 0;
       }
+    }
+  }
 
-      // Sub-view tabs
+  // M-011: Full-screen FocusScope that captures digit keys.
+  // It passes non-digit events through (return reject) so child focus scopes
+  // still handle Return and directional keys normally.
+  FocusScope {
+    x: 0; y: 0;
+    width: root.width; height: root.height;
+
+    key-pressed(event) => {
+      if event.text == "0" || event.text == "1" || event.text == "2"
+        || event.text == "3" || event.text == "4" || event.text == "5"
+        || event.text == "6" || event.text == "7" || event.text == "8"
+        || event.text == "9"
+      {
+        if root.ch-entry-digits.character-count < 4 {
+          root.ch-entry-digits = root.ch-entry-digits + event.text;
+        }
+        root.ch-entry-ticks = 0;
+        return accept;
+      }
+      return reject;
+    }
+
+    // Loading state
+    if AppState.is-loading-channels && AppState.channels.length == 0: LoadingIndicator {
+      message: "Loading channels...";
+    }
+
+    // Empty state (only if not loading)
+    if !AppState.is-loading-channels && AppState.channels.length == 0: EmptyState {
+      title: "No Channels";
+      subtitle: "Add an IPTV source to browse live channels.";
+      cta-text: "Add Source";
+      cta-clicked => {
+        AppState.active-screen = 6;
+        AppState.navigate(6);
+      }
+      IconTv { size: 32px; fill: Theme.text-secondary; }
+    }
+
+    if AppState.channels.length > 0: VerticalLayout {
+      padding-top: Theme.screen-padding-top;
+      padding-left: Theme.content-padding-h;
+      padding-right: Theme.content-padding-h;
+      padding-bottom: Theme.spacing-lg;
+      spacing: Theme.spacing-md;
+
+      // Header row: title + sub-view tabs
       HorizontalLayout {
-        spacing: Theme.spacing-xs;
-        alignment: center;
+        spacing: Theme.spacing-lg;
 
-        LiveSubTab {
-          label: "Channels";
-          active: root.active-sub-view == 0;
-          activated => { root.active-sub-view = 0; }
+        Text {
+          text: "Live TV";
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: Theme.font-size-h1;
+          font-weight: 700;
+          vertical-alignment: center;
+          horizontal-stretch: 1;
         }
-        LiveSubTab {
-          label: "EPG";
-          active: root.active-sub-view == 1;
-          activated => { root.active-sub-view = 1; }
-        }
-      }
-    }
 
-    // ── Channels sub-view ──
-    if root.active-sub-view == 0: VerticalLayout {
-      spacing: Theme.spacing-sm;
-      vertical-stretch: 1;
-
-      // Group filter chips (horizontal, clipped — no ScrollView to avoid nested scroll)
-      if AppState.channel-groups.length > 0: Rectangle {
-        height: 48px;
-        clip: true;
+        // Sub-view tabs
         HorizontalLayout {
-          padding-top: 4px;
-          padding-bottom: 4px;
-          spacing: Theme.spacing-sm;
+          spacing: Theme.spacing-xs;
+          alignment: center;
 
-          FilterChip {
-            label: "All";
-            active: AppState.active-channel-group == "";
-            activated => {
-              AppState.active-channel-group = "";
-              AppState.filter-channels("", "");
-            }
+          LiveSubTab {
+            label: "Channels";
+            active: root.active-sub-view == 0;
+            activated => { root.active-sub-view = 0; }
           }
-
-          for grp in AppState.channel-groups: FilterChip {
-            label: grp;
-            active: AppState.active-channel-group == grp;
-            activated => {
-              AppState.active-channel-group = grp;
-              AppState.filter-channels(grp, "");
-            }
+          LiveSubTab {
+            label: "EPG";
+            active: root.active-sub-view == 1;
+            activated => { root.active-sub-view = 1; }
           }
         }
       }
 
-      // Full-screen channel list with enhanced rows
-      ScrollView {
+      // ── Channels sub-view ──
+      if root.active-sub-view == 0: VerticalLayout {
+        spacing: Theme.spacing-sm;
         vertical-stretch: 1;
 
-        property <length> item-stride: 64px + Theme.spacing-xs;
+        // M-012: Focused channel preview panel
+        // Glass card shown when a channel row is focused
+        if root.preview-ch-name != "": Rectangle {
+          height: 80px;
+          border-radius: Theme.radius-md;
+          background: Theme.surface-glass;
+          border-width: 1px;
+          border-color: Theme.card-border;
+          clip: true;
 
-        scrolled() => {
-          if self.viewport-height > 0px
-            && (-self.viewport-y + self.visible-height > self.viewport-height - 300px) {
-            AppState.scroll-channels(15);
-            self.viewport-y = self.viewport-y + 15 * self.item-stride;
-          }
-          if self.viewport-y < 0px
-            && (-self.viewport-y < 300px)
-            && AppState.channel-window-start > 0 {
-            AppState.scroll-channels(-15);
-            self.viewport-y = self.viewport-y - 15 * self.item-stride;
-          }
-        }
+          HorizontalLayout {
+            padding-left: Theme.spacing-md;
+            padding-right: Theme.spacing-md;
+            spacing: Theme.spacing-md;
+            alignment: center;
 
-        VerticalLayout {
-          spacing: Theme.spacing-xs;
-          for ch in AppState.channels: ChannelRow {
-            ch-id: ch.id;
-            ch-name: ch.name;
-            ch-logo: ch.logo;
-            ch-now-playing: ch.now-playing;
-            compact: false;
-            selected(id) => { AppState.play-channel(id); }
-          }
-        }
-      }
-    }
-
-    // ── EPG sub-view ──
-    if root.active-sub-view == 1: HorizontalLayout {
-      spacing: Theme.spacing-lg;
-      vertical-stretch: 1;
-
-      // EPG grid area — 70%
-      Rectangle {
-        horizontal-stretch: 70;
-        border-radius: Theme.radius-md;
-        background: Theme.card-surface;
-        border-width: 1px;
-        border-color: Theme.card-border;
-        clip: true;
-
-        VerticalLayout {
-          padding: Theme.spacing-sm;
-          spacing: Theme.spacing-xs;
-
-          EpgTimeHeader {}
-
-          if AppState.channels.length > 0: ListView {
-            for ch in AppState.channels: HorizontalLayout {
+            // Brand-gradient left accent bar
+            Rectangle {
+              width: 3px;
               height: 56px;
+              border-radius: 2px;
+              background: Theme.brand-gradient;
+            }
+
+            VerticalLayout {
+              horizontal-stretch: 1;
+              alignment: center;
               spacing: Theme.spacing-xs;
 
-              Rectangle {
-                width: 140px;
-                height: 100%;
-                background: transparent;
+              Text {
+                text: root.preview-ch-name;
+                color: Theme.text-primary;
+                font-family: Theme.font-display;
+                font-size: Theme.font-size-h2;
+                font-weight: 700;
+                overflow: elide;
+              }
 
-                HorizontalLayout {
-                  padding-left: Theme.spacing-sm;
-                  spacing: Theme.spacing-sm;
+              HorizontalLayout {
+                spacing: Theme.spacing-sm;
+                alignment: start;
+
+                if root.preview-ch-programme != "": Text {
+                  text: root.preview-ch-programme;
+                  color: Theme.text-secondary;
+                  font-family: Theme.font-body;
+                  font-size: Theme.font-size-caption;
+                  overflow: elide;
+                  vertical-alignment: center;
+                }
+
+                if root.preview-ch-group != "": Rectangle {
+                  height: 20px;
+                  width: 120px;
+                  border-radius: Theme.radius-pill;
+                  background: rgba(255, 255, 255, 0.1);
+                  border-width: 1px;
+                  border-color: Theme.card-border;
+                  clip: true;
 
                   Text {
-                    text: ch.number > 0 ? ch.number : "";
+                    x: Theme.spacing-sm;
+                    y: 0px;
+                    width: parent.width - Theme.spacing-md;
+                    height: 100%;
+                    text: root.preview-ch-group;
                     color: Theme.text-secondary;
-                    font-size: Theme.font-size-small;
-                    width: 28px;
-                    vertical-alignment: center;
-                    horizontal-alignment: center;
-                  }
-                  Text {
-                    text: ch.name;
-                    color: Theme.text-primary;
                     font-family: Theme.font-body;
-                    font-size: Theme.font-size-caption;
-                    font-weight: 600;
-                    overflow: elide;
+                    font-size: Theme.font-size-small;
+                    font-weight: 500;
                     vertical-alignment: center;
-                    horizontal-stretch: 1;
+                    overflow: elide;
                   }
                 }
               }
+            }
+          }
+        }
 
-              EpgBlock {
-                title: ch.now-playing != "" ? ch.now-playing : "No EPG data";
-                duration-slots: 4;
+        // Group filter chips (horizontal, clipped — no ScrollView to avoid nested scroll)
+        if AppState.channel-groups.length > 0: Rectangle {
+          height: 48px;
+          clip: true;
+          HorizontalLayout {
+            padding-top: 4px;
+            padding-bottom: 4px;
+            spacing: Theme.spacing-sm;
+
+            FilterChip {
+              label: "All";
+              active: AppState.active-channel-group == "";
+              activated => {
+                AppState.active-channel-group = "";
+                AppState.filter-channels("", "");
+              }
+            }
+
+            for grp in AppState.channel-groups: FilterChip {
+              label: grp;
+              active: AppState.active-channel-group == grp;
+              activated => {
+                AppState.active-channel-group = grp;
+                AppState.filter-channels(grp, "");
               }
             }
           }
+        }
 
-          if AppState.channels.length == 0: Text {
-            text: "No EPG data available";
-            color: Theme.text-secondary;
-            font-family: Theme.font-body;
-            font-size: Theme.font-size-body;
-            horizontal-alignment: center;
-            vertical-alignment: center;
+        // Full-screen channel list — M-010 progress bars, M-012 focus callbacks
+        ScrollView {
+          vertical-stretch: 1;
+
+          // Stride matches updated non-compact row height (76px)
+          property <length> item-stride: 76px + Theme.spacing-xs;
+
+          scrolled() => {
+            if self.viewport-height > 0px
+              && (-self.viewport-y + self.visible-height > self.viewport-height - 300px) {
+              AppState.scroll-channels(15);
+              self.viewport-y = self.viewport-y + 15 * self.item-stride;
+            }
+            if self.viewport-y < 0px
+              && (-self.viewport-y < 300px)
+              && AppState.channel-window-start > 0 {
+              AppState.scroll-channels(-15);
+              self.viewport-y = self.viewport-y - 15 * self.item-stride;
+            }
+          }
+
+          VerticalLayout {
+            spacing: Theme.spacing-xs;
+            for ch in AppState.channels: ChannelRow {
+              ch-id: ch.id;
+              ch-name: ch.name;
+              ch-logo: ch.logo;
+              ch-now-playing: ch.now-playing;
+              ch-group: ch.group;
+              compact: false;
+              selected(id) => { AppState.play-channel(id); }
+              focused-changed(id, name, programme, group) => {
+                root.preview-ch-name = name;
+                root.preview-ch-programme = programme;
+                root.preview-ch-group = group;
+              }
+            }
           }
         }
       }
 
-      // PiP mini-player area — ~25%
-      Rectangle {
-        horizontal-stretch: 25;
-        border-radius: Theme.radius-md;
-        background: #000000;
-        border-width: 1px;
-        border-color: Theme.border-subtle;
+      // ── EPG sub-view ──
+      if root.active-sub-view == 1: HorizontalLayout {
+        spacing: Theme.spacing-lg;
+        vertical-stretch: 1;
 
-        VerticalLayout {
-          alignment: center;
-          Text {
-            text: "Preview";
-            color: Theme.text-secondary;
-            font-family: Theme.font-body;
-            font-size: Theme.font-size-caption;
-            horizontal-alignment: center;
+        // EPG grid area — 70%
+        Rectangle {
+          horizontal-stretch: 70;
+          border-radius: Theme.radius-md;
+          background: Theme.card-surface;
+          border-width: 1px;
+          border-color: Theme.card-border;
+          clip: true;
+
+          VerticalLayout {
+            padding: Theme.spacing-sm;
+            spacing: Theme.spacing-xs;
+
+            EpgTimeHeader {}
+
+            if AppState.channels.length > 0: ListView {
+              for ch in AppState.channels: HorizontalLayout {
+                height: 56px;
+                spacing: Theme.spacing-xs;
+
+                Rectangle {
+                  width: 140px;
+                  height: 100%;
+                  background: transparent;
+
+                  HorizontalLayout {
+                    padding-left: Theme.spacing-sm;
+                    spacing: Theme.spacing-sm;
+
+                    Text {
+                      text: ch.number > 0 ? ch.number : "";
+                      color: Theme.text-secondary;
+                      font-size: Theme.font-size-small;
+                      width: 28px;
+                      vertical-alignment: center;
+                      horizontal-alignment: center;
+                    }
+                    Text {
+                      text: ch.name;
+                      color: Theme.text-primary;
+                      font-family: Theme.font-body;
+                      font-size: Theme.font-size-caption;
+                      font-weight: 600;
+                      overflow: elide;
+                      vertical-alignment: center;
+                      horizontal-stretch: 1;
+                    }
+                  }
+                }
+
+                EpgBlock {
+                  title: ch.now-playing != "" ? ch.now-playing : "No EPG data";
+                  duration-slots: 4;
+                }
+              }
+            }
+
+            if AppState.channels.length == 0: Text {
+              text: "No EPG data available";
+              color: Theme.text-secondary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-body;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+          }
+        }
+
+        // PiP mini-player area — ~25%
+        Rectangle {
+          horizontal-stretch: 25;
+          border-radius: Theme.radius-md;
+          background: #000000;
+          border-width: 1px;
+          border-color: Theme.border-subtle;
+
+          VerticalLayout {
+            alignment: center;
+            Text {
+              text: "Preview";
+              color: Theme.text-secondary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-caption;
+              horizontal-alignment: center;
+            }
           }
         }
       }
     }
-  }
 
-  // ── Overlay sidebar — floats above all content when show-channel-overlay is true ──
-  if AppState.show-channel-overlay: Rectangle {
-    x: root.width * 0.7;
-    y: 0px;
-    width: root.width * 0.3;
-    height: root.height;
+    // ── Overlay sidebar — floats above all content when show-channel-overlay is true ──
+    if AppState.show-channel-overlay: Rectangle {
+      x: root.width * 0.7;
+      y: 0px;
+      width: root.width * 0.3;
+      height: root.height;
 
-    ChannelOverlaySidebar {
-      width: 100%; height: 100%;
+      ChannelOverlaySidebar {
+        width: 100%; height: 100%;
+      }
+    }
+
+    // M-011: Channel number entry overlay — top-right corner glass card
+    // Visible while digits are being accumulated; clears after 1.5 s of no input
+    if root.ch-entry-digits != "": Rectangle {
+      x: root.width - 180px;
+      y: Theme.screen-padding-top - Theme.spacing-lg;
+      width: 160px;
+      height: 80px;
+      border-radius: Theme.radius-lg;
+      background: Theme.surface-glass;
+      border-width: 2px;
+      border-color: Theme.focus-ring;
+
+      VerticalLayout {
+        alignment: center;
+        spacing: Theme.spacing-xs;
+
+        Text {
+          text: root.ch-entry-digits;
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: 36px;
+          font-weight: 700;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+
+        Text {
+          text: "CH";
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-small;
+          font-weight: 500;
+          horizontal-alignment: center;
+        }
+      }
     }
   }
 }

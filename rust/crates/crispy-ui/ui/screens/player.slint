@@ -162,13 +162,170 @@ component SeekBar inherits FocusScope {
   }
 }
 
+// M-022: Secondary OSD tray — pill buttons for Audio / Subs / Speed / PiP
+component OsdTray inherits Rectangle {
+  in property <bool> visible-tray: false;
+
+  height: visible-tray ? 64px : 0px;
+  clip: true;
+  background: transparent;
+  animate height { duration: 200ms; easing: ease-in-out; }
+
+  HorizontalLayout {
+    alignment: center;
+    spacing: Theme.spacing-md;
+    padding: Theme.spacing-sm;
+
+    Rectangle {
+      width: audio-lbl.preferred-width + Theme.spacing-lg;
+      height: 36px;
+      border-radius: Theme.radius-pill;
+      background: Theme.surface-glass;
+      border-width: 1px;
+      border-color: rgba(255, 255, 255, 0.2);
+      audio-lbl := Text {
+        text: "Audio";
+        color: Theme.text-primary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+      TouchArea { clicked => { PlayerState.show-controls(); } }
+    }
+
+    Rectangle {
+      width: subs-lbl.preferred-width + Theme.spacing-lg;
+      height: 36px;
+      border-radius: Theme.radius-pill;
+      background: Theme.surface-glass;
+      border-width: 1px;
+      border-color: rgba(255, 255, 255, 0.2);
+      subs-lbl := Text {
+        text: "Subs";
+        color: Theme.text-primary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+      TouchArea { clicked => { PlayerState.show-controls(); } }
+    }
+
+    Rectangle {
+      width: speed-lbl.preferred-width + Theme.spacing-lg;
+      height: 36px;
+      border-radius: Theme.radius-pill;
+      background: Theme.surface-glass;
+      border-width: 1px;
+      border-color: rgba(255, 255, 255, 0.2);
+      speed-lbl := Text {
+        text: "1x";
+        color: Theme.text-primary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+      TouchArea { clicked => { PlayerState.show-controls(); } }
+    }
+
+    Rectangle {
+      width: pip-lbl.preferred-width + Theme.spacing-lg;
+      height: 36px;
+      border-radius: Theme.radius-pill;
+      background: Theme.surface-glass;
+      border-width: 1px;
+      border-color: rgba(255, 255, 255, 0.2);
+      pip-lbl := Text {
+        text: "PiP";
+        color: Theme.text-primary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+      TouchArea { clicked => { PlayerState.show-controls(); } }
+    }
+  }
+}
+
 component OsdControls inherits Rectangle {
+  // M-022: secondary tray toggle state
+  property <bool> show-tray: false;
+
+  // M-022: Down opens tray, Up closes — inner FocusScope (Rectangle has no key-pressed)
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      if event.text == Key.DownArrow && !root.show-tray {
+        root.show-tray = true;
+        return accept;
+      }
+      if event.text == Key.UpArrow && root.show-tray {
+        root.show-tray = false;
+        return accept;
+      }
+      return reject;
+    }
+  }
+
   // Gradient overlay at bottom
   Rectangle {
     y: parent.height - 240px;
     height: 240px;
     width: parent.width;
     background: @linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 100%);
+  }
+
+  // M-023: Live EPG mini-strip — current programme + progress bar + "Next" label
+  if PlayerState.is-live: HorizontalLayout {
+    y: 0;
+    x: Theme.content-padding-h;
+    width: parent.width - Theme.content-padding-h * 2;
+    height: 48px;
+    alignment: start;
+    spacing: Theme.spacing-md;
+
+    Text {
+      text: PlayerState.current-title;
+      color: Theme.text-primary;
+      font-family: Theme.font-display;
+      font-size: Theme.font-size-caption;
+      font-weight: 700;
+      vertical-alignment: center;
+      overflow: elide;
+      horizontal-stretch: 1;
+    }
+
+    Rectangle {
+      width: 120px;
+      height: 4px;
+      y: (parent.height - 4px) / 2;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.2);
+      Rectangle {
+        x: 0;
+        width: PlayerState.duration > 0.0
+          ? parent.width * (PlayerState.position / PlayerState.duration)
+          : 0px;
+        height: 100%;
+        border-radius: 2px;
+        background: Theme.accent-gradient;
+      }
+    }
+
+    Text {
+      text: "Next";
+      color: Theme.text-secondary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-small;
+      vertical-alignment: center;
+    }
   }
 
   // Metadata (Top left of the OSD area)
@@ -285,6 +442,13 @@ component OsdControls inherits Rectangle {
   if !PlayerState.is-live: SeekBar {
     y: parent.height - self.height;
     width: parent.width;
+  }
+
+  // M-022: Secondary tray slides up from bottom
+  OsdTray {
+    y: parent.height - self.height;
+    width: parent.width;
+    visible-tray: root.show-tray;
   }
 }
 

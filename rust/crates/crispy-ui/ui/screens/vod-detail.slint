@@ -3,6 +3,7 @@ import { AppState, VodData } from "../globals/app-state.slint";
 import { ActionButton } from "../components/action-button.slint";
 import { ScrollView } from "std-widgets.slint";
 import { IconMovie, IconStar, IconStarOutline } from "../components/icons.slint";
+import { VodCard } from "../components/vod-card.slint";
 
 // Quality badge pill
 component QualityBadge inherits Rectangle {
@@ -207,10 +208,10 @@ export component VodDetailScreen inherits Rectangle {
         padding-bottom: Theme.spacing-lg;
         spacing: Theme.spacing-md;
 
-        // Play button (primary)
+        // Play button (primary) — M-015: shows progress bar when duration is known
         play-btn := FocusScope {
-          width: 140px;
-          height: 48px;
+          width: AppState.vod-detail-item.duration-minutes > 0 ? 180px : 140px;
+          height: 56px;
           key-pressed(event) => {
             if event.text == Key.Return {
               AppState.play-vod(AppState.vod-detail-item.id);
@@ -218,25 +219,49 @@ export component VodDetailScreen inherits Rectangle {
             }
             return reject;
           }
-          Rectangle {
-            width: 100%; height: 100%;
-            border-radius: Theme.radius-md;
-            background: play-btn.has-focus ? Theme.surface-glass : Theme.btn-primary-bg;
-            border-width: play-btn.has-focus ? Theme.focus-ring-width : 0px;
-            border-color: Theme.focus-ring;
-            HorizontalLayout {
-              alignment: center;
-              spacing: Theme.spacing-xs;
-              Text {
-                text: "▶  Play";
-                color: Theme.btn-primary-fg;
-                font-family: Theme.font-display;
-                font-size: Theme.font-size-body;
-                font-weight: 700;
-                vertical-alignment: center;
+          VerticalLayout {
+            spacing: 0px;
+
+            Rectangle {
+              width: 100%;
+              height: 48px;
+              border-radius: AppState.vod-detail-item.duration-minutes > 0
+                ? Theme.radius-md : Theme.radius-md;
+              background: play-btn.has-focus ? Theme.surface-glass : Theme.btn-primary-bg;
+              border-width: play-btn.has-focus ? Theme.focus-ring-width : 0px;
+              border-color: Theme.focus-ring;
+              HorizontalLayout {
+                alignment: center;
+                spacing: Theme.spacing-xs;
+                Text {
+                  text: AppState.vod-detail-item.duration-minutes > 0
+                    ? "▶  Play"
+                    : "▶  Play";
+                  color: Theme.btn-primary-fg;
+                  font-family: Theme.font-display;
+                  font-size: Theme.font-size-body;
+                  font-weight: 700;
+                  vertical-alignment: center;
+                }
+              }
+              TouchArea { clicked => { AppState.play-vod(AppState.vod-detail-item.id); } }
+            }
+
+            // M-015: progress bar placeholder — visible when duration > 0
+            if AppState.vod-detail-item.duration-minutes > 0: Rectangle {
+              width: 100%;
+              height: 4px;
+              border-radius: 2px;
+              background: Theme.border-subtle;
+
+              // Placeholder bar at ~30% to indicate partial watch state
+              Rectangle {
+                width: parent.width * 0.30;
+                height: 100%;
+                border-radius: 2px;
+                background: @linear-gradient(90deg, #FF4B2B 0%, #FF416C 100%);
               }
             }
-            TouchArea { clicked => { AppState.play-vod(AppState.vod-detail-item.id); } }
           }
         }
 
@@ -359,12 +384,12 @@ export component VodDetailScreen inherits Rectangle {
         }
       }
 
-      // ── Similar titles placeholder ──────────────────────────────────────
-      VerticalLayout {
+      // ── M-016: More Like This — horizontal row from home-movies (first 6) ──
+      if AppState.home-movies.length > 0: VerticalLayout {
         padding-left: Theme.content-padding-h;
         padding-right: Theme.content-padding-h;
         padding-bottom: Theme.spacing-2xl;
-        spacing: Theme.spacing-sm;
+        spacing: Theme.spacing-md;
 
         Text {
           text: "More Like This";
@@ -373,11 +398,34 @@ export component VodDetailScreen inherits Rectangle {
           font-size: Theme.font-size-h2;
           font-weight: 700;
         }
-        Text {
-          text: "Browse the Movies screen for more content.";
-          color: Theme.text-secondary;
-          font-family: Theme.font-body;
-          font-size: Theme.font-size-caption;
+
+        HorizontalLayout {
+          spacing: Theme.spacing-md;
+
+          if AppState.home-movies.length > 0: VodCard {
+            item: AppState.home-movies[0];
+            clicked => { AppState.open-vod-detail(AppState.home-movies[0].id); }
+          }
+          if AppState.home-movies.length > 1: VodCard {
+            item: AppState.home-movies[1];
+            clicked => { AppState.open-vod-detail(AppState.home-movies[1].id); }
+          }
+          if AppState.home-movies.length > 2: VodCard {
+            item: AppState.home-movies[2];
+            clicked => { AppState.open-vod-detail(AppState.home-movies[2].id); }
+          }
+          if AppState.home-movies.length > 3: VodCard {
+            item: AppState.home-movies[3];
+            clicked => { AppState.open-vod-detail(AppState.home-movies[3].id); }
+          }
+          if AppState.home-movies.length > 4: VodCard {
+            item: AppState.home-movies[4];
+            clicked => { AppState.open-vod-detail(AppState.home-movies[4].id); }
+          }
+          if AppState.home-movies.length > 5: VodCard {
+            item: AppState.home-movies[5];
+            clicked => { AppState.open-vod-detail(AppState.home-movies[5].id); }
+          }
         }
       }
     }

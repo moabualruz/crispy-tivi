@@ -407,6 +407,75 @@ export component SeriesDetailScreen inherits Rectangle {
             );
           }
         }
+
+        // M-017: Next Episode preview card — shown when episode list is non-empty
+        // The actual auto-play timer lives in Rust; this is the visual element only.
+        if AppState.series-episodes.length > 0: Rectangle {
+          width: 100%;
+          height: 80px;
+          border-radius: Theme.radius-md;
+          background: Theme.card-surface;
+          border-width: 1px;
+          border-color: #FF4B2B;
+
+          HorizontalLayout {
+            padding-left: Theme.spacing-md;
+            padding-right: Theme.spacing-md;
+            spacing: Theme.spacing-md;
+
+            // Brand accent left stripe
+            Rectangle {
+              width: 4px;
+              height: 100%;
+              border-radius: 2px;
+              background: @linear-gradient(180deg, #FF4B2B 0%, #FF416C 100%);
+            }
+
+            VerticalLayout {
+              horizontal-stretch: 1;
+              alignment: center;
+              spacing: 2px;
+
+              Text {
+                text: "Up Next";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-small;
+                font-weight: 600;
+              }
+
+              Text {
+                // Shows last episode as the "next" placeholder; Rust will supply real next ep data
+                text: "S" + AppState.series-active-season
+                  + "E" + AppState.series-episodes.length
+                  + " — "
+                  + (AppState.series-episodes[AppState.series-episodes.length - 1].name != ""
+                    ? AppState.series-episodes[AppState.series-episodes.length - 1].name
+                    : "Next Episode");
+                color: Theme.text-primary;
+                font-family: Theme.font-display;
+                font-size: Theme.font-size-body;
+                font-weight: 700;
+                overflow: elide;
+              }
+            }
+
+            // Play affordance
+            Rectangle {
+              width: 40px;
+              height: 40px;
+              border-radius: 20px;
+              background: Theme.btn-primary-bg;
+              Text {
+                text: "▶";
+                color: Theme.btn-primary-fg;
+                font-size: Theme.font-size-caption;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+              }
+            }
+          }
+        }
       }
     }
   }

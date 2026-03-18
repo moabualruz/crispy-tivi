@@ -12,6 +12,15 @@ import { ScrollView } from "std-widgets.slint";
 // Dynamic hero — shown when hero-items is populated
 component HeroDynamic inherits Rectangle {
   property <int> idx: AppState.hero-index;
+
+  // M-009: auto-advance hero every 8 seconds
+  Timer {
+    interval: 8s;
+    running: AppState.hero-items.length > 1;
+    triggered => {
+      AppState.hero-index = Math.mod(AppState.hero-index + 1, AppState.hero-items.length);
+    }
+  }
   property <string> hero-id: AppState.hero-items[idx].id;
   property <string> hero-title: AppState.hero-items[idx].title;
   property <string> hero-subtitle: AppState.hero-items[idx].subtitle;

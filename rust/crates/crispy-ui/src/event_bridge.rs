@@ -700,8 +700,38 @@ pub(crate) fn wire(
         }
     });
 
-    diag.on_export_logs(|| {
-        tracing::info!("Log export requested (not yet implemented)");
+    diag.on_export_logs({
+        let sd = Arc::clone(&shared_data);
+        move || {
+            let channel_count = sd.channels.lock().map(|g| g.len()).unwrap_or(0);
+            let movie_count = sd.movies.lock().map(|g| g.len()).unwrap_or(0);
+            let series_count = sd.series.lock().map(|g| g.len()).unwrap_or(0);
+
+            let export = serde_json::json!({
+                "app_version": env!("CARGO_PKG_VERSION"),
+                "exported_at": chrono::Utc::now().to_rfc3339(),
+                "channel_count": channel_count,
+                "movie_count": movie_count,
+                "series_count": series_count,
+            });
+
+            let result: Result<std::path::PathBuf, String> = (|| {
+                let base =
+                    dirs::data_dir().ok_or_else(|| "dirs::data_dir() returned None".to_string())?;
+                let dir = base.join("crispy-tivi");
+                std::fs::create_dir_all(&dir).map_err(|e| format!("create_dir_all failed: {e}"))?;
+                let path = dir.join("diagnostics-export.json");
+                let json = serde_json::to_string_pretty(&export)
+                    .map_err(|e| format!("serialise failed: {e}"))?;
+                std::fs::write(&path, json).map_err(|e| format!("write failed: {e}"))?;
+                Ok(path)
+            })();
+
+            match result {
+                Ok(path) => tracing::info!(path = %path.display(), "Diagnostics exported"),
+                Err(e) => tracing::error!(error = %e, "Diagnostics export failed"),
+            }
+        }
     });
 
     // ── Hero callbacks ────────────────────────────────────────────────────
@@ -1409,6 +1439,7 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
         }
 
         DataEvent::SyncProgress { source_id, percent } => {
+            app.set_sync_progress(percent as f32 / 100.0);
             app.set_sync_message(SharedString::from(
                 format!("Syncing {source_id}: {percent}%").as_str(),
             ));

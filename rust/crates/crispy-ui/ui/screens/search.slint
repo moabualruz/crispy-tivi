@@ -6,6 +6,7 @@ import { LoadingIndicator } from "../components/loading-indicator.slint";
 import { IconSearch } from "../components/icons.slint";
 import { ScrollView } from "std-widgets.slint";
 import { SearchBar } from "../components/search-bar.slint";
+import { FilterChip } from "../components/filter-chip.slint";
 
 export component SearchScreen inherits Rectangle {
   background: transparent;
@@ -44,19 +45,33 @@ export component SearchScreen inherits Rectangle {
       }
     }
 
-    // Results
-    if AppState.search-text == "": Rectangle {
-      vertical-stretch: 1;
-      VerticalLayout {
-        alignment: center;
-        Text {
-          text: "Type to search across all sources";
-          color: Theme.text-secondary;
-          font-family: Theme.font-body;
-          font-size: Theme.font-size-body;
-          horizontal-alignment: center;
+    // M-018: Recent Searches + suggestion chips when search field is empty
+    if AppState.search-text == "": VerticalLayout {
+      spacing: Theme.spacing-md;
+
+      Text {
+        text: "Recent Searches";
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-h2;
+        font-weight: 700;
+      }
+
+      // Suggestion chips — placeholder genres until search history is persisted
+      HorizontalLayout {
+        spacing: Theme.spacing-sm;
+
+        for chip in ["Sports", "News", "Movies", "Kids", "Music"]: FilterChip {
+          label: chip;
+          active: false;
+          activated => {
+            AppState.search-text = chip;
+            AppState.perform-search(chip);
+          }
         }
       }
+
+      Rectangle { vertical-stretch: 1; }
     }
 
     // Searching indicator

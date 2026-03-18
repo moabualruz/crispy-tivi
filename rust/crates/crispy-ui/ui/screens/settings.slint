@@ -63,12 +63,32 @@ component SourceRow inherits FocusScope {
         alignment: center;
         spacing: 2px;
 
-        Text {
-          text: source.name != "" ? source.name : source.url;
-          color: Theme.text-primary;
-          font-family: Theme.font-body;
-          font-size: Theme.font-size-body;
-          overflow: elide;
+        HorizontalLayout {
+          spacing: Theme.spacing-xs;
+          alignment: start;
+
+          // M-019: health dot — green/yellow/red based on sync-status
+          Rectangle {
+            width: 8px;
+            height: 8px;
+            border-radius: 4px;
+            y: (parent.height - self.height) / 2;
+            // Green: empty / "ok"; Yellow: "slow" / "warning"; Red: "error" / "fail"
+            background:
+              source.sync-status == "" ? #22C55E
+              : source.sync-status == "ok" ? #22C55E
+              : (source.sync-status == "slow" || source.sync-status == "warning") ? #EAB308
+              : (source.sync-status == "error" || source.sync-status == "fail") ? #EF4444
+              : #22C55E;
+          }
+
+          Text {
+            text: source.name != "" ? source.name : source.url;
+            color: Theme.text-primary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-body;
+            overflow: elide;
+          }
         }
         HorizontalLayout {
           spacing: Theme.spacing-sm;
