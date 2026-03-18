@@ -168,9 +168,10 @@ export component LiveTvScreen inherits Rectangle {
       spacing: Theme.spacing-sm;
       vertical-stretch: 1;
 
-      // Group filter chips
-      if AppState.channel-groups.length > 0: ScrollView {
-        height: 48px; // Leave room for focus ring dropshadow/clipping
+      // Group filter chips (horizontal, clipped — no ScrollView to avoid nested scroll)
+      if AppState.channel-groups.length > 0: Rectangle {
+        height: 48px;
+        clip: true;
         HorizontalLayout {
           padding-top: 4px;
           padding-bottom: 4px;
@@ -202,16 +203,16 @@ export component LiveTvScreen inherits Rectangle {
         vertical-stretch: 1;
 
         scrolled() => {
-          // Near bottom: shift window forward
+          // Near bottom: shift window forward by half-window
           if self.viewport-height > 0px
-            && (-self.viewport-y + self.visible-height > self.viewport-height - 200px) {
-            AppState.scroll-channels(5);
+            && (-self.viewport-y + self.visible-height > self.viewport-height - 500px) {
+            AppState.scroll-channels(30);
           }
-          // Near top: shift window backward
+          // Near top: shift window backward by half-window
           if self.viewport-y < 0px
-            && (-self.viewport-y < 200px)
+            && (-self.viewport-y < 500px)
             && AppState.channel-window-start > 0 {
-            AppState.scroll-channels(-5);
+            AppState.scroll-channels(-30);
           }
         }
 
