@@ -10,8 +10,6 @@ use crate::events::{ChannelInfo, Screen, SourceInfo, VodInfo};
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-pub const CHANNEL_PAGE_SIZE: usize = 200;
-pub const VOD_PAGE_SIZE: usize = 100;
 pub const SEARCH_MAX_RESULTS: usize = 100;
 
 // ── AppDataCache ─────────────────────────────────────────────────────────────
@@ -301,6 +299,9 @@ pub fn search_cached(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const CHANNEL_PAGE_SIZE: usize = 200;
+    const VOD_PAGE_SIZE: usize = 100;
 
     fn make_channel(id: &str, name: &str, group: Option<&str>) -> Channel {
         Channel {

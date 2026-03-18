@@ -11,6 +11,7 @@ pub static AmdPowerXpressRequestHighPerformance: i32 = 1;
 mod cache;
 mod data_engine;
 mod event_bridge;
+#[allow(dead_code)]
 mod events;
 mod i18n;
 mod image_cache;
@@ -143,7 +144,12 @@ fn main() -> anyhow::Result<()> {
     let render_context_ready = Arc::new(AtomicBool::new(false));
 
     // ── Image cache ─────────────────────────────────────────────────────
-    let image_cache = Arc::new(image_cache::ImageCache::new(reqwest::Client::new()));
+    let http_client = reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(5))
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
+    let image_cache = Arc::new(image_cache::ImageCache::new(http_client));
 
     // Spawn background cleanup task (every hour)
     {

@@ -671,42 +671,87 @@ pub(crate) fn spawn_data_listener(
             // happens on the UI thread.
             match &event {
                 DataEvent::ChannelsReady { channels, .. } => {
+                    let count = channels.len();
+                    let t0 = std::time::Instant::now();
                     *shared_data.channels.lock().unwrap() = Arc::clone(channels);
                     let prepared: Vec<PreparedChannel> =
                         channels.iter().map(prepare_channel).collect();
+                    tracing::info!(
+                        count,
+                        elapsed_ms = t0.elapsed().as_millis(),
+                        "[PERF] channels prepare (off-thread)"
+                    );
                     let ui_w = ui_weak.clone();
                     let _ = slint::invoke_from_event_loop(move || {
+                        let t1 = std::time::Instant::now();
                         if let Some(ui) = ui_w.upgrade() {
                             let items: Vec<super::ChannelData> =
                                 prepared.into_iter().map(finalize_channel).collect();
+                            let finalize_ms = t1.elapsed().as_millis();
                             ui.global::<super::AppState>()
                                 .set_channels(ModelRc::new(VecModel::from(items)));
+                            tracing::info!(
+                                count,
+                                finalize_ms,
+                                set_ms = t1.elapsed().as_millis(),
+                                "[PERF] channels finalize+set (UI thread)"
+                            );
                         }
                     });
                 }
                 DataEvent::MoviesReady { movies, .. } => {
+                    let count = movies.len();
+                    let t0 = std::time::Instant::now();
                     *shared_data.movies.lock().unwrap() = Arc::clone(movies);
                     let prepared: Vec<PreparedVod> = movies.iter().map(prepare_vod).collect();
+                    tracing::info!(
+                        count,
+                        elapsed_ms = t0.elapsed().as_millis(),
+                        "[PERF] movies prepare (off-thread)"
+                    );
                     let ui_w = ui_weak.clone();
                     let _ = slint::invoke_from_event_loop(move || {
+                        let t1 = std::time::Instant::now();
                         if let Some(ui) = ui_w.upgrade() {
                             let items: Vec<super::VodData> =
                                 prepared.into_iter().map(finalize_vod).collect();
+                            let finalize_ms = t1.elapsed().as_millis();
                             ui.global::<super::AppState>()
                                 .set_movies(ModelRc::new(VecModel::from(items)));
+                            tracing::info!(
+                                count,
+                                finalize_ms,
+                                set_ms = t1.elapsed().as_millis(),
+                                "[PERF] movies finalize+set (UI thread)"
+                            );
                         }
                     });
                 }
                 DataEvent::SeriesReady { series, .. } => {
+                    let count = series.len();
+                    let t0 = std::time::Instant::now();
                     *shared_data.series.lock().unwrap() = Arc::clone(series);
                     let prepared: Vec<PreparedVod> = series.iter().map(prepare_vod).collect();
+                    tracing::info!(
+                        count,
+                        elapsed_ms = t0.elapsed().as_millis(),
+                        "[PERF] series prepare (off-thread)"
+                    );
                     let ui_w = ui_weak.clone();
                     let _ = slint::invoke_from_event_loop(move || {
+                        let t1 = std::time::Instant::now();
                         if let Some(ui) = ui_w.upgrade() {
                             let items: Vec<super::VodData> =
                                 prepared.into_iter().map(finalize_vod).collect();
+                            let finalize_ms = t1.elapsed().as_millis();
                             ui.global::<super::AppState>()
                                 .set_series(ModelRc::new(VecModel::from(items)));
+                            tracing::info!(
+                                count,
+                                finalize_ms,
+                                set_ms = t1.elapsed().as_millis(),
+                                "[PERF] series finalize+set (UI thread)"
+                            );
                         }
                     });
                 }
@@ -758,25 +803,30 @@ pub(crate) fn spawn_data_listener(
                 }
             }
 
-            // Dispatch to dedicated per-type image queues via UI thread
-            // (load_* methods need ui_weak.upgrade() which requires UI thread)
+            // Dispatch image loading with a short delay so all 3 data models
+            // (channels, movies, series) get finalized on the UI thread first.
+            // Without this, image-result invoke_from_event_loop closures queue
+            // ahead of later data model updates, causing multi-second delays.
             if load_channels || load_movies || load_series {
                 let lc = load_channels;
                 let lm = load_movies;
                 let ls = load_series;
                 let loader = image_loader.clone();
                 let ui_w = ui_weak.clone();
-                let _ = slint::invoke_from_event_loop(move || {
-                    // Load images for the initial viewport + 1 page ahead
-                    if lc {
-                        loader.load_channels(&ui_w, Some((0, CHANNEL_WINDOW * 2)));
-                    }
-                    if lm {
-                        loader.load_movies(&ui_w, Some((0, VOD_WINDOW * 2)));
-                    }
-                    if ls {
-                        loader.load_series(&ui_w, Some((0, VOD_WINDOW * 2)));
-                    }
+                tokio::spawn(async move {
+                    // Let all data models finalize on UI thread first
+                    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                    let _ = slint::invoke_from_event_loop(move || {
+                        if lc {
+                            loader.load_channels(&ui_w, Some((0, CHANNEL_WINDOW * 2)));
+                        }
+                        if lm {
+                            loader.load_movies(&ui_w, Some((0, VOD_WINDOW * 2)));
+                        }
+                        if ls {
+                            loader.load_series(&ui_w, Some((0, VOD_WINDOW * 2)));
+                        }
+                    });
                 });
             }
         }
