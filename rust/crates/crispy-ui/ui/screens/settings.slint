@@ -111,57 +111,77 @@ component SourceRow inherits FocusScope {
 export component SettingsScreen inherits Rectangle {
   background: transparent;
 
-  ScrollView {
-    HorizontalLayout {
-      alignment: center;
+  // Dimmed background area
+  Rectangle {
+    width: 100%; height: 100%;
+    background: transparent; // Not an overlay, so just transparent
+  }
 
-      VerticalLayout {
-        max-width: 800px;
-        padding-top: Theme.screen-padding-top;
-        padding-left: Theme.content-padding-h;
-        padding-right: Theme.content-padding-h;
-        padding-bottom: Theme.spacing-2xl;
-        spacing: Theme.spacing-lg;
-
-      // Header
-      Text {
-        text: "Settings";
-        color: Theme.text-primary;
-        font-family: Theme.font-display;
-        font-size: Theme.font-size-h1;
+  // Right-side Settings Pane
+  HorizontalLayout {
+    alignment: end;
+    
+    Rectangle {
+      width: 420px;
+      height: 100%;
+      background: Theme.surface;
+      border-width: 1px;
+      border-color: Theme.border-subtle;
+      
+      // Glass effect mock
+      Rectangle {
+        width: 100%; height: 100%;
+        background: rgba(10, 10, 12, 0.8);
       }
 
-      // Sources section
-      Rectangle {
-        border-radius: 12px;
-        background: rgba(28, 28, 32, 0.8);
-        border-width: 1px;
-        border-color: rgba(255, 255, 255, 0.1);
+      ScrollView {
+        width: 100%; height: 100%;
 
         VerticalLayout {
-          padding: Theme.spacing-md;
-          spacing: Theme.spacing-sm;
+          padding-top: Theme.spacing-2xl;
+          padding-left: Theme.spacing-xl;
+          padding-right: Theme.spacing-xl;
+          padding-bottom: Theme.spacing-2xl;
+          spacing: Theme.spacing-lg;
 
+          // Header
           HorizontalLayout {
+            spacing: Theme.spacing-md;
+            alignment: start;
+            
             Text {
-              text: "Sources";
+              text: "Settings";
               color: Theme.text-primary;
-              font-family: Theme.font-body;
-              font-size: Theme.font-size-body;
-              font-weight: 600;
-              horizontal-stretch: 1;
+              font-family: Theme.font-display;
+              font-size: Theme.font-size-h2;
+              font-weight: 700;
               vertical-alignment: center;
             }
-
-            // Add source button
-            ActionButton {
-              label: "+ Add Source";
-              width: 120px;
-              height: 32px;
-              is-primary: true;
-              clicked => { AppState.show-source-dialog = true; }
-            }
           }
+
+          Rectangle { height: 1px; width: 100%; background: Theme.border-subtle; }
+
+          // Sources Section
+          VerticalLayout {
+            spacing: Theme.spacing-md;
+            
+            HorizontalLayout {
+              Text {
+                text: "Sources & Library";
+                color: Theme.text-primary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+                font-weight: 600;
+                horizontal-stretch: 1;
+              }
+              ActionButton {
+                label: "+ Add";
+                width: 80px;
+                height: 32px;
+                is-primary: true;
+                clicked => { AppState.show-source-dialog = true; }
+              }
+            }
 
           if AppState.sources.length == 0: Text {
             text: "No sources configured. Add an IPTV source or media server to get started.";
@@ -175,7 +195,6 @@ export component SettingsScreen inherits Rectangle {
             source: src;
           }
         }
-      }
 
       // Appearance section
       Rectangle {
@@ -288,7 +307,8 @@ export component SettingsScreen inherits Rectangle {
           }
         }
       }
+        }
+      }
     }
   }
-}
 }
