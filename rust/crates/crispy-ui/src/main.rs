@@ -14,6 +14,7 @@ mod event_bridge;
 #[allow(dead_code)]
 mod events;
 mod i18n;
+mod image_cache;
 #[allow(dead_code)]
 mod provider;
 mod sync_task;
@@ -135,6 +136,20 @@ fn main() -> anyhow::Result<()> {
     // Flag: set to true once the OpenGL render context is ready for mpv
     let render_context_ready = Arc::new(AtomicBool::new(false));
 
+    // ── Image cache ─────────────────────────────────────────────────────
+    let image_cache = Arc::new(image_cache::ImageCache::new(reqwest::Client::new()));
+
+    // Spawn background cleanup task (every hour)
+    {
+        let cache_clone = Arc::clone(&image_cache);
+        rt.spawn(async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(3600)).await;
+                cache_clone.cleanup_expired().await;
+            }
+        });
+    }
+
     // ── Spawn player handler (PlayerEvent → MpvBackend) ──────────────────
     event_bridge::spawn_player_handler(ui.as_weak(), player_rx, backend_shared.clone());
 
@@ -144,6 +159,7 @@ fn main() -> anyhow::Result<()> {
         data_rx,
         backend_shared,
         Arc::clone(&render_context_ready),
+        Arc::clone(&image_cache),
     );
 
     // ── Spawn DataEngine (event loop: queues → cache → DataEvents) ───────

@@ -41,15 +41,21 @@ export component MoviesScreen inherits Rectangle {
     }
 
     ScrollView {
+      width: 100%;
+
       VerticalLayout {
         spacing: Theme.spacing-md;
+
+        // Responsive columns calculation
+        // 160px card width + 16px spacing = ~176px per card
+        property <int> columns: max(2, floor((root.width - Theme.content-padding-h * 2 + Theme.spacing-md) / 176px));
 
         GridLayout {
           spacing: Theme.spacing-md;
           
           for movie[idx] in AppState.movies: VodCard {
-            row: floor(idx / 5);
-            col: mod(idx, 5);
+            row: floor(idx / columns);
+            col: mod(idx, columns);
             item: movie;
             clicked => { AppState.play-vod(movie.id); }
           }

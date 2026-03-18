@@ -68,11 +68,11 @@ impl ImageCache {
     /// Load the index from disk (synchronous — called once at startup).
     fn load_index(&mut self) {
         let index_path = self.cache_dir.join(INDEX_FILE);
-        if let Ok(data) = std::fs::read_to_string(&index_path) {
-            if let Ok(entries) = serde_json::from_str::<HashMap<String, CacheEntry>>(&data) {
-                tracing::info!(count = entries.len(), "Image cache index loaded");
-                *self.entries.blocking_write() = entries;
-            }
+        if let Ok(data) = std::fs::read_to_string(&index_path)
+            && let Ok(entries) = serde_json::from_str::<HashMap<String, CacheEntry>>(&data)
+        {
+            tracing::info!(count = entries.len(), "Image cache index loaded");
+            *self.entries.blocking_write() = entries;
         }
     }
 
@@ -88,7 +88,10 @@ impl ImageCache {
     ///
     /// Touch-refreshes TTL on every access. Only revalidates via HTTP when
     /// >80% of TTL has elapsed.
-    pub async fn get_image_buffer(&self, url: &str) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
+    pub async fn get_image_buffer(
+        &self,
+        url: &str,
+    ) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
         let hash = Self::url_to_hash(url);
         let now = now_secs();
 
@@ -122,15 +125,20 @@ impl ImageCache {
     }
 
     /// Download an image and store it on disk.
-    async fn download_and_cache_buffer(&self, url: &str, hash: &str, now: u64) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
+    async fn download_and_cache_buffer(
+        &self,
+        url: &str,
+        hash: &str,
+        now: u64,
+    ) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
         // Build request with conditional headers
         let mut req = self.client.get(url);
         {
             let entries = self.entries.read().await;
-            if let Some(entry) = entries.get(hash) {
-                if let Some(ref etag) = entry.etag {
-                    req = req.header("If-None-Match", etag.as_str());
-                }
+            if let Some(entry) = entries.get(hash)
+                && let Some(ref etag) = entry.etag
+            {
+                req = req.header("If-None-Match", etag.as_str());
             }
         }
 
@@ -202,7 +210,10 @@ impl ImageCache {
     }
 
     /// Decode an image from disk cache.
-    fn decode_buffer_from_disk(&self, hash: &str) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
+    fn decode_buffer_from_disk(
+        &self,
+        hash: &str,
+    ) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
         let path = self.cache_path(hash);
         let bytes = std::fs::read(&path).ok()?;
         decode_buffer_bytes(&bytes)
@@ -291,11 +302,13 @@ fn decode_buffer_bytes(bytes: &[u8]) -> Option<slint::SharedPixelBuffer<slint::R
     let dynamic = image::load_from_memory(bytes).ok()?;
     let rgba = dynamic.to_rgba8();
     let (w, h) = (rgba.width(), rgba.height());
-    let buffer = slint::SharedPixelBuffer::<slint::Rgba8Pixel>::clone_from_slice(rgba.as_raw(), w, h);
+    let buffer =
+        slint::SharedPixelBuffer::<slint::Rgba8Pixel>::clone_from_slice(rgba.as_raw(), w, h);
     Some(buffer)
 }
 
 /// Decode raw image bytes into a Slint Image.
+#[cfg_attr(not(test), allow(dead_code))]
 fn decode_image_bytes(bytes: &[u8]) -> Option<Image> {
     decode_buffer_bytes(bytes).map(Image::from_rgba8)
 }
@@ -323,19 +336,12 @@ mod tests {
 
     #[test]
     fn test_decode_image_bytes_png() {
-        // Minimal 1x1 red PNG
-        let png_bytes: &[u8] = &[
-            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
-            0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, // IHDR chunk
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // 1x1
-            0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, // 8-bit RGB
-            0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, // IDAT chunk
-            0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00, // compressed data
-            0x00, 0x00, 0x02, 0x00, 0x01, 0xE2, 0x21, 0xBC, // checksum
-            0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, // IEND chunk
-            0x44, 0xAE, 0x42, 0x60, 0x82,
-        ];
-        let result = decode_image_bytes(png_bytes);
+        // Generate a valid 1x1 red PNG using the image crate
+        let mut img = image::RgbaImage::new(1, 1);
+        img.put_pixel(0, 0, image::Rgba([255, 0, 0, 255]));
+        let mut buf = std::io::Cursor::new(Vec::new());
+        img.write_to(&mut buf, image::ImageFormat::Png).unwrap();
+        let result = decode_image_bytes(buf.get_ref());
         assert!(result.is_some());
     }
 

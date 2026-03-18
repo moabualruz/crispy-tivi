@@ -40,7 +40,16 @@ export component VodCard inherits FocusScope {
         height: 220px;
         background: @linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.6) 100%);
 
-        IconMovie {
+        // Loaded poster image
+        if item.poster.width > 0 && item.poster.height > 0: Image {
+          source: item.poster;
+          width: 100%;
+          height: 100%;
+          image-fit: cover;
+        }
+
+        // Placeholder icon (shown when no poster loaded)
+        if item.poster.width == 0 || item.poster.height == 0: IconMovie {
           width: 48px;
           height: 48px;
           x: (parent.width - self.width) / 2;

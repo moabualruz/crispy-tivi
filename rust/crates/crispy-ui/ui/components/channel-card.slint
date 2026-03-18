@@ -45,7 +45,7 @@ export component ChannelCard inherits FocusScope {
         horizontal-alignment: center;
       }
 
-      // Channel Logo Placeholder
+      // Channel Logo
       Rectangle {
         width: 64px;
         height: 36px;
@@ -53,8 +53,18 @@ export component ChannelCard inherits FocusScope {
         background: rgba(255, 255, 255, 0.05);
         border-width: 1px;
         border-color: Theme.border-subtle;
-        
-        VerticalLayout {
+        clip: true;
+
+        // Loaded logo image
+        if channel.logo.width > 0: Image {
+          source: channel.logo;
+          width: 100%;
+          height: 100%;
+          image-fit: contain;
+        }
+
+        // Fallback when no logo loaded
+        if channel.logo.width == 0: VerticalLayout {
           alignment: center;
           if channel.number > 0: Text {
             text: channel.number;
