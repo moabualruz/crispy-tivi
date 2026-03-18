@@ -38,6 +38,7 @@ export global Theme {
     : rgba(0, 0, 0, 0.08);
 
   // --- Focus (D-Pad first — stark white focus ring) ---
+  out property <brush> focus-bg: rgba(255, 255, 255, 0.1);
   out property <brush> focus-ring: #FFFFFF;
   out property <length> focus-ring-width: 2px;
   out property <brush> focus-glow: rgba(255, 255, 255, 0.2);
@@ -70,8 +71,10 @@ export global Theme {
   out property <length> font-size-body: 16px;
   out property <length> font-size-caption: 14px;
   out property <length> font-size-small: 12px;
+  out property <length> font-size-micro: 10px;
 
   // --- Spacing ---
+  out property <length> spacing-2xs: 2px;
   out property <length> spacing-xs: 4px;
   out property <length> spacing-sm: 8px;
   // Note: design spec uses xs=4, sm=8, md=16, lg=24, xl=32, 2xl=48
@@ -81,6 +84,7 @@ export global Theme {
   out property <length> spacing-2xl: 48px;
 
   // --- Radii ---
+  out property <length> radius-xs: 4px;
   out property <length> radius-sm: 8px;
   out property <length> radius-md: 12px;
   out property <length> radius-lg: 16px;

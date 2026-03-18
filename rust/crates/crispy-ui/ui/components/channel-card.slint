@@ -22,7 +22,7 @@ export component ChannelCard inherits FocusScope {
     width: 100%;
     height: 100%;
     border-radius: Theme.radius-md;
-    background: root.has-focus ? rgba(255, 255, 255, 0.1) : Theme.card-surface;
+    background: root.has-focus ? Theme.focus-bg : Theme.card-surface;
     border-width: root.has-focus ? Theme.focus-ring-width : 1px;
     border-color: root.has-focus ? Theme.focus-ring : Theme.card-border;
 
@@ -50,7 +50,7 @@ export component ChannelCard inherits FocusScope {
         width: 64px;
         height: 36px;
         border-radius: Theme.radius-sm;
-        background: rgba(255, 255, 255, 0.05);
+        background: Theme.surface-glass;
         border-width: 1px;
         border-color: Theme.border-subtle;
         clip: true;
@@ -71,7 +71,7 @@ export component ChannelCard inherits FocusScope {
             color: Theme.text-secondary;
             font-family: Theme.font-display;
             font-weight: 700;
-            font-size: 16px;
+            font-size: Theme.font-size-body;
             horizontal-alignment: center;
           }
           if channel.number <= 0: HorizontalLayout {
@@ -88,7 +88,7 @@ export component ChannelCard inherits FocusScope {
       VerticalLayout {
         horizontal-stretch: 1;
         alignment: center;
-        spacing: 2px;
+        spacing: Theme.spacing-2xs;
 
         Text {
           text: channel.name;
@@ -122,7 +122,7 @@ export component ChannelCard inherits FocusScope {
       if channel.resolution != "": Rectangle {
         width: res-lbl.preferred-width + 10px;
         height: 20px;
-        border-radius: 4px;
+        border-radius: Theme.radius-xs;
         background: Theme.surface-glass;
         border-width: 1px;
         border-color: Theme.border-subtle;
@@ -140,12 +140,12 @@ export component ChannelCard inherits FocusScope {
       // Catchup badge
       if channel.has-catchup: Rectangle {
         width: 26px; height: 20px;
-        border-radius: 4px;
+        border-radius: Theme.radius-xs;
         background: Theme.brand-gradient;
         Text {
           text: "⏮";
-          color: #FFFFFF;
-          font-size: 10px;
+          color: Theme.text-primary;
+          font-size: Theme.font-size-micro;
           horizontal-alignment: center;
           vertical-alignment: center;
         }

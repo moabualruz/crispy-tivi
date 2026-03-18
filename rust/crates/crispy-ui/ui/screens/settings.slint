@@ -387,6 +387,154 @@ export component SettingsScreen inherits Rectangle {
         }
       }
 
+      // ── Maintenance Section ──
+      SettingsCard {
+        VerticalLayout {
+          padding: Theme.spacing-lg;
+          spacing: Theme.spacing-md;
+
+          Text {
+            text: "Maintenance";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+          }
+
+          Text {
+            text: "Data management actions. These features are under active development.";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
+            wrap: word-wrap;
+          }
+
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+
+            // Clear Watch History
+            VerticalLayout {
+              spacing: 4px;
+              horizontal-stretch: 1;
+              Rectangle {
+                opacity: 0.5;
+                height: 40px;
+                border-radius: Theme.radius-md;
+                background: Theme.btn-secondary-bg;
+                border-width: 1px;
+                border-color: Theme.card-border;
+                Text {
+                  text: "Clear Watch History";
+                  color: Theme.text-primary;
+                  font-family: Theme.font-body;
+                  font-size: Theme.font-size-body;
+                  font-weight: 600;
+                  horizontal-alignment: center;
+                  vertical-alignment: center;
+                }
+              }
+              Text {
+                text: "coming soon";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                horizontal-alignment: center;
+              }
+            }
+
+            // Export Settings
+            VerticalLayout {
+              spacing: 4px;
+              horizontal-stretch: 1;
+              Rectangle {
+                opacity: 0.5;
+                height: 40px;
+                border-radius: Theme.radius-md;
+                background: Theme.btn-secondary-bg;
+                border-width: 1px;
+                border-color: Theme.card-border;
+                Text {
+                  text: "Export Settings";
+                  color: Theme.text-primary;
+                  font-family: Theme.font-body;
+                  font-size: Theme.font-size-body;
+                  font-weight: 600;
+                  horizontal-alignment: center;
+                  vertical-alignment: center;
+                }
+              }
+              Text {
+                text: "coming soon";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                horizontal-alignment: center;
+              }
+            }
+
+            // Import Settings
+            VerticalLayout {
+              spacing: 4px;
+              horizontal-stretch: 1;
+              Rectangle {
+                opacity: 0.5;
+                height: 40px;
+                border-radius: Theme.radius-md;
+                background: Theme.btn-secondary-bg;
+                border-width: 1px;
+                border-color: Theme.card-border;
+                Text {
+                  text: "Import Settings";
+                  color: Theme.text-primary;
+                  font-family: Theme.font-body;
+                  font-size: Theme.font-size-body;
+                  font-weight: 600;
+                  horizontal-alignment: center;
+                  vertical-alignment: center;
+                }
+              }
+              Text {
+                text: "coming soon";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                horizontal-alignment: center;
+              }
+            }
+
+            // Refresh EPG Guide
+            VerticalLayout {
+              spacing: 4px;
+              horizontal-stretch: 1;
+              Rectangle {
+                opacity: 0.5;
+                height: 40px;
+                border-radius: Theme.radius-md;
+                background: Theme.btn-secondary-bg;
+                border-width: 1px;
+                border-color: Theme.card-border;
+                Text {
+                  text: "Refresh EPG Guide";
+                  color: Theme.text-primary;
+                  font-family: Theme.font-body;
+                  font-size: Theme.font-size-body;
+                  font-weight: 600;
+                  horizontal-alignment: center;
+                  vertical-alignment: center;
+                }
+              }
+              Text {
+                text: "coming soon";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                horizontal-alignment: center;
+              }
+            }
+          }
+        }
+      }
+
       // ── Appearance Section ──
       SettingsCard {
         VerticalLayout {

@@ -708,6 +708,10 @@ pub(crate) fn wire(
     // ── DiagnosticsState ──────────────────────────────────────────────────
 
     let diag = ui.global::<super::DiagnosticsState>();
+    // m-001: set rust-version once at startup using the crate version from Cargo.toml
+    diag.set_rust_version(SharedString::from(
+        format!("crispy-tivi v{}", env!("CARGO_PKG_VERSION")).as_str(),
+    ));
     diag.on_toggle({
         let tx = normal_tx.clone();
         move || {
@@ -1284,6 +1288,8 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
             // M-010: update diagnostics channel count
             ui.global::<super::DiagnosticsState>()
                 .set_channel_count(total);
+            // m-002: reset active group filter so stale selection doesn't persist after re-sync
+            app.set_active_channel_group(SharedString::default());
             // Windowed: scroll callback (delta=0) does full reset
             app.set_channel_window_start(0);
             app.set_total_channel_count(total);
@@ -1362,6 +1368,8 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
                 let prev = diag.get_vod_count();
                 diag.set_vod_count(prev + total);
             }
+            // m-003: reset active category filter so stale selection doesn't persist after re-sync
+            app.set_active_vod_category(SharedString::default());
             app.set_movie_window_start(0);
             app.set_total_movie_count(total);
             // Trigger scroll callback so images load for initial viewport
@@ -1532,7 +1540,11 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
         }
 
         // PlaybackReady is handled in spawn_data_listener before reaching here
-        DataEvent::PlaybackReady { .. } => {}
+        DataEvent::PlaybackReady { .. } => {} // m-010 (known gap): NormalEvent::UpdateEpgMapping is published and handled entirely
+                                              // inside data_engine.rs (it maps tvg-id aliases to channel_ids in the EPG table).
+                                              // event_bridge.rs has no corresponding DataEvent for it, so there is nothing to wire
+                                              // here. If a UI-visible result is needed in the future, data_engine.rs should emit a
+                                              // dedicated DataEvent (e.g. EpgMappingApplied) that this function can react to.
     }
 }
 
