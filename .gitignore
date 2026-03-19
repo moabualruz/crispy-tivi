@@ -47,6 +47,7 @@ ci-logs/
 # Screenshot test runs (only golden/ is tracked)
 rust/crates/crispy-ui/tests/runs/
 rust/crates/crispy-ui/tests/failures/
+rust/crates/crispy-ui/tests/output/
 
 # AI/agent config (managed in crispy-ai-config private repo)
 .cursorrules

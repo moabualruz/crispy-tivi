@@ -54,6 +54,7 @@ i-slint-backend-testing = "1.15"
 mockall.workspace = true
 insta.workspace = true
 tempfile.workspace = true
+uuid.workspace = true
 
 [build-dependencies]
 slint-build.workspace = true
