@@ -55,6 +55,17 @@ export global PlayerState {
   in-out property <string> post-play-next-title: "";
   callback post-play-play();
   callback post-play-back();
+
+  // 3.15: Audio + Subtitles panel
+  in-out property <bool> show-tracks-panel: false;
+  callback toggle-tracks-panel();
+  // Track label models populated by Rust via VecModel
+  in-out property <[string]> audio-track-labels;
+  in-out property <int> active-audio-track: 0;
+  in-out property <[string]> subtitle-track-labels;
+  in-out property <int> active-subtitle-track: 0;
+  callback select-audio-track(/* index */ int);
+  callback select-subtitle-track(/* index */ int);
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -315,9 +326,9 @@ component OsdTray inherits Rectangle {
       width: audio-lbl.preferred-width + Theme.spacing-lg;
       height: 36px;
       border-radius: Theme.radius-pill;
-      background: Theme.surface-glass;
+      background: PlayerState.show-tracks-panel ? Theme.focus-bg : Theme.surface-glass;
       border-width: 1px;
-      border-color: Theme.focus-glow;
+      border-color: PlayerState.show-tracks-panel ? Theme.focus-ring : Theme.focus-glow;
       audio-lbl := Text {
         text: "Audio";
         color: Theme.text-primary;
@@ -327,16 +338,16 @@ component OsdTray inherits Rectangle {
         horizontal-alignment: center;
         vertical-alignment: center;
       }
-      TouchArea { clicked => { PlayerState.show-controls(); } }
+      TouchArea { clicked => { PlayerState.show-tracks-panel = !PlayerState.show-tracks-panel; } }
     }
 
     Rectangle {
       width: subs-lbl.preferred-width + Theme.spacing-lg;
       height: 36px;
       border-radius: Theme.radius-pill;
-      background: Theme.surface-glass;
+      background: PlayerState.show-tracks-panel ? Theme.focus-bg : Theme.surface-glass;
       border-width: 1px;
-      border-color: Theme.focus-glow;
+      border-color: PlayerState.show-tracks-panel ? Theme.focus-ring : Theme.focus-glow;
       subs-lbl := Text {
         text: "Subs";
         color: Theme.text-primary;
@@ -346,7 +357,7 @@ component OsdTray inherits Rectangle {
         horizontal-alignment: center;
         vertical-alignment: center;
       }
-      TouchArea { clicked => { PlayerState.show-controls(); } }
+      TouchArea { clicked => { PlayerState.show-tracks-panel = !PlayerState.show-tracks-panel; } }
     }
 
     Rectangle {
@@ -708,6 +719,158 @@ component OsdControls inherits Rectangle {
   }
 }
 
+// ─── TrackRow ─────────────────────────────────────────────────────────────────
+// Single selectable track entry inside AudioSubtitlePanel
+
+component TrackRow inherits FocusScope {
+  in property <string> label: "";
+  in property <bool> active: false;
+  callback selected();
+
+  height: 48px;
+  width: 100%;
+
+  key-pressed(event) => {
+    if event.text == Key.Return || event.text == " " {
+      root.selected();
+      return accept;
+    }
+    return reject;
+  }
+
+  bg := Rectangle {
+    width: 100%; height: 100%;
+    background: root.has-focus
+      ? Theme.focus-bg
+      : (root.active ? rgba(255, 255, 255, 0.08) : transparent);
+    border-width: root.has-focus ? Theme.focus-ring-width : 0px;
+    border-color: root.has-focus ? Theme.focus-ring : transparent;
+    animate background { duration: 120ms; }
+    animate border-width { duration: 120ms; }
+
+    HorizontalLayout {
+      padding-left: Theme.spacing-md;
+      padding-right: Theme.spacing-md;
+      spacing: Theme.spacing-sm;
+      alignment: start;
+
+      // Checkmark — visible when active
+      Text {
+        text: root.active ? "✓" : " ";
+        color: Theme.text-primary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+        font-weight: 700;
+        vertical-alignment: center;
+        width: 20px;
+      }
+
+      Text {
+        text: root.label;
+        color: root.active ? Theme.text-primary : Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+        font-weight: root.active ? 600 : 400;
+        vertical-alignment: center;
+        overflow: elide;
+        horizontal-stretch: 1;
+      }
+    }
+
+    TouchArea { clicked => { root.selected(); } }
+  }
+}
+
+// ─── AudioSubtitlePanel (3.15) ────────────────────────────────────────────────
+// Slide-in panel from the right showing audio and subtitle track lists.
+// Visibility driven by PlayerState.show-tracks-panel.
+// Track data populated via [string] model properties from Rust.
+
+component AudioSubtitlePanel inherits FocusScope {
+  in property <length> panel-width: 300px;
+  // Panel slides from right edge
+  y: 0;
+  height: 100%;
+
+  animate x { duration: 220ms; easing: ease-in-out; }
+
+  // Close on Escape
+  key-pressed(event) => {
+    if event.text == Key.Escape {
+      PlayerState.show-tracks-panel = false;
+      return accept;
+    }
+    return reject;
+  }
+
+  Rectangle {
+    width: 100%; height: 100%;
+    background: Theme.surface-glass;
+    border-width: 1px;
+    border-color: Theme.border-subtle;
+    clip: true;
+
+    VerticalLayout {
+      padding: Theme.spacing-lg;
+      spacing: Theme.spacing-md;
+
+      // ── Audio section ──────────────────────────────────────────────────
+      Text {
+        text: "Audio";
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-body;
+        font-weight: 700;
+      }
+
+      // Divider
+      Rectangle { height: 1px; background: Theme.border-subtle; }
+
+      for track-label[idx] in PlayerState.audio-track-labels: TrackRow {
+        label: track-label;
+        active: idx == PlayerState.active-audio-track;
+        selected => { PlayerState.select-audio-track(idx); }
+      }
+
+      if PlayerState.audio-track-labels.length == 0: Text {
+        text: "No audio tracks";
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        font-weight: 400;
+      }
+
+      // ── Subtitles section ──────────────────────────────────────────────
+      Rectangle { height: Theme.spacing-sm; background: transparent; }
+
+      Text {
+        text: "Subtitles";
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-body;
+        font-weight: 700;
+      }
+
+      // Divider
+      Rectangle { height: 1px; background: Theme.border-subtle; }
+
+      for track-label[idx] in PlayerState.subtitle-track-labels: TrackRow {
+        label: track-label;
+        active: idx == PlayerState.active-subtitle-track;
+        selected => { PlayerState.select-subtitle-track(idx); }
+      }
+
+      if PlayerState.subtitle-track-labels.length == 0: Text {
+        text: "No subtitle tracks";
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        font-weight: 400;
+      }
+    }
+  }
+}
+
 // ─── PlayerScreen (3.7: opacity-animated OSD) ─────────────────────────────
 
 export component PlayerScreen inherits Rectangle {
@@ -1025,6 +1188,15 @@ export component PlayerScreen inherits Rectangle {
         }
       }
     }
+  }
+
+  // ── 3.15: Audio + Subtitles panel (slide-in from right) ─────────────────
+  // Always rendered — x-position animation drives slide in/out.
+  // Width fixed at 300px; height and x derived from parent inside component.
+  AudioSubtitlePanel {
+    x: PlayerState.show-tracks-panel ? parent.width - 300px : parent.width;
+    width: 300px;
+    height: parent.height;
   }
 
   // ── 3.14: Post-play screen ────────────────────────────────────────────────
