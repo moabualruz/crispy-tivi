@@ -523,10 +523,27 @@ pub(crate) fn wire(
 
     app.on_filter_channels({
         let tx = high_tx.clone();
+        let sd_filter = Arc::clone(&shared_data);
         move |group, _search| {
-            if let Err(e) = tx.try_send(HighPriorityEvent::FilterContent {
-                query: group.to_string(),
-            }) {
+            let query = group.to_string();
+            // J-07: if the query is purely numeric, check whether it matches exactly one
+            // channel by logical channel number — if so, auto-play that channel directly.
+            if !query.is_empty()
+                && query.chars().all(|c| c.is_ascii_digit())
+                && let Ok(num) = query.parse::<i32>()
+            {
+                let channels = sd_filter.channels.lock().unwrap_or_else(|e| e.into_inner());
+                let matches: Vec<_> = channels.iter().filter(|c| c.number == Some(num)).collect();
+                if matches.len() == 1 {
+                    let channel_id = matches[0].id.clone();
+                    drop(channels); // release lock before send
+                    if let Err(e) = tx.try_send(HighPriorityEvent::PlayChannel { channel_id }) {
+                        tracing::warn!(error = %e, "high_tx full: J-07 numeric auto-play dropped");
+                    }
+                    return;
+                }
+            }
+            if let Err(e) = tx.try_send(HighPriorityEvent::FilterContent { query }) {
                 tracing::warn!(error = %e, "high_tx full: FilterChannels dropped");
             }
         }
@@ -1755,6 +1772,25 @@ pub(crate) fn wire(
         }
     });
 
+    // ── GDPR delete-all-data callback (J-47) ─────────────────────────────────
+
+    app.on_delete_all_data({
+        let tx = normal_tx.clone();
+        let sd2 = Arc::clone(&shared_data);
+        move || {
+            // Read the active profile id from SharedData (thread-safe)
+            let profile_id = sd2
+                .active_profile_id
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .clone();
+            tracing::info!(profile_id, "delete-all-data: requested");
+            if let Err(e) = tx.try_send(NormalEvent::DeleteAllUserData { profile_id }) {
+                tracing::warn!(error = %e, "normal_tx full: DeleteAllUserData dropped");
+            }
+        }
+    });
+
     // Channel overlay is controlled directly via show-channel-overlay property in live-tv.slint.
 
     // ── Post-play callbacks (C-010, C-011) — on PlayerState ─────────────────
@@ -2554,21 +2590,35 @@ pub(crate) fn spawn_data_listener(
                             .unwrap_or_default();
                         let ch_id = found.map(|c| c.id.clone()).unwrap_or_default();
                         let logo = found.and_then(|c| c.logo_url.clone()).unwrap_or_default();
-                        // J-27: look up the current EPG programme for this channel.
+                        // J-27/J-10: look up current and next EPG programme for OSD strip.
                         let programme = if !ch_id.is_empty() {
                             let now = chrono::Local::now().naive_local();
                             let epg = shared_data
                                 .epg_entries
                                 .lock()
                                 .unwrap_or_else(|e| e.into_inner());
-                            epg.get(&ch_id)
-                                .and_then(|entries| {
-                                    entries
-                                        .iter()
-                                        .find(|e| e.start_time <= now && e.end_time > now)
-                                })
-                                .map(|e| e.title.clone())
-                                .unwrap_or_default()
+                            if let Some(entries) = epg.get(&ch_id) {
+                                // Find the current programme index (start <= now < end).
+                                let current_idx = entries
+                                    .iter()
+                                    .position(|e| e.start_time <= now && e.end_time > now);
+                                match current_idx {
+                                    Some(idx) => {
+                                        let current_title = &entries[idx].title;
+                                        let next_title =
+                                            entries.get(idx + 1).map(|e| e.title.as_str());
+                                        match next_title {
+                                            Some(next) => {
+                                                format!("Now: {current_title} | Next: {next}")
+                                            }
+                                            None => format!("Now: {current_title}"),
+                                        }
+                                    }
+                                    None => String::new(),
+                                }
+                            } else {
+                                String::new()
+                            }
                         } else {
                             String::new()
                         };
@@ -3042,6 +3092,7 @@ fn source_info_to_slint(s: &SourceInfo) -> super::SourceData {
         channel_count: 0,
         vod_count: 0,
         sync_status: SharedString::from(s.last_sync_status.as_deref().unwrap_or("")),
+        last_sync_error: SharedString::from(s.last_sync_error.as_deref().unwrap_or("")),
     }
 }
 

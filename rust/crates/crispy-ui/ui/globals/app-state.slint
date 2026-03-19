@@ -17,6 +17,7 @@ export struct SourceData {
   channel-count: int,
   vod-count: int,
   sync-status: string,
+  last-sync-error: string,
 }
 
 export struct ChannelData {
@@ -293,7 +294,7 @@ export global AppState {
   in-out property <SourceData> editing-source: {
     id: "", name: "", source-type: "m3u", url: "",
     username: "", password: "", channel-count: 0,
-    vod-count: 0, sync-status: ""
+    vod-count: 0, sync-status: "", last-sync-error: ""
   };
 
   // ── Callbacks to Rust ──

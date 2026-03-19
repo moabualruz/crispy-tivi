@@ -21,7 +21,8 @@ import { AttributionOverlay } from "../components/attribution-overlay.slint";
 component SourceRow inherits FocusScope {
   in property <SourceData> source;
 
-  height: 64px;
+  // Expand height when an error message is present
+  height: source.last-sync-error != "" ? 84px : 64px;
   width: 100%;
 
   key-pressed(event) => {
@@ -121,6 +122,38 @@ component SourceRow inherits FocusScope {
             color: Theme.text-secondary;
             font-family: Theme.font-body;
             font-size: Theme.font-size-small;
+          }
+        }
+
+        // J-44: error banner — visible only when last-sync-error is non-empty
+        if source.last-sync-error != "": HorizontalLayout {
+          spacing: Theme.spacing-xs;
+          alignment: start;
+
+          Text {
+            text: source.last-sync-error;
+            color: Theme.status-error;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-small;
+            overflow: elide;
+            horizontal-stretch: 1;
+          }
+
+          // Retry touch target — calls sync-source with this source's id
+          retry-area := TouchArea {
+            width: 40px;
+            height: 16px;
+            clicked => { AppState.sync-source(source.id); }
+
+            Text {
+              text: "Retry";
+              color: retry-area.has-hover ? Theme.text-primary : Theme.text-secondary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-small;
+              font-weight: 600;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
           }
         }
       }
@@ -1335,6 +1368,32 @@ export component SettingsScreen inherits Rectangle {
             description-text: "Send anonymised crash reports to help identify and fix stability issues.";
             checked: AppState.analytics-crash-consent;
             toggled(v) => { AppState.set-analytics-crash(v); }
+          }
+
+          // J-47: GDPR Art. 17 — erase all personal data
+          delete-data-btn := FocusScope {
+            height: 40px;
+            key-pressed(event) => {
+              if event.text == Key.Return { AppState.delete-all-data(); return accept; }
+              return reject;
+            }
+            Rectangle {
+              width: 100%; height: 100%;
+              border-radius: Theme.radius-md;
+              background: delete-data-btn.has-focus ? Theme.surface-glass : Theme.btn-secondary-bg;
+              border-width: delete-data-btn.has-focus ? Theme.focus-ring-width : 1px;
+              border-color: delete-data-btn.has-focus ? Theme.focus-ring : Theme.status-error;
+              Text {
+                text: "Delete All My Data";
+                color: Theme.status-error;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+              }
+              TouchArea { clicked => { AppState.delete-all-data(); } }
+            }
           }
         }
       }
