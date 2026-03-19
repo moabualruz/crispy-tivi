@@ -2,6 +2,7 @@
 
 #[cfg(feature = "integrity-async-ack")]
 pub mod async_ack;
+pub mod auto_select;
 pub mod descriptor;
 #[cfg(feature = "integrity-double-buffer")]
 pub mod double_buffer;

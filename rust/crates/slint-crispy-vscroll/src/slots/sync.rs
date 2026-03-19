@@ -1,1 +1,1 @@
-//! Module stub — implementation in Phase 5.
+//! Sync integrity helpers — thin wrappers used by SlotPool in Sync mode.
