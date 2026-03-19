@@ -1099,6 +1099,7 @@ impl DataEngine {
             source_id,
             source_type,
             self.sync_result_tx.clone(),
+            self.data_tx.clone(),
         );
     }
 

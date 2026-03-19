@@ -1,0 +1,100 @@
+{
+  "user_info": {
+    "username": "testuser",
+    "password": "testpass",
+    "auth": 1,
+    "status": "Active",
+    "exp_date": "1893456000",
+    "is_trial": "0",
+    "active_cons": "1",
+    "created_at": "1700000000",
+    "max_connections": "2",
+    "allowed_output_formats": ["ts", "m3u8", "rtmp"]
+  },
+  "server_info": {
+    "url": "http://example.com",
+    "port": "8080",
+    "https_port": "8443",
+    "server_protocol": "http",
+    "rtmp_port": "1935",
+    "timezone": "Europe/London",
+    "timestamp_now": 1742342400,
+    "time_now": "2026-03-19 08:00:00"
+  },
+  "live_streams": [
+    {
+      "stream_id": 100,
+      "name": "BBC One",
+      "epg_channel_id": "bbc1.uk",
+      "stream_icon": "https://example.com/bbc1.png",
+      "category_name": "UK News",
+      "category_id": "1",
+      "tv_archive": 0,
+      "tv_archive_duration": 0,
+      "num": 1
+    },
+    {
+      "stream_id": 200,
+      "name": "CNN International",
+      "epg_channel_id": "cnn.us",
+      "stream_icon": "https://example.com/cnn.png",
+      "category_name": "US News",
+      "category_id": "2",
+      "tv_archive": 1,
+      "tv_archive_duration": 7,
+      "num": 2
+    },
+    {
+      "stream_id": 300,
+      "name": "Sports Channel",
+      "epg_channel_id": "",
+      "stream_icon": "",
+      "category_name": "Sports",
+      "category_id": "3",
+      "tv_archive": 0,
+      "tv_archive_duration": 0,
+      "num": 3
+    }
+  ],
+  "vod_streams": [
+    {
+      "stream_id": 1001,
+      "name": "The Matrix",
+      "stream_icon": "https://example.com/matrix.jpg",
+      "category_name": "Movies",
+      "category_id": "10",
+      "container_extension": "mp4",
+      "num": 1
+    },
+    {
+      "stream_id": 1002,
+      "name": "Inception",
+      "stream_icon": "https://example.com/inception.jpg",
+      "category_name": "Movies",
+      "category_id": "10",
+      "container_extension": "mkv",
+      "num": 2
+    }
+  ],
+  "series": [
+    {
+      "series_id": 2001,
+      "name": "Breaking Bad",
+      "cover": "https://example.com/bb.jpg",
+      "category_name": "Drama",
+      "category_id": "20",
+      "num": 1
+    }
+  ],
+  "live_categories": [
+    { "category_id": "1", "category_name": "UK News" },
+    { "category_id": "2", "category_name": "US News" },
+    { "category_id": "3", "category_name": "Sports" }
+  ],
+  "vod_categories": [
+    { "category_id": "10", "category_name": "Movies" }
+  ],
+  "series_categories": [
+    { "category_id": "20", "category_name": "Drama" }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "handshake": {
+    "js": {
+      "token": "test_token_abc123",
+      "keep_alive": 180,
+      "servertime": 1742342400,
+      "servertime_t": "2026-03-19 08:00:00",
+      "status": "1",
+      "random": "randomhexstring01"
+    }
+  },
+  "profile": {
+    "js": {
+      "id": "1",
+      "name": "Test User",
+      "status": "1",
+      "status_msg": "",
+      "status_text": "",
+      "logo": "",
+      "tariff": "1",
+      "tariff_expired_date": "2027-01-01 00:00:00",
+      "mac": "00:1A:79:XX:XX:XX",
+      "phone": "",
+      "serial": ""
+    }
+  },
+  "itv_channels": {
+    "js": {
+      "data": [
+        {
+          "id": "1",
+          "name": "BBC One",
+          "number": "1",
+          "logo": "https://example.com/bbc1.png",
+          "group_id": "1",
+          "group_name": "UK News",
+          "cmd": "ffmpeg http://example.com/live/bbc1.ts",
+          "tv_archive": 0,
+          "tv_archive_duration": 0,
+          "epg_id": "bbc1.uk",
+          "xmltv_id": "bbc1.uk"
+        },
+        {
+          "id": "2",
+          "name": "CNN International",
+          "number": "2",
+          "logo": "https://example.com/cnn.png",
+          "group_id": "2",
+          "group_name": "US News",
+          "cmd": "ffmpeg http://example.com/live/cnn.ts",
+          "tv_archive": 1,
+          "tv_archive_duration": 7,
+          "epg_id": "cnn.us",
+          "xmltv_id": "cnn.us"
+        },
+        {
+          "id": "3",
+          "name": "Sports Channel",
+          "number": "3",
+          "logo": "",
+          "group_id": "3",
+          "group_name": "Sports",
+          "cmd": "ffmpeg http://example.com/live/sports.ts",
+          "tv_archive": 0,
+          "tv_archive_duration": 0,
+          "epg_id": "",
+          "xmltv_id": ""
+        }
+      ],
+      "total_items": 3,
+      "max_page_items": 14,
+      "cur_page": 1,
+      "selected_item": 0,
+      "groups": [
+        { "id": "1", "title": "UK News" },
+        { "id": "2", "title": "US News" },
+        { "id": "3", "title": "Sports" }
+      ]
+    }
+  },
+  "vod_list": {
+    "js": {
+      "data": [
+        {
+          "id": "101",
+          "name": "The Matrix",
+          "cmd": "ffmpeg http://example.com/vod/matrix.mp4",
+          "description": "A computer hacker learns the truth.",
+          "screenshot_uri": "https://example.com/matrix.jpg",
+          "category_id": "10",
+          "o_name": "The Matrix",
+          "year": "1999"
+        },
+        {
+          "id": "102",
+          "name": "Inception",
+          "cmd": "ffmpeg http://example.com/vod/inception.mp4",
+          "description": "A thief who enters the dreams of others.",
+          "screenshot_uri": "https://example.com/inception.jpg",
+          "category_id": "10",
+          "o_name": "Inception",
+          "year": "2010"
+        }
+      ],
+      "total_items": 2,
+      "max_page_items": 14,
+      "cur_page": 1
+    }
+  }
+}

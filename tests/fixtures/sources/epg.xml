@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tv generator-info-name="test-fixture">
+  <channel id="bbc1.uk">
+    <display-name>BBC One</display-name>
+    <icon src="https://example.com/bbc1.png"/>
+  </channel>
+  <channel id="cnn.us">
+    <display-name>CNN</display-name>
+  </channel>
+  <programme start="20260319080000 +0000" stop="20260319090000 +0000" channel="bbc1.uk">
+    <title>BBC Breakfast</title>
+    <desc>Morning news and current affairs.</desc>
+    <category>News</category>
+  </programme>
+  <programme start="20260319090000 +0000" stop="20260319100000 +0000" channel="bbc1.uk">
+    <title>Morning Live</title>
+    <desc>Lifestyle and entertainment.</desc>
+  </programme>
+  <programme start="20260319080000 +0000" stop="20260319090000 +0000" channel="cnn.us">
+    <title>CNN Newsroom</title>
+    <desc>Breaking news coverage.</desc>
+    <category>News</category>
+  </programme>
+</tv>

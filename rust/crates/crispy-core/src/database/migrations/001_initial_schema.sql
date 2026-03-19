@@ -1,7 +1,6 @@
--- Migration 001: Initial schema (v35)
--- Creates all base tables, indexes, and sets user_version = 35.
--- This file documents the canonical schema; the Rust code in mod.rs
--- drives actual schema creation via embedded DDL constants.
+-- Migration 001: Initial schema (v36)
+-- Creates all base tables, indexes, and sets user_version = 36.
+-- Loaded at compile time via include_str! in migration_runner.rs.
 
 -- Channels
 CREATE TABLE IF NOT EXISTS db_channels (
@@ -342,4 +341,4 @@ CREATE INDEX IF NOT EXISTS idx_categories_source ON db_categories (source_id);
 CREATE INDEX IF NOT EXISTS idx_bookmarks_content ON db_bookmarks (content_id);
 CREATE INDEX IF NOT EXISTS idx_retry_queue_next ON db_retry_queue (next_retry_at);
 
-PRAGMA user_version = 35;
+PRAGMA user_version = 36;

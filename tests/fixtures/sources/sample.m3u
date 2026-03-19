@@ -1,0 +1,15 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="bbc1.uk" tvg-name="BBC One" tvg-logo="https://example.com/bbc1.png" group-title="UK News" tvg-chno="1",BBC One HD
+http://example.com/live/stream1.ts
+#EXTINF:-1 tvg-id="cnn.us" tvg-name="CNN" tvg-logo="https://example.com/cnn.png" group-title="US News" tvg-chno="2",CNN International
+http://example.com/live/stream2.ts
+#EXTINF:-1 tvg-id="" tvg-name="Sports Channel" group-title="Sports" radio="false",Sports Channel
+http://example.com/live/stream3.ts
+#EXTINF:-1 tvg-id="radio1.uk" tvg-name="Radio 1" group-title="Radio" radio="true",BBC Radio 1
+http://example.com/live/radio1.mp3
+#EXTINF:-1 tvg-id="movie1" tvg-name="The Matrix" group-title="Movies" tvg-type="movie",The Matrix (1999)
+http://example.com/vod/matrix.mp4
+#EXTINF:-1 tvg-id="sky.sports" tvg-name="Sky Sports" tvg-logo="" group-title="Sports" tvg-chno="10",Sky Sports 1
+http://example.com/live/stream10.ts
+#EXTINF:-1 tvg-name="No ID Channel" group-title="Misc",No ID Channel
+http://example.com/live/noid.ts
