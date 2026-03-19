@@ -137,6 +137,20 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "RingBuffer capacity must be > 0")]
+    fn test_zero_capacity_panics() {
+        // Covers lines 29-30: assert!(capacity > 0)
+        let _rb: RingBuffer<u32> = RingBuffer::new(0);
+    }
+
+    #[test]
+    fn test_get_out_of_bounds_returns_none() {
+        // Additional coverage for get() bounds check
+        let rb: RingBuffer<u32> = RingBuffer::new(4);
+        assert_eq!(rb.get(0), None); // empty buffer
+    }
+
+    #[test]
     fn test_is_empty_initial() {
         let rb: RingBuffer<u32> = RingBuffer::new(4);
         assert!(rb.is_empty());

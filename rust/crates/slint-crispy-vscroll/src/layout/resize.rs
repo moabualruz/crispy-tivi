@@ -393,6 +393,61 @@ pub mod breakpoints {
         }
 
         #[test]
+        fn test_breakpoints_empty_returns_current_columns() {
+            // Covers lines 236-239: early return when breakpoints is empty
+            let mut state = BreakpointState::new(3, 0.0);
+            let r = state.apply_resize(500.0, &[], 0.0, 180.0);
+            assert_eq!(r.columns, 3);
+            assert!((r.item_width - 500.0).abs() < 0.1);
+        }
+
+        #[test]
+        fn test_breakpoints_current_columns_accessor() {
+            // Covers current_columns() lines 292-293
+            let mut state = BreakpointState::new(2, 0.0);
+            assert_eq!(state.current_columns(), 2);
+            let bps = make_breakpoints();
+            state.apply_resize(1000.0, &bps, 0.0, 180.0);
+            assert_eq!(state.current_columns(), 3);
+        }
+
+        #[test]
+        fn test_breakpoints_grow_commits_past_hysteresis() {
+            // Covers: growing path (to > from) → viewport >= b + hyst
+            // Also exercises crossing_boundary None path via no-match column
+            let bps = make_breakpoints();
+            // Start at 2 cols. Grow past 900 + 30 = 930 → should commit to 3
+            let mut state = BreakpointState::new(2, 30.0);
+            let r = state.apply_resize(940.0, &bps, 0.0, 180.0);
+            assert_eq!(
+                r.columns, 3,
+                "should commit to 3 cols above hysteresis band"
+            );
+        }
+
+        #[test]
+        fn test_breakpoints_crossing_boundary_none_commits_unconditionally() {
+            // Covers None => true arm: when current_columns is 5 (not in breakpoints),
+            // crossing_boundary returns None → commit unconditionally
+            let bps = make_breakpoints(); // columns: 1, 2, 3, 4
+                                          // Start at 5 cols (not a breakpoint). Any change → crossing_boundary None → commit
+            let mut state = BreakpointState::new(5, 100.0);
+            let r = state.apply_resize(1000.0, &bps, 0.0, 180.0);
+            // target is 3 cols, boundary is None → committed to 3 unconditionally
+            assert_eq!(r.columns, 3);
+        }
+
+        #[test]
+        fn test_breakpoints_grow_prevented_within_hysteresis() {
+            // Covers: growing path, viewport < boundary + hyst → stay at current
+            let bps = make_breakpoints();
+            // Start at 2 cols. Grow to 910 which is < 900 + 30 → stay at 2
+            let mut state = BreakpointState::new(2, 30.0);
+            let r = state.apply_resize(910.0, &bps, 0.0, 180.0);
+            assert_eq!(r.columns, 2, "should stay at 2 cols within hysteresis band");
+        }
+
+        #[test]
         fn test_breakpoints_item_width_fills_viewport() {
             let bps = make_breakpoints();
             let mut state = BreakpointState::new(1, 0.0);

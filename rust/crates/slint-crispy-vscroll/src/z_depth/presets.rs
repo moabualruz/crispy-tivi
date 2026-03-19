@@ -273,6 +273,26 @@ mod tests {
     // --- Factory ---
 
     #[test]
+    fn test_google_tv_unfocused_dims_with_distance() {
+        // Covers GoogleTvProvider unfocused branch (lines 128-129)
+        let p = GoogleTvProvider;
+        let near = p.compute(make_params(1, 0, false));
+        let far = p.compute(make_params(6, 0, false));
+        // Far items should have lower opacity and scale
+        assert!(far.opacity <= near.opacity);
+        assert!(far.scale <= near.scale);
+    }
+
+    #[test]
+    fn test_google_tv_unfocused_has_no_shadow() {
+        // GoogleTv unfocused has zero shadow (default)
+        let p = GoogleTvProvider;
+        let t = p.compute(make_params(3, 0, false));
+        assert_eq!(t.shadow_radius, 0.0);
+        assert_eq!(t.border_width, 0.0);
+    }
+
+    #[test]
     fn test_make_preset_flat_returns_identity() {
         let p = make_preset(ZPreset::Flat);
         let t = p.compute(make_params(0, 0, true));

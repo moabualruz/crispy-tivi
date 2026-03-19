@@ -188,6 +188,15 @@ mod tests {
     }
 
     #[test]
+    fn test_world_scroller_accessor_returns_scroller() {
+        // Covers scroller() immutable accessor (lines 87-88)
+        let world = VScrollWorld::new(make_scroller());
+        let _s = world.scroller();
+        // scroll_position starts at 0
+        assert!((world.scroller().scroll_position() - 0.0).abs() < 0.001);
+    }
+
+    #[test]
     fn test_world_no_systems_tick_does_not_panic() {
         let mut world = VScrollWorld::new(make_scroller());
         world.tick(1.0 / 60.0);

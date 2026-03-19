@@ -109,4 +109,48 @@ mod tests {
         let d = h.compute_delta(&pixel_wheel(10.0, 20.0)).unwrap();
         assert!((d.y - 30.0).abs() < 0.001);
     }
+
+    #[test]
+    fn test_trackpad_inverted_event_negates_delta() {
+        let h = TrackpadHandler::new(TrackpadConfig::default());
+        let ev = RawInputEvent::Wheel(WheelData {
+            delta: Vec3 {
+                x: 0.0,
+                y: 20.0,
+                z: 0.0,
+            },
+            delta_mode: WheelMode::Pixel,
+            is_inverted: true,
+        });
+        let d = h.compute_delta(&ev).unwrap();
+        assert!((d.y - (-20.0)).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_trackpad_non_wheel_event_returns_none() {
+        use crate::core::events::{KeyCode, KeyData, Modifiers};
+        let h = TrackpadHandler::new(TrackpadConfig::default());
+        let ev = RawInputEvent::Key(KeyData {
+            key_code: KeyCode::ARROW_DOWN,
+            modifiers: Modifiers::default(),
+            repeat_count: 0,
+            is_repeat: false,
+        });
+        assert!(h.compute_delta(&ev).is_none());
+    }
+
+    #[test]
+    fn test_trackpad_page_mode_returns_none() {
+        let h = TrackpadHandler::new(TrackpadConfig::default());
+        let ev = RawInputEvent::Wheel(WheelData {
+            delta: Vec3 {
+                x: 0.0,
+                y: 1.0,
+                z: 0.0,
+            },
+            delta_mode: WheelMode::Page,
+            is_inverted: false,
+        });
+        assert!(h.compute_delta(&ev).is_none());
+    }
 }

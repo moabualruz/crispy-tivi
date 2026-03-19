@@ -283,6 +283,20 @@ mod tests {
     }
 
     #[test]
+    fn test_double_buffer_mode_assigns_immediately() {
+        // Covers effective_mode line 157: `other => other` for DoubleBuffer mode
+        let mut pool = SlotPool::new(5, IntegrityMode::DoubleBuffer);
+        pool.update_visible_range(0..2, pos);
+        // DoubleBuffer maps to itself (non-Auto) → treated as Sync (active)
+        let active = pool
+            .slots()
+            .iter()
+            .filter(|s| s.state == SlotState::Active)
+            .count();
+        assert_eq!(active, 2);
+    }
+
+    #[test]
     fn test_resize_shrink_below_active_is_noop() {
         let mut pool = SlotPool::new(5, IntegrityMode::Sync);
         pool.update_visible_range(0..4, pos);

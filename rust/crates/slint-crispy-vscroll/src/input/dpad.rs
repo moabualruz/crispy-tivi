@@ -254,4 +254,41 @@ mod tests {
             assert!((a.step_multiplier - 1.0).abs() < 0.001);
         }
     }
+
+    #[test]
+    fn test_handle_dpad_consumed_for_nav_key() {
+        use super::super::keyboard::EventOutcome;
+        let mut h = DpadHandler::new(DpadConfig::default());
+        let ev = nav_key_event(KeyCode::ARROW_DOWN);
+        let outcome = handle_dpad(&mut h, &ev);
+        assert!(matches!(outcome, EventOutcome::Consumed(_)));
+    }
+
+    #[test]
+    fn test_handle_dpad_unconsumed_for_non_nav_key() {
+        use super::super::keyboard::EventOutcome;
+        let mut h = DpadHandler::new(DpadConfig::default());
+        let ev = nav_key_event(KeyCode::ENTER);
+        let outcome = handle_dpad(&mut h, &ev);
+        assert!(matches!(outcome, EventOutcome::Unconsumed));
+    }
+
+    #[test]
+    fn test_handle_dpad_non_key_event_unconsumed() {
+        use super::super::keyboard::EventOutcome;
+        use crate::core::events::{WheelData, WheelMode};
+        use crate::core::types::Vec3;
+        let mut h = DpadHandler::new(DpadConfig::default());
+        let ev = RawInputEvent::Wheel(WheelData {
+            delta: Vec3 {
+                x: 0.0,
+                y: 10.0,
+                z: 0.0,
+            },
+            delta_mode: WheelMode::Pixel,
+            is_inverted: false,
+        });
+        let outcome = handle_dpad(&mut h, &ev);
+        assert!(matches!(outcome, EventOutcome::Unconsumed));
+    }
 }

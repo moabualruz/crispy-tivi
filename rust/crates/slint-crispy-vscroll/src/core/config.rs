@@ -717,6 +717,107 @@ mod tests {
     }
 
     #[test]
+    fn test_item_sizing_debug_all_variants() {
+        // Covers fmt lines 185-219 (all match arms in ItemSizing::fmt)
+        let u = ItemSizing::Uniform {
+            width: 100.0,
+            height: 50.0,
+        };
+        assert!(format!("{u:?}").contains("Uniform"));
+
+        let uw = ItemSizing::UniformWidthWithRatio {
+            width: 200.0,
+            aspect_ratio: 1.77,
+        };
+        assert!(format!("{uw:?}").contains("UniformWidthWithRatio"));
+
+        let uh = ItemSizing::UniformHeightWithRatio {
+            height: 120.0,
+            aspect_ratio: 0.75,
+        };
+        assert!(format!("{uh:?}").contains("UniformHeightWithRatio"));
+
+        let fr = ItemSizing::FillWithRatio {
+            columns: 3,
+            aspect_ratio: 1.0,
+            gap: 8.0,
+        };
+        assert!(format!("{fr:?}").contains("FillWithRatio"));
+
+        let var = ItemSizing::Variable {
+            get_size: Box::new(|_| (100.0, 50.0)),
+        };
+        assert!(format!("{var:?}").contains("Variable"));
+    }
+
+    #[test]
+    fn test_item_sizing_clone_non_variable_variants() {
+        // Covers clone lines 226-256 (all non-Variable match arms)
+        let u = ItemSizing::Uniform {
+            width: 10.0,
+            height: 20.0,
+        };
+        let _u2 = u.clone();
+
+        let uw = ItemSizing::UniformWidthWithRatio {
+            width: 10.0,
+            aspect_ratio: 1.5,
+        };
+        let _uw2 = uw.clone();
+
+        let uh = ItemSizing::UniformHeightWithRatio {
+            height: 80.0,
+            aspect_ratio: 0.5,
+        };
+        let _uh2 = uh.clone();
+
+        let fr = ItemSizing::FillWithRatio {
+            columns: 4,
+            aspect_ratio: 1.0,
+            gap: 4.0,
+        };
+        let _fr2 = fr.clone();
+    }
+
+    #[test]
+    #[should_panic(expected = "ItemSizing::Variable cannot be cloned")]
+    fn test_item_sizing_variable_clone_panics() {
+        let var = ItemSizing::Variable {
+            get_size: Box::new(|_| (100.0, 50.0)),
+        };
+        let _ = var.clone();
+    }
+
+    #[test]
+    fn test_scroller_config_debug_format() {
+        // Covers ScrollerConfig::fmt lines 476-495
+        let cfg = ScrollerConfig {
+            direction: Direction::Vertical,
+            item_count: 10,
+            item_sizing: ItemSizing::Uniform {
+                width: 100.0,
+                height: 50.0,
+            },
+            snap_mode: SnapMode::StartAligned,
+            resize_strategy: ResizeStrategy::Reflow,
+            breakpoints: vec![],
+            viewport_follow: ViewportFollow::ScrollAhead,
+            integrity_mode: IntegrityMode::Sync,
+            physics: PhysicsConfig::default(),
+            z_preset: Some(ZPreset::Flat),
+            z_custom: None,
+            animation: AnimationConfig::default(),
+            pool_buffer_ratio: 1.5,
+            async_ack_timeout_ms: 500,
+            scrollbar_visible: false,
+            scrollbar_fade_ms: 800,
+        };
+        let s = format!("{cfg:?}");
+        assert!(s.contains("ScrollerConfig"));
+        assert!(s.contains("item_count"));
+    }
+
+    #[test]
     fn test_scroller_config_construction() {
         let cfg = ScrollerConfig {
             direction: Direction::Vertical,

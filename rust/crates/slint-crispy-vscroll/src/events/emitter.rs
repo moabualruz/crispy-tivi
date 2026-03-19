@@ -172,4 +172,11 @@ mod tests {
         let delta = *received_delta.lock().unwrap();
         assert!((delta.y - 42.0).abs() < 0.001);
     }
+
+    #[test]
+    fn test_default_creates_empty_emitter() {
+        let e = EventEmitter::default();
+        assert!(e.is_empty());
+        assert_eq!(e.len(), 0);
+    }
 }

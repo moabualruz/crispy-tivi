@@ -142,4 +142,26 @@ mod tests {
         let drained = q.drain();
         assert_eq!(drained[0], InjectCommand::ScrollTo(200.0));
     }
+
+    #[test]
+    fn test_default_creates_empty_queue() {
+        let q = InjectQueue::default();
+        assert!(q.is_empty());
+    }
+
+    #[test]
+    fn test_inject_navigate_command() {
+        let mut q = InjectQueue::new();
+        q.push(InjectCommand::Navigate(NavDirection::Right));
+        let drained = q.drain();
+        assert_eq!(drained[0], InjectCommand::Navigate(NavDirection::Right));
+    }
+
+    #[test]
+    fn test_inject_stop_all_command() {
+        let mut q = InjectQueue::new();
+        q.push(InjectCommand::StopAll);
+        let drained = q.drain();
+        assert_eq!(drained[0], InjectCommand::StopAll);
+    }
 }

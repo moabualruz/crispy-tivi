@@ -208,4 +208,55 @@ mod tests {
             .unwrap();
         assert!((delta.y - 600.0).abs() < 0.001);
     }
+
+    #[test]
+    fn test_handle_pixel_returns_consumed() {
+        let handler = MouseWheelHandler::new(WheelConfig::default());
+        let ev = wheel_event(0.0, 30.0, WheelMode::Pixel);
+        assert!(matches!(handler.handle(&ev), EventOutcome::Consumed(_)));
+    }
+
+    #[test]
+    fn test_handle_non_wheel_returns_unconsumed() {
+        use crate::core::events::{KeyCode, KeyData, Modifiers};
+        let handler = MouseWheelHandler::new(WheelConfig::default());
+        let ev = RawInputEvent::Key(KeyData {
+            key_code: KeyCode::ARROW_DOWN,
+            modifiers: Modifiers::default(),
+            repeat_count: 0,
+            is_repeat: false,
+        });
+        assert!(matches!(handler.handle(&ev), EventOutcome::Unconsumed));
+    }
+
+    #[test]
+    fn test_handle_x_axis_contributes_to_scroll_delta() {
+        let handler = MouseWheelHandler::new(WheelConfig::default());
+        let ev = wheel_event(20.0, 0.0, WheelMode::Pixel);
+        let delta = handler.compute_delta(&ev).unwrap();
+        assert!((delta.x - 20.0).abs() < 0.001);
+        assert!((delta.y - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_natural_scrolling_and_inverted_event_cancel_out() {
+        // natural_scrolling=true XOR is_inverted=true → double-invert → positive
+        let config = WheelConfig {
+            natural_scrolling: true,
+            ..WheelConfig::default()
+        };
+        let handler = MouseWheelHandler::new(config);
+        let ev = RawInputEvent::Wheel(crate::core::events::WheelData {
+            delta: crate::core::types::Vec3 {
+                x: 0.0,
+                y: 50.0,
+                z: 0.0,
+            },
+            delta_mode: WheelMode::Pixel,
+            is_inverted: true,
+        });
+        let delta = handler.compute_delta(&ev).unwrap();
+        // both inversions cancel: result should be positive
+        assert!(delta.y > 0.0);
+    }
 }

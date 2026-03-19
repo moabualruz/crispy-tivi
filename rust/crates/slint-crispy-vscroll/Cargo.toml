@@ -172,6 +172,46 @@ required-features = ["tv-app", "ecs"]
 name = "apple_tv_parallax"
 required-features = ["z-cover-flow", "z-parallax", "input-dpad", "horizontal", "focus-tracking", "integrity-sync", "anim-hybrid"]
 
+[[test]]
+name = "physics_invariants"
+path = "tests/proptest/physics_invariants.rs"
+required-features = ["full"]
+
+[[test]]
+name = "layout_invariants"
+path = "tests/proptest/layout_invariants.rs"
+required-features = ["full"]
+
+[[test]]
+name = "slot_invariants"
+path = "tests/proptest/slot_invariants.rs"
+required-features = ["full"]
+
+[[test]]
+name = "focus_invariants"
+path = "tests/proptest/focus_invariants.rs"
+required-features = ["full"]
+
+[[test]]
+name = "edge_cases"
+path = "tests/proptest/edge_cases.rs"
+required-features = ["full"]
+
 [[bench]]
 name = "scroll_bench"
 harness = false
+
+[[bench]]
+name = "physics_tick"
+harness = false
+required-features = ["full"]
+
+[[bench]]
+name = "layout_compute"
+harness = false
+required-features = ["full"]
+
+[[bench]]
+name = "slot_recycle"
+harness = false
+required-features = ["full"]

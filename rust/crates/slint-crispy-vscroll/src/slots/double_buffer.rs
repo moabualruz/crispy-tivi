@@ -141,6 +141,13 @@ mod tests {
     }
 
     #[test]
+    fn test_half_capacity_returns_constructor_value() {
+        // Covers half_capacity() lines 90-91
+        let pool = DoubleBufferPool::new(7);
+        assert_eq!(pool.half_capacity(), 7);
+    }
+
+    #[test]
     fn test_staging_slots_invisible_before_commit() {
         let mut pool = DoubleBufferPool::new(5);
         pool.prepare_staging(0..2, pos);

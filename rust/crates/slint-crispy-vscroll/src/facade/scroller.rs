@@ -333,4 +333,97 @@ mod tests {
             .build();
         assert_eq!(s.config.z_preset, Some(ZPreset::AppleTv));
     }
+
+    #[test]
+    fn test_with_z_custom_builder() {
+        use crate::core::config::{ZTransform, ZTransformParams, ZTransformProvider};
+        struct IdentityProvider;
+        impl ZTransformProvider for IdentityProvider {
+            fn compute(&self, _: ZTransformParams) -> ZTransform {
+                ZTransform::default()
+            }
+        }
+        let s = VirtualScrollerBuilder::new(make_config(10))
+            .with_z_custom(Box::new(IdentityProvider))
+            .build();
+        assert!(s.config.z_custom.is_some());
+    }
+
+    #[test]
+    fn test_with_physics_builder() {
+        let custom_physics = PhysicsConfig {
+            friction: 0.5,
+            ..PhysicsConfig::default()
+        };
+        let s = VirtualScrollerBuilder::new(make_config(10))
+            .with_physics(custom_physics)
+            .build();
+        assert!((s.config.physics.friction - 0.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_with_animation_builder() {
+        let custom_anim = AnimationConfig {
+            target_fps: 30,
+            ..AnimationConfig::default()
+        };
+        let s = VirtualScrollerBuilder::new(make_config(10))
+            .with_animation(custom_anim)
+            .build();
+        assert_eq!(s.config.animation.target_fps, 30);
+    }
+
+    #[test]
+    fn test_on_scroll_callback_wired() {
+        use std::sync::{Arc, Mutex};
+        let mut s = VirtualScrollerBuilder::new(make_config(10)).build();
+        let called = Arc::new(Mutex::new(false));
+        let c = called.clone();
+        s.on_scroll(move |_| *c.lock().unwrap() = true);
+        // Emitter now has 1 callback (can't call it directly without firing, but
+        // we verify no panic during registration)
+        drop(s);
+        // If we got here without panic the path is covered
+    }
+
+    #[test]
+    fn test_dispatcher_mut_returns_dispatcher() {
+        let mut s = VirtualScrollerBuilder::new(make_config(10)).build();
+        let _d = s.dispatcher_mut();
+        // Just exercising the accessor path
+    }
+
+    #[test]
+    fn test_inject_navigate_right_increments_focus() {
+        let mut s = VirtualScrollerBuilder::new(make_config(10)).build();
+        s.inject(InjectCommand::Navigate(NavDirection::Right));
+        s.tick(1.0);
+        assert_eq!(s.focused_index(), 1);
+    }
+
+    #[test]
+    fn test_inject_navigate_left_at_zero_stays_zero() {
+        let mut s = VirtualScrollerBuilder::new(make_config(10)).build();
+        s.inject(InjectCommand::Navigate(NavDirection::Left));
+        s.tick(1.0);
+        assert_eq!(s.focused_index(), 0);
+    }
+
+    #[test]
+    fn test_inject_scroll_to_applied_on_tick() {
+        let mut s = VirtualScrollerBuilder::new(make_config(100)).build();
+        s.inject(InjectCommand::ScrollTo(300.0));
+        for _ in 0..30 {
+            s.tick(16.0);
+        }
+        assert!(s.scroll_position() > 0.0);
+    }
+
+    #[test]
+    fn test_tv_vertical_creates_scroller() {
+        let s = tv_vertical(50);
+        assert_eq!(s.scroll_position(), 0.0);
+        assert_eq!(s.focused_index(), 0);
+        assert_eq!(s.config.z_preset, Some(ZPreset::GoogleTv));
+    }
 }

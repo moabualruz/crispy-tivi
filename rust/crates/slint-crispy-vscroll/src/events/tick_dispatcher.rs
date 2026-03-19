@@ -201,4 +201,90 @@ mod tests {
         d.dispatch(vec![(TickEventKind::FrameEnd, ev())]);
         assert_eq!(*received_frame.lock().unwrap(), 1);
     }
+
+    #[test]
+    fn test_default_creates_dispatcher_at_frame_zero() {
+        let d = TickDispatcher::default();
+        assert_eq!(d.frame_number(), 0);
+    }
+
+    #[test]
+    fn test_slot_assigned_fires_before_focus_changed() {
+        let mut d = TickDispatcher::new();
+        let order = Arc::new(Mutex::new(Vec::<u8>::new()));
+
+        let o1 = order.clone();
+        d.on(TickEventKind::FocusChanged { new_index: 0 }, move |_| {
+            o1.lock().unwrap().push(3);
+        });
+        let o2 = order.clone();
+        d.on(TickEventKind::SlotAssigned, move |_| {
+            o2.lock().unwrap().push(2);
+        });
+
+        d.dispatch(vec![
+            (TickEventKind::FocusChanged { new_index: 5 }, ev()),
+            (TickEventKind::SlotAssigned, ev()),
+        ]);
+
+        let result = order.lock().unwrap().clone();
+        assert_eq!(result, vec![2, 3]); // SlotAssigned(2) before FocusChanged(3)
+    }
+
+    #[test]
+    fn test_focus_changed_different_index_still_matches() {
+        // kinds_match uses discriminant — FocusChanged{0} registered should fire for FocusChanged{5}
+        let mut d = TickDispatcher::new();
+        let called = Arc::new(Mutex::new(false));
+        let c = called.clone();
+        d.on(TickEventKind::FocusChanged { new_index: 0 }, move |_| {
+            *c.lock().unwrap() = true;
+        });
+        d.dispatch(vec![(TickEventKind::FocusChanged { new_index: 42 }, ev())]);
+        assert!(*called.lock().unwrap());
+    }
+
+    #[test]
+    fn test_multiple_callbacks_same_kind_all_fire() {
+        // Covers the inner callback loop with multiple registrations for same kind
+        // This ensures kinds_match false path is hit when only some match
+        let mut d = TickDispatcher::new();
+        let count = Arc::new(Mutex::new(0u32));
+
+        let c1 = count.clone();
+        d.on(TickEventKind::ScrollUpdated, move |_| {
+            *c1.lock().unwrap() += 1;
+        });
+        let c2 = count.clone();
+        d.on(TickEventKind::PhysicsStep, move |_| {
+            *c2.lock().unwrap() += 10;
+        });
+
+        // Dispatch only ScrollUpdated — PhysicsStep callback must NOT fire
+        d.dispatch(vec![(TickEventKind::ScrollUpdated, ev())]);
+        assert_eq!(*count.lock().unwrap(), 1); // only scroll fired
+    }
+
+    #[test]
+    fn test_physics_step_fires_before_scroll_updated() {
+        let mut d = TickDispatcher::new();
+        let order = Arc::new(Mutex::new(Vec::<u8>::new()));
+
+        let o1 = order.clone();
+        d.on(TickEventKind::ScrollUpdated, move |_| {
+            o1.lock().unwrap().push(4);
+        });
+        let o2 = order.clone();
+        d.on(TickEventKind::PhysicsStep, move |_| {
+            o2.lock().unwrap().push(1);
+        });
+
+        d.dispatch(vec![
+            (TickEventKind::ScrollUpdated, ev()),
+            (TickEventKind::PhysicsStep, ev()),
+        ]);
+
+        let result = order.lock().unwrap().clone();
+        assert_eq!(result, vec![1, 4]);
+    }
 }

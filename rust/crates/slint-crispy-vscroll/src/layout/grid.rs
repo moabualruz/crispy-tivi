@@ -36,6 +36,8 @@ pub fn grid_visible_range(
 
     let start = start_row * columns;
     let end = (end_row * columns).min(item_count);
+    // Guard: if scroll_pos >> content, start may exceed item_count → invert range.
+    let start = start.min(end);
     start..end
 }
 

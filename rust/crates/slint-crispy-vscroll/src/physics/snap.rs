@@ -77,6 +77,13 @@ mod tests {
     }
 
     #[test]
+    fn test_snap_center_aligned_zero_item_size_returns_zero() {
+        // Covers line 28: early return when item_size <= 0
+        assert_eq!(snap_center_aligned(500.0, 0.0, 400.0), 0.0);
+        assert_eq!(snap_center_aligned(100.0, -1.0, 200.0), 0.0);
+    }
+
+    #[test]
     fn test_snap_center_aligned_centers_item_in_viewport() {
         // viewport=400, item_size=100 => center snap at index 2: target=150 (200 - 400/2)
         // scroll=140 => center=340 => nearest item center at 300 => snap=300-200=100

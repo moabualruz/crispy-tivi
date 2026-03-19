@@ -242,4 +242,108 @@ mod tests {
         });
         assert!(h.handle(&ev).is_none());
     }
+
+    #[test]
+    fn test_handle_touch_down_event_returns_some() {
+        use crate::core::events::{PointerButton, PointerData};
+        let mut h = TouchHandler::new(TouchConfig::default());
+        let ev = RawInputEvent::Pointer(PointerData {
+            pointer_id: 0,
+            position: Vec2::new(100.0, 200.0),
+            screen_position: Vec2::ZERO,
+            pressure: 1.0,
+            tilt: Vec2::ZERO,
+            contact_size: Vec2::ZERO,
+            pointer_type: PointerType::Touch,
+            button: PointerButton::Primary,
+            coalesced_count: 0,
+        });
+        assert!(h.handle(&ev).is_some());
+        assert_eq!(h.phase(), TouchPhase::Tracking);
+    }
+
+    #[test]
+    fn test_handle_touch_move_event_dispatched() {
+        use crate::core::events::{PointerButton, PointerData};
+        let mut h = TouchHandler::new(TouchConfig::default());
+        // down first
+        h.on_down(Vec2::ZERO);
+        // move via handle()
+        let move_ev = RawInputEvent::Pointer(PointerData {
+            pointer_id: 0,
+            position: Vec2::new(0.0, 30.0),
+            screen_position: Vec2::ZERO,
+            pressure: 0.0,
+            tilt: Vec2::ZERO,
+            contact_size: Vec2::ZERO,
+            pointer_type: PointerType::Touch,
+            button: PointerButton::None,
+            coalesced_count: 0,
+        });
+        let result = h.handle(&move_ev);
+        // beyond slop → Scroll
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_handle_touch_up_event_via_zero_pressure() {
+        use crate::core::events::{PointerButton, PointerData};
+        let mut h = TouchHandler::new(TouchConfig::default());
+        h.on_down(Vec2::ZERO);
+        let up_ev = RawInputEvent::Pointer(PointerData {
+            pointer_id: 0,
+            position: Vec2::ZERO,
+            screen_position: Vec2::ZERO,
+            pressure: 0.0,
+            tilt: Vec2::ZERO,
+            contact_size: Vec2::ZERO,
+            pointer_type: PointerType::Touch,
+            button: PointerButton::Primary,
+            coalesced_count: 0,
+        });
+        let result = h.handle(&up_ev);
+        assert!(matches!(result, Some(TouchAction::End { .. })));
+    }
+
+    #[test]
+    fn test_handle_non_pointer_event_returns_none() {
+        use crate::core::events::{KeyCode, KeyData, Modifiers};
+        let mut h = TouchHandler::new(TouchConfig::default());
+        let ev = RawInputEvent::Key(KeyData {
+            key_code: KeyCode::ARROW_DOWN,
+            modifiers: Modifiers::default(),
+            repeat_count: 0,
+            is_repeat: false,
+        });
+        assert!(h.handle(&ev).is_none());
+    }
+
+    #[test]
+    fn test_dispatch_pointer_secondary_button_returns_none() {
+        use crate::core::events::{PointerButton, PointerData};
+        let mut h = TouchHandler::new(TouchConfig::default());
+        let ev = RawInputEvent::Pointer(PointerData {
+            pointer_id: 0,
+            position: Vec2::ZERO,
+            screen_position: Vec2::ZERO,
+            pressure: 1.0,
+            tilt: Vec2::ZERO,
+            contact_size: Vec2::ZERO,
+            pointer_type: PointerType::Touch,
+            button: PointerButton::Secondary,
+            coalesced_count: 0,
+        });
+        // Secondary button → dispatch_pointer returns None
+        assert!(h.handle(&ev).is_none());
+    }
+
+    #[test]
+    fn test_on_move_while_idle_returns_scroll_delta() {
+        let mut h = TouchHandler::new(TouchConfig::default());
+        // no on_down — phase is Idle; on_move skips the Tracking slop check
+        // and goes straight to computing a delta (production behavior)
+        let result = h.on_move(Vec2::new(0.0, 50.0));
+        assert!(result.is_some());
+        assert!(matches!(result, Some(TouchAction::Scroll(_))));
+    }
 }

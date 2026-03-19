@@ -21,6 +21,8 @@ pub fn visible_range_uniform(
 
     let start = (first_visible - buffer as isize).max(0) as usize;
     let end = ((last_visible + buffer as isize) as usize).min(item_count);
+    // Guard: if scroll_pos >> content, start may exceed item_count → invert range.
+    let start = start.min(end);
     start..end
 }
 

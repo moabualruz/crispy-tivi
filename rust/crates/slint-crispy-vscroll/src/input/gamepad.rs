@@ -182,4 +182,30 @@ mod tests {
         });
         assert!(h.handle_trigger(&ev).is_none());
     }
+
+    #[test]
+    fn test_handle_axis_non_gamepad_event_returns_none() {
+        use crate::core::events::{KeyCode, KeyData, Modifiers};
+        let h = GamepadHandler::new(GamepadConfig::default());
+        let ev = RawInputEvent::Key(KeyData {
+            key_code: KeyCode::ARROW_DOWN,
+            modifiers: Modifiers::default(),
+            repeat_count: 0,
+            is_repeat: false,
+        });
+        assert!(h.handle_axis(&ev).is_none());
+    }
+
+    #[test]
+    fn test_handle_trigger_non_trigger_event_returns_none() {
+        use crate::core::events::{KeyCode, KeyData, Modifiers};
+        let h = GamepadHandler::new(GamepadConfig::default());
+        let ev = RawInputEvent::Key(KeyData {
+            key_code: KeyCode::ARROW_DOWN,
+            modifiers: Modifiers::default(),
+            repeat_count: 0,
+            is_repeat: false,
+        });
+        assert!(h.handle_trigger(&ev).is_none());
+    }
 }

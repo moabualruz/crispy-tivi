@@ -250,6 +250,66 @@ mod tests {
     }
 
     #[test]
+    fn test_ease_in_increases_quadratically() {
+        // Covers EasingCurve::EaseIn branch (line ~41 in apply_easing)
+        let t = apply_easing(0.5, EasingCurve::EaseIn);
+        // EaseIn = t*t => 0.25
+        assert!((t - 0.25).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_cubic_bezier_smooth_step() {
+        // Covers EasingCurve::CubicBezier branch
+        let t = apply_easing(0.5, EasingCurve::CubicBezier);
+        // smoothstep: 0.5*0.5*(3 - 2*0.5) = 0.25 * 2.0 = 0.5
+        assert!((t - 0.5).abs() < 0.001);
+        // at 0.0 should be 0.0
+        assert!((apply_easing(0.0, EasingCurve::CubicBezier) - 0.0).abs() < 0.001);
+        // at 1.0 should be 1.0
+        assert!((apply_easing(1.0, EasingCurve::CubicBezier) - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_with_settle_threshold_builder() {
+        // Covers with_settle_threshold (lines 84-86)
+        let driver =
+            RustTickDriver::new(0.0, 200.0, EasingCurve::Linear).with_settle_threshold(0.5);
+        // With larger threshold, driver should still start settled (current==target==0)
+        assert!(driver.is_settled());
+    }
+
+    #[test]
+    fn test_with_settle_threshold_affects_settle_detection() {
+        // Large threshold: once elapsed >= duration AND |current-target| < threshold → settled
+        let mut driver =
+            RustTickDriver::new(0.0, 200.0, EasingCurve::Linear).with_settle_threshold(10.0);
+        driver.set_target(100.0);
+        // Tick past full duration → elapsed >= duration AND current == target → settled
+        driver.tick(200.0);
+        assert!(driver.is_settled());
+    }
+
+    #[test]
+    fn test_ease_in_full_duration_reaches_target() {
+        // Covers EaseIn path through tick
+        let mut driver = RustTickDriver::new(0.0, 200.0, EasingCurve::EaseIn);
+        driver.set_target(100.0);
+        driver.tick(200.0);
+        assert!(driver.is_settled());
+        assert!((driver.current() - 100.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_cubic_bezier_driver_settles() {
+        // Covers CubicBezier path through tick
+        let mut driver = RustTickDriver::new(0.0, 100.0, EasingCurve::CubicBezier);
+        driver.set_target(50.0);
+        driver.tick(100.0);
+        assert!(driver.is_settled());
+        assert!((driver.current() - 50.0).abs() < 0.001);
+    }
+
+    #[test]
     fn test_convergence_over_many_frames() {
         let mut driver = RustTickDriver::new(0.0, 300.0, EasingCurve::EaseInOut);
         driver.set_target(1000.0);

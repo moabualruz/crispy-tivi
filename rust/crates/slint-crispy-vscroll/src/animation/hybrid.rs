@@ -197,6 +197,61 @@ mod tests {
     }
 
     #[test]
+    fn test_set_focus_scale_target_instant_snaps_immediately() {
+        // Covers AnimationMode::Instant branch in set_focus_scale_target (line ~84)
+        let config = AnimationConfig {
+            reduced_motion: true,
+            ..AnimationConfig::default()
+        };
+        let mut c = HybridCoordinator::new(config);
+        c.set_focus_scale_target(1.5);
+        assert!((c.focus_scale() - 1.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_set_focus_scale_target_rust_tick_animates() {
+        // Covers the `_` (RustTick) branch in set_focus_scale_target
+        let mut c = default_coordinator();
+        let before = c.focus_scale();
+        c.set_focus_scale_target(2.0);
+        c.tick(100.0);
+        let after = c.focus_scale();
+        assert!(after > before || after == 2.0);
+    }
+
+    #[test]
+    fn test_preferred_target_rust_tick_returns_rust_tick() {
+        // Covers AnimationMode::RustTick arm in preferred_target (line ~59)
+        let c = default_coordinator();
+        assert_eq!(
+            c.preferred_target(),
+            crate::core::config::AnimationTarget::RustTick
+        );
+    }
+
+    #[test]
+    fn test_preferred_target_instant_returns_rust_tick() {
+        // Covers AnimationMode::Instant arm in preferred_target (line ~59)
+        let config = AnimationConfig {
+            reduced_motion: true,
+            ..AnimationConfig::default()
+        };
+        let c = HybridCoordinator::new(config);
+        assert_eq!(
+            c.preferred_target(),
+            crate::core::config::AnimationTarget::RustTick
+        );
+    }
+
+    #[test]
+    fn test_transition_set_default_not_reduced() {
+        // Covers transition_set non-reduced path (line ~102)
+        let c = default_coordinator();
+        let _ts = c.transition_set();
+        // Just verify it doesn't panic
+    }
+
+    #[test]
     fn test_focus_transition_duration_matches_config() {
         let config = AnimationConfig {
             focus_scale_ms: 250,
