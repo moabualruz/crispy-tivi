@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[[bin]]
+name = "screenshot-review"
+path = "src/bin/screenshot_review.rs"
+
 [dependencies]
 crispy-core = { path = "../crispy-core" }
 crispy-server = { path = "../crispy-server" }
