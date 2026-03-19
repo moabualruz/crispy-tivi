@@ -12,7 +12,7 @@ export component ScrollIndicator inherits Rectangle {
   Rectangle {
     width: parent.width;
     height: parent.height;
-    border-radius: 2px;
+    border-radius: Theme.radius-2xs;
     background: Theme.surface-highlight;
   }
 
@@ -26,7 +26,7 @@ export component ScrollIndicator inherits Rectangle {
     y: parent.height * min(1.0 - self.ratio, max(0.0, self.position));
     height: max(20px, parent.height * self.ratio);
     width: parent.width;
-    border-radius: 2px;
+    border-radius: Theme.radius-2xs;
     background: Theme.accent-gradient;
     opacity: 0.6;
   }

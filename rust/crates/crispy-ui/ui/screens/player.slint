@@ -228,7 +228,7 @@ component SeekBar inherits FocusScope {
       width: track.width * PlayerState.buffered;
       height: 100%;
       border-radius: bar-h / 2;
-      background: rgba(255, 255, 255, 0.4); // buffered-ahead — intentionally lighter than track, no token match
+      background: Theme.progress-buffered;
     }
 
     if !PlayerState.is-live: Rectangle {
@@ -261,7 +261,7 @@ component SeekBar inherits FocusScope {
       width: track.width * PlayerState.buffered;
       height: 100%;
       border-radius: bar-h / 2;
-      background: rgba(255, 255, 255, 0.55); // live buffered — brighter than VOD buffered, no token match
+      background: Theme.progress-live-buffered;
     }
 
     // Live edge marker — pulsing dot at the right edge

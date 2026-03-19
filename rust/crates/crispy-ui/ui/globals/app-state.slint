@@ -390,12 +390,12 @@ export global AppState {
   // Populated by Rust device-discovery service before showing the picker.
   in-out property <[CastDeviceData]> cast-devices: [];
   callback cast-to-device(/* device-id */ string);
-  callback stop-casting();
+  callback stop-casting(); // Epoch 10: reserved for device management UI (not yet wired)
 
   // 10.7: Device management (shown in Settings)
   in-out property <[ManagedDeviceData]> managed-devices: []; // TODO: unused — remove when confirmed safe
-  callback remove-device(/* device-id */ string);
-  callback sign-out-all-devices();
+  callback remove-device(/* device-id */ string); // Epoch 10: reserved for device management UI (not yet wired)
+  callback sign-out-all-devices(); // Epoch 10: reserved for device management UI (not yet wired)
 
   // 10.9: Cross-device resume prompt
   in-out property <bool> show-resume-prompt: false;

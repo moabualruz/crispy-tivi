@@ -383,14 +383,14 @@ export component AppWindow inherits Window {
         height: 3px;
         width: 100%;
         background: Theme.border-subtle;
-        border-radius: 2px;
+        border-radius: Theme.radius-2xs;
 
         Rectangle {
           x: 0;
           width: parent.width * AppState.sync-progress;
           height: 100%;
           background: @linear-gradient(90deg, #FF4B2B, #FF416C);
-          border-radius: 2px;
+          border-radius: Theme.radius-2xs;
         }
       }
     }

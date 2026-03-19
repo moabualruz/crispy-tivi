@@ -254,14 +254,14 @@ export component VodDetailScreen inherits Rectangle {
             if AppState.vod-detail-item.duration-minutes > 0: Rectangle {
               width: 100%;
               height: 4px;
-              border-radius: 2px;
+              border-radius: Theme.radius-2xs;
               background: Theme.border-subtle;
 
               // Placeholder bar at ~30% to indicate partial watch state
               Rectangle {
                 width: parent.width * 0.30;
                 height: 100%;
-                border-radius: 2px;
+                border-radius: Theme.radius-2xs;
                 background: @linear-gradient(90deg, #FF4B2B 0%, #FF416C 100%);
               }
             }

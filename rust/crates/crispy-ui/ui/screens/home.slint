@@ -172,13 +172,13 @@ component HeroStatic inherits Rectangle {
 export component HomeScreen inherits Rectangle {
   background: transparent;
 
-  // M-034: Escape returns to Home (screen 0) from anywhere within this screen
+  // M-034: Escape on Home is a no-op — we're already here; navigating to 0
+  // would trigger an unnecessary reload. Other screens handle their own escape.
   FocusScope {
     width: 0; height: 0;
     key-pressed(event) => {
       if event.text == Key.Escape {
-        AppState.navigate(0);
-        return accept;
+        return accept; // consume the key without re-navigating (m-012 fix)
       }
       return reject;
     }

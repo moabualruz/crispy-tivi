@@ -104,6 +104,7 @@ mod tests {
 
     #[test]
     fn test_from_env_reads_ws_port() {
+        // SAFETY: single-threaded test; no other thread reads CRISPY_WS_PORT.
         unsafe { std::env::set_var("CRISPY_WS_PORT", "9091") };
         let cfg = ServerConfig::from_env();
         unsafe { std::env::remove_var("CRISPY_WS_PORT") };
@@ -112,6 +113,7 @@ mod tests {
 
     #[test]
     fn test_from_env_reads_static_dir() {
+        // SAFETY: single-threaded test; no other thread reads CRISPY_STATIC_DIR.
         unsafe { std::env::set_var("CRISPY_STATIC_DIR", "/tmp/wasm") };
         let cfg = ServerConfig::from_env();
         unsafe { std::env::remove_var("CRISPY_STATIC_DIR") };
@@ -120,6 +122,7 @@ mod tests {
 
     #[test]
     fn test_from_env_static_dir_none_when_empty() {
+        // SAFETY: single-threaded test; no other thread reads CRISPY_STATIC_DIR.
         unsafe { std::env::set_var("CRISPY_STATIC_DIR", "") };
         let cfg = ServerConfig::from_env();
         unsafe { std::env::remove_var("CRISPY_STATIC_DIR") };
@@ -128,6 +131,7 @@ mod tests {
 
     #[test]
     fn test_from_env_reads_db_path() {
+        // SAFETY: single-threaded test; no other thread reads CRISPY_DB_PATH.
         unsafe { std::env::set_var("CRISPY_DB_PATH", "/tmp/test.sqlite") };
         let cfg = ServerConfig::from_env();
         unsafe { std::env::remove_var("CRISPY_DB_PATH") };
@@ -136,6 +140,7 @@ mod tests {
 
     #[test]
     fn test_from_env_reads_cors_origins() {
+        // SAFETY: single-threaded test; no other thread reads CRISPY_ALLOWED_ORIGINS.
         unsafe {
             std::env::set_var(
                 "CRISPY_ALLOWED_ORIGINS",
@@ -152,6 +157,7 @@ mod tests {
 
     #[test]
     fn test_from_env_invalid_port_uses_default() {
+        // SAFETY: single-threaded test; no other thread reads CRISPY_HTTP_PORT.
         unsafe { std::env::set_var("CRISPY_HTTP_PORT", "not_a_number") };
         let cfg = ServerConfig::from_env();
         unsafe { std::env::remove_var("CRISPY_HTTP_PORT") };
