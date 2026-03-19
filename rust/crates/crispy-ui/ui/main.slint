@@ -257,17 +257,10 @@ export component AppWindow inherits Window {
     animate x, y, width, height { duration: 300ms; easing: ease-in-out; }
     animate opacity { duration: 300ms; easing: ease-in-out; }
 
-    // C-001: Escape/Back hides OSD and returns to screen layer
-    FocusScope {
-      width: 0; height: 0;
-      key-pressed(event) => {
-        if event.text == Key.Escape || event.text == Key.Back {
-          PlayerState.stop();
-          return accept;
-        }
-        return reject;
-      }
-    }
+    // C-022: OsdLayer no longer owns an Escape handler — the global FocusScope
+    // above already routes Escape correctly (checks all overlays before stopping
+    // playback). A local handler here would race with the global one and could
+    // intercept Escape meant for ProfilePickerScreen or other overlays.
 
     PlayerScreen {
       width: 100%;

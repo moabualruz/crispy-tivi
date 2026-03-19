@@ -171,7 +171,7 @@ export component ResumePrompt {
             border-radius: Theme.radius-sm;
             background: resume-fs.has-focus ? Theme.btn-primary-bg : rgba(255, 255, 255, 0.85);
             border-width: resume-fs.has-focus ? Theme.focus-ring-width : 0px;
-            border-color: Theme.focus-ring;
+            border-color: resume-fs.has-focus ? Theme.focus-ring : transparent;
 
             Text {
               text: "Resume";

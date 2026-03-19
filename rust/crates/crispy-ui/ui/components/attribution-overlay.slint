@@ -62,8 +62,10 @@ export component AttributionOverlay inherits Rectangle {
   visible: AppState.show-attribution;
   width: 100%; height: 100%;
 
-  // Escape closes
-  FocusScope {
+  // M-055: Root focus trap — grabs focus when overlay becomes visible so that
+  // Escape is handled here and never leaks to layers below.
+  // The close-btn FocusScope (below) carries the visible focus ring for D-pad.
+  attr-trap := FocusScope {
     width: 0; height: 0;
     key-pressed(event) => {
       if event.text == Key.Escape {
@@ -72,6 +74,10 @@ export component AttributionOverlay inherits Rectangle {
       }
       return reject;
     }
+  }
+
+  changed visible => {
+    if root.visible { attr-trap.focus(); }
   }
 
   // Dim backdrop

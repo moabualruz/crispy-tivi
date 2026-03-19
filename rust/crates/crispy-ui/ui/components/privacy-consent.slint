@@ -11,6 +11,22 @@ export component PrivacyConsent inherits Rectangle {
   visible: AppState.show-privacy-consent;
   width: 100%; height: 100%;
 
+  // M-054: Root focus trap — grabs focus when visible so no key events leak to
+  // layers below. Consent is mandatory; Escape is intentionally rejected here
+  // (no dismiss — user must Accept or Decline explicitly per design rules).
+  privacy-trap := FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      // Trap Escape — consent cannot be bypassed by keyboard
+      if event.text == Key.Escape { return accept; }
+      return reject;
+    }
+  }
+
+  changed visible => {
+    if root.visible { privacy-trap.focus(); }
+  }
+
   // Full-screen semi-transparent dim — no tap-to-dismiss (consent is mandatory)
   Rectangle {
     width: 100%; height: 100%;

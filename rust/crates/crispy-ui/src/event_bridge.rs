@@ -1230,10 +1230,12 @@ pub(crate) fn wire(
                 // Show PIN dialog — actual switch deferred to on_verify_pin
                 let ui_w2 = ui_w.clone();
                 let id2 = id.clone();
+                let name2 = profile_name.clone();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(ui) = ui_w2.upgrade() {
                         let app = ui.global::<super::AppState>();
                         app.set_pin_target_profile_id(SharedString::from(id2.as_str()));
+                        app.set_pin_target_profile_name(SharedString::from(name2.as_str()));
                         app.set_show_pin_dialog(true);
                         app.set_pin_wrong(false);
                         app.set_show_profile_picker(false);
