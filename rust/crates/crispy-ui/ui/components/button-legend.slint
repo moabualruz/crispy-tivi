@@ -1,0 +1,118 @@
+// Button legend bar — contextual D-pad/remote key hints shown at the bottom of the screen.
+// Informational only: not focusable, not interactive.
+// Each color-button slot (red/green/yellow/blue) is hidden when its label is empty.
+// Designed for TV 10-foot UI — small text, glass bg, subtle top border.
+
+import { Theme } from "../globals/theme.slint";
+
+// Single legend item: glyph + label text
+component LegendItem {
+  in property <string> glyph;
+  in property <string> label;
+
+  HorizontalLayout {
+    spacing: Theme.spacing-xs;
+    alignment: center;
+
+    Text {
+      text: glyph;
+      color: Theme.text-primary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-small;
+      vertical-alignment: center;
+    }
+
+    Text {
+      text: label;
+      color: Theme.text-secondary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-small;
+      vertical-alignment: center;
+    }
+  }
+}
+
+// Thin vertical separator between legend groups
+component LegendSeparator {
+  width: 1px;
+  height: 16px;
+  Rectangle {
+    width: 1px;
+    height: 100%;
+    background: Theme.border-subtle;
+  }
+}
+
+export component ButtonLegend inherits Rectangle {
+  // Master visibility — set false when mouse/touch is detected
+  in property <bool> visible-legend: true;
+
+  // Standard nav/action hints (always present)
+  in property <string> left-label: "Navigate";
+  in property <string> select-label: "Select";
+  in property <string> back-label: "Back";
+
+  // Color button hints — hidden when label is empty string
+  in property <string> red-label: "";
+  in property <string> green-label: "";
+  in property <string> yellow-label: "";
+  in property <string> blue-label: "";
+
+  // NOT focusable — purely informational
+  width: 100%;
+  height: visible-legend ? 40px : 0px;
+  animate height { duration: 200ms; easing: ease-in-out; }
+
+  opacity: visible-legend ? 1.0 : 0.0;
+  animate opacity { duration: 200ms; easing: ease-in-out; }
+
+  // Glass background with subtle top border
+  background: Theme.surface-glass;
+  border-width: 0;
+
+  // Top border line
+  Rectangle {
+    x: 0;
+    y: 0;
+    width: 100%;
+    height: 1px;
+    background: Theme.border-subtle;
+  }
+
+  HorizontalLayout {
+    x: 0;
+    y: 1px; // below top border
+    width: 100%;
+    height: 39px;
+    padding-left: Theme.content-padding-h;
+    padding-right: Theme.content-padding-h;
+    spacing: Theme.spacing-md;
+    alignment: center;
+
+    // Navigate hint
+    LegendItem { glyph: "←→"; label: left-label; }
+
+    LegendSeparator {}
+
+    // Select hint
+    LegendItem { glyph: "OK"; label: select-label; }
+
+    LegendSeparator {}
+
+    // Back hint
+    LegendItem { glyph: "⌫"; label: back-label; }
+
+    // Color button slots — only shown when label is non-empty
+    if red-label != "": LegendSeparator {}
+    if red-label != "": LegendItem { glyph: "🔴"; label: red-label; }
+
+    if green-label != "": LegendSeparator {}
+    if green-label != "": LegendItem { glyph: "🟢"; label: green-label; }
+
+    if yellow-label != "": LegendSeparator {}
+    if yellow-label != "": LegendItem { glyph: "🟡"; label: yellow-label; }
+
+    if blue-label != "": LegendSeparator {}
+    if blue-label != "": LegendItem { glyph: "🔵"; label: blue-label; }
+  }
+}

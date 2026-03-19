@@ -19,6 +19,7 @@ import { SeriesDetailScreen } from "screens/series-detail.slint";
 import { SourceDialog } from "components/source-dialog.slint";
 import { DiagnosticsPanel, DiagnosticsState } from "components/diagnostics-panel.slint";
 import { ProfileMenu, ProfilePickerScreen } from "components/profile-menu.slint";
+import { ButtonLegend } from "components/button-legend.slint";
 
 // Re-export for Rust access
 export { PlayerState, OnboardingState, DiagnosticsState }
@@ -195,6 +196,12 @@ export component AppWindow inherits Window {
       y: 0;
       width: 100%;
       visible: AppState.nav-visible;
+    }
+
+    // Button legend bar — contextual D-pad hints, pinned to screen bottom
+    ButtonLegend {
+      y: parent.height - self.height;
+      width: 100%;
     }
   }
 
