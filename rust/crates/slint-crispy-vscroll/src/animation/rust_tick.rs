@@ -1,1 +1,262 @@
-//! Module stub — implementation in Phase 5.
+//! Rust-side tick-based animation driver (Task 6).
+//!
+//! Interpolates a scalar value toward a target at a configurable rate.
+//! Designed to be called once per frame by a Slint Timer callback.
+
+use crate::core::config::EasingCurve;
+
+// ---------------------------------------------------------------------------
+// AnimationDriver trait (Task 6)
+// ---------------------------------------------------------------------------
+
+/// Drives per-frame property interpolation entirely in Rust.
+///
+/// Implementors call `tick(dt_ms)` each frame and read back `current()`.
+pub trait AnimationDriver: Send + Sync {
+    /// Advance the animation by `dt_ms` milliseconds.
+    /// Returns true if the animation is still running (not yet settled).
+    fn tick(&mut self, dt_ms: f32) -> bool;
+
+    /// Current interpolated value.
+    fn current(&self) -> f32;
+
+    /// Returns true if the animation has fully settled (no longer changing).
+    fn is_settled(&self) -> bool;
+
+    /// Set a new target value.
+    fn set_target(&mut self, target: f32);
+
+    /// Snap to value immediately (no animation).
+    fn snap_to(&mut self, value: f32);
+}
+
+// ---------------------------------------------------------------------------
+// Easing functions
+// ---------------------------------------------------------------------------
+
+fn apply_easing(t: f32, curve: EasingCurve) -> f32 {
+    let t = t.clamp(0.0, 1.0);
+    match curve {
+        EasingCurve::Linear => t,
+        EasingCurve::EaseIn => t * t,
+        EasingCurve::EaseOut => t * (2.0 - t),
+        EasingCurve::EaseInOut => {
+            if t < 0.5 {
+                2.0 * t * t
+            } else {
+                -1.0 + (4.0 - 2.0 * t) * t
+            }
+        }
+        EasingCurve::CubicBezier => {
+            // Approximate cubic ease-in-out
+            t * t * (3.0 - 2.0 * t)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// RustTickDriver
+// ---------------------------------------------------------------------------
+
+pub struct RustTickDriver {
+    current: f32,
+    start: f32,
+    target: f32,
+    duration_ms: f32,
+    elapsed_ms: f32,
+    easing: EasingCurve,
+    settle_threshold: f32,
+}
+
+impl RustTickDriver {
+    pub fn new(initial: f32, duration_ms: f32, easing: EasingCurve) -> Self {
+        Self {
+            current: initial,
+            start: initial,
+            target: initial,
+            duration_ms,
+            elapsed_ms: 0.0,
+            easing,
+            settle_threshold: 0.001,
+        }
+    }
+
+    pub fn with_settle_threshold(mut self, threshold: f32) -> Self {
+        self.settle_threshold = threshold;
+        self
+    }
+}
+
+impl AnimationDriver for RustTickDriver {
+    fn tick(&mut self, dt_ms: f32) -> bool {
+        if self.is_settled() {
+            return false;
+        }
+
+        self.elapsed_ms = (self.elapsed_ms + dt_ms).min(self.duration_ms);
+        let t = if self.duration_ms > 0.0 {
+            self.elapsed_ms / self.duration_ms
+        } else {
+            1.0
+        };
+        let eased = apply_easing(t, self.easing);
+        self.current = self.start + (self.target - self.start) * eased;
+
+        !self.is_settled()
+    }
+
+    fn current(&self) -> f32 {
+        self.current
+    }
+
+    fn is_settled(&self) -> bool {
+        (self.current - self.target).abs() < self.settle_threshold
+            && ((self.start - self.target).abs() < self.settle_threshold
+                || self.elapsed_ms >= self.duration_ms)
+    }
+
+    fn set_target(&mut self, target: f32) {
+        if (target - self.target).abs() < f32::EPSILON {
+            return;
+        }
+        self.start = self.current;
+        self.target = target;
+        self.elapsed_ms = 0.0;
+    }
+
+    fn snap_to(&mut self, value: f32) {
+        self.current = value;
+        self.start = value;
+        self.target = value;
+        self.elapsed_ms = self.duration_ms;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// FrameBudgetGuard
+// ---------------------------------------------------------------------------
+
+/// Tracks frame budget usage. Returns true if within budget.
+pub struct FrameBudgetGuard {
+    budget_ms: f32,
+    used_ms: f32,
+}
+
+impl FrameBudgetGuard {
+    pub fn new(budget_ms: f32) -> Self {
+        Self {
+            budget_ms,
+            used_ms: 0.0,
+        }
+    }
+
+    pub fn record(&mut self, work_ms: f32) {
+        self.used_ms += work_ms;
+    }
+
+    pub fn within_budget(&self) -> bool {
+        self.used_ms <= self.budget_ms
+    }
+
+    pub fn reset(&mut self) {
+        self.used_ms = 0.0;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_driver_starts_settled_at_initial() {
+        let driver = RustTickDriver::new(0.0, 200.0, EasingCurve::Linear);
+        assert!(driver.is_settled());
+        assert!((driver.current() - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_set_target_starts_animation() {
+        let mut driver = RustTickDriver::new(0.0, 200.0, EasingCurve::Linear);
+        driver.set_target(100.0);
+        assert!(!driver.is_settled());
+    }
+
+    #[test]
+    fn test_tick_advances_toward_target() {
+        let mut driver = RustTickDriver::new(0.0, 200.0, EasingCurve::Linear);
+        driver.set_target(100.0);
+        driver.tick(100.0); // halfway
+        let v = driver.current();
+        assert!(v > 0.0 && v < 100.0);
+    }
+
+    #[test]
+    fn test_tick_full_duration_reaches_target() {
+        let mut driver = RustTickDriver::new(0.0, 200.0, EasingCurve::Linear);
+        driver.set_target(100.0);
+        driver.tick(200.0);
+        assert!(driver.is_settled());
+        assert!((driver.current() - 100.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_snap_to_sets_immediately() {
+        let mut driver = RustTickDriver::new(0.0, 200.0, EasingCurve::EaseOut);
+        driver.snap_to(500.0);
+        assert!(driver.is_settled());
+        assert!((driver.current() - 500.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_tick_returns_false_when_settled() {
+        let mut driver = RustTickDriver::new(0.0, 200.0, EasingCurve::Linear);
+        driver.set_target(100.0);
+        driver.tick(200.0); // settle
+        let still_running = driver.tick(16.0);
+        assert!(!still_running);
+    }
+
+    #[test]
+    fn test_ease_in_out_midpoint() {
+        let t = apply_easing(0.5, EasingCurve::EaseInOut);
+        assert!((t - 0.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ease_out_reaches_one() {
+        let t = apply_easing(1.0, EasingCurve::EaseOut);
+        assert!((t - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_linear_easing_proportional() {
+        let t = apply_easing(0.3, EasingCurve::Linear);
+        assert!((t - 0.3).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_frame_budget_guard() {
+        let mut guard = FrameBudgetGuard::new(8.0);
+        guard.record(3.0);
+        assert!(guard.within_budget());
+        guard.record(6.0);
+        assert!(!guard.within_budget());
+        guard.reset();
+        assert!(guard.within_budget());
+    }
+
+    #[test]
+    fn test_convergence_over_many_frames() {
+        let mut driver = RustTickDriver::new(0.0, 300.0, EasingCurve::EaseInOut);
+        driver.set_target(1000.0);
+        for _ in 0..20 {
+            driver.tick(16.0); // ~60fps
+        }
+        // After 320ms > 300ms duration, should be settled
+        assert!(driver.is_settled());
+    }
+}
