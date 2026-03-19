@@ -1,0 +1,4 @@
+# Slint debug builds generate deeply nested component trees that exceed
+# the default 2 MB test-thread stack. Match the 8 MB used by main().
+[env]
+RUST_MIN_STACK = "8388608"

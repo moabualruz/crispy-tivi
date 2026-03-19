@@ -136,6 +136,64 @@ fn real_main() -> anyhow::Result<()> {
         ui.global::<OnboardingState>().set_is_active(true);
     }
 
+    // ── Parental controls (M-020) ─────────────────────────────────────────
+    // TODO: replace get_setting calls with dedicated CrispyService parental API
+    //       when Epoch 7 parental DB layer is implemented.
+    let parental_pin_set = service
+        .get_setting("parental_pin_hash")
+        .ok()
+        .flatten()
+        .is_some();
+    let parental_rating_limit: i32 = service
+        .get_setting("parental_rating_limit")
+        .ok()
+        .flatten()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(-1); // -1 = no limit
+    let parental_time_limit: i32 = service
+        .get_setting("parental_time_limit_minutes")
+        .ok()
+        .flatten()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0); // 0 = no limit
+    app_state.set_parental_pin_set(parental_pin_set);
+    app_state.set_parental_rating_limit(parental_rating_limit);
+    app_state.set_parental_time_limit_minutes(parental_time_limit);
+
+    // ── Analytics consent (M-021) ─────────────────────────────────────────
+    // Opt-in only — default false until user explicitly consents.
+    // TODO: replace with dedicated CrispyService analytics API (Epoch 11).
+    let analytics_playback: bool = service
+        .get_setting("analytics_playback_consent")
+        .ok()
+        .flatten()
+        .map(|v| v == "true")
+        .unwrap_or(false);
+    let analytics_crash: bool = service
+        .get_setting("analytics_crash_consent")
+        .ok()
+        .flatten()
+        .map(|v| v == "true")
+        .unwrap_or(false);
+    app_state.set_analytics_playback_consent(analytics_playback);
+    app_state.set_analytics_crash_consent(analytics_crash);
+
+    // ── Privacy consent (M-022) ───────────────────────────────────────────
+    // Show consent screen on first launch (no record = not yet accepted).
+    // TODO: replace with dedicated CrispyService privacy API (Epoch 13.15).
+    let privacy_accepted: bool = service
+        .get_setting("privacy_accepted")
+        .ok()
+        .flatten()
+        .map(|v| v == "true")
+        .unwrap_or(false);
+    let show_privacy_consent = !privacy_accepted;
+    app_state.set_privacy_accepted(privacy_accepted);
+    app_state.set_show_privacy_consent(show_privacy_consent);
+    if show_privacy_consent {
+        tracing::info!("Privacy consent not yet recorded — showing consent screen");
+    }
+
     // Diagnostics (static info)
     let diag = ui.global::<DiagnosticsState>();
     diag.set_app_version(env!("CARGO_PKG_VERSION").into());

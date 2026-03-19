@@ -25,6 +25,7 @@ import { DeviceManager } from "components/device-manager.slint";
 import { ResumePrompt } from "components/resume-prompt.slint";
 import { PrivacyConsent } from "components/privacy-consent.slint";
 import { GuidedTour } from "components/guided-tour.slint";
+import { PinDialog } from "components/pin-dialog.slint";
 
 // Re-export for Rust access
 export { PlayerState, OnboardingState, DiagnosticsState }
@@ -274,9 +275,6 @@ export component AppWindow inherits Window {
   }
 
   // ── LAYER 4: OverlayLayer ─────────────────────────────────────────────
-  // Profile Picker — full-screen, above OverlayLayer, below Onboarding
-  ProfilePickerScreen {}
-
   // Onboarding — singleton, visibility controlled
   OnboardingScreen {
     width: 100%; height: 100%;
@@ -327,6 +325,11 @@ export component AppWindow inherits Window {
         AppState.cast-to-device(id);
       }
       dismissed => { AppState.show-cast-picker = false; }
+    }
+
+    // M-033: ProfilePickerScreen as last child of OverlayLayer (highest z-order)
+    ProfilePickerScreen {
+      width: 100%; height: 100%;
     }
   }
 
@@ -393,5 +396,13 @@ export component AppWindow inherits Window {
   // Guided tour — full-screen walkthrough overlay, shown on demand after first launch.
   GuidedTour {
     width: 100%; height: 100%;
+  }
+
+  // PIN entry dialog — shown when switching to a PIN-protected profile.
+  if AppState.show-pin-dialog: PinDialog {
+    width: 100%; height: 100%;
+    profile-name: AppState.pin-target-profile-name;
+    verify-pin(pin) => { AppState.verify-pin(pin); }
+    cancelled => { AppState.show-pin-dialog = false; }
   }
 }

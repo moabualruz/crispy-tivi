@@ -189,6 +189,10 @@ pub enum PlayerEvent {
     NextSubtitleTrack,
     /// Set playback speed (1.0 = normal).
     SetSpeed { speed: f32 },
+    /// Select a specific audio track by index.
+    SelectAudioTrack { index: i32 },
+    /// Select a specific subtitle track by index.
+    SelectSubtitleTrack { index: i32 },
 }
 
 // ── HighPriorityEvent ────────────────────────────────────────────────────────

@@ -454,6 +454,11 @@ export component OnboardingScreen inherits Rectangle {
         if OnboardingState.step == 2 { OnboardingState.step = 3; return accept; }
         if OnboardingState.step == 3 { OnboardingState.complete(); return accept; }
       }
+      // C-024/C-025: Escape goes back one step; step 0 is mandatory — cannot exit
+      if event.text == Key.Escape {
+        if OnboardingState.step > 0 { OnboardingState.step = OnboardingState.step - 1; return accept; }
+        return accept; // step 0: swallow Escape, no exit allowed
+      }
       reject
     }
 

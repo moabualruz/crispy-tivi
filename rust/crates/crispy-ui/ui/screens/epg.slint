@@ -3,6 +3,7 @@ import { AppState, EpgChannelRow, EpgData } from "../globals/app-state.slint";
 import { EmptyState } from "../components/empty-state.slint";
 import { IconTv } from "../components/icons.slint";
 import { ListView } from "std-widgets.slint";
+import { EpgProgramDetail } from "../components/epg-program-detail.slint";
 
 // Day label for the date picker bar
 component DayChip inherits FocusScope {
@@ -78,7 +79,19 @@ component ProgrammeCell inherits FocusScope {
 
   key-pressed(event) => {
     if event.text == Key.Return {
-      root.play-requested(root.prog.channel-id);
+      // Populate AppState detail properties then show the detail sheet
+      AppState.epg-detail-channel-id = root.prog.channel-id;
+      AppState.epg-detail-title = root.prog.title;
+      AppState.epg-detail-description = root.prog.description;
+      AppState.epg-detail-start =
+        (root.prog.start-hour < 10 ? "0" : "") + root.prog.start-hour
+        + ":" + (root.prog.start-minute < 10 ? "0" : "") + root.prog.start-minute;
+      AppState.epg-detail-end =
+        (root.prog.end-hour < 10 ? "0" : "") + root.prog.end-hour
+        + ":" + (root.prog.end-minute < 10 ? "0" : "") + root.prog.end-minute;
+      AppState.epg-detail-has-catchup = root.prog.has-catchup;
+      AppState.epg-detail-is-now = root.prog.is-now;
+      AppState.show-epg-detail = true;
       return accept;
     }
     return reject;
@@ -359,6 +372,36 @@ export component EpgScreen inherits FocusScope {
         active: AppState.epg-selected-date-offset == day-info.offset;
         activated => { AppState.select-epg-date(day-info.offset); }
       }
+
+      // "Jump to Now" pill — resets date offset to today and scrolls to current time
+      jump-now-btn := FocusScope {
+        height: 36px;
+        width: jump-now-rect.preferred-width + Theme.spacing-lg;
+        key-pressed(event) => {
+          if event.text == Key.Return {
+            AppState.select-epg-date(0);
+            return accept;
+          }
+          return reject;
+        }
+        jump-now-rect := Rectangle {
+          width: 100%; height: 100%;
+          border-radius: Theme.radius-nav;
+          background: jump-now-btn.has-focus ? Theme.btn-secondary-bg : Theme.surface-highlight;
+          border-width: jump-now-btn.has-focus ? Theme.focus-ring-width : 1px;
+          border-color: jump-now-btn.has-focus ? Theme.focus-ring : Theme.card-border;
+          Text {
+            text: "▶ Now";
+            color: Theme.text-primary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
+            font-weight: 600;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+          TouchArea { clicked => { AppState.select-epg-date(0); } }
+        }
+      }
     }
 
     // Grid + PiP row
@@ -577,6 +620,11 @@ export component EpgScreen inherits FocusScope {
         has-catchup: root.focused-has-catchup;
         is-now: root.focused-is-now;
       }
+    }
+
+    // EPG detail bottom sheet — highest z-order overlay within EpgScreen
+    EpgProgramDetail {
+      width: 100%; height: 100%;
     }
   }
 }

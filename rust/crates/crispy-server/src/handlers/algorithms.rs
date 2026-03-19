@@ -379,7 +379,17 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         "verifyPin" => (|| {
             let input_pin = get_str(args, "inputPin")?;
             let stored_hash = get_str(args, "storedHash")?;
-            let ok = crispy_core::algorithms::pin::verify_pin(&input_pin, &stored_hash);
+            // M-041 fix: dispatch on hash format so Argon2id hashes (new profiles)
+            // are verified with constant-time Argon2id and legacy SHA-256 hashes
+            // (migrating profiles) are verified with the SHA-256 path.
+            // Never call the deprecated `verify_pin()` which only handles SHA-256.
+            let ok = if crispy_core::algorithms::pin::is_argon2id_hash(&stored_hash) {
+                crispy_core::algorithms::pin::verify_pin_argon2id(&input_pin, &stored_hash)
+                    .map_err(|e| anyhow::anyhow!("PIN verification error: {e}"))?
+            } else {
+                // Legacy SHA-256 path — used only while migrating old profiles.
+                crispy_core::algorithms::pin::verify_pin_legacy(&input_pin, &stored_hash)
+            };
             Ok(json!({"data": ok}))
         })(),
         "isHashedPin" => (|| {

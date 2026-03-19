@@ -17,9 +17,9 @@ component SegmentTab inherits FocusScope {
     width: 100%; height: 100%;
     border-radius: Theme.radius-sm;
     background: root.active
-      ? rgba(255, 255, 255, 0.15)
+      ? Theme.btn-secondary-bg
       : parent.has-focus
-        ? rgba(255, 255, 255, 0.08)
+        ? Theme.surface-highlight
         : transparent;
     border-width: parent.has-focus ? Theme.focus-ring-width : root.active ? 1px : 0px;
     border-color: parent.has-focus ? Theme.focus-ring : rgba(255, 255, 255, 0.2);

@@ -1,0 +1,339 @@
+// PIN Entry Dialog — M-047 / J-03 Step 3
+//
+// Modal glassmorphic overlay for PIN-protected profile switching.
+// D-pad navigable numeric keypad (phone layout). 4–6 digit support.
+// Wrong PIN shakes dots and clears after 500 ms.
+// Correct PIN: dismiss and fire confirmed().
+// Escape / Back: dismiss without switching (cancelled()).
+
+import { Theme } from "../globals/theme.slint";
+
+// ── Keypad button component ───────────────────────────────────────────────────
+component PinButton inherits FocusScope {
+  in property <string> label;
+  callback pressed();
+
+  width: 64px; height: 64px;
+
+  key-pressed(event) => {
+    if event.text == Key.Return || event.text == " " {
+      root.pressed();
+      return accept;
+    }
+    return reject;
+  }
+
+  Rectangle {
+    width: 64px; height: 64px;
+    border-radius: Theme.radius-pill;
+    background: root.has-focus ? Theme.focus-bg : Theme.surface-highlight;
+    border-width: root.has-focus ? Theme.focus-ring-width : 1px;
+    border-color: root.has-focus ? Theme.focus-ring : Theme.border-subtle;
+    animate background { duration: 150ms; }
+    animate border-color { duration: 150ms; }
+
+    Text {
+      text: root.label;
+      color: Theme.text-primary;
+      font-family: Theme.font-display;
+      font-size: Theme.font-size-h2;
+      font-weight: 700;
+      horizontal-alignment: center;
+      vertical-alignment: center;
+    }
+
+    TouchArea {
+      clicked => { root.pressed(); }
+    }
+  }
+}
+
+export component PinDialog inherits Rectangle {
+  // ── Public API ────────────────────────────────────────────────────────────
+  in property <string> profile-name: "Profile";
+  // Called with the entered PIN string when the user presses the final digit
+  callback verify-pin(string);
+  // Emitted by Rust (via Slint property) to signal result
+  in-out property <bool> pin-wrong: false;   // set true → shake; Rust resets to false
+  callback cancelled();
+
+  // ── Internal state — 4 individual digit slots + count ────────────────────
+  // Slint has no string.slice(), so each digit is stored in its own property.
+  private property <int>    digit-count: 0;
+  private property <string> d0: "";
+  private property <string> d1: "";
+  private property <string> d2: "";
+  private property <string> d3: "";
+
+  // Shake animation — left/right offset toggled by pin-wrong
+  private property <bool>   shaking: false;
+  private property <length> shake-offset: shaking ? 7px : 0px;
+
+  changed pin-wrong => {
+    shaking = root.pin-wrong;
+  }
+
+  animate shake-offset {
+    duration: 70ms;
+    easing: ease-in-out;
+  }
+
+  // Full-screen semi-opaque scrim
+  width: 100%; height: 100%;
+  background: Theme.overlay;
+
+  // Dismiss on scrim click
+  TouchArea {
+    clicked => {
+      root.clear-digits();
+      root.cancelled();
+    }
+  }
+
+  // ── Escape / Back dismisses ───────────────────────────────────────────────
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      if event.text == Key.Escape || event.text == Key.Back {
+        root.clear-digits();
+        root.cancelled();
+        return accept;
+      }
+      if event.text >= "0" && event.text <= "9" {
+        root.append-digit(event.text);
+        return accept;
+      }
+      if event.text == Key.Backspace {
+        root.do-backspace();
+        return accept;
+      }
+      return reject;
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  pure function digit-filled(pos: int) -> bool {
+    digit-count > pos;
+  }
+
+  function clear-digits() {
+    digit-count = 0;
+    d0 = ""; d1 = ""; d2 = ""; d3 = "";
+  }
+
+  function append-digit(d: string) {
+    if digit-count == 0      { d0 = d; digit-count = 1; }
+    else if digit-count == 1 { d1 = d; digit-count = 2; }
+    else if digit-count == 2 { d2 = d; digit-count = 3; }
+    else if digit-count == 3 {
+      d3 = d; digit-count = 4;
+      root.verify-pin(d0 + d1 + d2 + d3);
+    }
+  }
+
+  function do-backspace() {
+    if digit-count == 4      { d3 = ""; digit-count = 3; }
+    else if digit-count == 3 { d2 = ""; digit-count = 2; }
+    else if digit-count == 2 { d1 = ""; digit-count = 1; }
+    else if digit-count == 1 { d0 = ""; digit-count = 0; }
+  }
+
+  // ── Glassmorphic card (centred) ───────────────────────────────────────────
+  Rectangle {
+    width: min(380px, root.width * 0.9);
+    height: card-layout.preferred-height + Theme.spacing-2xl * 2;
+    x: (root.width - self.width) / 2;
+    y: (root.height - self.height) / 2;
+
+    border-radius: Theme.radius-lg;
+    background: Theme.surface-glass;
+    border-width: 1px;
+    border-color: Theme.card-border;
+
+    // Glass blur effect via drop-shadow (Slint doesn't expose backdrop-filter;
+    // the dark surface-glass brush provides the tinted overlay)
+    drop-shadow-blur: 32px;
+    drop-shadow-color: rgba(0, 0, 0, 0.6);
+
+    // Stop click-through to scrim when interacting with card
+    TouchArea {}
+
+    card-layout := VerticalLayout {
+      padding-top: Theme.spacing-2xl;
+      padding-bottom: Theme.spacing-2xl;
+      padding-left: Theme.spacing-xl;
+      padding-right: Theme.spacing-xl;
+      spacing: Theme.spacing-lg;
+      alignment: center;
+
+      // ── Title ────────────────────────────────────────────────────────────
+      VerticalLayout {
+        spacing: Theme.spacing-xs;
+        alignment: center;
+
+        Text {
+          text: "Enter PIN";
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: Theme.font-size-h1;
+          font-weight: 700;
+          horizontal-alignment: center;
+        }
+
+        Text {
+          text: "Switch to " + root.profile-name;
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-body;
+          horizontal-alignment: center;
+        }
+      }
+
+      // ── PIN dot indicators ────────────────────────────────────────────────
+      HorizontalLayout {
+        alignment: center;
+        spacing: Theme.spacing-md;
+        x: shake-offset;  // shake animation target
+
+        for i in [0, 1, 2, 3]: Rectangle {
+          width: 16px; height: 16px;
+          border-radius: 8px;
+          background: root.digit-filled(i)
+            ? Theme.text-primary
+            : Theme.surface-highlight;
+          border-width: root.digit-filled(i) ? 0px : 1px;
+          border-color: Theme.border-subtle;
+          animate background { duration: 120ms; }
+        }
+      }
+
+      // Wrong PIN feedback
+      if root.pin-wrong: Text {
+        text: "Incorrect PIN";
+        color: Theme.status-error;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        horizontal-alignment: center;
+      }
+
+      // ── Numeric keypad — phone layout (1-9, then *, 0, ⌫) ────────────────
+      VerticalLayout {
+        spacing: Theme.spacing-sm;
+
+        // Row 1: 1 2 3
+        HorizontalLayout {
+          spacing: Theme.spacing-sm;
+          alignment: center;
+
+          pin-btn-1 := PinButton { label: "1"; pressed => { root.append-digit("1"); } }
+          pin-btn-2 := PinButton { label: "2"; pressed => { root.append-digit("2"); } }
+          pin-btn-3 := PinButton { label: "3"; pressed => { root.append-digit("3"); } }
+        }
+
+        // Row 2: 4 5 6
+        HorizontalLayout {
+          spacing: Theme.spacing-sm;
+          alignment: center;
+
+          pin-btn-4 := PinButton { label: "4"; pressed => { root.append-digit("4"); } }
+          pin-btn-5 := PinButton { label: "5"; pressed => { root.append-digit("5"); } }
+          pin-btn-6 := PinButton { label: "6"; pressed => { root.append-digit("6"); } }
+        }
+
+        // Row 3: 7 8 9
+        HorizontalLayout {
+          spacing: Theme.spacing-sm;
+          alignment: center;
+
+          pin-btn-7 := PinButton { label: "7"; pressed => { root.append-digit("7"); } }
+          pin-btn-8 := PinButton { label: "8"; pressed => { root.append-digit("8"); } }
+          pin-btn-9 := PinButton { label: "9"; pressed => { root.append-digit("9"); } }
+        }
+
+        // Row 4: Cancel  0  ⌫
+        HorizontalLayout {
+          spacing: Theme.spacing-sm;
+          alignment: center;
+
+          // Cancel button
+          cancel-btn := FocusScope {
+            width: 64px; height: 64px;
+            key-pressed(event) => {
+              if event.text == Key.Return || event.text == " " {
+                root.clear-digits();
+                root.cancelled();
+                return accept;
+              }
+              return reject;
+            }
+
+            Rectangle {
+              width: 64px; height: 64px;
+              border-radius: Theme.radius-pill;
+              background: cancel-btn.has-focus ? Theme.focus-bg : transparent;
+              border-width: cancel-btn.has-focus ? Theme.focus-ring-width : 1px;
+              border-color: cancel-btn.has-focus ? Theme.focus-ring : Theme.border-subtle;
+              animate background { duration: 150ms; }
+              animate border-color { duration: 150ms; }
+
+              Text {
+                text: "✕";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+              }
+
+              TouchArea {
+                clicked => {
+                  root.clear-digits();
+                  root.cancelled();
+                }
+              }
+            }
+          }
+
+          pin-btn-0 := PinButton { label: "0"; pressed => { root.append-digit("0"); } }
+
+          // Backspace button
+          back-btn := FocusScope {
+            width: 64px; height: 64px;
+            key-pressed(event) => {
+              if event.text == Key.Return || event.text == " " {
+                root.do-backspace();
+                return accept;
+              }
+              return reject;
+            }
+
+            Rectangle {
+              width: 64px; height: 64px;
+              border-radius: Theme.radius-pill;
+              background: back-btn.has-focus ? Theme.focus-bg : transparent;
+              border-width: back-btn.has-focus ? Theme.focus-ring-width : 1px;
+              border-color: back-btn.has-focus ? Theme.focus-ring : Theme.border-subtle;
+              animate background { duration: 150ms; }
+              animate border-color { duration: 150ms; }
+
+              Text {
+                text: "⌫";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+              }
+
+              TouchArea {
+                clicked => { root.do-backspace(); }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

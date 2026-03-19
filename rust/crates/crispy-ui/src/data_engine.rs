@@ -163,7 +163,11 @@ impl DataEngine {
         match self.provider.load_epg_entries() {
             Ok(epg_map) => {
                 let count: usize = epg_map.values().map(|v| v.len()).sum();
-                *self.shared_data.epg_entries.lock().unwrap() = epg_map;
+                *self
+                    .shared_data
+                    .epg_entries
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner()) = epg_map;
                 debug!(
                     entries = count,
                     "[CACHE] EPG entries loaded into SharedData"
@@ -193,8 +197,16 @@ impl DataEngine {
                     active = resolved_active_id,
                     "[CACHE] Profiles loaded into SharedData"
                 );
-                *self.shared_data.active_profile_id.lock().unwrap() = resolved_active_id;
-                *self.shared_data.profiles.lock().unwrap() = profiles;
+                *self
+                    .shared_data
+                    .active_profile_id
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner()) = resolved_active_id;
+                *self
+                    .shared_data
+                    .profiles
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner()) = profiles;
             }
             Err(e) => {
                 error!(error = %e, "[CACHE] Failed to load profiles");

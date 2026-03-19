@@ -1,0 +1,297 @@
+import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+
+// Bottom sheet that slides up when the user presses OK on an EPG cell.
+// All data is sourced from AppState.epg-detail-* properties, set by the EPG screen.
+// D-pad navigable: Watch Now / Catch-Up / Remind Me / Close buttons are FocusScopes.
+export component EpgProgramDetail inherits Rectangle {
+  // Sheet is visible when AppState.show-epg-detail is true.
+  visible: AppState.show-epg-detail;
+  background: transparent;
+
+  // Scrim behind the sheet
+  Rectangle {
+    width: 100%; height: 100%;
+    background: Theme.overlay;
+    TouchArea {
+      clicked => { AppState.show-epg-detail = false; }
+    }
+  }
+
+  // Dismiss on Escape key
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      if event.text == Key.Escape {
+        AppState.show-epg-detail = false;
+        return accept;
+      }
+      return reject;
+    }
+  }
+
+  // Bottom sheet card — slides up via y animation
+  sheet := Rectangle {
+    x: (parent.width - self.width) / 2;
+    y: AppState.show-epg-detail
+      ? parent.height - self.height - Theme.spacing-2xl
+      : parent.height;
+    width: min(parent.width - Theme.content-padding-h * 2, 800px);
+    height: sheet-content.preferred-height + Theme.spacing-xl * 2;
+    border-radius: Theme.radius-lg;
+    background: Theme.card-surface;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    clip: true;
+
+    animate y { duration: 260ms; easing: ease-out; }
+
+    // Drag handle
+    Rectangle {
+      x: (parent.width - self.width) / 2;
+      y: Theme.spacing-sm;
+      width: 40px;
+      height: 4px;
+      border-radius: 2px;
+      background: Theme.border-subtle;
+    }
+
+    sheet-content := VerticalLayout {
+      x: Theme.spacing-xl;
+      y: Theme.spacing-xl;
+      width: parent.width - Theme.spacing-xl * 2;
+      spacing: Theme.spacing-md;
+
+      // ── Category badge + time range ─────────────────────────────────────
+      HorizontalLayout {
+        spacing: Theme.spacing-sm;
+        alignment: start;
+
+        // Live badge
+        if AppState.epg-detail-is-now: Rectangle {
+          width: live-lbl.preferred-width + Theme.spacing-sm;
+          height: 22px;
+          border-radius: Theme.radius-xs;
+          background: Theme.live-badge;
+          live-lbl := Text {
+            text: "LIVE";
+            color: Theme.btn-secondary-fg;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-micro;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+        }
+
+        // Catch-up badge
+        if AppState.epg-detail-has-catchup && !AppState.epg-detail-is-now: Rectangle {
+          width: cu-lbl.preferred-width + Theme.spacing-sm;
+          height: 22px;
+          border-radius: Theme.radius-xs;
+          background: Theme.brand-gradient;
+          cu-lbl := Text {
+            text: "CATCH-UP";
+            color: Theme.btn-secondary-fg;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-nano;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+        }
+
+        // Category
+        if AppState.epg-detail-category != "": Rectangle {
+          width: cat-lbl.preferred-width + Theme.spacing-sm;
+          height: 22px;
+          border-radius: Theme.radius-xs;
+          background: Theme.surface-glass;
+          border-width: 1px;
+          border-color: Theme.card-border;
+          cat-lbl := Text {
+            text: AppState.epg-detail-category;
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-small;
+            font-weight: 500;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+        }
+
+        // Spacer
+        Rectangle { horizontal-stretch: 1; }
+
+        // Time range
+        Text {
+          text: AppState.epg-detail-start + " – " + AppState.epg-detail-end;
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-caption;
+          vertical-alignment: center;
+        }
+      }
+
+      // ── Channel name ────────────────────────────────────────────────────
+      Text {
+        text: AppState.epg-detail-channel-name;
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        font-weight: 500;
+      }
+
+      // ── Program title ───────────────────────────────────────────────────
+      Text {
+        text: AppState.epg-detail-title;
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-h2;
+        font-weight: 800;
+        wrap: word-wrap;
+      }
+
+      // ── Synopsis ────────────────────────────────────────────────────────
+      if AppState.epg-detail-description != "": Text {
+        text: AppState.epg-detail-description;
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+        wrap: word-wrap;
+      }
+
+      // ── Action buttons ──────────────────────────────────────────────────
+      HorizontalLayout {
+        spacing: Theme.spacing-md;
+        padding-top: Theme.spacing-sm;
+
+        // Primary action: Watch Now (live) or Catch-Up (past)
+        primary-btn := FocusScope {
+          width: 160px;
+          height: 48px;
+
+          key-pressed(event) => {
+            if event.text == Key.Return {
+              if AppState.epg-detail-is-now {
+                AppState.watch-program(AppState.epg-detail-channel-id);
+              } else {
+                AppState.catch-up-program(AppState.epg-detail-program-id);
+              }
+              AppState.show-epg-detail = false;
+              return accept;
+            }
+            return reject;
+          }
+
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-md;
+            background: primary-btn.has-focus ? Theme.surface-glass : Theme.btn-primary-bg;
+            border-width: primary-btn.has-focus ? Theme.focus-ring-width : 0px;
+            border-color: Theme.focus-ring;
+
+            Text {
+              text: AppState.epg-detail-is-now ? "▶  Watch Now" : "⏮  Catch-Up";
+              color: primary-btn.has-focus ? Theme.btn-secondary-fg : Theme.btn-primary-fg;
+              font-family: Theme.font-display;
+              font-size: Theme.font-size-caption;
+              font-weight: 700;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+
+            TouchArea {
+              clicked => {
+                if AppState.epg-detail-is-now {
+                  AppState.watch-program(AppState.epg-detail-channel-id);
+                } else {
+                  AppState.catch-up-program(AppState.epg-detail-program-id);
+                }
+                AppState.show-epg-detail = false;
+              }
+            }
+          }
+        }
+
+        // Remind Me (future programs only — not live, not catch-up)
+        if !AppState.epg-detail-is-now && !AppState.epg-detail-has-catchup: remind-btn := FocusScope {
+          width: 140px;
+          height: 48px;
+
+          key-pressed(event) => {
+            if event.text == Key.Return {
+              AppState.remind-program(AppState.epg-detail-program-id);
+              AppState.show-epg-detail = false;
+              return accept;
+            }
+            return reject;
+          }
+
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-md;
+            background: remind-btn.has-focus ? Theme.surface-glass : Theme.btn-secondary-bg;
+            border-width: remind-btn.has-focus ? Theme.focus-ring-width : 1px;
+            border-color: remind-btn.has-focus ? Theme.focus-ring : Theme.border-subtle;
+
+            Text {
+              text: "🔔  Remind Me";
+              color: Theme.btn-secondary-fg;
+              font-family: Theme.font-display;
+              font-size: Theme.font-size-caption;
+              font-weight: 600;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+
+            TouchArea {
+              clicked => {
+                AppState.remind-program(AppState.epg-detail-program-id);
+                AppState.show-epg-detail = false;
+              }
+            }
+          }
+        }
+
+        // Spacer
+        Rectangle { horizontal-stretch: 1; }
+
+        // Close
+        close-btn := FocusScope {
+          width: 100px;
+          height: 48px;
+
+          key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Escape {
+              AppState.show-epg-detail = false;
+              return accept;
+            }
+            return reject;
+          }
+
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-md;
+            background: close-btn.has-focus ? Theme.surface-glass : transparent;
+            border-width: close-btn.has-focus ? Theme.focus-ring-width : 1px;
+            border-color: close-btn.has-focus ? Theme.focus-ring : Theme.border-subtle;
+
+            Text {
+              text: "✕  Close";
+              color: Theme.text-secondary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-caption;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+
+            TouchArea {
+              clicked => { AppState.show-epg-detail = false; }
+            }
+          }
+        }
+      }
+    }
+  }
+}

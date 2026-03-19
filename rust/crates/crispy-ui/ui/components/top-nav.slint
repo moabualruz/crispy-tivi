@@ -87,6 +87,14 @@ export component TopNav inherits Rectangle {
         clicked => { AppState.active-screen = 6; AppState.navigate(6); }
       }
     }
+    VerticalLayout {
+      alignment: center;
+      NavItem {
+        label: "Settings";
+        active: AppState.active-screen == 7;
+        clicked => { AppState.active-screen = 7; AppState.navigate(7); }
+      }
+    }
 
     // Spacer pushes search to right
     Rectangle { horizontal-stretch: 1; }

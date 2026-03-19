@@ -158,6 +158,19 @@ export global AppState {
   in-out property <int> epg-now-hour: 12;
   in-out property <int> epg-now-minute: 0;
 
+  // EPG program detail sheet
+  in-out property <bool> show-epg-detail: false;
+  in-out property <string> epg-detail-program-id: "";
+  in-out property <string> epg-detail-channel-id: "";
+  in-out property <string> epg-detail-channel-name: "";
+  in-out property <string> epg-detail-title: "";
+  in-out property <string> epg-detail-description: "";
+  in-out property <string> epg-detail-start: "";
+  in-out property <string> epg-detail-end: "";
+  in-out property <string> epg-detail-category: "";
+  in-out property <bool>   epg-detail-has-catchup: false;
+  in-out property <bool>   epg-detail-is-now: false;
+
   // Hero state (home screen)
   in-out property <[HeroItem]> hero-items: [];
   in-out property <int> hero-index: 0;
@@ -167,6 +180,13 @@ export global AppState {
   in-out property <string> active-profile-name: "Default";
   in-out property <bool> show-profile-menu: false;
   in-out property <bool> show-profile-picker: false;
+
+  // PIN dialog — shown when switching to a PIN-protected profile
+  in-out property <bool>   show-pin-dialog: false;
+  in-out property <string> pin-target-profile-id: "";
+  in-out property <string> pin-target-profile-name: "";
+  // Set by Rust to true when an incorrect PIN is entered; reset to false after shake
+  in-out property <bool>   pin-wrong: false;
 
   // Channel overlay (Live TV glass sidebar)
   in-out property <bool> show-channel-overlay: false;
@@ -262,6 +282,8 @@ export global AppState {
   callback toggle-favorite(/* channel-id */ string);
   callback filter-channels(/* group */ string, /* search */ string);
   callback play-channel(/* channel-id */ string);
+  // Switch back to the previously watched live channel (J-06 previous-channel toggle).
+  callback previous-channel();
 
   // VOD operations
   callback filter-vod(/* category */ string, /* item-type */ string);
@@ -277,6 +299,9 @@ export global AppState {
   // EPG operations
   callback select-epg-date(/* offset-days */ int);
   callback jump-epg-to-channel(/* channel-id */ string);
+  callback watch-program(/* program-id */ string);
+  callback catch-up-program(/* program-id */ string);
+  callback remind-program(/* program-id */ string);
 
   // Search (debounced in Rust — UI fires immediately)
   callback perform-search(/* query */ string);
@@ -284,6 +309,8 @@ export global AppState {
   // Profile operations
   callback switch-profile(/* profile-id */ string);
   callback create-profile(/* name */ string, /* is-kids */ bool);
+  // Verify PIN entered in PinDialog; Rust checks hash and either proceeds with switch or sets pin-wrong
+  callback verify-pin(/* entered-pin */ string);
 
   // Hero operations
   callback hero-play(/* item-id */ string);

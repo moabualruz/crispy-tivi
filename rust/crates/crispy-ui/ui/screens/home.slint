@@ -172,6 +172,18 @@ component HeroStatic inherits Rectangle {
 export component HomeScreen inherits Rectangle {
   background: transparent;
 
+  // M-034: Escape returns to Home (screen 0) from anywhere within this screen
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      if event.text == Key.Escape {
+        AppState.navigate(0);
+        return accept;
+      }
+      return reject;
+    }
+  }
+
   if AppState.sources.length == 0: EmptyState {
     title: "Welcome to CrispyTivi";
     subtitle: "Add a source to get started with live TV, movies, and series.";

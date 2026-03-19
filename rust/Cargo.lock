@@ -1492,6 +1492,7 @@ name = "crispy-ui"
 version = "0.1.1"
 dependencies = [
  "anyhow",
+ "argon2",
  "base64",
  "chrono",
  "console_error_panic_hook",

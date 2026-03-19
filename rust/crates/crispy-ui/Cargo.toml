@@ -25,6 +25,7 @@ serde_json.workspace = true
 dirs = "6"
 base64.workspace = true
 thiserror.workspace = true
+argon2.workspace = true
 
 # WASM-only dependencies — compiled only when targeting wasm32
 [target.'cfg(target_arch = "wasm32")'.dependencies]

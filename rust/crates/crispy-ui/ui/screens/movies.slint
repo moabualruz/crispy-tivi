@@ -9,6 +9,18 @@ import { ScrollView } from "std-widgets.slint";
 export component MoviesScreen inherits Rectangle {
   background: transparent;
 
+  // M-035: Escape navigates back to Home (screen 0)
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      if event.text == Key.Escape {
+        AppState.navigate(0);
+        return accept;
+      }
+      return reject;
+    }
+  }
+
   if AppState.is-loading-vod && AppState.movies.length == 0: LoadingIndicator {
     message: "Loading movies...";
   }

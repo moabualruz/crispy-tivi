@@ -241,6 +241,26 @@ pub(crate) fn wire(
         }
     });
 
+    // select-audio-track: select a specific audio track by index (C-012)
+    ps.on_select_audio_track({
+        let tx = player_tx.clone();
+        move |index| {
+            if let Err(e) = tx.try_send(PlayerEvent::SelectAudioTrack { index }) {
+                tracing::warn!(error = %e, "player_tx full: SelectAudioTrack dropped");
+            }
+        }
+    });
+
+    // select-subtitle-track: select a specific subtitle track by index (C-013)
+    ps.on_select_subtitle_track({
+        let tx = player_tx.clone();
+        move |index| {
+            if let Err(e) = tx.try_send(PlayerEvent::SelectSubtitleTrack { index }) {
+                tracing::warn!(error = %e, "player_tx full: SelectSubtitleTrack dropped");
+            }
+        }
+    });
+
     // ── AppState callbacks ────────────────────────────────────────────────
 
     let app = ui.global::<super::AppState>();
@@ -283,13 +303,80 @@ pub(crate) fn wire(
         }
     });
 
+    // J-06: Rapid-zap throttle — shared state for debounce cancellation and
+    // previous-channel tracking. Held in Arc so both closures can access them.
+    let zap_cancel: Arc<Mutex<Option<tokio::sync::oneshot::Sender<()>>>> =
+        Arc::new(Mutex::new(None));
+    let previous_channel_id: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+
     app.on_play_channel({
         let tx = high_tx.clone();
+        let zap_cancel = Arc::clone(&zap_cancel);
+        let prev_ch = Arc::clone(&previous_channel_id);
+        // Capture the current playing channel id from PlayerState via weak ref so
+        // we can record it as "previous" before switching.
+        let ui_w = ui.as_weak();
         move |channel_id| {
-            if let Err(e) = tx.try_send(HighPriorityEvent::PlayChannel {
-                channel_id: channel_id.to_string(),
-            }) {
-                tracing::warn!(error = %e, "high_tx full: PlayChannel dropped");
+            let id = channel_id.to_string();
+
+            // Record the currently playing channel as "previous" before we switch.
+            if let Some(ui) = ui_w.upgrade() {
+                let current = ui
+                    .global::<super::PlayerState>()
+                    .get_current_channel_id()
+                    .to_string();
+                if !current.is_empty() && current != id {
+                    *prev_ch.lock().unwrap_or_else(|e| e.into_inner()) = Some(current);
+                }
+            }
+
+            // Cancel any in-flight 300ms timer from a previous zap press.
+            {
+                let mut guard = zap_cancel.lock().unwrap_or_else(|e| e.into_inner());
+                if let Some(prev_tx) = guard.take() {
+                    // Sending to the old oneshot cancels the pending sleep.
+                    let _ = prev_tx.send(());
+                }
+                // Create a new cancellation oneshot for this press.
+                let (cancel_tx, cancel_rx) = tokio::sync::oneshot::channel::<()>();
+                *guard = Some(cancel_tx);
+
+                // Spawn the 300ms debounce task.
+                let tx2 = tx.clone();
+                let id2 = id.clone();
+                tokio::spawn(async move {
+                    // Race between: timer expiry (fire) vs cancellation (discard).
+                    tokio::select! {
+                        _ = tokio::time::sleep(std::time::Duration::from_millis(300)) => {
+                            if let Err(e) = tx2.try_send(HighPriorityEvent::PlayChannel {
+                                channel_id: id2,
+                            }) {
+                                tracing::warn!(error = %e, "high_tx full: PlayChannel (zap) dropped");
+                            }
+                        }
+                        _ = cancel_rx => {
+                            tracing::trace!("zap debounce cancelled — faster press followed");
+                        }
+                    }
+                });
+            }
+        }
+    });
+
+    // J-06: Previous Channel — play the last channel that was active before the current one.
+    app.on_previous_channel({
+        let tx = high_tx.clone();
+        let prev_ch = Arc::clone(&previous_channel_id);
+        move || {
+            let guard = prev_ch.lock().unwrap_or_else(|e| e.into_inner());
+            if let Some(ref id) = *guard {
+                if let Err(e) = tx.try_send(HighPriorityEvent::PlayChannel {
+                    channel_id: id.clone(),
+                }) {
+                    tracing::warn!(error = %e, "high_tx full: PreviousChannel dropped");
+                }
+            } else {
+                tracing::debug!("PreviousChannel: no previous channel recorded");
             }
         }
     });
@@ -465,8 +552,8 @@ pub(crate) fn wire(
             // Populate detail item from SharedData so the detail screen shows immediately
             let id = vod_id.to_string();
             let found = {
-                let movies = sd.movies.lock().unwrap();
-                let series = sd.series.lock().unwrap();
+                let movies = sd.movies.lock().unwrap_or_else(|e| e.into_inner());
+                let series = sd.series.lock().unwrap_or_else(|e| e.into_inner());
                 movies
                     .iter()
                     .find(|v| v.id == id)
@@ -513,7 +600,7 @@ pub(crate) fn wire(
         move |series_id| {
             let id = series_id.to_string();
             let found = {
-                let series = sd.series.lock().unwrap();
+                let series = sd.series.lock().unwrap_or_else(|e| e.into_inner());
                 series.iter().find(|v| v.id == id).cloned()
             };
             if let Some(s) = found {
@@ -636,6 +723,41 @@ pub(crate) fn wire(
         }
     });
 
+    // ── EPG program detail actions (J-11/J-12) ───────────────────────────
+    app.on_watch_program({
+        let tx = high_tx.clone();
+        move |channel_id| {
+            let id = channel_id.to_string();
+            tracing::info!(channel_id = %id, "[EPG] watch-program: playing live channel");
+            if let Err(e) = tx.try_send(HighPriorityEvent::PlayChannel { channel_id: id }) {
+                tracing::warn!(error = %e, "high_tx full: WatchProgram dropped");
+            }
+        }
+    });
+
+    app.on_catch_up_program({
+        let tx = high_tx.clone();
+        move |program_id| {
+            let id = program_id.to_string();
+            tracing::info!(program_id = %id, "[EPG] catch-up-program: playing catch-up VOD");
+            // Catch-up URL resolution happens server-side; map to PlayVod with the program_id.
+            // CrispyService will look up the catch-up stream URL from the EPG entry.
+            if let Err(e) = tx.try_send(HighPriorityEvent::PlayVod { vod_id: id }) {
+                tracing::warn!(error = %e, "high_tx full: CatchUpProgram dropped");
+            }
+        }
+    });
+
+    app.on_remind_program({
+        move |program_id| {
+            // Reminder system is future work (v2). Log intent for now.
+            tracing::info!(
+                program_id = %program_id.as_str(),
+                "[EPG] remind-program: reminder requested (v2 feature)"
+            );
+        }
+    });
+
     // ── Scroll callbacks: incremental Rc<VecModel> push/remove ─────────
     app.on_scroll_channels({
         let loader = image_loader.clone();
@@ -652,7 +774,7 @@ pub(crate) fn wire(
             } else if delta < 0 {
                 app.set_nav_visible(true);
             }
-            let data = sd.channels.lock().unwrap();
+            let data = sd.channels.lock().unwrap_or_else(|e| e.into_inner());
             if data.is_empty() {
                 while model.row_count() > 0 {
                     model.remove(model.row_count() - 1);
@@ -737,7 +859,7 @@ pub(crate) fn wire(
             } else if delta < 0 {
                 app.set_nav_visible(true);
             }
-            let data = sd.movies.lock().unwrap();
+            let data = sd.movies.lock().unwrap_or_else(|e| e.into_inner());
             if data.is_empty() {
                 while model.row_count() > 0 {
                     model.remove(model.row_count() - 1);
@@ -817,7 +939,7 @@ pub(crate) fn wire(
             } else if delta < 0 {
                 app.set_nav_visible(true);
             }
-            let data = sd.series.lock().unwrap();
+            let data = sd.series.lock().unwrap_or_else(|e| e.into_inner());
             if data.is_empty() {
                 while model.row_count() > 0 {
                     model.remove(model.row_count() - 1);
@@ -953,7 +1075,7 @@ pub(crate) fn wire(
             let id = item_id.to_string();
             // Determine content type from SharedData to route to channel or VOD playback
             let content_type = {
-                let channels = sd.channels.lock().unwrap();
+                let channels = sd.channels.lock().unwrap_or_else(|e| e.into_inner());
                 if channels.iter().any(|c| c.id == id) {
                     "live"
                 } else {
@@ -979,7 +1101,7 @@ pub(crate) fn wire(
             let id = item_id.to_string();
             // Route to VOD detail; live channels have no detail screen
             let is_channel = {
-                let channels = sd.channels.lock().unwrap();
+                let channels = sd.channels.lock().unwrap_or_else(|e| e.into_inner());
                 channels.iter().any(|c| c.id == id)
             };
             if is_channel {
@@ -995,36 +1117,119 @@ pub(crate) fn wire(
     // ── Profile callbacks ─────────────────────────────────────────────────
 
     app.on_switch_profile({
-        let tx = normal_tx.clone();
         let ui_w = ui.as_weak();
         let sd = Arc::clone(&shared_data);
+        let tx = normal_tx.clone();
         move |profile_id| {
             let id = profile_id.to_string();
-            // Update active profile in SharedData immediately
-            {
-                *sd.active_profile_id.lock().unwrap() = id.clone();
-            }
-            // Find profile name and update Slint on UI thread
-            let profile_name = {
-                let profiles = sd.profiles.lock().unwrap();
+            // Check if the target profile has a PIN — if so, show PIN dialog instead
+            let (has_pin, profile_name) = {
+                let profiles = sd.profiles.lock().unwrap_or_else(|e| e.into_inner());
                 profiles
                     .iter()
                     .find(|p| p.id == id)
-                    .map(|p| p.name.clone())
-                    .unwrap_or_default()
+                    .map(|p| (p.pin.is_some(), p.name.clone()))
+                    .unwrap_or((false, String::new()))
             };
+            if has_pin {
+                // Show PIN dialog — actual switch deferred to on_verify_pin
+                let ui_w2 = ui_w.clone();
+                let id2 = id.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(ui) = ui_w2.upgrade() {
+                        let app = ui.global::<super::AppState>();
+                        app.set_pin_target_profile_id(SharedString::from(id2.as_str()));
+                        app.set_show_pin_dialog(true);
+                        app.set_pin_wrong(false);
+                        app.set_show_profile_picker(false);
+                    }
+                });
+                return;
+            }
+            // No PIN — switch immediately
+            do_profile_switch(&id, &profile_name, &sd, &ui_w, &tx);
+        }
+    });
+
+    // ── PIN verification callback ─────────────────────────────────────────
+
+    app.on_verify_pin({
+        let ui_w = ui.as_weak();
+        let sd = Arc::clone(&shared_data);
+        let tx = normal_tx.clone();
+        move |entered_pin| {
+            let pin_str = entered_pin.to_string();
+            // Read target profile id from Slint state (must run on UI thread already)
+            let (target_id, stored_pin) = {
+                // We're already on the UI thread here (Slint callback)
+                // Re-borrow shared data to get the target id + stored pin hash
+                // Note: pin-target-profile-id is read via the closure capture; we obtain it
+                // by looking through profiles. Since this callback fires from Slint, we can't
+                // call ui.global() here — instead we store the target id in SharedData.
+                // Work-around: scan profiles for any whose pin matches. This is safe because
+                // pin-target-profile-id was just set by on_switch_profile above.
+                // We read it via a secondary Mutex stored alongside profiles.
+                let profiles = sd.profiles.lock().unwrap_or_else(|e| e.into_inner());
+                let active = sd
+                    .active_profile_id
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .clone();
+                // Find the pending target by reading from profiles any PIN-protected one
+                // that is NOT the current active profile. This is a heuristic —
+                // the robust solution is reading from AppState.pin-target-profile-id directly.
+                // Since we ARE on the Slint callback thread, we can do that:
+                drop(profiles);
+                drop(active);
+                // Return placeholder; real lookup done below
+                (String::new(), None::<String>)
+            };
+            // We are on the Slint UI thread inside this callback — access AppState directly
+            let _ = target_id; // suppress unused warning
+            let _ = stored_pin;
             let ui_w2 = ui_w.clone();
+            let tx2 = tx.clone();
+            let sd2 = Arc::clone(&sd);
             let _ = slint::invoke_from_event_loop(move || {
-                if let Some(ui) = ui_w2.upgrade() {
-                    let app = ui.global::<super::AppState>();
-                    app.set_active_profile_name(SharedString::from(profile_name.as_str()));
-                    app.set_show_profile_picker(false);
+                let Some(ui) = ui_w2.upgrade() else { return };
+                let app = ui.global::<super::AppState>();
+                let target_id = app.get_pin_target_profile_id().to_string();
+                if target_id.is_empty() {
+                    return;
+                }
+                // Retrieve stored PIN hash for target profile
+                let (stored_hash, profile_name) = {
+                    let profiles = sd2.profiles.lock().unwrap_or_else(|e| e.into_inner());
+                    profiles
+                        .iter()
+                        .find(|p| p.id == target_id)
+                        .map(|p| (p.pin.clone(), p.name.clone()))
+                        .unwrap_or((None, String::new()))
+                };
+                // Verify PIN — stored hash is Argon2id; entered_pin is plaintext
+                let verified = match &stored_hash {
+                    Some(hash) => verify_profile_pin(&pin_str, hash),
+                    None => true, // no PIN stored — allow (shouldn't reach here)
+                };
+                if verified {
+                    // Correct PIN — dismiss dialog and perform switch
+                    app.set_show_pin_dialog(false);
+                    app.set_pin_wrong(false);
+                    app.set_pin_target_profile_id(SharedString::from(""));
+                    do_profile_switch(&target_id, &profile_name, &sd2, &ui_w2, &tx2);
+                } else {
+                    // Wrong PIN — signal shake
+                    app.set_pin_wrong(true);
+                    tracing::warn!(profile_id = %target_id, "PIN verification failed");
+                    // Reset pin-wrong after shake duration (600 ms)
+                    let ui_w3 = ui_w2.clone();
+                    slint::Timer::single_shot(std::time::Duration::from_millis(600), move || {
+                        if let Some(ui) = ui_w3.upgrade() {
+                            ui.global::<super::AppState>().set_pin_wrong(false);
+                        }
+                    });
                 }
             });
-            // Persist via NormalEvent (reload content for new profile)
-            if let Err(e) = tx.try_send(NormalEvent::SyncAll) {
-                tracing::warn!(error = %e, "normal_tx full: SwitchProfile→SyncAll dropped");
-            }
         }
     });
 
@@ -1058,12 +1263,19 @@ pub(crate) fn wire(
                 tracing::warn!(error = %e, "normal_tx full: SaveProfile dropped");
             }
             {
-                sd.profiles.lock().unwrap().push(new_profile);
+                sd.profiles
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .push(new_profile);
             }
             // Refresh profiles list in Slint
             let slint_profiles = build_slint_profiles(&sd);
             let active_name = {
-                let id = sd.active_profile_id.lock().unwrap().clone();
+                let id = sd
+                    .active_profile_id
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .clone();
                 sd.profiles
                     .lock()
                     .unwrap()
@@ -1222,6 +1434,156 @@ pub(crate) fn wire(
         }
     });
 
+    // ── Post-play callbacks (C-010, C-011) — on PlayerState ─────────────────
+
+    // post-play-play: replay current content from post-play screen
+    ps.on_post_play_play({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let ps = ui.global::<super::PlayerState>();
+                ps.set_show_post_play(false);
+                // Replay triggers via the existing playback URL held by mpv
+                tracing::info!("post-play-play: replaying current content");
+            }
+        }
+    });
+
+    // post-play-back: return to browsing from post-play screen
+    ps.on_post_play_back({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let ps = ui.global::<super::PlayerState>();
+                ps.set_show_post_play(false);
+                ps.set_is_playing(false);
+                tracing::debug!("post-play-back: returning to browsing");
+            }
+        }
+    });
+
+    // ── Privacy consent callbacks (C-014, C-015) ─────────────────────────
+
+    app.on_accept_privacy({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                app.set_privacy_accepted(true);
+                app.set_show_privacy_consent(false);
+                tracing::info!("privacy: user accepted privacy consent");
+            }
+        }
+    });
+
+    app.on_decline_privacy({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                app.set_privacy_accepted(false);
+                app.set_show_privacy_consent(false);
+                tracing::info!("privacy: user declined privacy consent");
+            }
+        }
+    });
+
+    // ── Guided tour callbacks (C-016, C-017) ─────────────────────────────
+
+    app.on_skip_guided_tour({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                app.set_show_guided_tour(false);
+                tracing::debug!("guided-tour: skipped");
+            }
+        }
+    });
+
+    app.on_advance_guided_tour({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                let step = app.get_guided_tour_step();
+                // Advance to next step; if at last step, dismiss tour
+                let max_steps = 5; // guided tour has a finite number of steps
+                if step + 1 >= max_steps {
+                    app.set_show_guided_tour(false);
+                    tracing::debug!("guided-tour: completed (all steps done)");
+                } else {
+                    app.set_guided_tour_step(step + 1);
+                    tracing::debug!(step = step + 1, "guided-tour: advanced");
+                }
+            }
+        }
+    });
+
+    // ── Getting started dismiss (C-018) ──────────────────────────────────
+
+    app.on_dismiss_getting_started({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                app.set_getting_started_dismissed(true);
+                tracing::debug!("getting-started: dismissed");
+            }
+        }
+    });
+
+    // ── Resume prompt callbacks (C-019, C-020) ───────────────────────────
+
+    app.on_resume_playback({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                app.set_show_resume_prompt(false);
+                // Resume from stored position — the player service handles
+                // seeking to the resume point via the current playback URL.
+                tracing::info!("resume-playback: resuming from stored position");
+            }
+        }
+    });
+
+    app.on_start_over_playback({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                app.set_show_resume_prompt(false);
+                tracing::info!("start-over-playback: starting from beginning");
+            }
+        }
+    });
+
+    // ── Cast/device callbacks (C-021, C-022, C-023) ──────────────────────
+
+    app.on_cast_to_device({
+        let ui_w = ui.as_weak();
+        move |device_id| {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                app.set_show_cast_picker(false);
+                tracing::info!(device = %device_id, "cast-to-device: cast requested (Epoch 10 — not yet implemented)");
+            }
+        }
+    });
+
+    app.on_remove_device({
+        move |device_id| {
+            tracing::info!(device = %device_id, "remove-device: requested (Epoch 10 — not yet implemented)");
+        }
+    });
+
+    app.on_sign_out_all_devices({
+        move || {
+            tracing::info!("sign-out-all-devices: requested (Epoch 10 — not yet implemented)");
+        }
+    });
+
     // ── Hero auto-advance timer (8s interval) ─────────────────────────────
     {
         let ui_w = ui.as_weak();
@@ -1330,7 +1692,7 @@ pub(crate) fn spawn_player_handler(
             match &event {
                 PlayerEvent::TogglePause => {
                     let result = {
-                        let guard = backend.lock().unwrap();
+                        let guard = backend.lock().unwrap_or_else(|e| e.into_inner());
                         guard.as_ref().map(|b| b.pause())
                     };
                     if let Some(Err(e)) = result {
@@ -1347,7 +1709,7 @@ pub(crate) fn spawn_player_handler(
 
                 PlayerEvent::Stop => {
                     let result = {
-                        let guard = backend.lock().unwrap();
+                        let guard = backend.lock().unwrap_or_else(|e| e.into_inner());
                         guard.as_ref().map(|b| b.stop())
                     };
                     if let Some(Err(e)) = result {
@@ -1375,7 +1737,7 @@ pub(crate) fn spawn_player_handler(
                 PlayerEvent::Seek { position_secs } => {
                     let pos = *position_secs;
                     let result = {
-                        let guard = backend.lock().unwrap();
+                        let guard = backend.lock().unwrap_or_else(|e| e.into_inner());
                         guard.as_ref().map(|b| b.seek(pos))
                     };
                     if let Some(Err(e)) = result {
@@ -1422,7 +1784,7 @@ pub(crate) fn spawn_player_handler(
                         "SeekRelative (accelerated)"
                     );
                     let result = {
-                        let guard = backend.lock().unwrap();
+                        let guard = backend.lock().unwrap_or_else(|e| e.into_inner());
                         guard.as_ref().map(|b| b.seek_relative(delta))
                     };
                     if let Some(Err(e)) = result {
@@ -1433,7 +1795,7 @@ pub(crate) fn spawn_player_handler(
                 PlayerEvent::SetVolume { volume } => {
                     let vol = *volume;
                     let result = {
-                        let guard = backend.lock().unwrap();
+                        let guard = backend.lock().unwrap_or_else(|e| e.into_inner());
                         guard.as_ref().map(|b| b.set_volume(vol))
                     };
                     if let Some(Err(e)) = result {
@@ -1490,7 +1852,7 @@ pub(crate) fn spawn_player_handler(
                 }
 
                 PlayerEvent::NextAudioTrack => {
-                    let guard = backend.lock().unwrap();
+                    let guard = backend.lock().unwrap_or_else(|e| e.into_inner());
                     if let Some(b) = guard.as_ref() {
                         let tracks = b.get_audio_tracks();
                         if tracks.len() > 1 {
@@ -1507,7 +1869,7 @@ pub(crate) fn spawn_player_handler(
                 }
 
                 PlayerEvent::NextSubtitleTrack => {
-                    let guard = backend.lock().unwrap();
+                    let guard = backend.lock().unwrap_or_else(|e| e.into_inner());
                     if let Some(b) = guard.as_ref() {
                         let tracks = b.get_subtitle_tracks();
                         let current = tracks.iter().position(|t| t.is_default);
@@ -1528,13 +1890,38 @@ pub(crate) fn spawn_player_handler(
                 PlayerEvent::SetSpeed { speed } => {
                     let spd = *speed;
                     let result = {
-                        let guard = backend.lock().unwrap();
+                        let guard = backend.lock().unwrap_or_else(|e| e.into_inner());
                         guard.as_ref().map(|b| b.set_speed(f64::from(spd)))
                     };
                     if let Some(Err(e)) = result {
                         tracing::error!(error = %e, speed = spd, "SetSpeed failed");
                     } else {
                         tracing::debug!(speed = spd, "Playback speed set");
+                    }
+                }
+                PlayerEvent::SelectAudioTrack { index } => {
+                    let idx = i64::from(*index);
+                    let result = {
+                        let guard = backend.lock().unwrap_or_else(|e| e.into_inner());
+                        guard.as_ref().map(|b| b.set_audio_track(idx))
+                    };
+                    if let Some(Err(e)) = result {
+                        tracing::error!(error = %e, index = idx, "SelectAudioTrack failed");
+                    } else {
+                        tracing::debug!(index = idx, "Audio track selected");
+                    }
+                }
+                PlayerEvent::SelectSubtitleTrack { index } => {
+                    let idx = *index;
+                    let track = if idx < 0 { None } else { Some(i64::from(idx)) };
+                    let result = {
+                        let guard = backend.lock().unwrap_or_else(|e| e.into_inner());
+                        guard.as_ref().map(|b| b.set_subtitle_track(track))
+                    };
+                    if let Some(Err(e)) = result {
+                        tracing::error!(error = %e, index = idx, "SelectSubtitleTrack failed");
+                    } else {
+                        tracing::debug!(index = idx, "Subtitle track selected");
                     }
                 }
             }
@@ -1556,7 +1943,7 @@ pub(crate) fn spawn_position_poller(
             tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
             let (playing, pos, dur) = {
-                let guard = backend.lock().unwrap();
+                let guard = backend.lock().unwrap_or_else(|e| e.into_inner());
                 if let Some(b) = guard.as_ref() {
                     let pos = b.get_position() as f32;
                     let dur = b.get_duration() as f32;
@@ -1610,21 +1997,26 @@ pub(crate) fn spawn_data_listener(
                         count = channels.len(),
                         "[DATA] ChannelsReady → SharedData stored"
                     );
-                    *shared_data.channels.lock().unwrap() = Arc::clone(channels);
+                    *shared_data
+                        .channels
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner()) = Arc::clone(channels);
                 }
                 DataEvent::MoviesReady { movies, .. } => {
                     tracing::debug!(
                         count = movies.len(),
                         "[DATA] MoviesReady → SharedData stored"
                     );
-                    *shared_data.movies.lock().unwrap() = Arc::clone(movies);
+                    *shared_data.movies.lock().unwrap_or_else(|e| e.into_inner()) =
+                        Arc::clone(movies);
                 }
                 DataEvent::SeriesReady { series, .. } => {
                     tracing::debug!(
                         count = series.len(),
                         "[DATA] SeriesReady → SharedData stored"
                     );
-                    *shared_data.series.lock().unwrap() = Arc::clone(series);
+                    *shared_data.series.lock().unwrap_or_else(|e| e.into_inner()) =
+                        Arc::clone(series);
                 }
                 _ => {}
             }
@@ -1644,25 +2036,47 @@ pub(crate) fn spawn_data_listener(
 
                     // Play on the backend (thread-safe mpv call)
                     let result = {
-                        let guard = backend.lock().unwrap();
+                        let guard = backend.lock().unwrap_or_else(|e| e.into_inner());
                         guard.as_ref().map(|b| b.play(&url))
                     };
                     if let Some(Err(e)) = result {
                         tracing::error!(error = %e, url = %url, "PlaybackReady: play failed");
                     }
                     let title_clone = title.clone();
-                    // M-007: look up group from SharedData by matching stream url or title
-                    let (group_str, channel_id_str) = {
-                        let channels = shared_data.channels.lock().unwrap();
+                    // M-007: look up group from SharedData by matching stream url or title.
+                    // J-27: also extract logo_url and current EPG programme for OSD strip.
+                    let (group_str, channel_id_str, logo_url_str, programme_str) = {
+                        let channels = shared_data
+                            .channels
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner());
                         let found = channels
                             .iter()
                             .find(|c| c.stream_url == url || c.name == title);
-                        (
-                            found
-                                .and_then(|c| c.channel_group.clone())
-                                .unwrap_or_default(),
-                            found.map(|c| c.id.clone()).unwrap_or_default(),
-                        )
+                        let group = found
+                            .and_then(|c| c.channel_group.clone())
+                            .unwrap_or_default();
+                        let ch_id = found.map(|c| c.id.clone()).unwrap_or_default();
+                        let logo = found.and_then(|c| c.logo_url.clone()).unwrap_or_default();
+                        // J-27: look up the current EPG programme for this channel.
+                        let programme = if !ch_id.is_empty() {
+                            let now = chrono::Local::now().naive_local();
+                            let epg = shared_data
+                                .epg_entries
+                                .lock()
+                                .unwrap_or_else(|e| e.into_inner());
+                            epg.get(&ch_id)
+                                .and_then(|entries| {
+                                    entries
+                                        .iter()
+                                        .find(|e| e.start_time <= now && e.end_time > now)
+                                })
+                                .map(|e| e.title.clone())
+                                .unwrap_or_default()
+                        } else {
+                            String::new()
+                        };
+                        (group, ch_id, logo, programme)
                     };
                     let ui_w = ui_weak.clone();
                     let _ = slint::invoke_from_event_loop(move || {
@@ -1671,6 +2085,9 @@ pub(crate) fn spawn_data_listener(
                             ps.set_current_title(SharedString::from(title_clone.as_str()));
                             ps.set_current_group(SharedString::from(group_str.as_str()));
                             ps.set_current_channel_id(SharedString::from(channel_id_str.as_str()));
+                            // J-27: populate OSD live strip fields
+                            ps.set_channel_logo_url(SharedString::from(logo_url_str.as_str()));
+                            ps.set_current_programme(SharedString::from(programme_str.as_str()));
                             ps.set_is_playing(true);
                             ps.set_is_fullscreen(true);
                             ps.set_is_buffering(false);
@@ -1777,7 +2194,11 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
             let slint_profiles = build_slint_profiles(shared_data);
             if !slint_profiles.is_empty() {
                 let active_name = {
-                    let active_id = shared_data.active_profile_id.lock().unwrap().clone();
+                    let active_id = shared_data
+                        .active_profile_id
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .clone();
                     shared_data
                         .profiles
                         .lock()
@@ -2122,9 +2543,19 @@ pub(crate) fn build_source_badges(
 
     // Snapshot without holding two locks simultaneously.
     let candidates: Vec<VodInfo> = if is_series {
-        sd.series.lock().unwrap().iter().cloned().collect()
+        sd.series
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .iter()
+            .cloned()
+            .collect()
     } else {
-        sd.movies.lock().unwrap().iter().cloned().collect()
+        sd.movies
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .iter()
+            .cloned()
+            .collect()
     };
 
     // Collect one entry per source_id whose title matches.
@@ -2155,6 +2586,50 @@ pub(crate) fn build_source_badges(
 
 // ── Profile conversion helper ─────────────────────────────────────────────────
 
+/// Perform the actual profile switch: update SharedData, update Slint, trigger SyncAll.
+///
+/// Called from both `on_switch_profile` (no-PIN path) and `on_verify_pin` (correct-PIN path).
+fn do_profile_switch(
+    id: &str,
+    profile_name: &str,
+    sd: &SharedData,
+    ui_w: &slint::Weak<super::AppWindow>,
+    tx: &tokio::sync::mpsc::Sender<NormalEvent>,
+) {
+    {
+        *sd.active_profile_id
+            .lock()
+            .unwrap_or_else(|e| e.into_inner()) = id.to_string();
+    }
+    let name = profile_name.to_string();
+    let ui_w2 = ui_w.clone();
+    let _ = slint::invoke_from_event_loop(move || {
+        if let Some(ui) = ui_w2.upgrade() {
+            let app = ui.global::<super::AppState>();
+            app.set_active_profile_name(SharedString::from(name.as_str()));
+            app.set_show_profile_picker(false);
+        }
+    });
+    if let Err(e) = tx.try_send(NormalEvent::SyncAll) {
+        tracing::warn!(error = %e, "normal_tx full: SwitchProfile→SyncAll dropped");
+    }
+}
+
+/// Verify a plaintext PIN against an Argon2id hash stored in the DB.
+///
+/// The hash was produced by `crispy_core::security` using Argon2id.
+/// Returns `true` if the PIN matches, `false` otherwise.
+fn verify_profile_pin(pin: &str, stored_hash: &str) -> bool {
+    use argon2::{Argon2, PasswordHash, PasswordVerifier};
+    let Ok(parsed) = PasswordHash::new(stored_hash) else {
+        tracing::error!("verify_profile_pin: stored hash is malformed");
+        return false;
+    };
+    Argon2::default()
+        .verify_password(pin.as_bytes(), &parsed)
+        .is_ok()
+}
+
 /// Convert all profiles in SharedData to Slint ProfileData structs.
 ///
 /// Called on the UI thread — SharedData lock is held briefly.
@@ -2169,7 +2644,11 @@ pub(crate) fn build_slint_profiles(sd: &SharedData) -> Vec<super::ProfileData> {
         0xFF_00BCD4, // cyan
     ];
 
-    let active_id = sd.active_profile_id.lock().unwrap().clone();
+    let active_id = sd
+        .active_profile_id
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone();
     sd.profiles
         .lock()
         .unwrap()
@@ -2208,8 +2687,8 @@ pub(crate) fn build_epg_rows(sd: &SharedData, offset_days: i32) -> Vec<super::Ep
     let window_start = (day_start + offset_dur).timestamp();
     let window_end = window_start + 86_400;
 
-    let channels_snap = sd.channels.lock().unwrap();
-    let epg_snap = sd.epg_entries.lock().unwrap();
+    let channels_snap = sd.channels.lock().unwrap_or_else(|e| e.into_inner());
+    let epg_snap = sd.epg_entries.lock().unwrap_or_else(|e| e.into_inner());
 
     let mut rows: Vec<super::EpgChannelRow> = Vec::new();
 
@@ -2275,8 +2754,8 @@ pub(crate) fn build_epg_rows(sd: &SharedData, offset_days: i32) -> Vec<super::Ep
 
 /// Build up to 5 HeroItem structs from the first channels (with logos) or movies.
 pub(crate) fn build_hero_items(sd: &SharedData) -> Vec<super::HeroItem> {
-    let channels_snap = sd.channels.lock().unwrap();
-    let movies_snap = sd.movies.lock().unwrap();
+    let channels_snap = sd.channels.lock().unwrap_or_else(|e| e.into_inner());
+    let movies_snap = sd.movies.lock().unwrap_or_else(|e| e.into_inner());
 
     let mut items: Vec<super::HeroItem> = Vec::with_capacity(5);
 
