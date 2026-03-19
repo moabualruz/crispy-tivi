@@ -1,0 +1,33 @@
+{
+  "sources": [
+    {
+      "name": "Test M3U",
+      "type": "m3u",
+      "url": "http://example.com/test.m3u",
+      "epg_url": null
+    },
+    {
+      "name": "Test Xtream",
+      "type": "xtream",
+      "server": "http://example.com",
+      "username": "demo",
+      "password": "demo"
+    },
+    {
+      "name": "Test Stalker",
+      "type": "stalker",
+      "portal_url": "http://example.com/stalker",
+      "mac_address": "00:1A:79:00:00:01"
+    }
+  ],
+  "profiles": [
+    {"name": "TestUser", "is_kids": false, "pin": null},
+    {"name": "KidsProfile", "is_kids": true, "pin": "1234"}
+  ],
+  "settings": {
+    "language": "en",
+    "theme": "dark",
+    "autoplay_next": true,
+    "default_quality": "auto"
+  }
+}

@@ -40,6 +40,13 @@ ci-logs/
 
 # Local test credentials (real IPTV creds — never commit)
 **/test_creds.local.json
+**/test-settings.local.json
+**/test-seed.local.json
+**/*.local.json
+
+# Screenshot test runs (only golden/ is tracked)
+rust/crates/crispy-ui/tests/runs/
+rust/crates/crispy-ui/tests/failures/
 
 # AI/agent config (managed in crispy-ai-config private repo)
 .cursorrules

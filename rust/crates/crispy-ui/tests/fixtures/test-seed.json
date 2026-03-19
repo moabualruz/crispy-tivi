@@ -1,0 +1,137 @@
+{
+  "channels": [
+    {
+      "name": "News Channel 1",
+      "group": "News",
+      "logo_url": "http://example.com/news1.png",
+      "stream_url": "http://example.com/news1.ts",
+      "source_ref": "Test M3U"
+    },
+    {
+      "name": "Sports HD",
+      "group": "Sports",
+      "logo_url": "http://example.com/sports.png",
+      "stream_url": "http://example.com/sports.ts",
+      "source_ref": "Test M3U"
+    },
+    {
+      "name": "Movie Channel",
+      "group": "Entertainment",
+      "logo_url": "http://example.com/movies.png",
+      "stream_url": "http://example.com/movies.ts",
+      "source_ref": "Test Xtream"
+    },
+    {
+      "name": "Kids TV",
+      "group": "Kids",
+      "logo_url": "http://example.com/kids.png",
+      "stream_url": "http://example.com/kids.ts",
+      "source_ref": "Test Xtream"
+    },
+    {
+      "name": "Music FM",
+      "group": "Music",
+      "logo_url": "http://example.com/music.png",
+      "stream_url": "http://example.com/music.ts",
+      "source_ref": "Test M3U"
+    }
+  ],
+  "epg": [
+    {
+      "channel_ref": "News Channel 1",
+      "programs": [
+        {
+          "title": "Morning News",
+          "start": "2026-03-19T06:00:00Z",
+          "end": "2026-03-19T08:00:00Z",
+          "category": "News",
+          "description": "Daily morning news broadcast with weather and traffic"
+        },
+        {
+          "title": "World Report",
+          "start": "2026-03-19T08:00:00Z",
+          "end": "2026-03-19T09:00:00Z",
+          "category": "News",
+          "description": "International news coverage"
+        },
+        {
+          "title": "Evening News",
+          "start": "2026-03-19T18:00:00Z",
+          "end": "2026-03-19T19:00:00Z",
+          "category": "News",
+          "description": "Evening news roundup"
+        }
+      ]
+    },
+    {
+      "channel_ref": "Sports HD",
+      "programs": [
+        {
+          "title": "Football Match",
+          "start": "2026-03-19T20:00:00Z",
+          "end": "2026-03-19T22:00:00Z",
+          "category": "Sports",
+          "description": "Premier League live match"
+        }
+      ]
+    }
+  ],
+  "movies": [
+    {
+      "name": "Test Movie Alpha",
+      "genre": "Action",
+      "year": 2025,
+      "rating": 7.5,
+      "poster_url": "http://example.com/poster_alpha.jpg",
+      "stream_url": "http://example.com/movie_alpha.mp4",
+      "source_ref": "Test Xtream",
+      "description": "An action-packed adventure film"
+    },
+    {
+      "name": "Test Movie Beta",
+      "genre": "Drama",
+      "year": 2024,
+      "rating": 8.2,
+      "poster_url": "http://example.com/poster_beta.jpg",
+      "stream_url": "http://example.com/movie_beta.mp4",
+      "source_ref": "Test Xtream",
+      "description": "A gripping drama about human resilience"
+    },
+    {
+      "name": "Test Movie Gamma",
+      "genre": "Comedy",
+      "year": 2026,
+      "rating": 6.8,
+      "poster_url": "http://example.com/poster_gamma.jpg",
+      "stream_url": "http://example.com/movie_gamma.mp4",
+      "source_ref": "Test Xtream",
+      "description": "A lighthearted comedy for the whole family"
+    }
+  ],
+  "series": [
+    {
+      "name": "Test Series Beta",
+      "genre": "Drama",
+      "poster_url": "http://example.com/series_beta.jpg",
+      "source_ref": "Test Xtream",
+      "description": "A multi-season drama series",
+      "seasons": [
+        {
+          "number": 1,
+          "episodes": [
+            {"number": 1, "title": "Pilot", "stream_url": "http://example.com/s01e01.mp4"},
+            {"number": 2, "title": "The Setup", "stream_url": "http://example.com/s01e02.mp4"},
+            {"number": 3, "title": "Rising Action", "stream_url": "http://example.com/s01e03.mp4"}
+          ]
+        },
+        {
+          "number": 2,
+          "episodes": [
+            {"number": 1, "title": "New Beginnings", "stream_url": "http://example.com/s02e01.mp4"},
+            {"number": 2, "title": "Complications", "stream_url": "http://example.com/s02e02.mp4"}
+          ]
+        }
+      ]
+    }
+  ]
+}
