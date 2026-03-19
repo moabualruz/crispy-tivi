@@ -39,7 +39,7 @@ component ProfileTile inherits Rectangle {
       Text {
         width: 100%; height: 100%;
         text: profile.name == "" ? "?" : profile.name;
-        color: #FFFFFF;
+        color: Theme.btn-secondary-fg;
         font-weight: 700;
         font-size: 28px;
         font-family: Theme.font-display;
@@ -88,7 +88,7 @@ component ProfileTile inherits Rectangle {
       Text {
         width: 100%; height: 100%;
         text: "KIDS";
-        color: #FFFFFF;
+        color: Theme.btn-secondary-fg;
         font-size: 10px;
         font-family: Theme.font-body;
         font-weight: 700;
@@ -141,7 +141,7 @@ component AddProfileTile inherits Rectangle {
       width: 80px;
       height: 80px;
       border-radius: 40px;
-      background: is-focused ? rgba(255, 255, 255, 0.15) : rgba(255, 255, 255, 0.08);
+      background: is-focused ? Theme.btn-secondary-bg : rgba(255, 255, 255, 0.08);
       border-width: 2px;
       border-color: is-focused ? Theme.focus-ring : Theme.border-subtle;
       animate background, border-color { duration: 120ms; }

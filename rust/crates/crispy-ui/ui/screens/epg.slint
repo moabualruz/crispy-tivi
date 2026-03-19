@@ -116,12 +116,12 @@ component ProgrammeCell inherits FocusScope {
       y: Theme.spacing-xs;
       width: now-lbl.preferred-width + 8px;
       height: 16px;
-      border-radius: 4px;
+      border-radius: Theme.radius-xs;
       background: Theme.live-badge;
 
       now-lbl := Text {
         text: "NOW";
-        color: #FFFFFF;
+        color: Theme.btn-secondary-fg;
         font-family: Theme.font-display;
         font-size: 9px;
         font-weight: 700;
@@ -147,7 +147,7 @@ component ProgrammeCell inherits FocusScope {
       width: parent.width - Theme.spacing-md;
       height: parent.height - (root.prog.is-now ? 24px : Theme.spacing-md);
       text: root.prog.title;
-      color: root.has-focus ? #FFFFFF : Theme.text-primary;
+      color: root.has-focus ? Theme.focus-ring : Theme.text-primary;
       font-family: Theme.font-body;
       font-size: Theme.font-size-small;
       font-weight: root.prog.is-now ? 600 : 400;
@@ -207,7 +207,7 @@ component ChannelSidebarRow inherits Rectangle {
 
     Text {
       text: root.ch-name;
-      color: root.row-focused ? #FFFFFF : Theme.text-primary;
+      color: root.row-focused ? Theme.focus-ring : Theme.text-primary;
       font-family: Theme.font-body;
       font-size: Theme.font-size-caption;
       font-weight: root.row-focused ? 600 : 400;
@@ -240,11 +240,11 @@ component ProgrammeInfoBar inherits Rectangle {
 
     if root.is-now: Rectangle {
       width: 44px; height: 20px;
-      border-radius: 4px;
+      border-radius: Theme.radius-xs;
       background: Theme.live-badge;
       y: (parent.height - 20px) / 2;
       Text {
-        text: "LIVE"; color: #FFFFFF;
+        text: "LIVE"; color: Theme.btn-secondary-fg;
         font-family: Theme.font-display;
         font-size: 10px; font-weight: 700;
         horizontal-alignment: center; vertical-alignment: center;
@@ -252,11 +252,11 @@ component ProgrammeInfoBar inherits Rectangle {
     }
     if !root.is-now && root.has-catchup: Rectangle {
       width: 64px; height: 20px;
-      border-radius: 4px;
+      border-radius: Theme.radius-xs;
       background: Theme.brand-gradient;
       y: (parent.height - 20px) / 2;
       Text {
-        text: "CATCHUP"; color: #FFFFFF;
+        text: "CATCHUP"; color: Theme.btn-secondary-fg;
         font-family: Theme.font-display;
         font-size: 9px; font-weight: 700;
         horizontal-alignment: center; vertical-alignment: center;
@@ -512,7 +512,7 @@ export component EpgScreen inherits FocusScope {
       Rectangle {
         horizontal-stretch: 25;
         border-radius: Theme.radius-md;
-        background: #000000;
+        background: Theme.btn-primary-fg;
         border-width: 1px;
         border-color: Theme.border-subtle;
 

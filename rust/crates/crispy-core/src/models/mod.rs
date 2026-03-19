@@ -775,3 +775,365 @@ pub struct Reminder {
     /// When the reminder was created.
     pub created_at: NaiveDateTime,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDateTime;
+
+    fn dummy_dt() -> NaiveDateTime {
+        NaiveDateTime::from_timestamp_opt(0, 0).unwrap()
+    }
+
+    // ── SyncReport ──────────────────────────────────
+
+    #[test]
+    fn test_sync_report_default_has_zero_counts() {
+        let r = SyncReport::default();
+        assert_eq!(r.channels_count, 0);
+        assert_eq!(r.vod_count, 0);
+        assert!(r.channel_groups.is_empty());
+        assert!(r.vod_categories.is_empty());
+        assert!(r.epg_url.is_none());
+    }
+
+    #[test]
+    fn test_sync_report_roundtrips_via_serde() {
+        let r = SyncReport {
+            channels_count: 5,
+            channel_groups: vec!["News".to_string(), "Sports".to_string()],
+            vod_count: 10,
+            vod_categories: vec!["Action".to_string()],
+            epg_url: Some("http://epg.example.com".to_string()),
+        };
+        let json = serde_json::to_string(&r).unwrap();
+        let back: SyncReport = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.channels_count, 5);
+        assert_eq!(back.vod_count, 10);
+        assert_eq!(back.epg_url.as_deref(), Some("http://epg.example.com"));
+        assert_eq!(back.channel_groups, vec!["News", "Sports"]);
+    }
+
+    // ── Channel ─────────────────────────────────────
+
+    #[test]
+    fn test_channel_required_fields_are_preserved() {
+        let ch = Channel {
+            id: "ch1".to_string(),
+            name: "BBC One".to_string(),
+            stream_url: "http://stream.example.com/bbc1".to_string(),
+            number: Some(1),
+            channel_group: Some("News".to_string()),
+            logo_url: None,
+            tvg_id: None,
+            tvg_name: None,
+            is_favorite: false,
+            user_agent: None,
+            has_catchup: false,
+            catchup_days: 0,
+            catchup_type: None,
+            catchup_source: None,
+            resolution: None,
+            source_id: None,
+            added_at: None,
+            updated_at: None,
+            is_247: false,
+        };
+        assert_eq!(ch.id, "ch1");
+        assert_eq!(ch.name, "BBC One");
+        assert_eq!(ch.stream_url, "http://stream.example.com/bbc1");
+        assert_eq!(ch.number, Some(1));
+        assert!(!ch.is_favorite);
+        assert!(!ch.has_catchup);
+        assert!(!ch.is_247);
+    }
+
+    #[test]
+    fn test_channel_serde_default_fields_omit_none() {
+        let json = r#"{"id":"c","name":"n","stream_url":"u"}"#;
+        let ch: Channel = serde_json::from_str(json).unwrap();
+        assert_eq!(ch.id, "c");
+        assert!(ch.number.is_none());
+        assert!(ch.channel_group.is_none());
+        assert!(!ch.is_favorite);
+        assert_eq!(ch.catchup_days, 0);
+        assert!(!ch.has_catchup);
+    }
+
+    #[test]
+    fn test_channel_clone_is_independent() {
+        let ch = Channel {
+            id: "ch1".to_string(),
+            name: "Original".to_string(),
+            stream_url: "u".to_string(),
+            number: None,
+            channel_group: None,
+            logo_url: None,
+            tvg_id: None,
+            tvg_name: None,
+            is_favorite: false,
+            user_agent: None,
+            has_catchup: false,
+            catchup_days: 0,
+            catchup_type: None,
+            catchup_source: None,
+            resolution: None,
+            source_id: None,
+            added_at: None,
+            updated_at: None,
+            is_247: false,
+        };
+        let mut cloned = ch.clone();
+        cloned.name = "Clone".to_string();
+        assert_eq!(ch.name, "Original");
+        assert_eq!(cloned.name, "Clone");
+    }
+
+    // ── VodItem ─────────────────────────────────────
+
+    #[test]
+    fn test_vod_item_serde_required_and_defaults() {
+        let json = r#"{"id":"v1","name":"Inception","stream_url":"u","type":"movie"}"#;
+        let v: VodItem = serde_json::from_str(json).unwrap();
+        assert_eq!(v.id, "v1");
+        assert_eq!(v.item_type, "movie");
+        assert!(v.poster_url.is_none());
+        assert!(v.year.is_none());
+        assert!(v.duration.is_none());
+        assert!(!v.is_favorite);
+        assert!(v.series_id.is_none());
+    }
+
+    #[test]
+    fn test_vod_item_episode_type_preserved() {
+        let json = r#"{"id":"e1","name":"Ep1","stream_url":"u","type":"episode","series_id":"s1","season_number":2,"episode_number":3}"#;
+        let v: VodItem = serde_json::from_str(json).unwrap();
+        assert_eq!(v.item_type, "episode");
+        assert_eq!(v.series_id.as_deref(), Some("s1"));
+        assert_eq!(v.season_number, Some(2));
+        assert_eq!(v.episode_number, Some(3));
+    }
+
+    // ── Category ────────────────────────────────────
+
+    #[test]
+    fn test_category_roundtrips_via_serde() {
+        let c = Category {
+            category_type: "live".to_string(),
+            name: "Sports".to_string(),
+            source_id: Some("src1".to_string()),
+        };
+        let json = serde_json::to_string(&c).unwrap();
+        let back: Category = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.category_type, "live");
+        assert_eq!(back.name, "Sports");
+        assert_eq!(back.source_id.as_deref(), Some("src1"));
+    }
+
+    #[test]
+    fn test_category_source_id_defaults_to_none() {
+        let json = r#"{"category_type":"vod","name":"Action"}"#;
+        let c: Category = serde_json::from_str(json).unwrap();
+        assert!(c.source_id.is_none());
+    }
+
+    // ── Setting ─────────────────────────────────────
+
+    #[test]
+    fn test_setting_roundtrips_via_serde() {
+        let s = Setting {
+            key: "theme".to_string(),
+            value: "dark".to_string(),
+        };
+        let json = serde_json::to_string(&s).unwrap();
+        let back: Setting = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.key, "theme");
+        assert_eq!(back.value, "dark");
+    }
+
+    // ── Source ──────────────────────────────────────
+
+    #[test]
+    fn test_source_default_refresh_interval_is_60() {
+        let json = r#"{"id":"s1","name":"My IPTV","source_type":"m3u","url":"http://x.m3u"}"#;
+        let s: Source = serde_json::from_str(json).unwrap();
+        assert_eq!(s.refresh_interval_minutes, 60);
+    }
+
+    #[test]
+    fn test_source_enabled_defaults_to_true() {
+        let json = r#"{"id":"s1","name":"My IPTV","source_type":"m3u","url":"http://x.m3u"}"#;
+        let s: Source = serde_json::from_str(json).unwrap();
+        assert!(s.enabled);
+    }
+
+    #[test]
+    fn test_source_optional_fields_default_to_none() {
+        let json = r#"{"id":"s1","name":"n","source_type":"m3u","url":"u"}"#;
+        let s: Source = serde_json::from_str(json).unwrap();
+        assert!(s.username.is_none());
+        assert!(s.password.is_none());
+        assert!(s.mac_address.is_none());
+        assert!(s.epg_url.is_none());
+        assert!(s.last_sync_time.is_none());
+        assert!(s.last_sync_status.is_none());
+        assert!(s.last_sync_error.is_none());
+    }
+
+    #[test]
+    fn test_source_accept_self_signed_defaults_false() {
+        let json = r#"{"id":"s1","name":"n","source_type":"m3u","url":"u"}"#;
+        let s: Source = serde_json::from_str(json).unwrap();
+        assert!(!s.accept_self_signed);
+    }
+
+    // ── UserProfile ─────────────────────────────────
+
+    #[test]
+    fn test_user_profile_max_rating_defaults_to_4() {
+        let json = r#"{"id":"p1","name":"Alice"}"#;
+        let p: UserProfile = serde_json::from_str(json).unwrap();
+        assert_eq!(p.max_allowed_rating, 4);
+    }
+
+    #[test]
+    fn test_user_profile_role_defaults_to_1() {
+        let json = r#"{"id":"p1","name":"Alice"}"#;
+        let p: UserProfile = serde_json::from_str(json).unwrap();
+        assert_eq!(p.role, 1);
+    }
+
+    #[test]
+    fn test_user_profile_dvr_permission_defaults_to_2() {
+        let json = r#"{"id":"p1","name":"Alice"}"#;
+        let p: UserProfile = serde_json::from_str(json).unwrap();
+        assert_eq!(p.dvr_permission, 2);
+    }
+
+    #[test]
+    fn test_user_profile_is_child_defaults_false() {
+        let json = r#"{"id":"p1","name":"Bob"}"#;
+        let p: UserProfile = serde_json::from_str(json).unwrap();
+        assert!(!p.is_child);
+        assert!(p.pin.is_none());
+    }
+
+    // ── Recording ───────────────────────────────────
+
+    #[test]
+    fn test_recording_is_shared_defaults_true() {
+        let now = dummy_dt();
+        let r = Recording {
+            id: "r1".to_string(),
+            channel_id: None,
+            channel_name: "ESPN".to_string(),
+            channel_logo_url: None,
+            program_name: "Match".to_string(),
+            stream_url: None,
+            start_time: now,
+            end_time: now,
+            status: "scheduled".to_string(),
+            file_path: None,
+            file_size_bytes: None,
+            is_recurring: false,
+            recur_days: 0,
+            owner_profile_id: None,
+            is_shared: default_true(),
+            remote_backend_id: None,
+            remote_path: None,
+        };
+        assert!(r.is_shared);
+        assert!(!r.is_recurring);
+    }
+
+    #[test]
+    fn test_recording_status_field_preserved() {
+        let now = dummy_dt();
+        let r = Recording {
+            id: "r1".to_string(),
+            channel_id: Some("ch1".to_string()),
+            channel_name: "CNN".to_string(),
+            channel_logo_url: None,
+            program_name: "News".to_string(),
+            stream_url: Some("http://s".to_string()),
+            start_time: now,
+            end_time: now,
+            status: "completed".to_string(),
+            file_path: Some("/recordings/news.ts".to_string()),
+            file_size_bytes: Some(1_048_576),
+            is_recurring: false,
+            recur_days: 0,
+            owner_profile_id: None,
+            is_shared: true,
+            remote_backend_id: None,
+            remote_path: None,
+        };
+        assert_eq!(r.status, "completed");
+        assert_eq!(r.file_size_bytes, Some(1_048_576));
+    }
+
+    // ── WatchHistory ────────────────────────────────
+
+    #[test]
+    fn test_watch_history_position_and_duration_default_to_zero() {
+        let json = r#"{"id":"h1","media_type":"channel","name":"BBC","stream_url":"u","last_watched":"1970-01-01T00:00:00"}"#;
+        let h: WatchHistory = serde_json::from_str(json).unwrap();
+        assert_eq!(h.position_ms, 0);
+        assert_eq!(h.duration_ms, 0);
+        assert!(h.device_id.is_none());
+        assert!(h.profile_id.is_none());
+    }
+
+    // ── EpgMapping ──────────────────────────────────
+
+    #[test]
+    fn test_epg_mapping_locked_defaults_false() {
+        let json = r#"{"channel_id":"c1","epg_channel_id":"e1","confidence":0.9,"source":"tvg-id","created_at":0}"#;
+        let m: EpgMapping = serde_json::from_str(json).unwrap();
+        assert!(!m.locked);
+        assert_eq!(m.confidence, 0.9);
+    }
+
+    // ── SourceStats ─────────────────────────────────
+
+    #[test]
+    fn test_source_stats_roundtrips_via_serde() {
+        let s = SourceStats {
+            source_id: "src1".to_string(),
+            channel_count: 100,
+            vod_count: 500,
+        };
+        let json = serde_json::to_string(&s).unwrap();
+        let back: SourceStats = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.source_id, "src1");
+        assert_eq!(back.channel_count, 100);
+        assert_eq!(back.vod_count, 500);
+    }
+
+    // ── Bookmark ────────────────────────────────────
+
+    #[test]
+    fn test_bookmark_label_defaults_to_none() {
+        let now = dummy_dt();
+        let b = Bookmark {
+            id: "bk1".to_string(),
+            content_id: "ch1".to_string(),
+            content_type: "channel".to_string(),
+            position_ms: 12345,
+            label: None,
+            created_at: now,
+        };
+        assert!(b.label.is_none());
+        assert_eq!(b.position_ms, 12345);
+    }
+
+    // ── SearchHistory ───────────────────────────────
+
+    #[test]
+    fn test_search_history_result_count_defaults_zero() {
+        let json = r#"{"id":"sh1","query":"breaking news","searched_at":"1970-01-01T00:00:00"}"#;
+        let s: SearchHistory = serde_json::from_str(json).unwrap();
+        assert_eq!(s.result_count, 0);
+        assert_eq!(s.query, "breaking news");
+    }
+}

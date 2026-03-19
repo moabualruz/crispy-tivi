@@ -46,10 +46,10 @@ export component SourceDialog inherits Rectangle {
     min-height: 360px;
     x: (parent.width - self.width) / 2;
     y: (parent.height - self.height) / 2;
-    border-radius: 16px;
-    background: rgba(28, 28, 32, 0.95);
+    border-radius: Theme.radius-lg;
+    background: Theme.surface;
     border-width: 1px;
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: Theme.border-subtle;
 
     TouchArea {} // block click-through
 

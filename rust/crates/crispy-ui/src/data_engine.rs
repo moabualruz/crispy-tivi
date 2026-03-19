@@ -303,7 +303,9 @@ impl DataEngine {
                 } else {
                     warn!(channel_id, "PlayChannel: channel not found in cache");
                     self.send(DataEvent::Error {
-                        message: format!("Channel not found: {channel_id}"),
+                        message: Self::sanitize_error_for_ui(&format!(
+                            "Channel not found: {channel_id}"
+                        )),
                     });
                 }
             }
@@ -316,7 +318,7 @@ impl DataEngine {
                 } else {
                     warn!(vod_id, "PlayVod: item not found in cache");
                     self.send(DataEvent::Error {
-                        message: format!("VOD not found: {vod_id}"),
+                        message: Self::sanitize_error_for_ui(&format!("VOD not found: {vod_id}")),
                     });
                 }
             }
@@ -545,7 +547,9 @@ impl DataEngine {
                             Err(e) => {
                                 error!(error = %e, offset_days, "SelectEpgDate: EPG fetch failed");
                                 let _ = data_tx.try_send(DataEvent::Error {
-                                    message: format!("EPG load failed for {date_label}: {e}"),
+                                    message: Self::sanitize_error_for_ui(&format!(
+                                        "EPG load failed for {date_label}: {e}"
+                                    )),
                                 });
                             }
                         }
@@ -612,9 +616,9 @@ impl DataEngine {
                     Ok(Err(e)) => {
                         error!(error = %e, series_id, season, "Failed to load episodes for season");
                         self.send(DataEvent::Error {
-                            message: format!(
+                            message: Self::sanitize_error_for_ui(&format!(
                                 "Failed to load episodes for series {series_id} season {season}: {e}"
-                            ),
+                            )),
                         });
                     }
                     Err(e) => {
@@ -720,7 +724,9 @@ impl DataEngine {
                     Err(e) => {
                         error!(error = %e, "Failed to save source");
                         self.send(DataEvent::Error {
-                            message: format!("Failed to save source: {e}"),
+                            message: Self::sanitize_error_for_ui(&format!(
+                                "Failed to save source: {e}"
+                            )),
                         });
                     }
                 }
@@ -745,7 +751,9 @@ impl DataEngine {
                     Err(e) => {
                         error!(error = %e, source_id, "Failed to delete source");
                         self.send(DataEvent::Error {
-                            message: format!("Failed to delete source: {e}"),
+                            message: Self::sanitize_error_for_ui(&format!(
+                                "Failed to delete source: {e}"
+                            )),
                         });
                     }
                 }
@@ -812,199 +820,45 @@ impl DataEngine {
                 self.send(DataEvent::DiagnosticsInfo { report });
             }
 
-            NormalEvent::ClearWatchHistory => {
-                // Load all entries then delete each one — clear_all_watch_history
-                // is implemented as a bulk delete via load + delete loop since the
-                // service does not yet expose a single-call bulk-delete method.
-                // TODO: add CrispyService::clear_all_watch_history() for efficiency.
-                let svc = self.provider.clone();
-                match self
-                    .rt
-                    .spawn_blocking(move || {
-                        let entries = svc.load_watch_history()?;
-                        let count = entries.len();
-                        for e in &entries {
-                            svc.delete_watch_history(&e.id)?;
-                        }
-                        Ok::<usize, crispy_core::database::DbError>(count)
-                    })
-                    .await
-                {
-                    Ok(Ok(n)) => {
-                        info!(deleted = n, "Watch history cleared");
-                        self.send(DataEvent::DiagnosticsInfo {
-                            report: format!("Watch history cleared ({n} entries removed)"),
-                        });
-                    }
-                    Ok(Err(e)) => {
-                        error!(error = %e, "Failed to clear watch history");
-                        self.send(DataEvent::Error {
-                            message: format!("Failed to clear watch history: {e}"),
-                        });
-                    }
-                    Err(e) => {
-                        error!(error = %e, "clear_watch_history task panicked");
-                    }
-                }
-            }
-
-            NormalEvent::ExportSettings { path } => {
-                // Export all key-value settings to a JSON file.
-                // Settings are fetched via individual get_setting calls on known keys;
-                // a full dump is obtained by reading the DB directly.
-                // TODO: add CrispyService::get_all_settings() returning Vec<(String,String)>.
-                let svc = self.provider.clone();
-                let path_clone = path.clone();
-                match self
-                    .rt
-                    .spawn_blocking(move || {
-                        // Enumerate the well-known settings keys.
-                        let known_keys = [
-                            "theme",
-                            "language",
-                            "onboarding_done",
-                            "server_mode",
-                            "hw_decode",
-                            "volume",
-                            "epg_days_ahead",
-                        ];
-                        let mut map = std::collections::HashMap::new();
-                        for key in &known_keys {
-                            if let Ok(Some(val)) = svc.get_setting(key) {
-                                map.insert(key.to_string(), val);
-                            }
-                        }
-                        let json = serde_json::to_string_pretty(&map).map_err(|e| {
-                            crispy_core::database::DbError::Migration(e.to_string())
-                        })?;
-                        std::fs::write(&path_clone, json).map_err(|e| {
-                            crispy_core::database::DbError::Migration(e.to_string())
-                        })?;
-                        Ok::<usize, crispy_core::database::DbError>(map.len())
-                    })
-                    .await
-                {
-                    Ok(Ok(n)) => {
-                        info!(path, count = n, "Settings exported");
-                        self.send(DataEvent::DiagnosticsInfo {
-                            report: format!("Settings exported to {path} ({n} keys)"),
-                        });
-                    }
-                    Ok(Err(e)) => {
-                        error!(error = %e, path, "Failed to export settings");
-                        self.send(DataEvent::Error {
-                            message: format!("Failed to export settings: {e}"),
-                        });
-                    }
-                    Err(e) => {
-                        error!(error = %e, "export_settings task panicked");
-                    }
-                }
-            }
-
-            NormalEvent::ImportSettings { path } => {
-                let svc = self.provider.clone();
-                let path_clone = path.clone();
-                match self
-                    .rt
-                    .spawn_blocking(move || -> Result<usize, String> {
-                        let json =
-                            std::fs::read_to_string(&path_clone).map_err(|e| e.to_string())?;
-                        let settings: std::collections::HashMap<String, String> =
-                            serde_json::from_str(&json).map_err(|e| e.to_string())?;
-                        let count = settings.len();
-                        for (key, value) in &settings {
-                            svc.set_setting(key, value).map_err(|e| e.to_string())?;
-                        }
-                        Ok(count)
-                    })
-                    .await
-                {
-                    Ok(Ok(n)) => {
-                        info!(path, count = n, "Settings imported");
-                        self.send(DataEvent::DiagnosticsInfo {
-                            report: format!("Imported {n} settings from {path}"),
-                        });
-                    }
-                    Ok(Err(e)) => {
-                        error!(error = %e, path, "Failed to import settings");
-                        self.send(DataEvent::Error {
-                            message: format!("Failed to import settings: {e}"),
-                        });
-                    }
-                    Err(e) => {
-                        error!(error = %e, "import_settings task panicked");
-                    }
-                }
-            }
-
-            NormalEvent::UpdateEpgMapping {
-                channel_id,
-                epg_channel_id,
+            NormalEvent::SaveProfile {
+                id,
+                name,
+                is_child,
+                max_allowed_rating,
+                role,
             } => {
-                use crispy_server::models::EpgMapping;
+                let profile_id = id.clone();
+                let profile = crispy_server::models::UserProfile {
+                    id,
+                    name,
+                    avatar_index: 0,
+                    pin: None,
+                    is_child,
+                    pin_version: 0,
+                    max_allowed_rating,
+                    role,
+                    dvr_permission: 1,
+                    dvr_quota_mb: None,
+                };
                 let svc = self.provider.clone();
-                let cid = channel_id.clone();
-                let eid = epg_channel_id.clone();
                 match self
                     .rt
-                    .spawn_blocking(move || {
-                        let mapping = EpgMapping {
-                            channel_id: cid,
-                            epg_channel_id: eid,
-                            confidence: 1.0,
-                            source: "manual".to_string(),
-                            locked: true,
-                            created_at: chrono::Utc::now().timestamp(),
-                        };
-                        svc.save_epg_mapping(&mapping)
-                    })
+                    .spawn_blocking(move || svc.save_profile(&profile))
                     .await
                 {
                     Ok(Ok(())) => {
-                        info!(channel_id, epg_channel_id, "EPG mapping updated");
+                        info!(profile_id = %profile_id, "Profile saved to DB");
                     }
                     Ok(Err(e)) => {
-                        error!(error = %e, channel_id, "Failed to update EPG mapping");
+                        error!(error = %e, "Failed to save profile");
                         self.send(DataEvent::Error {
-                            message: format!("Failed to update EPG mapping: {e}"),
+                            message: Self::sanitize_error_for_ui(&format!(
+                                "Failed to save profile: {e}"
+                            )),
                         });
                     }
                     Err(e) => {
-                        error!(error = %e, "update_epg_mapping task panicked");
-                    }
-                }
-            }
-
-            NormalEvent::RefreshEpg => {
-                // EPG refresh: trigger a sync for all enabled sources that have
-                // an EPG URL configured.
-                let sources_with_epg: Vec<(String, String)> = self
-                    .cache
-                    .sources
-                    .iter()
-                    .filter(|s| s.enabled && !s.epg_url.as_deref().unwrap_or("").is_empty())
-                    .map(|s| (s.id.clone(), s.source_type.clone()))
-                    .collect();
-
-                if sources_with_epg.is_empty() {
-                    info!("RefreshEpg: no sources with EPG URL configured");
-                    self.send(DataEvent::DiagnosticsInfo {
-                        report: "No sources with EPG URL — nothing to refresh".to_string(),
-                    });
-                } else {
-                    info!(
-                        count = sources_with_epg.len(),
-                        "RefreshEpg: triggering sync for EPG sources"
-                    );
-                    self.send(DataEvent::LoadingStarted {
-                        kind: LoadingKind::Sync,
-                    });
-                    for (source_id, source_type) in sources_with_epg {
-                        self.send(DataEvent::SyncStarted {
-                            source_id: source_id.clone(),
-                        });
-                        self.spawn_sync(source_id, source_type);
+                        error!(error = %e, "save_profile task panicked");
                     }
                 }
             }
@@ -1104,6 +958,64 @@ impl DataEngine {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
+
+    /// Sanitize an error string before sending it to the UI.
+    ///
+    /// Strips filesystem paths and truncates to 200 characters so internal
+    /// details (absolute paths, stack traces) never reach the user-facing layer.
+    fn sanitize_error_for_ui(error: &str) -> String {
+        // Strip filesystem paths and truncate for user-facing display.
+        let mut result = String::with_capacity(error.len());
+        let mut chars = error.chars().peekable();
+        while let Some(c) = chars.next() {
+            // Detect Windows path: e.g. C:\...
+            if c.is_ascii_alphabetic() {
+                if chars.peek() == Some(&':') {
+                    let mut lookahead = chars.clone();
+                    lookahead.next(); // skip ':'
+                    if lookahead.peek() == Some(&'\\') {
+                        // Skip until whitespace or end
+                        result.push_str("[path]");
+                        for nc in chars.by_ref() {
+                            if nc.is_whitespace() {
+                                result.push(nc);
+                                break;
+                            }
+                        }
+                        continue;
+                    }
+                }
+                result.push(c);
+            } else if c == '/' {
+                // Detect Unix absolute path: /foo/bar
+                if chars.peek().is_some_and(|p| p.is_alphanumeric()) {
+                    let rest: String = chars.clone().take_while(|ch| !ch.is_whitespace()).collect();
+                    if rest.contains('/') {
+                        result.push_str("[path]");
+                        for nc in chars.by_ref() {
+                            if nc.is_whitespace() {
+                                result.push(nc);
+                                break;
+                            }
+                        }
+                        continue;
+                    }
+                }
+                result.push(c);
+            } else {
+                result.push(c);
+            }
+        }
+        if result.len() > 200 {
+            let mut end = 197;
+            while end > 0 && !result.is_char_boundary(end) {
+                end -= 1;
+            }
+            format!("{}...", &result[..end])
+        } else {
+            result
+        }
+    }
 
     /// Send a `DataEvent` to the EventBridge, logging on failure.
     fn send(&self, event: DataEvent) {

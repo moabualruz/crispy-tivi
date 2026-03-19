@@ -23,7 +23,7 @@ component EpisodeRow inherits FocusScope {
   Rectangle {
     width: 100%; height: 100%;
     border-radius: Theme.radius-sm;
-    background: root.has-focus ? rgba(255,255,255,0.08) : transparent;
+    background: root.has-focus ? rgba(255, 255, 255, 0.08) : transparent;
     border-width: root.has-focus ? Theme.focus-ring-width : 0px;
     border-color: Theme.focus-ring;
     animate background { duration: 150ms; }
@@ -225,7 +225,7 @@ export component SeriesDetailScreen inherits Rectangle {
               if AppState.series-detail-item.rating != "": Rectangle {
                 width: sr.preferred-width + 10px;
                 height: 20px;
-                border-radius: 4px;
+                border-radius: Theme.radius-xs;
                 background: Theme.surface-glass;
                 border-width: 1px;
                 border-color: Theme.border-subtle;
@@ -416,7 +416,7 @@ export component SeriesDetailScreen inherits Rectangle {
           border-radius: Theme.radius-md;
           background: Theme.card-surface;
           border-width: 1px;
-          border-color: #FF4B2B;
+          border-color: Theme.live-badge;
 
           HorizontalLayout {
             padding-left: Theme.spacing-md;

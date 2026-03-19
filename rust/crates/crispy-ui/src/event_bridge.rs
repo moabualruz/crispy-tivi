@@ -250,14 +250,28 @@ pub(crate) fn wire(
     app.on_save_source({
         let tx = normal_tx.clone();
         move |name, stype, url, user, pass| {
+            let is_stalker = stype == "stalker";
             if let Err(e) = tx.try_send(NormalEvent::SaveSource {
                 input: SourceInput {
                     name: name.to_string(),
                     source_type: stype.to_string(),
                     url: url.to_string(),
-                    username: user.to_string(),
-                    password: pass.to_string(),
-                    mac_address: String::new(),
+                    // Stalker uses MAC address (passed via `user` field) instead of username
+                    username: if is_stalker {
+                        String::new()
+                    } else {
+                        user.to_string()
+                    },
+                    password: if is_stalker {
+                        String::new()
+                    } else {
+                        pass.to_string()
+                    },
+                    mac_address: if is_stalker {
+                        user.to_string()
+                    } else {
+                        String::new()
+                    },
                     epg_url: String::new(),
                 },
             }) {
@@ -882,6 +896,7 @@ pub(crate) fn wire(
     app.on_create_profile({
         let ui_w = ui.as_weak();
         let sd = Arc::clone(&shared_data);
+        let tx = normal_tx.clone();
         move |name, is_kids| {
             let profile_name = name.to_string();
             let new_id = format!("profile_{}", chrono::Utc::now().timestamp_millis());
@@ -897,6 +912,16 @@ pub(crate) fn wire(
                 dvr_permission: 1,
                 dvr_quota_mb: None,
             };
+            // Persist to DB via DataEngine
+            if let Err(e) = tx.try_send(NormalEvent::SaveProfile {
+                id: new_profile.id.clone(),
+                name: new_profile.name.clone(),
+                is_child: new_profile.is_child,
+                max_allowed_rating: new_profile.max_allowed_rating,
+                role: new_profile.role,
+            }) {
+                tracing::warn!(error = %e, "normal_tx full: SaveProfile dropped");
+            }
             {
                 sd.profiles.lock().unwrap().push(new_profile);
             }
@@ -1016,6 +1041,10 @@ pub(crate) fn spawn_player_handler(
                             ps.set_current_title(Default::default());
                             ps.set_current_channel_id(Default::default());
                             ps.set_current_group(Default::default());
+                            // Navigate back to the active screen (restore browse UI)
+                            let app = ui.global::<super::AppState>();
+                            let screen = app.get_active_screen();
+                            app.invoke_navigate(screen);
                         }
                     });
                 }

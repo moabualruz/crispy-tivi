@@ -26,7 +26,7 @@ component StepIndicator inherits HorizontalLayout {
     width: i == current-step ? 28px : 8px;
     height: 8px;
     border-radius: 4px;
-    background: i == current-step ? Theme.accent-gradient : rgba(255, 255, 255, 0.2);
+    background: i == current-step ? Theme.accent-gradient : Theme.focus-glow;
 
     animate width { duration: 250ms; easing: ease-in-out; }
     animate background { duration: 250ms; }
@@ -57,7 +57,7 @@ component WelcomeStep inherits Rectangle {
 
         Text {
           text: "CT";
-          color: #FFFFFF;
+          color: Theme.btn-secondary-fg;
           font-family: Theme.font-display;
           font-size: 36px;
           font-weight: 800;

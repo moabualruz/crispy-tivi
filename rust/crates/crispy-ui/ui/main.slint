@@ -273,5 +273,48 @@ export component AppWindow inherits Window {
       close => { AppState.show-profile-menu = false; }
     }
   }
+  // Sync progress overlay — visible only while sync is in progress (0 < progress < 1)
+  if AppState.sync-progress > 0.0 && AppState.sync-progress < 1.0: Rectangle {
+    width: 100%;
+    height: Theme.top-nav-height;
+    y: root.height - Theme.top-nav-height;
+    background: Theme.card-surface;
+    border-width: 1px;
+    border-color: Theme.border-subtle;
+
+    VerticalLayout {
+      padding-left: Theme.spacing-md;
+      padding-right: Theme.spacing-md;
+      padding-top: Theme.spacing-xs;
+      padding-bottom: Theme.spacing-xs;
+      spacing: Theme.spacing-xs;
+      alignment: center;
+
+      Text {
+        text: AppState.sync-message;
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        overflow: elide;
+      }
+
+      // Progress bar
+      Rectangle {
+        height: 3px;
+        width: 100%;
+        background: Theme.border-subtle;
+        border-radius: 2px;
+
+        Rectangle {
+          x: 0;
+          width: parent.width * AppState.sync-progress;
+          height: 100%;
+          background: @linear-gradient(90deg, #FF4B2B, #FF416C);
+          border-radius: 2px;
+        }
+      }
+    }
+  }
+
   DiagnosticsPanel {}
 }

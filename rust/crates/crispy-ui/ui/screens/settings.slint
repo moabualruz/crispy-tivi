@@ -205,7 +205,7 @@ export component SettingsScreen inherits Rectangle {
               Text {
                 text: "✕";
                 color: back-ta.has-hover ? Theme.text-primary : Theme.text-secondary;
-                font-size: 16px;
+                font-size: Theme.font-size-body;
                 horizontal-alignment: center;
                 vertical-alignment: center;
               }
@@ -378,6 +378,13 @@ export component SettingsScreen inherits Rectangle {
               is-primary: true;
               clicked => { AppState.show-source-dialog = true; }
             }
+          }
+
+          if AppState.total-channel-count > 0 || AppState.total-movie-count > 0 || AppState.total-series-count > 0: Text {
+            text: AppState.total-channel-count + " channels · " + AppState.total-movie-count + " movies · " + AppState.total-series-count + " series";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
           }
 
           if AppState.sources.length == 0: Text {

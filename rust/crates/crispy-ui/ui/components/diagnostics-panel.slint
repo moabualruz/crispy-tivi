@@ -87,6 +87,10 @@ export component DiagnosticsPanel inherits Rectangle {
           Text { text: DiagnosticsState.slint-version; color: Theme.text-primary; font-size: Theme.font-size-caption; }
         }
         HorizontalLayout {
+          Text { text: "Rust"; color: Theme.text-secondary; font-family: Theme.font-body; font-size: Theme.font-size-caption; horizontal-stretch: 1; }
+          Text { text: DiagnosticsState.rust-version; color: Theme.text-secondary; font-family: Theme.font-body; font-size: Theme.font-size-caption; }
+        }
+        HorizontalLayout {
           Text { text: "Log Level"; color: Theme.text-secondary; font-size: Theme.font-size-caption; horizontal-stretch: 1; }
           Text { text: DiagnosticsState.log-level; color: Theme.text-primary; font-size: Theme.font-size-caption; }
         }

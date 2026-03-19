@@ -236,7 +236,6 @@ pub enum HighPriorityEvent {
 ///
 /// Covers background and configuration operations.
 #[derive(Debug)]
-#[allow(dead_code)] // ClearWatchHistory, ExportSettings, ImportSettings, UpdateEpgMapping, RefreshEpg wired in Epoch 2
 pub enum NormalEvent {
     /// Persist a new or updated source to the database.
     SaveSource { input: SourceInput },
@@ -250,19 +249,14 @@ pub enum NormalEvent {
     CompleteOnboarding,
     /// Collect and emit diagnostics information.
     RunDiagnostics,
-    /// Clear stored watch history.
-    ClearWatchHistory,
-    /// Export current settings to a file at the given path.
-    ExportSettings { path: String },
-    /// Import settings from a file at the given path.
-    ImportSettings { path: String },
-    /// Update the EPG mapping for a channel.
-    UpdateEpgMapping {
-        channel_id: String,
-        epg_channel_id: String,
+    /// Persist a newly created profile to the database.
+    SaveProfile {
+        id: String,
+        name: String,
+        is_child: bool,
+        max_allowed_rating: i32,
+        role: i32,
     },
-    /// Refresh EPG data for all sources.
-    RefreshEpg,
 }
 
 // ── DataEvent ────────────────────────────────────────────────────────────────

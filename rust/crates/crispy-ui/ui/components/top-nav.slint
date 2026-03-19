@@ -20,7 +20,7 @@ export component TopNav inherits Rectangle {
       ProfileButton {
         initial: "P";
         clicked => {
-          AppState.show-profile-menu = true;
+          AppState.show-profile-picker = !AppState.show-profile-picker;
         }
       }
     }
