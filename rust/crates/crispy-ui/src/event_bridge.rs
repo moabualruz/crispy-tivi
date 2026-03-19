@@ -44,6 +44,12 @@ pub(crate) struct SharedData {
     pub profiles: Mutex<Vec<UserProfile>>,
     /// ID of the currently active profile (empty = default).
     pub active_profile_id: Mutex<String>,
+    /// Spatial focus manager — owns zone registry and navigation state.
+    pub focus_mgr: Mutex<crate::focus::manager::FocusManager>,
+    /// Input abstraction — maps raw key codes to logical actions.
+    /// Incrementally wired: used when global key handler is connected.
+    #[allow(dead_code)]
+    pub input_mgr: Mutex<crate::input::InputManager>,
 }
 
 impl SharedData {
@@ -55,6 +61,8 @@ impl SharedData {
             epg_entries: Mutex::new(std::collections::HashMap::new()),
             profiles: Mutex::new(Vec::new()),
             active_profile_id: Mutex::new(String::new()),
+            focus_mgr: Mutex::new(crate::focus::manager::FocusManager::new("home")),
+            input_mgr: Mutex::new(crate::input::InputManager::new()),
         }
     }
 }
@@ -252,8 +260,23 @@ pub(crate) fn wire(
 
     app.on_navigate({
         let tx = high_tx.clone();
+        let sd = Arc::clone(&shared_data);
         move |screen_index| {
             let screen = Screen::from_i32(screen_index).unwrap_or(Screen::Home);
+            // Update FocusManager active zone to match the new screen
+            let zone_id = match screen {
+                Screen::Home => "home",
+                Screen::LiveTv => "live-tv",
+                Screen::Epg => "epg",
+                Screen::Movies => "movies",
+                Screen::Series => "series",
+                Screen::Search => "search",
+                Screen::Library => "library",
+                Screen::Settings => "settings",
+            };
+            if let Ok(mut fm) = sd.focus_mgr.lock() {
+                fm.set_active_zone(zone_id);
+            }
             if let Err(e) = tx.try_send(HighPriorityEvent::Navigate { screen }) {
                 tracing::warn!(error = %e, "high_tx full: Navigate dropped");
             }

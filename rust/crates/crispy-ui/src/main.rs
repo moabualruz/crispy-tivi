@@ -12,12 +12,12 @@ mod cache;
 mod data_engine;
 mod event_bridge;
 mod events;
-#[allow(dead_code)]
+#[allow(dead_code)] // Pre-built spatial navigation — incrementally wired
 mod focus;
 mod i18n;
 mod image_cache;
 mod image_loader;
-#[allow(dead_code)]
+#[allow(dead_code)] // Pre-built input abstraction — incrementally wired
 mod input;
 #[allow(dead_code)]
 mod provider;
