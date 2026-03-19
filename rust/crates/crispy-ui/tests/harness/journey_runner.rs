@@ -448,6 +448,11 @@ impl JourneyRunner {
             // Attach a fresh UI handle if a factory is configured
             if let Some(ref factory) = self.ui_factory {
                 harness.ui_handle = Some(factory());
+                // Populate UI globals with seeded test data so journeys see
+                // actual content instead of empty VecModels.
+                if let Some(ui) = harness.ui::<crate::AppWindow>() {
+                    super::db::populate_ui(ui, self.db.service());
+                }
                 // Pump timers so Slint initialises the component fully
                 slint::platform::update_timers_and_animations();
             }

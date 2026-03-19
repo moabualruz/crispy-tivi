@@ -10,6 +10,7 @@ use std::path::PathBuf;
 
 use crispy_core::models::{Channel, EpgEntry, Source, UserProfile, VodItem};
 use crispy_core::services::CrispyService;
+use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 
 // ── Fixture path resolution ───────────────────────────────────────────────────
 
@@ -507,6 +508,204 @@ impl TestDb {
     }
 }
 
+// ── UI population ─────────────────────────────────────────────────────────────
+
+/// Populate the Slint `AppWindow` globals with data from the `CrispyService` DB.
+///
+/// This mimics what `DataEngine::load_all_into_cache` + `apply_data_event` do in
+/// the real app, but runs synchronously on the UI thread so screenshot journeys
+/// start with fully-seeded models rather than empty `VecModel`s.
+///
+/// Call this right after `AppWindow::new()` and before any journey step runs.
+pub fn populate_ui(ui: &crate::AppWindow, service: &CrispyService) {
+    use crate::{AppState, OnboardingState};
+
+    let app = ui.global::<AppState>();
+
+    // ── Sources ──────────────────────────────────────────────────────────────
+    let sources = service.get_sources().unwrap_or_default();
+    let source_count = sources.len() as i32;
+    let slint_sources: Vec<crate::SourceData> = sources
+        .iter()
+        .map(|s| crate::SourceData {
+            id: SharedString::from(s.id.as_str()),
+            name: SharedString::from(s.name.as_str()),
+            source_type: SharedString::from(s.source_type.as_str()),
+            url: SharedString::from(s.url.as_str()),
+            username: SharedString::default(),
+            password: SharedString::default(),
+            channel_count: 0,
+            vod_count: 0,
+            sync_status: SharedString::from(
+                s.last_sync_status.as_deref().unwrap_or(""),
+            ),
+            last_sync_error: SharedString::from(
+                s.last_sync_error.as_deref().unwrap_or(""),
+            ),
+        })
+        .collect();
+    app.set_sources(ModelRc::new(VecModel::from(slint_sources)));
+
+    // ── Channels ─────────────────────────────────────────────────────────────
+    let channels = service.load_channels().unwrap_or_default();
+    let channel_count = channels.len() as i32;
+
+    let slint_channels: Vec<crate::ChannelData> = channels
+        .iter()
+        .map(|c| crate::ChannelData {
+            id: SharedString::from(c.id.as_str()),
+            name: SharedString::from(c.name.as_str()),
+            group: SharedString::from(c.channel_group.as_deref().unwrap_or("")),
+            logo_url: SharedString::from(c.logo_url.as_deref().unwrap_or("")),
+            stream_url: SharedString::from(c.stream_url.as_str()),
+            source_id: SharedString::from(c.source_id.as_deref().unwrap_or("")),
+            number: c.number.unwrap_or(0),
+            is_favorite: c.is_favorite,
+            has_catchup: c.has_catchup,
+            resolution: SharedString::from(c.resolution.as_deref().unwrap_or("")),
+            now_playing: SharedString::default(),
+            logo: Default::default(),
+        })
+        .collect();
+
+    // Home preview: first 20 channels
+    let home_channels: Vec<crate::ChannelData> =
+        slint_channels.iter().take(20).cloned().collect();
+    app.set_home_channels(ModelRc::new(VecModel::from(home_channels)));
+
+    // Collect distinct groups
+    let mut seen_groups: Vec<String> = Vec::new();
+    for ch in &channels {
+        let g = ch.channel_group.as_deref().unwrap_or("").to_string();
+        if !g.is_empty() && !seen_groups.contains(&g) {
+            seen_groups.push(g);
+        }
+    }
+    let slint_groups: Vec<SharedString> = seen_groups
+        .iter()
+        .map(|g| SharedString::from(g.as_str()))
+        .collect();
+    app.set_channel_groups(ModelRc::new(VecModel::from(slint_groups)));
+    app.set_channels(ModelRc::new(VecModel::from(slint_channels)));
+    app.set_total_channel_count(channel_count);
+    app.set_channel_window_start(0);
+
+    // ── VOD — Movies ─────────────────────────────────────────────────────────
+    let all_vod = service.load_vod_items().unwrap_or_default();
+
+    let movies: Vec<crate::VodData> = all_vod
+        .iter()
+        .filter(|v| v.item_type == "movie")
+        .map(|v| crate::VodData {
+            id: SharedString::from(v.id.as_str()),
+            name: SharedString::from(v.name.as_str()),
+            stream_url: SharedString::from(v.stream_url.as_str()),
+            item_type: SharedString::from(v.item_type.as_str()),
+            poster_url: SharedString::from(v.poster_url.as_deref().unwrap_or("")),
+            backdrop_url: SharedString::from(v.backdrop_url.as_deref().unwrap_or("")),
+            description: SharedString::from(v.description.as_deref().unwrap_or("")),
+            genre: SharedString::default(),
+            year: SharedString::from(
+                v.year.map(|y| y.to_string()).unwrap_or_default().as_str(),
+            ),
+            rating: SharedString::from(v.rating.as_deref().unwrap_or("")),
+            duration_minutes: v.duration.unwrap_or(0),
+            is_favorite: v.is_favorite,
+            source_id: SharedString::from(v.source_id.as_deref().unwrap_or("")),
+            series_id: SharedString::default(),
+            season: 0,
+            episode: 0,
+            poster: Default::default(),
+        })
+        .collect();
+    let movie_count = movies.len() as i32;
+    app.set_movies(ModelRc::new(VecModel::from(movies)));
+    app.set_total_movie_count(movie_count);
+    app.set_movie_window_start(0);
+
+    // ── VOD — Series ─────────────────────────────────────────────────────────
+    let series: Vec<crate::VodData> = all_vod
+        .iter()
+        .filter(|v| v.item_type == "series")
+        .map(|v| crate::VodData {
+            id: SharedString::from(v.id.as_str()),
+            name: SharedString::from(v.name.as_str()),
+            stream_url: SharedString::from(v.stream_url.as_str()),
+            item_type: SharedString::from(v.item_type.as_str()),
+            poster_url: SharedString::from(v.poster_url.as_deref().unwrap_or("")),
+            backdrop_url: SharedString::from(v.backdrop_url.as_deref().unwrap_or("")),
+            description: SharedString::from(v.description.as_deref().unwrap_or("")),
+            genre: SharedString::default(),
+            year: SharedString::from(
+                v.year.map(|y| y.to_string()).unwrap_or_default().as_str(),
+            ),
+            rating: SharedString::from(v.rating.as_deref().unwrap_or("")),
+            duration_minutes: v.duration.unwrap_or(0),
+            is_favorite: v.is_favorite,
+            source_id: SharedString::from(v.source_id.as_deref().unwrap_or("")),
+            series_id: SharedString::default(),
+            season: 0,
+            episode: 0,
+            poster: Default::default(),
+        })
+        .collect();
+    let series_count = series.len() as i32;
+    app.set_series(ModelRc::new(VecModel::from(series)));
+    app.set_total_series_count(series_count);
+    app.set_series_window_start(0);
+
+    // ── Profiles ─────────────────────────────────────────────────────────────
+    const AVATAR_COLORS: &[u32] = &[
+        0xFF4B_2BFF,
+        0xFF_2196F3,
+        0xFF_4CAF50,
+        0xFF_9C27B0,
+        0xFF_FF9800,
+        0xFF_00BCD4,
+    ];
+    let profiles = service.load_profiles().unwrap_or_default();
+    let first_profile_name = profiles
+        .first()
+        .map(|p| p.name.clone())
+        .unwrap_or_else(|| "Default".to_string());
+    let slint_profiles: Vec<crate::ProfileData> = profiles
+        .iter()
+        .enumerate()
+        .map(|(i, p)| {
+            let color_argb =
+                AVATAR_COLORS[p.avatar_index.unsigned_abs() as usize % AVATAR_COLORS.len()];
+            crate::ProfileData {
+                id: SharedString::from(p.id.as_str()),
+                name: SharedString::from(p.name.as_str()),
+                avatar_color: slint::Color::from_argb_encoded(color_argb).into(),
+                is_kids: p.is_child,
+                is_active: i == 0,
+                pin_protected: p.pin.is_some(),
+            }
+        })
+        .collect();
+    app.set_profiles(ModelRc::new(VecModel::from(slint_profiles)));
+    app.set_active_profile_name(SharedString::from(first_profile_name.as_str()));
+
+    // ── Navigation state — skip onboarding, start on Home ────────────────────
+    ui.global::<OnboardingState>().set_is_active(false);
+    app.set_active_screen(0);
+
+    // Diagnostics counters live on DiagnosticsState, not AppState.
+    let diag = ui.global::<crate::DiagnosticsState>();
+    diag.set_source_count(source_count);
+    diag.set_channel_count(channel_count);
+
+    tracing::debug!(
+        sources = source_count,
+        channels = channel_count,
+        movies = movie_count,
+        series = series_count,
+        profiles = profiles.len(),
+        "[TEST] populate_ui: models seeded"
+    );
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -514,22 +713,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_load_settings_returns_stub_data() {
+    fn test_load_settings_returns_data() {
         let settings = load_settings();
-        // Fixture has 3 sources: m3u, xtream, stalker
+        // Must have at least one source (from base or .local override)
         assert!(
             !settings.sources.is_empty(),
-            "expected at least one source in test-settings.json"
+            "expected at least one source"
         );
         assert!(
             !settings.profiles.is_empty(),
-            "expected at least one profile in test-settings.json"
+            "expected at least one profile"
         );
-        // Verify known fixture values
-        let first = &settings.sources[0];
-        assert_eq!(first.source_type, "m3u");
-        assert_eq!(settings.settings.language, "en");
-        assert_eq!(settings.settings.theme, "dark");
+        // Settings block must have valid values regardless of override
+        assert!(!settings.settings.language.is_empty());
+        assert!(!settings.settings.theme.is_empty());
     }
 
     #[test]
