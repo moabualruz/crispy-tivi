@@ -252,6 +252,11 @@ impl JourneyRunner {
         &self.results
     }
 
+    /// Return the run output directory path.
+    pub fn run_dir(&self) -> &Path {
+        &self.run_dir
+    }
+
     /// Panic with a summary message if any journey failed.
     pub fn assert_no_failures(&self) {
         let failures: Vec<&JourneyRunResult> = self
