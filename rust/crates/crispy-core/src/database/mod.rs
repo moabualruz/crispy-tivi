@@ -22,6 +22,7 @@
 //! future hardening sprint.
 
 pub mod migration_runner;
+pub mod retry_queue;
 
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
@@ -231,7 +232,7 @@ mod tests {
             "idx_epg_channel",
             "idx_epg_source",
             "idx_reminders_notify",
-            "idx_retry_queue_next",
+            "idx_retry_queue_status_next",
             "idx_source_access",
             "idx_vod_items_series",
             "idx_vod_source",

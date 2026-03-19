@@ -228,6 +228,25 @@ pub(crate) fn wire(
 
     // ── AppState normal-priority callbacks ────────────────────────────────
 
+    app.on_edit_source({
+        let ui_w = ui.as_weak();
+        move |source_id| {
+            let Some(ui) = ui_w.upgrade() else { return };
+            let app = ui.global::<super::AppState>();
+            // Find the source in the already-populated AppState.sources list.
+            let sources = app.get_sources();
+            for i in 0..sources.row_count() {
+                let s = sources.row_data(i).unwrap_or_default();
+                if s.id == source_id {
+                    app.set_editing_source(s);
+                    app.set_show_source_dialog(true);
+                    return;
+                }
+            }
+            tracing::warn!(source_id = %source_id, "edit-source: source not found in AppState.sources");
+        }
+    });
+
     app.on_save_source({
         let tx = normal_tx.clone();
         move |name, stype, url, user, pass| {

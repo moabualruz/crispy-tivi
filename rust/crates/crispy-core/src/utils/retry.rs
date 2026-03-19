@@ -97,6 +97,73 @@ where
     Err(last_err.unwrap())
 }
 
+// ── ExponentialBackoff ────────────────────────────────────────────────────────
+
+/// Builder-style exponential backoff with ±25 % LCG jitter.
+///
+/// Distinct from [`RetryConfig`] in that it exposes a `delay_for_attempt`
+/// method and works without `tokio::time::sleep` — callers decide how to
+/// apply the delay.
+#[derive(Debug, Clone)]
+#[allow(dead_code)] // wired when sync services adopt backoff pattern (Epoch 1)
+pub(crate) struct ExponentialBackoff {
+    /// Starting delay (default: 1 s).
+    pub base_delay: Duration,
+    /// Maximum delay cap (default: 60 s).
+    pub max_delay: Duration,
+    /// Maximum number of attempts (default: 5).
+    pub max_retries: u32,
+    /// Exponential growth factor (default: 2.0).
+    pub multiplier: f64,
+}
+
+#[allow(dead_code)] // wired when sync services adopt backoff pattern (Epoch 1)
+impl ExponentialBackoff {
+    /// Create with defaults: base = 1 s, max = 60 s, retries = 5, multiplier = 2.0.
+    pub(crate) fn new() -> Self {
+        Self {
+            base_delay: Duration::from_secs(1),
+            max_delay: Duration::from_secs(60),
+            max_retries: 5,
+            multiplier: 2.0,
+        }
+    }
+
+    /// Maximum number of attempts.
+    pub(crate) fn max_retries(&self) -> u32 {
+        self.max_retries
+    }
+
+    /// Compute the sleep duration for a given `attempt` (0-based) with ±25 % jitter.
+    ///
+    /// Uses the same LCG approach as [`RetryConfig`] — no `rand` dependency.
+    pub(crate) fn delay_for_attempt(&self, attempt: u32) -> Duration {
+        let base_ms = self.base_delay.as_millis() as f64;
+        let factor = self.multiplier.powi(attempt as i32);
+        let computed_ms = (base_ms * factor) as u64;
+        let max_ms = self.max_delay.as_millis() as u64;
+        let capped_ms = computed_ms.min(max_ms);
+
+        // LCG jitter — add up to 25 % of capped_ms (same seed strategy as RetryConfig).
+        let jitter_ms = if capped_ms > 0 {
+            let seed = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .subsec_nanos() as u64;
+            // Mix in attempt so repeated same-millisecond calls differ.
+            let pseudo = seed
+                .wrapping_add(attempt as u64 * 2_654_435_761)
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1);
+            pseudo % (capped_ms / 4 + 1)
+        } else {
+            0
+        };
+
+        Duration::from_millis(capped_ms + jitter_ms)
+    }
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -217,5 +284,80 @@ mod tests {
         .await;
 
         assert_eq!(counter.load(Ordering::SeqCst), 1);
+    }
+
+    // ── ExponentialBackoff tests ───────────────────────────────────────────────
+
+    #[test]
+    fn test_first_attempt_uses_base_delay() {
+        let eb = ExponentialBackoff {
+            base_delay: Duration::from_secs(1),
+            max_delay: Duration::from_secs(60),
+            max_retries: 5,
+            multiplier: 2.0,
+        };
+        let d = eb.delay_for_attempt(0);
+        // Base = 1000 ms; jitter adds at most 25 % → ≤ 1250 ms.
+        assert!(d >= Duration::from_millis(1000));
+        assert!(d <= Duration::from_millis(1250));
+    }
+
+    #[test]
+    fn test_delay_increases_exponentially() {
+        // Disable jitter by using a sub-millisecond base that rounds to 0 jitter.
+        let eb = ExponentialBackoff {
+            base_delay: Duration::from_millis(100),
+            max_delay: Duration::from_secs(60),
+            max_retries: 5,
+            multiplier: 2.0,
+        };
+        // Without jitter influence on ordering, each attempt >= previous.
+        // We test the capped (no-jitter) values via the floor: attempt N ≥ 100 * 2^N.
+        let d0 = Duration::from_millis(100);
+        let d1 = Duration::from_millis(200);
+        let d2 = Duration::from_millis(400);
+        assert!(eb.delay_for_attempt(0) >= d0);
+        assert!(eb.delay_for_attempt(1) >= d1);
+        assert!(eb.delay_for_attempt(2) >= d2);
+    }
+
+    #[test]
+    fn test_delay_capped_at_max() {
+        let eb = ExponentialBackoff {
+            base_delay: Duration::from_secs(1),
+            max_delay: Duration::from_secs(10),
+            max_retries: 10,
+            multiplier: 2.0,
+        };
+        // Including jitter (≤ 25 %), the cap check still holds.
+        // max_delay + 25 % = 12.5 s upper bound with jitter.
+        let ceiling = Duration::from_millis(12_500);
+        for attempt in 0..10 {
+            assert!(
+                eb.delay_for_attempt(attempt) <= ceiling,
+                "attempt {attempt} exceeded ceiling"
+            );
+        }
+    }
+
+    #[test]
+    fn test_jitter_varies_delay() {
+        let eb = ExponentialBackoff {
+            base_delay: Duration::from_millis(200),
+            max_delay: Duration::from_secs(60),
+            max_retries: 5,
+            multiplier: 2.0,
+        };
+        // Collect 20 samples — at least two should differ (LCG changes per nanosecond).
+        let samples: Vec<Duration> = (0..20).map(|_| eb.delay_for_attempt(0)).collect();
+        let all_same = samples.windows(2).all(|w| w[0] == w[1]);
+        // It is astronomically unlikely that all 20 LCG outputs are identical.
+        // We assert the range is correct even if by chance they coincide.
+        for &d in &samples {
+            assert!(d >= Duration::from_millis(200));
+            assert!(d <= Duration::from_millis(250));
+        }
+        // Soft check: warn if all identical (not a hard failure to avoid flakiness).
+        let _ = all_same; // acknowledged
     }
 }

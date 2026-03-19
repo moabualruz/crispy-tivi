@@ -24,7 +24,7 @@ use super::DbError;
 ///
 /// When adding a new migration file, update this constant to match the
 /// new `PRAGMA user_version` value set by that file.
-pub const LATEST_VERSION: u32 = 36;
+pub const LATEST_VERSION: u32 = 37;
 
 /// Ordered list of `(target_user_version, sql)` pairs.
 ///
@@ -36,6 +36,9 @@ pub const LATEST_VERSION: u32 = 36;
 static MIGRATIONS: &[(u32, &str)] = &[
     // 001 — full initial schema (all tables + indexes, user_version = 36)
     (36, include_str!("migrations/001_initial_schema.sql")),
+    // 002 — extend retry_queue: add status, max_attempts, last_error columns;
+    //        replace single-column index with composite (status, next_retry_at)
+    (37, include_str!("migrations/002_retry_queue.sql")),
 ];
 
 /// Run all pending migrations against `conn`.
@@ -235,7 +238,7 @@ mod tests {
             "idx_epg_channel",
             "idx_epg_source",
             "idx_reminders_notify",
-            "idx_retry_queue_next",
+            "idx_retry_queue_status_next",
             "idx_source_access",
             "idx_vod_items_series",
             "idx_vod_source",
