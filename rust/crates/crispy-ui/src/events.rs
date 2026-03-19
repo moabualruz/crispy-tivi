@@ -228,8 +228,6 @@ pub enum HighPriorityEvent {
     SelectEpgDate { offset_days: i32 },
     /// Jump the EPG timeline to a specific channel.
     JumpEpgToChannel { channel_id: String },
-    /// Filter VOD items by category and type (movie vs series).
-    FilterVod { category: String, item_type: String },
     /// Select a season for the currently open series detail view.
     SelectSeriesSeason { series_id: String, season: i32 },
 }

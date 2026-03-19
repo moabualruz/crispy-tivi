@@ -628,18 +628,6 @@ pub(crate) fn wire(
         }
     });
 
-    app.on_filter_vod({
-        let tx = high_tx.clone();
-        move |category, item_type| {
-            if let Err(e) = tx.try_send(HighPriorityEvent::FilterVod {
-                category: category.to_string(),
-                item_type: item_type.to_string(),
-            }) {
-                tracing::warn!(error = %e, "high_tx full: FilterVod dropped");
-            }
-        }
-    });
-
     app.on_play_vod({
         let tx = high_tx.clone();
         move |vod_id| {
@@ -1522,24 +1510,7 @@ pub(crate) fn wire(
         }
     });
 
-    // ── Channel overlay callback ──────────────────────────────────────────
-
-    app.on_toggle_channel_overlay({
-        let ui_w = ui.as_weak();
-        move || {
-            let _ = slint::invoke_from_event_loop({
-                let ui_w2 = ui_w.clone();
-                move || {
-                    if let Some(ui) = ui_w2.upgrade() {
-                        let app = ui.global::<super::AppState>();
-                        let current = app.get_show_channel_overlay();
-                        app.set_show_channel_overlay(!current);
-                        tracing::debug!(now = !current, "toggle-channel-overlay");
-                    }
-                }
-            });
-        }
-    });
+    // Channel overlay is controlled directly via show-channel-overlay property in live-tv.slint.
 
     // ── Post-play callbacks (C-010, C-011) — on PlayerState ─────────────────
 

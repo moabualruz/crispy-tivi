@@ -638,43 +638,6 @@ impl DataEngine {
                     }
                 }
             }
-
-            HighPriorityEvent::FilterVod {
-                category,
-                item_type,
-            } => {
-                self.filters.active_vod_category = category;
-                match item_type.as_str() {
-                    "movie" => {
-                        let (all, cats, total, _) = filter_vod(
-                            &self.cache.all_vod,
-                            "movie",
-                            &self.filters.active_vod_category,
-                            0,
-                            usize::MAX,
-                        );
-                        self.send(DataEvent::MoviesReady {
-                            movies: Arc::new(all),
-                            categories: cats,
-                            total,
-                        });
-                    }
-                    _ => {
-                        let (all, cats, total, _) = filter_vod(
-                            &self.cache.all_vod,
-                            "series",
-                            &self.filters.active_vod_category,
-                            0,
-                            usize::MAX,
-                        );
-                        self.send(DataEvent::SeriesReady {
-                            series: Arc::new(all),
-                            categories: cats,
-                            total,
-                        });
-                    }
-                }
-            }
         }
     }
 

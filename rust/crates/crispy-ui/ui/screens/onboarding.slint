@@ -8,9 +8,13 @@ import { ScrollView } from "std-widgets.slint";
 import { FilterChip } from "../components/filter-chip.slint";
 
 export global OnboardingState {
-  // 0=Welcome, 1=AddSource, 2=Preferences, 3=Done
+  // 0=Welcome, 1=CreateProfile, 2=AddSource, 3=Preferences, 4=Done
   in-out property <int> step: 0;
   in-out property <bool> is-active: false;
+
+  // Profile creation state (used by step 1)
+  in-out property <string> profile-name: "";
+  in-out property <int> avatar-index: 0;
 
   callback complete();
 }
@@ -22,7 +26,7 @@ component StepIndicator inherits HorizontalLayout {
   spacing: Theme.spacing-sm;
   alignment: center;
 
-  for i in [0, 1, 2, 3]: Rectangle {
+  for i in [0, 1, 2, 3, 4]: Rectangle {
     width: i == current-step ? 28px : 8px;
     height: 8px;
     border-radius: Theme.radius-xs;
@@ -100,7 +104,179 @@ component WelcomeStep inherits Rectangle {
   }
 }
 
-// ─── Step 1: Add Source ───
+// ─── Step 1: Create Profile ───
+component CreateProfileStep inherits Rectangle {
+  background: transparent;
+  min-height: layout.min-height;
+
+  // 9 avatar colour swatches (index 0–8) matching AVATAR_COLORS in event_bridge.rs
+  // colours: red, orange, amber, green, teal, sky, indigo, purple, pink
+  property <[color]> avatar-colors: [
+    #E53935, #FB8C00, #FFB300,
+    #43A047, #00897B, #039BE5,
+    #3949AB, #8E24AA, #D81B60,
+  ];
+
+  layout := VerticalLayout {
+    alignment: center;
+    spacing: Theme.spacing-xl;
+
+    // Header
+    VerticalLayout {
+      alignment: center;
+      spacing: Theme.spacing-sm;
+
+      Text {
+        text: "Create Your Profile";
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-h1;
+        font-weight: 700;
+        horizontal-alignment: center;
+      }
+      Text {
+        text: "Pick a name and avatar to personalise your experience.";
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+        horizontal-alignment: center;
+      }
+    }
+
+    // Profile card — glassmorphic
+    HorizontalLayout {
+      alignment: center;
+
+      Rectangle {
+        width: 440px;
+        border-radius: Theme.radius-lg;
+        background: Theme.card-surface;
+        border-width: 1px;
+        border-color: Theme.card-border;
+
+        VerticalLayout {
+          padding: Theme.spacing-lg;
+          spacing: Theme.spacing-lg;
+
+          // Name field
+          InputField {
+            label: "Your Name";
+            placeholder-text: "e.g. Alex";
+            edited(val) => { OnboardingState.profile-name = val; }
+          }
+
+          // Avatar grid label
+          Text {
+            text: "Choose Avatar";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
+            font-weight: 500;
+          }
+
+          // 3×3 avatar colour grid — D-pad navigable via FocusScope per cell
+          GridLayout {
+            spacing: Theme.spacing-sm;
+
+            for color-val[idx] in root.avatar-colors: FocusScope {
+              row: floor(idx / 3);
+              col: mod(idx, 3);
+              width: 72px;
+              height: 72px;
+
+              property <bool> is-selected: OnboardingState.avatar-index == idx;
+              property <bool> is-focused: self.has-focus;
+
+              key-pressed(event) => {
+                if event.text == Key.Return || event.text == " " {
+                  OnboardingState.avatar-index = idx;
+                  return accept;
+                }
+                reject
+              }
+
+              // Outer ring: focus = white border, selected = accent, default = subtle
+              Rectangle {
+                width: 100%; height: 100%;
+                border-radius: 36px;
+                border-width: is-selected ? 3px : (is-focused ? Theme.focus-ring-width : 1px);
+                border-color: is-focused ? Theme.focus-ring : (is-selected ? #FFFFFF : Theme.border-subtle);
+                background: is-focused ? Theme.focus-bg : transparent;
+
+                animate border-width { duration: 150ms; }
+                animate border-color { duration: 150ms; }
+
+                // Coloured circle with initial letter
+                Rectangle {
+                  x: (parent.width - 56px) / 2;
+                  y: (parent.height - 56px) / 2;
+                  width: 56px;
+                  height: 56px;
+                  border-radius: 28px;
+                  background: color-val;
+
+                  Text {
+                    width: 100%; height: 100%;
+                    // Slint strings are not indexable — show "?" as placeholder initial
+                    text: "?";
+                    color: #FFFFFF;
+                    font-family: Theme.font-display;
+                    font-size: 22px;
+                    font-weight: 700;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                  }
+                }
+
+                // Selected tick overlay
+                if is-selected: Rectangle {
+                  x: parent.width - 20px;
+                  y: 0px;
+                  width: 20px;
+                  height: 20px;
+                  border-radius: 10px;
+                  background: #FFFFFF;
+
+                  Text {
+                    width: 100%; height: 100%;
+                    text: "\u{2713}";
+                    color: #000000;
+                    font-size: 12px;
+                    font-weight: 700;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                  }
+                }
+              }
+
+              // Tap/click to select
+              TouchArea {
+                width: 100%; height: 100%;
+                clicked => { OnboardingState.avatar-index = idx; }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // CTA
+    HorizontalLayout {
+      alignment: center;
+      ActionButton {
+        label: "Continue";
+        is-primary: true;
+        width: 220px;
+        clicked => {
+          AppState.create-profile(OnboardingState.profile-name, false);
+          OnboardingState.step = 2;
+        }
+      }
+    }
+  }
+}
+
+// ─── Step 2: Add Source ───
 component AddSourceStep inherits Rectangle {
   background: transparent;
   min-height: layout.min-height;
@@ -230,14 +406,14 @@ component AddSourceStep inherits Rectangle {
             root.field-user,
             root.field-pass,
           );
-          OnboardingState.step = 2;
+          OnboardingState.step = 3;
         }
       }
     }
   }
 }
 
-// ─── Step 2: Preferences ───
+// ─── Step 3: Preferences ───
 component PreferencesStep inherits Rectangle {
   background: transparent;
   min-height: layout.min-height;
@@ -356,13 +532,13 @@ component PreferencesStep inherits Rectangle {
         label: "Continue";
         width: 180px;
         is-primary: true;
-        clicked => { OnboardingState.step = 3; }
+        clicked => { OnboardingState.step = 4; }
       }
     }
   }
 }
 
-// ─── Step 3: Done ───
+// ─── Step 4: Done ───
 component DoneStep inherits Rectangle {
   background: transparent;
   min-height: layout.min-height;
@@ -439,9 +615,9 @@ export component OnboardingScreen inherits Rectangle {
   }
 
   // M-008: Root FocusScope captures keyboard so D-pad/Enter can advance steps.
-  // Steps 0, 2, 3 have no form fields — Enter triggers the primary action directly.
-  // Step 1 (AddSource): the ActionButton inside AddSourceStep inherits FocusScope
-  // and handles Key.Return itself when focused; this scope provides fallback coverage.
+  // Steps 0, 3, 4 have no form fields — Enter triggers the primary action directly.
+  // Step 1 (CreateProfile): avatar FocusScopes handle Enter internally; name field also captures it.
+  // Step 2 (AddSource): the ActionButton inside AddSourceStep handles Key.Return itself when focused.
   root-focus := FocusScope {
     width: 100%;
     height: 100%;
@@ -451,8 +627,8 @@ export component OnboardingScreen inherits Rectangle {
     key-pressed(event) => {
       if event.text == Key.Return {
         if OnboardingState.step == 0 { OnboardingState.step = 1; return accept; }
-        if OnboardingState.step == 2 { OnboardingState.step = 3; return accept; }
-        if OnboardingState.step == 3 { OnboardingState.complete(); return accept; }
+        if OnboardingState.step == 3 { OnboardingState.step = 4; return accept; }
+        if OnboardingState.step == 4 { OnboardingState.complete(); return accept; }
       }
       // C-024/C-025: Escape goes back one step; step 0 is mandatory — cannot exit
       if event.text == Key.Escape {
@@ -479,9 +655,10 @@ export component OnboardingScreen inherits Rectangle {
           spacing: Theme.spacing-xl;
 
           if OnboardingState.step == 0: WelcomeStep {  }
-          if OnboardingState.step == 1: AddSourceStep {  }
-          if OnboardingState.step == 2: PreferencesStep {  }
-          if OnboardingState.step == 3: DoneStep {  }
+          if OnboardingState.step == 1: CreateProfileStep {  }
+          if OnboardingState.step == 2: AddSourceStep {  }
+          if OnboardingState.step == 3: PreferencesStep {  }
+          if OnboardingState.step == 4: DoneStep {  }
 
           // Step indicator at bottom
           HorizontalLayout {

@@ -285,8 +285,16 @@ export global AppState {
   // Switch back to the previously watched live channel (J-06 previous-channel toggle).
   callback previous-channel();
 
-  // VOD operations
-  callback filter-vod(/* category */ string, /* item-type */ string);
+  // Settings — playback preferences
+  callback set-video-quality(/* label: "Auto"|"1080p"|"720p"|"480p" */ string);
+  callback set-audio-language(/* lang-code: "auto"|"en"|"ar"|"de"|"fr" */ string);
+  callback set-audio-passthrough(/* enabled */ bool);
+  callback set-autoplay-next(/* enabled */ bool);
+  callback set-subtitle-language(/* lang-code: "off"|"en"|"ar"|"de"|"fr" */ string);
+  callback set-startup-screen(/* label */ string);
+  callback open-player-settings();
+
+  // VOD operations (filter-vod is driven internally by category chip callbacks in vod screens)
   callback play-vod(/* vod-id */ string);
   callback open-vod-detail(/* vod-id */ string);
   callback toggle-vod-favorite(/* vod-id */ string);
@@ -315,9 +323,6 @@ export global AppState {
   // Hero operations
   callback hero-play(/* item-id */ string);
   callback hero-detail(/* item-id */ string);
-
-  // Channel overlay
-  callback toggle-channel-overlay();
 
   // Parental controls (Epoch 7)
   callback set-parental-pin(/* new-pin */ string);
