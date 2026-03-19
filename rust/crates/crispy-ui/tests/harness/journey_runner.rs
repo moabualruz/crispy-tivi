@@ -16,7 +16,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use super::{db::TestDb, input::InputEmulation, renderer::ScreenshotHarness, renderer::ScreenshotResult};
+use super::{
+    db::TestDb, input::InputEmulation, renderer::ScreenshotHarness, renderer::ScreenshotResult,
+};
 use slint::platform::Key;
 
 // ---------------------------------------------------------------------------
@@ -262,8 +264,7 @@ impl JourneyRunner {
     /// Also honours the `CRISPY_JOURNEY_FILTER` environment variable; the env
     /// var takes precedence if both are provided.
     pub fn run_filtered(&mut self, filter: &str) {
-        let active_filter = env::var("CRISPY_JOURNEY_FILTER")
-            .unwrap_or_else(|_| filter.to_owned());
+        let active_filter = env::var("CRISPY_JOURNEY_FILTER").unwrap_or_else(|_| filter.to_owned());
         let order = self.topological_order();
         self.execute_in_order(&order, Some(&active_filter));
     }
@@ -419,10 +420,7 @@ impl JourneyRunner {
             }
 
             // Check if any dependency failed
-            let blocking_dep = entry
-                .depends_on
-                .iter()
-                .find(|&&dep| failed.contains(dep));
+            let blocking_dep = entry.depends_on.iter().find(|&&dep| failed.contains(dep));
 
             if let Some(&blocker) = blocking_dep {
                 self.results.push(JourneyRunResult {

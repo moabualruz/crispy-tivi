@@ -8,8 +8,8 @@
 //! `get_shared_window()`.
 
 use slint::platform::{
-    software_renderer::{MinimalSoftwareWindow, RepaintBufferType},
     Platform, WindowAdapter,
+    software_renderer::{MinimalSoftwareWindow, RepaintBufferType},
 };
 use std::{cell::RefCell, rc::Rc, sync::Once, time::Duration};
 
@@ -29,8 +29,7 @@ thread_local! {
 /// different sizes are silently ignored.
 pub fn init_screenshot_platform(width: u32, height: u32) {
     PLATFORM_INIT.call_once(|| {
-        let window =
-            MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
+        let window = MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
         window.set_size(slint::PhysicalSize::new(width, height));
 
         SHARED_WINDOW.with(|cell| {
@@ -40,9 +39,7 @@ pub fn init_screenshot_platform(width: u32, height: u32) {
         struct ScreenshotPlatform(Rc<MinimalSoftwareWindow>);
 
         impl Platform for ScreenshotPlatform {
-            fn create_window_adapter(
-                &self,
-            ) -> Result<Rc<dyn WindowAdapter>, slint::PlatformError> {
+            fn create_window_adapter(&self) -> Result<Rc<dyn WindowAdapter>, slint::PlatformError> {
                 Ok(self.0.clone())
             }
 

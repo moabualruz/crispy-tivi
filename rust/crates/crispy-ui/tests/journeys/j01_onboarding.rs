@@ -8,6 +8,7 @@
 //! Screenshots document what IS rendered — the review pipeline catches
 //! deviations from the spec.
 
+use crate::harness::input::InputEmulation;
 use crate::harness::{db::TestDb, journey_runner::Journey, renderer::ScreenshotHarness};
 use crate::{AppState, AppWindow, OnboardingState};
 use slint::ComponentHandle;
@@ -54,7 +55,8 @@ impl Journey for J01 {
 
         // Type a profile name character by character
         if let Some(ui) = harness.ui::<AppWindow>() {
-            ui.global::<OnboardingState>().set_profile_name("Alex".into());
+            ui.global::<OnboardingState>()
+                .set_profile_name("Alex".into());
             slint::platform::update_timers_and_animations();
         }
 

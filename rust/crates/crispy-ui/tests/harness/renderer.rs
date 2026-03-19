@@ -1,7 +1,7 @@
 use image::{ImageBuffer, Rgba, RgbaImage};
 use serde::Serialize;
-use slint::platform::software_renderer::{MinimalSoftwareWindow, RepaintBufferType};
 use slint::Rgb8Pixel;
+use slint::platform::software_renderer::{MinimalSoftwareWindow, RepaintBufferType};
 use std::{
     cell::{Cell, RefCell},
     env,
@@ -117,8 +117,7 @@ impl ScreenshotHarness {
 
         // --- output dirs ---
         let test_dir = run_dir.join("test").join(journey_id);
-        std::fs::create_dir_all(&test_dir)
-            .expect("failed to create test output directory");
+        std::fs::create_dir_all(&test_dir).expect("failed to create test output directory");
 
         Self {
             journey_id: journey_id.to_owned(),
@@ -182,12 +181,7 @@ impl ScreenshotHarness {
     }
 
     /// Capture + compare against golden. Records a ScreenshotResult.
-    pub fn assert_screenshot(
-        &self,
-        label: &str,
-        journey_step: &str,
-        journey_expectation: &str,
-    ) {
+    pub fn assert_screenshot(&self, label: &str, journey_step: &str, journey_expectation: &str) {
         let n = self.counter.get();
         // capture() increments the counter internally
         let img = self.capture(label, journey_step, journey_expectation);
@@ -200,10 +194,7 @@ impl ScreenshotHarness {
             .join("test")
             .join(&self.journey_id)
             .join(&filename);
-        let golden_path = self
-            .golden_dir
-            .join(&self.journey_id)
-            .join(&filename);
+        let golden_path = self.golden_dir.join(&self.journey_id).join(&filename);
 
         let update_snapshots = env::var("CRISPY_UPDATE_SNAPSHOTS")
             .map(|v| v == "1")
@@ -221,8 +212,7 @@ impl ScreenshotHarness {
                 }
                 Ok(golden_dyn) => {
                     let golden_rgba = golden_dyn.to_rgba8();
-                    let cmp =
-                        Self::compare_images(&golden_rgba, &img, self.pixel_tolerance);
+                    let cmp = Self::compare_images(&golden_rgba, &img, self.pixel_tolerance);
 
                     let diff_path = if !cmp.passed {
                         let dp = self
@@ -232,10 +222,7 @@ impl ScreenshotHarness {
                             .join(format!("{counter_used:03}_{label}_DIFF.png"));
                         std::fs::create_dir_all(dp.parent().unwrap()).ok();
                         if let Err(e) = cmp.diff_image.save(&dp) {
-                            eprintln!(
-                                "[screenshot] failed to save diff {}: {e}",
-                                dp.display()
-                            );
+                            eprintln!("[screenshot] failed to save diff {}: {e}", dp.display());
                         }
                         Some(dp)
                     } else {
@@ -438,7 +425,11 @@ mod tests {
         let test_img: RgbaImage = ImageBuffer::from_pixel(16, 16, Rgba([255, 255, 255, 255]));
         let result = ScreenshotHarness::compare_images(&golden, &test_img, 30.0);
         assert!(!result.passed, "completely different images should fail");
-        assert!(result.diff_pct > 0.9, "diff_pct should be near 1.0, got {}", result.diff_pct);
+        assert!(
+            result.diff_pct > 0.9,
+            "diff_pct should be near 1.0, got {}",
+            result.diff_pct
+        );
     }
 
     #[test]

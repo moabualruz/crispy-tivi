@@ -1,9 +1,6 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use std::{
-    path::Path,
-    process::Command,
-};
+use std::{path::Path, process::Command};
 
 use super::journey_runner::{JourneyRunResult, JourneyStatus};
 use super::renderer::{ScreenshotResult, ScreenshotStatus};
@@ -113,7 +110,9 @@ fn git_short_commit() -> String {
         .ok()
         .and_then(|o| {
             if o.status.success() {
-                String::from_utf8(o.stdout).ok().map(|s| s.trim().to_owned())
+                String::from_utf8(o.stdout)
+                    .ok()
+                    .map(|s| s.trim().to_owned())
             } else {
                 None
             }
@@ -129,7 +128,9 @@ fn git_branch() -> String {
         .ok()
         .and_then(|o| {
             if o.status.success() {
-                String::from_utf8(o.stdout).ok().map(|s| s.trim().to_owned())
+                String::from_utf8(o.stdout)
+                    .ok()
+                    .map(|s| s.trim().to_owned())
             } else {
                 None
             }
@@ -150,7 +151,9 @@ fn relative_path(base: &Path, target: &Path) -> String {
     // Best-effort relative path using stdlib; fall back to absolute string.
     // Strip the common prefix, then prepend one "../" per remaining base component.
     let base_abs = base.canonicalize().unwrap_or_else(|_| base.to_path_buf());
-    let target_abs = target.canonicalize().unwrap_or_else(|_| target.to_path_buf());
+    let target_abs = target
+        .canonicalize()
+        .unwrap_or_else(|_| target.to_path_buf());
 
     let base_comps: Vec<_> = base_abs.components().collect();
     let target_comps: Vec<_> = target_abs.components().collect();
@@ -255,10 +258,7 @@ pub fn generate_manifest(
                         status: screenshot_status_str(&sr.status).to_owned(),
                         diff_pct: sr.diff_pct,
                         paths: ScreenshotPaths {
-                            golden: sr
-                                .golden_path
-                                .as_deref()
-                                .map(|p| relative_path(run_dir, p)),
+                            golden: sr.golden_path.as_deref().map(|p| relative_path(run_dir, p)),
                             test: relative_path(run_dir, &sr.test_path),
                             diff: sr.diff_path.as_deref().map(|p| relative_path(run_dir, p)),
                         },
@@ -445,13 +445,15 @@ pub fn generate_report_html(run_dir: &Path, manifest: &Manifest) {
     ));
 
     // ---- filter buttons ----
-    html.push_str(r#"<div class="filters">
+    html.push_str(
+        r#"<div class="filters">
   <button class="filter-btn active" onclick="filter('all')">All</button>
   <button class="filter-btn" onclick="filter('fail')">Failed</button>
   <button class="filter-btn" onclick="filter('new')">New</button>
   <button class="filter-btn" onclick="filter('pass')">Passed</button>
 </div>
-"#);
+"#,
+    );
 
     // ---- journeys ----
     for journey in &manifest.journeys {
@@ -471,7 +473,10 @@ pub fn generate_report_html(run_dir: &Path, manifest: &Manifest) {
             blocked = journey
                 .blocked_by
                 .as_deref()
-                .map(|b| format!(r#"<span style="font-size:11px;color:#fbbf24">blocked by: {}</span>"#, escape_html(b)))
+                .map(|b| format!(
+                    r#"<span style="font-size:11px;color:#fbbf24">blocked by: {}</span>"#,
+                    escape_html(b)
+                ))
                 .unwrap_or_default(),
         ));
 
@@ -524,14 +529,20 @@ pub fn generate_report_html(run_dir: &Path, manifest: &Manifest) {
                     .paths
                     .golden
                     .as_deref()
-                    .map(|p| format!(r#"<img src="{}" alt="golden" loading="lazy">"#, escape_html(p)))
+                    .map(|p| format!(
+                        r#"<img src="{}" alt="golden" loading="lazy">"#,
+                        escape_html(p)
+                    ))
                     .unwrap_or_else(|| r#"<div class="no-img">no golden</div>"#.into()),
                 test = escape_html(&ss.paths.test),
                 diff = ss
                     .paths
                     .diff
                     .as_deref()
-                    .map(|p| format!(r#"<img src="{}" alt="diff" loading="lazy">"#, escape_html(p)))
+                    .map(|p| format!(
+                        r#"<img src="{}" alt="diff" loading="lazy">"#,
+                        escape_html(p)
+                    ))
                     .unwrap_or_else(|| r#"<div class="no-img">no diff</div>"#.into()),
             ));
         }
@@ -540,7 +551,8 @@ pub fn generate_report_html(run_dir: &Path, manifest: &Manifest) {
     }
 
     // ---- JS for filter toggling ----
-    html.push_str(r#"<script>
+    html.push_str(
+        r#"<script>
 function filter(status) {
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
@@ -555,7 +567,8 @@ function filter(status) {
 </script>
 </body>
 </html>
-"#);
+"#,
+    );
 
     let out_path = run_dir.join("report.html");
     std::fs::write(&out_path, html).expect("failed to write report.html");
@@ -614,7 +627,11 @@ mod tests {
         }
     }
 
-    fn fake_journey(id: &str, status: JourneyStatus, shots: Vec<ScreenshotResult>) -> JourneyRunResult {
+    fn fake_journey(
+        id: &str,
+        status: JourneyStatus,
+        shots: Vec<ScreenshotResult>,
+    ) -> JourneyRunResult {
         JourneyRunResult {
             id: id.to_owned(),
             name: format!("Journey {id}"),
@@ -678,9 +695,18 @@ mod tests {
         assert_eq!(decoded.run_id, "run001");
         assert_eq!(decoded.summary.total_screenshots, 5);
         assert_eq!(decoded.journeys.len(), 3);
-        assert_eq!(decoded.design_refs.design_spec, ".ai/crispy_tivi_design_spec.md");
-        assert_eq!(decoded.design_refs.journey_spec, ".ai/planning/USER-JOURNEYS.md");
-        assert_eq!(decoded.design_refs.theme_tokens, "rust/crates/crispy-ui/ui/globals/theme.slint");
+        assert_eq!(
+            decoded.design_refs.design_spec,
+            ".ai/crispy_tivi_design_spec.md"
+        );
+        assert_eq!(
+            decoded.design_refs.journey_spec,
+            ".ai/planning/USER-JOURNEYS.md"
+        );
+        assert_eq!(
+            decoded.design_refs.theme_tokens,
+            "rust/crates/crispy-ui/ui/globals/theme.slint"
+        );
         assert_eq!(decoded.design_refs.impeccable, ".impeccable.md");
     }
 
@@ -732,15 +758,39 @@ mod tests {
         assert!(report_path.exists(), "report.html should be created");
 
         let content = std::fs::read_to_string(&report_path).unwrap();
-        assert!(content.contains("<!DOCTYPE html>"), "must be valid HTML doc");
-        assert!(content.contains("CrispyTivi Screenshot Report"), "must have title");
+        assert!(
+            content.contains("<!DOCTYPE html>"),
+            "must be valid HTML doc"
+        );
+        assert!(
+            content.contains("CrispyTivi Screenshot Report"),
+            "must have title"
+        );
         assert!(content.contains("run001"), "must include run id");
-        assert!(content.contains("Journey onboarding"), "must include journey name");
-        assert!(content.contains("Journey channel_list"), "must include failing journey");
-        assert!(content.contains(r#"class="stat pass""#), "must have pass stat");
-        assert!(content.contains(r#"class="stat fail""#), "must have fail stat");
-        assert!(content.contains(r#"class="stat new""#), "must have new stat");
+        assert!(
+            content.contains("Journey onboarding"),
+            "must include journey name"
+        );
+        assert!(
+            content.contains("Journey channel_list"),
+            "must include failing journey"
+        );
+        assert!(
+            content.contains(r#"class="stat pass""#),
+            "must have pass stat"
+        );
+        assert!(
+            content.contains(r#"class="stat fail""#),
+            "must have fail stat"
+        );
+        assert!(
+            content.contains(r#"class="stat new""#),
+            "must have new stat"
+        );
         assert!(content.contains("filter("), "must have filter JS");
-        assert!(content.ends_with('\n') || content.contains("</html>"), "must close html tag");
+        assert!(
+            content.ends_with('\n') || content.contains("</html>"),
+            "must close html tag"
+        );
     }
 }

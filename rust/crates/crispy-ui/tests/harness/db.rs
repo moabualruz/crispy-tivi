@@ -20,8 +20,7 @@ fn fixtures_dir() -> PathBuf {
 }
 
 fn load_json<T: serde::de::DeserializeOwned>(path: &PathBuf) -> Result<T, String> {
-    let raw = std::fs::read_to_string(path)
-        .map_err(|e| format!("read {}: {e}", path.display()))?;
+    let raw = std::fs::read_to_string(path).map_err(|e| format!("read {}: {e}", path.display()))?;
     serde_json::from_str(&raw).map_err(|e| format!("parse {}: {e}", path.display()))
 }
 
@@ -219,7 +218,11 @@ impl TestDb {
         let settings = load_settings();
         let seed = load_seed();
 
-        let db = TestDb { service, settings, seed };
+        let db = TestDb {
+            service,
+            settings,
+            seed,
+        };
         db.insert_sources();
         db.insert_profiles();
         db.insert_seed_channels();
@@ -372,10 +375,7 @@ impl TestDb {
 
             for season in &ts.seasons {
                 for ep in &season.episodes {
-                    let ep_id = format!(
-                        "series_{si}_s{:02}e{:02}",
-                        season.number, ep.number
-                    );
+                    let ep_id = format!("series_{si}_s{:02}e{:02}", season.number, ep.number);
                     episodes.push(VodItem {
                         id: ep_id,
                         name: ep.title.clone(),

@@ -1,5 +1,5 @@
-use slint::platform::{Key, WindowEvent};
 use slint::SharedString;
+use slint::platform::{Key, WindowEvent};
 
 use super::renderer::ScreenshotHarness;
 
@@ -50,10 +50,7 @@ fn inject_key(window: &slint::platform::software_renderer::MinimalSoftwareWindow
 }
 
 /// Inject a single character as a key press + release (used by `type_text`).
-fn inject_char(
-    window: &slint::platform::software_renderer::MinimalSoftwareWindow,
-    ch: char,
-) {
+fn inject_char(window: &slint::platform::software_renderer::MinimalSoftwareWindow, ch: char) {
     let text: SharedString = SharedString::from(ch);
     window.dispatch_event(WindowEvent::KeyPressed { text: text.clone() });
     window.dispatch_event(WindowEvent::KeyReleased { text });
@@ -97,8 +94,10 @@ impl InputEmulation for ScreenshotHarness {
     fn press_n(&self, key: Key, n: u32, label_prefix: &str, step: &str) {
         for i in 1..=n {
             let text: SharedString = key.clone().into();
-            self.window().dispatch_event(WindowEvent::KeyPressed { text: text.clone() });
-            self.window().dispatch_event(WindowEvent::KeyReleased { text });
+            self.window()
+                .dispatch_event(WindowEvent::KeyPressed { text: text.clone() });
+            self.window()
+                .dispatch_event(WindowEvent::KeyReleased { text });
             slint::platform::update_timers_and_animations();
 
             let label = format!("{label_prefix}_{i}");
