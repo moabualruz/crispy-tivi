@@ -3,6 +3,9 @@
 use crate::core::events::{KeyCode, KeyData, Modifiers, RawInputEvent};
 use crate::core::types::{Direction, NavDirection};
 
+// Re-export shared types so callers can use either path.
+pub use super::{EventOutcome, KeyAction};
+
 // ---------------------------------------------------------------------------
 // InputConfig
 // ---------------------------------------------------------------------------
@@ -28,31 +31,6 @@ impl Default for InputConfig {
             page_px: 0.0,
         }
     }
-}
-
-// ---------------------------------------------------------------------------
-// KeyAction
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum KeyAction {
-    Navigate(NavDirection),
-    ScrollDelta(f32),
-    PageDelta(f32),
-    JumpToStart,
-    JumpToEnd,
-    Activate,
-    Dismiss,
-}
-
-// ---------------------------------------------------------------------------
-// EventOutcome
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum EventOutcome {
-    Consumed(KeyAction),
-    Unconsumed,
 }
 
 // ---------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 use crate::core::events::{KeyCode, RawInputEvent};
 use crate::core::types::NavDirection;
 
-use super::keyboard::EventOutcome;
+use super::{EventOutcome, KeyAction};
 
 // ---------------------------------------------------------------------------
 // DpadConfig
@@ -132,7 +132,7 @@ impl DpadHandler {
 /// Wraps `handle` for compatibility with InputRouter trait pattern.
 pub fn handle_dpad(handler: &mut DpadHandler, event: &RawInputEvent) -> EventOutcome {
     if let Some(action) = handler.on_key_down(event) {
-        EventOutcome::Consumed(super::keyboard::KeyAction::Navigate(action.direction))
+        EventOutcome::Consumed(KeyAction::Navigate(action.direction))
     } else {
         EventOutcome::Unconsumed
     }

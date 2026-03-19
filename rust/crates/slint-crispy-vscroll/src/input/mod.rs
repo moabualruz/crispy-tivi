@@ -2,9 +2,37 @@
 //!
 //! Defines the `InputRouter` trait and re-exports all input handlers.
 
+use crate::core::types::NavDirection;
+
+// ---------------------------------------------------------------------------
+// KeyAction — shared by dpad, keyboard, gamepad (no feature gate needed)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum KeyAction {
+    Navigate(NavDirection),
+    ScrollDelta(f32),
+    PageDelta(f32),
+    JumpToStart,
+    JumpToEnd,
+    Activate,
+    Dismiss,
+}
+
+// ---------------------------------------------------------------------------
+// EventOutcome — shared by all input handlers
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum EventOutcome {
+    Consumed(KeyAction),
+    Unconsumed,
+}
+
 use crate::core::events::RawInputEvent;
 
-pub use keyboard::{EventOutcome, InputConfig, KeyAction, KeyboardHandler};
+#[cfg(feature = "input-keyboard")]
+pub use keyboard::{InputConfig, KeyboardHandler};
 
 #[cfg(feature = "input-dpad")]
 pub mod dpad;

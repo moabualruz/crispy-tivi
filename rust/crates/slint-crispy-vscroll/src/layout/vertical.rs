@@ -17,11 +17,24 @@ pub fn visible_range_uniform(
     if item_size <= 0.0 || item_count == 0 {
         return 0..0;
     }
+    // Guard against NaN / ±Inf scroll positions — treat as clamped extremes.
+    let scroll_pos = if scroll_pos.is_finite() {
+        scroll_pos
+    } else if scroll_pos > 0.0 {
+        // +Inf → clamp to end of content
+        item_count as f32 * item_size
+    } else {
+        // -Inf or NaN → clamp to start
+        0.0
+    };
+
     let first_visible = (scroll_pos / item_size).floor() as isize;
     let last_visible = ((scroll_pos + viewport_size) / item_size).ceil() as isize;
 
     let start = (first_visible - buffer as isize).max(0) as usize;
     let end = ((last_visible + buffer as isize) as usize).min(item_count);
+    // Guard: if scroll_pos >> content, start may exceed item_count → invert range.
+    let start = start.min(end);
     start..end
 }
 
