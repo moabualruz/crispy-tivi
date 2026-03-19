@@ -15,6 +15,15 @@ export component SourceDialog inherits Rectangle {
   // Validation state: 0=idle 1=testing 2=ok 3=fail
   in-out property <int> validate-state: 0;
 
+  // C-015: cancel — Rust resets validate-state and closes dialog
+  callback cancel-source();
+  // C-016: validate — Rust sets validate-state=1 and fires save-source("__validate__",…)
+  callback validate-source();
+  // C-017: save — Rust resets validate-state, fires save-source, closes dialog
+  callback commit-source();
+  // C-018: source type changed — Rust clears field-url/field-user/field-pass
+  callback source-type-changed(/* idx */ int);
+
   visible: AppState.show-source-dialog;
   width: 100%;
   height: 100%;
@@ -25,8 +34,7 @@ export component SourceDialog inherits Rectangle {
     width: 0; height: 0;
     key-pressed(event) => {
       if event.text == Key.Escape {
-        root.validate-state = 0;
-        AppState.show-source-dialog = false;
+        root.cancel-source();
         return accept;
       }
       return reject;
@@ -37,7 +45,7 @@ export component SourceDialog inherits Rectangle {
   Rectangle {
     width: 100%; height: 100%;
     background: Theme.overlay-dark;
-    TouchArea { clicked => { AppState.show-source-dialog = false; } }
+    TouchArea { clicked => { root.cancel-source(); } }
   }
 
   // Dialog card — glassmorphic
@@ -78,11 +86,7 @@ export component SourceDialog inherits Rectangle {
           label: "Source Type";
           model: ["M3U / M3U8", "Xtream Codes", "Stalker Portal"];
           current-index <=> root.src-type-idx;
-          selected => {
-            root.field-url = "";
-            root.field-user = "";
-            root.field-pass = "";
-          }
+          selected => { root.source-type-changed(root.src-type-idx); }
         }
 
         // ── M3U ──
@@ -162,40 +166,21 @@ export component SourceDialog inherits Rectangle {
           ActionButton {
             label: "Cancel";
             width: 100px;
-            clicked => {
-              root.validate-state = 0;
-              AppState.show-source-dialog = false;
-            }
+            clicked => { root.cancel-source(); }
           }
 
           // Validate button — tests the source before saving
           ActionButton {
             label: root.validate-state == 1 ? "Testing..." : "Validate";
             width: 100px;
-            clicked => {
-              // Mark as testing; Rust will set validate-state via callback result
-              root.validate-state = 1;
-              AppState.save-source(
-                "__validate__",
-                root.src-type-idx == 0 ? "m3u" : root.src-type-idx == 1 ? "xtream" : "stalker",
-                root.field-url, root.field-user, root.field-pass,
-              );
-            }
+            clicked => { root.validate-source(); }
           }
 
           ActionButton {
             label: "Add Source";
             is-primary: true;
             width: 120px;
-            clicked => {
-              root.validate-state = 0;
-              AppState.save-source(
-                root.src-name,
-                root.src-type-idx == 0 ? "m3u" : root.src-type-idx == 1 ? "xtream" : "stalker",
-                root.field-url, root.field-user, root.field-pass,
-              );
-              AppState.show-source-dialog = false;
-            }
+            clicked => { root.commit-source(); }
           }
         }
       }

@@ -58,7 +58,7 @@ impl Screen {
 /// - Xtream Codes: `url`, `username`, `password` required
 /// - Stalker Portal: `url`, `mac_address` required
 /// - `epg_url` is optional for all types
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SourceInput {
     /// Human-readable label chosen by the user.
     pub name: String,
@@ -74,6 +74,20 @@ pub struct SourceInput {
     pub mac_address: String,
     /// Optional external EPG source URL.
     pub epg_url: String,
+}
+
+impl std::fmt::Debug for SourceInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SourceInput")
+            .field("name", &self.name)
+            .field("source_type", &self.source_type)
+            .field("url", &self.url)
+            .field("username", &self.username)
+            .field("password", &"[REDACTED]")
+            .field("mac_address", &self.mac_address)
+            .field("epg_url", &self.epg_url)
+            .finish()
+    }
 }
 
 // ── LoadingKind ─────────────────────────────────────────────────────────────
@@ -261,6 +275,12 @@ pub enum NormalEvent {
     },
     /// Persist a user preference (key/value) to the database.
     SavePreference { key: String, value: String },
+    /// Export a full app backup (sources, settings, profiles) to a file.
+    /// Handled by BackupService in crispy-core (Epoch 13).
+    ExportBackup,
+    /// Import a backup file and restore sources, settings, and profiles.
+    /// Handled by BackupService in crispy-core (Epoch 13).
+    ImportBackup,
 }
 
 // ── DataEvent ────────────────────────────────────────────────────────────────

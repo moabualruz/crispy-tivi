@@ -191,10 +191,7 @@ export component CastPicker {
 
           for dev[i] in root.devices: DeviceRow {
             device: dev;
-            selected(id) => {
-              root.device-selected(id);
-              root.show-picker = false;
-            }
+            selected(id) => { root.device-selected(id); }
           }
 
           // Empty state

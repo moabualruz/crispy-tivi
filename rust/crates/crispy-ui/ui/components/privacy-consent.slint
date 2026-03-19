@@ -11,13 +11,22 @@ export component PrivacyConsent inherits Rectangle {
   visible: AppState.show-privacy-consent;
   width: 100%; height: 100%;
 
+  // C-007: tracks whether the full policy text panel is open within this overlay.
+  // "View Full Privacy Policy" reveals it; "Back" hides it. No navigation away.
+  property <bool> show-policy-text: false;
+
   // M-054: Root focus trap — grabs focus when visible so no key events leak to
   // layers below. Consent is mandatory; Escape is intentionally rejected here
   // (no dismiss — user must Accept or Decline explicitly per design rules).
   privacy-trap := FocusScope {
     width: 0; height: 0;
     key-pressed(event) => {
-      // Trap Escape — consent cannot be bypassed by keyboard
+      // C-007: if policy text panel is open, Escape closes it back to summary view
+      if event.text == Key.Escape && root.show-policy-text {
+        root.show-policy-text = false;
+        return accept;
+      }
+      // Otherwise trap Escape — consent cannot be bypassed by keyboard
       if event.text == Key.Escape { return accept; }
       return reject;
     }
@@ -76,16 +85,13 @@ export component PrivacyConsent inherits Rectangle {
         }
       }
 
-      // "View Full Policy" link-style button
-      view-btn := FocusScope {
+      // C-007: "View Full Policy" — toggles inline policy text within this overlay.
+      // No navigation away; user stays in consent flow.
+      if !root.show-policy-text: view-btn := FocusScope {
         height: 32px;
         width: 100%;
         key-pressed(event) => {
-          if event.text == Key.Return {
-            // Rust handles opening the policy URL via a dedicated callback
-            AppState.navigate(7); // navigate to settings where policy is displayed
-            return accept;
-          }
+          if event.text == Key.Return { root.show-policy-text = true; return accept; }
           return reject;
         }
         Rectangle {
@@ -102,7 +108,57 @@ export component PrivacyConsent inherits Rectangle {
             horizontal-alignment: center;
             vertical-alignment: center;
           }
-          TouchArea { clicked => { AppState.navigate(7); } }
+          TouchArea { clicked => { root.show-policy-text = true; } }
+        }
+      }
+
+      // C-007: Inline policy text panel — replaces summary bullets when open.
+      // "Back" returns to the summary + button view.
+      if root.show-policy-text: VerticalLayout {
+        spacing: Theme.spacing-sm;
+        vertical-stretch: 1;
+
+        back-btn := FocusScope {
+          height: 32px;
+          width: 100%;
+          key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Escape {
+              root.show-policy-text = false;
+              return accept;
+            }
+            return reject;
+          }
+          Rectangle {
+            width: 100%; height: 100%;
+            background: back-btn.has-focus ? Theme.focus-bg : transparent;
+            border-radius: Theme.radius-sm;
+            border-width: back-btn.has-focus ? Theme.focus-ring-width : 0px;
+            border-color: back-btn.has-focus ? Theme.focus-ring : transparent;
+            Text {
+              text: "← Back";
+              color: Theme.accent;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-caption;
+              horizontal-alignment: left;
+              vertical-alignment: center;
+            }
+            TouchArea { clicked => { root.show-policy-text = false; } }
+          }
+        }
+
+        ScrollView {
+          vertical-stretch: 1;
+          VerticalLayout {
+            spacing: Theme.spacing-sm;
+            padding: Theme.spacing-xs;
+            Text {
+              text: "Privacy Policy\n\nEffective date: 2025-01-01\n\nCrispyTivi stores all your media sources, watch history, and preferences locally on your device. No personal data is transmitted to CrispyTivi servers unless you explicitly opt in to crash reporting in Settings.\n\nCrash reports, if enabled, contain anonymised diagnostic data only — no media URLs, credentials, or watch history.\n\nCrispyTivi never sells, shares, or monetises your data. Third-party IPTV sources you add are subject to their own privacy terms.\n\nYou may delete all local data at any time from Settings → Storage → Clear All Data.";
+              color: Theme.text-secondary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-small;
+              wrap: word-wrap;
+            }
+          }
         }
       }
 

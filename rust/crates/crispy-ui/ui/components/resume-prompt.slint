@@ -13,6 +13,8 @@ export component ResumePrompt {
   in property <string> resume-position: "";
   callback resume();
   callback start-over();
+  // M-005: fired when user dismisses the prompt without choosing an action
+  callback dismissed();
 
   // Auto-dismiss timer — ticks from 0 to 100 over 10 000ms
   property <float> countdown: 0.0;
@@ -69,8 +71,9 @@ export component ResumePrompt {
 
       key-pressed(event) => {
         if event.text == Key.Escape || event.text == Key.Back {
+          // M-005: Escape dismisses the prompt — does not trigger start-over
           root.show-prompt = false;
-          root.start-over();
+          root.dismissed();
           return accept;
         }
         return reject;

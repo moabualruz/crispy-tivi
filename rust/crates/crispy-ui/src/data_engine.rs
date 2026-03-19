@@ -858,6 +858,12 @@ impl DataEngine {
                     }
                 }
             }
+            NormalEvent::ExportBackup => {
+                warn!("Backup export not yet implemented (Epoch 8)");
+            }
+            NormalEvent::ImportBackup => {
+                warn!("Backup import not yet implemented (Epoch 8)");
+            }
         }
     }
 

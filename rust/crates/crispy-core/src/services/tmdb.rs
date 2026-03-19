@@ -303,8 +303,8 @@ impl TmdbService {
     ) -> Result<TmdbResult, TmdbError> {
         let segment = media_type_segment(media_type);
         let url = format!(
-            "{}/{segment}/{tmdb_id}?api_key={}&append_to_response=credits",
-            self.config.base_url, self.config.api_key,
+            "{}/{segment}/{tmdb_id}?append_to_response=credits",
+            self.config.base_url,
         );
         let detail = self.fetch_detail(&url).await?;
         Ok(detail_to_result(detail, MatchTier::ExternalId))
@@ -346,9 +346,8 @@ impl TmdbService {
         };
 
         let mut url = format!(
-            "{}/{segment}?api_key={}&query={}&include_adult=false",
+            "{}/{segment}?query={}&include_adult=false",
             self.config.base_url,
-            self.config.api_key,
             urlencoding::encode(title),
         );
         if let Some(y) = year {
@@ -387,7 +386,14 @@ impl TmdbService {
     ) -> Result<T, TmdbError> {
         self.limiter.lock().await.acquire().await;
 
-        let response = self.http.get(url).send().await?;
+        // Use Authorization header instead of api_key query param so the key
+        // never appears in URLs (which reqwest logs at DEBUG level).
+        let response = self
+            .http
+            .get(url)
+            .header("Authorization", format!("Bearer {}", self.config.api_key))
+            .send()
+            .await?;
         let status = response.status();
 
         if status.is_success() {

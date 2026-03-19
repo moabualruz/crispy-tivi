@@ -44,7 +44,7 @@ export component TopNav inherits Rectangle {
       NavItem {
         label: "For You";
         active: AppState.active-screen == 0;
-        clicked => { AppState.active-screen = 0; AppState.navigate(0); }
+        clicked => { AppState.navigate(0); }
       }
     }
     VerticalLayout {
@@ -52,7 +52,7 @@ export component TopNav inherits Rectangle {
       NavItem {
         label: "Live";
         active: AppState.active-screen == 1;
-        clicked => { AppState.active-screen = 1; AppState.navigate(1); }
+        clicked => { AppState.navigate(1); }
       }
     }
     VerticalLayout {
@@ -60,7 +60,7 @@ export component TopNav inherits Rectangle {
       NavItem {
         label: "Guide";
         active: AppState.active-screen == 2;
-        clicked => { AppState.active-screen = 2; AppState.navigate(2); }
+        clicked => { AppState.navigate(2); }
       }
     }
     VerticalLayout {
@@ -68,7 +68,7 @@ export component TopNav inherits Rectangle {
       NavItem {
         label: "Movies";
         active: AppState.active-screen == 3;
-        clicked => { AppState.active-screen = 3; AppState.navigate(3); }
+        clicked => { AppState.navigate(3); }
       }
     }
     VerticalLayout {
@@ -76,7 +76,7 @@ export component TopNav inherits Rectangle {
       NavItem {
         label: "Shows";
         active: AppState.active-screen == 4;
-        clicked => { AppState.active-screen = 4; AppState.navigate(4); }
+        clicked => { AppState.navigate(4); }
       }
     }
     VerticalLayout {
@@ -84,7 +84,7 @@ export component TopNav inherits Rectangle {
       NavItem {
         label: "Library";
         active: AppState.active-screen == 6;
-        clicked => { AppState.active-screen = 6; AppState.navigate(6); }
+        clicked => { AppState.navigate(6); }
       }
     }
     VerticalLayout {
@@ -92,7 +92,7 @@ export component TopNav inherits Rectangle {
       NavItem {
         label: "Settings";
         active: AppState.active-screen == 7;
-        clicked => { AppState.active-screen = 7; AppState.navigate(7); }
+        clicked => { AppState.navigate(7); }
       }
     }
 
@@ -104,7 +104,7 @@ export component TopNav inherits Rectangle {
       alignment: center;
       SearchButton {
         text: "Search";
-        clicked => { AppState.active-screen = 5; AppState.navigate(5); }
+        clicked => { AppState.navigate(5); }
       }
     }
   }

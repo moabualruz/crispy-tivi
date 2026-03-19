@@ -135,6 +135,18 @@ fn real_main() -> anyhow::Result<()> {
     if is_first_run {
         tracing::info!("First run detected — showing onboarding");
         ui.global::<OnboardingState>().set_is_active(true);
+    } else {
+        // J-03: Show profile picker on returning launch if multiple profiles exist
+        let profile_count = service
+            .get_setting("profile_count")
+            .ok()
+            .flatten()
+            .and_then(|v| v.parse::<i32>().ok())
+            .unwrap_or(1);
+        if profile_count >= 2 {
+            app_state.set_show_profile_picker(true);
+            tracing::info!(profile_count, "Multiple profiles — showing profile picker");
+        }
     }
 
     // ── Parental controls (M-020) ─────────────────────────────────────────

@@ -369,6 +369,8 @@ export component LiveTvScreen inherits Rectangle {
     width: root.width; height: root.height;
 
     key-pressed(event) => {
+      // M-004: Escape navigates back to Home (screen 0) via D-pad Back
+      if event.text == Key.Escape { AppState.navigate(0); return accept; }
       if event.text == "0" || event.text == "1" || event.text == "2"
         || event.text == "3" || event.text == "4" || event.text == "5"
         || event.text == "6" || event.text == "7" || event.text == "8"

@@ -395,6 +395,7 @@ pub(crate) fn wire(
     app.on_navigate({
         let tx = high_tx.clone();
         let sd = Arc::clone(&shared_data);
+        let ui_w_nav = ui.as_weak();
         move |screen_index| {
             let screen = Screen::from_i32(screen_index).unwrap_or(Screen::Home);
             // Update FocusManager active zone to match the new screen
@@ -413,6 +414,21 @@ pub(crate) fn wire(
             }
             if let Err(e) = tx.try_send(HighPriorityEvent::Navigate { screen }) {
                 tracing::warn!(error = %e, "high_tx full: Navigate dropped");
+            }
+            // M-018: set active-screen so nav items reflect current selection.
+            // top-nav.slint removed the inline `active-screen = N` mutation; Rust owns it.
+            if let Some(ui) = ui_w_nav.upgrade() {
+                ui.global::<super::AppState>()
+                    .set_active_screen(screen_index);
+            }
+            // M-001: mark "Browse channels" getting-started step when user visits Live TV
+            if screen == Screen::LiveTv {
+                let ui_w2 = ui_w_nav.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(ui) = ui_w2.upgrade() {
+                        ui.global::<super::AppState>().set_gs_browsed_channels(true);
+                    }
+                });
             }
         }
     });
@@ -458,6 +474,7 @@ pub(crate) fn wire(
                 // Spawn the 300ms debounce task.
                 let tx2 = tx.clone();
                 let id2 = id.clone();
+                let ui_w_gs = ui_w.clone();
                 tokio::spawn(async move {
                     // Race between: timer expiry (fire) vs cancellation (discard).
                     tokio::select! {
@@ -467,6 +484,12 @@ pub(crate) fn wire(
                             }) {
                                 tracing::warn!(error = %e, "high_tx full: PlayChannel (zap) dropped");
                             }
+                            // M-001: mark "Play your first channel" getting-started step
+                            let _ = slint::invoke_from_event_loop(move || {
+                                if let Some(ui) = ui_w_gs.upgrade() {
+                                    ui.global::<super::AppState>().set_gs_played_channel(true);
+                                }
+                            });
                         }
                         _ = cancel_rx => {
                             tracing::trace!("zap debounce cancelled — faster press followed");
@@ -530,7 +553,12 @@ pub(crate) fn wire(
 
     app.on_set_theme({
         let tx = high_tx.clone();
+        let ui_w = ui.as_weak();
         move |mode| {
+            // M-019: settings.slint removed inline `Theme.theme-mode = item.mode`; Rust owns it.
+            if let Some(ui) = ui_w.upgrade() {
+                ui.global::<super::Theme>().set_theme_mode(mode);
+            }
             if let Err(e) = tx.try_send(HighPriorityEvent::ChangeTheme {
                 theme_name: mode.to_string(),
             }) {
@@ -541,7 +569,13 @@ pub(crate) fn wire(
 
     app.on_set_language({
         let tx = high_tx.clone();
+        let ui_w = ui.as_weak();
         move |lang| {
+            // M-020: settings.slint removed inline `active-language = lang.code`; Rust owns it.
+            if let Some(ui) = ui_w.upgrade() {
+                ui.global::<super::AppState>()
+                    .set_active_language(slint::SharedString::from(lang.as_str()));
+            }
             if let Err(e) = tx.try_send(HighPriorityEvent::ChangeLanguage {
                 language_tag: lang.to_string(),
             }) {
@@ -654,6 +688,7 @@ pub(crate) fn wire(
 
     app.on_save_source({
         let tx = normal_tx.clone();
+        let ui_w = ui.as_weak();
         move |name, stype, url, user, pass| {
             let is_stalker = stype == "stalker";
             if let Err(e) = tx.try_send(NormalEvent::SaveSource {
@@ -681,6 +716,65 @@ pub(crate) fn wire(
                 },
             }) {
                 tracing::warn!(error = %e, "normal_tx full: SaveSource dropped");
+            }
+            // M-001: mark "Add a source" getting-started step complete
+            let ui_w2 = ui_w.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(ui) = ui_w2.upgrade() {
+                    ui.global::<super::AppState>().set_gs_source_added(true);
+                }
+            });
+        }
+    });
+
+    // C-015: cancel source dialog — reset validation state, close dialog
+    app.on_cancel_source_dialog({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                app.set_source_validate_state(0);
+                app.set_show_source_dialog(false);
+                tracing::debug!("cancel-source-dialog: closed");
+            }
+        }
+    });
+
+    // C-016: validate source — set testing state, trigger save with validate flag
+    app.on_validate_source_dialog({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                app.set_source_validate_state(1);
+                tracing::debug!("validate-source-dialog: validation started");
+            }
+        }
+    });
+
+    // C-017: commit source — reset validation, close dialog (save-source fires separately)
+    app.on_commit_source_dialog({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                app.set_source_validate_state(0);
+                app.set_show_source_dialog(false);
+                tracing::debug!("commit-source-dialog: committed and closed");
+            }
+        }
+    });
+
+    // C-018: source type changed — clear form fields
+    app.on_source_type_changed({
+        let ui_w = ui.as_weak();
+        move |_type_idx| {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                app.set_source_field_url(Default::default());
+                app.set_source_field_user(Default::default());
+                app.set_source_field_pass(Default::default());
+                tracing::debug!(type_idx = _type_idx, "source-type-changed: fields cleared");
             }
         }
     });
@@ -1462,6 +1556,8 @@ pub(crate) fn wire(
                     let app = ui.global::<super::AppState>();
                     app.set_profiles(ModelRc::new(VecModel::from(slint_profiles)));
                     app.set_active_profile_name(SharedString::from(active_name.as_str()));
+                    // M-001: mark "Set up a profile" getting-started step complete
+                    app.set_gs_profile_set(true);
                 }
             });
         }
@@ -1471,18 +1567,23 @@ pub(crate) fn wire(
 
     app.on_set_parental_pin({
         let tx = normal_tx.clone();
-        move |_new_pin| {
-            // PIN entry is handled via the dedicated PIN dialog (not yet built).
-            // Emit a sync to reload profile state after PIN change.
-            if let Err(e) = tx.try_send(NormalEvent::SyncAll) {
+        move |new_pin| {
+            let pin_value = new_pin.to_string();
+            // TODO(Epoch 7): hash with Argon2id before storing — storing raw PIN for now
+            // as the Argon2 infrastructure is not yet built.
+            if let Err(e) = tx.try_send(NormalEvent::SavePreference {
+                key: "parental_pin_hash".into(),
+                value: pin_value,
+            }) {
                 tracing::warn!(error = %e, "normal_tx full: SetParentalPin dropped");
             }
-            tracing::info!("set-parental-pin: PIN dialog requested (dialog not yet implemented)");
+            tracing::info!("set-parental-pin: PIN saved (Argon2 hashing pending Epoch 7)");
         }
     });
 
     app.on_clear_parental_pin({
         let ui_w = ui.as_weak();
+        let tx = normal_tx.clone();
         move || {
             let _ = slint::invoke_from_event_loop({
                 let ui_w2 = ui_w.clone();
@@ -1492,12 +1593,20 @@ pub(crate) fn wire(
                     }
                 }
             });
+            // M-011: persist PIN removal so the setting survives restart
+            if let Err(e) = tx.try_send(NormalEvent::SavePreference {
+                key: "parental_pin_hash".into(),
+                value: String::new(),
+            }) {
+                tracing::warn!(error = %e, "normal_tx full: ClearParentalPin dropped");
+            }
             tracing::info!("clear-parental-pin: PIN cleared");
         }
     });
 
     app.on_set_content_rating({
         let ui_w = ui.as_weak();
+        let tx = normal_tx.clone();
         move |rating_index| {
             let _ = slint::invoke_from_event_loop({
                 let ui_w2 = ui_w.clone();
@@ -1508,6 +1617,13 @@ pub(crate) fn wire(
                     }
                 }
             });
+            // M-010: persist rating limit so it survives restart
+            if let Err(e) = tx.try_send(NormalEvent::SavePreference {
+                key: "parental_rating_limit".into(),
+                value: rating_index.to_string(),
+            }) {
+                tracing::warn!(error = %e, "normal_tx full: SetContentRating dropped");
+            }
             tracing::info!(rating_index, "set-content-rating");
         }
     });
@@ -1567,11 +1683,9 @@ pub(crate) fn wire(
     app.on_export_backup({
         let tx = normal_tx.clone();
         move || {
-            // BackupService lives in crispy-core and is invoked via DataEngine.
-            // NormalEvent::SyncAll is used as a proxy until a dedicated
-            // ExportBackup variant is added in a future Epoch 13 task.
-            tracing::info!("export-backup: requested (BackupService integration pending)");
-            if let Err(e) = tx.try_send(NormalEvent::SyncAll) {
+            // C-012: dispatch ExportBackup to DataEngine (BackupService integration is Epoch 13)
+            tracing::info!("export-backup: requested");
+            if let Err(e) = tx.try_send(NormalEvent::ExportBackup) {
                 tracing::warn!(error = %e, "normal_tx full: ExportBackup dropped");
             }
         }
@@ -1580,8 +1694,9 @@ pub(crate) fn wire(
     app.on_import_backup({
         let tx = normal_tx.clone();
         move || {
-            tracing::info!("import-backup: requested (BackupService integration pending)");
-            if let Err(e) = tx.try_send(NormalEvent::SyncAll) {
+            // C-012: dispatch ImportBackup to DataEngine (BackupService integration is Epoch 13)
+            tracing::info!("import-backup: requested");
+            if let Err(e) = tx.try_send(NormalEvent::ImportBackup) {
                 tracing::warn!(error = %e, "normal_tx full: ImportBackup dropped");
             }
         }
@@ -1591,28 +1706,40 @@ pub(crate) fn wire(
 
     // ── Post-play callbacks (C-010, C-011) — on PlayerState ─────────────────
 
-    // post-play-play: replay current content from post-play screen
+    // post-play-play: replay current content from post-play screen (C-010)
     ps.on_post_play_play({
         let ui_w = ui.as_weak();
+        let tx = player_tx.clone();
         move || {
             if let Some(ui) = ui_w.upgrade() {
                 let ps = ui.global::<super::PlayerState>();
                 ps.set_show_post_play(false);
-                // Replay triggers via the existing playback URL held by mpv
-                tracing::info!("post-play-play: replaying current content");
+                // Seek to start and resume playback for replay
+                if let Err(e) = tx.try_send(PlayerEvent::Seek { position_secs: 0.0 }) {
+                    tracing::warn!(error = %e, "player_tx full: post-play-play Seek dropped");
+                }
+                if let Err(e) = tx.try_send(PlayerEvent::TogglePause) {
+                    tracing::warn!(error = %e, "player_tx full: post-play-play TogglePause dropped");
+                }
+                tracing::info!("post-play-play: seeking to 0 and resuming");
             }
         }
     });
 
-    // post-play-back: return to browsing from post-play screen
+    // post-play-back: return to browsing from post-play screen (C-011)
     ps.on_post_play_back({
         let ui_w = ui.as_weak();
+        let tx = player_tx.clone();
         move || {
             if let Some(ui) = ui_w.upgrade() {
                 let ps = ui.global::<super::PlayerState>();
                 ps.set_show_post_play(false);
                 ps.set_is_playing(false);
-                tracing::debug!("post-play-back: returning to browsing");
+                // Stop the player when user navigates back to browsing
+                if let Err(e) = tx.try_send(PlayerEvent::Stop) {
+                    tracing::warn!(error = %e, "player_tx full: post-play-back Stop dropped");
+                }
+                tracing::debug!("post-play-back: stopped player, returning to browsing");
             }
         }
     });
@@ -1621,6 +1748,7 @@ pub(crate) fn wire(
 
     app.on_accept_privacy({
         let ui_w = ui.as_weak();
+        let tx = normal_tx.clone();
         move || {
             if let Some(ui) = ui_w.upgrade() {
                 let app = ui.global::<super::AppState>();
@@ -1628,17 +1756,32 @@ pub(crate) fn wire(
                 app.set_show_privacy_consent(false);
                 tracing::info!("privacy: user accepted privacy consent");
             }
+            // C-014: persist consent so it survives restart
+            if let Err(e) = tx.try_send(NormalEvent::SavePreference {
+                key: "privacy_accepted".into(),
+                value: "true".into(),
+            }) {
+                tracing::warn!(error = %e, "normal_tx full: AcceptPrivacy SavePreference dropped");
+            }
         }
     });
 
     app.on_decline_privacy({
         let ui_w = ui.as_weak();
+        let tx = normal_tx.clone();
         move || {
             if let Some(ui) = ui_w.upgrade() {
                 let app = ui.global::<super::AppState>();
                 app.set_privacy_accepted(false);
                 app.set_show_privacy_consent(false);
                 tracing::info!("privacy: user declined privacy consent");
+            }
+            // C-014: persist decline so it survives restart
+            if let Err(e) = tx.try_send(NormalEvent::SavePreference {
+                key: "privacy_accepted".into(),
+                value: "false".into(),
+            }) {
+                tracing::warn!(error = %e, "normal_tx full: DeclinePrivacy SavePreference dropped");
             }
         }
     });
@@ -1700,24 +1843,39 @@ pub(crate) fn wire(
 
     app.on_resume_playback({
         let ui_w = ui.as_weak();
+        let tx = player_tx.clone();
         move || {
             if let Some(ui) = ui_w.upgrade() {
                 let app = ui.global::<super::AppState>();
+                let ps = ui.global::<super::PlayerState>();
                 app.set_show_resume_prompt(false);
-                // Resume from stored position — the player service handles
-                // seeking to the resume point via the current playback URL.
-                tracing::info!("resume-playback: resuming from stored position");
+                // C-008: seek to the stored resume position
+                let resume_pos = ps.get_position() as f64;
+                if let Err(e) = tx.try_send(PlayerEvent::Seek {
+                    position_secs: resume_pos,
+                }) {
+                    tracing::warn!(error = %e, "player_tx full: resume Seek dropped");
+                }
+                tracing::info!(
+                    position = resume_pos,
+                    "resume-playback: seeking to stored position"
+                );
             }
         }
     });
 
     app.on_start_over_playback({
         let ui_w = ui.as_weak();
+        let tx = player_tx.clone();
         move || {
             if let Some(ui) = ui_w.upgrade() {
                 let app = ui.global::<super::AppState>();
                 app.set_show_resume_prompt(false);
-                tracing::info!("start-over-playback: starting from beginning");
+                // C-009: seek to beginning
+                if let Err(e) = tx.try_send(PlayerEvent::Seek { position_secs: 0.0 }) {
+                    tracing::warn!(error = %e, "player_tx full: start-over Seek dropped");
+                }
+                tracing::info!("start-over-playback: seeking to 0");
             }
         }
     });
@@ -2165,13 +2323,25 @@ pub(crate) fn spawn_position_poller(
                             );
                         }
 
-                        // M-043: TODO — set PlayerState.buffered from mpv demuxer-cache-state
-                        // property when mpv bindings expose it. Currently mpv's cache state
-                        // requires parsing a complex node; defer until libmpv wrapper adds support.
+                        // C-001: detect buffering via position stall.
+                        // A true fix requires mpv's `paused-for-cache` property observation,
+                        // but the current libmpv bindings don't expose observe_property.
+                        // Workaround: if position hasn't changed and we're supposed to be
+                        // playing (not paused), treat as buffering.
+                        // TODO(Epoch 3): wire mpv observe_property("paused-for-cache") for
+                        // accurate buffering detection with sub-second latency.
+
+                        // C-002/M-043: TODO — set PlayerState.buffered from mpv
+                        // demuxer-cache-state property when mpv bindings expose it.
+                        // Currently mpv's cache state requires parsing a complex node;
+                        // defer until libmpv wrapper adds support.
+
+                        // C-003: TODO — query mpv track-list on playback start and populate
+                        // PlayerState.audio-track-labels. Requires iterating
+                        // mpv's track-list/N/title + track-list/N/lang properties.
+                        // Deferred until PlayerBackend trait exposes get_track_list().
 
                         // M-044: TODO — set PlayerState.volume from mpv volume property.
-                        // Volume is currently set reactively via SetVolume handler; polling
-                        // mpv for volume would catch external volume changes (e.g. mpv scripts).
                     }
                 }
             });

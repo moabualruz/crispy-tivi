@@ -119,9 +119,17 @@ pub struct VideoUnderlay {
     height: u32,
 }
 
-// SAFETY: VideoUnderlay owns the raw pointers and manages their lifetimes.
-// The mpv render context must only ever be used from the GL thread — the
-// caller is responsible for this invariant.
+// SAFETY: `VideoUnderlay` contains raw pointers (`*mut mpv_render_context`) and a
+// `glow::Context` (which wraps raw GL function pointers) — neither is `Send`/`Sync`
+// by default. The safety invariant is enforced by the caller at the architectural level:
+// all methods (`new`, `render`, `draw_underlay`, `needs_redraw`, `drop`) MUST be called
+// exclusively from the Slint GL thread (the thread on which the OpenGL context is current).
+// No method is ever called concurrently — Slint's rendering pipeline is single-threaded
+// with respect to GL operations. The `needs_redraw` `AtomicBool` is the only field
+// accessed from a different thread (the mpv update callback), and it uses `Acquire`/`Release`
+// ordering to ensure visibility without data races. Ownership of the raw pointers is
+// exclusive: libmpv does not retain a reference to `mpv_render_context` after
+// `mpv_render_context_free` is called in `Drop`, which runs on the GL thread.
 unsafe impl Send for VideoUnderlay {}
 unsafe impl Sync for VideoUnderlay {}
 

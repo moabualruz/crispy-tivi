@@ -81,7 +81,11 @@ export component AppWindow inherits Window {
   property <length> screen-layer-h: root.height;
 
   // OsdLayer — M-019: hidden when an overlay is showing (mutually exclusive with OverlayLayer)
+  // C-006: also hidden when mandatory overlays (privacy consent, PIN dialog, guided tour,
+  // attribution) are active — prevents key events leaking through to OSD controls.
   property <bool>   show-osd-layer: PlayerState.is-playing && !OnboardingState.is-active &&
+    !AppState.show-privacy-consent && !AppState.show-pin-dialog &&
+    !AppState.show-guided-tour && !AppState.show-attribution &&
     !(AppState.show-vod-detail || AppState.show-series-detail ||
       AppState.show-source-dialog || AppState.show-profile-menu || AppState.show-profile-picker ||
       AppState.show-cast-picker);
@@ -108,6 +112,8 @@ export component AppWindow inherits Window {
     width: 0; height: 0;
     key-pressed(event) => {
       if event.text == Key.F12 { DiagnosticsState.toggle(); return accept; }
+      // M-006: pressing Up from any screen reveals TopNav so Settings (gear icon) is reachable
+      if event.text == Key.UpArrow { AppState.nav-visible = true; return reject; }
       if event.text == Key.Escape {
         if DiagnosticsState.visible { DiagnosticsState.visible = false; return accept; }
         if AppState.show-profile-picker { AppState.show-profile-picker = false; return accept; }
@@ -303,7 +309,16 @@ export component AppWindow inherits Window {
       changed visible => { if self.visible { series-detail-fs.focus(); } }
     }
 
-    SourceDialog {}
+    SourceDialog {
+      validate-state <=> AppState.source-validate-state;
+      field-url <=> AppState.source-field-url;
+      field-user <=> AppState.source-field-user;
+      field-pass <=> AppState.source-field-pass;
+      cancel-source => { AppState.cancel-source-dialog(); }
+      validate-source => { AppState.validate-source-dialog(); }
+      commit-source => { AppState.commit-source-dialog(); }
+      source-type-changed(idx) => { AppState.source-type-changed(idx); }
+    }
     ProfileMenu {
       visible: AppState.show-profile-menu;
       close => { AppState.show-profile-menu = false; }
@@ -335,6 +350,8 @@ export component AppWindow inherits Window {
     resume-position: AppState.resume-position-label;
     resume => { AppState.show-resume-prompt = false; AppState.resume-playback(); }
     start-over => { AppState.show-resume-prompt = false; AppState.start-over-playback(); }
+    // M-005: dismissed fires when Escape is pressed — just close the prompt, no action
+    dismissed => { AppState.show-resume-prompt = false; }
   }
   // Sync progress overlay — visible only while sync is in progress (0 < progress < 1)
   if AppState.sync-progress > 0.0 && AppState.sync-progress < 1.0: Rectangle {

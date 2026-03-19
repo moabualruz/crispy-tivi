@@ -31,7 +31,14 @@ pub struct MpvBackend {
     callbacks: Arc<Mutex<Callbacks>>,
 }
 
-// Safety: mpv_handle is thread-safe per mpv documentation (commands can be sent from any thread)
+// SAFETY: `MpvBackend` contains a raw `*mut mpv_handle` which is not `Send`/`Sync` by default.
+// The mpv C API explicitly documents that `mpv_handle` is thread-safe: commands, property reads,
+// and property writes may be issued from any thread concurrently. The raw pointer is never
+// aliased mutably outside of libmpv's own internal locking. All Rust-side mutable state
+// (`state`, `speed`, `callbacks`) is protected by `Arc<Mutex<_>>`, so concurrent access
+// from multiple threads cannot cause data races. Rendering is serialized externally by the
+// Slint event loop — `mpv_render_context` methods are never called concurrently with command
+// submission from this struct.
 unsafe impl Send for MpvBackend {}
 unsafe impl Sync for MpvBackend {}
 

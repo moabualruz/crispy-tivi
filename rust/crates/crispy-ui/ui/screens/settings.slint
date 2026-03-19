@@ -968,10 +968,7 @@ export component SettingsScreen inherits Rectangle {
               ]: FilterChip {
                 label: item.label;
                 active: Theme.theme-mode == item.mode;
-                activated => {
-                  Theme.theme-mode = item.mode;
-                  AppState.set-theme(item.mode);
-                }
+                activated => { AppState.set-theme(item.mode); }
               }
             }
           }
@@ -998,10 +995,7 @@ export component SettingsScreen inherits Rectangle {
               ]: FilterChip {
                 label: lang.label;
                 active: AppState.active-language == lang.code;
-                activated => {
-                  AppState.set-language(lang.code);
-                  AppState.active-language = lang.code;
-                }
+                activated => { AppState.set-language(lang.code); }
               }
             }
           }

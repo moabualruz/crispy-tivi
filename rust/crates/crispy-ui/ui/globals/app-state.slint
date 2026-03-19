@@ -275,6 +275,15 @@ export global AppState {
   callback save-source(/* name */ string, /* type */ string, /* url */ string, /* user */ string, /* pass */ string);
   callback edit-source(/* source-id */ string);
   callback delete-source(/* source-id */ string);
+  // C-015→C-018: source dialog state + callbacks (moved from component to global for Rust access)
+  in-out property <int> source-validate-state: 0;
+  in-out property <string> source-field-url: "";
+  in-out property <string> source-field-user: "";
+  in-out property <string> source-field-pass: "";
+  callback cancel-source-dialog();
+  callback validate-source-dialog();
+  callback commit-source-dialog();
+  callback source-type-changed(/* type-idx */ int);
   callback sync-source(/* source-id */ string);
   callback sync-all();
 

@@ -45,7 +45,7 @@ pub struct TiviMateBackup {
 }
 
 /// A single playlist entry in a TiviMate backup.
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct TiviMatePlaylist {
     /// Human-readable playlist name.
     pub name: String,
@@ -69,6 +69,20 @@ pub struct TiviMatePlaylist {
     pub epg_url: Option<String>,
 }
 
+impl std::fmt::Debug for TiviMatePlaylist {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TiviMatePlaylist")
+            .field("name", &self.name)
+            .field("provider_type", &self.provider_type)
+            .field("url", &self.url)
+            .field("server", &self.server)
+            .field("username", &self.username)
+            .field("password", &"[REDACTED]")
+            .field("epg_url", &self.epg_url)
+            .finish()
+    }
+}
+
 // ── IPTV Smarters backup format ───────────────────────────────────────────────
 //
 // IPTV Smarters Pro exports a JSON array where each element represents one
@@ -78,7 +92,7 @@ pub struct TiviMatePlaylist {
 pub type IptvSmartersBackup = Vec<IptvSmartersAccount>;
 
 /// One account entry in an IPTV Smarters backup.
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct IptvSmartersAccount {
     /// Display name for the account.
     #[serde(alias = "name", alias = "playlist_name")]
@@ -101,6 +115,20 @@ pub struct IptvSmartersAccount {
     /// Optional EPG URL.
     #[serde(default)]
     pub epg_url: Option<String>,
+}
+
+impl std::fmt::Debug for IptvSmartersAccount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IptvSmartersAccount")
+            .field("display_name", &self.display_name)
+            .field("account_type", &self.account_type)
+            .field("url", &self.url)
+            .field("host", &self.host)
+            .field("username", &self.username)
+            .field("password", &"[REDACTED]")
+            .field("epg_url", &self.epg_url)
+            .finish()
+    }
 }
 
 // ── ImportResult ──────────────────────────────────────────────────────────────

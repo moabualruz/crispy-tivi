@@ -55,6 +55,7 @@ pub(crate) struct ScrollBridge {
     total: usize,
 }
 
+#[allow(dead_code)] // Methods wired incrementally as scroll features are completed
 impl ScrollBridge {
     /// Create a bridge with the given viewport window size.
     ///
