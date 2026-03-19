@@ -20,6 +20,18 @@ pub enum PhysicsState {
     RubberBand,
 }
 
+impl PhysicsState {
+    /// Returns true if the physics engine is actively animating (any state except Idle).
+    pub fn is_animating(self) -> bool {
+        !matches!(self, Self::Idle)
+    }
+
+    /// Returns true if a touch-start should cancel this state.
+    pub fn can_accept_touch_start(self) -> bool {
+        matches!(self, Self::Momentum | Self::DPadStep | Self::Programmatic)
+    }
+}
+
 // ---------------------------------------------------------------------------
 // PhysicsConfig — Default = Apple TV preset
 // ---------------------------------------------------------------------------
