@@ -56,7 +56,7 @@ component WelcomeStep inherits Rectangle {
       Rectangle {
         width: 96px;
         height: 96px;
-        border-radius: 48px;
+        border-radius: Theme.radius-pill;
         background: Theme.accent-gradient;
 
         Text {
@@ -198,9 +198,9 @@ component CreateProfileStep inherits Rectangle {
               // Outer ring: focus = white border, selected = accent, default = subtle
               Rectangle {
                 width: 100%; height: 100%;
-                border-radius: 36px;
+                border-radius: Theme.radius-pill;
                 border-width: is-selected ? 3px : (is-focused ? Theme.focus-ring-width : 1px);
-                border-color: is-focused ? Theme.focus-ring : (is-selected ? #FFFFFF : Theme.border-subtle);
+                border-color: is-focused ? Theme.focus-ring : (is-selected ? Theme.focus-ring : Theme.border-subtle);
                 background: is-focused ? Theme.focus-bg : transparent;
 
                 animate border-width { duration: 150ms; }
@@ -212,14 +212,14 @@ component CreateProfileStep inherits Rectangle {
                   y: (parent.height - 56px) / 2;
                   width: 56px;
                   height: 56px;
-                  border-radius: 28px;
+                  border-radius: Theme.radius-pill;
                   background: color-val;
 
                   Text {
                     width: 100%; height: 100%;
                     // Slint strings are not indexable — show "?" as placeholder initial
                     text: "?";
-                    color: #FFFFFF;
+                    color: Theme.text-primary;
                     font-family: Theme.font-display;
                     font-size: 22px;
                     font-weight: 700;
@@ -234,13 +234,13 @@ component CreateProfileStep inherits Rectangle {
                   y: 0px;
                   width: 20px;
                   height: 20px;
-                  border-radius: 10px;
-                  background: #FFFFFF;
+                  border-radius: Theme.radius-pill;
+                  background: Theme.btn-primary-bg;
 
                   Text {
                     width: 100%; height: 100%;
                     text: "\u{2713}";
-                    color: #000000;
+                    color: Theme.btn-primary-fg;
                     font-size: 12px;
                     font-weight: 700;
                     horizontal-alignment: center;
@@ -553,7 +553,7 @@ component DoneStep inherits Rectangle {
       Rectangle {
         width: 96px;
         height: 96px;
-        border-radius: 48px;
+        border-radius: Theme.radius-pill;
         background: Theme.btn-primary-bg;
 
         VerticalLayout {
@@ -611,7 +611,7 @@ export component OnboardingScreen inherits Rectangle {
   // Subtle gradient backdrop
   Rectangle {
     width: 100%; height: 100%;
-    background: @linear-gradient(160deg, rgba(255, 255, 255, 0.05) 0%, rgba(10, 10, 12, 1.0) 40%, rgba(200, 210, 220, 0.04) 100%);
+    background: @linear-gradient(160deg, rgba(255, 255, 255, 0.05) 0%, rgba(10, 10, 12, 1.0) 40%, rgba(200, 210, 220, 0.04) 100%); // token: Theme.background (gradient stops — cannot use token in @linear-gradient)
   }
 
   // M-008: Root FocusScope captures keyboard so D-pad/Enter can advance steps.

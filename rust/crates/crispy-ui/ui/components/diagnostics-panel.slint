@@ -37,7 +37,7 @@ export component DiagnosticsPanel inherits Rectangle {
   // Backdrop
   Rectangle {
     width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.5); // semi-transparent backdrop overlay — no Theme token for pure black scrim
+    background: Theme.overlay;
     TouchArea { clicked => { DiagnosticsState.visible = false; } }
   }
 

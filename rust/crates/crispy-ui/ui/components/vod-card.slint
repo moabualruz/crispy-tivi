@@ -115,7 +115,7 @@ export component VodCard inherits FocusScope {
           y: parent.height - self.height - Theme.spacing-xs;
           width: 24px; height: 24px;
           border-radius: 12px;
-          background: rgba(0,0,0,0.55);
+          background: Theme.overlay;
           IconStar {
             size: 14px;
             fill: Theme.accent;
@@ -131,7 +131,7 @@ export component VodCard inherits FocusScope {
           width: dur-text.preferred-width + 10px;
           height: 20px;
           border-radius: 10px;
-          background: rgba(0, 0, 0, 0.6);
+          background: Theme.overlay;
           dur-text := Text {
             text: item.duration-minutes + "m";
             color: Theme.text-secondary;

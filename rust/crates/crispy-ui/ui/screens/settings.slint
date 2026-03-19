@@ -84,7 +84,7 @@ component SourceRow inherits FocusScope {
           Rectangle {
             width: 8px;
             height: 8px;
-            border-radius: 4px;
+            border-radius: Theme.radius-xs;
             y: (parent.height - self.height) / 2;
             // Green: empty / "ok"; Yellow: "slow" / "warning"; Red: "error" / "fail"
             background:
@@ -200,7 +200,7 @@ component ModeToggle inherits FocusScope {
     border-color: root.has-focus ? Theme.focus-ring : Theme.border-subtle;
 
     HorizontalLayout {
-      padding: 4px;
+      padding: Theme.spacing-xs;
       spacing: 0px;
 
       // Simple tab
@@ -314,7 +314,7 @@ component SettingToggleRow inherits Rectangle {
         Rectangle {
           width: 52px;
           height: 28px;
-          border-radius: 14px;
+          border-radius: Theme.radius-md;
           background: root.checked ? Theme.status-success : Theme.surface-glass;
           border-width: toggle-scope.has-focus ? Theme.focus-ring-width : 1px;
           border-color: toggle-scope.has-focus ? Theme.focus-ring : Theme.border-subtle;
@@ -323,7 +323,7 @@ component SettingToggleRow inherits Rectangle {
           Rectangle {
             width: 20px;
             height: 20px;
-            border-radius: 10px;
+            border-radius: Theme.radius-sm;
             background: Theme.text-primary;
             x: root.checked ? 28px : 4px;
             y: 4px;
@@ -482,7 +482,7 @@ export component SettingsScreen inherits Rectangle {
             }
             Rectangle {
               width: 100%; height: 100%;
-              border-radius: 18px;
+              border-radius: Theme.radius-lg;
               background: back-btn.has-focus ? Theme.surface-glass : Theme.card-surface;
               border-width: 1px;
               border-color: back-ta.has-hover ? Theme.text-secondary : Theme.card-border;

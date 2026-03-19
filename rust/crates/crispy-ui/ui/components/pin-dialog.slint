@@ -153,7 +153,7 @@ export component PinDialog inherits Rectangle {
     // Glass blur effect via drop-shadow (Slint doesn't expose backdrop-filter;
     // the dark surface-glass brush provides the tinted overlay)
     drop-shadow-blur: 32px;
-    drop-shadow-color: rgba(0, 0, 0, 0.6);
+    drop-shadow-color: Theme.overlay;
 
     // Stop click-through to scrim when interacting with card
     TouchArea {}

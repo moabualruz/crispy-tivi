@@ -40,7 +40,7 @@ export component InputField inherits VerticalLayout {
           single-line: true;
           input-type: root.input-type;
           vertical-alignment: center;
-          selection-background-color: rgba(255, 255, 255, 0.3); // non-vibrant highlight!
+          selection-background-color: Theme.text-disabled;
           selection-foreground-color: Theme.text-primary;
 
           edited => { root.edited(self.text); }

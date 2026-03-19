@@ -36,7 +36,7 @@ export component SourceDialog inherits Rectangle {
   // Backdrop
   Rectangle {
     width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: Theme.overlay-dark;
     TouchArea { clicked => { AppState.show-source-dialog = false; } }
   }
 
@@ -56,7 +56,7 @@ export component SourceDialog inherits Rectangle {
     Flickable {
       VerticalLayout {
         padding: 28px;
-        spacing: 20px;
+        spacing: Theme.spacing-ml;
 
         Text {
           text: "Add Source";
@@ -126,12 +126,12 @@ export component SourceDialog inherits Rectangle {
         if root.validate-state == 2: Rectangle {
           height: 32px;
           border-radius: Theme.radius-sm;
-          background: rgba(34, 197, 94, 0.15);
+          background: Theme.status-success-bg;
           border-width: 1px;
-          border-color: rgba(34, 197, 94, 0.4);
+          border-color: Theme.status-success-border;
           Text {
             text: "✓ Source reachable";
-            color: rgba(134, 239, 172, 1.0);
+            color: Theme.status-success-text;
             font-family: Theme.font-body;
             font-size: Theme.font-size-caption;
             horizontal-alignment: center;
@@ -141,12 +141,12 @@ export component SourceDialog inherits Rectangle {
         if root.validate-state == 3: Rectangle {
           height: 32px;
           border-radius: Theme.radius-sm;
-          background: rgba(239, 68, 68, 0.15);
+          background: Theme.status-error-bg;
           border-width: 1px;
-          border-color: rgba(239, 68, 68, 0.4);
+          border-color: Theme.status-error-border;
           Text {
             text: "✗ Could not reach source — check URL";
-            color: rgba(252, 165, 165, 1.0);
+            color: Theme.status-error;
             font-family: Theme.font-body;
             font-size: Theme.font-size-caption;
             horizontal-alignment: center;

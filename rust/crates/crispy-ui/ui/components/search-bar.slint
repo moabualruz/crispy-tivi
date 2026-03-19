@@ -11,7 +11,7 @@ export component SearchBar inherits Rectangle {
   width: 100%;
   height: 48px;
   border-radius: Theme.radius-md;
-  background: focus-scope.has-focus ? rgba(255, 255, 255, 0.12) : Theme.card-surface;
+  background: focus-scope.has-focus ? Theme.focus-bg : Theme.card-surface;
   border-width: focus-scope.has-focus ? Theme.focus-ring-width : 1px;
   border-color: focus-scope.has-focus ? Theme.focus-ring : Theme.card-border;
 

@@ -213,7 +213,7 @@ export global AppState {
   in-out property <[ChannelData]> channels: [];
   in-out property <[string]> channel-groups: [];
   in-out property <string> active-channel-group: "";
-  in-out property <string> channel-search-text: "";
+  in-out property <string> channel-search-text: ""; // TODO: unused — remove when confirmed safe
 
   // Home screen preview lanes (small fixed slices, not the full model)
   in-out property <[ChannelData]> home-channels: [];
@@ -367,9 +367,9 @@ export global AppState {
   callback scroll-channels(/* delta: +1 down, -1 up */ int);
   callback scroll-movies(/* delta */ int);
   callback scroll-series(/* delta */ int);
-  in-out property <int> channel-focus-index: 0;
-  in-out property <int> movie-focus-index: 0;
-  in-out property <int> series-focus-index: 0;
+  in-out property <int> channel-focus-index: 0; // TODO: unused — remove when confirmed safe
+  in-out property <int> movie-focus-index: 0;   // TODO: unused — remove when confirmed safe
+  in-out property <int> series-focus-index: 0;  // TODO: unused — remove when confirmed safe
   in-out property <int> channel-window-start: 0;
   in-out property <int> movie-window-start: 0;
   in-out property <int> series-window-start: 0;
@@ -384,7 +384,7 @@ export global AppState {
   callback stop-casting();
 
   // 10.7: Device management (shown in Settings)
-  in-out property <[ManagedDeviceData]> managed-devices: [];
+  in-out property <[ManagedDeviceData]> managed-devices: []; // TODO: unused — remove when confirmed safe
   callback remove-device(/* device-id */ string);
   callback sign-out-all-devices();
 

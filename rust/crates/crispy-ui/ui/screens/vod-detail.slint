@@ -91,20 +91,20 @@ export component VodDetailScreen inherits Rectangle {
         width: 100%;
         height: 360px;
         clip: true;
-        background: rgba(10, 10, 12, 1);
+        background: Theme.background;
 
         // Backdrop image (full-bleed, darkened)
         if AppState.vod-detail-item.backdrop-url != "": Rectangle {
           width: 100%; height: 100%;
           opacity: 0.45;
           // Backdrop loaded by image loader into a future field; placeholder gradient used
-          background: @linear-gradient(180deg, rgba(30,30,40,0.0) 0%, rgba(10,10,12,1.0) 100%);
+          background: @linear-gradient(180deg, rgba(30,30,40,0.0) 0%, rgba(10,10,12,1.0) 100%); // token: Theme.background (gradient stops — cannot use token in @linear-gradient)
         }
 
         // Dark gradient overlay bottom
         Rectangle {
           width: 100%; height: 100%;
-          background: @linear-gradient(180deg,
+          background: @linear-gradient(180deg, // token: Theme.background (gradient stops — cannot use token in @linear-gradient)
             rgba(10,10,12,0.0) 0%,
             rgba(10,10,12,0.7) 70%,
             rgba(10,10,12,1.0) 100%);

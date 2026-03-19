@@ -77,8 +77,11 @@ export global Theme {
   out property <brush> status-success: #16A34A;              // green-600
   out property <brush> status-warning: #CA8A04;              // amber-600
   out property <brush> status-error: #EF4444;                // red-500 (same as live-badge for consistency)
+  out property <brush> status-error-bg: rgba(239, 68, 68, 0.15);      // red-500 at 15% — error state bg
+  out property <brush> status-error-border: rgba(239, 68, 68, 0.4);   // red-500 at 40% — error state border
   out property <brush> status-success-text: rgba(134, 239, 172, 1.0); // green-300 — bright text on dark bg
-  out property <brush> status-success-bg: rgba(34, 197, 94, 0.25);    // green-500 at 25% — done state bg
+  out property <brush> status-success-bg: rgba(34, 197, 94, 0.15);    // green-500 at 15% — done state bg
+  out property <brush> status-success-border: rgba(34, 197, 94, 0.4); // green-500 at 40% — done state border
   // --- EPG Category Backgrounds ---
   out property <brush> epg-sports-bg: rgba(37, 99, 235, 0.18);   // blue-700 tint
   out property <brush> epg-movies-bg: rgba(109, 40, 217, 0.18);  // violet-700 tint
@@ -104,6 +107,7 @@ export global Theme {
   out property <length> spacing-sm: 8px;
   // Note: design spec uses xs=4, sm=8, md=16, lg=24, xl=32, 2xl=48
   out property <length> spacing-md: 16px;
+  out property <length> spacing-ml: 20px;
   out property <length> spacing-lg: 24px;
   out property <length> spacing-xl: 32px;
   out property <length> spacing-2xl: 48px;

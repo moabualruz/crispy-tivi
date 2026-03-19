@@ -19,19 +19,19 @@ export component SearchButton inherits FocusScope {
   Rectangle {
     width: 100%;
     height: 100%;
-    border-radius: 22px; // pill shape
-    background: rgba(255, 255, 255, 0.1);
+    border-radius: Theme.radius-pill;
+    background: Theme.focus-bg;
     border-width: 2px;
-    border-color: root.has-focus ? Theme.focus-ring : rgba(255, 255, 255, 0.1);
+    border-color: root.has-focus ? Theme.focus-ring : Theme.card-border;
 
     animate border-color { duration: 150ms; }
 
     HorizontalLayout {
       width: 100%;
       height: 100%;
-      padding-left: 16px;
-      padding-right: 16px;
-      spacing: 8px;
+      padding-left: Theme.spacing-md;
+      padding-right: Theme.spacing-md;
+      spacing: Theme.spacing-sm;
       alignment: center;
 
       VerticalLayout {

@@ -72,13 +72,19 @@ component EpgTimeHeader inherits HorizontalLayout {
 // EPG programme block
 component EpgBlock inherits FocusScope {
   in property <string> title;
+  in property <string> channel-id; // channel to play when Enter is pressed
   in property <int> duration-slots: 2; // each slot = 30min = 60px
 
   width: duration-slots * 60px;
   height: 48px;
 
   key-pressed(event) => {
-    if event.text == Key.Return { return accept; }
+    if event.text == Key.Return {
+      // TODO: wire to watch-program(program-id) when EPG program IDs are available;
+      // for now play the channel directly.
+      AppState.play-channel(root.channel-id);
+      return accept;
+    }
     return reject;
   }
 
@@ -564,8 +570,8 @@ export component LiveTvScreen inherits Rectangle {
           height: 48px;
           clip: true;
           HorizontalLayout {
-            padding-top: 4px;
-            padding-bottom: 4px;
+            padding-top: Theme.spacing-xs;
+            padding-bottom: Theme.spacing-xs;
             spacing: Theme.spacing-sm;
 
             FilterChip {
@@ -687,6 +693,7 @@ export component LiveTvScreen inherits Rectangle {
 
                 EpgBlock {
                   title: ch.now-playing != "" ? ch.now-playing : "No EPG data";
+                  channel-id: ch.id;
                   duration-slots: 4;
                 }
               }
