@@ -66,6 +66,23 @@ export global PlayerState {
   in-out property <int> active-subtitle-track: 0;
   callback select-audio-track(/* index */ int);
   callback select-subtitle-track(/* index */ int);
+
+  // M-037: Fullscreen toggle (notifies Rust)
+  callback toggle-fullscreen();
+
+  // M-038: Cycle to next audio track
+  callback next-audio-track();
+
+  // M-039: Cycle to next subtitle track
+  callback next-subtitle-track();
+
+  // M-040: Playback speed control
+  in-out property <float> current-speed: 1.0;
+  callback set-speed(/* speed */ float);
+
+  // M-018: Toggle secondary controls tray
+  in-out property <bool> show-secondary-controls: false;
+  callback toggle-secondary-controls();
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -197,7 +214,7 @@ component SeekBar inherits FocusScope {
     height: bar-h;
     y: (parent.height - self.height) / 2;
     border-radius: bar-h / 2;
-    background: rgba(255, 255, 255, 0.2);
+    background: Theme.focus-glow;
     border-width: root.has-focus ? Theme.focus-ring-width : 0px;
     border-color: root.has-focus ? Theme.focus-ring : transparent;
 
@@ -322,6 +339,7 @@ component OsdTray inherits Rectangle {
     spacing: Theme.spacing-md;
     padding: Theme.spacing-sm;
 
+    // M-038: Audio track cycle button
     Rectangle {
       width: audio-lbl.preferred-width + Theme.spacing-lg;
       height: 36px;
@@ -338,9 +356,10 @@ component OsdTray inherits Rectangle {
         horizontal-alignment: center;
         vertical-alignment: center;
       }
-      TouchArea { clicked => { PlayerState.show-tracks-panel = !PlayerState.show-tracks-panel; } }
+      TouchArea { clicked => { PlayerState.next-audio-track(); } }
     }
 
+    // M-039: Subtitle track cycle button
     Rectangle {
       width: subs-lbl.preferred-width + Theme.spacing-lg;
       height: 36px;
@@ -357,9 +376,10 @@ component OsdTray inherits Rectangle {
         horizontal-alignment: center;
         vertical-alignment: center;
       }
-      TouchArea { clicked => { PlayerState.show-tracks-panel = !PlayerState.show-tracks-panel; } }
+      TouchArea { clicked => { PlayerState.next-subtitle-track(); } }
     }
 
+    // M-040: Speed cycle button
     Rectangle {
       width: speed-lbl.preferred-width + Theme.spacing-lg;
       height: 36px;
@@ -368,7 +388,12 @@ component OsdTray inherits Rectangle {
       border-width: 1px;
       border-color: Theme.focus-glow;
       speed-lbl := Text {
-        text: "1x";
+        text: PlayerState.current-speed == 1.0 ? "1x"
+            : PlayerState.current-speed == 0.5 ? "0.5x"
+            : PlayerState.current-speed == 0.75 ? "0.75x"
+            : PlayerState.current-speed == 1.25 ? "1.25x"
+            : PlayerState.current-speed == 1.5 ? "1.5x"
+            : "2x";
         color: Theme.text-primary;
         font-family: Theme.font-body;
         font-size: Theme.font-size-caption;
@@ -376,9 +401,27 @@ component OsdTray inherits Rectangle {
         horizontal-alignment: center;
         vertical-alignment: center;
       }
-      TouchArea { clicked => { PlayerState.show-controls(); } }
+      TouchArea {
+        clicked => {
+          // Cycle: 0.5 → 0.75 → 1.0 → 1.25 → 1.5 → 2.0 → 0.5
+          if PlayerState.current-speed < 0.6 {
+            PlayerState.set-speed(0.75);
+          } else if PlayerState.current-speed < 0.8 {
+            PlayerState.set-speed(1.0);
+          } else if PlayerState.current-speed < 1.1 {
+            PlayerState.set-speed(1.25);
+          } else if PlayerState.current-speed < 1.3 {
+            PlayerState.set-speed(1.5);
+          } else if PlayerState.current-speed < 1.6 {
+            PlayerState.set-speed(2.0);
+          } else {
+            PlayerState.set-speed(0.5);
+          }
+        }
+      }
     }
 
+    // PiP button (Epoch 10 — not yet implemented)
     Rectangle {
       width: pip-lbl.preferred-width + Theme.spacing-lg;
       height: 36px;
@@ -395,7 +438,7 @@ component OsdTray inherits Rectangle {
         horizontal-alignment: center;
         vertical-alignment: center;
       }
-      TouchArea { clicked => { PlayerState.show-controls(); } }
+      TouchArea { clicked => { PlayerState.toggle-secondary-controls(); } }
     }
   }
 }
@@ -631,10 +674,10 @@ component OsdControls inherits Rectangle {
       }
     }
 
-    // Fullscreen toggle
+    // Fullscreen toggle (M-037: notify Rust via callback)
     OsdButton {
       btn-size: 48px;
-      activated => { PlayerState.is-fullscreen = !PlayerState.is-fullscreen; }
+      activated => { PlayerState.toggle-fullscreen(); }
       Text {
         text: PlayerState.is-fullscreen ? "><" : "<>";
         color: Theme.btn-secondary-fg;
@@ -690,10 +733,11 @@ component OsdControls inherits Rectangle {
   }
 
   // ── M-022: Secondary tray slides up from bottom ───────────────────────────
+  // M-018: visible-tray driven by both local toggle and Rust-controlled property
   OsdTray {
     y: parent.height - self.height;
     width: parent.width;
-    visible-tray: root.show-tray;
+    visible-tray: root.show-tray || PlayerState.show-secondary-controls;
   }
 
   // ── 3.9: Quality/resolution badge (top-right) ─────────────────────────────

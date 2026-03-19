@@ -27,7 +27,7 @@ component DeviceEntry inherits FocusScope {
     width: 100%;
     height: 100%;
     border-radius: Theme.radius-md;
-    background: root.has-focus ? Theme.focus-bg : (ta.has-hover ? rgba(255, 255, 255, 0.04) : transparent);
+    background: root.has-focus ? Theme.focus-bg : (ta.has-hover ? Theme.surface-highlight : transparent);
     border-width: root.has-focus ? Theme.focus-ring-width : 1px;
     border-color: root.has-focus ? Theme.focus-ring : Theme.card-border;
 
@@ -110,7 +110,7 @@ component DeviceEntry inherits FocusScope {
             width: 100%;
             height: 100%;
             border-radius: Theme.radius-sm;
-            background: remove-fs.has-focus ? Theme.focus-bg : rgba(255, 255, 255, 0.08);
+            background: remove-fs.has-focus ? Theme.focus-bg : Theme.surface-highlight;
             border-width: remove-fs.has-focus ? Theme.focus-ring-width : 1px;
             border-color: remove-fs.has-focus ? Theme.focus-ring : Theme.card-border;
 

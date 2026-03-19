@@ -25,7 +25,7 @@ component StepIndicator inherits HorizontalLayout {
   for i in [0, 1, 2, 3]: Rectangle {
     width: i == current-step ? 28px : 8px;
     height: 8px;
-    border-radius: 4px;
+    border-radius: Theme.radius-xs;
     background: i == current-step ? Theme.accent-gradient : Theme.focus-glow;
 
     animate width { duration: 250ms; easing: ease-in-out; }

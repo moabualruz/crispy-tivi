@@ -76,8 +76,8 @@ export component VodCard inherits FocusScope {
           y: Theme.spacing-xs;
           width: yr-text.preferred-width + 12px;
           height: 20px;
-          border-radius: 10px;
-          background: rgba(0, 0, 0, 0.6);
+          border-radius: 10px; // geometric: half of fixed 20px badge height — circle shape
+          background: Theme.overlay;
 
           yr-text := Text {
             text: item.year;

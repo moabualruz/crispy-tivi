@@ -83,7 +83,7 @@ component DeviceRow inherits FocusScope {
             : root.device.status == "connecting" ? "Connecting…"
             : "Available";
           color: root.device.status == "connected"
-            ? rgba(74, 222, 128, 0.9)
+            ? Theme.status-success-text
             : Theme.text-secondary;
           font-family: Theme.font-body;
           font-size: Theme.font-size-caption;
@@ -103,10 +103,10 @@ component DeviceRow inherits FocusScope {
             height: 10px;
             border-radius: 5px;
             background: root.device.status == "connected"
-              ? rgba(74, 222, 128, 0.9)
+              ? Theme.status-success-text
               : root.device.status == "connecting"
-                ? rgba(250, 204, 21, 0.9)
-                : rgba(255, 255, 255, 0.2);
+                ? Theme.status-warning
+                : Theme.focus-glow;
           }
         }
       }
@@ -128,7 +128,7 @@ export component CastPicker {
   if root.show-picker: Rectangle {
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    background: Theme.overlay;
 
     ta-scrim := TouchArea {
       clicked => { root.dismissed(); }

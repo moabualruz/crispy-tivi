@@ -157,7 +157,7 @@ component ChannelRow inherits FocusScope {
       padding-right: Theme.spacing-sm;
       padding-top: Theme.spacing-xs;
       padding-bottom: Theme.spacing-xs;
-      spacing: 4px;
+      spacing: Theme.spacing-xs;
 
       HorizontalLayout {
         spacing: Theme.spacing-sm;
@@ -183,7 +183,7 @@ component ChannelRow inherits FocusScope {
         VerticalLayout {
           horizontal-stretch: 1;
           alignment: center;
-          spacing: 2px;
+          spacing: Theme.spacing-2xs;
 
           Text {
             text: root.ch-name;
@@ -208,7 +208,7 @@ component ChannelRow inherits FocusScope {
       // Only in non-compact rows that have programme info
       if !root.compact && root.ch-now-playing != "": Rectangle {
         height: 3px;
-        border-radius: 2px;
+        border-radius: Theme.radius-2xs;
         background: Theme.surface-highlight;
 
         Rectangle {
@@ -216,7 +216,7 @@ component ChannelRow inherits FocusScope {
           y: 0px;
           width: parent.width * 0.5;
           height: 100%;
-          border-radius: 2px;
+          border-radius: Theme.radius-2xs;
           background: Theme.brand-gradient;
         }
       }
@@ -458,7 +458,7 @@ export component LiveTvScreen inherits Rectangle {
             Rectangle {
               width: 3px;
               height: 56px;
-              border-radius: 2px;
+              border-radius: Theme.radius-2xs;
               background: Theme.brand-gradient;
             }
 

@@ -36,14 +36,14 @@ component CheckRow inherits FocusScope {
         width: 20px; height: 20px;
         border-radius: 10px;
         border-width: 2px;
-        border-color: root.done ? rgba(134, 239, 172, 1.0) : Theme.text-secondary;
-        background: root.done ? rgba(34, 197, 94, 0.25) : transparent;
+        border-color: root.done ? Theme.status-success-text : Theme.text-secondary;
+        background: root.done ? Theme.status-success-bg : transparent;
         vertical-stretch: 0;
         y: (parent.height - self.height) / 2;
 
         if root.done: Text {
           text: "✓";
-          color: rgba(134, 239, 172, 1.0);
+          color: Theme.status-success-text;
           font-size: Theme.font-size-small;
           font-weight: 700;
           horizontal-alignment: center;
@@ -139,7 +139,7 @@ export component GettingStartedCard inherits Rectangle {
     // Progress bar
     Rectangle {
       height: 3px;
-      border-radius: 2px;
+      border-radius: Theme.radius-2xs;
       background: Theme.border-subtle;
       Rectangle {
         property <int> done-count:
@@ -149,8 +149,8 @@ export component GettingStartedCard inherits Rectangle {
           (AppState.gs-profile-set ? 1 : 0);
         height: 100%;
         width: done-count * parent.width / 4;
-        border-radius: 2px;
-        background: @linear-gradient(90deg, #FF4B2B 0%, #FF416C 100%);
+        border-radius: Theme.radius-2xs;
+        background: @linear-gradient(90deg, #FF4B2B 0%, #FF416C 100%); // Slint gradient stops cannot reference global tokens
         animate width { duration: 400ms; easing: ease-out; }
       }
     }

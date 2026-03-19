@@ -22,7 +22,7 @@ component SegmentTab inherits FocusScope {
         ? Theme.surface-highlight
         : transparent;
     border-width: parent.has-focus ? Theme.focus-ring-width : root.active ? 1px : 0px;
-    border-color: parent.has-focus ? Theme.focus-ring : rgba(255, 255, 255, 0.2);
+    border-color: parent.has-focus ? Theme.focus-ring : Theme.focus-glow;
 
     animate background { duration: 150ms; }
 

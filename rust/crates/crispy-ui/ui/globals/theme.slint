@@ -74,9 +74,15 @@ export global Theme {
   out property <brush> text-disabled: rgba(255, 255, 255, 0.3); // placeholder / disabled state
 
   // --- Status Indicators ---
-  out property <brush> status-success: #16A34A; // green-600
-  out property <brush> status-warning: #CA8A04; // amber-600
-  out property <brush> status-error: #EF4444;   // red-500 (same as live-badge for consistency)
+  out property <brush> status-success: #16A34A;              // green-600
+  out property <brush> status-warning: #CA8A04;              // amber-600
+  out property <brush> status-error: #EF4444;                // red-500 (same as live-badge for consistency)
+  out property <brush> status-success-text: rgba(134, 239, 172, 1.0); // green-300 — bright text on dark bg
+  out property <brush> status-success-bg: rgba(34, 197, 94, 0.25);    // green-500 at 25% — done state bg
+  // --- EPG Category Backgrounds ---
+  out property <brush> epg-sports-bg: rgba(37, 99, 235, 0.18);   // blue-700 tint
+  out property <brush> epg-movies-bg: rgba(109, 40, 217, 0.18);  // violet-700 tint
+  out property <brush> epg-news-bg: rgba(220, 38, 38, 0.18);     // red-600 tint
 
   // --- Typography ---
   // Fallback chains cover Arabic (Noto Sans Arabic) and CJK (Noto Sans CJK SC)

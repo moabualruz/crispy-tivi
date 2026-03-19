@@ -154,9 +154,9 @@ export component GuidedTour inherits Rectangle {
       width: root.current.highlight-w * root.width;
       height: root.current.highlight-h * root.height;
       border-radius: Theme.radius-md;
-      background: rgba(255, 255, 255, 0.06);
+      background: Theme.surface-highlight;
       border-width: 2px;
-      border-color: rgba(255, 255, 255, 0.3);
+      border-color: Theme.text-disabled;
 
       animate x { duration: 350ms; easing: ease-in-out; }
       animate y { duration: 350ms; easing: ease-in-out; }

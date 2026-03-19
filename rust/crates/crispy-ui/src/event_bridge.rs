@@ -132,11 +132,19 @@ pub(crate) fn wire(
         }
     });
 
+    // M-018: show-controls toggles OSD and secondary controls tray
     ps.on_show_controls({
         let tx = player_tx.clone();
+        let ui_w = ui.as_weak();
         move || {
             if let Err(e) = tx.try_send(PlayerEvent::ShowControls { visible: true }) {
                 tracing::warn!(error = %e, "player_tx full: ShowControls dropped");
+            }
+            // Also toggle the secondary controls tray visibility
+            if let Some(ui) = ui_w.upgrade() {
+                let ps = ui.global::<super::PlayerState>();
+                let current = ps.get_show_secondary_controls();
+                ps.set_show_secondary_controls(!current);
             }
         }
     });
@@ -171,6 +179,10 @@ pub(crate) fn wire(
         }
     });
 
+    // M-030: Consecutive auto-advance counter for "still watching" prompt.
+    // After 3 consecutive auto-advances, show the still-watching overlay.
+    let auto_advance_count: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
+
     // play-next: advance to the next episode by re-using the high-priority queue.
     // The next VOD id must be resolved from the series_episodes model in Slint.
     // We read it here on the UI thread (wire() is called on the UI thread) via a
@@ -178,12 +190,31 @@ pub(crate) fn wire(
     ps.on_play_next({
         let high_tx = high_tx.clone();
         let ui_w = ui.as_weak();
+        let auto_advance = Arc::clone(&auto_advance_count);
         move || {
             // Hide the next-episode overlay immediately.
             if let Some(ui) = ui_w.upgrade() {
                 ui.global::<super::PlayerState>()
                     .set_show_next_episode(false);
             }
+
+            // M-030: increment auto-advance counter and check for still-watching
+            {
+                let mut count = auto_advance.lock().unwrap_or_else(|e| e.into_inner());
+                *count += 1;
+                if *count >= 3 {
+                    *count = 0;
+                    if let Some(ui) = ui_w.upgrade() {
+                        ui.global::<super::PlayerState>()
+                            .set_show_still_watching(true);
+                        tracing::debug!(
+                            "M-030: show-still-watching after 3 consecutive auto-advances"
+                        );
+                    }
+                    return;
+                }
+            }
+
             // Resolve the next episode id from AppState.series_episodes.
             // The series detail view already holds the episode list; find the
             // episode after the currently playing one by position index.
@@ -257,6 +288,69 @@ pub(crate) fn wire(
         move |index| {
             if let Err(e) = tx.try_send(PlayerEvent::SelectSubtitleTrack { index }) {
                 tracing::warn!(error = %e, "player_tx full: SelectSubtitleTrack dropped");
+            }
+        }
+    });
+
+    // M-037: toggle-fullscreen — notify Rust of fullscreen toggle from OSD button
+    ps.on_toggle_fullscreen({
+        let tx = player_tx.clone();
+        let ui_w = ui.as_weak();
+        move || {
+            let new_fs = ui_w
+                .upgrade()
+                .map(|ui| !ui.global::<super::PlayerState>().get_is_fullscreen())
+                .unwrap_or(true);
+            if let Err(e) = tx.try_send(PlayerEvent::SetFullscreen { fullscreen: new_fs }) {
+                tracing::warn!(error = %e, "player_tx full: SetFullscreen dropped");
+            }
+        }
+    });
+
+    // M-038: next-audio-track — cycle to next audio track via OSD tray
+    ps.on_next_audio_track({
+        let tx = player_tx.clone();
+        move || {
+            if let Err(e) = tx.try_send(PlayerEvent::NextAudioTrack) {
+                tracing::warn!(error = %e, "player_tx full: NextAudioTrack dropped");
+            }
+        }
+    });
+
+    // M-039: next-subtitle-track — cycle to next subtitle track via OSD tray
+    ps.on_next_subtitle_track({
+        let tx = player_tx.clone();
+        move || {
+            if let Err(e) = tx.try_send(PlayerEvent::NextSubtitleTrack) {
+                tracing::warn!(error = %e, "player_tx full: NextSubtitleTrack dropped");
+            }
+        }
+    });
+
+    // M-040: set-speed — set playback speed from OSD speed cycle button
+    ps.on_set_speed({
+        let tx = player_tx.clone();
+        let ui_w = ui.as_weak();
+        move |speed| {
+            if let Err(e) = tx.try_send(PlayerEvent::SetSpeed { speed }) {
+                tracing::warn!(error = %e, "player_tx full: SetSpeed dropped");
+            }
+            // Update the Slint property immediately for responsive UI
+            if let Some(ui) = ui_w.upgrade() {
+                ui.global::<super::PlayerState>().set_current_speed(speed);
+            }
+        }
+    });
+
+    // M-018: toggle-secondary-controls — toggle the secondary controls tray visibility
+    ps.on_toggle_secondary_controls({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let ps = ui.global::<super::PlayerState>();
+                let current = ps.get_show_secondary_controls();
+                ps.set_show_secondary_controls(!current);
+                tracing::debug!(now = !current, "toggle-secondary-controls");
             }
         }
     });
@@ -1534,6 +1628,14 @@ pub(crate) fn wire(
     });
 
     // ── Resume prompt callbacks (C-019, C-020) ───────────────────────────
+    // M-026/M-027: show-resume-prompt, resume-source-device, and resume-position-label
+    // depend on cross-device resume infrastructure (Epoch 10). When implemented:
+    //   1. On profile switch or app launch, check cloud sync for an active watch session
+    //      from another device (requires Epoch 10 cloud sync + device registry).
+    //   2. If found, set AppState.show-resume-prompt = true, populate
+    //      resume-source-device (e.g. "Living Room TV") and
+    //      resume-position-label (e.g. "1h 23m").
+    //   3. User action handled by on_resume_playback / on_start_over_playback below.
 
     app.on_resume_playback({
         let ui_w = ui.as_weak();
@@ -1560,6 +1662,13 @@ pub(crate) fn wire(
     });
 
     // ── Cast/device callbacks (C-021, C-022, C-023) ──────────────────────
+    // M-023/M-024/M-025: cast-devices, managed-devices, and show-cast-picker
+    // are populated by Epoch 10 cast discovery service. When the CastDiscovery
+    // service is implemented, it will:
+    //   1. Scan for DLNA/Chromecast/AirPlay devices on the network
+    //   2. Populate AppState.cast-devices via DataEvent
+    //   3. Populate AppState.managed-devices from persistent device registry
+    // Until then, these lists remain empty and the picker shows "No devices found".
 
     app.on_cast_to_device({
         let ui_w = ui.as_weak();
@@ -1897,6 +2006,13 @@ pub(crate) fn spawn_player_handler(
                         tracing::error!(error = %e, speed = spd, "SetSpeed failed");
                     } else {
                         tracing::debug!(speed = spd, "Playback speed set");
+                        // M-040: sync current-speed property to Slint
+                        let ui_w = ui_weak.clone();
+                        let _ = slint::invoke_from_event_loop(move || {
+                            if let Some(ui) = ui_w.upgrade() {
+                                ui.global::<super::PlayerState>().set_current_speed(spd);
+                            }
+                        });
                     }
                 }
                 PlayerEvent::SelectAudioTrack { index } => {
@@ -1966,6 +2082,29 @@ pub(crate) fn spawn_position_poller(
                         ps.set_duration(dur);
                         // M-006: live = no finite duration (duration == 0 or NaN for live streams)
                         ps.set_is_live(dur <= 0.0 || dur.is_nan());
+
+                        // M-029: trigger show-next-episode when position > duration - 90s
+                        // Only for VOD content with a known duration.
+                        if dur > 90.0
+                            && pos > dur - 90.0
+                            && !ps.get_is_live()
+                            && !ps.get_show_next_episode()
+                        {
+                            ps.set_show_next_episode(true);
+                            tracing::debug!(
+                                pos,
+                                dur,
+                                "M-029: show-next-episode triggered (< 90s remaining)"
+                            );
+                        }
+
+                        // M-043: TODO — set PlayerState.buffered from mpv demuxer-cache-state
+                        // property when mpv bindings expose it. Currently mpv's cache state
+                        // requires parsing a complex node; defer until libmpv wrapper adds support.
+
+                        // M-044: TODO — set PlayerState.volume from mpv volume property.
+                        // Volume is currently set reactively via SetVolume handler; polling
+                        // mpv for volume would catch external volume changes (e.g. mpv scripts).
                     }
                 }
             });
