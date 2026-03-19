@@ -11,23 +11,33 @@ export global PlayerState {
   in-out property <string> current-title: "";
   in-out property <string> current-group: "";
   in-out property <string> current-channel-id: "";
-  in-out property <float> position: 0.0;
-  in-out property <float> duration: 0.0;
+  in-out property <float> position: 0.0;       // seconds (current position)
+  in-out property <float> duration: 0.0;       // seconds (total duration, 0 for live)
+  in-out property <float> buffered: 0.0;       // 0.0–1.0 fraction of total buffered ahead
   in-out property <float> volume: 1.0;
   in-out property <bool> is-muted: false;
   in-out property <bool> show-osd: true;
   in-out property <bool> is-live: true;
+  // Channel info for live strip (set by Rust alongside current-title)
+  in-out property <string> current-programme: "";  // current EPG programme title
+  in-out property <string> channel-logo-url: "";   // URL for channel logo image
 
-  // OSD auto-hide timer managed by Rust
+  // OSD auto-hide timer managed by Rust (Rust sets show-osd=false after 3s)
   callback play-pause();
   callback stop();
   callback seek(/* position */ float);
   callback set-volume(/* volume */ float);
   callback toggle-mute();
   callback show-controls();
+  callback skip-back();   // Rust handles: seek(position - 10)
+  callback skip-forward();// Rust handles: seek(position + 10)
 }
 
-// OSD circular button — 50px per design spec
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// ─── OsdButton ───────────────────────────────────────────────────────────────
+
+// Circular 50px glass button — D-pad navigable
 component OsdButton inherits FocusScope {
   in property <length> btn-size: 50px;
   callback activated();
@@ -46,17 +56,20 @@ component OsdButton inherits FocusScope {
   Rectangle {
     width: 100%; height: 100%;
     border-radius: btn-size / 2;
-    background: Theme.btn-secondary-bg;
-    border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
-    border-color: Theme.focus-ring;
+    background: parent.has-focus ? Theme.focus-bg : Theme.btn-secondary-bg;
+    border-width: parent.has-focus ? Theme.focus-ring-width : 1px;
+    border-color: parent.has-focus ? Theme.focus-ring : Theme.border-subtle;
 
     animate background { duration: 150ms; }
+    animate border-width { duration: 150ms; }
 
     @children
 
     TouchArea { clicked => { root.activated(); } }
   }
 }
+
+// ─── VolumeSlider ─────────────────────────────────────────────────────────────
 
 component VolumeSlider inherits FocusScope {
   width: 120px;
@@ -78,17 +91,19 @@ component VolumeSlider inherits FocusScope {
     height: 4px;
     y: (parent.height - self.height) / 2;
     border-radius: 2px;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.25);
     border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
-    border-color: Theme.focus-ring;
+    border-color: parent.has-focus ? Theme.focus-ring : transparent;
 
+    animate border-width { duration: 150ms; }
+
+    // Filled portion
     Rectangle {
       x: 0;
       width: parent.width * PlayerState.volume;
       height: 100%;
       border-radius: 2px;
       background: Theme.focus-ring;
-
       animate width { duration: 100ms; }
     }
 
@@ -100,13 +115,33 @@ component VolumeSlider inherits FocusScope {
   }
 }
 
+// ─── VolumeIndicator ─────────────────────────────────────────────────────────
+// Percentage label — fades in when volume changes, Rust must toggle show-volume-pct
+// In practice we keep it always visible beside the slider for simplicity; Rust
+// can bind show-osd to hide the whole OSD which hides this too.
+
+component VolumeIndicator inherits Text {
+  text: PlayerState.is-muted ? "Muted" : round(PlayerState.volume * 100) + "%";
+  color: Theme.text-primary;
+  font-family: Theme.font-body;
+  font-size: Theme.font-size-caption;
+  font-weight: 600;
+  vertical-alignment: center;
+  width: 44px;
+}
+
+// ─── SeekBar (3.6) ───────────────────────────────────────────────────────────
+// 3-state seek bar: VOD (brand gradient / dim / buffered-ahead) or
+//                   Live (live-edge pulsing dot / buffered / dim track)
+
 component SeekBar inherits FocusScope {
-  // Razor-thin line that expands on focus/hover (per design spec)
-  height: (root.has-focus || seek-area.has-hover) ? 16px : 8px;
+  // Height: 2px collapsed → 6px on focus/hover (design spec: razor-thin)
+  property <length> bar-h: (root.has-focus || seek-area.has-hover) ? 6px : 2px;
+  height: (root.has-focus || seek-area.has-hover) ? 20px : 8px;
 
   animate height { duration: 150ms; easing: ease-out; }
 
-  // Left/Right D-pad: seek by 10 seconds
+  // D-pad left/right: seek ±10s
   key-pressed(event) => {
     if event.text == Key.RightArrow {
       if PlayerState.duration > 0 {
@@ -122,34 +157,85 @@ component SeekBar inherits FocusScope {
     return reject;
   }
 
-  inner := Rectangle {
+  track := Rectangle {
     width: 100%;
-    height: root.has-focus ? 8px : 3px;
+    height: bar-h;
     y: (parent.height - self.height) / 2;
-    border-radius: 2px;
-    background: Theme.focus-glow;
+    border-radius: bar-h / 2;
+    background: rgba(255, 255, 255, 0.2);
     border-width: root.has-focus ? Theme.focus-ring-width : 0px;
-    border-color: Theme.focus-ring;
+    border-color: root.has-focus ? Theme.focus-ring : transparent;
 
     animate height { duration: 150ms; easing: ease-out; }
+    animate border-width { duration: 150ms; }
 
-    // Progress fill
-    Rectangle {
+    // ── VOD mode ──────────────────────────────────────────────────────────
+    if !PlayerState.is-live: Rectangle {
+      // Buffered-ahead (slightly brighter than dim track)
       x: 0;
-      width: PlayerState.duration > 0 ? parent.width * (PlayerState.position / PlayerState.duration) : 0;
+      width: track.width * PlayerState.buffered;
       height: 100%;
-      border-radius: 2px;
-      background: Theme.accent-gradient;
+      border-radius: bar-h / 2;
+      background: rgba(255, 255, 255, 0.4);
     }
 
-    // Seek knob (visible on focus/hover)
-    if PlayerState.duration > 0 && (root.has-focus || seek-area.has-hover): Rectangle {
-      x: parent.width * (PlayerState.position / PlayerState.duration) - 7px;
-      y: (parent.height - 14px) / 2;
-      width: 14px;
-      height: 14px;
-      border-radius: 7px;
+    if !PlayerState.is-live: Rectangle {
+      // Played portion — brand gradient
+      x: 0;
+      width: PlayerState.duration > 0
+        ? track.width * (PlayerState.position / PlayerState.duration)
+        : 0px;
+      height: 100%;
+      border-radius: bar-h / 2;
+      background: Theme.brand-gradient;
+      animate width { duration: 80ms; }
+    }
+
+    // Seek knob (VOD, focus/hover only)
+    if !PlayerState.is-live && PlayerState.duration > 0 && (root.has-focus || seek-area.has-hover): Rectangle {
+      property <length> knob-d: 14px;
+      x: track.width * (PlayerState.position / PlayerState.duration) - knob-d / 2;
+      y: (parent.height - knob-d) / 2;
+      width: knob-d;
+      height: knob-d;
+      border-radius: knob-d / 2;
       background: Theme.focus-ring;
+    }
+
+    // ── Live mode ─────────────────────────────────────────────────────────
+    if PlayerState.is-live: Rectangle {
+      // Buffered portion (from left up to buffered fraction)
+      x: 0;
+      width: track.width * PlayerState.buffered;
+      height: 100%;
+      border-radius: bar-h / 2;
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    // Live edge marker — pulsing dot at the right edge
+    if PlayerState.is-live: Rectangle {
+      property <bool> pulse-state: false;
+      property <float> pulse-opacity: pulse-state ? 1.0 : 0.4;
+      property <length> dot-d: max(bar-h + 4px, 8px);
+
+      x: track.width - dot-d / 2;
+      y: (parent.height - dot-d) / 2;
+      width: dot-d;
+      height: dot-d;
+      border-radius: dot-d / 2;
+      background: Theme.live-badge;
+      opacity: pulse-opacity;
+
+      animate opacity { duration: 700ms; easing: ease-in-out; }
+
+      // Trigger the pulse by toggling pulse-state on init / continuously
+      // Slint has no setInterval; we chain two animations via init and changed
+      init => {
+        self.pulse-state = true;
+      }
+      changed pulse-opacity => {
+        self.pulse-state = !self.pulse-state;
+      }
     }
 
     seek-area := TouchArea {
@@ -160,9 +246,34 @@ component SeekBar inherits FocusScope {
       }
     }
   }
+
+  // Time labels below the bar (VOD only — live has no meaningful position text)
+  if !PlayerState.is-live && PlayerState.duration > 0: HorizontalLayout {
+    y: parent.height - 16px;
+    width: 100%;
+    alignment: space-between;
+
+    Text {
+      text: floor(PlayerState.position / 60) + ":" + (mod(PlayerState.position, 60) < 10 ? "0" : "") + floor(mod(PlayerState.position, 60));
+      color: Theme.text-primary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-caption;
+      font-weight: 500;
+    }
+
+    Text {
+      text: floor(PlayerState.duration / 60) + ":" + (mod(PlayerState.duration, 60) < 10 ? "0" : "") + floor(mod(PlayerState.duration, 60));
+      color: rgba(255, 255, 255, 0.6);
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-caption;
+      font-weight: 400;
+    }
+  }
 }
 
-// M-022: Secondary OSD tray — pill buttons for Audio / Subs / Speed / PiP
+// ─── OsdTray (M-022) ─────────────────────────────────────────────────────────
+// Secondary tray — pill buttons for Audio / Subs / Speed / PiP
+
 component OsdTray inherits Rectangle {
   in property <bool> visible-tray: false;
 
@@ -254,11 +365,13 @@ component OsdTray inherits Rectangle {
   }
 }
 
+// ─── OsdControls ─────────────────────────────────────────────────────────────
+
 component OsdControls inherits Rectangle {
   // M-022: secondary tray toggle state
   property <bool> show-tray: false;
 
-  // M-022: Down opens tray, Up closes — inner FocusScope (Rectangle has no key-pressed)
+  // D-pad Down opens tray, Up closes it
   FocusScope {
     width: 0; height: 0;
     key-pressed(event) => {
@@ -274,23 +387,43 @@ component OsdControls inherits Rectangle {
     }
   }
 
-  // Gradient overlay at bottom
+  // ── Bottom gradient overlay ───────────────────────────────────────────────
   Rectangle {
-    y: parent.height - 240px;
-    height: 240px;
+    y: parent.height - 260px;
+    height: 260px;
     width: parent.width;
-    background: @linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 100%);
+    background: @linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
   }
 
-  // M-023: Live EPG mini-strip — current programme + progress bar + "Next" label
+  // ── Live channel info strip (M-023) ─────────────────────────────────────
+  // Top of OSD: channel name + current programme + mini live-progress bar
   if PlayerState.is-live: HorizontalLayout {
     y: 0;
     x: Theme.content-padding-h;
     width: parent.width - Theme.content-padding-h * 2;
-    height: 48px;
+    height: 52px;
     alignment: start;
     spacing: Theme.spacing-md;
 
+    // LIVE badge
+    Rectangle {
+      width: 48px;
+      height: 22px;
+      border-radius: Theme.radius-xs;
+      background: Theme.live-badge;
+      y: (52px - 22px) / 2;
+      Text {
+        text: "LIVE";
+        color: #FFFFFF;
+        font-family: Theme.font-display;
+        font-size: 11px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+    }
+
+    // Channel name
     Text {
       text: PlayerState.current-title;
       color: Theme.text-primary;
@@ -299,15 +432,29 @@ component OsdControls inherits Rectangle {
       font-weight: 700;
       vertical-alignment: center;
       overflow: elide;
+      horizontal-stretch: 0;
+      max-width: parent.width * 0.35;
+    }
+
+    // Current programme title (EPG)
+    if PlayerState.current-programme != "": Text {
+      text: "· " + PlayerState.current-programme;
+      color: rgba(255, 255, 255, 0.65);
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-caption;
+      font-weight: 400;
+      vertical-alignment: center;
+      overflow: elide;
       horizontal-stretch: 1;
     }
 
+    // Programme mini-progress bar (right side of strip)
     Rectangle {
-      width: 120px;
+      width: 100px;
       height: 4px;
-      y: (parent.height - 4px) / 2;
+      y: (52px - 4px) / 2;
       border-radius: 2px;
-      background: Theme.focus-glow;
+      background: rgba(255, 255, 255, 0.2);
       Rectangle {
         x: 0;
         width: PlayerState.duration > 0.0
@@ -315,36 +462,30 @@ component OsdControls inherits Rectangle {
           : 0px;
         height: 100%;
         border-radius: 2px;
-        background: Theme.accent-gradient;
+        background: Theme.brand-gradient;
+        animate width { duration: 500ms; }
       }
-    }
-
-    Text {
-      text: "Next";
-      color: Theme.text-secondary;
-      font-family: Theme.font-body;
-      font-size: Theme.font-size-small;
-      vertical-alignment: center;
     }
   }
 
-  // Metadata (Top left of the OSD area)
+  // ── Metadata block (title + group, top-left of lower OSD area) ───────────
   HorizontalLayout {
-    y: parent.height - 180px;
+    y: parent.height - 190px;
     x: Theme.content-padding-h;
     width: parent.width - Theme.content-padding-h * 2;
     alignment: start;
     spacing: Theme.spacing-md;
 
+    // Live badge (shown in metadata area only when NOT in live strip mode — i.e. always for live)
     if PlayerState.is-live: Rectangle {
       width: 48px;
       height: 22px;
       border-radius: Theme.radius-xs;
       background: Theme.live-badge;
-      y: 4px;
+      y: 6px;
       Text {
         text: "LIVE";
-        color: Theme.btn-secondary-fg;
+        color: #FFFFFF;
         font-family: Theme.font-display;
         font-size: 11px;
         font-weight: 700;
@@ -371,27 +512,62 @@ component OsdControls inherits Rectangle {
     }
   }
 
-  // Transport controls (Center)
+  // ── Time display (VOD only, above transport row) ──────────────────────────
+  if !PlayerState.is-live && PlayerState.duration > 0: HorizontalLayout {
+    y: parent.height - 118px;
+    x: Theme.content-padding-h;
+    width: parent.width - Theme.content-padding-h * 2;
+    alignment: space-between;
+
+    Text {
+      text: floor(PlayerState.position / 60) + ":" + (mod(PlayerState.position, 60) < 10 ? "0" : "") + floor(mod(PlayerState.position, 60));
+      color: Theme.text-primary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-body;
+      font-weight: 500;
+      vertical-alignment: center;
+    }
+
+    Text {
+      text: floor(PlayerState.duration / 60) + ":" + (mod(PlayerState.duration, 60) < 10 ? "0" : "") + floor(mod(PlayerState.duration, 60));
+      color: rgba(255, 255, 255, 0.55);
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-body;
+      font-weight: 400;
+      vertical-alignment: center;
+    }
+  }
+
+  // ── Transport controls row ────────────────────────────────────────────────
   HorizontalLayout {
-    y: parent.height - 100px;
+    y: parent.height - 90px;
     width: parent.width;
     alignment: center;
     spacing: Theme.spacing-xl;
 
-    // Back / Stop button — exits playback and returns to browsing
+    // Stop / Back
     OsdButton {
       btn-size: 48px;
       activated => { PlayerState.stop(); }
       IconBack { size: 24px; fill: Theme.btn-secondary-fg; }
     }
 
+    // Skip back 10s
     OsdButton {
       btn-size: 48px;
-      activated => { /* Open settings */ }
-      IconSettings { size: 24px; fill: Theme.btn-secondary-fg; }
+      activated => { PlayerState.skip-back(); }
+      Text {
+        text: "−10";
+        color: Theme.btn-secondary-fg;
+        font-family: Theme.font-body;
+        font-size: 14px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
     }
 
-    // Play/Pause (Larger central button)
+    // Play/Pause (larger central button)
     OsdButton {
       btn-size: 64px;
       activated => { PlayerState.play-pause(); }
@@ -405,19 +581,49 @@ component OsdControls inherits Rectangle {
       }
     }
 
+    // Skip forward 10s
+    OsdButton {
+      btn-size: 48px;
+      activated => { PlayerState.skip-forward(); }
+      Text {
+        text: "+10";
+        color: Theme.btn-secondary-fg;
+        font-family: Theme.font-body;
+        font-size: 14px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+    }
+
+    // Fullscreen toggle
     OsdButton {
       btn-size: 48px;
       activated => { PlayerState.is-fullscreen = !PlayerState.is-fullscreen; }
-      Text { text: PlayerState.is-fullscreen ? "><" : "<>"; color: Theme.btn-secondary-fg; font-size: 18px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+      Text {
+        text: PlayerState.is-fullscreen ? "><" : "<>";
+        color: Theme.btn-secondary-fg;
+        font-size: 18px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+    }
+
+    // Settings
+    OsdButton {
+      btn-size: 48px;
+      activated => { /* Open settings */ }
+      IconSettings { size: 24px; fill: Theme.btn-secondary-fg; }
     }
   }
 
-  // Volume slider (Bottom right)
+  // ── Volume row (bottom right) ─────────────────────────────────────────────
   HorizontalLayout {
-    y: parent.height - 80px;
-    x: parent.width - Theme.content-padding-h - 200px;
-    width: 200px;
-    spacing: Theme.spacing-md;
+    y: parent.height - 60px;
+    x: parent.width - Theme.content-padding-h - 240px;
+    width: 240px;
+    spacing: Theme.spacing-sm;
     alignment: end;
 
     OsdButton {
@@ -432,19 +638,23 @@ component OsdControls inherits Rectangle {
         }
       }
     }
+
     VerticalLayout {
       alignment: center;
       VolumeSlider {}
     }
+
+    VolumeIndicator {}
   }
 
-  // Seek bar (Absolute bottom edge for VOD)
+  // ── Seek bar (VOD: absolute bottom edge; Live: hidden) ────────────────────
   if !PlayerState.is-live: SeekBar {
-    y: parent.height - self.height;
-    width: parent.width;
+    y: parent.height - self.height - 8px;
+    x: Theme.content-padding-h;
+    width: parent.width - Theme.content-padding-h * 2;
   }
 
-  // M-022: Secondary tray slides up from bottom
+  // ── M-022: Secondary tray slides up from bottom ───────────────────────────
   OsdTray {
     y: parent.height - self.height;
     width: parent.width;
@@ -452,14 +662,16 @@ component OsdControls inherits Rectangle {
   }
 }
 
+// ─── PlayerScreen (3.7: opacity-animated OSD) ─────────────────────────────
+
 export component PlayerScreen inherits Rectangle {
   // MUST be transparent — mpv OpenGL underlay renders BEHIND the Slint canvas.
-  // An opaque background here covers the video entirely.
   background: transparent;
   width: 100%;
   height: 100%;
 
-  // Video surface area — transparent to let underlay show through
+
+  // Video surface — transparent to let underlay through
   Rectangle {
     width: 100%;
     height: 100%;
@@ -470,7 +682,7 @@ export component PlayerScreen inherits Rectangle {
       spacing: Theme.spacing-sm;
 
       Text {
-        text: "Buffering...";
+        text: "Buffering…";
         color: Theme.text-secondary;
         font-family: Theme.font-body;
         font-size: Theme.font-size-body;
@@ -479,15 +691,32 @@ export component PlayerScreen inherits Rectangle {
     }
   }
 
-  // Touch/click to show OSD when it's hidden — MUST be before OsdControls so OSD buttons get clicks
-  if (PlayerState.is-playing || PlayerState.is-paused) && !PlayerState.show-osd && !PlayerState.is-paused: TouchArea {
+  // Tap/click on hidden OSD area to reveal controls (only when OSD is hidden)
+  if (PlayerState.is-playing || PlayerState.is-paused) && !PlayerState.show-osd: TouchArea {
     clicked => { PlayerState.show-controls(); }
   }
 
-  // OSD overlay (Layer 2) — auto-hides after 3s when playing (managed by Rust timer)
-  // Always visible when paused so user can resume or exit
-  if (PlayerState.is-playing || PlayerState.is-paused) && (PlayerState.show-osd || PlayerState.is-paused): OsdControls {
+  // ── OSD overlay — 3.7: smooth fade in/out via opacity ────────────────────
+  // Opacity is driven by show-osd (Rust sets it to false after 3s inactivity).
+  // Fade-in: 0.2s  Fade-out: 0.3s  (separate durations require property trick)
+  // Strategy: always render, drive opacity 0→1 / 1→0 so animate works on a
+  // single continuous property. interactive is false when opacity==0 so
+  // buttons don't intercept clicks while invisible.
+  if PlayerState.is-playing || PlayerState.is-paused: Rectangle {
+    // 3.7: OSD auto-hide fade animation
+    opacity: (PlayerState.show-osd || PlayerState.is-paused) ? 1.0 : 0.0;
+    animate opacity {
+      duration: (PlayerState.show-osd || PlayerState.is-paused) ? 200ms : 300ms;
+      easing: ease-in-out;
+    }
+
     width: 100%;
     height: 100%;
+    background: transparent;
+
+    OsdControls {
+      width: 100%;
+      height: 100%;
+    }
   }
 }

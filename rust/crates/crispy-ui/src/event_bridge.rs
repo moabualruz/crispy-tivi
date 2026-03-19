@@ -1003,7 +1003,75 @@ pub(crate) fn spawn_player_handler(
     backend: Arc<Mutex<Option<crispy_player::mpv_backend::MpvBackend>>>,
 ) {
     tokio::spawn(async move {
-        while let Some(event) = player_rx.recv().await {
+        // ── OSD auto-hide state ───────────────────────────────────────────────
+        // Deadline at which the OSD should be hidden. Reset on every non-Stop
+        // player event. When None the OSD is already hidden and no timer runs.
+        let mut osd_hide_deadline: Option<tokio::time::Instant> = None;
+
+        // ── Seek acceleration state ───────────────────────────────────────────
+        // Tracks when the last SeekRelative arrived and how many consecutive
+        // seeks have occurred within the 500ms acceleration window.
+        //
+        // Level → delta applied:
+        //   0 (first)  → 10 s
+        //   1          → 30 s
+        //   2          → 60 s
+        //   3+         → 120 s
+        let mut seek_accel_level: u32 = 0;
+        let mut last_seek_time: Option<tokio::time::Instant> = None;
+
+        const OSD_HIDE_SECS: u64 = 3;
+        const SEEK_ACCEL_WINDOW_MS: u64 = 500;
+        const SEEK_ACCEL_RESET_MS: u64 = 1000;
+
+        loop {
+            // Copy the deadline so the async block owns the value and doesn't
+            // borrow `osd_hide_deadline` across the mutable uses below.
+            let deadline_snapshot = osd_hide_deadline;
+            let osd_timeout = async move {
+                match deadline_snapshot {
+                    Some(d) => tokio::time::sleep_until(d).await,
+                    None => {
+                        // Park forever — this branch will never be selected
+                        // while osd_hide_deadline is None.
+                        std::future::pending::<()>().await
+                    }
+                }
+            };
+
+            let event = tokio::select! {
+                biased;
+
+                // Prefer incoming events over the timer so user input is never dropped.
+                maybe = player_rx.recv() => {
+                    match maybe {
+                        Some(e) => e,
+                        None => break, // sender dropped — shut down
+                    }
+                }
+
+                // OSD hide timer fired with no intervening event.
+                _ = osd_timeout => {
+                    osd_hide_deadline = None;
+                    let ui_w = ui_weak.clone();
+                    let _ = slint::invoke_from_event_loop(move || {
+                        if let Some(ui) = ui_w.upgrade() {
+                            ui.global::<super::PlayerState>().set_show_osd(false);
+                        }
+                    });
+                    continue;
+                }
+            };
+
+            // ── Reset OSD timer on every non-Stop event ───────────────────────
+            // Stop turns off the player; keeping the OSD visible then makes no
+            // sense, so we skip the reset for that variant.
+            if !matches!(event, PlayerEvent::Stop) {
+                osd_hide_deadline = Some(
+                    tokio::time::Instant::now() + std::time::Duration::from_secs(OSD_HIDE_SECS),
+                );
+            }
+
             match &event {
                 PlayerEvent::TogglePause => {
                     let result = {
@@ -1061,7 +1129,43 @@ pub(crate) fn spawn_player_handler(
                 }
 
                 PlayerEvent::SeekRelative { delta_secs } => {
-                    let delta = *delta_secs;
+                    // ── Seek acceleration ─────────────────────────────────────
+                    // Escalate magnitude on consecutive presses within 500ms:
+                    //   level 0 → 10 s, level 1 → 30 s, level 2 → 60 s, 3+ → 120 s
+                    // Reset acceleration after 1 s without a seek event.
+                    let now = tokio::time::Instant::now();
+                    let within_window = last_seek_time
+                        .map(|t| now.duration_since(t).as_millis() < SEEK_ACCEL_WINDOW_MS as u128)
+                        .unwrap_or(false);
+                    let past_reset = last_seek_time
+                        .map(|t| now.duration_since(t).as_millis() >= SEEK_ACCEL_RESET_MS as u128)
+                        .unwrap_or(true);
+
+                    if past_reset {
+                        seek_accel_level = 0;
+                    } else if within_window {
+                        seek_accel_level = seek_accel_level.saturating_add(1);
+                    }
+                    last_seek_time = Some(now);
+
+                    // Preserve the direction from the original delta.
+                    let direction = if *delta_secs >= 0.0 {
+                        1.0_f64
+                    } else {
+                        -1.0_f64
+                    };
+                    let magnitude = match seek_accel_level {
+                        0 => 10.0,
+                        1 => 30.0,
+                        2 => 60.0,
+                        _ => 120.0,
+                    };
+                    let delta = direction * magnitude;
+                    tracing::debug!(
+                        level = seek_accel_level,
+                        delta,
+                        "SeekRelative (accelerated)"
+                    );
                     let result = {
                         let guard = backend.lock().unwrap();
                         guard.as_ref().map(|b| b.seek_relative(delta))
@@ -1101,29 +1205,22 @@ pub(crate) fn spawn_player_handler(
                 }
 
                 PlayerEvent::ShowControls { visible } => {
+                    // The loop-level osd_hide_deadline already handles the 3 s
+                    // auto-hide for every non-Stop event. ShowControls just sets
+                    // the Slint property; no extra spawned timer needed.
                     let v = *visible;
                     let ui_w = ui_weak.clone();
                     let _ = slint::invoke_from_event_loop(move || {
                         if let Some(ui) = ui_w.upgrade() {
                             let ps = ui.global::<super::PlayerState>();
+                            // visible=true toggles OSD on; visible=false forces hide.
                             ps.set_show_osd(if v { !ps.get_show_osd() } else { false });
                         }
                     });
-                    // M-034: reset OSD auto-hide timer on ShowControls
-                    if v {
-                        let ui_w2 = ui_weak.clone();
-                        tokio::spawn(async move {
-                            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                            let _ = slint::invoke_from_event_loop(move || {
-                                if let Some(ui) = ui_w2.upgrade() {
-                                    let ps = ui.global::<super::PlayerState>();
-                                    // Only hide if still showing OSD and not paused
-                                    if ps.get_show_osd() && !ps.get_is_paused() {
-                                        ps.set_show_osd(false);
-                                    }
-                                }
-                            });
-                        });
+                    // When explicitly hiding, clear the pending deadline so the
+                    // loop timer does not fire and re-hide an already-hidden OSD.
+                    if !v {
+                        osd_hide_deadline = None;
                     }
                 }
 
