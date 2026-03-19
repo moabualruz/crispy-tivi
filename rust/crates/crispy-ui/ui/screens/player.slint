@@ -31,6 +31,30 @@ export global PlayerState {
   callback show-controls();
   callback skip-back();   // Rust handles: seek(position - 10)
   callback skip-forward();// Rust handles: seek(position + 10)
+
+  // 3.9: Quality/resolution badge
+  in-out property <string> current-resolution: "";  // e.g. "1080p", "720p", "Auto"
+
+  // 3.11: Skip Intro overlay
+  in-out property <bool> show-skip-intro: false;
+  callback skip-intro();
+
+  // 3.12: Auto-play next episode countdown
+  in-out property <bool> show-next-episode: false;
+  in-out property <string> next-episode-title: "";
+  in-out property <int> next-countdown: 10;
+  callback play-next();
+  callback cancel-next();
+
+  // 3.13: Still Watching prompt
+  in-out property <bool> show-still-watching: false;
+  callback dismiss-still-watching();
+
+  // 3.14: Post-play screen
+  in-out property <bool> show-post-play: false;
+  in-out property <string> post-play-next-title: "";
+  callback post-play-play();
+  callback post-play-back();
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -660,6 +684,28 @@ component OsdControls inherits Rectangle {
     width: parent.width;
     visible-tray: root.show-tray;
   }
+
+  // ── 3.9: Quality/resolution badge (top-right) ─────────────────────────────
+  Rectangle {
+    x: parent.width - self.width - Theme.content-padding-h;
+    y: Theme.spacing-md;
+    width: res-label.preferred-width + Theme.spacing-md;
+    height: 28px;
+    border-radius: Theme.radius-sm;
+    background: Theme.surface-glass;
+    border-width: 1px;
+    border-color: Theme.border-subtle;
+
+    res-label := Text {
+      text: PlayerState.current-resolution == "" ? "Auto" : PlayerState.current-resolution;
+      color: Theme.text-primary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-small;
+      font-weight: 600;
+      horizontal-alignment: center;
+      vertical-alignment: center;
+    }
+  }
 }
 
 // ─── PlayerScreen (3.7: opacity-animated OSD) ─────────────────────────────
@@ -717,6 +763,387 @@ export component PlayerScreen inherits Rectangle {
     OsdControls {
       width: 100%;
       height: 100%;
+    }
+  }
+
+  // ── 3.8: "Go Live" pill — timeshift mode only ────────────────────────────
+  // Visible when live stream is shifted behind live edge (position < duration - 5)
+  if PlayerState.is-live && PlayerState.duration > 0 && PlayerState.position < PlayerState.duration - 5: FocusScope {
+    x: parent.width / 2 - self.width / 2;
+    y: parent.height - 120px;
+    width: go-live-label.preferred-width + Theme.spacing-lg;
+    height: 36px;
+
+    key-pressed(event) => {
+      if event.text == Key.Return || event.text == " " {
+        PlayerState.seek(PlayerState.duration);
+        return accept;
+      }
+      return reject;
+    }
+
+    Rectangle {
+      width: 100%; height: 100%;
+      border-radius: Theme.radius-pill;
+      background: parent.has-focus ? Theme.focus-bg : Theme.live-badge;
+      border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+      border-color: Theme.focus-ring;
+      animate background { duration: 150ms; }
+      animate border-width { duration: 150ms; }
+
+      go-live-label := Text {
+        text: "● LIVE";
+        color: #FFFFFF;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-caption;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+
+      TouchArea { clicked => { PlayerState.seek(PlayerState.duration); } }
+    }
+  }
+
+  // ── 3.11: Skip Intro overlay ──────────────────────────────────────────────
+  if PlayerState.show-skip-intro: FocusScope {
+    x: parent.width - self.width - Theme.content-padding-h;
+    y: parent.height - 140px;
+    width: skip-intro-label.preferred-width + Theme.spacing-xl;
+    height: 44px;
+
+    key-pressed(event) => {
+      if event.text == Key.Return || event.text == " " {
+        PlayerState.skip-intro();
+        return accept;
+      }
+      return reject;
+    }
+
+    Rectangle {
+      width: 100%; height: 100%;
+      border-radius: Theme.radius-pill;
+      background: parent.has-focus ? Theme.focus-bg : Theme.surface-glass;
+      border-width: parent.has-focus ? Theme.focus-ring-width : 1px;
+      border-color: parent.has-focus ? Theme.focus-ring : Theme.border-subtle;
+      animate background { duration: 150ms; }
+      animate border-width { duration: 150ms; }
+
+      skip-intro-label := Text {
+        text: "Skip Intro ▸";
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-body;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+
+      TouchArea { clicked => { PlayerState.skip-intro(); } }
+    }
+  }
+
+  // ── 3.12: Auto-play next episode countdown card ───────────────────────────
+  if PlayerState.show-next-episode: Rectangle {
+    x: parent.width - self.width - Theme.content-padding-h;
+    y: parent.height / 2 - self.height / 2;
+    width: 320px;
+    height: next-ep-layout.preferred-height + Theme.spacing-xl;
+    border-radius: Theme.radius-md;
+    background: Theme.surface;
+    border-width: 1px;
+    border-color: Theme.card-border;
+
+    next-ep-layout := VerticalLayout {
+      padding: Theme.spacing-lg;
+      spacing: Theme.spacing-sm;
+
+      Text {
+        text: "Next Episode";
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        font-weight: 600;
+      }
+
+      Text {
+        text: PlayerState.next-episode-title;
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-body;
+        font-weight: 700;
+        wrap: word-wrap;
+      }
+
+      Text {
+        text: "Starting in " + PlayerState.next-countdown + "s";
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-small;
+      }
+
+      HorizontalLayout {
+        spacing: Theme.spacing-sm;
+
+        // Play Now
+        FocusScope {
+          width: play-now-label.preferred-width + Theme.spacing-lg;
+          height: 40px;
+
+          key-pressed(event) => {
+            if event.text == Key.Return || event.text == " " {
+              PlayerState.play-next();
+              return accept;
+            }
+            return reject;
+          }
+
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-sm;
+            background: parent.has-focus ? Theme.focus-ring : Theme.btn-primary-bg;
+            border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+            border-color: Theme.focus-ring;
+            animate background { duration: 150ms; }
+
+            play-now-label := Text {
+              text: "Play Now";
+              color: Theme.btn-primary-fg;
+              font-family: Theme.font-display;
+              font-size: Theme.font-size-caption;
+              font-weight: 700;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+
+            TouchArea { clicked => { PlayerState.play-next(); } }
+          }
+        }
+
+        // Cancel
+        FocusScope {
+          width: cancel-next-label.preferred-width + Theme.spacing-lg;
+          height: 40px;
+
+          key-pressed(event) => {
+            if event.text == Key.Return || event.text == " " {
+              PlayerState.cancel-next();
+              return accept;
+            }
+            return reject;
+          }
+
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-sm;
+            background: parent.has-focus ? Theme.focus-bg : Theme.btn-secondary-bg;
+            border-width: parent.has-focus ? Theme.focus-ring-width : 1px;
+            border-color: parent.has-focus ? Theme.focus-ring : Theme.border-subtle;
+            animate background { duration: 150ms; }
+
+            cancel-next-label := Text {
+              text: "Cancel";
+              color: Theme.btn-secondary-fg;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-caption;
+              font-weight: 600;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+
+            TouchArea { clicked => { PlayerState.cancel-next(); } }
+          }
+        }
+      }
+    }
+  }
+
+  // ── 3.13: "Still Watching?" prompt ───────────────────────────────────────
+  if PlayerState.show-still-watching: Rectangle {
+    // Dim scrim behind the card
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+
+    Rectangle {
+      x: parent.width / 2 - self.width / 2;
+      y: parent.height / 2 - self.height / 2;
+      width: 360px;
+      height: still-layout.preferred-height + Theme.spacing-xl;
+      border-radius: Theme.radius-md;
+      background: Theme.surface;
+      border-width: 1px;
+      border-color: Theme.card-border;
+
+      still-layout := VerticalLayout {
+        padding: Theme.spacing-xl;
+        spacing: Theme.spacing-md;
+        alignment: center;
+
+        Text {
+          text: "Are you still watching?";
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: Theme.font-size-h2;
+          font-weight: 700;
+          horizontal-alignment: center;
+        }
+
+        // Continue button
+        FocusScope {
+          x: parent.width / 2 - self.width / 2;
+          width: continue-label.preferred-width + Theme.spacing-xl;
+          height: 48px;
+
+          key-pressed(event) => {
+            if event.text == Key.Return || event.text == " " {
+              PlayerState.dismiss-still-watching();
+              return accept;
+            }
+            return reject;
+          }
+
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-sm;
+            background: parent.has-focus ? Theme.focus-ring : Theme.btn-primary-bg;
+            border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+            border-color: Theme.focus-ring;
+            animate background { duration: 150ms; }
+
+            continue-label := Text {
+              text: "Continue";
+              color: Theme.btn-primary-fg;
+              font-family: Theme.font-display;
+              font-size: Theme.font-size-body;
+              font-weight: 700;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+
+            TouchArea { clicked => { PlayerState.dismiss-still-watching(); } }
+          }
+        }
+      }
+    }
+  }
+
+  // ── 3.14: Post-play screen ────────────────────────────────────────────────
+  if !PlayerState.is-playing && PlayerState.show-post-play: Rectangle {
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+
+    VerticalLayout {
+      alignment: center;
+      spacing: Theme.spacing-xl;
+
+      Text {
+        text: "Up Next";
+        color: Theme.text-secondary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-h2;
+        font-weight: 700;
+        horizontal-alignment: center;
+      }
+
+      Rectangle {
+        x: parent.width / 2 - self.width / 2;
+        width: 400px;
+        height: post-play-inner.preferred-height + Theme.spacing-xl;
+        border-radius: Theme.radius-md;
+        background: Theme.surface;
+        border-width: 1px;
+        border-color: Theme.card-border;
+
+        post-play-inner := VerticalLayout {
+          padding: Theme.spacing-lg;
+          spacing: Theme.spacing-md;
+
+          Text {
+            text: PlayerState.post-play-next-title;
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-body;
+            font-weight: 700;
+            wrap: word-wrap;
+            horizontal-alignment: center;
+          }
+
+          HorizontalLayout {
+            alignment: center;
+            spacing: Theme.spacing-md;
+
+            // Play
+            FocusScope {
+              width: pp-play-label.preferred-width + Theme.spacing-xl;
+              height: 48px;
+
+              key-pressed(event) => {
+                if event.text == Key.Return || event.text == " " {
+                  PlayerState.post-play-play();
+                  return accept;
+                }
+                return reject;
+              }
+
+              Rectangle {
+                width: 100%; height: 100%;
+                border-radius: Theme.radius-sm;
+                background: parent.has-focus ? Theme.focus-ring : Theme.btn-primary-bg;
+                border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
+                border-color: Theme.focus-ring;
+                animate background { duration: 150ms; }
+
+                pp-play-label := Text {
+                  text: "Play";
+                  color: Theme.btn-primary-fg;
+                  font-family: Theme.font-display;
+                  font-size: Theme.font-size-body;
+                  font-weight: 700;
+                  horizontal-alignment: center;
+                  vertical-alignment: center;
+                }
+
+                TouchArea { clicked => { PlayerState.post-play-play(); } }
+              }
+            }
+
+            // Back to Browse
+            FocusScope {
+              width: pp-back-label.preferred-width + Theme.spacing-xl;
+              height: 48px;
+
+              key-pressed(event) => {
+                if event.text == Key.Return || event.text == " " {
+                  PlayerState.post-play-back();
+                  return accept;
+                }
+                return reject;
+              }
+
+              Rectangle {
+                width: 100%; height: 100%;
+                border-radius: Theme.radius-sm;
+                background: parent.has-focus ? Theme.focus-bg : Theme.btn-secondary-bg;
+                border-width: parent.has-focus ? Theme.focus-ring-width : 1px;
+                border-color: parent.has-focus ? Theme.focus-ring : Theme.border-subtle;
+                animate background { duration: 150ms; }
+
+                pp-back-label := Text {
+                  text: "Back to Browse";
+                  color: Theme.btn-secondary-fg;
+                  font-family: Theme.font-body;
+                  font-size: Theme.font-size-body;
+                  font-weight: 600;
+                  horizontal-alignment: center;
+                  vertical-alignment: center;
+                }
+
+                TouchArea { clicked => { PlayerState.post-play-back(); } }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

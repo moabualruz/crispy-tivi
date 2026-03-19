@@ -133,6 +133,106 @@ pub(crate) fn wire(
         }
     });
 
+    // skip-back: seek -10s (direction preserved by SeekRelative handler)
+    ps.on_skip_back({
+        let tx = player_tx.clone();
+        move || {
+            if let Err(e) = tx.try_send(PlayerEvent::SeekRelative { delta_secs: -10.0 }) {
+                tracing::warn!(error = %e, "player_tx full: skip-back dropped");
+            }
+        }
+    });
+
+    // skip-forward: seek +10s
+    ps.on_skip_forward({
+        let tx = player_tx.clone();
+        move || {
+            if let Err(e) = tx.try_send(PlayerEvent::SeekRelative { delta_secs: 10.0 }) {
+                tracing::warn!(error = %e, "player_tx full: skip-forward dropped");
+            }
+        }
+    });
+
+    // skip-intro: seek +30s (fixed jump — no chapter data yet)
+    ps.on_skip_intro({
+        let tx = player_tx.clone();
+        move || {
+            if let Err(e) = tx.try_send(PlayerEvent::SeekRelative { delta_secs: 30.0 }) {
+                tracing::warn!(error = %e, "player_tx full: skip-intro dropped");
+            }
+        }
+    });
+
+    // play-next: advance to the next episode by re-using the high-priority queue.
+    // The next VOD id must be resolved from the series_episodes model in Slint.
+    // We read it here on the UI thread (wire() is called on the UI thread) via a
+    // weak handle so we never cross the !Send boundary of Slint types.
+    ps.on_play_next({
+        let high_tx = high_tx.clone();
+        let ui_w = ui.as_weak();
+        move || {
+            // Hide the next-episode overlay immediately.
+            if let Some(ui) = ui_w.upgrade() {
+                ui.global::<super::PlayerState>()
+                    .set_show_next_episode(false);
+            }
+            // Resolve the next episode id from AppState.series_episodes.
+            // The series detail view already holds the episode list; find the
+            // episode after the currently playing one by position index.
+            let next_id = ui_w.upgrade().and_then(|ui| {
+                let app = ui.global::<super::AppState>();
+                let ps = ui.global::<super::PlayerState>();
+                let current_title = ps.get_current_title().to_string();
+                let model = app.get_series_episodes();
+                // Find the episode whose title matches the currently playing title,
+                // then return the next sequential episode in the list.
+                let count = model.row_count();
+                for i in 0..count {
+                    let ep = model.row_data(i).unwrap_or_default();
+                    if ep.name.as_str() == current_title || i + 1 == count {
+                        // Return the next episode if available, else None.
+                        if i + 1 < count {
+                            return Some(model.row_data(i + 1).unwrap_or_default().id.to_string());
+                        }
+                        return None;
+                    }
+                }
+                None
+            });
+            if let Some(id) = next_id.filter(|s| !s.is_empty()) {
+                if let Err(e) = high_tx.try_send(HighPriorityEvent::PlayVod { vod_id: id }) {
+                    tracing::warn!(error = %e, "high_tx full: play-next dropped");
+                }
+            } else {
+                tracing::debug!("play-next: no next episode found");
+            }
+        }
+    });
+
+    // cancel-next: user dismissed the next-episode countdown — just hide the overlay.
+    ps.on_cancel_next({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                ui.global::<super::PlayerState>()
+                    .set_show_next_episode(false);
+                tracing::debug!("cancel-next: next-episode overlay dismissed");
+            }
+        }
+    });
+
+    // dismiss-still-watching: user confirmed they are still watching — hide overlay.
+    ps.on_dismiss_still_watching({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                ui.global::<super::PlayerState>()
+                    .set_show_still_watching(false);
+                tracing::debug!("dismiss-still-watching: still-watching overlay dismissed");
+            }
+        }
+    });
+
     // ── AppState callbacks ────────────────────────────────────────────────
 
     let app = ui.global::<super::AppState>();
