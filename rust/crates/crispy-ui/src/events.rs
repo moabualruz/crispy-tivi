@@ -259,6 +259,8 @@ pub enum NormalEvent {
         max_allowed_rating: i32,
         role: i32,
     },
+    /// Persist a user preference (key/value) to the database.
+    SavePreference { key: String, value: String },
 }
 
 // ── DataEvent ────────────────────────────────────────────────────────────────

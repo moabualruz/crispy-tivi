@@ -837,6 +837,27 @@ impl DataEngine {
                     }
                 }
             }
+
+            NormalEvent::SavePreference { key, value } => {
+                let svc = self.provider.clone();
+                let k = key.clone();
+                let v = value.clone();
+                match self
+                    .rt
+                    .spawn_blocking(move || svc.set_setting(&k, &v))
+                    .await
+                {
+                    Ok(Ok(())) => {
+                        info!(key = %key, value = %value, "Preference saved");
+                    }
+                    Ok(Err(e)) => {
+                        error!(error = %e, key = %key, "Failed to save preference");
+                    }
+                    Err(e) => {
+                        error!(error = %e, "save_preference task panicked");
+                    }
+                }
+            }
         }
     }
 

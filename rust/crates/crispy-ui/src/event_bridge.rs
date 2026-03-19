@@ -543,6 +543,87 @@ pub(crate) fn wire(
         }
     });
 
+    // ── Settings preference callbacks ─────────────────────────────────────
+
+    app.on_set_video_quality({
+        let tx = normal_tx.clone();
+        move |label| {
+            tracing::info!(quality = %label, "settings: video quality changed");
+            let _ = tx.try_send(NormalEvent::SavePreference {
+                key: "video_quality".into(),
+                value: label.to_string(),
+            });
+        }
+    });
+
+    app.on_set_audio_language({
+        let tx = normal_tx.clone();
+        move |lang| {
+            tracing::info!(lang = %lang, "settings: audio language changed");
+            let _ = tx.try_send(NormalEvent::SavePreference {
+                key: "audio_language".into(),
+                value: lang.to_string(),
+            });
+        }
+    });
+
+    app.on_set_audio_passthrough({
+        let tx = normal_tx.clone();
+        move |enabled| {
+            tracing::info!(enabled, "settings: audio passthrough changed");
+            let _ = tx.try_send(NormalEvent::SavePreference {
+                key: "audio_passthrough".into(),
+                value: enabled.to_string(),
+            });
+        }
+    });
+
+    app.on_set_autoplay_next({
+        let tx = normal_tx.clone();
+        move |enabled| {
+            tracing::info!(enabled, "settings: autoplay next changed");
+            let _ = tx.try_send(NormalEvent::SavePreference {
+                key: "autoplay_next".into(),
+                value: enabled.to_string(),
+            });
+        }
+    });
+
+    app.on_set_subtitle_language({
+        let tx = normal_tx.clone();
+        move |lang| {
+            tracing::info!(lang = %lang, "settings: subtitle language changed");
+            let _ = tx.try_send(NormalEvent::SavePreference {
+                key: "subtitle_language".into(),
+                value: lang.to_string(),
+            });
+        }
+    });
+
+    app.on_set_startup_screen({
+        let tx = normal_tx.clone();
+        move |label| {
+            tracing::info!(screen = %label, "settings: startup screen changed");
+            let _ = tx.try_send(NormalEvent::SavePreference {
+                key: "startup_screen".into(),
+                value: label.to_string(),
+            });
+        }
+    });
+
+    app.on_open_player_settings({
+        let ui_w = ui.as_weak();
+        move || {
+            tracing::debug!("settings: open player settings");
+            // Navigate to settings screen with player section focused
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                app.set_active_screen(7); // Settings screen
+                app.invoke_navigate(7);
+            }
+        }
+    });
+
     // ── AppState normal-priority callbacks ────────────────────────────────
 
     app.on_edit_source({
