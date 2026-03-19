@@ -34,7 +34,7 @@ component CheckRow inherits FocusScope {
       // Check circle
       Rectangle {
         width: 20px; height: 20px;
-        border-radius: 10px;
+        border-radius: Theme.radius-pill;
         border-width: 2px;
         border-color: root.done ? Theme.status-success-text : Theme.text-secondary;
         background: root.done ? Theme.status-success-bg : transparent;
@@ -107,7 +107,7 @@ export component GettingStartedCard inherits Rectangle {
         }
         Rectangle {
           width: 100%; height: 100%;
-          border-radius: 14px;
+          border-radius: Theme.radius-md;
           background: dismiss-btn.has-focus ? Theme.focus-bg : transparent;
           border-width: dismiss-btn.has-focus ? Theme.focus-ring-width : 0px;
           border-color: dismiss-btn.has-focus ? Theme.focus-ring : transparent;

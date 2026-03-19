@@ -76,7 +76,7 @@ export component VodCard inherits FocusScope {
           y: Theme.spacing-xs;
           width: yr-text.preferred-width + 12px;
           height: 20px;
-          border-radius: 10px; // geometric: half of fixed 20px badge height — circle shape
+          border-radius: Theme.radius-pill;
           background: Theme.overlay;
 
           yr-text := Text {
@@ -95,7 +95,7 @@ export component VodCard inherits FocusScope {
           y: Theme.spacing-xs;
           width: rating-text.preferred-width + 12px;
           height: 20px;
-          border-radius: 10px;
+          border-radius: Theme.radius-pill;
           background: Theme.accent;
 
           rating-text := Text {
@@ -114,7 +114,7 @@ export component VodCard inherits FocusScope {
           x: parent.width - self.width - Theme.spacing-xs;
           y: parent.height - self.height - Theme.spacing-xs;
           width: 24px; height: 24px;
-          border-radius: 12px;
+          border-radius: Theme.radius-pill;
           background: Theme.overlay;
           IconStar {
             size: 14px;
@@ -130,7 +130,7 @@ export component VodCard inherits FocusScope {
           y: parent.height - self.height - Theme.spacing-xs;
           width: dur-text.preferred-width + 10px;
           height: 20px;
-          border-radius: 10px;
+          border-radius: Theme.radius-pill;
           background: Theme.overlay;
           dur-text := Text {
             text: item.duration-minutes + "m";

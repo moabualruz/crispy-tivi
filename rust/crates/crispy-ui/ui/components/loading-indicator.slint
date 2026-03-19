@@ -16,7 +16,7 @@ export component LoadingIndicator inherits Rectangle {
       for i in [0, 1, 2]: Rectangle {
         width: 10px;
         height: 10px;
-        border-radius: 5px;
+        border-radius: Theme.radius-pill;
         background: Theme.accent;
         opacity: 0.3 + mod(animation-tick() / 400ms + i, 3) * 0.3;
       }

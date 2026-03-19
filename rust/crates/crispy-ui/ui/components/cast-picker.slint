@@ -101,7 +101,7 @@ component DeviceRow inherits FocusScope {
           Rectangle {
             width: 10px;
             height: 10px;
-            border-radius: 5px;
+            border-radius: Theme.radius-pill;
             background: root.device.status == "connected"
               ? Theme.status-success-text
               : root.device.status == "connecting"

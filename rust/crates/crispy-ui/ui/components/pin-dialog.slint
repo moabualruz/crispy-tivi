@@ -197,7 +197,7 @@ export component PinDialog inherits Rectangle {
 
         for i in [0, 1, 2, 3]: Rectangle {
           width: 16px; height: 16px;
-          border-radius: 8px;
+          border-radius: Theme.radius-pill;
           background: root.digit-filled(i)
             ? Theme.text-primary
             : Theme.surface-highlight;
