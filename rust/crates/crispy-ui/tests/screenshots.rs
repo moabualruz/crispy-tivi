@@ -13,8 +13,7 @@ use slint::ComponentHandle;
 fn screenshot_journeys() {
     // Install the software-renderer platform BEFORE any AppWindow is created.
     // Reads CRISPY_TEST_RESOLUTION (default 1280x720).
-    let resolution =
-        std::env::var("CRISPY_TEST_RESOLUTION").unwrap_or_else(|_| "1280x720".into());
+    let resolution = std::env::var("CRISPY_TEST_RESOLUTION").unwrap_or_else(|_| "1280x720".into());
     let (width, height) = parse_resolution(&resolution);
     platform::init_screenshot_platform(width, height);
 

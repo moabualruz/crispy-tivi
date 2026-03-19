@@ -109,8 +109,8 @@ fn read_manifest(latest_path: &str) -> anyhow::Result<Manifest> {
     let path = Path::new(latest_path).join("manifest.json");
     let data = fs::read_to_string(&path)
         .map_err(|e| anyhow::anyhow!("Cannot read {}: {}", path.display(), e))?;
-    let manifest: Manifest = serde_json::from_str(&data)
-        .map_err(|e| anyhow::anyhow!("Invalid manifest.json: {}", e))?;
+    let manifest: Manifest =
+        serde_json::from_str(&data).map_err(|e| anyhow::anyhow!("Invalid manifest.json: {}", e))?;
     Ok(manifest)
 }
 
@@ -121,8 +121,8 @@ fn read_notes(latest_path: &str) -> anyhow::Result<Notes> {
     }
     let data = fs::read_to_string(&path)
         .map_err(|e| anyhow::anyhow!("Cannot read {}: {}", path.display(), e))?;
-    let notes: Notes = serde_json::from_str(&data)
-        .map_err(|e| anyhow::anyhow!("Invalid notes.json: {}", e))?;
+    let notes: Notes =
+        serde_json::from_str(&data).map_err(|e| anyhow::anyhow!("Invalid notes.json: {}", e))?;
     Ok(notes)
 }
 
@@ -155,9 +155,8 @@ fn copy_to_golden(shot: &ManifestScreenshot) -> anyhow::Result<()> {
         }
     };
     if let Some(parent) = golden.parent() {
-        fs::create_dir_all(parent).map_err(|e| {
-            anyhow::anyhow!("Cannot create dir {}: {}", parent.display(), e)
-        })?;
+        fs::create_dir_all(parent)
+            .map_err(|e| anyhow::anyhow!("Cannot create dir {}: {}", parent.display(), e))?;
     }
     fs::copy(&shot.paths.test, &golden).map_err(|e| {
         anyhow::anyhow!(
@@ -349,7 +348,11 @@ fn cmd_clean(keep: usize) -> anyhow::Result<()> {
     // Sort by id (lexicographic; IDs are typically ISO timestamps)
     index.runs.sort_by(|a, b| a.id.cmp(&b.id));
     if index.runs.len() <= keep {
-        println!("Nothing to remove ({} run(s) present, keeping {}).", index.runs.len(), keep);
+        println!(
+            "Nothing to remove ({} run(s) present, keeping {}).",
+            index.runs.len(),
+            keep
+        );
         return Ok(());
     }
     let to_remove: Vec<RunEntry> = index.runs.drain(..index.runs.len() - keep).collect();
@@ -357,9 +360,8 @@ fn cmd_clean(keep: usize) -> anyhow::Result<()> {
     for run in &to_remove {
         let run_path = Path::new(&run.path);
         if run_path.exists() {
-            fs::remove_dir_all(run_path).map_err(|e| {
-                anyhow::anyhow!("Cannot remove {}: {}", run_path.display(), e)
-            })?;
+            fs::remove_dir_all(run_path)
+                .map_err(|e| anyhow::anyhow!("Cannot remove {}: {}", run_path.display(), e))?;
             println!("  removed: {}", run.id);
             removed += 1;
         } else {
