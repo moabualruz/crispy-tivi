@@ -355,6 +355,19 @@ pub(crate) fn wire(
         }
     });
 
+    // toggle-tracks-panel: show/hide audio+subtitle track selection panel
+    ps.on_toggle_tracks_panel({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let ps = ui.global::<super::PlayerState>();
+                let current = ps.get_show_tracks_panel();
+                ps.set_show_tracks_panel(!current);
+                tracing::debug!(now = !current, "toggle-tracks-panel");
+            }
+        }
+    });
+
     // ── AppState callbacks ────────────────────────────────────────────────
 
     let app = ui.global::<super::AppState>();
@@ -1678,6 +1691,12 @@ pub(crate) fn wire(
                 app.set_show_cast_picker(false);
                 tracing::info!(device = %device_id, "cast-to-device: cast requested (Epoch 10 — not yet implemented)");
             }
+        }
+    });
+
+    app.on_stop_casting({
+        move || {
+            tracing::info!("stop-casting: requested (Epoch 10 — not yet implemented)");
         }
     });
 

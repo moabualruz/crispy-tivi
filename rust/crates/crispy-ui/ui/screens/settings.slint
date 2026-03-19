@@ -391,6 +391,18 @@ component SettingInfoRow inherits Rectangle {
 export component SettingsScreen inherits Rectangle {
   background: transparent;
 
+  // Escape → navigate to Home
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      if event.text == Key.Escape {
+        AppState.navigate(0);
+        return accept;
+      }
+      return reject;
+    }
+  }
+
   // ── Mode toggle state
   in-out property <bool> advanced-mode: false;
 
