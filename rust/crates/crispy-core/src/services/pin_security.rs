@@ -1,49 +1,148 @@
 //! Argon2id PIN hashing and progressive lockout.
 //!
-//! - Hashing: Argon2id with a random 16-byte salt via [`PinSecurity::hash_pin`].
+//! - Hashing: Argon2id (m=19456, t=2, p=1) with a random 16-byte salt via
+//!   [`PinSecurity::hash_pin`].
 //! - Verification: constant-time via `argon2::PasswordVerifier` internals.
+//! - Migration: [`PinSecurity::verify_and_migrate`] transparently upgrades
+//!   old SHA-256 hashes to Argon2id on first successful login.
 //! - Lockout: per-profile consecutive-failure counter with exponential cooldown.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use argon2::Argon2;
-use argon2::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
-use rand_core::OsRng;
+use argon2::password_hash::{PasswordHash, PasswordVerifier};
+use argon2::{Algorithm, Argon2, Params, Version};
 
+use crate::algorithms::pin::{
+    hash_pin_argon2id, is_argon2id_hash, is_legacy_sha256_hash, verify_pin_legacy,
+};
 use crate::errors::CrispyError;
+
+// ── Argon2id parameters ───────────────────────────────────────────────────────
+
+/// Memory cost: 19 MiB (OWASP minimum for Argon2id).
+const ARGON2_M_COST: u32 = 19_456;
+/// Time cost: 2 iterations.
+const ARGON2_T_COST: u32 = 2;
+/// Parallelism: 1 lane.
+const ARGON2_P_COST: u32 = 1;
+
+fn argon2_instance() -> Argon2<'static> {
+    let params = Params::new(ARGON2_M_COST, ARGON2_T_COST, ARGON2_P_COST, None)
+        .expect("valid Argon2 params");
+    Argon2::new(Algorithm::Argon2id, Version::V0x13, params)
+}
+
+// ── HashFormat ────────────────────────────────────────────────────────────────
+
+/// The detected format of a stored PIN hash.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HashFormat {
+    /// Argon2id PHC string (`$argon2id$...`).
+    Argon2id,
+    /// Legacy unsalted SHA-256 hex string (64 chars).
+    LegacySha256,
+    /// Unrecognised format.
+    Unknown,
+}
+
+impl HashFormat {
+    /// Detect the format of a stored hash string.
+    pub fn detect(hash: &str) -> Self {
+        if is_argon2id_hash(hash) {
+            HashFormat::Argon2id
+        } else if is_legacy_sha256_hash(hash) {
+            HashFormat::LegacySha256
+        } else {
+            HashFormat::Unknown
+        }
+    }
+}
+
+// ── MigrationOutcome ──────────────────────────────────────────────────────────
+
+/// Result of [`PinSecurity::verify_and_migrate`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MigrationOutcome {
+    /// PIN was correct; hash was already Argon2id — no update needed.
+    VerifiedNoMigration,
+    /// PIN was correct; hash was legacy SHA-256 and has been re-hashed.
+    /// The caller MUST persist `new_hash` to `db_profiles.pin`.
+    VerifiedMigrated { new_hash: String },
+    /// PIN was incorrect.
+    WrongPin,
+}
 
 // ── PinSecurity ───────────────────────────────────────────────────────────────
 
-/// Argon2id PIN hashing and verification.
+/// Argon2id PIN hashing, verification, and transparent legacy migration.
 pub struct PinSecurity;
 
 impl PinSecurity {
-    /// Hash a PIN using Argon2id with a random 16-byte salt.
+    /// Hash a PIN using Argon2id (m=19456, t=2, p=1) with a fresh random salt.
     ///
-    /// Returns a PHC-format string (`$argon2id$...`) suitable for DB storage.
+    /// Returns a PHC-format string (`$argon2id$v=19$m=19456,t=2,p=1$...`)
+    /// suitable for storage in `db_profiles.pin`.
     pub fn hash_pin(pin: &str) -> Result<String, CrispyError> {
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default(); // Argon2id by default
-        let hash = argon2
-            .hash_password(pin.as_bytes(), &salt)
-            .map_err(|e| CrispyError::security(format!("PIN hashing failed: {e}")))?;
-        Ok(hash.to_string())
+        hash_pin_argon2id(pin)
     }
 
     /// Verify a PIN against a stored Argon2id PHC hash.
     ///
     /// Uses constant-time comparison internally (argon2 crate guarantee).
+    /// Returns `Ok(false)` for a wrong PIN; `Err` only for a malformed hash.
     pub fn verify_pin(pin: &str, hash: &str) -> Result<bool, CrispyError> {
         let parsed = PasswordHash::new(hash)
             .map_err(|e| CrispyError::security(format!("Invalid stored hash: {e}")))?;
-        match Argon2::default().verify_password(pin.as_bytes(), &parsed) {
+        match argon2_instance().verify_password(pin.as_bytes(), &parsed) {
             Ok(()) => Ok(true),
             Err(argon2::password_hash::Error::Password) => Ok(false),
             Err(e) => Err(CrispyError::security(format!(
                 "PIN verification error: {e}"
             ))),
+        }
+    }
+
+    /// Verify a PIN against any stored hash format, transparently migrating
+    /// legacy SHA-256 hashes to Argon2id on successful verification.
+    ///
+    /// ## Usage
+    ///
+    /// ```ignore
+    /// match PinSecurity::verify_and_migrate(entered_pin, stored_hash)? {
+    ///     MigrationOutcome::VerifiedNoMigration => { /* proceed */ }
+    ///     MigrationOutcome::VerifiedMigrated { new_hash } => {
+    ///         db.update_profile_pin(profile_id, &new_hash)?; // persist upgrade
+    ///     }
+    ///     MigrationOutcome::WrongPin => { /* reject */ }
+    /// }
+    /// ```
+    pub fn verify_and_migrate(
+        pin: &str,
+        stored_hash: &str,
+    ) -> Result<MigrationOutcome, CrispyError> {
+        match HashFormat::detect(stored_hash) {
+            HashFormat::Argon2id => {
+                let ok = Self::verify_pin(pin, stored_hash)?;
+                if ok {
+                    Ok(MigrationOutcome::VerifiedNoMigration)
+                } else {
+                    Ok(MigrationOutcome::WrongPin)
+                }
+            }
+            HashFormat::LegacySha256 => {
+                if verify_pin_legacy(pin, stored_hash) {
+                    // Re-hash with Argon2id so the DB is upgraded on next write
+                    let new_hash = hash_pin_argon2id(pin)?;
+                    Ok(MigrationOutcome::VerifiedMigrated { new_hash })
+                } else {
+                    Ok(MigrationOutcome::WrongPin)
+                }
+            }
+            HashFormat::Unknown => Err(CrispyError::security(
+                "Stored PIN hash has unrecognised format".to_string(),
+            )),
         }
     }
 }
@@ -193,9 +292,11 @@ impl PinLockout {
 mod tests {
     use std::thread;
 
+    use crate::algorithms::pin::hash_pin_legacy;
+
     use super::*;
 
-    // ── PinSecurity tests ──────────────────────────────────────────────────────
+    // ── PinSecurity::hash_pin / verify_pin ────────────────────────────────────
 
     #[test]
     fn test_hash_pin_returns_phc_string() {
@@ -204,6 +305,14 @@ mod tests {
             hash.starts_with("$argon2id$"),
             "expected Argon2id PHC: {hash}"
         );
+    }
+
+    #[test]
+    fn test_hash_pin_uses_required_params() {
+        let hash = PinSecurity::hash_pin("1234").unwrap();
+        assert!(hash.contains("m=19456"), "expected m=19456: {hash}");
+        assert!(hash.contains("t=2"), "expected t=2: {hash}");
+        assert!(hash.contains("p=1"), "expected p=1: {hash}");
     }
 
     #[test]
@@ -244,6 +353,77 @@ mod tests {
         // Both must invoke Argon2 work — neither should be sub-millisecond
         assert!(correct_ms >= 1, "correct verify too fast: {correct_ms}ms");
         assert!(wrong_ms >= 1, "wrong verify too fast: {wrong_ms}ms");
+    }
+
+    // ── HashFormat detection ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_migration_detects_argon2id_hash() {
+        let hash = PinSecurity::hash_pin("1234").unwrap();
+        assert_eq!(HashFormat::detect(&hash), HashFormat::Argon2id);
+    }
+
+    #[test]
+    fn test_migration_detects_legacy_hash() {
+        let hash = hash_pin_legacy("1234");
+        assert_eq!(HashFormat::detect(&hash), HashFormat::LegacySha256);
+    }
+
+    #[test]
+    fn test_migration_detects_unknown_hash() {
+        assert_eq!(HashFormat::detect("not-a-hash"), HashFormat::Unknown);
+        assert_eq!(HashFormat::detect(""), HashFormat::Unknown);
+    }
+
+    // ── verify_and_migrate ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_verify_and_migrate_argon2id_correct_no_migration() {
+        let hash = PinSecurity::hash_pin("correct").unwrap();
+        let outcome = PinSecurity::verify_and_migrate("correct", &hash).unwrap();
+        assert_eq!(outcome, MigrationOutcome::VerifiedNoMigration);
+    }
+
+    #[test]
+    fn test_verify_and_migrate_argon2id_wrong_returns_wrong_pin() {
+        let hash = PinSecurity::hash_pin("correct").unwrap();
+        let outcome = PinSecurity::verify_and_migrate("wrong", &hash).unwrap();
+        assert_eq!(outcome, MigrationOutcome::WrongPin);
+    }
+
+    #[test]
+    fn test_verify_and_migrate_legacy_correct_returns_new_hash() {
+        let legacy_hash = hash_pin_legacy("migrated");
+        let outcome = PinSecurity::verify_and_migrate("migrated", &legacy_hash).unwrap();
+        match outcome {
+            MigrationOutcome::VerifiedMigrated { new_hash } => {
+                // New hash must be Argon2id and must verify the same PIN
+                assert!(new_hash.starts_with("$argon2id$"), "upgraded to Argon2id");
+                assert!(PinSecurity::verify_pin("migrated", &new_hash).unwrap());
+            }
+            other => panic!("expected VerifiedMigrated, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_verify_and_migrate_legacy_wrong_returns_wrong_pin() {
+        let legacy_hash = hash_pin_legacy("correct");
+        let outcome = PinSecurity::verify_and_migrate("wrong", &legacy_hash).unwrap();
+        assert_eq!(outcome, MigrationOutcome::WrongPin);
+    }
+
+    #[test]
+    fn test_verify_and_migrate_unknown_hash_returns_error() {
+        let err = PinSecurity::verify_and_migrate("1234", "garbage-hash").unwrap_err();
+        assert!(matches!(err, CrispyError::Security { .. }));
+    }
+
+    #[test]
+    fn test_verify_and_migrate_empty_pin_legacy() {
+        // Empty PIN on a legacy hash must migrate correctly
+        let legacy_hash = hash_pin_legacy("");
+        let outcome = PinSecurity::verify_and_migrate("", &legacy_hash).unwrap();
+        assert!(matches!(outcome, MigrationOutcome::VerifiedMigrated { .. }));
     }
 
     // ── PinLockout tests ───────────────────────────────────────────────────────

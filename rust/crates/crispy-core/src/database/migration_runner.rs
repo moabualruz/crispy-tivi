@@ -24,7 +24,7 @@ use super::DbError;
 ///
 /// When adding a new migration file, update this constant to match the
 /// new `PRAGMA user_version` value set by that file.
-pub const LATEST_VERSION: u32 = 38;
+pub const LATEST_VERSION: u32 = 39;
 
 /// Ordered list of `(target_user_version, sql)` pairs.
 ///
@@ -41,6 +41,10 @@ static MIGRATIONS: &[(u32, &str)] = &[
     (37, include_str!("migrations/002_retry_queue.sql")),
     // 003 — merge_decisions table: persist user manual merge/split decisions
     (38, include_str!("migrations/003_merge_decisions.sql")),
+    // 004 — credential encryption marker: adds `credentials_encrypted` column
+    //        to db_sources so the service layer can detect and re-encrypt
+    //        any pre-existing plaintext rows on first run (spec C-008)
+    (39, include_str!("migrations/004_encrypt_credentials.sql")),
 ];
 
 /// Run all pending migrations against `conn`.
@@ -210,6 +214,41 @@ mod tests {
                 "missing table after migration: {name}",
             );
         }
+    }
+
+    /// Migration 004: `credentials_encrypted` column must exist on db_sources.
+    #[test]
+    fn test_migration_004_adds_credentials_encrypted_column() {
+        let conn = open_memory();
+        run_migrations(&conn).expect("run_migrations");
+
+        // Query the column — must default to 0.
+        let val: i64 = conn
+            .query_row(
+                "SELECT credentials_encrypted \
+                 FROM db_sources \
+                 LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(0); // table empty — default is 0, which is acceptable
+
+        assert_eq!(val, 0, "credentials_encrypted default must be 0 (false)");
+
+        // Verify column exists via PRAGMA.
+        let mut stmt = conn
+            .prepare("PRAGMA table_info(db_sources)")
+            .expect("prepare pragma");
+        let columns: Vec<String> = stmt
+            .query_map([], |row| row.get(1))
+            .expect("query")
+            .filter_map(|r| r.ok())
+            .collect();
+
+        assert!(
+            columns.contains(&"credentials_encrypted".to_string()),
+            "credentials_encrypted column must exist on db_sources"
+        );
     }
 
     /// All expected indexes must be present after migration.
