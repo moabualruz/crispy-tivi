@@ -6,3 +6,5 @@ pub use events::*;
 
 pub mod config;
 pub use config::*;
+
+pub mod reduced_motion;
