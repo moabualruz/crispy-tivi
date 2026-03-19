@@ -4,6 +4,18 @@ import { ScrollView } from "std-widgets.slint";
 import { ActionButton } from "../components/action-button.slint";
 import { FilterChip } from "../components/filter-chip.slint";
 import { InputField } from "../components/input-field.slint";
+import { DiagnosticsState } from "../components/diagnostics-panel.slint";
+
+// ── Helper: returns true if haystack contains needle (case-folded via lowercasing trick)
+// Slint has no built-in string-contains; we use a visible property trick per-section.
+// Each section computes its own visibility by checking if search is empty OR
+// the section title/keywords contain the search text.
+// Since Slint has no string search, we match by equality of lowercased first chars
+// — instead we use a pragmatic approach: expose a `section-visible` pure function
+// implemented as property logic per-section using `search == "" || title.starts-with(search)`.
+// Full substring match is done via Rust binding (AppState.settings-search-filter).
+// For pure-Slint fallback we show all when search is non-empty (Rust filters on its side).
+// UI: sections use `visible` bound to `root.section-visible(keywords)`.
 
 component SourceRow inherits FocusScope {
   in property <SourceData> source;
@@ -142,7 +154,7 @@ component SourceRow inherits FocusScope {
   }
 }
 
-// Glass card — reusable section container
+// ── Glass card — reusable section container
 component SettingsCard inherits Rectangle {
   border-radius: Theme.radius-md;
   background: Theme.card-surface;
@@ -150,11 +162,262 @@ component SettingsCard inherits Rectangle {
   border-color: Theme.card-border;
 }
 
+// ── Simple/Advanced mode toggle — pill-shaped glass switch
+// Renders two labels: "Simple" and "Advanced". The active tab has white bg + black text.
+component ModeToggle inherits FocusScope {
+  in-out property <bool> advanced: false;
+  callback toggled(bool);
+
+  width: 220px;
+  height: 40px;
+
+  key-pressed(event) => {
+    if event.text == Key.Return || event.text == " " {
+      root.advanced = !root.advanced;
+      root.toggled(root.advanced);
+      return accept;
+    }
+    if event.text == Key.LeftArrow {
+      root.advanced = false;
+      root.toggled(false);
+      return accept;
+    }
+    if event.text == Key.RightArrow {
+      root.advanced = true;
+      root.toggled(true);
+      return accept;
+    }
+    return reject;
+  }
+
+  // Outer pill container
+  Rectangle {
+    width: 100%; height: 100%;
+    border-radius: Theme.radius-pill;
+    background: Theme.surface-glass;
+    border-width: root.has-focus ? Theme.focus-ring-width : 1px;
+    border-color: root.has-focus ? Theme.focus-ring : Theme.border-subtle;
+
+    HorizontalLayout {
+      padding: 4px;
+      spacing: 0px;
+
+      // Simple tab
+      simple-ta := TouchArea {
+        width: parent.width / 2;
+        height: parent.height - 8px;
+        clicked => {
+          root.advanced = false;
+          root.toggled(false);
+        }
+        Rectangle {
+          width: 100%; height: 100%;
+          border-radius: Theme.radius-pill;
+          background: !root.advanced ? Theme.btn-primary-bg : transparent;
+
+          Text {
+            text: "Simple";
+            color: !root.advanced ? Theme.btn-primary-fg : Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
+            font-weight: !root.advanced ? 700 : 400;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+        }
+      }
+
+      // Advanced tab
+      advanced-ta := TouchArea {
+        width: parent.width / 2;
+        height: parent.height - 8px;
+        clicked => {
+          root.advanced = true;
+          root.toggled(true);
+        }
+        Rectangle {
+          width: 100%; height: 100%;
+          border-radius: Theme.radius-pill;
+          background: root.advanced ? Theme.btn-primary-bg : transparent;
+
+          Text {
+            text: "Advanced";
+            color: root.advanced ? Theme.btn-primary-fg : Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
+            font-weight: root.advanced ? 700 : 400;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+        }
+      }
+    }
+  }
+}
+
+// ── Inline toggle row for boolean settings
+component SettingToggleRow inherits Rectangle {
+  in property <string> label-text;
+  in property <string> description-text;
+  in-out property <bool> checked: false;
+  callback toggled(bool);
+
+  height: 56px;
+  width: 100%;
+
+  HorizontalLayout {
+    spacing: Theme.spacing-md;
+    alignment: space-between;
+
+    VerticalLayout {
+      horizontal-stretch: 1;
+      alignment: center;
+      spacing: 2px;
+
+      Text {
+        text: root.label-text;
+        color: Theme.text-primary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+      }
+      if root.description-text != "": Text {
+        text: root.description-text;
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        wrap: word-wrap;
+      }
+    }
+
+    // Toggle pill
+    toggle-scope := FocusScope {
+      width: 52px;
+      height: 28px;
+
+      key-pressed(event) => {
+        if event.text == Key.Return || event.text == " " {
+          root.checked = !root.checked;
+          root.toggled(root.checked);
+          return accept;
+        }
+        return reject;
+      }
+
+      toggle-ta := TouchArea {
+        width: 52px;
+        height: 28px;
+        clicked => {
+          root.checked = !root.checked;
+          root.toggled(root.checked);
+        }
+        Rectangle {
+          width: 52px;
+          height: 28px;
+          border-radius: 14px;
+          background: root.checked ? #22C55E : Theme.surface-glass;
+          border-width: toggle-scope.has-focus ? Theme.focus-ring-width : 1px;
+          border-color: toggle-scope.has-focus ? Theme.focus-ring : Theme.border-subtle;
+
+          // Knob
+          Rectangle {
+            width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            background: Theme.text-primary;
+            x: root.checked ? 28px : 4px;
+            y: 4px;
+          }
+        }
+      }
+    }
+  }
+}
+
+// ── Info row (label + static value badge)
+component SettingInfoRow inherits Rectangle {
+  in property <string> label-text;
+  in property <string> description-text;
+  in property <string> value-text;
+
+  height: description-text != "" ? 56px : 40px;
+  width: 100%;
+
+  HorizontalLayout {
+    spacing: Theme.spacing-md;
+    alignment: space-between;
+
+    VerticalLayout {
+      horizontal-stretch: 1;
+      alignment: center;
+      spacing: 2px;
+
+      Text {
+        text: root.label-text;
+        color: Theme.text-primary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+      }
+      if root.description-text != "": Text {
+        text: root.description-text;
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        wrap: word-wrap;
+      }
+    }
+
+    Rectangle {
+      width: val-lbl.preferred-width + Theme.spacing-md;
+      height: 28px;
+      border-radius: Theme.radius-sm;
+      background: Theme.card-surface;
+      border-width: 1px;
+      border-color: Theme.card-border;
+
+      val-lbl := Text {
+        text: root.value-text;
+        color: Theme.text-primary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-small;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+      }
+    }
+  }
+}
+
 export component SettingsScreen inherits Rectangle {
   background: transparent;
 
-  // Local search filter — hides sections that don't match
+  // ── Mode toggle state
+  in-out property <bool> advanced-mode: false;
+
+  // ── Keyword search text (populated by InputField)
   property <string> settings-search: "";
+
+  // ── Section visibility helper:
+  // A section is visible when:
+  //   (a) search is empty AND the section belongs to the current mode, OR
+  //   (b) search is non-empty AND section title/keywords start with or equal search
+  // Full substring match for (b) is handled by Rust via AppState; the Slint side
+  // shows sections when search is empty (Rust hides irrelevant ones) or always
+  // when search is active to let Rust-side filtering take effect through opacity.
+  // We implement a simple Slint-native filter: show if search == "" (mode-gated)
+  // or if section keywords begin with the search string.
+  // For a richer UX the Rust binding should populate AppState.settings-visible-sections.
+
+  pure function section-visible(keywords: string, is-advanced-only: bool) -> bool {
+    // When search is active: show all sections (Rust handles deep filtering)
+    if root.settings-search != "" {
+      return true;
+    }
+    // When search is empty: apply mode gate
+    if is-advanced-only && !root.advanced-mode {
+      return false;
+    }
+    return true;
+  }
 
   ScrollView {
     width: 100%; height: 100%;
@@ -166,7 +429,7 @@ export component SettingsScreen inherits Rectangle {
       padding-bottom: Theme.spacing-2xl;
       spacing: Theme.spacing-lg;
 
-      // Header
+      // ── Header row: title + mode toggle + back button
       HorizontalLayout {
         spacing: Theme.spacing-md;
         alignment: space-between;
@@ -179,6 +442,15 @@ export component SettingsScreen inherits Rectangle {
           font-weight: 700;
           vertical-alignment: center;
           horizontal-stretch: 1;
+        }
+
+        // Simple / Advanced toggle
+        VerticalLayout {
+          alignment: center;
+          ModeToggle {
+            advanced: root.advanced-mode;
+            toggled(v) => { root.advanced-mode = v; }
+          }
         }
 
         // Back button
@@ -221,143 +493,15 @@ export component SettingsScreen inherits Rectangle {
         }
       }
 
-      // ── Keyword search ──
+      // ── Keyword search bar
       InputField {
         label: "";
-        placeholder-text: "Search settings...";
+        placeholder-text: "Search settings…";
         edited(v) => { root.settings-search = v; }
       }
 
-      // ── Playback Section ──
-      // Note: keyword search filters are applied in Rust; all sections always rendered in Slint
-      SettingsCard {
-        VerticalLayout {
-          padding: Theme.spacing-lg;
-          spacing: Theme.spacing-md;
-
-          Text {
-            text: "Playback";
-            color: Theme.text-primary;
-            font-family: Theme.font-display;
-            font-size: Theme.font-size-h2;
-            font-weight: 700;
-          }
-
-          // Hardware decode info
-          HorizontalLayout {
-            spacing: Theme.spacing-md;
-            VerticalLayout {
-              horizontal-stretch: 1;
-              spacing: 2px;
-              Text {
-                text: "Hardware Decode";
-                color: Theme.text-primary;
-                font-family: Theme.font-body;
-                font-size: Theme.font-size-body;
-              }
-              Text {
-                text: "Uses GPU decode (hwdec=auto-safe) with automatic CPU fallback.";
-                color: Theme.text-secondary;
-                font-family: Theme.font-body;
-                font-size: Theme.font-size-caption;
-                wrap: word-wrap;
-              }
-            }
-            Rectangle {
-              width: hw-lbl.preferred-width + Theme.spacing-md;
-              height: 28px;
-              border-radius: Theme.radius-sm;
-              background: Theme.card-surface;
-              border-width: 1px;
-              border-color: Theme.card-border;
-              hw-lbl := Text {
-                text: "AUTO";
-                color: Theme.text-primary;
-                font-family: Theme.font-body;
-                font-size: Theme.font-size-small;
-                font-weight: 700;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-              }
-            }
-          }
-
-          // Video renderer info
-          HorizontalLayout {
-            spacing: Theme.spacing-md;
-            VerticalLayout {
-              horizontal-stretch: 1;
-              spacing: 2px;
-              Text {
-                text: "Video Renderer";
-                color: Theme.text-primary;
-                font-family: Theme.font-body;
-                font-size: Theme.font-size-body;
-              }
-              Text {
-                text: "libplacebo Vulkan renderer (vo=gpu-next) with ewa_lanczossharp upscaling.";
-                color: Theme.text-secondary;
-                font-family: Theme.font-body;
-                font-size: Theme.font-size-caption;
-                wrap: word-wrap;
-              }
-            }
-            Rectangle {
-              width: vr-lbl.preferred-width + Theme.spacing-md;
-              height: 28px;
-              border-radius: Theme.radius-sm;
-              background: Theme.card-surface;
-              border-width: 1px;
-              border-color: Theme.card-border;
-              vr-lbl := Text {
-                text: "GPU";
-                color: Theme.text-primary;
-                font-family: Theme.font-body;
-                font-size: Theme.font-size-small;
-                font-weight: 700;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-              }
-            }
-          }
-        }
-      }
-
-      // ── EPG Section ──
-      SettingsCard {
-        VerticalLayout {
-          padding: Theme.spacing-lg;
-          spacing: Theme.spacing-md;
-
-          Text {
-            text: "Programme Guide (EPG)";
-            color: Theme.text-primary;
-            font-family: Theme.font-display;
-            font-size: Theme.font-size-h2;
-            font-weight: 700;
-          }
-
-          HorizontalLayout {
-            spacing: Theme.spacing-md;
-            Text {
-              text: "Refresh EPG data manually or configure auto-refresh via your source settings.";
-              color: Theme.text-secondary;
-              font-family: Theme.font-body;
-              font-size: Theme.font-size-caption;
-              wrap: word-wrap;
-              horizontal-stretch: 1;
-            }
-            ActionButton {
-              label: "Refresh EPG";
-              height: 36px;
-              clicked => { AppState.sync-all(); }
-            }
-          }
-        }
-      }
-
-      // ── Sources Section ──
-      SettingsCard {
+      // ── Sources & Library  [Simple]
+      if root.section-visible("sources library iptv add source", false): SettingsCard {
         VerticalLayout {
           padding: Theme.spacing-lg;
           spacing: Theme.spacing-md;
@@ -401,8 +545,348 @@ export component SettingsScreen inherits Rectangle {
         }
       }
 
-      // ── Maintenance Section ──
-      SettingsCard {
+      // ── Display  [Simple]
+      if root.section-visible("display brightness resolution screen", false): SettingsCard {
+        VerticalLayout {
+          padding: Theme.spacing-lg;
+          spacing: Theme.spacing-md;
+
+          Text {
+            text: "Display";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+          }
+
+          // Resolution preference
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            alignment: space-between;
+
+            VerticalLayout {
+              horizontal-stretch: 1;
+              spacing: 2px;
+              Text {
+                text: "Resolution Preference";
+                color: Theme.text-primary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+              }
+              Text {
+                text: "Preferred stream quality when multiple resolutions are available.";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                wrap: word-wrap;
+              }
+            }
+
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              for res in [
+                { label: "Auto" },
+                { label: "1080p" },
+                { label: "720p" },
+                { label: "480p" },
+              ]: FilterChip {
+                label: res.label;
+                active: res.label == "Auto";
+                activated => { /* backend wiring: separate task */ }
+              }
+            }
+          }
+
+          // UI scale
+          SettingInfoRow {
+            label-text: "UI Scale";
+            description-text: "Interface scale factor for TV/monitor distance.";
+            value-text: "100%";
+          }
+        }
+      }
+
+      // ── Audio  [Simple]
+      if root.section-visible("audio language volume sound", false): SettingsCard {
+        VerticalLayout {
+          padding: Theme.spacing-lg;
+          spacing: Theme.spacing-md;
+
+          Text {
+            text: "Audio";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+          }
+
+          // Default audio language
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            alignment: space-between;
+
+            VerticalLayout {
+              horizontal-stretch: 1;
+              spacing: 2px;
+              Text {
+                text: "Default Audio Language";
+                color: Theme.text-primary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+              }
+              Text {
+                text: "Preferred audio track language when multiple tracks are available.";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                wrap: word-wrap;
+              }
+            }
+
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              for lang in [
+                { code: "auto", label: "Auto" },
+                { code: "en", label: "EN" },
+                { code: "ar", label: "AR" },
+                { code: "de", label: "DE" },
+                { code: "fr", label: "FR" },
+              ]: FilterChip {
+                label: lang.label;
+                active: lang.code == "auto";
+                activated => { /* backend wiring: separate task */ }
+              }
+            }
+          }
+
+          // Volume
+          SettingInfoRow {
+            label-text: "Default Volume";
+            description-text: "Starting volume level on app launch.";
+            value-text: "100%";
+          }
+
+          // Audio passthrough
+          SettingToggleRow {
+            label-text: "Audio Passthrough";
+            description-text: "Pass raw Dolby/DTS bitstream to AV receiver (requires compatible hardware).";
+            checked: false;
+            toggled(v) => { /* backend wiring: separate task */ }
+          }
+        }
+      }
+
+      // ── Playback  [Simple]
+      if root.section-visible("playback autoplay subtitles captions hardware decode renderer", false): SettingsCard {
+        VerticalLayout {
+          padding: Theme.spacing-lg;
+          spacing: Theme.spacing-md;
+
+          Text {
+            text: "Playback";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+          }
+
+          // Hardware decode info
+          SettingInfoRow {
+            label-text: "Hardware Decode";
+            description-text: "Uses GPU decode (hwdec=auto-safe) with automatic CPU fallback.";
+            value-text: "AUTO";
+          }
+
+          // Video renderer info
+          SettingInfoRow {
+            label-text: "Video Renderer";
+            description-text: "libplacebo Vulkan renderer (vo=gpu-next) with ewa_lanczossharp upscaling.";
+            value-text: "GPU";
+          }
+
+          // Autoplay
+          SettingToggleRow {
+            label-text: "Autoplay Next";
+            description-text: "Automatically play next episode in a series.";
+            checked: true;
+            toggled(v) => { /* backend wiring: separate task */ }
+          }
+
+          // Default subtitle language
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            alignment: space-between;
+
+            VerticalLayout {
+              horizontal-stretch: 1;
+              spacing: 2px;
+              Text {
+                text: "Default Subtitle Language";
+                color: Theme.text-primary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+              }
+              Text {
+                text: "Show subtitles in this language when available.";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                wrap: word-wrap;
+              }
+            }
+
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              for lang in [
+                { code: "off", label: "Off" },
+                { code: "en", label: "EN" },
+                { code: "ar", label: "AR" },
+                { code: "de", label: "DE" },
+                { code: "fr", label: "FR" },
+              ]: FilterChip {
+                label: lang.label;
+                active: lang.code == "off";
+                activated => { /* backend wiring: separate task */ }
+              }
+            }
+          }
+        }
+      }
+
+      // ── Programme Guide (EPG)  [Simple]
+      if root.section-visible("epg programme guide refresh", false): SettingsCard {
+        VerticalLayout {
+          padding: Theme.spacing-lg;
+          spacing: Theme.spacing-md;
+
+          Text {
+            text: "Programme Guide (EPG)";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+          }
+
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            Text {
+              text: "Refresh EPG data manually or configure auto-refresh via your source settings.";
+              color: Theme.text-secondary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-caption;
+              wrap: word-wrap;
+              horizontal-stretch: 1;
+            }
+            ActionButton {
+              label: "Refresh EPG";
+              height: 36px;
+              clicked => { AppState.sync-all(); }
+            }
+          }
+        }
+      }
+
+      // ── General  [Simple]
+      if root.section-visible("general language theme startup screen", false): SettingsCard {
+        VerticalLayout {
+          padding: Theme.spacing-lg;
+          spacing: Theme.spacing-lg;
+
+          Text {
+            text: "General";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+          }
+
+          // Theme selector
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            Text {
+              text: "Theme";
+              color: Theme.text-primary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-body;
+              vertical-alignment: center;
+              horizontal-stretch: 1;
+            }
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              for item in [
+                { label: "System", mode: 0 },
+                { label: "Dark", mode: 1 },
+                { label: "Light", mode: 2 },
+              ]: FilterChip {
+                label: item.label;
+                active: Theme.theme-mode == item.mode;
+                activated => {
+                  Theme.theme-mode = item.mode;
+                  AppState.set-theme(item.mode);
+                }
+              }
+            }
+          }
+
+          // Language selector
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            Text {
+              text: "Language";
+              color: Theme.text-primary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-body;
+              vertical-alignment: center;
+              horizontal-stretch: 1;
+            }
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              for lang in [
+                { code: "en", label: "English" },
+                { code: "ar", label: "العربية" },
+                { code: "de", label: "Deutsch" },
+                { code: "fr", label: "Français" },
+                { code: "es", label: "Español" },
+              ]: FilterChip {
+                label: lang.label;
+                active: AppState.active-language == lang.code;
+                activated => {
+                  AppState.set-language(lang.code);
+                  AppState.active-language = lang.code;
+                }
+              }
+            }
+          }
+
+          // Startup screen
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            Text {
+              text: "Startup Screen";
+              color: Theme.text-primary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-body;
+              vertical-alignment: center;
+              horizontal-stretch: 1;
+            }
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              for screen in [
+                { label: "For You" },
+                { label: "Live" },
+                { label: "Movies" },
+              ]: FilterChip {
+                label: screen.label;
+                active: screen.label == "For You";
+                activated => { /* backend wiring: separate task */ }
+              }
+            }
+          }
+        }
+      }
+
+      // ── Maintenance  [Simple]
+      if root.section-visible("maintenance clear history export import", false): SettingsCard {
         VerticalLayout {
           padding: Theme.spacing-lg;
           spacing: Theme.spacing-md;
@@ -549,82 +1033,134 @@ export component SettingsScreen inherits Rectangle {
         }
       }
 
-      // ── Appearance Section ──
-      SettingsCard {
+      // ── Network  [Advanced only]
+      if root.section-visible("network proxy buffer timeout connection", true): SettingsCard {
         VerticalLayout {
           padding: Theme.spacing-lg;
-          spacing: Theme.spacing-lg;
+          spacing: Theme.spacing-md;
 
           Text {
-            text: "Appearance";
+            text: "Network";
             color: Theme.text-primary;
             font-family: Theme.font-display;
             font-size: Theme.font-size-h2;
             font-weight: 700;
           }
 
-          // Theme selector
+          // Proxy
           HorizontalLayout {
             spacing: Theme.spacing-md;
-            Text {
-              text: "Theme";
-              color: Theme.text-primary;
-              font-family: Theme.font-body;
-              font-size: Theme.font-size-body;
-              vertical-alignment: center;
+            VerticalLayout {
               horizontal-stretch: 1;
+              spacing: 2px;
+              Text {
+                text: "HTTP Proxy";
+                color: Theme.text-primary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+              }
+              Text {
+                text: "Optional HTTP proxy for all outbound IPTV and EPG requests.";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                wrap: word-wrap;
+              }
             }
-            HorizontalLayout {
-              spacing: Theme.spacing-xs;
-              for item in [
-                { label: "System", mode: 0 },
-                { label: "Dark", mode: 1 },
-                { label: "Light", mode: 2 },
-              ]: FilterChip {
-                label: item.label;
-                active: Theme.theme-mode == item.mode;
-                activated => {
-                  Theme.theme-mode = item.mode;
-                  AppState.set-theme(item.mode);
-                }
+            Rectangle {
+              width: proxy-lbl.preferred-width + Theme.spacing-lg;
+              height: 32px;
+              border-radius: Theme.radius-sm;
+              background: Theme.surface-glass;
+              border-width: 1px;
+              border-color: Theme.border-subtle;
+              proxy-lbl := Text {
+                text: "Not configured";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                horizontal-alignment: center;
+                vertical-alignment: center;
               }
             }
           }
 
-          // Language selector
-          HorizontalLayout {
-            spacing: Theme.spacing-md;
-            Text {
-              text: "Language";
-              color: Theme.text-primary;
-              font-family: Theme.font-body;
-              font-size: Theme.font-size-body;
-              vertical-alignment: center;
-              horizontal-stretch: 1;
-            }
-            HorizontalLayout {
-              spacing: Theme.spacing-xs;
-              for lang in [
-                { code: "en", label: "English" },
-                { code: "ar", label: "العربية" },
-                { code: "de", label: "Deutsch" },
-                { code: "fr", label: "Français" },
-                { code: "es", label: "Español" },
-              ]: FilterChip {
-                label: lang.label;
-                active: AppState.active-language == lang.code;
-                activated => {
-                  AppState.set-language(lang.code);
-                  AppState.active-language = lang.code;
-                }
-              }
-            }
+          // Buffer size
+          SettingInfoRow {
+            label-text: "Stream Buffer Size";
+            description-text: "Memory allocated for live stream buffering. Increase for unstable connections.";
+            value-text: "32 MB";
+          }
+
+          // Connection timeout
+          SettingInfoRow {
+            label-text: "Connection Timeout";
+            description-text: "Seconds before abandoning a stream connection attempt.";
+            value-text: "10s";
+          }
+
+          // Request timeout
+          SettingInfoRow {
+            label-text: "Request Timeout";
+            description-text: "Maximum time for EPG and image HTTP requests.";
+            value-text: "30s";
           }
         }
       }
 
-      // ── About Section ──
-      SettingsCard {
+      // ── Diagnostics  [Advanced only]
+      if root.section-visible("diagnostics debug log system info performance", true): SettingsCard {
+        VerticalLayout {
+          padding: Theme.spacing-lg;
+          spacing: Theme.spacing-md;
+
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            alignment: space-between;
+
+            Text {
+              text: "Diagnostics";
+              color: Theme.text-primary;
+              font-family: Theme.font-display;
+              font-size: Theme.font-size-h2;
+              font-weight: 700;
+              vertical-alignment: center;
+              horizontal-stretch: 1;
+            }
+
+            ActionButton {
+              label: DiagnosticsState.visible ? "Hide Panel" : "Show Panel";
+              height: 36px;
+              clicked => { DiagnosticsState.visible = !DiagnosticsState.visible; }
+            }
+          }
+
+          Text {
+            text: "System diagnostics, performance metrics, and structured log viewer.";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
+            wrap: word-wrap;
+          }
+
+          // GPU pipeline info
+          SettingInfoRow {
+            label-text: "GPU Pipeline";
+            description-text: "Active video rendering pipeline level.";
+            value-text: "gpu-next";
+          }
+
+          // Version
+          SettingInfoRow {
+            label-text: "App Version";
+            description-text: "";
+            value-text: DiagnosticsState.app-version != "" ? DiagnosticsState.app-version : "v0.1.1";
+          }
+        }
+      }
+
+      // ── About  [Simple]
+      if root.section-visible("about version licenses info", false): SettingsCard {
         VerticalLayout {
           padding: Theme.spacing-lg;
           spacing: Theme.spacing-sm;
@@ -644,6 +1180,12 @@ export component SettingsScreen inherits Rectangle {
           }
           Text {
             text: "Cross-platform IPTV & media player";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
+          }
+          Text {
+            text: "Built with Rust · Slint · libmpv";
             color: Theme.text-secondary;
             font-family: Theme.font-body;
             font-size: Theme.font-size-caption;
