@@ -24,6 +24,24 @@ serde.workspace = true
 serde_json.workspace = true
 dirs = "6"
 base64.workspace = true
+thiserror.workspace = true
+
+# WASM-only dependencies — compiled only when targeting wasm32
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = [
+    "Window",
+    "Location",
+    "Navigator",
+    "WebSocket",
+    "MessageEvent",
+    "ErrorEvent",
+    "CloseEvent",
+] }
+js-sys = "0.3"
+wasm-bindgen-futures = "0.4"
+console_error_panic_hook = "0.1"
+tracing-wasm = "0.2"
 
 [dev-dependencies]
 i-slint-backend-testing = "1.15"

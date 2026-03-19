@@ -1,5 +1,5 @@
 import { Theme } from "../globals/theme.slint";
-import { AppState, VodData } from "../globals/app-state.slint";
+import { AppState, VodData, SourceBadge } from "../globals/app-state.slint";
 import { ActionButton } from "../components/action-button.slint";
 import { ScrollView } from "std-widgets.slint";
 import { IconMovie, IconStar, IconStarOutline } from "../components/icons.slint";
@@ -26,17 +26,19 @@ component QualityBadge inherits Rectangle {
   }
 }
 
-// Source badge showing source name + quality
-component SourceBadge inherits Rectangle {
+// Source badge widget — shows source name + optional quality pill.
+// Preferred sources get a white focus-ring highlight.
+component SourceBadgeWidget inherits Rectangle {
   in property <string> source-name: "";
   in property <string> quality: "";
+  in property <bool> preferred: false;
 
   width: row.preferred-width + Theme.spacing-lg;
   height: 32px;
   border-radius: Theme.radius-sm;
-  background: Theme.card-surface;
-  border-width: 1px;
-  border-color: Theme.card-border;
+  background: root.preferred ? Theme.focus-bg : Theme.card-surface;
+  border-width: root.preferred ? Theme.focus-ring-width : 1px;
+  border-color: root.preferred ? Theme.focus-ring : Theme.card-border;
 
   row := HorizontalLayout {
     spacing: Theme.spacing-xs;
@@ -45,9 +47,10 @@ component SourceBadge inherits Rectangle {
 
     Text {
       text: root.source-name;
-      color: Theme.text-primary;
+      color: root.preferred ? Theme.text-primary : Theme.text-secondary;
       font-family: Theme.font-body;
       font-size: Theme.font-size-caption;
+      font-weight: root.preferred ? 600 : 400;
       vertical-alignment: center;
     }
     if root.quality != "": QualityBadge { label: root.quality; }
@@ -337,15 +340,17 @@ export component VodDetailScreen inherits Rectangle {
         }
       }
 
-      // ── Watch on — available sources ───────────────────────────────────
-      VerticalLayout {
+      // ── Watch on — multi-source badges (Epoch 5.12) ────────────────────
+      // Visible only when multi-source data has been populated by Rust.
+      // Single-source content still shows its single badge for consistency.
+      if AppState.vod-detail-sources.length > 0: VerticalLayout {
         padding-left: Theme.content-padding-h;
         padding-right: Theme.content-padding-h;
         padding-bottom: Theme.spacing-xl;
         spacing: Theme.spacing-sm;
 
         Text {
-          text: "Watch on";
+          text: AppState.vod-detail-has-multi-source ? "Watch on" : "Source";
           color: Theme.text-primary;
           font-family: Theme.font-display;
           font-size: Theme.font-size-h2;
@@ -353,10 +358,10 @@ export component VodDetailScreen inherits Rectangle {
         }
         HorizontalLayout {
           spacing: Theme.spacing-sm;
-          // Source badge comes from the source-id stored on the item
-          if AppState.vod-detail-item.source-id != "": SourceBadge {
-            source-name: AppState.vod-detail-item.source-id;
-            quality: "";
+          for badge in AppState.vod-detail-sources: SourceBadgeWidget {
+            source-name: badge.source-name;
+            quality: badge.quality-label;
+            preferred: badge.is-preferred;
           }
         }
       }

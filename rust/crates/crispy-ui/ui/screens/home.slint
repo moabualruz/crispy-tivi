@@ -7,6 +7,7 @@ import { IconPlay, IconTv } from "../components/icons.slint";
 import { ChannelPill } from "../components/channel-pill.slint";
 import { SectionHeader } from "../components/section-header.slint";
 import { ActionButton } from "../components/action-button.slint";
+import { GettingStartedCard } from "../components/getting-started-card.slint";
 import { ScrollView } from "std-widgets.slint";
 
 // Dynamic hero — shown when hero-items is populated
@@ -273,6 +274,15 @@ export component HomeScreen inherits Rectangle {
             }
           }
         }
+      }
+
+      // Getting Started checklist — shown until all steps complete or dismissed
+      if !AppState.getting-started-dismissed: VerticalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        spacing: 0px;
+
+        GettingStartedCard { }
       }
     }
   }

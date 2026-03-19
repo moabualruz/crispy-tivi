@@ -412,4 +412,69 @@ mod tests {
         assert_eq!(groups.len(), 1);
         assert_eq!(groups[0].level, ChannelMatchLevel::NameFuzzy);
     }
+
+    // ── Proptest fuzzing ──────────────────────────────────
+
+    use proptest::prelude::*;
+
+    proptest! {
+        /// Dedup never loses channels: all output ids are a subset of input ids.
+        #[test]
+        fn prop_dedup_output_ids_are_subset_of_input(count in 1usize..20) {
+            let channels: Vec<Channel> = (0..count)
+                .map(|i| ch(&format!("id-{i}"), &format!("UniqueChannel{i:04}"), None))
+                .collect();
+            let input_ids: std::collections::HashSet<String> =
+                channels.iter().map(|c| c.id.clone()).collect();
+            let groups = find_channel_duplicates(&channels);
+            for g in &groups {
+                prop_assert!(input_ids.contains(&g.canonical_id));
+                for did in &g.duplicate_ids {
+                    prop_assert!(input_ids.contains(did));
+                }
+            }
+        }
+
+        /// Channels with the same tvg_id always end up in the same group.
+        #[test]
+        fn prop_same_tvg_id_always_groups(tvg_id in "[a-z]{5,12}") {
+            let channels = vec![
+                ch("a", "Channel HD", Some(&tvg_id)),
+                ch("b", "Channel SD", Some(&tvg_id)),
+            ];
+            let groups = find_channel_duplicates(&channels);
+            prop_assert_eq!(groups.len(), 1, "same tvg_id must produce exactly one group");
+            prop_assert_eq!(groups[0].level.clone(), ChannelMatchLevel::TvgIdExact);
+        }
+
+        /// Channels with distinct long names (no tvg_id) and disjoint character
+        /// sets do not get grouped together.
+        #[test]
+        fn prop_distinct_names_no_tvg_id_dont_group(
+            name_a in "[a-f]{10,15}",
+            name_b in "[s-z]{10,15}",
+        ) {
+            let channels = vec![
+                ch("a", &name_a, None),
+                ch("b", &name_b, None),
+            ];
+            let groups = find_channel_duplicates(&channels);
+            for g in &groups {
+                let has_a = g.canonical_id == "a" || g.duplicate_ids.contains(&"a".to_string());
+                let has_b = g.canonical_id == "b" || g.duplicate_ids.contains(&"b".to_string());
+                prop_assert!(
+                    !(has_a && has_b),
+                    "name_a={name_a:?} and name_b={name_b:?} must not be grouped"
+                );
+            }
+        }
+
+        /// normalize_channel_name is idempotent on realistic channel names.
+        #[test]
+        fn prop_normalize_channel_name_is_idempotent(name in "[A-Za-z0-9 ]{1,40}") {
+            let once = normalize_channel_name(&name);
+            let twice = normalize_channel_name(&once);
+            prop_assert_eq!(once, twice);
+        }
+    }
 }

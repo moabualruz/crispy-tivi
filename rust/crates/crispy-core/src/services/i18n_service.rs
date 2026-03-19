@@ -184,6 +184,90 @@ impl Default for I18nService {
     }
 }
 
+// ── Locale detection ─────────────────────────────────────────────────────────
+
+/// Detect a ranked list of preferred locale strings from the environment.
+///
+/// Priority order:
+/// 1. `CRISPY_LANG` environment variable (explicit override)
+/// 2. `LANGUAGE` environment variable (colon-separated list, first entry used)
+/// 3. `LANG` environment variable (Unix convention)
+/// 4. `"en"` fallback
+///
+/// Returns a `Vec` of locale strings in preference order. Duplicates are
+/// removed, preserving first occurrence. Language tags are normalised to
+/// lowercase BCP-47 subtag form (e.g. `"en_US.UTF-8"` → `"en-us"`).
+pub fn detect_locale_from_env() -> Vec<String> {
+    detect_locale_from_vars(
+        std::env::var("CRISPY_LANG").ok().as_deref(),
+        std::env::var("LANGUAGE").ok().as_deref(),
+        std::env::var("LANG").ok().as_deref(),
+    )
+}
+
+/// Pure inner implementation — accepts the three env values directly so it
+/// can be tested without mutating process environment.
+pub(crate) fn detect_locale_from_vars(
+    crispy_lang: Option<&str>,
+    language: Option<&str>,
+    lang: Option<&str>,
+) -> Vec<String> {
+    let mut seen = std::collections::HashSet::new();
+    let mut result = Vec::new();
+
+    let candidates: Vec<&str> = [
+        crispy_lang,
+        language.and_then(|v| v.split(':').next()),
+        lang,
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+
+    for raw in candidates {
+        let normalised = raw
+            .split('.') // strip encoding suffix e.g. ".UTF-8"
+            .next()
+            .unwrap_or("")
+            .replace('_', "-")
+            .to_lowercase();
+        if !normalised.is_empty() && seen.insert(normalised.clone()) {
+            result.push(normalised);
+        }
+    }
+
+    if result.is_empty() {
+        result.push("en".to_string());
+    }
+    result
+}
+
+// ── Unicode bidi isolation ────────────────────────────────────────────────────
+
+/// Wrap a string in Unicode First Strong Isolate / Pop Directional Isolate
+/// marks (U+2068 … U+2069).
+///
+/// Use this when embedding a locale-specific value (e.g. a channel name)
+/// inside a mixed-direction UI string so the surrounding text's direction
+/// is not affected by the embedded value.
+///
+/// # Spec
+/// Satisfies requirement 6.7 — Unicode bidirectional isolation for
+/// mixed-direction strings.
+pub fn isolate_bidi(s: &str) -> String {
+    // U+2068 FIRST STRONG ISOLATE, U+2069 POP DIRECTIONAL ISOLATE
+    format!("\u{2068}{s}\u{2069}")
+}
+
+/// Return `true` if the given locale string is a right-to-left locale.
+///
+/// Currently recognises: Arabic (`ar`), Hebrew (`he`), Persian/Farsi (`fa`),
+/// Urdu (`ur`), and Yiddish (`yi`).
+pub fn is_rtl_locale(locale: &str) -> bool {
+    let lang = locale.split('-').next().unwrap_or(locale);
+    matches!(lang, "ar" | "he" | "fa" | "ur" | "yi")
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -407,5 +491,94 @@ mod tests {
         // but an empty string should fail.
         let result = svc.load_locale("", "key = value");
         assert!(result.is_err(), "empty locale should fail");
+    }
+
+    // ── detect_locale_from_vars (pure, no env mutation) ──────────────────
+
+    #[test]
+    fn test_detect_locale_fallback_is_en() {
+        let locales = detect_locale_from_vars(None, None, None);
+        assert_eq!(locales, vec!["en".to_string()]);
+    }
+
+    #[test]
+    fn test_detect_locale_crispy_lang_overrides() {
+        let locales = detect_locale_from_vars(Some("ar"), None, Some("en_US.UTF-8"));
+        assert_eq!(locales[0], "ar");
+    }
+
+    #[test]
+    fn test_detect_locale_normalises_underscore_to_dash() {
+        let locales = detect_locale_from_vars(None, None, Some("en_US.UTF-8"));
+        assert!(locales.contains(&"en-us".to_string()), "got: {locales:?}");
+    }
+
+    #[test]
+    fn test_detect_locale_strips_encoding_suffix() {
+        let locales = detect_locale_from_vars(None, None, Some("fr.UTF-8"));
+        assert!(locales.contains(&"fr".to_string()), "got: {locales:?}");
+    }
+
+    #[test]
+    fn test_detect_locale_no_duplicates() {
+        // CRISPY_LANG=fr and LANG=fr.UTF-8 → "fr" must appear only once.
+        let locales = detect_locale_from_vars(Some("fr"), None, Some("fr.UTF-8"));
+        assert_eq!(locales.iter().filter(|l| l.as_str() == "fr").count(), 1);
+    }
+
+    #[test]
+    fn test_detect_locale_language_var_first_entry() {
+        // LANGUAGE="de:fr:en" → first entry "de" used.
+        let locales = detect_locale_from_vars(None, Some("de:fr:en"), None);
+        assert_eq!(locales[0], "de");
+    }
+
+    #[test]
+    fn test_detect_locale_ranked_order() {
+        let locales = detect_locale_from_vars(Some("ar"), Some("de:fr"), Some("en_US.UTF-8"));
+        assert_eq!(locales[0], "ar", "CRISPY_LANG must be first");
+        assert_eq!(locales[1], "de", "LANGUAGE first entry must be second");
+        assert_eq!(locales[2], "en-us", "LANG must be third");
+    }
+
+    // ── isolate_bidi ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_isolate_bidi_wraps_with_fsi_pdi() {
+        let result = isolate_bidi("hello");
+        assert!(result.starts_with('\u{2068}'), "missing FSI");
+        assert!(result.ends_with('\u{2069}'), "missing PDI");
+        assert!(result.contains("hello"));
+    }
+
+    #[test]
+    fn test_isolate_bidi_empty_string() {
+        let result = isolate_bidi("");
+        assert_eq!(result, "\u{2068}\u{2069}");
+    }
+
+    // ── is_rtl_locale ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_is_rtl_locale_arabic() {
+        assert!(is_rtl_locale("ar"));
+        assert!(is_rtl_locale("ar-SA"));
+    }
+
+    #[test]
+    fn test_is_rtl_locale_hebrew() {
+        assert!(is_rtl_locale("he"));
+    }
+
+    #[test]
+    fn test_is_rtl_locale_persian() {
+        assert!(is_rtl_locale("fa"));
+    }
+
+    #[test]
+    fn test_is_rtl_locale_ltr_returns_false() {
+        assert!(!is_rtl_locale("en"));
+        assert!(!is_rtl_locale("fr"));
+        assert!(!is_rtl_locale("de"));
     }
 }

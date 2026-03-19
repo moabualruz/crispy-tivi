@@ -196,9 +196,10 @@ mod tests {
             "db_vod_items",
             "db_watch_history",
             "db_watchlist",
+            "merge_decisions",
         ];
 
-        assert_eq!(tables.len(), 29, "expected 29 tables");
+        assert_eq!(tables.len(), 30, "expected 30 tables");
         for name in &expected {
             assert!(tables.contains(&name.to_string()), "missing table: {name}",);
         }
@@ -231,6 +232,8 @@ mod tests {
             "idx_channels_tvg",
             "idx_epg_channel",
             "idx_epg_source",
+            "idx_merge_decisions_source",
+            "idx_merge_decisions_type",
             "idx_reminders_notify",
             "idx_retry_queue_status_next",
             "idx_source_access",
@@ -240,7 +243,7 @@ mod tests {
             "idx_watch_history_source",
         ];
 
-        assert_eq!(indexes.len(), 14, "expected 14 indexes",);
+        assert_eq!(indexes.len(), 16, "expected 16 indexes",);
         for name in &expected {
             assert!(indexes.contains(&name.to_string()), "missing index: {name}",);
         }

@@ -5,6 +5,9 @@ import { IconStar, IconStarOutline, IconTv } from "icons.slint";
 export component ChannelCard inherits FocusScope {
   in property <ChannelData> channel;
 
+  accessible-role: button;
+  accessible-label: channel.name;
+
   callback clicked();
 
   height: 56px;
@@ -26,8 +29,22 @@ export component ChannelCard inherits FocusScope {
     border-width: root.has-focus ? Theme.focus-ring-width : 1px;
     border-color: root.has-focus ? Theme.focus-ring : Theme.card-border;
 
+    // Card lift on focus: shadow elevation simulates scale lift
+    drop-shadow-blur: root.has-focus ? 16px : 0px;
+    drop-shadow-offset-y: root.has-focus ? -4px : 0px;
+    drop-shadow-color: root.has-focus ? Theme.focus-glow : transparent;
+
     animate background { duration: 150ms; }
     animate border-color { duration: 150ms; }
+    animate border-width { duration: 150ms; }
+    animate drop-shadow-blur {
+      duration: 300ms;
+      easing: cubic-bezier(0.19, 1.0, 0.22, 1.0);
+    }
+    animate drop-shadow-offset-y {
+      duration: 300ms;
+      easing: cubic-bezier(0.19, 1.0, 0.22, 1.0);
+    }
 
     HorizontalLayout {
       padding-left: Theme.spacing-md;

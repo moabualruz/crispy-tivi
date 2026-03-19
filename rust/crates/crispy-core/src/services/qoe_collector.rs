@@ -4,12 +4,33 @@
 //! failures, session ends) tagged by source type, then computes
 //! per-source aggregate metrics. No raw URLs or IP addresses are
 //! stored in any event.
+//!
+//! # Privacy
+//! - Profile IDs are SHA-256(raw_id || salt) — never stored in plain text.
+//! - A rotating salt means the hash changes on each app session.
+//! - Kids profiles (COPPA) produce **no events** — all `report_*` calls
+//!   are no-ops when `is_coppa = true`.
 
+use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
     time::Duration,
 };
+
+// ── Profile ID hashing (11.3) ─────────────────────────────────────────────────
+
+/// Hash a raw profile ID with a per-session salt.
+///
+/// The salt should be a random value generated once at app startup and
+/// rotated on each launch so the hash is not linkable across sessions.
+/// Returns a lowercase hex string of SHA-256(raw_id || salt).
+pub fn hash_profile_id(raw_id: &str, salt: &str) -> String {
+    let mut h = Sha256::new();
+    h.update(raw_id.as_bytes());
+    h.update(salt.as_bytes());
+    h.finalize().iter().map(|b| format!("{b:02x}")).collect()
+}
 
 // ── Source type ───────────────────────────────────────────────────────────────
 
@@ -96,9 +117,25 @@ pub struct SourceMetrics {
 ///
 /// All events are held in memory. `get_source_metrics` computes
 /// aggregates on demand from the collected events.
-#[derive(Clone, Default)]
+///
+/// # COPPA / Kids profiles (11.4)
+/// When `is_coppa` is `true` all `report_*` calls are silent no-ops.
+/// No events are recorded and no data leaves the device.
+#[derive(Clone)]
 pub struct QoeCollector {
     events: Arc<Mutex<Vec<TaggedEvent>>>,
+    /// When `true` this collector is bound to a Kids profile.
+    /// All event recording is suppressed for COPPA compliance.
+    is_coppa: bool,
+}
+
+impl Default for QoeCollector {
+    fn default() -> Self {
+        Self {
+            events: Arc::new(Mutex::new(Vec::new())),
+            is_coppa: false,
+        }
+    }
 }
 
 impl QoeCollector {
@@ -106,9 +143,26 @@ impl QoeCollector {
         Self::default()
     }
 
+    /// Create a collector for a Kids profile (COPPA-compliant — no events recorded).
+    pub fn new_coppa() -> Self {
+        Self {
+            events: Arc::new(Mutex::new(Vec::new())),
+            is_coppa: true,
+        }
+    }
+
+    /// Returns `true` if this collector is in COPPA / Kids mode.
+    pub fn is_coppa(&self) -> bool {
+        self.is_coppa
+    }
+
     // ── Recording helpers ────────────────────────────────────────────────────
 
     fn record(&self, source_id: impl Into<String>, source_type: SourceType, event: QoeEvent) {
+        // 11.4: Kids profiles produce no telemetry events.
+        if self.is_coppa {
+            return;
+        }
         let tagged = TaggedEvent {
             source_id: source_id.into(),
             source_type,
@@ -401,5 +455,104 @@ mod tests {
         assert_eq!(SourceType::Plex.as_str(), "plex");
         assert_eq!(SourceType::Jellyfin.as_str(), "jellyfin");
         assert_eq!(SourceType::Dvr.as_str(), "dvr");
+    }
+
+    // ── 11.3: Pseudonymized profile ID hashing ───────────────────────────────
+
+    #[test]
+    fn test_hash_profile_id_is_deterministic_same_salt() {
+        let h1 = hash_profile_id("user-abc", "salt-session-1");
+        let h2 = hash_profile_id("user-abc", "salt-session-1");
+        assert_eq!(h1, h2);
+    }
+
+    #[test]
+    fn test_hash_profile_id_differs_with_different_salt() {
+        let h1 = hash_profile_id("user-abc", "salt-session-1");
+        let h2 = hash_profile_id("user-abc", "salt-session-2");
+        assert_ne!(h1, h2, "rotating salt must produce different hashes");
+    }
+
+    #[test]
+    fn test_hash_profile_id_differs_for_different_users() {
+        let h1 = hash_profile_id("user-abc", "salt");
+        let h2 = hash_profile_id("user-xyz", "salt");
+        assert_ne!(h1, h2);
+    }
+
+    #[test]
+    fn test_hash_profile_id_does_not_contain_raw_id() {
+        let raw = "sensitive-user-id-12345";
+        let h = hash_profile_id(raw, "s");
+        assert!(
+            !h.contains(raw),
+            "raw profile ID must not appear in hash output"
+        );
+    }
+
+    #[test]
+    fn test_hash_profile_id_output_is_hex_string() {
+        let h = hash_profile_id("user", "salt");
+        assert_eq!(h.len(), 64, "SHA-256 hex is 64 chars");
+        assert!(h.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    // ── 11.4: COPPA / Kids profile — no events recorded ─────────────────────
+
+    #[test]
+    fn test_coppa_collector_records_no_ttff() {
+        let c = QoeCollector::new_coppa();
+        c.report_ttff(src(), SourceType::Iptv, Duration::from_millis(500));
+        assert_eq!(c.event_count(), 0, "COPPA collector must not record TTFF");
+    }
+
+    #[test]
+    fn test_coppa_collector_records_no_rebuffer() {
+        let c = QoeCollector::new_coppa();
+        c.report_rebuffer(src(), SourceType::Iptv, Duration::from_millis(200));
+        assert_eq!(c.event_count(), 0);
+    }
+
+    #[test]
+    fn test_coppa_collector_records_no_quality_switch() {
+        let c = QoeCollector::new_coppa();
+        c.report_quality_switch(src(), SourceType::Iptv, "1080p", "720p");
+        assert_eq!(c.event_count(), 0);
+    }
+
+    #[test]
+    fn test_coppa_collector_records_no_failure() {
+        let c = QoeCollector::new_coppa();
+        c.report_failure(src(), SourceType::Iptv, "decode error");
+        assert_eq!(c.event_count(), 0);
+    }
+
+    #[test]
+    fn test_coppa_collector_records_no_session_end() {
+        let c = QoeCollector::new_coppa();
+        c.report_session_end(src(), SourceType::Iptv, Duration::from_secs(600), 1.0);
+        assert_eq!(c.event_count(), 0);
+    }
+
+    #[test]
+    fn test_coppa_flag_is_true_on_coppa_collector() {
+        let c = QoeCollector::new_coppa();
+        assert!(c.is_coppa());
+    }
+
+    #[test]
+    fn test_coppa_flag_is_false_on_normal_collector() {
+        let c = QoeCollector::new();
+        assert!(!c.is_coppa());
+    }
+
+    #[test]
+    fn test_coppa_metrics_always_zero() {
+        let c = QoeCollector::new_coppa();
+        c.report_ttff(src(), SourceType::Iptv, Duration::from_millis(100));
+        c.report_rebuffer(src(), SourceType::Iptv, Duration::from_millis(100));
+        let m = c.get_source_metrics(src());
+        assert_eq!(m.ttff_samples, 0);
+        assert_eq!(m.rebuffer_count, 0);
     }
 }

@@ -1,4 +1,12 @@
 // Data structures for Slint UI models
+
+// Multi-source badge — one entry per IPTV source that carries this content.
+export struct SourceBadge {
+  source-name: string,
+  quality-label: string,  // "4K", "1080p", "720p", "SD", ""
+  is-preferred: bool,
+}
+
 export struct SourceData {
   id: string,
   name: string,
@@ -93,13 +101,34 @@ export struct CategoryData {
   category-type: string,
 }
 
+// ── Casting structs (Epoch 10) ──
+export struct CastDeviceData {
+  id: string,
+  name: string,
+  // "cast" | "airplay" | "dlna"
+  device-type: string,
+  // "disconnected" | "connecting" | "connected"
+  status: string,
+}
+
+export struct ManagedDeviceData {
+  id: string,
+  name: string,
+  // "cast" | "airplay" | "dlna" | "remote"
+  device-type: string,
+  last-active: string,
+}
+
 export global AppState {
   // Current active screen index
   // 0=Home, 1=LiveTV, 2=EPG, 3=Movies, 4=Series, 5=Search, 6=Library, 7=Settings
   // 8=VodDetail, 9=SeriesDetail
   in-out property <int> active-screen: 0;
 
-  // VOD detail screen data
+  // VOD detail screen data — multi-source awareness (Epoch 5.12)
+  in-out property <[SourceBadge]> vod-detail-sources: [];
+  in-out property <bool> vod-detail-has-multi-source: false;
+
   in-out property <bool> show-vod-detail: false;
   in-out property <VodData> vod-detail-item: {
     id: "", name: "", stream-url: "", item-type: "movie",
@@ -187,6 +216,28 @@ export global AppState {
   in-out property <float> sync-progress: 0.0;
   in-out property <string> sync-message: "";
 
+  // ── Network / offline state (Epoch 8) ──
+  // Set by Rust when connectivity changes. 0 = online, 1 = device offline,
+  // 2 = internet unreachable, 3 = source down.
+  in-out property <int> network-status: 0;
+  in-out property <bool> is-offline: false;
+
+  // ── EPG staleness (Epoch 8) ──
+  // Hours since the EPG data was last successfully refreshed.
+  // When > 24 the UI shows a staleness indicator.
+  in-out property <int> epg-last-updated-hours: 0;
+
+  // ── Parental controls (Epoch 7) ──
+  in-out property <bool> parental-pin-set: false;
+  // Unified rating limit index (0–6 matching the 7-tier scale). -1 = no limit.
+  in-out property <int> parental-rating-limit: -1;
+  // Daily viewing time limit in minutes. 0 = no limit.
+  in-out property <int> parental-time-limit-minutes: 0;
+
+  // ── Analytics consent (Epoch 11) ──
+  in-out property <bool> analytics-playback-consent: false;
+  in-out property <bool> analytics-crash-consent: false;
+
   // Source dialog state
   in-out property <bool> show-source-dialog: false;
   in-out property <SourceData> editing-source: {
@@ -241,6 +292,45 @@ export global AppState {
   // Channel overlay
   callback toggle-channel-overlay();
 
+  // Parental controls (Epoch 7)
+  callback set-parental-pin(/* new-pin */ string);
+  callback clear-parental-pin();
+  callback set-content-rating(/* rating-index */ int);
+  callback set-viewing-time-limit(/* minutes */ int);
+
+  // Analytics consent (Epoch 11)
+  callback set-analytics-playback(/* enabled */ bool);
+  callback set-analytics-crash(/* enabled */ bool);
+
+  // Backup / restore (Epoch 13)
+  callback export-backup();
+  callback import-backup();
+
+  // ── Privacy consent (Epoch 13.15) ──
+  // Shown on first launch after onboarding. User must accept to use the app.
+  in-out property <bool> show-privacy-consent: false;
+  in-out property <bool> privacy-accepted: false;
+  callback accept-privacy();
+  callback decline-privacy();
+
+  // ── Open source attribution (Epoch 13.14) ──
+  in-out property <bool> show-attribution: false;
+
+  // ── Guided tour (Epoch 13.1) ──
+  in-out property <bool> show-guided-tour: false;
+  in-out property <int> guided-tour-step: 0;
+  callback skip-guided-tour();
+  callback advance-guided-tour();
+
+  // ── Getting started checklist (Epoch 13.7) ──
+  // Each bool tracks completion of a setup step.
+  in-out property <bool> getting-started-dismissed: false;
+  in-out property <bool> gs-source-added: false;
+  in-out property <bool> gs-browsed-channels: false;
+  in-out property <bool> gs-played-channel: false;
+  in-out property <bool> gs-profile-set: false;
+  callback dismiss-getting-started();
+
   // ── Virtual scroll — D-pad focus tracking ──
   callback scroll-channels(/* delta: +1 down, -1 up */ int);
   callback scroll-movies(/* delta */ int);
@@ -251,4 +341,27 @@ export global AppState {
   in-out property <int> channel-window-start: 0;
   in-out property <int> movie-window-start: 0;
   in-out property <int> series-window-start: 0;
+
+  // ── Casting & multi-device (Epoch 10) ──
+
+  // 10.6: Cast picker
+  in-out property <bool> show-cast-picker: false;
+  // Populated by Rust device-discovery service before showing the picker.
+  in-out property <[CastDeviceData]> cast-devices: [];
+  callback cast-to-device(/* device-id */ string);
+  callback stop-casting();
+
+  // 10.7: Device management (shown in Settings)
+  in-out property <[ManagedDeviceData]> managed-devices: [];
+  callback remove-device(/* device-id */ string);
+  callback sign-out-all-devices();
+
+  // 10.9: Cross-device resume prompt
+  in-out property <bool> show-resume-prompt: false;
+  // Human-readable label for the device that left the watch position, e.g. "Living Room TV"
+  in-out property <string> resume-source-device: "";
+  // Human-readable position label, e.g. "1h 23m"
+  in-out property <string> resume-position-label: "";
+  callback resume-playback();
+  callback start-over-playback();
 }

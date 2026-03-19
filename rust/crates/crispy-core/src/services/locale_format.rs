@@ -3,7 +3,7 @@
 //! All functions are pure — no global state — and accept a locale string
 //! (`"en"`, `"ar"`, …) to select the appropriate format.
 
-use chrono::{Datelike, NaiveDateTime};
+use chrono::{Datelike, NaiveDateTime, Timelike};
 
 // ── Arabic digits ─────────────────────────────────────────────────────────────
 
@@ -181,6 +181,41 @@ fn arabic_month(m: u32) -> &'static str {
         11 => "نوفمبر",
         12 => "ديسمبر",
         _ => "غير معروف",
+    }
+}
+
+// ── Time formatting ───────────────────────────────────────────────────────────
+
+/// Format a `NaiveDateTime` as a clock time string.
+///
+/// | `use_24h` | Locale | Example output |
+/// |-----------|--------|----------------|
+/// | `true`    | `en`   | `"14:30"`      |
+/// | `false`   | `en`   | `"2:30 PM"`    |
+/// | `true`    | `ar`   | `"١٤:٣٠"`     |
+/// | `false`   | `ar`   | `"٢:٣٠ م"`    |
+pub fn format_time(dt: NaiveDateTime, use_24h: bool, locale: &str) -> String {
+    let is_ar = locale.starts_with("ar");
+    let h = dt.hour();
+    let m = dt.minute();
+
+    if use_24h {
+        let s = format!("{h:02}:{m:02}");
+        if is_ar { to_arabic_digits(&s) } else { s }
+    } else {
+        let (period, h12) = if h < 12 {
+            (
+                if is_ar { "ص" } else { "AM" },
+                if h == 0 { 12u32 } else { h },
+            )
+        } else {
+            (
+                if is_ar { "م" } else { "PM" },
+                if h == 12 { 12u32 } else { h - 12 },
+            )
+        };
+        let s = format!("{h12}:{m:02} {period}");
+        if is_ar { to_arabic_digits(&s) } else { s }
     }
 }
 
@@ -443,6 +478,77 @@ mod tests {
         assert!(
             result.contains("منذ") && result.contains("أيام"),
             "got: {result}"
+        );
+    }
+
+    // ── format_time ───────────────────────────────────────────────────────
+
+    fn dt(h: u32, m: u32) -> NaiveDateTime {
+        NaiveDate::from_ymd_opt(2026, 1, 1)
+            .unwrap()
+            .and_hms_opt(h, m, 0)
+            .unwrap()
+    }
+
+    #[test]
+    fn test_format_time_en_24h() {
+        assert_eq!(format_time(dt(14, 30), true, "en"), "14:30");
+    }
+
+    #[test]
+    fn test_format_time_en_24h_midnight() {
+        assert_eq!(format_time(dt(0, 5), true, "en"), "00:05");
+    }
+
+    #[test]
+    fn test_format_time_en_12h_pm() {
+        assert_eq!(format_time(dt(14, 30), false, "en"), "2:30 PM");
+    }
+
+    #[test]
+    fn test_format_time_en_12h_am() {
+        assert_eq!(format_time(dt(9, 5), false, "en"), "9:05 AM");
+    }
+
+    #[test]
+    fn test_format_time_en_12h_noon() {
+        assert_eq!(format_time(dt(12, 0), false, "en"), "12:00 PM");
+    }
+
+    #[test]
+    fn test_format_time_en_12h_midnight() {
+        assert_eq!(format_time(dt(0, 0), false, "en"), "12:00 AM");
+    }
+
+    #[test]
+    fn test_format_time_ar_24h_uses_arabic_digits() {
+        let result = format_time(dt(14, 30), true, "ar");
+        assert!(
+            result.contains('١') && result.contains('٤'),
+            "got: {result}"
+        );
+        assert!(result.contains(':'), "got: {result}");
+    }
+
+    #[test]
+    fn test_format_time_ar_12h_uses_arabic_period_marker() {
+        let result = format_time(dt(14, 30), false, "ar");
+        assert!(
+            result.contains('م'),
+            "expected Arabic PM marker, got: {result}"
+        );
+        assert!(
+            result.contains('٢'),
+            "expected Arabic digit 2, got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_format_time_ar_12h_am_marker() {
+        let result = format_time(dt(9, 0), false, "ar");
+        assert!(
+            result.contains('ص'),
+            "expected Arabic AM marker, got: {result}"
         );
     }
 }

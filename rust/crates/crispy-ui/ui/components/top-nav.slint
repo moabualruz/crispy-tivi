@@ -4,9 +4,20 @@ import { NavItem } from "nav-item.slint";
 import { ProfileButton } from "profile-button.slint";
 import { SearchButton } from "search-button.slint";
 export component TopNav inherits Rectangle {
+  // Auto-hide: driven by AppState.nav-visible (set by scroll direction in Rust).
+  // Slides up by its own height when hidden, slides back down when shown.
+  // Using y-translation instead of `visible` so the animation plays on both directions.
+  in property <bool> nav-visible: true;
+
   width: 100%;
   height: Theme.top-nav-height;
   background: Theme.surface-glass;
+
+  y: nav-visible ? 0px : -Theme.top-nav-height;
+  animate y {
+    duration: 300ms;
+    easing: ease-in-out;
+  }
 
   HorizontalLayout {
     padding-left: Theme.content-padding-h;

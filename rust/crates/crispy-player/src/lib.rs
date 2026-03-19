@@ -7,6 +7,8 @@
 //! - Linux: system libmpv (user must install via package manager)
 
 mod backend;
+pub mod caption_formats;
+pub mod channel_prebuffer;
 pub mod mpv_backend;
 pub mod video_underlay;
 

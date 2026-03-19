@@ -348,4 +348,69 @@ mod tests {
         let results = find_duplicates(&items);
         assert_eq!(results.len(), 1);
     }
+
+    // ── Proptest fuzzing ──────────────────────────────────
+
+    use proptest::prelude::*;
+
+    proptest! {
+        /// Two items with identical title + year always land in the same group.
+        #[test]
+        fn prop_identical_title_year_always_groups(
+            title in "[A-Za-z]{1,5}[A-Za-z ]{0,25}",
+            year in 1900i32..2030,
+        ) {
+            let items = vec![
+                vod("x", &title, Some(year), None),
+                vod("y", &title, Some(year), None),
+            ];
+            let results = find_duplicates(&items);
+            prop_assert!(!results.is_empty(), "identical title+year must produce at least one group");
+            let total_matched: usize = results.iter().map(|r| r.matched_ids.len() + 1).sum();
+            prop_assert_eq!(total_matched, 2);
+        }
+
+        /// Items with titles drawn from disjoint character sets rarely group.
+        /// We only assert that the low-alpha group and the high-alpha group are not
+        /// merged when the normalised titles are long enough to be distinct.
+        #[test]
+        fn prop_very_different_titles_dont_group(
+            title_a in "[a-f]{10,15}",
+            title_b in "[s-z]{10,15}",
+        ) {
+            let items = vec![
+                vod("a", &title_a, None, None),
+                vod("b", &title_b, None, None),
+            ];
+            let results = find_duplicates(&items);
+            // If any group claims both ids, the test fails.
+            for r in &results {
+                let has_a = r.canonical_id == "a" || r.matched_ids.contains(&"a".to_string());
+                let has_b = r.canonical_id == "b" || r.matched_ids.contains(&"b".to_string());
+                prop_assert!(
+                    !(has_a && has_b),
+                    "title_a={title_a:?} and title_b={title_b:?} must not be grouped"
+                );
+            }
+        }
+
+        /// Dedup never loses items: total channels across all groups == input count
+        /// (only when every item has a twin, but at minimum no item is dropped).
+        #[test]
+        fn prop_dedup_output_ids_are_subset_of_input(count in 1usize..15) {
+            // Build `count` items each with a unique id and unique title.
+            let items: Vec<VodItem> = (0..count)
+                .map(|i| vod(&format!("id-{i}"), &format!("UniqueFilmTitle{i:04}"), Some(2000 + i as i32), None))
+                .collect();
+            let input_ids: std::collections::HashSet<String> =
+                items.iter().map(|v| v.id.clone()).collect();
+            let results = find_duplicates(&items);
+            for r in &results {
+                prop_assert!(input_ids.contains(&r.canonical_id));
+                for mid in &r.matched_ids {
+                    prop_assert!(input_ids.contains(mid));
+                }
+            }
+        }
+    }
 }

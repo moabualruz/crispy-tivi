@@ -62,12 +62,30 @@ export global Theme {
   // --- Live Badge ---
   out property <brush> live-badge: #EF4444; // Keep purely red for standard "live" semantics
 
+  // --- Overlay / Scrim ---
+  out property <brush> overlay: rgba(0, 0, 0, 0.5);         // standard modal scrim
+  out property <brush> overlay-heavy: rgba(0, 0, 0, 0.8);   // full-screen cover (profile picker, etc.)
+  out property <brush> overlay-dark: rgba(0, 0, 0, 0.75);   // icon badge backing, lock overlays
+
+  // --- Extended Surface ---
+  out property <brush> surface-highlight: rgba(255, 255, 255, 0.08); // subtle hover/inactive surface
+
+  // --- Extended Text ---
+  out property <brush> text-disabled: rgba(255, 255, 255, 0.3); // placeholder / disabled state
+
+  // --- Status Indicators ---
+  out property <brush> status-success: #16A34A; // green-600
+  out property <brush> status-warning: #CA8A04; // amber-600
+  out property <brush> status-error: #EF4444;   // red-500 (same as live-badge for consistency)
+
   // --- Typography ---
-  out property <string> font-display: "Outfit";
-  out property <string> font-body: "Inter";
+  // Fallback chains cover Arabic (Noto Sans Arabic) and CJK (Noto Sans CJK SC)
+  out property <string> font-display: "Outfit, Noto Sans Arabic, Noto Sans CJK SC";
+  out property <string> font-body: "Inter, Noto Sans Arabic, Noto Sans CJK SC";
   out property <length> font-size-hero: 64px;
   out property <length> font-size-h1: 32px;
   out property <length> font-size-h2: 24px;
+  out property <length> font-size-subtitle: 18px; // between h2 and body
   out property <length> font-size-body: 16px;
   out property <length> font-size-caption: 14px;
   out property <length> font-size-small: 12px;
@@ -84,10 +102,12 @@ export global Theme {
   out property <length> spacing-2xl: 48px;
 
   // --- Radii ---
+  out property <length> radius-2xs: 2px;  // progress bar ends, micro indicators
   out property <length> radius-xs: 4px;
   out property <length> radius-sm: 8px;
   out property <length> radius-md: 12px;
   out property <length> radius-lg: 16px;
+  out property <length> radius-nav: 20px; // nav pill items (design spec: border-radius 20px)
   out property <length> radius-pill: 999px;
 
   // --- Top Navigation Bar ---

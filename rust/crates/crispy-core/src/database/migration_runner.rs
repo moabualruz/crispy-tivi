@@ -24,7 +24,7 @@ use super::DbError;
 ///
 /// When adding a new migration file, update this constant to match the
 /// new `PRAGMA user_version` value set by that file.
-pub const LATEST_VERSION: u32 = 37;
+pub const LATEST_VERSION: u32 = 38;
 
 /// Ordered list of `(target_user_version, sql)` pairs.
 ///
@@ -39,6 +39,8 @@ static MIGRATIONS: &[(u32, &str)] = &[
     // 002 — extend retry_queue: add status, max_attempts, last_error columns;
     //        replace single-column index with composite (status, next_retry_at)
     (37, include_str!("migrations/002_retry_queue.sql")),
+    // 003 — merge_decisions table: persist user manual merge/split decisions
+    (38, include_str!("migrations/003_merge_decisions.sql")),
 ];
 
 /// Run all pending migrations against `conn`.
@@ -199,6 +201,7 @@ mod tests {
             "db_vod_items",
             "db_watch_history",
             "db_watchlist",
+            "merge_decisions",
         ];
 
         for name in &required {
@@ -244,6 +247,8 @@ mod tests {
             "idx_vod_source",
             "idx_watch_history_profile",
             "idx_watch_history_source",
+            "idx_merge_decisions_type",
+            "idx_merge_decisions_source",
         ];
 
         for name in &required {

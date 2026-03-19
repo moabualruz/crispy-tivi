@@ -1,0 +1,247 @@
+// Guided Tour Overlay (Epoch 13.1)
+// Semi-transparent backdrop with a floating tooltip bubble + step indicator.
+// Max 6 steps. D-pad navigable: Enter = Next, Escape = Skip.
+
+import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+import { ActionButton } from "action-button.slint";
+
+struct TourStep {
+  title: string,
+  description: string,
+  // Highlight region — expressed as fractions of screen (0.0–1.0)
+  // The dim layer has a transparent "hole" centered on (cx, cy) with given w/h.
+  cx: float,
+  cy: float,
+  highlight-w: float,
+  highlight-h: float,
+}
+
+// Step counter dots (reuse onboarding pattern)
+component TourStepDots inherits HorizontalLayout {
+  in property <int> total;
+  in property <int> current;
+
+  spacing: Theme.spacing-xs;
+  alignment: center;
+
+  for i in [0, 1, 2, 3, 4, 5]: Rectangle {
+    visible: i < root.total;
+    width: i == root.current ? 24px : 8px;
+    height: 8px;
+    border-radius: 4px;
+    background: i == root.current ? Theme.accent : Theme.focus-glow;
+    animate width { duration: 200ms; easing: ease-in-out; }
+    animate background { duration: 200ms; }
+  }
+}
+
+// The tooltip bubble
+component TourBubble inherits Rectangle {
+  in property <string> title;
+  in property <string> description;
+  in property <int> step;
+  in property <int> total-steps;
+
+  // Position bubble via x/y from outside
+  width: 320px;
+  min-height: 160px;
+  border-radius: Theme.radius-md;
+  background: Theme.card-surface;
+  border-width: 1px;
+  border-color: Theme.card-border;
+  drop-shadow-blur: 24px;
+  drop-shadow-color: rgba(0, 0, 0, 0.5);
+
+  VerticalLayout {
+    padding: Theme.spacing-lg;
+    spacing: Theme.spacing-sm;
+
+    Text {
+      text: root.title;
+      color: Theme.text-primary;
+      font-family: Theme.font-display;
+      font-size: Theme.font-size-body;
+      font-weight: 700;
+      wrap: word-wrap;
+    }
+
+    Text {
+      text: root.description;
+      color: Theme.text-secondary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-caption;
+      wrap: word-wrap;
+    }
+
+    TourStepDots {
+      total: root.total-steps;
+      current: root.step;
+    }
+  }
+}
+
+export component GuidedTour inherits Rectangle {
+  visible: AppState.show-guided-tour;
+  width: 100%; height: 100%;
+
+  // Tour steps definition — 6 steps covering key UI areas
+  property <[TourStep]> steps: [
+    {
+      title: "Navigation Bar",
+      description: "Use the top bar to switch between Home, Live TV, Movies, Shows, and Search. Press Left/Right to move between tabs.",
+      cx: 0.5, cy: 0.05, highlight-w: 0.7, highlight-h: 0.08,
+    },
+    {
+      title: "Browse Live Channels",
+      description: "Go to Live TV to see all your IPTV channels. Use Up/Down to scroll and Enter to play.",
+      cx: 0.5, cy: 0.5, highlight-w: 0.9, highlight-h: 0.6,
+    },
+    {
+      title: "Electronic Programme Guide",
+      description: "The EPG screen shows what\u{2019}s on now and next. Use Left/Right to browse time slots.",
+      cx: 0.5, cy: 0.5, highlight-w: 0.9, highlight-h: 0.6,
+    },
+    {
+      title: "Movies & Series",
+      description: "Browse your VOD library. Press Enter on any title to see details, trailers, and playback options.",
+      cx: 0.5, cy: 0.5, highlight-w: 0.9, highlight-h: 0.6,
+    },
+    {
+      title: "Search",
+      description: "Press the search pill in the top-right corner to find any channel, movie, or series instantly.",
+      cx: 0.88, cy: 0.05, highlight-w: 0.18, highlight-h: 0.07,
+    },
+    {
+      title: "Player Controls",
+      description: "While watching, press any key to reveal the OSD. Use Left/Right to seek, Up/Down for volume. Press Escape to stop.",
+      cx: 0.5, cy: 0.92, highlight-w: 0.6, highlight-h: 0.1,
+    },
+  ];
+
+  property <int> step: AppState.guided-tour-step;
+  property <TourStep> current: steps[step];
+
+  // Keyboard handler
+  tour-focus := FocusScope {
+    width: 100%; height: 100%;
+
+    init => { tour-focus.focus(); }
+
+    key-pressed(event) => {
+      if event.text == Key.Return || event.text == Key.RightArrow {
+        AppState.advance-guided-tour();
+        return accept;
+      }
+      if event.text == Key.Escape {
+        AppState.skip-guided-tour();
+        return accept;
+      }
+      return reject;
+    }
+
+    // Dim backdrop with highlight hole (approximated via two overlapping rects)
+    // Full dim
+    Rectangle {
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.65);
+    }
+
+    // Highlight cutout — slightly lighter rectangle over the target area
+    Rectangle {
+      x: (root.current.cx - root.current.highlight-w / 2) * root.width;
+      y: (root.current.cy - root.current.highlight-h / 2) * root.height;
+      width: root.current.highlight-w * root.width;
+      height: root.current.highlight-h * root.height;
+      border-radius: Theme.radius-md;
+      background: rgba(255, 255, 255, 0.06);
+      border-width: 2px;
+      border-color: rgba(255, 255, 255, 0.3);
+
+      animate x { duration: 350ms; easing: ease-in-out; }
+      animate y { duration: 350ms; easing: ease-in-out; }
+      animate width { duration: 350ms; easing: ease-in-out; }
+      animate height { duration: 350ms; easing: ease-in-out; }
+    }
+
+    // Tooltip bubble — positioned below the highlight when there is space
+    TourBubble {
+      title: root.current.title;
+      description: root.current.description;
+      step: root.step;
+      total-steps: root.steps.length;
+
+      // Center horizontally; place below highlight if top half, else above
+      x: (root.width - self.width) / 2;
+      y: root.current.cy < 0.5
+        ? (root.current.cy + root.current.highlight-h / 2 + 0.03) * root.height
+        : (root.current.cy - root.current.highlight-h / 2 - 0.03) * root.height - self.height;
+
+      animate x { duration: 350ms; easing: ease-in-out; }
+      animate y { duration: 350ms; easing: ease-in-out; }
+    }
+
+    // Bottom action bar
+    HorizontalLayout {
+      y: root.height - self.height - Theme.spacing-2xl;
+      x: (root.width - self.width) / 2;
+      width: min(400px, root.width - Theme.spacing-2xl * 2);
+      spacing: Theme.spacing-md;
+      alignment: center;
+
+      // Skip Tour button
+      skip-btn := FocusScope {
+        height: 44px;
+        width: 140px;
+        key-pressed(event) => {
+          if event.text == Key.Return { AppState.skip-guided-tour(); return accept; }
+          return reject;
+        }
+        Rectangle {
+          width: 100%; height: 100%;
+          border-radius: Theme.radius-pill;
+          background: skip-btn.has-focus ? Theme.focus-bg : Theme.btn-secondary-bg;
+          border-width: skip-btn.has-focus ? Theme.focus-ring-width : 1px;
+          border-color: skip-btn.has-focus ? Theme.focus-ring : Theme.card-border;
+          Text {
+            text: "Skip Tour";
+            color: Theme.text-primary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-body;
+            font-weight: 600;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+          TouchArea { clicked => { AppState.skip-guided-tour(); } }
+        }
+      }
+
+      // Next / Finish button
+      next-btn := FocusScope {
+        height: 44px;
+        width: 140px;
+        key-pressed(event) => {
+          if event.text == Key.Return { AppState.advance-guided-tour(); return accept; }
+          return reject;
+        }
+        Rectangle {
+          width: 100%; height: 100%;
+          border-radius: Theme.radius-pill;
+          background: Theme.btn-primary-bg;
+          border-width: next-btn.has-focus ? Theme.focus-ring-width : 0px;
+          border-color: next-btn.has-focus ? Theme.focus-ring : transparent;
+          Text {
+            text: root.step == root.steps.length - 1 ? "Finish" : "Next";
+            color: Theme.btn-primary-fg;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-body;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+          TouchArea { clicked => { AppState.advance-guided-tour(); } }
+        }
+      }
+    }
+  }
+}

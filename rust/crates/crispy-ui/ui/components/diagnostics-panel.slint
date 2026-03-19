@@ -11,6 +11,11 @@ export global DiagnosticsState {
   in-out property <int> vod-count: 0;
   in-out property <string> log-level: "";
 
+  // ── Per-stream stats (Epoch 11) ──
+  in-out property <string> stream-bitrate: "";   // e.g. "4.2 Mbps"
+  in-out property <string> stream-codec: "";     // e.g. "H.265 / AAC"
+  in-out property <int>    stream-buffer-ms: 0;  // decoder buffer depth in ms
+
   callback toggle();
   callback export-logs();
 }
@@ -122,6 +127,31 @@ export component DiagnosticsPanel inherits Rectangle {
       }
 
       Rectangle { height: 1px; background: Theme.border-subtle; }
+
+      // Stream stats (Epoch 11) — only shown when stream info is available
+      if DiagnosticsState.stream-codec != "": VerticalLayout {
+        spacing: Theme.spacing-xs;
+        Text { text: "Stream"; color: Theme.accent; font-size: Theme.font-size-caption; font-weight: 600; }
+
+        HorizontalLayout {
+          Text { text: "Bitrate"; color: Theme.text-secondary; font-size: Theme.font-size-caption; horizontal-stretch: 1; }
+          Text { text: DiagnosticsState.stream-bitrate != "" ? DiagnosticsState.stream-bitrate : "—"; color: Theme.text-primary; font-size: Theme.font-size-caption; }
+        }
+        HorizontalLayout {
+          Text { text: "Codec"; color: Theme.text-secondary; font-size: Theme.font-size-caption; horizontal-stretch: 1; }
+          Text { text: DiagnosticsState.stream-codec; color: Theme.text-primary; font-size: Theme.font-size-caption; }
+        }
+        HorizontalLayout {
+          Text { text: "Buffer"; color: Theme.text-secondary; font-size: Theme.font-size-caption; horizontal-stretch: 1; }
+          Text {
+            text: DiagnosticsState.stream-buffer-ms > 0 ? (DiagnosticsState.stream-buffer-ms + " ms") : "—";
+            color: DiagnosticsState.stream-buffer-ms > 0 && DiagnosticsState.stream-buffer-ms < 200 ? #EF4444 : Theme.text-primary;
+            font-size: Theme.font-size-caption;
+          }
+        }
+      }
+
+      if DiagnosticsState.stream-codec != "": Rectangle { height: 1px; background: Theme.border-subtle; }
 
       // Keyboard shortcuts
       VerticalLayout {

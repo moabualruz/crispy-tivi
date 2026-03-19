@@ -11,6 +11,8 @@
 
 use std::collections::HashSet;
 
+use crate::models::content_rating::ContentRating;
+
 // ── ContentItem ───────────────────────────────────────────────────────────────
 
 /// Minimal content descriptor passed to the filter.
@@ -26,6 +28,8 @@ pub struct ContentItem {
     pub title: String,
     /// Optional description / synopsis used for keyword scanning.
     pub description: Option<String>,
+    /// Canonical content rating (None = treat as Unrated).
+    pub rating: Option<ContentRating>,
 }
 
 // ── ProfileContentPolicy ──────────────────────────────────────────────────────
@@ -47,6 +51,12 @@ pub struct ProfileContentPolicy {
     pub allowed_channel_ids: HashSet<String>,
     /// Explicitly allowed VOD item IDs (used only when `allow_list_mode = true`).
     pub allowed_vod_ids: HashSet<String>,
+    /// Maximum allowed rating tier (inclusive). Content with a higher rating
+    /// is blocked. `None` = no rating-based restriction.
+    ///
+    /// Example: `Some(ContentRating::Teen)` blocks `Mature`, `Adult`, and
+    /// `Unrated` content (spec 7.9).
+    pub max_allowed_rating: Option<ContentRating>,
 }
 
 impl ProfileContentPolicy {
@@ -102,6 +112,14 @@ pub fn is_blocked(content: &ContentItem, policy: &ProfileContentPolicy) -> bool 
         }
     }
 
+    // ── Rating-based block (spec 7.9) ─────────────────────────────────────────
+    if let Some(max_rating) = policy.max_allowed_rating {
+        let item_rating = content.rating.unwrap_or(ContentRating::Unrated);
+        if item_rating > max_rating {
+            return true;
+        }
+    }
+
     // ── Keyword scan ──────────────────────────────────────────────────────────
     let searchable = format!(
         "{} {}",
@@ -121,6 +139,17 @@ pub fn is_blocked(content: &ContentItem, policy: &ProfileContentPolicy) -> bool 
     false
 }
 
+/// Filter a slice of content items, retaining only those not blocked by `policy`.
+///
+/// Convenience wrapper over [`is_blocked`] for batch use in content lanes.
+pub fn filter_items(items: &[ContentItem], policy: &ProfileContentPolicy) -> Vec<ContentItem> {
+    items
+        .iter()
+        .filter(|item| !is_blocked(item, policy))
+        .cloned()
+        .collect()
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -134,6 +163,7 @@ mod tests {
             genres: genres.iter().map(|s| s.to_string()).collect(),
             title: title.to_string(),
             description: None,
+            rating: None,
         }
     }
 
@@ -144,6 +174,7 @@ mod tests {
             genres: genres.iter().map(|s| s.to_string()).collect(),
             title: title.to_string(),
             description: desc.map(str::to_string),
+            rating: None,
         }
     }
 
@@ -212,6 +243,7 @@ mod tests {
             genres: vec![],
             title: "Action Film".to_string(),
             description: Some("Contains intense violence and gore".to_string()),
+            rating: None,
         };
         assert!(is_blocked(&item, &policy));
     }
@@ -257,5 +289,86 @@ mod tests {
         // No IDs in allowlist
         let item = make_channel("ch1", &[], "Any Channel");
         assert!(is_blocked(&item, &policy));
+    }
+
+    // ── Rating-based blocking (spec 7.9) ──────────────────────────────────────
+
+    #[test]
+    fn test_rating_within_limit_passes() {
+        let mut policy = ProfileContentPolicy::new();
+        policy.max_allowed_rating = Some(ContentRating::Teen);
+        let mut item = make_channel("ch1", &[], "Teen Show");
+        item.rating = Some(ContentRating::Teen);
+        assert!(!is_blocked(&item, &policy));
+    }
+
+    #[test]
+    fn test_rating_below_limit_passes() {
+        let mut policy = ProfileContentPolicy::new();
+        policy.max_allowed_rating = Some(ContentRating::Teen);
+        let mut item = make_channel("ch1", &[], "Kids Show");
+        item.rating = Some(ContentRating::Everyone);
+        assert!(!is_blocked(&item, &policy));
+    }
+
+    #[test]
+    fn test_rating_above_limit_blocked() {
+        let mut policy = ProfileContentPolicy::new();
+        policy.max_allowed_rating = Some(ContentRating::Teen);
+        let mut item = make_channel("ch1", &[], "Adult Film");
+        item.rating = Some(ContentRating::Mature);
+        assert!(is_blocked(&item, &policy));
+    }
+
+    #[test]
+    fn test_unrated_blocked_when_max_is_teen() {
+        let mut policy = ProfileContentPolicy::new();
+        policy.max_allowed_rating = Some(ContentRating::Teen);
+        // rating = None → treated as Unrated, which > Teen
+        let item = make_channel("ch1", &[], "Unknown Rating");
+        assert!(is_blocked(&item, &policy));
+    }
+
+    #[test]
+    fn test_no_max_rating_does_not_block_mature() {
+        let policy = ProfileContentPolicy::new(); // max_allowed_rating = None
+        let mut item = make_channel("ch1", &[], "Mature Show");
+        item.rating = Some(ContentRating::Mature);
+        assert!(!is_blocked(&item, &policy));
+    }
+
+    // ── filter_items batch helper ─────────────────────────────────────────────
+
+    #[test]
+    fn test_filter_items_removes_blocked() {
+        let mut policy = ProfileContentPolicy::new();
+        policy.blocked_channel_ids.insert("bad-ch".to_string());
+
+        let items = vec![
+            make_channel("good-ch", &[], "Good"),
+            make_channel("bad-ch", &[], "Bad"),
+        ];
+        let result = filter_items(&items, &policy);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].channel_id.as_deref(), Some("good-ch"));
+    }
+
+    #[test]
+    fn test_filter_items_empty_policy_keeps_all() {
+        let policy = ProfileContentPolicy::new();
+        let items = vec![
+            make_channel("ch1", &[], "A"),
+            make_channel("ch2", &[], "B"),
+            make_channel("ch3", &[], "C"),
+        ];
+        let result = filter_items(&items, &policy);
+        assert_eq!(result.len(), 3);
+    }
+
+    #[test]
+    fn test_filter_items_empty_list() {
+        let policy = ProfileContentPolicy::new();
+        let result = filter_items(&[], &policy);
+        assert!(result.is_empty());
     }
 }

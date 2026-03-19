@@ -923,6 +923,8 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                 &target,
                 &all_channels,
                 &health_scores,
+                &std::collections::HashMap::new(), // latency_scores: not yet collected
+                None,                              // sticky_source_id: not yet wired
             );
             let s = serde_json::to_string(&ranked)?;
             Ok(json!({"data": s}))

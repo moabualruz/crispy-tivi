@@ -1,0 +1,176 @@
+// Getting Started Checklist Card (Epoch 13.7)
+// Shown on the home screen after onboarding.
+// Tracks 4 setup steps, auto-dismisses when all complete, dismissible manually.
+
+import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+
+struct CheckItem {
+  label: string,
+  done: bool,
+}
+
+// Single checklist row
+component CheckRow inherits FocusScope {
+  in property <string> label;
+  in property <bool> done;
+
+  height: 40px;
+  width: 100%;
+
+  Rectangle {
+    width: 100%; height: 100%;
+    border-radius: Theme.radius-sm;
+    background: root.has-focus ? Theme.focus-bg : transparent;
+    border-width: root.has-focus ? Theme.focus-ring-width : 0px;
+    border-color: root.has-focus ? Theme.focus-ring : transparent;
+
+    HorizontalLayout {
+      padding-left: Theme.spacing-sm;
+      padding-right: Theme.spacing-sm;
+      spacing: Theme.spacing-sm;
+      alignment: start;
+
+      // Check circle
+      Rectangle {
+        width: 20px; height: 20px;
+        border-radius: 10px;
+        border-width: 2px;
+        border-color: root.done ? rgba(134, 239, 172, 1.0) : Theme.text-secondary;
+        background: root.done ? rgba(34, 197, 94, 0.25) : transparent;
+        vertical-stretch: 0;
+        y: (parent.height - self.height) / 2;
+
+        if root.done: Text {
+          text: "✓";
+          color: rgba(134, 239, 172, 1.0);
+          font-size: Theme.font-size-small;
+          font-weight: 700;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+      }
+
+      Text {
+        text: root.label;
+        color: root.done ? Theme.text-secondary : Theme.text-primary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+        vertical-alignment: center;
+        horizontal-stretch: 1;
+
+        // Strike-through via opacity when done (Slint has no text-decoration)
+        opacity: root.done ? 0.55 : 1.0;
+        animate opacity { duration: 300ms; }
+      }
+    }
+  }
+}
+
+export component GettingStartedCard inherits Rectangle {
+  // Visible when: not dismissed AND not all done, OR explicitly shown
+  visible: !AppState.getting-started-dismissed &&
+    !(AppState.gs-source-added && AppState.gs-browsed-channels &&
+      AppState.gs-played-channel && AppState.gs-profile-set);
+
+  border-radius: Theme.radius-md;
+  background: Theme.card-surface;
+  border-width: 1px;
+  border-color: Theme.card-border;
+  min-height: layout.min-height;
+
+  layout := VerticalLayout {
+    padding: Theme.spacing-md;
+    spacing: Theme.spacing-sm;
+
+    // Header row
+    HorizontalLayout {
+      alignment: space-between;
+      spacing: Theme.spacing-sm;
+
+      Text {
+        text: "Getting Started";
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-body;
+        font-weight: 700;
+        vertical-alignment: center;
+        horizontal-stretch: 1;
+      }
+
+      // Dismiss button
+      dismiss-btn := FocusScope {
+        width: 28px; height: 28px;
+        key-pressed(event) => {
+          if event.text == Key.Return { AppState.dismiss-getting-started(); return accept; }
+          return reject;
+        }
+        Rectangle {
+          width: 100%; height: 100%;
+          border-radius: 14px;
+          background: dismiss-btn.has-focus ? Theme.focus-bg : transparent;
+          border-width: dismiss-btn.has-focus ? Theme.focus-ring-width : 0px;
+          border-color: dismiss-btn.has-focus ? Theme.focus-ring : transparent;
+          Text {
+            text: "✕";
+            color: Theme.text-secondary;
+            font-size: Theme.font-size-small;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+          TouchArea { clicked => { AppState.dismiss-getting-started(); } }
+        }
+      }
+    }
+
+    // Progress caption
+    Text {
+      property <int> done-count:
+        (AppState.gs-source-added ? 1 : 0) +
+        (AppState.gs-browsed-channels ? 1 : 0) +
+        (AppState.gs-played-channel ? 1 : 0) +
+        (AppState.gs-profile-set ? 1 : 0);
+      text: done-count + " of 4 complete";
+      color: Theme.text-secondary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-caption;
+    }
+
+    // Progress bar
+    Rectangle {
+      height: 3px;
+      border-radius: 2px;
+      background: Theme.border-subtle;
+      Rectangle {
+        property <int> done-count:
+          (AppState.gs-source-added ? 1 : 0) +
+          (AppState.gs-browsed-channels ? 1 : 0) +
+          (AppState.gs-played-channel ? 1 : 0) +
+          (AppState.gs-profile-set ? 1 : 0);
+        height: 100%;
+        width: done-count * parent.width / 4;
+        border-radius: 2px;
+        background: @linear-gradient(90deg, #FF4B2B 0%, #FF416C 100%);
+        animate width { duration: 400ms; easing: ease-out; }
+      }
+    }
+
+    // Checklist items
+    CheckRow {
+      label: "Add a source";
+      done: AppState.gs-source-added;
+    }
+    CheckRow {
+      label: "Browse channels";
+      done: AppState.gs-browsed-channels;
+    }
+    CheckRow {
+      label: "Play your first channel";
+      done: AppState.gs-played-channel;
+    }
+    CheckRow {
+      label: "Set up a profile";
+      done: AppState.gs-profile-set;
+    }
+  }
+}

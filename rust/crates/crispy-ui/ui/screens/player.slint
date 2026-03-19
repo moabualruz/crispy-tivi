@@ -125,8 +125,8 @@ component VolumeSlider inherits FocusScope {
     width: 120px;
     height: 4px;
     y: (parent.height - self.height) / 2;
-    border-radius: 2px;
-    background: rgba(255, 255, 255, 0.25);
+    border-radius: Theme.radius-2xs;
+    background: Theme.focus-glow;
     border-width: parent.has-focus ? Theme.focus-ring-width : 0px;
     border-color: parent.has-focus ? Theme.focus-ring : transparent;
 
@@ -137,7 +137,7 @@ component VolumeSlider inherits FocusScope {
       x: 0;
       width: parent.width * PlayerState.volume;
       height: 100%;
-      border-radius: 2px;
+      border-radius: Theme.radius-2xs;
       background: Theme.focus-ring;
       animate width { duration: 100ms; }
     }
@@ -211,7 +211,7 @@ component SeekBar inherits FocusScope {
       width: track.width * PlayerState.buffered;
       height: 100%;
       border-radius: bar-h / 2;
-      background: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.4); // buffered-ahead — intentionally lighter than track, no token match
     }
 
     if !PlayerState.is-live: Rectangle {
@@ -244,7 +244,7 @@ component SeekBar inherits FocusScope {
       width: track.width * PlayerState.buffered;
       height: 100%;
       border-radius: bar-h / 2;
-      background: rgba(255, 255, 255, 0.55);
+      background: rgba(255, 255, 255, 0.55); // live buffered — brighter than VOD buffered, no token match
     }
 
     // Live edge marker — pulsing dot at the right edge
@@ -298,7 +298,7 @@ component SeekBar inherits FocusScope {
 
     Text {
       text: floor(PlayerState.duration / 60) + ":" + (mod(PlayerState.duration, 60) < 10 ? "0" : "") + floor(mod(PlayerState.duration, 60));
-      color: rgba(255, 255, 255, 0.6);
+      color: Theme.text-secondary;
       font-family: Theme.font-body;
       font-size: Theme.font-size-caption;
       font-weight: 400;
@@ -427,7 +427,7 @@ component OsdControls inherits Rectangle {
     y: parent.height - 260px;
     height: 260px;
     width: parent.width;
-    background: @linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
+    background: @linear-gradient(180deg, transparent 0%, Theme.overlay-heavy 100%);
   }
 
   // ── Live channel info strip (M-023) ─────────────────────────────────────
@@ -449,9 +449,9 @@ component OsdControls inherits Rectangle {
       y: (52px - 22px) / 2;
       Text {
         text: "LIVE";
-        color: #FFFFFF;
+        color: Theme.btn-secondary-fg;
         font-family: Theme.font-display;
-        font-size: 11px;
+        font-size: Theme.font-size-micro;
         font-weight: 700;
         horizontal-alignment: center;
         vertical-alignment: center;
@@ -474,7 +474,7 @@ component OsdControls inherits Rectangle {
     // Current programme title (EPG)
     if PlayerState.current-programme != "": Text {
       text: "· " + PlayerState.current-programme;
-      color: rgba(255, 255, 255, 0.65);
+      color: Theme.text-secondary;
       font-family: Theme.font-body;
       font-size: Theme.font-size-caption;
       font-weight: 400;
@@ -488,15 +488,15 @@ component OsdControls inherits Rectangle {
       width: 100px;
       height: 4px;
       y: (52px - 4px) / 2;
-      border-radius: 2px;
-      background: rgba(255, 255, 255, 0.2);
+      border-radius: Theme.radius-2xs;
+      background: Theme.focus-glow;
       Rectangle {
         x: 0;
         width: PlayerState.duration > 0.0
           ? parent.width * (PlayerState.position / PlayerState.duration)
           : 0px;
         height: 100%;
-        border-radius: 2px;
+        border-radius: Theme.radius-2xs;
         background: Theme.brand-gradient;
         animate width { duration: 500ms; }
       }
@@ -520,9 +520,9 @@ component OsdControls inherits Rectangle {
       y: 6px;
       Text {
         text: "LIVE";
-        color: #FFFFFF;
+        color: Theme.btn-secondary-fg;
         font-family: Theme.font-display;
-        font-size: 11px;
+        font-size: Theme.font-size-micro;
         font-weight: 700;
         horizontal-alignment: center;
         vertical-alignment: center;
@@ -530,7 +530,7 @@ component OsdControls inherits Rectangle {
     }
 
     VerticalLayout {
-      spacing: 4px;
+      spacing: Theme.spacing-xs;
       Text {
         text: PlayerState.current-title;
         color: Theme.btn-secondary-fg;
@@ -540,7 +540,7 @@ component OsdControls inherits Rectangle {
       }
       if PlayerState.current-group != "": Text {
         text: PlayerState.current-group;
-        color: rgba(255, 255, 255, 0.7);
+        color: Theme.text-secondary;
         font-family: Theme.font-body;
         font-size: Theme.font-size-body;
       }
@@ -565,7 +565,7 @@ component OsdControls inherits Rectangle {
 
     Text {
       text: floor(PlayerState.duration / 60) + ":" + (mod(PlayerState.duration, 60) < 10 ? "0" : "") + floor(mod(PlayerState.duration, 60));
-      color: rgba(255, 255, 255, 0.55);
+      color: Theme.text-secondary;
       font-family: Theme.font-body;
       font-size: Theme.font-size-body;
       font-weight: 400;
@@ -595,7 +595,7 @@ component OsdControls inherits Rectangle {
         text: "−10";
         color: Theme.btn-secondary-fg;
         font-family: Theme.font-body;
-        font-size: 14px;
+        font-size: Theme.font-size-caption;
         font-weight: 700;
         horizontal-alignment: center;
         vertical-alignment: center;
@@ -624,7 +624,7 @@ component OsdControls inherits Rectangle {
         text: "+10";
         color: Theme.btn-secondary-fg;
         font-family: Theme.font-body;
-        font-size: 14px;
+        font-size: Theme.font-size-caption;
         font-weight: 700;
         horizontal-alignment: center;
         vertical-alignment: center;
@@ -638,7 +638,7 @@ component OsdControls inherits Rectangle {
       Text {
         text: PlayerState.is-fullscreen ? "><" : "<>";
         color: Theme.btn-secondary-fg;
-        font-size: 18px;
+        font-size: Theme.font-size-subtitle;
         font-weight: 700;
         horizontal-alignment: center;
         vertical-alignment: center;
@@ -742,7 +742,7 @@ component TrackRow inherits FocusScope {
     width: 100%; height: 100%;
     background: root.has-focus
       ? Theme.focus-bg
-      : (root.active ? rgba(255, 255, 255, 0.08) : transparent);
+      : (root.active ? Theme.surface-highlight : transparent);
     border-width: root.has-focus ? Theme.focus-ring-width : 0px;
     border-color: root.has-focus ? Theme.focus-ring : transparent;
     animate background { duration: 120ms; }
@@ -956,7 +956,7 @@ export component PlayerScreen inherits Rectangle {
 
       go-live-label := Text {
         text: "● LIVE";
-        color: #FFFFFF;
+        color: Theme.btn-secondary-fg;
         font-family: Theme.font-display;
         font-size: Theme.font-size-caption;
         font-weight: 700;
@@ -1125,7 +1125,7 @@ export component PlayerScreen inherits Rectangle {
   if PlayerState.show-still-watching: Rectangle {
     // Dim scrim behind the card
     width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: Theme.overlay;
 
     Rectangle {
       x: parent.width / 2 - self.width / 2;
@@ -1202,7 +1202,7 @@ export component PlayerScreen inherits Rectangle {
   // ── 3.14: Post-play screen ────────────────────────────────────────────────
   if !PlayerState.is-playing && PlayerState.show-post-play: Rectangle {
     width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.75);
+    background: Theme.overlay-dark;
 
     VerticalLayout {
       alignment: center;

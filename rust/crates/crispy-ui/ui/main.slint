@@ -20,6 +20,11 @@ import { SourceDialog } from "components/source-dialog.slint";
 import { DiagnosticsPanel, DiagnosticsState } from "components/diagnostics-panel.slint";
 import { ProfileMenu, ProfilePickerScreen } from "components/profile-menu.slint";
 import { ButtonLegend } from "components/button-legend.slint";
+import { CastPicker } from "components/cast-picker.slint";
+import { DeviceManager } from "components/device-manager.slint";
+import { ResumePrompt } from "components/resume-prompt.slint";
+import { PrivacyConsent } from "components/privacy-consent.slint";
+import { GuidedTour } from "components/guided-tour.slint";
 
 // Re-export for Rust access
 export { PlayerState, OnboardingState, DiagnosticsState }
@@ -76,7 +81,8 @@ export component AppWindow inherits Window {
   // OsdLayer — M-019: hidden when an overlay is showing (mutually exclusive with OverlayLayer)
   property <bool>   show-osd-layer: PlayerState.is-playing && !OnboardingState.is-active &&
     !(AppState.show-vod-detail || AppState.show-series-detail ||
-      AppState.show-source-dialog || AppState.show-profile-menu || AppState.show-profile-picker);
+      AppState.show-source-dialog || AppState.show-profile-menu || AppState.show-profile-picker ||
+      AppState.show-cast-picker);
   property <float>  osd-layer-opacity: 1.0;
   property <length> osd-layer-x: 0;
   property <length> osd-layer-y: 0;
@@ -87,7 +93,8 @@ export component AppWindow inherits Window {
   // M-015: must not capture input when no overlay is visible
   property <bool>   show-overlay-layer: !OnboardingState.is-active &&
     (AppState.show-vod-detail || AppState.show-series-detail ||
-     AppState.show-source-dialog || AppState.show-profile-menu || AppState.show-profile-picker);
+     AppState.show-source-dialog || AppState.show-profile-menu || AppState.show-profile-picker ||
+     AppState.show-cast-picker);
   property <float>  overlay-layer-opacity: 1.0;
   property <length> overlay-layer-x: 0;
   property <length> overlay-layer-y: 0;
@@ -102,6 +109,7 @@ export component AppWindow inherits Window {
       if event.text == Key.Escape {
         if DiagnosticsState.visible { DiagnosticsState.visible = false; return accept; }
         if AppState.show-profile-picker { AppState.show-profile-picker = false; return accept; }
+        if AppState.show-cast-picker { AppState.show-cast-picker = false; return accept; }
         if AppState.show-profile-menu { AppState.show-profile-menu = false; return accept; }
         if AppState.show-source-dialog { AppState.show-source-dialog = false; return accept; }
         if AppState.show-vod-detail { AppState.show-vod-detail = false; return accept; }
@@ -192,16 +200,45 @@ export component AppWindow inherits Window {
     }
 
     // Top nav bar (floats over all screen sublayers)
+    // nav-visible drives the y-translation animation inside TopNav (not `visible`,
+    // so the slide-out animation plays before the element disappears).
     TopNav {
-      y: 0;
       width: 100%;
-      visible: AppState.nav-visible;
+      nav-visible: AppState.nav-visible;
     }
 
     // Button legend bar — contextual D-pad hints, pinned to screen bottom
     ButtonLegend {
       y: parent.height - self.height;
       width: 100%;
+    }
+
+    // ── Offline banner (Epoch 8.2) ─────────────────────────────────────
+    // Persistent, non-dismissible. Floats above content at bottom, above
+    // ButtonLegend. Hidden when online (is-offline == false).
+    if AppState.is-offline: Rectangle {
+      y: parent.height - 36px - 48px; // sit above ButtonLegend (48px)
+      width: 100%;
+      height: 36px;
+      background: #B45309; // amber-700 — no Theme token for warning, intentional
+      HorizontalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        spacing: Theme.spacing-sm;
+        alignment: center;
+        Text {
+          text: AppState.network-status == 1 ? "No internet connection"
+              : AppState.network-status == 2 ? "Internet unreachable"
+              : AppState.network-status == 3 ? "Source unavailable — showing cached content"
+              : "Offline — showing cached content";
+          color: #FFFFFF;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-caption;
+          font-weight: 600;
+          vertical-alignment: center;
+          horizontal-alignment: center;
+        }
+      }
     }
   }
 
@@ -279,6 +316,28 @@ export component AppWindow inherits Window {
       visible: AppState.show-profile-menu;
       close => { AppState.show-profile-menu = false; }
     }
+
+    // 10.6: Cast picker — full-screen scrim + centred panel
+    CastPicker {
+      width: 100%; height: 100%;
+      visible: AppState.show-cast-picker;
+      devices: AppState.cast-devices;
+      device-selected(id) => {
+        AppState.show-cast-picker = false;
+        AppState.cast-to-device(id);
+      }
+      dismissed => { AppState.show-cast-picker = false; }
+    }
+  }
+
+  // 10.9: Resume prompt — bottom-centre toast, above OSD layer
+  ResumePrompt {
+    width: 100%; height: 100%;
+    visible: AppState.show-resume-prompt;
+    source-device: AppState.resume-source-device;
+    resume-position: AppState.resume-position-label;
+    resume => { AppState.show-resume-prompt = false; AppState.resume-playback(); }
+    start-over => { AppState.show-resume-prompt = false; AppState.start-over-playback(); }
   }
   // Sync progress overlay — visible only while sync is in progress (0 < progress < 1)
   if AppState.sync-progress > 0.0 && AppState.sync-progress < 1.0: Rectangle {
@@ -324,4 +383,15 @@ export component AppWindow inherits Window {
   }
 
   DiagnosticsPanel {}
+
+  // Privacy consent — must-accept overlay, shown after onboarding on first launch.
+  // Sits above everything so it cannot be bypassed.
+  PrivacyConsent {
+    width: 100%; height: 100%;
+  }
+
+  // Guided tour — full-screen walkthrough overlay, shown on demand after first launch.
+  GuidedTour {
+    width: 100%; height: 100%;
+  }
 }

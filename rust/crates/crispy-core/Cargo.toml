@@ -26,7 +26,7 @@ anyhow.workspace = true
 chrono-tz = "0.10"
 dirs = "6.0.0"
 semver = "1"
-strsim = "0.11"
+strsim.workspace = true
 unicode-normalization = "0.1"
 blurhash = "0.2"
 aes-gcm.workspace = true
@@ -36,6 +36,7 @@ subtle.workspace = true
 zeroize.workspace = true
 secrecy.workspace = true
 url.workspace = true
+keyring.workspace = true
 fluent.workspace = true
 fluent-bundle.workspace = true
 fluent-syntax.workspace = true
@@ -53,6 +54,7 @@ wiremock.workspace = true
 mockall.workspace = true
 insta.workspace = true
 fake.workspace = true
+proptest.workspace = true
 
 [lints]
 workspace = true

@@ -14,6 +14,9 @@ use crate::database::DbError;
 /// Maximum number of times a tip may be snoozed before it is auto-dismissed.
 const MAX_SNOOZE: u32 = 3;
 
+/// Maximum number of steps in any guided tour (spec 13.1: max 6 steps).
+pub const MAX_TOUR_STEPS: u8 = 6;
+
 // ── TipState ─────────────────────────────────────────────────────────────────
 
 /// Lifecycle state of a single contextual tip for a specific profile.
@@ -120,11 +123,28 @@ impl CrispyService {
     }
 
     /// Advance the tour to the next step.
+    ///
+    /// Capped at `MAX_TOUR_STEPS` — calling this when the tour is already
+    /// complete is a no-op.
     pub fn advance_tour(&self, tour_id: &str, profile_id: &str) -> Result<(), DbError> {
         let current = self.get_tour_progress(tour_id, profile_id)?;
+        if current >= MAX_TOUR_STEPS {
+            return Ok(());
+        }
         let next = current.saturating_add(1);
         let key = tour_key(tour_id, profile_id);
         self.set_setting(&key, &next.to_string())
+    }
+
+    /// Return `true` when the tour has reached `MAX_TOUR_STEPS`.
+    pub fn is_tour_complete(&self, tour_id: &str, profile_id: &str) -> Result<bool, DbError> {
+        Ok(self.get_tour_progress(tour_id, profile_id)? >= MAX_TOUR_STEPS)
+    }
+
+    /// Reset a tour back to step 0 (e.g. for replay or testing).
+    pub fn reset_tour(&self, tour_id: &str, profile_id: &str) -> Result<(), DbError> {
+        let key = tour_key(tour_id, profile_id);
+        self.set_setting(&key, "0")
     }
 }
 
@@ -219,5 +239,39 @@ mod tests {
         let svc = make_service();
         svc.advance_tour("tour_a", "p1").unwrap();
         assert_eq!(svc.get_tour_progress("tour_a", "p2").unwrap(), 0);
+    }
+
+    #[test]
+    fn test_advance_tour_capped_at_max_steps() {
+        let svc = make_service();
+        // Advance past the maximum.
+        for _ in 0..MAX_TOUR_STEPS + 5 {
+            svc.advance_tour("onboarding", "p1").unwrap();
+        }
+        assert_eq!(
+            svc.get_tour_progress("onboarding", "p1").unwrap(),
+            MAX_TOUR_STEPS,
+            "tour step must never exceed MAX_TOUR_STEPS"
+        );
+    }
+
+    #[test]
+    fn test_is_tour_complete_false_until_max() {
+        let svc = make_service();
+        assert!(!svc.is_tour_complete("onboarding", "p1").unwrap());
+        for _ in 0..MAX_TOUR_STEPS {
+            svc.advance_tour("onboarding", "p1").unwrap();
+        }
+        assert!(svc.is_tour_complete("onboarding", "p1").unwrap());
+    }
+
+    #[test]
+    fn test_reset_tour_returns_to_zero() {
+        let svc = make_service();
+        svc.advance_tour("onboarding", "p1").unwrap();
+        svc.advance_tour("onboarding", "p1").unwrap();
+        svc.reset_tour("onboarding", "p1").unwrap();
+        assert_eq!(svc.get_tour_progress("onboarding", "p1").unwrap(), 0);
+        assert!(!svc.is_tour_complete("onboarding", "p1").unwrap());
     }
 }

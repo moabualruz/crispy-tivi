@@ -29,7 +29,7 @@ component ProfileTile inherits Rectangle {
     Rectangle {
       width: 80px;
       height: 80px;
-      border-radius: 40px;
+      border-radius: Theme.radius-pill;
       background: profile.avatar-color;
       // Scale up on focus
       x: (parent.width - self.width) / 2;
@@ -41,7 +41,7 @@ component ProfileTile inherits Rectangle {
         text: profile.name == "" ? "?" : profile.name;
         color: Theme.btn-secondary-fg;
         font-weight: 700;
-        font-size: 28px;
+        font-size: Theme.font-size-h2;
         font-family: Theme.font-display;
         horizontal-alignment: center;
         vertical-alignment: center;
@@ -53,12 +53,31 @@ component ProfileTile inherits Rectangle {
         y: parent.height - 24px;
         width: 22px;
         height: 22px;
-        border-radius: 11px;
-        background: rgba(0, 0, 0, 0.75);
+        border-radius: Theme.radius-pill;
+        background: Theme.overlay-dark;
         Text {
           width: 100%; height: 100%;
           text: "🔒";
-          font-size: 11px;
+          font-size: Theme.font-size-micro;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+      }
+
+      // Kids badge (Epoch 7) — bottom-left corner, distinct from lock icon
+      if profile.is-kids : Rectangle {
+        x: Theme.spacing-2xs;
+        y: parent.height - 24px;
+        width: 22px;
+        height: 22px;
+        border-radius: Theme.radius-pill;
+        background: Theme.status-success;
+        Text {
+          width: 100%; height: 100%;
+          text: "K";
+          color: Theme.btn-secondary-fg;
+          font-size: Theme.font-size-micro;
+          font-weight: 700;
           horizontal-alignment: center;
           vertical-alignment: center;
         }
@@ -83,13 +102,13 @@ component ProfileTile inherits Rectangle {
       x: (parent.width - self.width) / 2;
       width: 42px;
       height: 18px;
-      border-radius: 9px;
+      border-radius: Theme.radius-xs;
       background: Theme.brand-gradient;
       Text {
         width: 100%; height: 100%;
         text: "KIDS";
         color: Theme.btn-secondary-fg;
-        font-size: 10px;
+        font-size: Theme.font-size-micro;
         font-family: Theme.font-body;
         font-weight: 700;
         horizontal-alignment: center;
@@ -140,9 +159,9 @@ component AddProfileTile inherits Rectangle {
       x: (parent.width - self.width) / 2;
       width: 80px;
       height: 80px;
-      border-radius: 40px;
-      background: is-focused ? Theme.btn-secondary-bg : rgba(255, 255, 255, 0.08);
-      border-width: 2px;
+      border-radius: Theme.radius-pill;
+      background: is-focused ? Theme.btn-secondary-bg : Theme.surface-highlight;
+      border-width: Theme.focus-ring-width;
       border-color: is-focused ? Theme.focus-ring : Theme.border-subtle;
       animate background, border-color { duration: 120ms; }
 
@@ -150,7 +169,7 @@ component AddProfileTile inherits Rectangle {
         width: 100%; height: 100%;
         text: "+";
         color: is-focused ? Theme.text-primary : Theme.text-secondary;
-        font-size: 32px;
+        font-size: Theme.font-size-h1;
         font-family: Theme.font-display;
         font-weight: 300;
         horizontal-alignment: center;
@@ -194,7 +213,7 @@ component AddProfileTile inherits Rectangle {
 // Sits above OverlayLayer, below OnboardingScreen (see main.slint).
 export component ProfilePickerScreen inherits Rectangle {
   width: 100%; height: 100%;
-  background: rgba(10, 10, 12, 0.97);
+  background: Theme.overlay-heavy;
   visible: AppState.show-profile-picker;
 
   // Track focused tile index: 0..profiles.length = profile tiles, last = Add Profile
@@ -365,13 +384,13 @@ export component ProfileMenu inherits Rectangle {
         // Avatar
         Rectangle {
           width: 56px; height: 56px;
-          border-radius: 28px;
+          border-radius: Theme.radius-pill;
           background: Theme.accent;
           Text {
             text: AppState.active-profile-name == "" ? "?" : AppState.active-profile-name;
             color: Theme.background;
             font-weight: 700;
-            font-size: 20px;
+            font-size: Theme.font-size-subtitle;
             font-family: Theme.font-display;
             horizontal-alignment: center;
             vertical-alignment: center;
@@ -385,7 +404,7 @@ export component ProfileMenu inherits Rectangle {
             color: Theme.text-primary;
             font-weight: 700;
             font-family: Theme.font-display;
-            font-size: 18px;
+            font-size: Theme.font-size-subtitle;
             overflow: elide;
           }
           Text {

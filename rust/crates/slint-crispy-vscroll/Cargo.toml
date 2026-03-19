@@ -11,7 +11,7 @@ keywords = ["slint", "virtual-scroll", "lazy-list", "tv-ui", "scroll-physics"]
 categories = ["gui", "rendering"]
 
 [features]
-default = []
+default = ["full"]
 
 # Input (7)
 input-touch = []

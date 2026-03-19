@@ -299,9 +299,6 @@ mod tests {
 
     // ── Proptest fuzzing ──────────────────────────────────
 
-    // NOTE: proptest is not in [dev-dependencies] yet — use standard
-    // hand-crafted edge cases instead of a proptest macro here.
-
     #[test]
     fn test_idempotent_on_already_normalised() {
         let once = normalize_title("the quick brown fox");
@@ -328,5 +325,43 @@ mod tests {
         // The important property: same input always same output.
         assert_eq!(a, normalize_title("Amélie &amp; Co."));
         let _ = b;
+    }
+
+    // ── Proptest fuzzing ──────────────────────────────────
+
+    use proptest::prelude::*;
+
+    proptest! {
+        /// Normalization is idempotent: normalizing twice == normalizing once.
+        #[test]
+        fn prop_normalize_is_idempotent(title in "\\PC{1,100}") {
+            let once = normalize_title(&title);
+            let twice = normalize_title(&once);
+            prop_assert_eq!(once, twice);
+        }
+
+        /// Normalized output never has leading or trailing whitespace.
+        #[test]
+        fn prop_normalize_trims_whitespace(title in "\\PC{1,100}") {
+            let result = normalize_title(&title);
+            prop_assert_eq!(result.trim(), result.as_str());
+        }
+
+        /// Normalization of ASCII alphanumeric input never increases byte length
+        /// by more than a small tolerance (article move can add a space).
+        #[test]
+        fn prop_normalize_never_increases_length(title in "[a-zA-Z0-9 ]{1,50}") {
+            let result = normalize_title(&title);
+            // Tolerance of 5 bytes covers article-move edge cases.
+            prop_assert!(result.len() <= title.len() + 5);
+        }
+
+        /// display normalise is also idempotent.
+        #[test]
+        fn prop_display_normalize_is_idempotent(title in "\\PC{1,100}") {
+            let once = normalize_title_display(&title);
+            let twice = normalize_title_display(&once);
+            prop_assert_eq!(once, twice);
+        }
     }
 }

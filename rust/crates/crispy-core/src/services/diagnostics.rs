@@ -5,7 +5,7 @@
 //! replaced with `[REDACTED]`; email addresses are SHA-256 hashed.
 
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     sync::{Arc, Mutex},
 };
 
@@ -82,6 +82,32 @@ pub struct SystemInfo {
     pub network_type: String,
 }
 
+// ── Stream diagnostics (11.5) ─────────────────────────────────────────────────
+
+/// Live per-stream diagnostics snapshot (bitrate, codec, buffer, etc.).
+///
+/// Updated by the player backend after each stats probe. Stored by
+/// `source_id` so the diagnostics screen can display per-stream data.
+#[derive(Debug, Clone, Default, serde::Serialize)]
+pub struct StreamDiagnostics {
+    /// Current video bitrate in kbps.
+    pub video_bitrate_kbps: u32,
+    /// Current audio bitrate in kbps.
+    pub audio_bitrate_kbps: u32,
+    /// Video codec string (e.g. `"H.264"`, `"H.265"`, `"AV1"`).
+    pub video_codec: String,
+    /// Audio codec string (e.g. `"AAC"`, `"AC3"`).
+    pub audio_codec: String,
+    /// Video resolution (e.g. `"1920x1080"`).
+    pub resolution: String,
+    /// Buffer fill level in seconds.
+    pub buffer_secs: f32,
+    /// Dropped frames since playback started.
+    pub dropped_frames: u32,
+    /// Current frames-per-second (decoded).
+    pub fps: f32,
+}
+
 // ── DiagnosticsService ────────────────────────────────────────────────────────
 
 /// Collects system info, source health snapshots, and recent events,
@@ -96,6 +122,8 @@ struct DiagnosticsInner {
     source_health: Vec<SourceHealth>,
     /// Rolling last-24 h event ring buffer (max 1 000 entries).
     events: VecDeque<DiagEvent>,
+    /// Per-stream live diagnostics keyed by source_id.
+    stream_diag: HashMap<String, StreamDiagnostics>,
 }
 
 const MAX_EVENTS: usize = 1_000;
@@ -108,6 +136,7 @@ impl DiagnosticsService {
                 system_info,
                 source_health: Vec::new(),
                 events: VecDeque::with_capacity(MAX_EVENTS),
+                stream_diag: HashMap::new(),
             })),
         }
     }
@@ -186,6 +215,47 @@ impl DiagnosticsService {
             .iter()
             .find(|h| h.source_id == source_id)
             .cloned()
+    }
+
+    // ── Stream diagnostics (11.5) ────────────────────────────────────────────
+
+    /// Store or replace the live stream diagnostics for `source_id`.
+    ///
+    /// Called by the player backend after each stats probe cycle.
+    pub fn update_stream_diag(&self, source_id: impl Into<String>, diag: StreamDiagnostics) {
+        self.inner
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .stream_diag
+            .insert(source_id.into(), diag);
+    }
+
+    /// Return the latest stream diagnostics for `source_id`, if available.
+    pub fn stream_diag(&self, source_id: &str) -> Option<StreamDiagnostics> {
+        self.inner
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .stream_diag
+            .get(source_id)
+            .cloned()
+    }
+
+    /// Return all stream diagnostics snapshots keyed by source_id.
+    pub fn all_stream_diag(&self) -> HashMap<String, StreamDiagnostics> {
+        self.inner
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .stream_diag
+            .clone()
+    }
+
+    /// Clear stream diagnostics for `source_id` (e.g. on playback stop).
+    pub fn clear_stream_diag(&self, source_id: &str) {
+        self.inner
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .stream_diag
+            .remove(source_id);
     }
 
     // ── Event logging ────────────────────────────────────────────────────────
@@ -407,5 +477,80 @@ mod tests {
     #[test]
     fn test_source_status_healthy_no_errors() {
         assert_eq!(SourceStatus::from_error_rate(0, 10), SourceStatus::Healthy);
+    }
+
+    // ── 11.5: Stream diagnostics ─────────────────────────────────────────────
+
+    fn sample_stream_diag() -> StreamDiagnostics {
+        StreamDiagnostics {
+            video_bitrate_kbps: 4_000,
+            audio_bitrate_kbps: 192,
+            video_codec: "H.264".into(),
+            audio_codec: "AAC".into(),
+            resolution: "1920x1080".into(),
+            buffer_secs: 8.5,
+            dropped_frames: 0,
+            fps: 25.0,
+        }
+    }
+
+    #[test]
+    fn test_stream_diag_stored_and_retrieved() {
+        let svc = make_service();
+        svc.update_stream_diag("src-live-1", sample_stream_diag());
+        let d = svc.stream_diag("src-live-1").unwrap();
+        assert_eq!(d.video_bitrate_kbps, 4_000);
+        assert_eq!(d.video_codec, "H.264");
+        assert_eq!(d.resolution, "1920x1080");
+    }
+
+    #[test]
+    fn test_stream_diag_none_for_unknown_source() {
+        let svc = make_service();
+        assert!(svc.stream_diag("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_stream_diag_update_replaces_previous() {
+        let svc = make_service();
+        svc.update_stream_diag("src-1", sample_stream_diag());
+        svc.update_stream_diag(
+            "src-1",
+            StreamDiagnostics {
+                video_bitrate_kbps: 8_000,
+                dropped_frames: 3,
+                ..sample_stream_diag()
+            },
+        );
+        let d = svc.stream_diag("src-1").unwrap();
+        assert_eq!(d.video_bitrate_kbps, 8_000);
+        assert_eq!(d.dropped_frames, 3);
+    }
+
+    #[test]
+    fn test_all_stream_diag_returns_all_sources() {
+        let svc = make_service();
+        svc.update_stream_diag("src-a", sample_stream_diag());
+        svc.update_stream_diag("src-b", sample_stream_diag());
+        let all = svc.all_stream_diag();
+        assert_eq!(all.len(), 2);
+        assert!(all.contains_key("src-a"));
+        assert!(all.contains_key("src-b"));
+    }
+
+    #[test]
+    fn test_stream_diag_cleared_on_stop() {
+        let svc = make_service();
+        svc.update_stream_diag("src-1", sample_stream_diag());
+        svc.clear_stream_diag("src-1");
+        assert!(svc.stream_diag("src-1").is_none());
+    }
+
+    #[test]
+    fn test_stream_diag_default_fields() {
+        let d = StreamDiagnostics::default();
+        assert_eq!(d.video_bitrate_kbps, 0);
+        assert_eq!(d.dropped_frames, 0);
+        assert!(d.video_codec.is_empty());
     }
 }

@@ -1,0 +1,219 @@
+// device-manager.slint — 10.7: Device Management
+// Shows paired/known devices with type, last-active time, and remove action.
+// Designed for embedding in the Settings screen device-management section.
+
+import { Theme } from "../globals/theme.slint";
+import { ManagedDeviceData } from "../globals/app-state.slint";
+
+// ── Single device row ─────────────────────────────────────────────────────────
+component DeviceEntry inherits FocusScope {
+  in property <ManagedDeviceData> device;
+  callback remove(string);
+
+  height: 64px;
+  width: 100%;
+
+  key-pressed(event) => {
+    if event.text == Key.Delete || event.text == Key.Back {
+      root.remove(root.device.id);
+      return accept;
+    }
+    return reject;
+  }
+
+  ta := TouchArea {}
+
+  Rectangle {
+    width: 100%;
+    height: 100%;
+    border-radius: Theme.radius-md;
+    background: root.has-focus ? Theme.focus-bg : (ta.has-hover ? rgba(255, 255, 255, 0.04) : transparent);
+    border-width: root.has-focus ? Theme.focus-ring-width : 1px;
+    border-color: root.has-focus ? Theme.focus-ring : Theme.card-border;
+
+    HorizontalLayout {
+      padding-left: Theme.spacing-md;
+      padding-right: Theme.spacing-md;
+      spacing: Theme.spacing-md;
+      alignment: start;
+
+      // Type badge
+      VerticalLayout {
+        alignment: center;
+        Rectangle {
+          width: 52px;
+          height: 28px;
+          border-radius: Theme.radius-sm;
+          background: Theme.card-surface;
+          border-width: 1px;
+          border-color: Theme.card-border;
+
+          Text {
+            text: root.device.device-type == "airplay" ? "AirPlay"
+              : root.device.device-type == "dlna" ? "DLNA"
+              : root.device.device-type == "remote" ? "Remote"
+              : "Cast";
+            color: Theme.text-primary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-micro;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+        }
+      }
+
+      // Name + last active
+      VerticalLayout {
+        alignment: center;
+        horizontal-stretch: 1;
+        spacing: 2px;
+
+        Text {
+          text: root.device.name;
+          color: Theme.text-primary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-body;
+          font-weight: 600;
+          overflow: elide;
+        }
+
+        Text {
+          text: "Last active: " + root.device.last-active;
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-caption;
+        }
+      }
+
+      // Remove button
+      VerticalLayout {
+        alignment: center;
+
+        remove-fs := FocusScope {
+          width: 72px;
+          height: 32px;
+
+          key-pressed(event) => {
+            if event.text == Key.Return || event.text == " " {
+              root.remove(root.device.id);
+              return accept;
+            }
+            return reject;
+          }
+
+          remove-ta := TouchArea {
+            clicked => { root.remove(root.device.id); }
+          }
+
+          Rectangle {
+            width: 100%;
+            height: 100%;
+            border-radius: Theme.radius-sm;
+            background: remove-fs.has-focus ? Theme.focus-bg : rgba(255, 255, 255, 0.08);
+            border-width: remove-fs.has-focus ? Theme.focus-ring-width : 1px;
+            border-color: remove-fs.has-focus ? Theme.focus-ring : Theme.card-border;
+
+            Text {
+              text: "Remove";
+              color: Theme.text-primary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-small;
+              font-weight: 600;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// ── Public component ──────────────────────────────────────────────────────────
+export component DeviceManager {
+  in property <[ManagedDeviceData]> devices: [];
+  callback remove-device(/* device-id */ string);
+  callback sign-out-all();
+
+  VerticalLayout {
+    spacing: Theme.spacing-sm;
+
+    // Section header + sign-out-all
+    HorizontalLayout {
+      alignment: space-between;
+
+      Text {
+        text: "Connected Devices";
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-h2;
+        font-weight: 700;
+        vertical-alignment: center;
+      }
+
+      sign-out-fs := FocusScope {
+        width: 120px;
+        height: 36px;
+
+        key-pressed(event) => {
+          if event.text == Key.Return || event.text == " " {
+            root.sign-out-all();
+            return accept;
+          }
+          return reject;
+        }
+
+        sign-out-ta := TouchArea {
+          clicked => { root.sign-out-all(); }
+        }
+
+        Rectangle {
+          width: 100%;
+          height: 100%;
+          border-radius: Theme.radius-sm;
+          background: sign-out-fs.has-focus ? Theme.focus-bg : Theme.btn-secondary-bg;
+          border-width: sign-out-fs.has-focus ? Theme.focus-ring-width : 1px;
+          border-color: sign-out-fs.has-focus ? Theme.focus-ring : Theme.card-border;
+
+          Text {
+            text: "Sign out all";
+            color: Theme.btn-secondary-fg;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-small;
+            font-weight: 600;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+        }
+      }
+    }
+
+    // Divider
+    Rectangle {
+      height: 1px;
+      background: Theme.card-border;
+    }
+
+    // Device list
+    VerticalLayout {
+      spacing: Theme.spacing-xs;
+
+      for dev in root.devices: DeviceEntry {
+        device: dev;
+        remove(id) => { root.remove-device(id); }
+      }
+
+      // Empty state
+      if root.devices.length == 0: Text {
+        text: "No devices paired";
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+        horizontal-alignment: center;
+        height: 48px;
+        vertical-alignment: center;
+      }
+    }
+  }
+}

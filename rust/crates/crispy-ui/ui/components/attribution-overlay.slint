@@ -1,0 +1,214 @@
+// Open Source Attribution Overlay (Epoch 13.14)
+// Shown from Settings → About → "Open Source Licenses" button.
+// Scrollable list of all workspace dependencies with name, version, license.
+
+import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+import { ActionButton } from "action-button.slint";
+import { ScrollView } from "std-widgets.slint";
+
+struct DepEntry {
+  name: string,
+  version: string,
+  license: string,
+}
+
+// Single dependency row
+component DepRow inherits FocusScope {
+  in property <DepEntry> dep;
+
+  height: 48px;
+  width: 100%;
+
+  Rectangle {
+    width: 100%; height: 100%;
+    border-radius: Theme.radius-sm;
+    background: root.has-focus ? Theme.focus-bg : transparent;
+    border-width: root.has-focus ? Theme.focus-ring-width : 0px;
+    border-color: root.has-focus ? Theme.focus-ring : transparent;
+
+    HorizontalLayout {
+      padding-left: Theme.spacing-md;
+      padding-right: Theme.spacing-md;
+      alignment: space-between;
+
+      Text {
+        text: dep.name + " " + dep.version;
+        color: Theme.text-primary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+        vertical-alignment: center;
+        horizontal-stretch: 1;
+      }
+
+      Text {
+        text: dep.license;
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        vertical-alignment: center;
+      }
+    }
+  }
+}
+
+// Separator line between rows
+component DepSep inherits Rectangle {
+  height: 1px;
+  background: Theme.border-subtle;
+}
+
+export component AttributionOverlay inherits Rectangle {
+  visible: AppState.show-attribution;
+  width: 100%; height: 100%;
+
+  // Escape closes
+  FocusScope {
+    width: 0; height: 0;
+    key-pressed(event) => {
+      if event.text == Key.Escape {
+        AppState.show-attribution = false;
+        return accept;
+      }
+      return reject;
+    }
+  }
+
+  // Dim backdrop
+  Rectangle {
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    TouchArea { clicked => { AppState.show-attribution = false; } }
+  }
+
+  // Dialog panel — glassmorphic card
+  panel := Rectangle {
+    width: min(680px, root.width - Theme.spacing-2xl * 2);
+    height: min(560px, root.height - Theme.spacing-2xl * 2);
+    x: (root.width - self.width) / 2;
+    y: (root.height - self.height) / 2;
+    border-radius: Theme.radius-md;
+    background: Theme.card-surface;
+    border-width: 1px;
+    border-color: Theme.card-border;
+
+    VerticalLayout {
+      padding: Theme.spacing-lg;
+      spacing: Theme.spacing-md;
+
+      // Header
+      HorizontalLayout {
+        alignment: space-between;
+
+        Text {
+          text: "Open Source Licenses";
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: Theme.font-size-h2;
+          font-weight: 700;
+          vertical-alignment: center;
+        }
+
+        close-btn := FocusScope {
+          width: 36px; height: 36px;
+          key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Escape {
+              AppState.show-attribution = false;
+              return accept;
+            }
+            return reject;
+          }
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: 18px;
+            background: close-btn.has-focus ? Theme.focus-bg : Theme.btn-secondary-bg;
+            border-width: close-btn.has-focus ? Theme.focus-ring-width : 1px;
+            border-color: close-btn.has-focus ? Theme.focus-ring : Theme.card-border;
+            Text {
+              text: "✕";
+              color: Theme.text-primary;
+              font-size: Theme.font-size-body;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+            TouchArea { clicked => { AppState.show-attribution = false; } }
+          }
+        }
+      }
+
+      Text {
+        text: "CrispyTivi is built on these open-source libraries. We are grateful to their authors.";
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+        wrap: word-wrap;
+      }
+
+      // Dep list — scrollable
+      ScrollView {
+        vertical-stretch: 1;
+
+        VerticalLayout {
+          spacing: 0px;
+
+          // ── Workspace dependencies (from rust/Cargo.toml) ──
+          for dep in [
+            { name: "slint",              version: "1.15",  license: "GPL-3.0 / Commercial" },
+            { name: "tokio",              version: "1.x",   license: "MIT" },
+            { name: "rusqlite",           version: "0.32",  license: "MIT" },
+            { name: "serde",              version: "1.x",   license: "MIT / Apache-2.0" },
+            { name: "serde_json",         version: "1.x",   license: "MIT / Apache-2.0" },
+            { name: "reqwest",            version: "0.12",  license: "MIT / Apache-2.0" },
+            { name: "thiserror",          version: "2.x",   license: "MIT / Apache-2.0" },
+            { name: "anyhow",             version: "1.x",   license: "MIT / Apache-2.0" },
+            { name: "chrono",             version: "0.4",   license: "MIT / Apache-2.0" },
+            { name: "uuid",               version: "1.x",   license: "MIT / Apache-2.0" },
+            { name: "regex",              version: "1.x",   license: "MIT / Apache-2.0" },
+            { name: "tracing",            version: "0.1",   license: "MIT" },
+            { name: "tracing-subscriber", version: "0.3",   license: "MIT" },
+            { name: "image",              version: "0.25",  license: "MIT / Apache-2.0" },
+            { name: "rust-i18n",          version: "3.x",   license: "MIT" },
+            { name: "aes-gcm",            version: "0.10",  license: "MIT / Apache-2.0" },
+            { name: "argon2",             version: "0.5",   license: "MIT / Apache-2.0" },
+            { name: "base64",             version: "0.22",  license: "MIT / Apache-2.0" },
+            { name: "hmac",               version: "0.12",  license: "MIT / Apache-2.0" },
+            { name: "sha2",               version: "0.10",  license: "MIT / Apache-2.0" },
+            { name: "keyring",            version: "3.x",   license: "MIT / Apache-2.0" },
+            { name: "url",                version: "2.x",   license: "MIT / Apache-2.0" },
+            { name: "zeroize",            version: "1.x",   license: "MIT / Apache-2.0" },
+            { name: "secrecy",            version: "0.10",  license: "MIT / Apache-2.0" },
+            { name: "subtle",             version: "2.x",   license: "MIT / Apache-2.0" },
+            { name: "rand_core",          version: "0.6",   license: "MIT / Apache-2.0" },
+            { name: "tokio-tungstenite",  version: "latest", license: "MIT / Apache-2.0" },
+            { name: "axum",               version: "latest", license: "MIT" },
+            { name: "percent-encoding",   version: "2.x",   license: "MIT / Apache-2.0" },
+            { name: "strsim",             version: "0.11",  license: "MIT" },
+            { name: "fluent",             version: "0.16",  license: "MIT / Apache-2.0" },
+            { name: "insta",              version: "1.x",   license: "MIT" },
+            { name: "wiremock",           version: "0.6",   license: "MIT" },
+            { name: "mockall",            version: "0.13",  license: "MIT / Apache-2.0" },
+            { name: "proptest",           version: "1.x",   license: "MIT / Apache-2.0" },
+            { name: "fake",               version: "5.x",   license: "MIT" },
+            { name: "tempfile",           version: "3.x",   license: "MIT / Apache-2.0" },
+            { name: "tokio-test",         version: "0.4",   license: "MIT" },
+            { name: "tokio-util",         version: "0.7",   license: "MIT" },
+          ]: VerticalLayout {
+            spacing: 0px;
+            DepRow { dep: dep; }
+            DepSep { }
+          }
+        }
+      }
+
+      // Close button
+      HorizontalLayout {
+        alignment: center;
+        ActionButton {
+          label: "Close";
+          width: 120px;
+          clicked => { AppState.show-attribution = false; }
+        }
+      }
+    }
+  }
+}

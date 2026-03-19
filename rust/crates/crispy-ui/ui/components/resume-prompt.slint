@@ -1,0 +1,190 @@
+// resume-prompt.slint — 10.9: Cross-device resume prompt
+// Toast overlay: "Continue from [device] at [timestamp]?"
+// Auto-dismisses after 10s (defaults to Start Over).
+// D-pad navigable. Two actions: Resume / Start Over.
+
+import { Theme } from "../globals/theme.slint";
+
+export component ResumePrompt {
+  in-out property <bool> show-prompt: false;
+  // Human-readable source device, e.g. "Living Room TV"
+  in property <string> source-device: "";
+  // Human-readable timestamp, e.g. "1h 23m"
+  in property <string> resume-position: "";
+  callback resume();
+  callback start-over();
+
+  // Auto-dismiss timer — ticks from 0 to 100 over 10 000ms
+  property <float> countdown: 0.0;
+
+  // Animation drives countdown 0→1 in 10s while visible
+  animate countdown {
+    duration: 10000ms;
+    easing: linear;
+  }
+
+  changed visible => {
+    if root.show-prompt {
+      root.countdown = 0.0;
+      root.countdown = 1.0;
+    } else {
+      root.countdown = 0.0;
+    }
+  }
+
+  // When countdown completes → start-over (default action)
+  changed countdown => {
+    if root.countdown >= 1.0 && root.show-prompt {
+      root.show-prompt = false;
+      root.start-over();
+    }
+  }
+
+  if root.show-prompt: Rectangle {
+    // Positioned: bottom-center, above OSD
+    width: 480px;
+    height: 140px;
+    x: (parent.width - self.width) / 2;
+    y: parent.height - self.height - 80px;
+
+    border-radius: Theme.radius-lg;
+    background: Theme.surface;
+    border-width: 1px;
+    border-color: Theme.card-border;
+
+    // Countdown progress bar — razor thin, brand accent, at bottom of card
+    Rectangle {
+      x: 0;
+      y: parent.height - 3px;
+      height: 3px;
+      width: parent.width * (1.0 - root.countdown);
+      border-radius: 1.5px;
+      background: @linear-gradient(90deg, #FF4B2B 0%, #FF416C 100%);
+    }
+
+    // Focus scope — grabs focus when visible
+    prompt-fs := FocusScope {
+      width: 0;
+      height: 0;
+
+      key-pressed(event) => {
+        if event.text == Key.Escape || event.text == Key.Back {
+          root.show-prompt = false;
+          root.start-over();
+          return accept;
+        }
+        return reject;
+      }
+    }
+
+    changed visible => {
+      if root.show-prompt { prompt-fs.focus(); }
+    }
+
+    VerticalLayout {
+      padding: Theme.spacing-md;
+      spacing: Theme.spacing-sm;
+
+      // Message
+      Text {
+        text: "Continue from " + root.source-device + " at " + root.resume-position + "?";
+        color: Theme.text-primary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-body;
+        font-weight: 600;
+        wrap: word-wrap;
+        overflow: elide;
+      }
+
+      // Countdown hint
+      Text {
+        text: "Starting over in " + Math.round((1.0 - root.countdown) * 10.0) + "s";
+        color: Theme.text-secondary;
+        font-family: Theme.font-body;
+        font-size: Theme.font-size-caption;
+      }
+
+      // Action buttons
+      HorizontalLayout {
+        spacing: Theme.spacing-sm;
+        alignment: end;
+
+        // Start Over (secondary)
+        start-over-fs := FocusScope {
+          width: 110px;
+          height: 36px;
+
+          key-pressed(event) => {
+            if event.text == Key.Return || event.text == " " {
+              root.show-prompt = false;
+              root.start-over();
+              return accept;
+            }
+            return reject;
+          }
+
+          so-ta := TouchArea {
+            clicked => { root.show-prompt = false; root.start-over(); }
+          }
+
+          Rectangle {
+            width: 100%;
+            height: 100%;
+            border-radius: Theme.radius-sm;
+            background: start-over-fs.has-focus ? Theme.focus-bg : Theme.btn-secondary-bg;
+            border-width: start-over-fs.has-focus ? Theme.focus-ring-width : 1px;
+            border-color: start-over-fs.has-focus ? Theme.focus-ring : Theme.card-border;
+
+            Text {
+              text: "Start Over";
+              color: Theme.btn-secondary-fg;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-small;
+              font-weight: 600;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+          }
+        }
+
+        // Resume (primary)
+        resume-fs := FocusScope {
+          width: 90px;
+          height: 36px;
+
+          key-pressed(event) => {
+            if event.text == Key.Return || event.text == " " {
+              root.show-prompt = false;
+              root.resume();
+              return accept;
+            }
+            return reject;
+          }
+
+          r-ta := TouchArea {
+            clicked => { root.show-prompt = false; root.resume(); }
+          }
+
+          Rectangle {
+            width: 100%;
+            height: 100%;
+            border-radius: Theme.radius-sm;
+            background: resume-fs.has-focus ? Theme.btn-primary-bg : rgba(255, 255, 255, 0.85);
+            border-width: resume-fs.has-focus ? Theme.focus-ring-width : 0px;
+            border-color: Theme.focus-ring;
+
+            Text {
+              text: "Resume";
+              color: Theme.btn-primary-fg;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-small;
+              font-weight: 700;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+          }
+        }
+      }
+    }
+  }
+}

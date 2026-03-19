@@ -1,0 +1,154 @@
+// Privacy Policy Consent Overlay (Epoch 13.15)
+// Shown on first launch after onboarding completes.
+// User must accept to proceed. Decline exits the app.
+
+import { Theme } from "../globals/theme.slint";
+import { AppState } from "../globals/app-state.slint";
+import { ActionButton } from "action-button.slint";
+import { ScrollView } from "std-widgets.slint";
+
+export component PrivacyConsent inherits Rectangle {
+  visible: AppState.show-privacy-consent;
+  width: 100%; height: 100%;
+
+  // Full-screen semi-transparent dim — no tap-to-dismiss (consent is mandatory)
+  Rectangle {
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+  }
+
+  // Consent card
+  Rectangle {
+    width: min(560px, root.width - Theme.spacing-2xl * 2);
+    height: min(480px, root.height - Theme.spacing-2xl * 2);
+    x: (root.width - self.width) / 2;
+    y: (root.height - self.height) / 2;
+    border-radius: Theme.radius-md;
+    background: Theme.card-surface;
+    border-width: 1px;
+    border-color: Theme.card-border;
+
+    VerticalLayout {
+      padding: Theme.spacing-lg;
+      spacing: Theme.spacing-lg;
+
+      // Header
+      Text {
+        text: "Privacy Policy";
+        color: Theme.text-primary;
+        font-family: Theme.font-display;
+        font-size: Theme.font-size-h2;
+        font-weight: 700;
+        horizontal-alignment: center;
+      }
+
+      // Summary bullets
+      VerticalLayout {
+        spacing: Theme.spacing-sm;
+
+        for bullet in [
+          "· Your media sources and watch history are stored locally on this device only.",
+          "· No personal data is sent to CrispyTivi servers without your explicit consent.",
+          "· Optional crash reports help us fix bugs — you can opt in or out at any time in Settings.",
+          "· CrispyTivi never sells or shares your data with third parties.",
+        ]: Text {
+          text: bullet;
+          color: Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-body;
+          wrap: word-wrap;
+        }
+      }
+
+      // "View Full Policy" link-style button
+      view-btn := FocusScope {
+        height: 32px;
+        width: 100%;
+        key-pressed(event) => {
+          if event.text == Key.Return {
+            // Rust handles opening the policy URL via a dedicated callback
+            AppState.navigate(7); // navigate to settings where policy is displayed
+            return accept;
+          }
+          return reject;
+        }
+        Rectangle {
+          width: 100%; height: 100%;
+          background: view-btn.has-focus ? Theme.focus-bg : transparent;
+          border-radius: Theme.radius-sm;
+          border-width: view-btn.has-focus ? Theme.focus-ring-width : 0px;
+          border-color: view-btn.has-focus ? Theme.focus-ring : transparent;
+          Text {
+            text: "View Full Privacy Policy →";
+            color: Theme.accent;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+          TouchArea { clicked => { AppState.navigate(7); } }
+        }
+      }
+
+      // Spacer
+      Rectangle { vertical-stretch: 1; background: transparent; }
+
+      // Two equal-weight action buttons
+      HorizontalLayout {
+        spacing: Theme.spacing-md;
+
+        decline-btn := FocusScope {
+          horizontal-stretch: 1;
+          height: 48px;
+          key-pressed(event) => {
+            if event.text == Key.Return { AppState.decline-privacy(); return accept; }
+            return reject;
+          }
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-sm;
+            background: decline-btn.has-focus ? Theme.focus-bg : Theme.btn-secondary-bg;
+            border-width: decline-btn.has-focus ? Theme.focus-ring-width : 1px;
+            border-color: decline-btn.has-focus ? Theme.focus-ring : Theme.card-border;
+            Text {
+              text: "Decline";
+              color: Theme.text-primary;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-body;
+              font-weight: 600;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+            TouchArea { clicked => { AppState.decline-privacy(); } }
+          }
+        }
+
+        accept-btn := FocusScope {
+          horizontal-stretch: 1;
+          height: 48px;
+          key-pressed(event) => {
+            if event.text == Key.Return { AppState.accept-privacy(); return accept; }
+            return reject;
+          }
+          Rectangle {
+            width: 100%; height: 100%;
+            border-radius: Theme.radius-sm;
+            background: accept-btn.has-focus ? Theme.btn-primary-bg : Theme.btn-primary-bg;
+            border-width: accept-btn.has-focus ? Theme.focus-ring-width : 0px;
+            border-color: accept-btn.has-focus ? Theme.focus-ring : transparent;
+            Text {
+              text: "Accept";
+              color: Theme.btn-primary-fg;
+              font-family: Theme.font-body;
+              font-size: Theme.font-size-body;
+              font-weight: 700;
+              horizontal-alignment: center;
+              vertical-alignment: center;
+            }
+            TouchArea { clicked => { AppState.accept-privacy(); } }
+          }
+        }
+      }
+    }
+  }
+}

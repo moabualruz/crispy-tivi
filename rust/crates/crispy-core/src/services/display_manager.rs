@@ -27,6 +27,90 @@ pub trait DisplayService: Send + Sync {
     fn set_fullscreen_display(&self, id: &str);
 }
 
+// ── Resizable-window support (12.12) ─────────────────────────────────────────
+
+/// Platforms that support dynamic window resizing.
+///
+/// - **Samsung DeX** — Android app running in desktop mode with a freely
+///   resizable floating window.
+/// - **iPad Stage Manager** — iPadOS app running in a resizable overlapping
+///   window alongside other apps.
+///
+/// Both platforms expose an `onMultiWindowModeChanged` / Scene lifecycle
+/// callback. This enum and trait provide a platform-neutral abstraction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResizableWindowPlatform {
+    /// Samsung DeX (Android desktop mode).
+    SamsungDex,
+    /// iPadOS Stage Manager.
+    IpadStageManager,
+    /// Standard windowed desktop (Windows / macOS / Linux).
+    Desktop,
+}
+
+/// A display that supports arbitrary window resizing.
+pub trait ResizableWindowService: Send + Sync {
+    /// Returns which resizable platform is active, if any.
+    fn platform(&self) -> Option<ResizableWindowPlatform>;
+
+    /// Returns `true` when the app is currently in a resizable-window mode.
+    fn is_resizable(&self) -> bool;
+
+    /// Called by the platform when the window bounds change.
+    fn on_window_resize(&self, callback: Box<dyn Fn(u32, u32) + Send + Sync>);
+}
+
+/// Stub implementation used on platforms with no resizable-window API.
+#[derive(Debug, Default)]
+pub struct StubResizableWindow;
+
+impl ResizableWindowService for StubResizableWindow {
+    fn platform(&self) -> Option<ResizableWindowPlatform> {
+        None
+    }
+    fn is_resizable(&self) -> bool {
+        false
+    }
+    fn on_window_resize(&self, _callback: Box<dyn Fn(u32, u32) + Send + Sync>) {}
+}
+
+// ── WebOS / Tizen platform detection (12.9, 12.10) ───────────────────────────
+
+/// TV platform identifier for packaging and remote-control routing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TvPlatform {
+    /// LG WebOS — app packaged as `.ipk`, remote events via WebOS API.
+    WebOs,
+    /// Samsung Tizen — app packaged as `.wgt`, remote events via Tizen API.
+    Tizen,
+}
+
+/// Returns the detected TV platform, or `None` on non-TV targets.
+///
+/// Detection is compile-time only — runtime probing is not needed because
+/// packaging is always platform-specific.  `wasm32` targets build for the
+/// browser; at runtime the JS bootstrap will know whether it is inside a
+/// WebOS / Tizen container and can pass `--platform webos|tizen` via a
+/// URL parameter that the WASM app reads from `web_sys::window().location()`.
+///
+/// For native builds this function is always `None` (compiled out on
+/// non-WASM targets).
+pub fn detect_tv_platform() -> Option<TvPlatform> {
+    // LG WebOS and Samsung Tizen both use wasm32 targets; the distinction
+    // is made at runtime from a JS environment variable injected by the
+    // platform launcher.  Native (non-WASM) builds return None.
+    #[cfg(target_arch = "wasm32")]
+    {
+        // TODO(wasm): read `window.__CRISPY_PLATFORM__` via web_sys and
+        //   return Some(TvPlatform::WebOs) or Some(TvPlatform::Tizen).
+        None
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        None
+    }
+}
+
 // ── Stub impl ────────────────────────────────────────────────────────────────
 
 /// Stub implementation returning a single synthetic 1920×1080 primary display.
@@ -115,5 +199,51 @@ mod tests {
         let list = svc.list_displays();
         let primary = svc.get_primary().unwrap();
         assert_eq!(list[0], primary);
+    }
+
+    // ── ResizableWindowService stub ───────────────────────────────────────────
+
+    #[test]
+    fn stub_resizable_window_platform_is_none() {
+        let svc = StubResizableWindow;
+        assert!(svc.platform().is_none());
+    }
+
+    #[test]
+    fn stub_resizable_window_is_not_resizable() {
+        let svc = StubResizableWindow;
+        assert!(!svc.is_resizable());
+    }
+
+    #[test]
+    fn stub_resizable_window_on_resize_does_not_panic() {
+        let svc = StubResizableWindow;
+        svc.on_window_resize(Box::new(|_w, _h| {}));
+    }
+
+    #[test]
+    fn resizable_window_platform_variants_are_distinct() {
+        assert_ne!(
+            ResizableWindowPlatform::SamsungDex,
+            ResizableWindowPlatform::IpadStageManager
+        );
+        assert_ne!(
+            ResizableWindowPlatform::SamsungDex,
+            ResizableWindowPlatform::Desktop
+        );
+    }
+
+    // ── TV platform detection ─────────────────────────────────────────────────
+
+    /// On native (non-WASM) builds the detector always returns None.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn detect_tv_platform_returns_none_on_native() {
+        assert!(detect_tv_platform().is_none());
+    }
+
+    #[test]
+    fn tv_platform_variants_are_distinct() {
+        assert_ne!(TvPlatform::WebOs, TvPlatform::Tizen);
     }
 }

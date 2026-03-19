@@ -64,20 +64,26 @@ pub struct RankedAlternative {
     pub health_score: f64,
     /// Combined final score: confidence * 0.6 + health * 0.4.
     pub final_score: f64,
+    /// Measured or estimated latency in milliseconds (None = unknown).
+    pub latency_ms: Option<u64>,
 }
 
 // ── Public API ──────────────────────────────────────
 
 /// Rank alternative streams for a target channel.
 ///
-/// Searches `all_channels` for potential matches from
-/// different sources, scores them by confidence tier
-/// and stream health, and returns them sorted by
-/// final_score descending.
+/// Priority order: user sticky → quality/confidence → health score → latency → global source order.
+///
+/// - `sticky_source_id`: if `Some`, the alternative from that source always sorts first,
+///   provided it is present and not failed (health > 0.0). Skipped if unavailable.
+/// - `health_scores`: keyed by URL hash (see `url_to_hash`).
+/// - `latency_scores`: keyed by URL hash, value in milliseconds. `None` entries sort last.
 pub fn rank_stream_alternatives(
     target: &Channel,
     all_channels: &[Channel],
     health_scores: &HashMap<String, f64>,
+    latency_scores: &HashMap<String, u64>,
+    sticky_source_id: Option<&str>,
 ) -> Vec<RankedAlternative> {
     let target_source = target.source_id.as_deref().unwrap_or("");
     let target_name_norm = normalize_for_matching(&target.name);
@@ -110,6 +116,7 @@ pub fn rank_stream_alternatives(
         if let Some(conf) = confidence {
             let url_hash = url_to_hash(&ch.stream_url);
             let health = health_scores.get(&url_hash).copied().unwrap_or(0.5);
+            let latency_ms = latency_scores.get(&url_hash).copied();
             let final_score = conf * WEIGHT_CONFIDENCE + health * WEIGHT_HEALTH;
 
             alternatives.push(RankedAlternative {
@@ -119,11 +126,38 @@ pub fn rank_stream_alternatives(
                 confidence: conf,
                 health_score: health,
                 final_score,
+                latency_ms,
             });
         }
     }
 
-    alternatives.sort_by(|a, b| b.final_score.partial_cmp(&a.final_score).unwrap());
+    alternatives.sort_by(|a, b| {
+        // 1. Sticky source wins (only when health > 0.0 — not failed/unavailable).
+        if let Some(sticky) = sticky_source_id {
+            let a_sticky = a.source_id == sticky && a.health_score > 0.0;
+            let b_sticky = b.source_id == sticky && b.health_score > 0.0;
+            if a_sticky != b_sticky {
+                return if a_sticky {
+                    std::cmp::Ordering::Less
+                } else {
+                    std::cmp::Ordering::Greater
+                };
+            }
+        }
+
+        // 2. Higher final_score wins.
+        b.final_score
+            .partial_cmp(&a.final_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            // 3. Lower latency wins (None sorts last).
+            .then_with(|| match (a.latency_ms, b.latency_ms) {
+                (Some(la), Some(lb)) => la.cmp(&lb),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => std::cmp::Ordering::Equal,
+            })
+    });
+
     alternatives
 }
 
@@ -132,8 +166,16 @@ pub fn rank_stream_alternatives_json(
     target: &Channel,
     all_channels: &[Channel],
     health_scores: &HashMap<String, f64>,
+    latency_scores: &HashMap<String, u64>,
+    sticky_source_id: Option<&str>,
 ) -> String {
-    let ranked = rank_stream_alternatives(target, all_channels, health_scores);
+    let ranked = rank_stream_alternatives(
+        target,
+        all_channels,
+        health_scores,
+        latency_scores,
+        sticky_source_id,
+    );
     serde_json::to_string(&ranked).unwrap_or_else(|_| "[]".to_string())
 }
 
@@ -283,7 +325,13 @@ mod tests {
         let mut candidate = make_ch("c1", "CNN HD", "src2");
         candidate.stream_url = "http://other.com/cnn".to_string();
 
-        let alts = rank_stream_alternatives(&target, &[candidate], &HashMap::new());
+        let alts = rank_stream_alternatives(
+            &target,
+            &[candidate],
+            &HashMap::new(),
+            &HashMap::new(),
+            None,
+        );
         assert_eq!(alts.len(), 1);
         assert!((alts[0].confidence - CONFIDENCE_EXACT_NAME).abs() < 0.001);
     }
@@ -296,7 +344,13 @@ mod tests {
         let mut candidate = make_ch("c1", "CNN International", "src2");
         candidate.tvg_id = Some("cnn.us".to_string());
 
-        let alts = rank_stream_alternatives(&target, &[candidate], &HashMap::new());
+        let alts = rank_stream_alternatives(
+            &target,
+            &[candidate],
+            &HashMap::new(),
+            &HashMap::new(),
+            None,
+        );
         assert_eq!(alts.len(), 1);
         assert!((alts[0].confidence - CONFIDENCE_TVG_ID).abs() < 0.001);
     }
@@ -306,7 +360,13 @@ mod tests {
         let target = make_ch("t1", "ESPN HD", "src1");
         let candidate = make_ch("c1", "ESPN FHD", "src2");
 
-        let alts = rank_stream_alternatives(&target, &[candidate], &HashMap::new());
+        let alts = rank_stream_alternatives(
+            &target,
+            &[candidate],
+            &HashMap::new(),
+            &HashMap::new(),
+            None,
+        );
         assert_eq!(alts.len(), 1);
         assert!((alts[0].confidence - CONFIDENCE_NORMALIZED_NAME).abs() < 0.001);
     }
@@ -316,7 +376,8 @@ mod tests {
         let target = make_ch("t1", "CNN", "src1");
         let same_src = make_ch("c1", "CNN", "src1");
 
-        let alts = rank_stream_alternatives(&target, &[same_src], &HashMap::new());
+        let alts =
+            rank_stream_alternatives(&target, &[same_src], &HashMap::new(), &HashMap::new(), None);
         assert!(alts.is_empty());
     }
 
@@ -325,7 +386,13 @@ mod tests {
         let target = make_ch("t1", "CNN", "src1");
         let unrelated = make_ch("c1", "Discovery Channel", "src2");
 
-        let alts = rank_stream_alternatives(&target, &[unrelated], &HashMap::new());
+        let alts = rank_stream_alternatives(
+            &target,
+            &[unrelated],
+            &HashMap::new(),
+            &HashMap::new(),
+            None,
+        );
         assert!(alts.is_empty());
     }
 
@@ -341,7 +408,8 @@ mod tests {
         health.insert(hash_a, 0.9); // alt_a is healthy
         health.insert(hash_b, 0.1); // alt_b is unhealthy
 
-        let alts = rank_stream_alternatives(&target, &[alt_a, alt_b], &health);
+        let alts =
+            rank_stream_alternatives(&target, &[alt_a, alt_b], &health, &HashMap::new(), None);
         assert_eq!(alts.len(), 2);
         // alt_a should rank higher due to better health
         assert!(alts[0].final_score > alts[1].final_score);
@@ -353,7 +421,13 @@ mod tests {
         let target = make_ch("t1", "CBS (WCBS)", "src1");
         let candidate = make_ch("c1", "WCBS News", "src2");
 
-        let alts = rank_stream_alternatives(&target, &[candidate], &HashMap::new());
+        let alts = rank_stream_alternatives(
+            &target,
+            &[candidate],
+            &HashMap::new(),
+            &HashMap::new(),
+            None,
+        );
         assert_eq!(alts.len(), 1);
         assert!((alts[0].confidence - CONFIDENCE_CALL_SIGN).abs() < 0.001);
     }
@@ -368,8 +442,13 @@ mod tests {
         let mut target_with_tvg = target.clone();
         target_with_tvg.tvg_id = Some("cnn.us".to_string());
 
-        let alts =
-            rank_stream_alternatives(&target_with_tvg, &[alt_tvg, alt_exact], &HashMap::new());
+        let alts = rank_stream_alternatives(
+            &target_with_tvg,
+            &[alt_tvg, alt_exact],
+            &HashMap::new(),
+            &HashMap::new(),
+            None,
+        );
         assert!(alts.len() >= 2);
         // Higher confidence → higher final score (equal health)
         assert!(alts[0].final_score >= alts[1].final_score);
@@ -380,7 +459,8 @@ mod tests {
         let target = make_ch("t1", "CNN", "src1");
         let alt = make_ch("a1", "CNN", "src2");
 
-        let json = rank_stream_alternatives_json(&target, &[alt], &HashMap::new());
+        let json =
+            rank_stream_alternatives_json(&target, &[alt], &HashMap::new(), &HashMap::new(), None);
         let parsed: Vec<RankedAlternative> = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed.len(), 1);
     }
@@ -395,5 +475,70 @@ mod tests {
             normalize_for_matching("ESPN FHD East"),
             normalize_for_matching("ESPN")
         );
+    }
+
+    #[test]
+    fn test_sticky_source_wins_when_available() {
+        let target = make_ch("t1", "CNN", "src1");
+        // alt_a is from sticky source but lower confidence (normalized match only)
+        let alt_a = make_ch("a1", "CNN", "src_sticky");
+        // alt_b is from another source with same exact name match
+        let alt_b = make_ch("b1", "CNN", "src_other");
+
+        let alts = rank_stream_alternatives(
+            &target,
+            &[alt_b, alt_a],
+            &HashMap::new(),
+            &HashMap::new(),
+            Some("src_sticky"),
+        );
+        assert!(!alts.is_empty());
+        assert_eq!(alts[0].source_id, "src_sticky");
+    }
+
+    #[test]
+    fn test_sticky_source_skipped_when_unavailable() {
+        let target = make_ch("t1", "CNN", "src1");
+        let alt_sticky = make_ch("a1", "CNN", "src_sticky");
+        let alt_healthy = make_ch("b1", "CNN", "src_other");
+
+        // Mark sticky source stream as failed (health = 0.0)
+        let mut health = HashMap::new();
+        health.insert(url_to_hash(&alt_sticky.stream_url), 0.0);
+        health.insert(url_to_hash(&alt_healthy.stream_url), 0.9);
+
+        let alts = rank_stream_alternatives(
+            &target,
+            &[alt_sticky, alt_healthy],
+            &health,
+            &HashMap::new(),
+            Some("src_sticky"),
+        );
+        assert!(!alts.is_empty());
+        // sticky source has health=0 so it is skipped in favour of healthy one
+        assert_eq!(alts[0].source_id, "src_other");
+    }
+
+    #[test]
+    fn test_lower_latency_preferred() {
+        let target = make_ch("t1", "CNN", "src1");
+        let alt_fast = make_ch("a1", "CNN", "src2");
+        let alt_slow = make_ch("b1", "CNN", "src3");
+
+        // Same health so final_score is equal — latency decides
+        let mut latency = HashMap::new();
+        latency.insert(url_to_hash(&alt_fast.stream_url), 50u64);
+        latency.insert(url_to_hash(&alt_slow.stream_url), 500u64);
+
+        let alts = rank_stream_alternatives(
+            &target,
+            &[alt_slow, alt_fast],
+            &HashMap::new(),
+            &latency,
+            None,
+        );
+        assert_eq!(alts.len(), 2);
+        assert_eq!(alts[0].latency_ms, Some(50));
+        assert_eq!(alts[1].latency_ms, Some(500));
     }
 }

@@ -9,21 +9,33 @@ pub static NvOptimusEnablement: u32 = 1;
 pub static AmdPowerXpressRequestHighPerformance: i32 = 1;
 
 mod cache;
+#[allow(dead_code)] // Pre-built color button semantics — incrementally wired
+mod color_buttons;
 mod data_engine;
 mod event_bridge;
 mod events;
 #[allow(dead_code)] // Pre-built spatial navigation — incrementally wired
 mod focus;
+#[allow(dead_code)] // HDMI-CEC stub — real driver wired in a future task
+mod hdmi_cec;
 mod i18n;
 mod image_cache;
 mod image_loader;
 #[allow(dead_code)] // Pre-built input abstraction — incrementally wired
 mod input;
 #[allow(dead_code)]
+mod layout;
+#[allow(dead_code)]
 mod provider;
+#[allow(dead_code)]
+mod remote_provider;
 #[allow(dead_code)]
 mod scroll_controller;
 mod sync_task;
+#[allow(dead_code)]
+mod ui_tests;
+#[allow(dead_code)] // WASM entry point — compiled on wasm32, kept here for cfg(test)
+mod wasm_entry;
 #[allow(dead_code)]
 mod windowed_model;
 

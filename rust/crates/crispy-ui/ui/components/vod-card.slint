@@ -5,6 +5,9 @@ import { IconMovie, IconStar } from "icons.slint";
 export component VodCard inherits FocusScope {
   in property <VodData> item;
 
+  accessible-role: button;
+  accessible-label: item.name;
+
   callback clicked();
 
   width: 160px;
@@ -27,12 +30,21 @@ export component VodCard inherits FocusScope {
     border-color: root.has-focus ? Theme.focus-ring : Theme.card-border;
     clip: true;
 
-    // Focus glow effect
-    drop-shadow-blur: root.has-focus ? 12px : 0px;
+    // Card lift on focus: glow + upward shadow offset simulates scale lift
+    drop-shadow-blur: root.has-focus ? 20px : 0px;
+    drop-shadow-offset-y: root.has-focus ? -6px : 0px;
     drop-shadow-color: root.has-focus ? Theme.focus-glow : transparent;
 
     animate border-color { duration: 150ms; }
-    animate drop-shadow-blur { duration: 200ms; }
+    animate border-width { duration: 150ms; }
+    animate drop-shadow-blur {
+      duration: 300ms;
+      easing: cubic-bezier(0.19, 1.0, 0.22, 1.0);
+    }
+    animate drop-shadow-offset-y {
+      duration: 300ms;
+      easing: cubic-bezier(0.19, 1.0, 0.22, 1.0);
+    }
 
     VerticalLayout {
       // Poster area

@@ -3,7 +3,10 @@ import { Theme } from "../globals/theme.slint";
 export component ActionButton inherits FocusScope {
   in property <string> label;
   in property <bool> is-primary: false;
-  
+
+  accessible-role: button;
+  accessible-label: root.label;
+
   callback clicked();
 
   height: 44px;

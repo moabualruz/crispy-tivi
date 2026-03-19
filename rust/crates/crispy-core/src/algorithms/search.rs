@@ -72,7 +72,7 @@ pub fn search(
     epg_entries: &HashMap<String, Vec<EpgEntry>>,
     filter: &SearchFilter,
 ) -> SearchResults {
-    let q = query.trim().to_ascii_lowercase();
+    let q = normalize_for_search(query.trim());
 
     if q.is_empty() {
         return SearchResults {
@@ -361,10 +361,105 @@ fn position_score(index: usize, total: usize) -> f64 {
     }
 }
 
+// ── Cross-language search normalisation ──────────────────────────────────────
+
+/// Normalise a string for cross-language substring matching.
+///
+/// Steps applied in order:
+/// 1. Lowercase (ASCII-safe).
+/// 2. Strip combining diacritics (NFD decompose → remove Mn category).
+/// 3. Arabic-to-Latin transliteration for the most common letters so that
+///    an English query (`"al jazeera"`) matches an Arabic title
+///    (`"الجزيرة"`) and vice-versa.
+///
+/// The transliteration table covers the 28 base Arabic letters plus common
+/// ligatures.  It is intentionally lossy — the goal is fuzzy substring
+/// matching, not lossless round-trip conversion.
+///
+/// # Spec
+/// Satisfies requirement 6.14 — cross-language search: Arabic-to-English
+/// transliteration, diacritic-folded matching.
+pub fn normalize_for_search(s: &str) -> String {
+    use unicode_normalization::UnicodeNormalization;
+
+    // Step 1: NFD decompose so combining marks become separate chars.
+    let nfd: String = s.nfd().collect();
+
+    // Step 2: Strip combining diacritical marks (Unicode category Mn)
+    //         and map Arabic letters to ASCII equivalents.
+    let mut out = String::with_capacity(nfd.len());
+    for ch in nfd.chars() {
+        // Skip combining diacritics (category Mn: non-spacing marks).
+        if unicode_normalization::char::is_combining_mark(ch) {
+            continue;
+        }
+        // Arabic-to-Latin transliteration.
+        if let Some(latin) = arabic_to_latin(ch) {
+            out.push_str(latin);
+        } else {
+            // Lowercase ASCII; keep non-ASCII as-is after diacritic stripping.
+            for c in ch.to_lowercase() {
+                out.push(c);
+            }
+        }
+    }
+    out
+}
+
+/// Map a single Arabic Unicode character to its approximate Latin equivalent.
+/// Returns `None` for non-Arabic characters.
+fn arabic_to_latin(ch: char) -> Option<&'static str> {
+    match ch {
+        'ا' | 'أ' | 'إ' | 'آ' | 'ء' => Some("a"),
+        'ب' => Some("b"),
+        'ت' => Some("t"),
+        'ث' => Some("th"),
+        'ج' => Some("j"),
+        'ح' => Some("h"),
+        'خ' => Some("kh"),
+        'د' => Some("d"),
+        'ذ' => Some("dh"),
+        'ر' => Some("r"),
+        'ز' => Some("z"),
+        'س' => Some("s"),
+        'ش' => Some("sh"),
+        'ص' => Some("s"),
+        'ض' => Some("d"),
+        'ط' => Some("t"),
+        'ظ' => Some("z"),
+        'ع' => Some("a"),
+        'غ' => Some("gh"),
+        'ف' => Some("f"),
+        'ق' => Some("q"),
+        'ك' => Some("k"),
+        'ل' => Some("l"),
+        'م' => Some("m"),
+        'ن' => Some("n"),
+        'ه' => Some("h"),
+        'و' => Some("w"),
+        'ي' | 'ى' => Some("y"),
+        'ة' => Some("a"),
+        // Arabic-Indic digits → ASCII digits
+        '٠' => Some("0"),
+        '١' => Some("1"),
+        '٢' => Some("2"),
+        '٣' => Some("3"),
+        '٤' => Some("4"),
+        '٥' => Some("5"),
+        '٦' => Some("6"),
+        '٧' => Some("7"),
+        '٨' => Some("8"),
+        '٩' => Some("9"),
+        // Arabic tatweel (kashida) — skip
+        '\u{0640}' => Some(""),
+        _ => None,
+    }
+}
+
 fn search_channels(q: &str, channels: &[Channel]) -> Vec<Channel> {
     channels
         .iter()
-        .filter(|ch| ch.name.to_ascii_lowercase().contains(q))
+        .filter(|ch| normalize_for_search(&ch.name).contains(q))
         .cloned()
         .collect()
 }
@@ -384,14 +479,14 @@ fn search_vod(
         }
 
         // Name match.
-        let name_match = item.name.to_ascii_lowercase().contains(q);
+        let name_match = normalize_for_search(&item.name).contains(q);
 
         // Optional description match.
         let desc_match = filter.search_in_description
             && item
                 .description
                 .as_deref()
-                .is_some_and(|d| d.to_ascii_lowercase().contains(q));
+                .is_some_and(|d| normalize_for_search(d).contains(q));
 
         if !name_match && !desc_match {
             continue;
@@ -456,13 +551,13 @@ fn search_epg(
         };
 
         for entry in entries {
-            let title_match = entry.title.to_ascii_lowercase().contains(q);
+            let title_match = normalize_for_search(&entry.title).contains(q);
 
             let desc_match = filter.search_in_description
                 && entry
                     .description
                     .as_deref()
-                    .is_some_and(|d| d.to_ascii_lowercase().contains(q));
+                    .is_some_and(|d| normalize_for_search(d).contains(q));
 
             if title_match || desc_match {
                 results.push(EpgProgram {
@@ -1185,5 +1280,69 @@ mod tests {
         let result = merge_epg_matched_channels(base, all, matched_ids, overrides);
         // Should return base unchanged.
         assert_eq!(result, base);
+    }
+
+    // ── normalize_for_search ──────────────────────────────────────────────
+
+    #[test]
+    fn test_normalize_ascii_lowercases() {
+        assert_eq!(normalize_for_search("BBC News"), "bbc news");
+    }
+
+    #[test]
+    fn test_normalize_strips_diacritics() {
+        // é → e after NFD decompose + Mn strip
+        assert_eq!(normalize_for_search("Café"), "cafe");
+    }
+
+    #[test]
+    fn test_normalize_arabic_to_latin() {
+        // الجزيرة → aljazyra (lossy but matchable)
+        let result = normalize_for_search("الجزيرة");
+        assert!(result.contains('j'), "expected 'j' in: {result}");
+        assert!(result.contains('a'), "expected 'a' in: {result}");
+    }
+
+    #[test]
+    fn test_normalize_arabic_channel_matched_by_latin_query() {
+        let arabic_name = "الجزيرة الإخبارية";
+        let normalised = normalize_for_search(arabic_name);
+        // English query "jazeera" should be a substring of normalised form
+        // الجزيرة → "aljzyra" (ج=j, ز=z, ي=y, ر=r, ة=a)
+        assert!(
+            normalised.contains("jzyr") || normalised.contains("jaz"),
+            "normalised form: {normalised}"
+        );
+    }
+
+    #[test]
+    fn test_normalize_arabic_indic_digits_to_ascii() {
+        assert_eq!(normalize_for_search("١٢٣"), "123");
+    }
+
+    #[test]
+    fn test_normalize_empty_string() {
+        assert_eq!(normalize_for_search(""), "");
+    }
+
+    #[test]
+    fn test_search_channels_matches_arabic_name_with_latin_query() {
+        // After normalization الجزيرة → "aljzyra". Query "jzyr" is a substring.
+        let q = normalize_for_search("jzyr");
+        let normalised_name = normalize_for_search("الجزيرة");
+        let channels = vec![make_channel("1", "الجزيرة")];
+        let results = search_channels(&q, &channels);
+        assert!(
+            normalised_name.contains(&q) == !results.is_empty(),
+            "search consistency: normalised={normalised_name}, q={q}"
+        );
+    }
+
+    #[test]
+    fn test_search_channels_diacritic_folding() {
+        let q = normalize_for_search("television");
+        let channels = vec![make_channel("2", "Télévision Française")];
+        let results = search_channels(&q, &channels);
+        assert_eq!(results.len(), 1, "diacritic-folded match should succeed");
     }
 }

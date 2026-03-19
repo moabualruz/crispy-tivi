@@ -5,6 +5,7 @@ import { ActionButton } from "../components/action-button.slint";
 import { FilterChip } from "../components/filter-chip.slint";
 import { InputField } from "../components/input-field.slint";
 import { DiagnosticsState } from "../components/diagnostics-panel.slint";
+import { AttributionOverlay } from "../components/attribution-overlay.slint";
 
 // ── Helper: returns true if haystack contains needle (case-folded via lowercasing trick)
 // Slint has no built-in string-contains; we use a visible property trick per-section.
@@ -769,18 +770,153 @@ export component SettingsScreen inherits Rectangle {
 
           HorizontalLayout {
             spacing: Theme.spacing-md;
-            Text {
-              text: "Refresh EPG data manually or configure auto-refresh via your source settings.";
-              color: Theme.text-secondary;
-              font-family: Theme.font-body;
-              font-size: Theme.font-size-caption;
-              wrap: word-wrap;
+            VerticalLayout {
               horizontal-stretch: 1;
+              spacing: 2px;
+              Text {
+                text: "Refresh EPG data manually or configure auto-refresh via your source settings.";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                wrap: word-wrap;
+              }
+              // Epoch 8.3: staleness indicator when EPG data is > 24h old
+              if AppState.epg-last-updated-hours > 24: Text {
+                text: "⚠ EPG data is " + AppState.epg-last-updated-hours + "h old — refresh recommended";
+                color: #EAB308;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                font-weight: 600;
+              }
             }
             ActionButton {
               label: "Refresh EPG";
               height: 36px;
               clicked => { AppState.sync-all(); }
+            }
+          }
+        }
+      }
+
+      // ── Parental Controls  [Simple]  (Epoch 7)
+      if root.section-visible("parental controls kids pin content rating time limit", false): SettingsCard {
+        VerticalLayout {
+          padding: Theme.spacing-lg;
+          spacing: Theme.spacing-md;
+
+          Text {
+            text: "Parental Controls";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+          }
+
+          // PIN status + set/change
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            VerticalLayout {
+              horizontal-stretch: 1;
+              spacing: 2px;
+              Text {
+                text: "Parental PIN";
+                color: Theme.text-primary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+              }
+              Text {
+                text: AppState.parental-pin-set
+                  ? "PIN is set. Required to access restricted content."
+                  : "No PIN set. Parental restrictions are unenforced.";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                wrap: word-wrap;
+              }
+            }
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              ActionButton {
+                label: AppState.parental-pin-set ? "Change PIN" : "Set PIN";
+                height: 36px;
+                clicked => { AppState.set-parental-pin(""); }
+              }
+              if AppState.parental-pin-set: ActionButton {
+                label: "Clear";
+                height: 36px;
+                clicked => { AppState.clear-parental-pin(); }
+              }
+            }
+          }
+
+          // Content rating limit
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            VerticalLayout {
+              horizontal-stretch: 1;
+              spacing: 2px;
+              Text {
+                text: "Content Rating Limit";
+                color: Theme.text-primary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+              }
+              Text {
+                text: "Block content above the selected maturity level.";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+              }
+            }
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              for tier in [
+                { label: "All", idx: -1 },
+                { label: "G", idx: 0 },
+                { label: "PG", idx: 1 },
+                { label: "PG-13", idx: 2 },
+                { label: "R", idx: 3 },
+              ]: FilterChip {
+                label: tier.label;
+                active: AppState.parental-rating-limit == tier.idx;
+                activated => { AppState.set-content-rating(tier.idx); }
+              }
+            }
+          }
+
+          // Viewing time limit
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            VerticalLayout {
+              horizontal-stretch: 1;
+              spacing: 2px;
+              Text {
+                text: "Daily Time Limit";
+                color: Theme.text-primary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+              }
+              Text {
+                text: AppState.parental-time-limit-minutes == 0
+                  ? "No daily limit."
+                  : ("Limit: " + AppState.parental-time-limit-minutes + " min/day");
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+              }
+            }
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              for opt in [
+                { label: "Off", mins: 0 },
+                { label: "30m", mins: 30 },
+                { label: "1h", mins: 60 },
+                { label: "2h", mins: 120 },
+              ]: FilterChip {
+                label: opt.label;
+                active: AppState.parental-time-limit-minutes == opt.mins;
+                activated => { AppState.set-viewing-time-limit(opt.mins); }
+              }
             }
           }
         }
@@ -1159,6 +1295,124 @@ export component SettingsScreen inherits Rectangle {
         }
       }
 
+      // ── Analytics & Privacy  [Simple]  (Epoch 11)
+      if root.section-visible("analytics privacy consent data collection GDPR", false): SettingsCard {
+        VerticalLayout {
+          padding: Theme.spacing-lg;
+          spacing: Theme.spacing-md;
+
+          Text {
+            text: "Analytics & Privacy";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+          }
+
+          Text {
+            text: "Control what usage data is collected. No data is pre-ticked or shared with third parties.";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
+            wrap: word-wrap;
+          }
+
+          SettingToggleRow {
+            label-text: "Playback Analytics";
+            description-text: "Collect anonymised TTFF, rebuffer ratio, and quality-switch metrics to improve streaming quality.";
+            checked: AppState.analytics-playback-consent;
+            toggled(v) => { AppState.set-analytics-playback(v); }
+          }
+
+          SettingToggleRow {
+            label-text: "Crash Reports";
+            description-text: "Send anonymised crash reports to help identify and fix stability issues.";
+            checked: AppState.analytics-crash-consent;
+            toggled(v) => { AppState.set-analytics-crash(v); }
+          }
+        }
+      }
+
+      // ── Backup & Restore  [Simple]  (Epoch 13)
+      if root.section-visible("backup restore export import data", false): SettingsCard {
+        VerticalLayout {
+          padding: Theme.spacing-lg;
+          spacing: Theme.spacing-md;
+
+          Text {
+            text: "Backup & Restore";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+          }
+
+          Text {
+            text: "Export an encrypted backup of your sources, favourites, profiles, and settings.";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-caption;
+            wrap: word-wrap;
+          }
+
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+
+            export-btn := FocusScope {
+              height: 40px;
+              horizontal-stretch: 1;
+              key-pressed(event) => {
+                if event.text == Key.Return { AppState.export-backup(); return accept; }
+                return reject;
+              }
+              Rectangle {
+                width: 100%; height: 100%;
+                border-radius: Theme.radius-md;
+                background: export-btn.has-focus ? Theme.surface-glass : Theme.btn-secondary-bg;
+                border-width: export-btn.has-focus ? Theme.focus-ring-width : 1px;
+                border-color: export-btn.has-focus ? Theme.focus-ring : Theme.card-border;
+                Text {
+                  text: "Export Backup";
+                  color: Theme.text-primary;
+                  font-family: Theme.font-body;
+                  font-size: Theme.font-size-body;
+                  font-weight: 600;
+                  horizontal-alignment: center;
+                  vertical-alignment: center;
+                }
+                TouchArea { clicked => { AppState.export-backup(); } }
+              }
+            }
+
+            import-btn := FocusScope {
+              height: 40px;
+              horizontal-stretch: 1;
+              key-pressed(event) => {
+                if event.text == Key.Return { AppState.import-backup(); return accept; }
+                return reject;
+              }
+              Rectangle {
+                width: 100%; height: 100%;
+                border-radius: Theme.radius-md;
+                background: import-btn.has-focus ? Theme.surface-glass : Theme.btn-secondary-bg;
+                border-width: import-btn.has-focus ? Theme.focus-ring-width : 1px;
+                border-color: import-btn.has-focus ? Theme.focus-ring : Theme.card-border;
+                Text {
+                  text: "Restore Backup";
+                  color: Theme.text-primary;
+                  font-family: Theme.font-body;
+                  font-size: Theme.font-size-body;
+                  font-weight: 600;
+                  horizontal-alignment: center;
+                  vertical-alignment: center;
+                }
+                TouchArea { clicked => { AppState.import-backup(); } }
+              }
+            }
+          }
+        }
+      }
+
       // ── About  [Simple]
       if root.section-visible("about version licenses info", false): SettingsCard {
         VerticalLayout {
@@ -1190,8 +1444,38 @@ export component SettingsScreen inherits Rectangle {
             font-family: Theme.font-body;
             font-size: Theme.font-size-caption;
           }
+
+          // Open Source Licenses button
+          oss-btn := FocusScope {
+            height: 40px;
+            width: 100%;
+            key-pressed(event) => {
+              if event.text == Key.Return { AppState.show-attribution = true; return accept; }
+              return reject;
+            }
+            Rectangle {
+              width: 100%; height: 100%;
+              border-radius: Theme.radius-sm;
+              background: oss-btn.has-focus ? Theme.focus-bg : Theme.btn-secondary-bg;
+              border-width: oss-btn.has-focus ? Theme.focus-ring-width : 1px;
+              border-color: oss-btn.has-focus ? Theme.focus-ring : Theme.card-border;
+              Text {
+                text: "Open Source Licenses";
+                color: Theme.text-primary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+              }
+              TouchArea { clicked => { AppState.show-attribution = true; } }
+            }
+          }
         }
       }
     }
   }
+
+  // Attribution overlay — rendered on top of settings content
+  AttributionOverlay { }
 }

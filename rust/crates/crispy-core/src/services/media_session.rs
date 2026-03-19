@@ -60,6 +60,110 @@ impl MediaSessionService for NoopMediaSession {
     fn clear(&self) {}
 }
 
+// ── Platform stubs ───────────────────────────────────────────────────────────
+
+/// Android media session stub.
+///
+/// Production implementation will call into Android's
+/// `MediaSession` / `MediaSessionCompat` via JNI.
+/// This stub is a compile-time placeholder that satisfies the trait
+/// on `target_os = "android"` without requiring a JNI runtime.
+#[cfg(target_os = "android")]
+#[derive(Debug, Default)]
+pub struct AndroidMediaSession;
+
+#[cfg(target_os = "android")]
+impl MediaSessionService for AndroidMediaSession {
+    /// JNI bridge placeholder — forwards metadata to Android MediaSession.
+    fn update_metadata(&self, _info: &MediaSessionInfo) {
+        // TODO(android): call JNI `NativeMediaSession.updateMetadata(title, artist, artworkUrl)`
+    }
+
+    /// JNI bridge placeholder — forwards playback position to Android.
+    fn update_position(&self, _secs: f64) {
+        // TODO(android): call JNI `NativeMediaSession.updatePosition(secs)`
+    }
+
+    /// JNI bridge placeholder — registers transport action handler.
+    fn set_action_handler(
+        &self,
+        _action: MediaSessionAction,
+        _handler: Box<dyn Fn() + Send + Sync>,
+    ) {
+        // TODO(android): route JNI callbacks → handler via global static registry
+    }
+
+    /// JNI bridge placeholder — clears the Android MediaSession.
+    fn clear(&self) {
+        // TODO(android): call JNI `NativeMediaSession.clear()`
+    }
+}
+
+/// iOS media session stub.
+///
+/// Production implementation will use `MPNowPlayingInfoCenter` and
+/// `MPRemoteCommandCenter` via ObjC bridge.
+/// This stub is a compile-time placeholder for `target_os = "ios"`.
+#[cfg(target_os = "ios")]
+#[derive(Debug, Default)]
+pub struct IosMediaSession;
+
+#[cfg(target_os = "ios")]
+impl MediaSessionService for IosMediaSession {
+    /// ObjC bridge placeholder — updates `MPNowPlayingInfoCenter`.
+    fn update_metadata(&self, _info: &MediaSessionInfo) {
+        // TODO(ios): set MPNowPlayingInfoCenter.default().nowPlayingInfo
+    }
+
+    /// ObjC bridge placeholder — updates `MPNowPlayingInfoPropertyElapsedPlaybackTime`.
+    fn update_position(&self, _secs: f64) {
+        // TODO(ios): update elapsed playback time in nowPlayingInfo dict
+    }
+
+    /// ObjC bridge placeholder — registers `MPRemoteCommandCenter` handler.
+    fn set_action_handler(
+        &self,
+        _action: MediaSessionAction,
+        _handler: Box<dyn Fn() + Send + Sync>,
+    ) {
+        // TODO(ios): addTarget on the appropriate MPRemoteCommand
+    }
+
+    /// ObjC bridge placeholder — clears `MPNowPlayingInfoCenter`.
+    fn clear(&self) {
+        // TODO(ios): set nowPlayingInfo to nil
+    }
+}
+
+/// Samsung DeX / iPad Stage Manager resizable-window media session stub.
+///
+/// On DeX the app can run in a resizable window; session integration
+/// is identical to the base Android session but we track window mode
+/// separately. Gated behind `cfg(target_os = "android")` because DeX
+/// is an Android feature.
+#[cfg(target_os = "android")]
+#[derive(Debug, Default)]
+pub struct DexMediaSession {
+    /// Inner Android session delegate.
+    inner: AndroidMediaSession,
+}
+
+#[cfg(target_os = "android")]
+impl MediaSessionService for DexMediaSession {
+    fn update_metadata(&self, info: &MediaSessionInfo) {
+        self.inner.update_metadata(info);
+    }
+    fn update_position(&self, secs: f64) {
+        self.inner.update_position(secs);
+    }
+    fn set_action_handler(&self, action: MediaSessionAction, handler: Box<dyn Fn() + Send + Sync>) {
+        self.inner.set_action_handler(action, handler);
+    }
+    fn clear(&self) {
+        self.inner.clear();
+    }
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -139,5 +243,48 @@ mod tests {
         assert!(info.title.is_empty());
         assert!(info.artist.is_none());
         assert!(info.duration.is_none());
+    }
+
+    // ── Platform stub compilation tests ──────────────────────────────────────
+
+    /// Verify the Android stub satisfies the trait on Android targets.
+    #[cfg(target_os = "android")]
+    #[test]
+    fn android_media_session_implements_trait() {
+        let svc: &dyn MediaSessionService = &AndroidMediaSession;
+        svc.update_metadata(&make_info());
+        svc.update_position(0.0);
+        svc.set_action_handler(MediaSessionAction::Play, Box::new(|| {}));
+        svc.clear();
+    }
+
+    /// Verify the DeX session delegates to the inner Android session.
+    #[cfg(target_os = "android")]
+    #[test]
+    fn dex_media_session_delegates_without_panic() {
+        let svc = DexMediaSession::default();
+        svc.update_metadata(&make_info());
+        svc.update_position(10.0);
+        svc.set_action_handler(MediaSessionAction::Stop, Box::new(|| {}));
+        svc.clear();
+    }
+
+    /// Verify the iOS stub satisfies the trait on iOS targets.
+    #[cfg(target_os = "ios")]
+    #[test]
+    fn ios_media_session_implements_trait() {
+        let svc: &dyn MediaSessionService = &IosMediaSession;
+        svc.update_metadata(&make_info());
+        svc.update_position(0.0);
+        svc.set_action_handler(MediaSessionAction::Pause, Box::new(|| {}));
+        svc.clear();
+    }
+
+    /// Confirm that on non-Android/iOS platforms only NoopMediaSession compiles.
+    /// This test always runs — it guards the noop path on the dev platform.
+    #[test]
+    fn noop_is_default_platform_impl() {
+        // NoopMediaSession must always be constructible regardless of target.
+        let _svc = NoopMediaSession;
     }
 }

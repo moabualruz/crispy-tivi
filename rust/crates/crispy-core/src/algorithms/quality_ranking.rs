@@ -36,6 +36,9 @@ pub struct SourceStream {
     pub latency_ms: u32,
     /// Position of the originating source in the user's source list (0 = first).
     pub source_order: u32,
+    /// User-assigned source priority (lower value = higher priority). Used as
+    /// final tiebreak when quality tier, score, latency, and source_order are equal.
+    pub source_priority: u32,
 }
 
 /// User preference for source selection.
@@ -133,9 +136,11 @@ pub fn select_best_source<'a>(
         score_a
             .partial_cmp(&score_b)
             .unwrap_or(std::cmp::Ordering::Equal)
-            // 4. Tie-break by latency (lower better), then source_order (lower better).
+            // 4. Tie-break: latency (lower better), source_order (lower better),
+            //    then source_priority (lower value = higher priority).
             .then(b.latency_ms.cmp(&a.latency_ms))
             .then(b.source_order.cmp(&a.source_order))
+            .then(b.source_priority.cmp(&a.source_priority))
     })
 }
 
@@ -173,6 +178,7 @@ mod tests {
             health_score: health,
             latency_ms: latency,
             source_order: order,
+            source_priority: 0,
         }
     }
 
@@ -321,5 +327,20 @@ mod tests {
         // Falls back to best available.
         let best = select_best_source(&sources, &pref).unwrap();
         assert_eq!(best.info.resolution, Resolution::HD);
+    }
+
+    #[test]
+    fn test_source_priority_breaks_ties_for_same_quality() {
+        // Two FullHD streams with identical score, latency, and source_order —
+        // only source_priority differs. Lower value wins.
+        let mut high_priority = src(Resolution::FullHD, 4000, false, false, false, 0.8, 100, 0);
+        high_priority.source_priority = 1; // higher priority (lower value)
+        let mut low_priority = src(Resolution::FullHD, 4000, false, false, false, 0.8, 100, 0);
+        low_priority.source_priority = 5; // lower priority (higher value)
+
+        let sources = vec![low_priority, high_priority.clone()];
+        let pref = SelectionPreference::default();
+        let best = select_best_source(&sources, &pref).unwrap();
+        assert_eq!(best.source_priority, 1);
     }
 }

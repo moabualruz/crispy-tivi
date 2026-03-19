@@ -104,4 +104,45 @@ mod tests {
         let svc = StubAudioOutput;
         svc.on_device_change(Box::new(|| {}));
     }
+
+    // ── Edge-case / spec-coverage tests ──────────────────────────────────────
+
+    #[test]
+    fn audio_device_non_default_flag() {
+        let dev = AudioDevice {
+            id: "dev-2".to_string(),
+            name: "Headphones".to_string(),
+            is_default: false,
+        };
+        assert!(!dev.is_default);
+    }
+
+    #[test]
+    fn stub_set_device_empty_id_returns_ok() {
+        // The stub must accept any id including empty string without error.
+        let svc = StubAudioOutput;
+        assert!(svc.set_device("").is_ok());
+    }
+
+    #[test]
+    fn stub_set_device_unknown_id_returns_ok() {
+        // Stub is a no-op: unknown ids are silently accepted.
+        let svc = StubAudioOutput;
+        assert!(svc.set_device("nonexistent-device-id").is_ok());
+    }
+
+    #[test]
+    fn audio_device_inequality() {
+        let a = AudioDevice {
+            id: "a".to_string(),
+            name: "A".to_string(),
+            is_default: true,
+        };
+        let b = AudioDevice {
+            id: "b".to_string(),
+            name: "B".to_string(),
+            is_default: false,
+        };
+        assert_ne!(a, b);
+    }
 }

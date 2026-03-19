@@ -102,6 +102,29 @@ impl ActivityLog {
     pub fn entry_count(&self) -> usize {
         self.entries.lock().unwrap_or_else(|e| e.into_inner()).len()
     }
+
+    /// Total viewing time (in seconds) per calendar date for `profile_id`.
+    ///
+    /// Returns a sorted `Vec<(NaiveDate, u64)>` for use in the parent dashboard
+    /// summary chart. Only dates within `[from, to]` (inclusive) are included.
+    pub fn total_duration_secs_by_date(
+        &self,
+        profile_id: &str,
+        from: NaiveDate,
+        to: NaiveDate,
+    ) -> Vec<(NaiveDate, u64)> {
+        let entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        let mut by_date: std::collections::HashMap<NaiveDate, u64> =
+            std::collections::HashMap::new();
+        for e in entries.iter() {
+            if e.profile_id == profile_id && e.date >= from && e.date <= to {
+                *by_date.entry(e.date).or_insert(0) += e.duration_secs;
+            }
+        }
+        let mut result: Vec<(NaiveDate, u64)> = by_date.into_iter().collect();
+        result.sort_by_key(|(date, _)| *date);
+        result
+    }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -209,5 +232,61 @@ mod tests {
         let from = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
         let to = NaiveDate::from_ymd_opt(2026, 12, 31).unwrap();
         assert!(log.get_activity("p1", from, to).is_empty());
+    }
+
+    // ── total_duration_secs_by_date ───────────────────────────────────────────
+
+    #[test]
+    fn test_total_duration_aggregates_same_day() {
+        let log = ActivityLog::new();
+        log.log_viewing("p1", "ch1", "News", dt(2026, 3, 10, 18, 0), 1800);
+        log.log_viewing("p1", "ch2", "Movies", dt(2026, 3, 10, 20, 0), 3600);
+
+        let from = NaiveDate::from_ymd_opt(2026, 3, 10).unwrap();
+        let to = from;
+        let summary = log.total_duration_secs_by_date("p1", from, to);
+        assert_eq!(summary.len(), 1);
+        assert_eq!(summary[0].0, from);
+        assert_eq!(summary[0].1, 5400); // 1800 + 3600
+    }
+
+    #[test]
+    fn test_total_duration_multiple_days_sorted() {
+        let log = ActivityLog::new();
+        log.log_viewing("p1", "ch1", "A", dt(2026, 3, 12, 10, 0), 600);
+        log.log_viewing("p1", "ch2", "B", dt(2026, 3, 10, 10, 0), 300);
+        log.log_viewing("p1", "ch3", "C", dt(2026, 3, 11, 10, 0), 900);
+
+        let from = NaiveDate::from_ymd_opt(2026, 3, 10).unwrap();
+        let to = NaiveDate::from_ymd_opt(2026, 3, 12).unwrap();
+        let summary = log.total_duration_secs_by_date("p1", from, to);
+        assert_eq!(summary.len(), 3);
+        // sorted ascending by date
+        assert_eq!(summary[0].1, 300);
+        assert_eq!(summary[1].1, 900);
+        assert_eq!(summary[2].1, 600);
+    }
+
+    #[test]
+    fn test_total_duration_isolates_profiles() {
+        let log = ActivityLog::new();
+        log.log_viewing("alice", "ch1", "A", dt(2026, 3, 10, 10, 0), 1000);
+        log.log_viewing("bob", "ch2", "B", dt(2026, 3, 10, 10, 0), 9999);
+
+        let from = NaiveDate::from_ymd_opt(2026, 3, 10).unwrap();
+        let summary = log.total_duration_secs_by_date("alice", from, from);
+        assert_eq!(summary.len(), 1);
+        assert_eq!(summary[0].1, 1000);
+    }
+
+    #[test]
+    fn test_total_duration_empty_range_returns_empty() {
+        let log = ActivityLog::new();
+        log.log_viewing("p1", "ch1", "A", dt(2026, 3, 10, 10, 0), 600);
+
+        let from = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
+        let to = NaiveDate::from_ymd_opt(2026, 4, 30).unwrap();
+        let summary = log.total_duration_secs_by_date("p1", from, to);
+        assert!(summary.is_empty());
     }
 }

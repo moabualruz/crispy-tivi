@@ -474,11 +474,17 @@ pub(crate) fn wire(
                     .cloned()
             };
             if let Some(vod) = found {
+                // Build multi-source badges before crossing into the UI thread.
+                let primary_sid = vod.source_id.as_deref().unwrap_or("").to_string();
+                let badges = build_source_badges(&sd, &vod.name, &vod.item_type, &primary_sid);
+                let has_multi = badges.len() > 1;
                 let ui_w2 = ui_w.clone();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(ui) = ui_w2.upgrade() {
                         let app = ui.global::<super::AppState>();
                         app.set_vod_detail_item(vod_info_to_slint(&vod));
+                        app.set_vod_detail_sources(ModelRc::new(VecModel::from(badges)));
+                        app.set_vod_detail_has_multi_source(has_multi);
                         app.set_show_vod_detail(true);
                     }
                 });
@@ -511,11 +517,17 @@ pub(crate) fn wire(
                 series.iter().find(|v| v.id == id).cloned()
             };
             if let Some(s) = found {
+                // Build multi-source badges for series detail as well.
+                let primary_sid = s.source_id.as_deref().unwrap_or("").to_string();
+                let badges = build_source_badges(&sd, &s.name, &s.item_type, &primary_sid);
+                let has_multi = badges.len() > 1;
                 let ui_w2 = ui_w.clone();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(ui) = ui_w2.upgrade() {
                         let app = ui.global::<super::AppState>();
                         app.set_series_detail_item(vod_info_to_slint(&s));
+                        app.set_vod_detail_sources(ModelRc::new(VecModel::from(badges)));
+                        app.set_vod_detail_has_multi_source(has_multi);
                         app.set_series_active_season(1);
                         app.set_series_episodes(ModelRc::new(VecModel::default()));
                         app.set_show_series_detail(true);
@@ -1068,6 +1080,126 @@ pub(crate) fn wire(
                     app.set_active_profile_name(SharedString::from(active_name.as_str()));
                 }
             });
+        }
+    });
+
+    // ── Parental controls callbacks (Epoch 7) ─────────────────────────────
+
+    app.on_set_parental_pin({
+        let tx = normal_tx.clone();
+        move |_new_pin| {
+            // PIN entry is handled via the dedicated PIN dialog (not yet built).
+            // Emit a sync to reload profile state after PIN change.
+            if let Err(e) = tx.try_send(NormalEvent::SyncAll) {
+                tracing::warn!(error = %e, "normal_tx full: SetParentalPin dropped");
+            }
+            tracing::info!("set-parental-pin: PIN dialog requested (dialog not yet implemented)");
+        }
+    });
+
+    app.on_clear_parental_pin({
+        let ui_w = ui.as_weak();
+        move || {
+            let _ = slint::invoke_from_event_loop({
+                let ui_w2 = ui_w.clone();
+                move || {
+                    if let Some(ui) = ui_w2.upgrade() {
+                        ui.global::<super::AppState>().set_parental_pin_set(false);
+                    }
+                }
+            });
+            tracing::info!("clear-parental-pin: PIN cleared");
+        }
+    });
+
+    app.on_set_content_rating({
+        let ui_w = ui.as_weak();
+        move |rating_index| {
+            let _ = slint::invoke_from_event_loop({
+                let ui_w2 = ui_w.clone();
+                move || {
+                    if let Some(ui) = ui_w2.upgrade() {
+                        ui.global::<super::AppState>()
+                            .set_parental_rating_limit(rating_index);
+                    }
+                }
+            });
+            tracing::info!(rating_index, "set-content-rating");
+        }
+    });
+
+    app.on_set_viewing_time_limit({
+        let ui_w = ui.as_weak();
+        move |minutes| {
+            let _ = slint::invoke_from_event_loop({
+                let ui_w2 = ui_w.clone();
+                move || {
+                    if let Some(ui) = ui_w2.upgrade() {
+                        ui.global::<super::AppState>()
+                            .set_parental_time_limit_minutes(minutes);
+                    }
+                }
+            });
+            tracing::info!(minutes, "set-viewing-time-limit");
+        }
+    });
+
+    // ── Analytics consent callbacks (Epoch 11) ────────────────────────────
+
+    app.on_set_analytics_playback({
+        let ui_w = ui.as_weak();
+        move |enabled| {
+            let _ = slint::invoke_from_event_loop({
+                let ui_w2 = ui_w.clone();
+                move || {
+                    if let Some(ui) = ui_w2.upgrade() {
+                        ui.global::<super::AppState>()
+                            .set_analytics_playback_consent(enabled);
+                    }
+                }
+            });
+            tracing::info!(enabled, "set-analytics-playback");
+        }
+    });
+
+    app.on_set_analytics_crash({
+        let ui_w = ui.as_weak();
+        move |enabled| {
+            let _ = slint::invoke_from_event_loop({
+                let ui_w2 = ui_w.clone();
+                move || {
+                    if let Some(ui) = ui_w2.upgrade() {
+                        ui.global::<super::AppState>()
+                            .set_analytics_crash_consent(enabled);
+                    }
+                }
+            });
+            tracing::info!(enabled, "set-analytics-crash");
+        }
+    });
+
+    // ── Backup / restore callbacks (Epoch 13) ─────────────────────────────
+
+    app.on_export_backup({
+        let tx = normal_tx.clone();
+        move || {
+            // BackupService lives in crispy-core and is invoked via DataEngine.
+            // NormalEvent::SyncAll is used as a proxy until a dedicated
+            // ExportBackup variant is added in a future Epoch 13 task.
+            tracing::info!("export-backup: requested (BackupService integration pending)");
+            if let Err(e) = tx.try_send(NormalEvent::SyncAll) {
+                tracing::warn!(error = %e, "normal_tx full: ExportBackup dropped");
+            }
+        }
+    });
+
+    app.on_import_backup({
+        let tx = normal_tx.clone();
+        move || {
+            tracing::info!("import-backup: requested (BackupService integration pending)");
+            if let Err(e) = tx.try_send(NormalEvent::SyncAll) {
+                tracing::warn!(error = %e, "normal_tx full: ImportBackup dropped");
+            }
         }
     });
 
@@ -1828,11 +1960,19 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
 
         DataEvent::DiagnosticsInfo { report } => {
             tracing::info!(report = %report, "Diagnostics");
-            // M-009/010/011: parse counts from report format "sources=N channels=N vod=N ..."
+            // Parse space-separated key=value pairs from report string.
+            // Known keys: sources=N channels=N vod=N
+            //   bitrate=<str> codec=<str> buffer_ms=N          (Epoch 11 stream stats)
+            //   network_status=N epg_stale_hours=N              (Epoch 8)
             let diag = ui.global::<super::DiagnosticsState>();
             let mut source_count: i32 = 0;
             let mut channel_count: i32 = 0;
             let mut vod_count: i32 = 0;
+            let mut bitrate = String::new();
+            let mut codec = String::new();
+            let mut buffer_ms: i32 = 0;
+            let mut network_status: i32 = 0;
+            let mut epg_stale_hours: i32 = 0;
             for part in report.split_whitespace() {
                 if let Some(v) = part.strip_prefix("sources=") {
                     source_count = v.parse().unwrap_or(0);
@@ -1840,6 +1980,16 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
                     channel_count = v.parse().unwrap_or(0);
                 } else if let Some(v) = part.strip_prefix("vod=") {
                     vod_count = v.parse().unwrap_or(0);
+                } else if let Some(v) = part.strip_prefix("bitrate=") {
+                    bitrate = v.replace('_', " ");
+                } else if let Some(v) = part.strip_prefix("codec=") {
+                    codec = v.replace('_', " ");
+                } else if let Some(v) = part.strip_prefix("buffer_ms=") {
+                    buffer_ms = v.parse().unwrap_or(0);
+                } else if let Some(v) = part.strip_prefix("network_status=") {
+                    network_status = v.parse().unwrap_or(0);
+                } else if let Some(v) = part.strip_prefix("epg_stale_hours=") {
+                    epg_stale_hours = v.parse().unwrap_or(0);
                 }
             }
             if source_count > 0 || channel_count > 0 || vod_count > 0 {
@@ -1847,6 +1997,16 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
                 diag.set_channel_count(channel_count);
                 diag.set_vod_count(vod_count);
             }
+            // Epoch 11: per-stream stats (only update when non-empty)
+            if !codec.is_empty() {
+                diag.set_stream_bitrate(SharedString::from(bitrate.as_str()));
+                diag.set_stream_codec(SharedString::from(codec.as_str()));
+                diag.set_stream_buffer_ms(buffer_ms);
+            }
+            // Epoch 8: network state + EPG staleness
+            app.set_network_status(network_status);
+            app.set_is_offline(network_status > 0);
+            app.set_epg_last_updated_hours(epg_stale_hours);
         }
 
         DataEvent::Error { message } => {
@@ -1922,6 +2082,75 @@ fn source_info_to_slint(s: &SourceInfo) -> super::SourceData {
         vod_count: 0,
         sync_status: SharedString::from(s.last_sync_status.as_deref().unwrap_or("")),
     }
+}
+
+// ── Multi-source badge helper ─────────────────────────────────────────────────
+
+/// Derive a quality label from a resolution string or stream name heuristic.
+///
+/// Matches the most common IPTV naming conventions:
+/// `4K`, `UHD`, `2160` → "4K"; `1080`, `FHD` → "1080p"; `720`, `HD` → "720p";
+/// everything else → "SD".
+pub(crate) fn quality_label_for(resolution: &str, name: &str) -> &'static str {
+    let haystack = format!("{} {}", resolution, name).to_ascii_lowercase();
+    if haystack.contains("4k") || haystack.contains("uhd") || haystack.contains("2160") {
+        "4K"
+    } else if haystack.contains("1080") || haystack.contains("fhd") {
+        "1080p"
+    } else if haystack.contains("720") || haystack.contains(" hd") || haystack.ends_with("hd") {
+        "720p"
+    } else {
+        "SD"
+    }
+}
+
+/// Build `SourceBadge` slices for a VOD item by scanning the full dataset for
+/// all entries that share the same normalised title (case-insensitive).
+///
+/// The first matching entry per distinct `source_id` is kept; the source whose
+/// `source_id` matches `primary_source_id` is marked `is_preferred`.
+///
+/// Called on the UI thread from `on_open_vod_detail` / `on_open_series_detail`.
+pub(crate) fn build_source_badges(
+    sd: &SharedData,
+    title: &str,
+    item_type: &str,
+    primary_source_id: &str,
+) -> Vec<super::SourceBadge> {
+    let title_lower = title.to_ascii_lowercase();
+    let is_series = item_type == "series";
+
+    // Snapshot without holding two locks simultaneously.
+    let candidates: Vec<VodInfo> = if is_series {
+        sd.series.lock().unwrap().iter().cloned().collect()
+    } else {
+        sd.movies.lock().unwrap().iter().cloned().collect()
+    };
+
+    // Collect one entry per source_id whose title matches.
+    let mut seen_sources: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut badges: Vec<super::SourceBadge> = Vec::new();
+
+    for vod in &candidates {
+        if vod.name.to_ascii_lowercase() != title_lower {
+            continue;
+        }
+        let sid = vod.source_id.as_deref().unwrap_or("").to_string();
+        if sid.is_empty() || !seen_sources.insert(sid.clone()) {
+            continue;
+        }
+        let qlabel = quality_label_for("", &vod.name);
+        let is_preferred = sid == primary_source_id;
+        badges.push(super::SourceBadge {
+            source_name: SharedString::from(sid.as_str()),
+            quality_label: SharedString::from(qlabel),
+            is_preferred,
+        });
+    }
+
+    // Ensure preferred source sorts first.
+    badges.sort_by(|a, b| b.is_preferred.cmp(&a.is_preferred));
+    badges
 }
 
 // ── Profile conversion helper ─────────────────────────────────────────────────
@@ -2084,4 +2313,115 @@ pub(crate) fn build_hero_items(sd: &SharedData) -> Vec<super::HeroItem> {
     }
 
     items
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::events::VodInfo;
+    use std::sync::Arc;
+
+    fn make_vod(name: &str, source_id: &str) -> VodInfo {
+        VodInfo {
+            id: format!("{}-{}", name, source_id),
+            name: name.to_string(),
+            source_id: Some(source_id.to_string()),
+            item_type: "movie".to_string(),
+            ..Default::default()
+        }
+    }
+
+    fn shared_data_with_movies(movies: Vec<VodInfo>) -> SharedData {
+        let sd = SharedData::new();
+        *sd.movies.lock().unwrap() = Arc::new(movies);
+        sd
+    }
+
+    // ── quality_label_for ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_quality_label_for_4k_patterns() {
+        assert_eq!(quality_label_for("", "The Movie 4K"), "4K");
+        assert_eq!(quality_label_for("2160p", "Movie"), "4K");
+        assert_eq!(quality_label_for("UHD", "Movie"), "4K");
+    }
+
+    #[test]
+    fn test_quality_label_for_1080p_patterns() {
+        assert_eq!(quality_label_for("1080p", "Movie"), "1080p");
+        assert_eq!(quality_label_for("", "Movie FHD"), "1080p");
+    }
+
+    #[test]
+    fn test_quality_label_for_720p_patterns() {
+        assert_eq!(quality_label_for("720p", "Movie"), "720p");
+    }
+
+    #[test]
+    fn test_quality_label_for_sd_fallback() {
+        assert_eq!(quality_label_for("", "Movie"), "SD");
+        assert_eq!(quality_label_for("480p", "Something"), "SD");
+    }
+
+    // ── build_source_badges ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_build_source_badges_single_source_returns_one_badge() {
+        let sd = shared_data_with_movies(vec![make_vod("Dune", "src-a")]);
+        let badges = build_source_badges(&sd, "Dune", "movie", "src-a");
+        assert_eq!(badges.len(), 1);
+        assert_eq!(badges[0].source_name.as_str(), "src-a");
+        assert!(badges[0].is_preferred);
+    }
+
+    #[test]
+    fn test_build_source_badges_multi_source_deduplicates_per_source() {
+        let sd = shared_data_with_movies(vec![
+            make_vod("Inception", "src-a"),
+            make_vod("Inception", "src-b"),
+            make_vod("Inception", "src-b"), // duplicate source_id — must be deduped
+        ]);
+        let badges = build_source_badges(&sd, "Inception", "movie", "src-a");
+        assert_eq!(badges.len(), 2);
+    }
+
+    #[test]
+    fn test_build_source_badges_preferred_sorts_first() {
+        let sd = shared_data_with_movies(vec![
+            make_vod("Blade Runner", "src-b"),
+            make_vod("Blade Runner", "src-a"),
+        ]);
+        let badges = build_source_badges(&sd, "Blade Runner", "movie", "src-a");
+        assert_eq!(badges.len(), 2);
+        assert!(badges[0].is_preferred, "preferred badge must be first");
+        assert_eq!(badges[0].source_name.as_str(), "src-a");
+    }
+
+    #[test]
+    fn test_build_source_badges_title_case_insensitive() {
+        let sd = shared_data_with_movies(vec![make_vod("the matrix", "src-a")]);
+        let badges = build_source_badges(&sd, "The Matrix", "movie", "src-a");
+        // "the matrix" != "The Matrix" after lowercasing both → match
+        assert_eq!(badges.len(), 1);
+    }
+
+    #[test]
+    fn test_build_source_badges_no_match_returns_empty() {
+        let sd = shared_data_with_movies(vec![make_vod("Alien", "src-a")]);
+        let badges = build_source_badges(&sd, "Predator", "movie", "src-a");
+        assert!(badges.is_empty());
+    }
+
+    #[test]
+    fn test_build_source_badges_has_multi_source_flag() {
+        let sd = shared_data_with_movies(vec![
+            make_vod("Avatar", "src-a"),
+            make_vod("Avatar", "src-b"),
+        ]);
+        let badges = build_source_badges(&sd, "Avatar", "movie", "src-a");
+        let has_multi = badges.len() > 1;
+        assert!(has_multi);
+    }
 }

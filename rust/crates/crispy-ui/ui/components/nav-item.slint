@@ -5,6 +5,9 @@ export component NavItem inherits FocusScope {
   in property <string> icon-text;
   in property <bool> active: false;
 
+  accessible-role: button;
+  accessible-label: root.label;
+
   callback clicked();
 
   height: 40px;

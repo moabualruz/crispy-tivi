@@ -19,6 +19,7 @@ pub mod epg_matching;
 pub mod epg_merge;
 pub mod group_icon;
 pub mod json_utils;
+pub mod merge_decisions;
 pub mod normalize;
 pub mod permission;
 pub mod pin;
@@ -29,6 +30,7 @@ pub mod search_grouping;
 pub mod sorting;
 pub mod source_filter;
 pub mod stream_alternatives;
+#[allow(dead_code)] // Public API for Epoch 5 UI wiring — consumers not yet connected
 pub mod stream_failover;
 pub mod timezone;
 pub mod title_normalize;

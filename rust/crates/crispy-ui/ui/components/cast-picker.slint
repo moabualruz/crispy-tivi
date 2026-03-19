@@ -1,0 +1,258 @@
+// cast-picker.slint — 10.6: Cast/Route Picker
+// Glass overlay panel for selecting a cast destination device.
+// D-pad navigable. Escape to dismiss.
+
+import { Theme } from "../globals/theme.slint";
+import { CastDeviceData } from "../globals/app-state.slint";
+
+// ── Internal focusable device row ────────────────────────────────────────────
+component DeviceRow inherits FocusScope {
+  in property <CastDeviceData> device;
+  callback selected(string);
+
+  height: 64px;
+  width: 100%;
+
+  key-pressed(event) => {
+    if event.text == Key.Return || event.text == " " {
+      root.selected(root.device.id);
+      return accept;
+    }
+    return reject;
+  }
+
+  ta := TouchArea {
+    clicked => { root.selected(root.device.id); }
+  }
+
+  Rectangle {
+    width: 100%;
+    height: 100%;
+    border-radius: Theme.radius-md;
+    background: root.has-focus ? Theme.focus-bg : (ta.has-hover ? rgba(255, 255, 255, 0.05) : transparent);
+    border-width: root.has-focus ? Theme.focus-ring-width : 1px;
+    border-color: root.has-focus ? Theme.focus-ring : transparent;
+
+    HorizontalLayout {
+      padding-left: Theme.spacing-md;
+      padding-right: Theme.spacing-md;
+      spacing: Theme.spacing-md;
+      alignment: start;
+
+      // Type badge
+      VerticalLayout {
+        alignment: center;
+        Rectangle {
+          width: 52px;
+          height: 28px;
+          border-radius: Theme.radius-sm;
+          background: Theme.card-surface;
+          border-width: 1px;
+          border-color: Theme.card-border;
+
+          Text {
+            text: root.device.device-type == "airplay" ? "AirPlay"
+              : root.device.device-type == "dlna" ? "DLNA"
+              : "Cast";
+            color: Theme.text-primary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-micro;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+        }
+      }
+
+      // Device name + status
+      VerticalLayout {
+        alignment: center;
+        spacing: 2px;
+
+        Text {
+          text: root.device.name;
+          color: Theme.text-primary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-body;
+          font-weight: 600;
+          overflow: elide;
+        }
+
+        Text {
+          text: root.device.status == "connected" ? "Connected"
+            : root.device.status == "connecting" ? "Connecting…"
+            : "Available";
+          color: root.device.status == "connected"
+            ? rgba(74, 222, 128, 0.9)
+            : Theme.text-secondary;
+          font-family: Theme.font-body;
+          font-size: Theme.font-size-caption;
+          font-weight: 400;
+        }
+      }
+
+      // Status dot (right-aligned)
+      VerticalLayout {
+        alignment: center;
+        horizontal-stretch: 1;
+
+        HorizontalLayout {
+          alignment: end;
+          Rectangle {
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background: root.device.status == "connected"
+              ? rgba(74, 222, 128, 0.9)
+              : root.device.status == "connecting"
+                ? rgba(250, 204, 21, 0.9)
+                : rgba(255, 255, 255, 0.2);
+          }
+        }
+      }
+    }
+  }
+}
+
+// ── Public component ──────────────────────────────────────────────────────────
+export component CastPicker {
+  in-out property <bool> show-picker: false;
+  in property <[CastDeviceData]> devices: [];
+  callback device-selected(/* device-id */ string);
+  callback dismissed();
+
+  width: 100%;
+  height: 100%;
+
+  // Semi-transparent scrim
+  if root.show-picker: Rectangle {
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+
+    ta-scrim := TouchArea {
+      clicked => { root.dismissed(); }
+    }
+
+    // Focus trap + keyboard handler
+    picker-fs := FocusScope {
+      width: 0;
+      height: 0;
+
+      key-pressed(event) => {
+        if event.text == Key.Escape || event.text == Key.Back {
+          root.dismissed();
+          return accept;
+        }
+        return reject;
+      }
+    }
+
+    // Panel — centred, fixed width
+    Rectangle {
+      width: 480px;
+      height: min(devices.length * 68px + 120px, 520px);
+      x: (parent.width - self.width) / 2;
+      y: (parent.height - self.height) / 2;
+
+      border-radius: Theme.radius-lg;
+      background: Theme.surface;
+      border-width: 1px;
+      border-color: Theme.card-border;
+
+      VerticalLayout {
+        padding: Theme.spacing-lg;
+        spacing: Theme.spacing-sm;
+
+        // Header
+        HorizontalLayout {
+          spacing: Theme.spacing-md;
+          alignment: start;
+
+          Text {
+            text: "Cast to Device";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+            vertical-alignment: center;
+          }
+        }
+
+        // Divider
+        Rectangle {
+          height: 1px;
+          background: Theme.card-border;
+        }
+
+        // Device list
+        VerticalLayout {
+          spacing: Theme.spacing-xs;
+
+          for dev[i] in root.devices: DeviceRow {
+            device: dev;
+            selected(id) => {
+              root.device-selected(id);
+              root.show-picker = false;
+            }
+          }
+
+          // Empty state
+          if root.devices.length == 0: Text {
+            text: "Searching for devices…";
+            color: Theme.text-secondary;
+            font-family: Theme.font-body;
+            font-size: Theme.font-size-body;
+            horizontal-alignment: center;
+            height: 48px;
+            vertical-alignment: center;
+          }
+        }
+
+        // Dismiss button
+        Rectangle {
+          height: 40px;
+          border-radius: Theme.radius-sm;
+          background: Theme.btn-secondary-bg;
+
+          dismiss-fs := FocusScope {
+            width: 100%;
+            height: 100%;
+
+            key-pressed(event) => {
+              if event.text == Key.Return || event.text == " " {
+                root.dismissed();
+                return accept;
+              }
+              return reject;
+            }
+
+            ta := TouchArea {
+              clicked => { root.dismissed(); }
+            }
+
+            Rectangle {
+              width: 100%;
+              height: 100%;
+              border-radius: Theme.radius-sm;
+              background: dismiss-fs.has-focus ? Theme.focus-bg : transparent;
+              border-width: dismiss-fs.has-focus ? Theme.focus-ring-width : 0px;
+              border-color: Theme.focus-ring;
+
+              Text {
+                text: "Cancel";
+                color: Theme.btn-secondary-fg;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+              }
+            }
+          }
+        }
+      }
+    }
+
+  }
+}
