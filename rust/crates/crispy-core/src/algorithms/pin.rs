@@ -4,6 +4,7 @@
 //! `lib/features/parental/data/pin_hasher.dart` to Rust.
 
 use sha2::{Digest, Sha256};
+use subtle::ConstantTimeEq;
 
 /// Hash a PIN using SHA-256.
 /// Returns lowercase hex string (64 chars).
@@ -15,8 +16,11 @@ pub fn hash_pin(pin: &str) -> String {
 }
 
 /// Verify a PIN against a stored SHA-256 hash.
+///
+/// Uses constant-time comparison to prevent timing attacks.
 pub fn verify_pin(input_pin: &str, stored_hash: &str) -> bool {
-    hash_pin(input_pin) == stored_hash
+    let computed = hash_pin(input_pin);
+    computed.as_bytes().ct_eq(stored_hash.as_bytes()).into()
 }
 
 /// Check if a value looks like a SHA-256 hash

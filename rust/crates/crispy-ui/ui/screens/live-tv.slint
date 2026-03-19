@@ -332,6 +332,7 @@ export component LiveTvScreen inherits Rectangle {
   in-out property <int> active-sub-view: 0;
 
   // M-012: preview panel state — updated via ChannelRow.focused-changed
+  property <string> preview-ch-id: "";
   property <string> preview-ch-name: "";
   property <string> preview-ch-programme: "";
   property <string> preview-ch-group: "";
@@ -387,8 +388,8 @@ export component LiveTvScreen inherits Rectangle {
       subtitle: "Add an IPTV source to browse live channels.";
       cta-text: "Add Source";
       cta-clicked => {
-        AppState.active-screen = 6;
-        AppState.navigate(6);
+        AppState.active-screen = 2;
+        AppState.navigate(2);
       }
       IconTv { size: 32px; fill: Theme.text-secondary; }
     }
@@ -512,8 +513,50 @@ export component LiveTvScreen inherits Rectangle {
                   }
                 }
               }
+
+            // C-007: View in Guide button — navigates to EPG and jumps to this channel
+            FocusScope {
+              width: 130px;
+              height: 36px;
+
+              key-pressed(event) => {
+                if event.text == Key.Return {
+                  AppState.active-screen = 2;
+                  AppState.navigate(2);
+                  AppState.jump-epg-to-channel(root.preview-ch-id);
+                  return accept;
+                }
+                return reject;
+              }
+
+              guide-btn := Rectangle {
+                width: 100%; height: 100%;
+                border-radius: Theme.radius-pill;
+                background: parent.has-focus ? Theme.surface-glass : transparent;
+                border-width: parent.has-focus ? Theme.focus-ring-width : 1px;
+                border-color: parent.has-focus ? Theme.focus-ring : Theme.card-border;
+                animate background { duration: 150ms; }
+
+                Text {
+                  text: "View in Guide";
+                  color: Theme.text-primary;
+                  font-family: Theme.font-body;
+                  font-size: Theme.font-size-caption;
+                  font-weight: 600;
+                  horizontal-alignment: center;
+                  vertical-alignment: center;
+                }
+                TouchArea {
+                  clicked => {
+                    AppState.active-screen = 2;
+                    AppState.navigate(2);
+                    AppState.jump-epg-to-channel(root.preview-ch-id);
+                  }
+                }
+              }
             }
           }
+        }
         }
 
         // Group filter chips (horizontal, clipped — no ScrollView to avoid nested scroll)
@@ -577,6 +620,7 @@ export component LiveTvScreen inherits Rectangle {
               compact: false;
               selected(id) => { AppState.play-channel(id); }
               focused-changed(id, name, programme, group) => {
+                root.preview-ch-id = id;
                 root.preview-ch-name = name;
                 root.preview-ch-programme = programme;
                 root.preview-ch-group = group;

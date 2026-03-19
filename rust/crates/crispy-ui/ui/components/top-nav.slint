@@ -27,7 +27,7 @@ export component TopNav inherits Rectangle {
 
     Rectangle { width: 8px; }
 
-    // Nav items — For You (0), Live (1), Movies (3), Shows (4), Library (6)
+    // Nav items — For You (0), Live (1), Guide (2), Movies (3), Shows (4), Library (6)
     VerticalLayout {
       alignment: center;
       NavItem {
@@ -40,8 +40,16 @@ export component TopNav inherits Rectangle {
       alignment: center;
       NavItem {
         label: "Live";
-        active: AppState.active-screen == 1 || AppState.active-screen == 2;
+        active: AppState.active-screen == 1;
         clicked => { AppState.active-screen = 1; AppState.navigate(1); }
+      }
+    }
+    VerticalLayout {
+      alignment: center;
+      NavItem {
+        label: "Guide";
+        active: AppState.active-screen == 2;
+        clicked => { AppState.active-screen = 2; AppState.navigate(2); }
       }
     }
     VerticalLayout {

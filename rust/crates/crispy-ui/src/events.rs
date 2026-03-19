@@ -327,4 +327,12 @@ pub enum DataEvent {
     DiagnosticsInfo { report: String },
     /// A recoverable error to surface in the UI (toast / banner).
     Error { message: String },
+    /// EPG programmes ready for a given time window.
+    EpgProgrammesReady {
+        window_start: i64,
+        window_end: i64,
+        programmes: Arc<Vec<crispy_server::models::EpgEntry>>,
+    },
+    /// EPG grid should scroll to and highlight this channel.
+    EpgFocusChannel { channel_id: String },
 }

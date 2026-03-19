@@ -438,32 +438,52 @@ export component OnboardingScreen inherits Rectangle {
     background: @linear-gradient(160deg, rgba(255, 255, 255, 0.05) 0%, rgba(10, 10, 12, 1.0) 40%, rgba(200, 210, 220, 0.04) 100%);
   }
 
-  ScrollView {
+  // M-008: Root FocusScope captures keyboard so D-pad/Enter can advance steps.
+  // Steps 0, 2, 3 have no form fields — Enter triggers the primary action directly.
+  // Step 1 (AddSource): the ActionButton inside AddSourceStep inherits FocusScope
+  // and handles Key.Return itself when focused; this scope provides fallback coverage.
+  root-focus := FocusScope {
     width: 100%;
     height: 100%;
-    
-    VerticalLayout {
-      // Ensure the content area always spans at least the height of the screen for centering
-      min-height: root.height;
-      width: root.width;
-      alignment: center;
-      padding-top: Theme.spacing-2xl;
-      padding-bottom: Theme.spacing-2xl;
-      
+
+    init => { root-focus.focus(); }
+
+    key-pressed(event) => {
+      if event.text == Key.Return {
+        if OnboardingState.step == 0 { OnboardingState.step = 1; return accept; }
+        if OnboardingState.step == 2 { OnboardingState.step = 3; return accept; }
+        if OnboardingState.step == 3 { OnboardingState.complete(); return accept; }
+      }
+      reject
+    }
+
+    ScrollView {
+      width: 100%;
+      height: 100%;
+
       VerticalLayout {
+        // Ensure the content area always spans at least the height of the screen for centering
+        min-height: root.height;
+        width: root.width;
         alignment: center;
-        spacing: Theme.spacing-xl;
+        padding-top: Theme.spacing-2xl;
+        padding-bottom: Theme.spacing-2xl;
 
-        if OnboardingState.step == 0: WelcomeStep {  }
-        if OnboardingState.step == 1: AddSourceStep {  }
-        if OnboardingState.step == 2: PreferencesStep {  }
-        if OnboardingState.step == 3: DoneStep {  }
-
-        // Step indicator at bottom
-        HorizontalLayout {
+        VerticalLayout {
           alignment: center;
-          padding-top: Theme.spacing-xl;
-          StepIndicator { current-step: OnboardingState.step; }
+          spacing: Theme.spacing-xl;
+
+          if OnboardingState.step == 0: WelcomeStep {  }
+          if OnboardingState.step == 1: AddSourceStep {  }
+          if OnboardingState.step == 2: PreferencesStep {  }
+          if OnboardingState.step == 3: DoneStep {  }
+
+          // Step indicator at bottom
+          HorizontalLayout {
+            alignment: center;
+            padding-top: Theme.spacing-xl;
+            StepIndicator { current-step: OnboardingState.step; }
+          }
         }
       }
     }

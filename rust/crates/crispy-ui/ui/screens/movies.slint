@@ -18,8 +18,8 @@ export component MoviesScreen inherits Rectangle {
     subtitle: "Movies from your IPTV and media server sources will appear here.";
     cta-text: "Add Source";
     cta-clicked => {
-      AppState.active-screen = 6;
-      AppState.navigate(6);
+      AppState.active-screen = 0;
+      AppState.navigate(0);
     }
     IconMovie { size: 32px; fill: Theme.text-secondary; }
   }

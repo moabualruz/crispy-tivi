@@ -402,10 +402,31 @@ pub(crate) fn wire(
 
     app.on_play_episode({
         let tx = high_tx.clone();
-        move |series_id, season, episode| {
-            // Construct a synthesized VOD id for the episode
-            let ep_id = format!("{series_id}:s{season}e{episode}");
-            if let Err(e) = tx.try_send(HighPriorityEvent::PlayVod { vod_id: ep_id }) {
+        let ui_w = ui.as_weak();
+        move |_series_id, season, episode| {
+            // m-014: resolve real episode VOD id from the current series_episodes model.
+            // DataEngine delivers episodes with real Xtream/M3U IDs via SeriesReady;
+            // synthesizing a positional id ("{series}:s{season}e{ep}") never matches cache.
+            let real_id = ui_w
+                .upgrade()
+                .and_then(|ui| {
+                    let app = ui.global::<super::AppState>();
+                    let model = app.get_series_episodes();
+                    (0..model.row_count())
+                        .map(|i| model.row_data(i).unwrap_or_default())
+                        .find(|ep| ep.season == season && ep.episode == episode)
+                        .map(|ep| ep.id.to_string())
+                })
+                .unwrap_or_default();
+            if real_id.is_empty() {
+                tracing::warn!(
+                    season,
+                    episode,
+                    "PlayEpisode: no matching episode in series_episodes model"
+                );
+                return;
+            }
+            if let Err(e) = tx.try_send(HighPriorityEvent::PlayVod { vod_id: real_id }) {
                 tracing::warn!(error = %e, "high_tx full: PlayEpisode dropped");
             }
         }
@@ -1419,6 +1440,16 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
             total,
             ..
         } => {
+            // m-015: DataEngine reuses SeriesReady to deliver episode lists from
+            // SelectSeriesSeason (total=0, categories=[]).  When a series detail view
+            // is open, populate series_episodes instead of the main series list.
+            if total == 0 && in_categories.is_empty() && app.get_show_series_detail() {
+                let episodes: Vec<super::VodData> = series.iter().map(vod_info_to_slint).collect();
+                tracing::debug!(count = episodes.len(), "[DATA] series-episodes set");
+                app.set_series_episodes(ModelRc::new(VecModel::from(episodes)));
+                return;
+            }
+
             // M-011: accumulate series vod count in diagnostics
             {
                 let diag = ui.global::<super::DiagnosticsState>();
@@ -1556,11 +1587,17 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
         }
 
         // PlaybackReady is handled in spawn_data_listener before reaching here
-        DataEvent::PlaybackReady { .. } => {} // m-010 (known gap): NormalEvent::UpdateEpgMapping is published and handled entirely
-                                              // inside data_engine.rs (it maps tvg-id aliases to channel_ids in the EPG table).
-                                              // event_bridge.rs has no corresponding DataEvent for it, so there is nothing to wire
-                                              // here. If a UI-visible result is needed in the future, data_engine.rs should emit a
-                                              // dedicated DataEvent (e.g. EpgMappingApplied) that this function can react to.
+        DataEvent::PlaybackReady { .. } => {}
+
+        DataEvent::EpgProgrammesReady { programmes, .. } => {
+            tracing::debug!(count = programmes.len(), "[DATA] EPG programmes ready");
+            // TODO: convert to Slint EPG model and set on AppState when EPG grid is implemented
+        }
+
+        DataEvent::EpgFocusChannel { channel_id } => {
+            tracing::debug!(channel_id, "[DATA] EPG focus channel");
+            app.set_epg_jump_channel_id(SharedString::from(channel_id.as_str()));
+        }
     }
 }
 

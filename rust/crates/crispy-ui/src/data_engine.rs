@@ -487,10 +487,7 @@ impl DataEngine {
                 debug!(offset_days, "SelectEpgDate — EPG date navigation");
                 self.filters.epg_date_offset = offset_days;
                 self.filters.active_screen = Screen::Epg;
-                // EPG programme data is loaded by the EPG sync pipeline and not yet
-                // queryable via a per-date CrispyService call. Persist the selected
-                // offset so subsequent render passes use the right date, then inform
-                // the UI that the screen and date context have changed.
+
                 let date_label = if offset_days == 0 {
                     "Today".to_string()
                 } else if offset_days == -1 {
@@ -501,12 +498,59 @@ impl DataEngine {
                     format!("+{offset_days} days")
                 };
                 info!(offset_days, date_label, "EPG date selected");
+
                 self.send(DataEvent::ScreenChanged {
                     screen: Screen::Epg,
                 });
                 self.send(DataEvent::DiagnosticsInfo {
                     report: format!("EPG date: {date_label} (offset {offset_days})"),
                 });
+
+                // Compute the [midnight, midnight+24h) UTC window for the selected day
+                // and fetch all EPG entries that overlap it via the service layer.
+                let now_date = Utc::now().date_naive();
+                let target_date = now_date + chrono::Duration::days(i64::from(offset_days));
+                let window_start = target_date
+                    .and_hms_opt(0, 0, 0)
+                    .expect("midnight always valid")
+                    .and_utc()
+                    .timestamp();
+                let window_end = window_start + 86_400; // +24 h
+
+                let channel_ids: Vec<String> = self
+                    .cache
+                    .all_channels
+                    .iter()
+                    .map(|c| c.id.clone())
+                    .collect();
+
+                if channel_ids.is_empty() {
+                    debug!("SelectEpgDate: no channels in cache, skipping EPG fetch");
+                } else {
+                    let svc = self.provider.clone();
+                    let data_tx = self.data_tx.clone();
+                    self.rt.spawn_blocking(move || {
+                        match svc.get_epgs_for_channels(&channel_ids, window_start, window_end) {
+                            Ok(map) => {
+                                // Flatten per-channel entries into a single time-sorted Vec.
+                                let mut all: Vec<crispy_server::models::EpgEntry> =
+                                    map.into_values().flatten().collect();
+                                all.sort_by_key(|e| e.start_time);
+                                let _ = data_tx.try_send(DataEvent::EpgProgrammesReady {
+                                    window_start,
+                                    window_end,
+                                    programmes: Arc::new(all),
+                                });
+                            }
+                            Err(e) => {
+                                error!(error = %e, offset_days, "SelectEpgDate: EPG fetch failed");
+                                let _ = data_tx.try_send(DataEvent::Error {
+                                    message: format!("EPG load failed for {date_label}: {e}"),
+                                });
+                            }
+                        }
+                    });
+                }
             }
 
             HighPriorityEvent::JumpEpgToChannel { channel_id } => {
@@ -524,6 +568,11 @@ impl DataEngine {
                 info!(channel_id, ch_name, "EPG jump-to-channel");
                 self.send(DataEvent::ScreenChanged {
                     screen: Screen::Epg,
+                });
+                // EpgFocusChannel tells EventBridge which channel the EPG grid
+                // should scroll to and highlight.
+                self.send(DataEvent::EpgFocusChannel {
+                    channel_id: channel_id.clone(),
                 });
                 self.send(DataEvent::DiagnosticsInfo {
                     report: format!("EPG focus: channel '{ch_name}' ({channel_id})"),

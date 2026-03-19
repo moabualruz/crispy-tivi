@@ -310,8 +310,7 @@ component ProgrammeInfoBar inherits Rectangle {
   }
 }
 
-export component EpgScreen inherits Rectangle {
-  background: transparent;
+export component EpgScreen inherits FocusScope {
 
   property <string> focused-ch-name: "";
   property <string> focused-title: "";
@@ -321,6 +320,15 @@ export component EpgScreen inherits Rectangle {
   property <bool>   focused-has-catchup: false;
   property <bool>   focused-is-now: false;
   property <bool>   any-cell-focused: false;
+
+  key-pressed(event) => {
+    if event.text == Key.Escape {
+      AppState.active-screen = 1;
+      AppState.navigate(1);
+      return accept;
+    }
+    return reject;
+  }
 
   VerticalLayout {
     padding-top: Theme.screen-padding-top;
