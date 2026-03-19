@@ -116,24 +116,58 @@ pub fn merge_backups(local: &Value, cloud: &Value, _current_device_id: &str) -> 
 
 // ── Profiles ──────────────────────────────────────────
 
+/// Returns `true` if `s` looks like an Argon2id PHC hash string.
+///
+/// Argon2id hashes produced by the `argon2` crate start with `$argon2id$`.
+/// Any PIN that does NOT match this format is considered plaintext and must
+/// be rejected during cloud merge — accepting plaintext PINs from the cloud
+/// would silently bypass the hashing requirement.
+fn is_argon2id_hash(s: &str) -> bool {
+    s.starts_with("$argon2id$")
+}
+
 /// Merges profiles by `id`, preferring local on conflict.
+///
+/// Security rule: if a cloud profile carries a `pin` field that is plaintext
+/// (i.e. not an Argon2id PHC hash), the `pin` field is stripped before the
+/// cloud entry is inserted.  This prevents a compromised cloud backup from
+/// injecting unhashed PINs that would be stored alongside encrypted credentials.
 fn merge_profiles(local: &[Value], cloud: &[Value]) -> Value {
     // Use BTreeMap to maintain deterministic order.
-    let mut by_id: BTreeMap<String, &Value> = BTreeMap::new();
+    let mut by_id: BTreeMap<String, Value> = BTreeMap::new();
 
-    // Cloud first so local overwrites.
+    // Cloud first so local overwrites — strip plaintext PINs from cloud entries.
     for item in cloud {
         if let Some(id) = item.get("id").and_then(Value::as_str) {
-            by_id.insert(id.to_string(), item);
+            let sanitised = sanitise_cloud_profile(item);
+            by_id.insert(id.to_string(), sanitised);
         }
     }
+    // Local always overwrites cloud (preferred).
     for item in local {
         if let Some(id) = item.get("id").and_then(Value::as_str) {
-            by_id.insert(id.to_string(), item);
+            by_id.insert(id.to_string(), item.clone());
         }
     }
 
-    Value::Array(by_id.values().map(|v| (*v).clone()).collect())
+    Value::Array(by_id.into_values().collect())
+}
+
+/// Returns a clone of `profile` with the `pin` field removed if it is not a
+/// valid Argon2id hash.  All other fields are preserved unchanged.
+fn sanitise_cloud_profile(profile: &Value) -> Value {
+    let mut obj = match profile.as_object() {
+        Some(m) => m.clone(),
+        None => return profile.clone(),
+    };
+    if let Some(pin_val) = obj.get("pin") {
+        let is_valid = pin_val.as_str().map(is_argon2id_hash).unwrap_or(false);
+        if !is_valid {
+            tracing::warn!("cloud profile contained plaintext PIN — field stripped during merge");
+            obj.remove("pin");
+        }
+    }
+    Value::Object(obj)
 }
 
 // ── Favorites / Source Access ─────────────────────────
@@ -507,6 +541,56 @@ mod tests {
     fn test_merge_profiles_empty_inputs() {
         let result = merge_profiles(&[], &[]);
         assert!(result.as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_merge_rejects_plaintext_pin() {
+        // Cloud profile has a 4-digit plaintext PIN — must be stripped.
+        let local: Vec<Value> = vec![];
+        let cloud = vec![json!({"id": "p1", "name": "Remote", "pin": "1234"})];
+        let result = merge_profiles(&local, &cloud);
+        let arr = result.as_array().unwrap();
+
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0].get("name").and_then(Value::as_str), Some("Remote"));
+        // Plaintext PIN must NOT be present in the merged output.
+        assert!(
+            arr[0].get("pin").is_none(),
+            "plaintext PIN from cloud must be stripped during merge"
+        );
+    }
+
+    #[test]
+    fn test_merge_accepts_argon2id_pin() {
+        // Cloud profile has a properly hashed PIN — must be kept.
+        let local: Vec<Value> = vec![];
+        let hashed = "$argon2id$v=19$m=65536,t=2,p=1$c29tZXNhbHQ$RdescudvJCsgt3ub+b+dWQ";
+        let cloud = vec![json!({"id": "p2", "name": "Remote", "pin": hashed})];
+        let result = merge_profiles(&local, &cloud);
+        let arr = result.as_array().unwrap();
+
+        assert_eq!(arr.len(), 1);
+        assert_eq!(
+            arr[0].get("pin").and_then(Value::as_str),
+            Some(hashed),
+            "valid Argon2id hash from cloud must survive merge"
+        );
+    }
+
+    #[test]
+    fn test_merge_local_pin_always_preferred() {
+        // Local plaintext PIN wins over cloud argon2id hash — local is always preferred.
+        let local = vec![json!({"id": "p1", "name": "Local", "pin": "myhash"})];
+        let cloud = vec![
+            json!({"id": "p1", "name": "Cloud", "pin": "$argon2id$v=19$m=65536,t=2,p=1$c29tZXNhbHQ$RdescudvJCsgt3ub+b+dWQ"}),
+        ];
+        let result = merge_profiles(&local, &cloud);
+        let arr = result.as_array().unwrap();
+
+        assert_eq!(arr.len(), 1);
+        // Local entry is preferred unconditionally — name and pin come from local.
+        assert_eq!(arr[0].get("name").and_then(Value::as_str), Some("Local"));
+        assert_eq!(arr[0].get("pin").and_then(Value::as_str), Some("myhash"));
     }
 
     // ── merge_map_of_lists ────────────────────────────

@@ -165,7 +165,7 @@ pub enum SyncResult {
 ///
 /// Processed directly by the EventBridge on the Slint thread.
 #[derive(Debug)]
-#[allow(dead_code)] // SeekRelative, SetFullscreen, NextAudioTrack, NextSubtitleTrack, SetSpeed wired in Epoch 2 (OSD)
+#[allow(dead_code)] // variants are matched inside spawn_player_handler — rustc can't see cross-task usage
 pub enum PlayerEvent {
     /// Pause or resume the current stream.
     TogglePause,

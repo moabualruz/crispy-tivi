@@ -107,7 +107,7 @@ component ProgrammeCell inherits FocusScope {
       x: 0;
       width: parent.width * root.prog.progress-percent;
       background: Theme.brand-gradient;
-      border-radius: 2px;
+      border-radius: Theme.radius-2xs;
     }
 
     // NOW badge
@@ -123,20 +123,20 @@ component ProgrammeCell inherits FocusScope {
         text: "NOW";
         color: Theme.btn-secondary-fg;
         font-family: Theme.font-display;
-        font-size: 9px;
+        font-size: Theme.font-size-nano;
         font-weight: 700;
         horizontal-alignment: center;
         vertical-alignment: center;
       }
     }
 
-    // Catchup dot
+    // Catchup dot — 6px circle: border-radius must equal half the fixed size (3px)
     if root.prog.has-catchup && !root.prog.is-now: Rectangle {
       x: parent.width - 10px;
       y: Theme.spacing-xs;
       width: 6px;
       height: 6px;
-      border-radius: 3px;
+      border-radius: 3px; // geometric: half of fixed 6px height — not a design token
       background: Theme.brand-gradient;
     }
 
@@ -246,7 +246,7 @@ component ProgrammeInfoBar inherits Rectangle {
       Text {
         text: "LIVE"; color: Theme.btn-secondary-fg;
         font-family: Theme.font-display;
-        font-size: 10px; font-weight: 700;
+        font-size: Theme.font-size-micro; font-weight: 700;
         horizontal-alignment: center; vertical-alignment: center;
       }
     }
@@ -258,7 +258,7 @@ component ProgrammeInfoBar inherits Rectangle {
       Text {
         text: "CATCHUP"; color: Theme.btn-secondary-fg;
         font-family: Theme.font-display;
-        font-size: 9px; font-weight: 700;
+        font-size: Theme.font-size-nano; font-weight: 700;
         horizontal-alignment: center; vertical-alignment: center;
       }
     }

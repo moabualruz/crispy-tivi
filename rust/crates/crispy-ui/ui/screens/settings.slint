@@ -88,11 +88,11 @@ component SourceRow inherits FocusScope {
             y: (parent.height - self.height) / 2;
             // Green: empty / "ok"; Yellow: "slow" / "warning"; Red: "error" / "fail"
             background:
-              source.sync-status == "" ? #22C55E
-              : source.sync-status == "ok" ? #22C55E
-              : (source.sync-status == "slow" || source.sync-status == "warning") ? #EAB308
-              : (source.sync-status == "error" || source.sync-status == "fail") ? #EF4444
-              : #22C55E;
+              source.sync-status == "" ? Theme.status-success
+              : source.sync-status == "ok" ? Theme.status-success
+              : (source.sync-status == "slow" || source.sync-status == "warning") ? Theme.status-warning
+              : (source.sync-status == "error" || source.sync-status == "fail") ? Theme.status-error
+              : Theme.status-success;
           }
 
           Text {
@@ -315,7 +315,7 @@ component SettingToggleRow inherits Rectangle {
           width: 52px;
           height: 28px;
           border-radius: 14px;
-          background: root.checked ? #22C55E : Theme.surface-glass;
+          background: root.checked ? Theme.status-success : Theme.surface-glass;
           border-width: toggle-scope.has-focus ? Theme.focus-ring-width : 1px;
           border-color: toggle-scope.has-focus ? Theme.focus-ring : Theme.border-subtle;
 
@@ -783,7 +783,7 @@ export component SettingsScreen inherits Rectangle {
               // Epoch 8.3: staleness indicator when EPG data is > 24h old
               if AppState.epg-last-updated-hours > 24: Text {
                 text: "⚠ EPG data is " + AppState.epg-last-updated-hours + "h old — refresh recommended";
-                color: #EAB308;
+                color: Theme.status-warning;
                 font-family: Theme.font-body;
                 font-size: Theme.font-size-caption;
                 font-weight: 600;

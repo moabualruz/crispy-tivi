@@ -231,7 +231,7 @@ export component AppWindow inherits Window {
               : AppState.network-status == 2 ? "Internet unreachable"
               : AppState.network-status == 3 ? "Source unavailable — showing cached content"
               : "Offline — showing cached content";
-          color: #FFFFFF;
+          color: Theme.focus-ring;
           font-family: Theme.font-body;
           font-size: Theme.font-size-caption;
           font-weight: 600;

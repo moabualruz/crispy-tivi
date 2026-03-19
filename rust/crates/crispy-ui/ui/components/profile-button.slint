@@ -18,7 +18,7 @@ export component ProfileButton inherits FocusScope {
   Rectangle {
     width: 44px;
     height: 44px;
-    border-radius: 22px;
+    border-radius: Theme.radius-pill;
     background: Theme.btn-primary-bg;
     border-width: root.has-focus ? Theme.focus-ring-width : 0px;
     border-color: Theme.focus-ring;
@@ -27,7 +27,7 @@ export component ProfileButton inherits FocusScope {
       text: root.initial;
       color: Theme.btn-primary-fg;
       font-family: Theme.font-display;
-      font-size: 16px;
+      font-size: Theme.font-size-body;
       font-weight: 700;
       horizontal-alignment: center;
       vertical-alignment: center;

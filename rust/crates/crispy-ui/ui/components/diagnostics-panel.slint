@@ -66,7 +66,7 @@ export component DiagnosticsPanel inherits Rectangle {
         }
         Rectangle {
           width: 32px; height: 32px;
-          border-radius: 16px;
+          border-radius: 16px; // geometric: half of fixed 32px height — circle shape
           Text {
             text: "✕";
             color: Theme.text-secondary;
@@ -145,7 +145,7 @@ export component DiagnosticsPanel inherits Rectangle {
           Text { text: "Buffer"; color: Theme.text-secondary; font-size: Theme.font-size-caption; horizontal-stretch: 1; }
           Text {
             text: DiagnosticsState.stream-buffer-ms > 0 ? (DiagnosticsState.stream-buffer-ms + " ms") : "—";
-            color: DiagnosticsState.stream-buffer-ms > 0 && DiagnosticsState.stream-buffer-ms < 200 ? #EF4444 : Theme.text-primary;
+            color: DiagnosticsState.stream-buffer-ms > 0 && DiagnosticsState.stream-buffer-ms < 200 ? Theme.status-error : Theme.text-primary;
             font-size: Theme.font-size-caption;
           }
         }
