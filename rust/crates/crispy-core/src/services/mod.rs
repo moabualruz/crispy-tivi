@@ -138,6 +138,11 @@ pub struct CrispyService {
     pub(super) db: Database,
     pub(super) event_cb: Arc<Mutex<Option<EventCallback>>>,
     pub(super) batching: Arc<Mutex<bool>>,
+    /// Optional OS keyring used for credential encryption/decryption (spec 7.5).
+    ///
+    /// `None` in test builds (no keyring available). When `Some`, credentials
+    /// are encrypted with AES-256-GCM before being stored and decrypted on load.
+    pub(super) keyring: Option<Arc<secret_store::PlatformKeyring>>,
 }
 
 /// Build a comma-separated SQL IN-clause placeholder string
@@ -193,12 +198,26 @@ pub(super) fn delete_removed_by_source(
 }
 
 impl CrispyService {
-    /// Create a service wrapping an existing database.
+    /// Create a service wrapping an existing database (no credential encryption).
     pub fn new(db: Database) -> Self {
         Self {
             db,
             event_cb: Arc::new(Mutex::new(None)),
             batching: Arc::new(Mutex::new(false)),
+            keyring: None,
+        }
+    }
+
+    /// Create a service with OS keyring for AES-256-GCM credential encryption.
+    ///
+    /// Use this constructor in production. The `keyring` is used to retrieve or
+    /// generate the 32-byte database encryption key on first access.
+    pub fn with_keyring(db: Database, keyring: secret_store::PlatformKeyring) -> Self {
+        Self {
+            db,
+            event_cb: Arc::new(Mutex::new(None)),
+            batching: Arc::new(Mutex::new(false)),
+            keyring: Some(Arc::new(keyring)),
         }
     }
 

@@ -1071,11 +1071,67 @@ pub(crate) fn wire(
     });
 
     // ── EPG program detail actions (J-11/J-12) ───────────────────────────
+    //
+    // When the EPG detail sheet is opened (show-epg-detail = true from .slint),
+    // epg-detail-channel-id, title, description, start, end, has-catchup, is-now are
+    // already set by the ProgrammeCell key-pressed handler inside epg.slint.
+    // The remaining fields — channel-name, category, program-id — are enriched here
+    // from SharedData when the user acts on the detail (watch / catch-up / remind).
+    // We also enrich them proactively via on_watch_program so they are available for
+    // any UI that reads them before the user presses Watch.
     app.on_watch_program({
         let tx = high_tx.clone();
+        let sd = Arc::clone(&shared_data);
+        let ui_w = ui.as_weak();
         move |channel_id| {
             let id = channel_id.to_string();
             tracing::info!(channel_id = %id, "[EPG] watch-program: playing live channel");
+            // Enrich EPG detail panel with channel-name, category, program-id
+            // by looking up the channel and current EPG entry from SharedData.
+            {
+                let ui_w2 = ui_w.clone();
+                let sd2 = Arc::clone(&sd);
+                let ch_id = id.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(ui) = ui_w2.upgrade() {
+                        let app = ui.global::<super::AppState>();
+                        // Resolve channel display name from channels cache
+                        let ch_name = {
+                            let channels = sd2.channels.lock().unwrap_or_else(|e| e.into_inner());
+                            channels
+                                .iter()
+                                .find(|c| c.id == ch_id)
+                                .map(|c| c.name.clone())
+                                .unwrap_or_default()
+                        };
+                        if !ch_name.is_empty() {
+                            app.set_epg_detail_channel_name(SharedString::from(ch_name.as_str()));
+                        }
+                        // Resolve category and program-id from EPG entries.
+                        // program-id is derived as "{channel_id}_{start_time_unix}" since
+                        // EpgEntry has no dedicated id field.
+                        let (category, program_id) = {
+                            let epg = sd2.epg_entries.lock().unwrap_or_else(|e| e.into_inner());
+                            let title = app.get_epg_detail_title().to_string();
+                            epg.get(&ch_id)
+                                .and_then(|entries| entries.iter().find(|e| e.title == title))
+                                .map(|e| {
+                                    let cat = e.category.clone().unwrap_or_default();
+                                    let pid =
+                                        format!("{}_{}", ch_id, e.start_time.and_utc().timestamp());
+                                    (cat, pid)
+                                })
+                                .unwrap_or_default()
+                        };
+                        if !category.is_empty() {
+                            app.set_epg_detail_category(SharedString::from(category.as_str()));
+                        }
+                        if !program_id.is_empty() {
+                            app.set_epg_detail_program_id(SharedString::from(program_id.as_str()));
+                        }
+                    }
+                });
+            }
             if let Err(e) = tx.try_send(HighPriorityEvent::PlayChannel { channel_id: id }) {
                 tracing::warn!(error = %e, "high_tx full: WatchProgram dropped");
             }
@@ -2487,20 +2543,84 @@ pub(crate) fn spawn_position_poller(
         loop {
             tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
-            let (playing, pos, dur) = {
+            let poll = {
                 let guard = backend.lock().unwrap_or_else(|e| e.into_inner());
-                if let Some(b) = guard.as_ref() {
+                guard.as_ref().map(|b| {
                     let pos = b.get_position() as f32;
                     let dur = b.get_duration() as f32;
-                    (true, pos, dur)
-                } else {
-                    (false, 0.0f32, 0.0f32)
-                }
+                    // C-002/M-043: buffered fraction from demuxer cache stats.
+                    let buf_stats = b.get_buffer_stats();
+                    let buffered = if dur > 0.0 {
+                        (buf_stats.cache_duration as f32 / dur).clamp(0.0, 1.0)
+                    } else {
+                        0.0
+                    };
+                    // C-003: audio / subtitle track labels from PlayerBackend.
+                    let audio_tracks = b.get_audio_tracks();
+                    let sub_tracks = b.get_subtitle_tracks();
+                    let audio_labels: Vec<String> = audio_tracks
+                        .iter()
+                        .map(|t| {
+                            t.title.clone().unwrap_or_else(|| {
+                                t.language
+                                    .clone()
+                                    .unwrap_or_else(|| format!("Track {}", t.id))
+                            })
+                        })
+                        .collect();
+                    let sub_labels: Vec<String> = sub_tracks
+                        .iter()
+                        .map(|t| {
+                            t.title.clone().unwrap_or_else(|| {
+                                t.language
+                                    .clone()
+                                    .unwrap_or_else(|| format!("Track {}", t.id))
+                            })
+                        })
+                        .collect();
+                    let active_audio =
+                        audio_tracks.iter().position(|t| t.is_default).unwrap_or(0) as i32;
+                    let active_sub =
+                        sub_tracks.iter().position(|t| t.is_default).unwrap_or(0) as i32;
+                    // current-resolution from VideoInfo
+                    let video_info = b.get_video_info();
+                    let resolution = if video_info.height >= 2160 {
+                        "4K".to_string()
+                    } else if video_info.height >= 1080 {
+                        "1080p".to_string()
+                    } else if video_info.height >= 720 {
+                        "720p".to_string()
+                    } else if video_info.height > 0 {
+                        "SD".to_string()
+                    } else {
+                        String::new()
+                    };
+                    (
+                        pos,
+                        dur,
+                        buffered,
+                        audio_labels,
+                        sub_labels,
+                        active_audio,
+                        active_sub,
+                        resolution,
+                    )
+                })
             };
 
-            if !playing {
+            let Some((
+                pos,
+                dur,
+                buffered,
+                audio_labels,
+                sub_labels,
+                active_audio,
+                active_sub,
+                resolution,
+            )) = poll
+            else {
                 continue;
-            }
+            };
 
             let ui_w = ui_weak.clone();
             let _ = slint::invoke_from_event_loop(move || {
@@ -2512,6 +2632,28 @@ pub(crate) fn spawn_position_poller(
                         // M-006: live = no finite duration (duration == 0 or NaN for live streams)
                         ps.set_is_live(dur <= 0.0 || dur.is_nan());
 
+                        // C-002/M-043: buffered fraction
+                        ps.set_buffered(buffered);
+
+                        // C-003: audio / subtitle track labels
+                        let slint_audio: Vec<SharedString> = audio_labels
+                            .iter()
+                            .map(|s| SharedString::from(s.as_str()))
+                            .collect();
+                        let slint_sub: Vec<SharedString> = sub_labels
+                            .iter()
+                            .map(|s| SharedString::from(s.as_str()))
+                            .collect();
+                        ps.set_audio_track_labels(ModelRc::new(VecModel::from(slint_audio)));
+                        ps.set_subtitle_track_labels(ModelRc::new(VecModel::from(slint_sub)));
+                        ps.set_active_audio_track(active_audio);
+                        ps.set_active_subtitle_track(active_sub);
+
+                        // 3.9: current-resolution badge
+                        if !resolution.is_empty() {
+                            ps.set_current_resolution(SharedString::from(resolution.as_str()));
+                        }
+
                         // M-029: trigger show-next-episode when position > duration - 90s
                         // Only for VOD content with a known duration.
                         if dur > 90.0
@@ -2520,6 +2662,14 @@ pub(crate) fn spawn_position_poller(
                             && !ps.get_show_next_episode()
                         {
                             ps.set_show_next_episode(true);
+                            // 3.12: populate countdown and next-episode title.
+                            // next-episode-title is the episode after the current one;
+                            // we set a sensible default here — the series detail callback
+                            // may override with the real title when it loads episodes.
+                            if ps.get_next_episode_title().is_empty() {
+                                ps.set_next_episode_title(SharedString::from("Next Episode"));
+                            }
+                            ps.set_next_countdown(10);
                             tracing::debug!(
                                 pos,
                                 dur,
@@ -2527,23 +2677,26 @@ pub(crate) fn spawn_position_poller(
                             );
                         }
 
+                        // 3.11: show-skip-intro for the first 90s of VOD content.
+                        // Shown when pos < 90s and content has a known duration (not live).
+                        if !ps.get_is_live() && dur > 0.0 {
+                            ps.set_show_skip_intro(pos < 90.0 && pos > 2.0);
+                        }
+
+                        // 3.14: post-play-next-title — populate when near end of VOD.
+                        // Uses the same next-episode-title already populated above.
+                        if dur > 0.0 && pos > dur - 10.0 && !ps.get_is_live() {
+                            let next_title = ps.get_next_episode_title();
+                            if !next_title.is_empty() {
+                                ps.set_post_play_next_title(next_title);
+                            }
+                        }
+
                         // C-001: detect buffering via position stall.
                         // A true fix requires mpv's `paused-for-cache` property observation,
                         // but the current libmpv bindings don't expose observe_property.
-                        // Workaround: if position hasn't changed and we're supposed to be
-                        // playing (not paused), treat as buffering.
                         // TODO(Epoch 3): wire mpv observe_property("paused-for-cache") for
                         // accurate buffering detection with sub-second latency.
-
-                        // C-002/M-043: TODO — set PlayerState.buffered from mpv
-                        // demuxer-cache-state property when mpv bindings expose it.
-                        // Currently mpv's cache state requires parsing a complex node;
-                        // defer until libmpv wrapper adds support.
-
-                        // C-003: TODO — query mpv track-list on playback start and populate
-                        // PlayerState.audio-track-labels. Requires iterating
-                        // mpv's track-list/N/title + track-list/N/lang properties.
-                        // Deferred until PlayerBackend trait exposes get_track_list().
 
                         // M-044: TODO — set PlayerState.volume from mpv volume property.
                     }
@@ -3083,7 +3236,26 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
         // J-17/J-21: populate home screen continue-watching lane
         DataEvent::ContinueWatchingReady { items } => {
             tracing::debug!(count = items.len(), "[DATA] continue-watching ready");
-            // TODO(J-17): wire to home screen continue-watching VecModel when lane is implemented
+            let slint_items: Vec<super::ContinueWatchingData> = items
+                .iter()
+                .map(|it| super::ContinueWatchingData {
+                    id: SharedString::from(it.id.as_str()),
+                    title: SharedString::from(it.title.as_str()),
+                    image_url: SharedString::from(it.image_url.as_deref().unwrap_or("")),
+                    progress: it.progress,
+                    content_type: SharedString::from(it.content_type.as_str()),
+                    poster: Default::default(),
+                })
+                .collect();
+            app.set_continue_watching_items(ModelRc::new(VecModel::from(slint_items)));
+        }
+
+        // Network connectivity banner update.
+        // status: 0 = online, 1 = offline, 2 = degraded.
+        DataEvent::NetworkStateChanged { status } => {
+            tracing::debug!(status, "[DATA] network state changed");
+            app.set_network_status(status);
+            app.set_is_offline(status != 0);
         }
     }
 }

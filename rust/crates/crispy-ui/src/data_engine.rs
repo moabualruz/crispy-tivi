@@ -39,6 +39,10 @@ pub struct DataEngine {
     sync_result_rx: mpsc::Receiver<SyncResult>,
     data_tx: mpsc::Sender<DataEvent>,
     sync_result_tx: mpsc::Sender<SyncResult>,
+    /// Receives DataChangeEvent notifications from CrispyService mutations.
+    change_rx: mpsc::Receiver<crispy_core::events::DataChangeEvent>,
+    /// Receives NetworkState updates from NetworkMonitor's watch channel.
+    network_rx: tokio::sync::watch::Receiver<crispy_core::services::network_monitor::NetworkState>,
     /// Arc so spawned search tasks can check if they are still current.
     search_generation: Arc<AtomicU64>,
     rt: tokio::runtime::Handle,
@@ -56,6 +60,10 @@ impl DataEngine {
         sync_result_rx: mpsc::Receiver<SyncResult>,
         data_tx: mpsc::Sender<DataEvent>,
         sync_result_tx: mpsc::Sender<SyncResult>,
+        change_rx: mpsc::Receiver<crispy_core::events::DataChangeEvent>,
+        network_rx: tokio::sync::watch::Receiver<
+            crispy_core::services::network_monitor::NetworkState,
+        >,
         rt: tokio::runtime::Handle,
         shared_data: std::sync::Arc<crate::event_bridge::SharedData>,
     ) -> Self {
@@ -68,6 +76,8 @@ impl DataEngine {
             sync_result_rx,
             data_tx,
             sync_result_tx,
+            change_rx,
+            network_rx,
             search_generation: Arc::new(AtomicU64::new(0)),
             rt,
             shared_data,
@@ -107,6 +117,15 @@ impl DataEngine {
 
                 Some(result) = self.sync_result_rx.recv() => {
                     self.merge_sync_result(result);
+                }
+
+                Some(change) = self.change_rx.recv() => {
+                    self.handle_data_change(change);
+                }
+
+                Ok(()) = self.network_rx.changed() => {
+                    let state = *self.network_rx.borrow_and_update();
+                    self.handle_network_change(state);
                 }
 
                 // All senders dropped — shut down gracefully.
@@ -779,6 +798,7 @@ impl DataEngine {
                     last_sync_error: None,
                     created_at: None,
                     updated_at: None,
+                    credentials_encrypted: false,
                 };
 
                 match self.provider.save_source(&source) {
@@ -1338,6 +1358,243 @@ impl DataEngine {
         } else {
             result
         }
+    }
+
+    // ── DataChangeEvent subscriber ────────────────────────────────────────
+
+    /// Handle a mutation event emitted by CrispyService after a DB write.
+    ///
+    /// Maps each `DataChangeEvent` variant to the appropriate cache
+    /// invalidation + re-emit so the UI stays consistent without a full
+    /// reload.
+    fn handle_data_change(&mut self, event: crispy_core::events::DataChangeEvent) {
+        use crispy_core::events::DataChangeEvent as DCE;
+        debug!(?event, "[CHANGE] DataChangeEvent received");
+
+        match event {
+            // ── Channel-level mutations ───────────────────────────────
+            DCE::ChannelsUpdated { source_id } => {
+                debug!(
+                    source_id,
+                    "[CHANGE] ChannelsUpdated → reloading channel cache"
+                );
+                // Reload channels for the affected source from DB then re-emit.
+                let svc = self.provider.clone();
+                let sid = source_id.clone();
+                if let Ok(Ok(new_channels)) = self.rt.block_on(
+                    self.rt
+                        .spawn_blocking(move || svc.get_channels_by_sources(&[sid])),
+                ) {
+                    // Merge into cache: replace entries for this source.
+                    self.cache
+                        .all_channels
+                        .retain(|c| c.source_id.as_deref() != Some(source_id.as_str()));
+                    self.cache.all_channels.extend(new_channels);
+                    self.cache.rebuild_groups();
+                }
+                self.emit_filtered_channels();
+            }
+
+            DCE::ChannelOrderChanged => {
+                debug!("[CHANGE] ChannelOrderChanged → re-emit channels");
+                self.emit_filtered_channels();
+            }
+
+            DCE::CategoriesUpdated { .. } => {
+                // Categories are derived from channels — re-emit current view.
+                self.emit_filtered_channels();
+            }
+
+            // ── Favorite mutations ────────────────────────────────────
+            DCE::FavoriteToggled {
+                item_id,
+                is_favorite,
+            } => {
+                debug!(
+                    item_id,
+                    is_favorite, "[CHANGE] FavoriteToggled → update cache"
+                );
+                if is_favorite {
+                    self.cache.favorites.insert(item_id);
+                } else {
+                    self.cache.favorites.remove(&item_id);
+                }
+                self.emit_filtered_channels();
+                self.emit_filtered_vod();
+            }
+
+            DCE::FavoriteCategoryToggled { .. } => {
+                self.emit_filtered_channels();
+                self.emit_filtered_vod();
+            }
+
+            DCE::VodFavoriteToggled {
+                vod_id,
+                is_favorite,
+            } => {
+                debug!(
+                    vod_id,
+                    is_favorite, "[CHANGE] VodFavoriteToggled → update cache"
+                );
+                if is_favorite {
+                    self.cache.favorites.insert(vod_id);
+                } else {
+                    self.cache.favorites.remove(&vod_id);
+                }
+                self.emit_filtered_vod();
+            }
+
+            // ── VOD mutations ─────────────────────────────────────────
+            DCE::VodUpdated { .. } => {
+                debug!("[CHANGE] VodUpdated → reload VOD cache");
+                let svc = self.provider.clone();
+                let source_ids: Vec<String> = self
+                    .cache
+                    .sources
+                    .iter()
+                    .filter(|s| s.enabled)
+                    .map(|s| s.id.clone())
+                    .collect();
+                if let Ok(Ok(vod)) = self.rt.block_on(self.rt.spawn_blocking(move || {
+                    svc.get_filtered_vod(&source_ids, None, None, None, "name")
+                })) {
+                    self.cache.all_vod = vod;
+                    self.cache.rebuild_vod_categories();
+                }
+                self.emit_filtered_vod();
+            }
+
+            DCE::VodWatchProgressUpdated { .. } => {
+                // Progress bar update — no cache change needed, just re-emit.
+                self.emit_filtered_vod();
+            }
+
+            // ── Bookmark mutations ────────────────────────────────────
+            DCE::BookmarkChanged => {
+                debug!("[CHANGE] BookmarkChanged → re-emit channels + vod");
+                // Bookmarks affect both channel and VOD display indicators.
+                self.emit_filtered_channels();
+                self.emit_filtered_vod();
+            }
+
+            // ── Watch history ─────────────────────────────────────────
+            DCE::WatchHistoryUpdated { .. } | DCE::WatchHistoryCleared => {
+                // History changes affect the continue-watching lane.
+                // Fire a LoadContinueWatching to reload with the default profile.
+                let active_profile_id = self
+                    .shared_data
+                    .active_profile_id
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .clone();
+                // Enqueue as a normal event so it runs through the standard path.
+                let tx = self.data_tx.clone();
+                let items_result = {
+                    use crispy_core::algorithms::watch_history::filter_continue_watching;
+                    let svc = self.provider.clone();
+                    let pid = active_profile_id.clone();
+                    self.rt.block_on(self.rt.spawn_blocking(move || {
+                        svc.load_watch_history().map(|h| {
+                            filter_continue_watching(&h, None, Some(&pid))
+                                .into_iter()
+                                .map(|e| {
+                                    let progress = if e.duration_ms > 0 {
+                                        (e.position_ms as f32 / e.duration_ms as f32)
+                                            .clamp(0.0, 1.0)
+                                    } else {
+                                        0.0
+                                    };
+                                    crate::events::ContinueWatchingInfo {
+                                        id: e.id,
+                                        title: e.name,
+                                        image_url: e.poster_url,
+                                        progress,
+                                        content_type: e.media_type,
+                                    }
+                                })
+                                .collect::<Vec<_>>()
+                        })
+                    }))
+                };
+                match items_result {
+                    Ok(Ok(items)) => {
+                        if let Err(e) = tx.try_send(DataEvent::ContinueWatchingReady { items }) {
+                            warn!(error = %e, "[CHANGE] ContinueWatchingReady dropped");
+                        }
+                    }
+                    Ok(Err(e)) => error!(error = %e, "[CHANGE] Failed to reload continue-watching"),
+                    Err(e) => error!(error = %e, "[CHANGE] spawn_blocking join error"),
+                }
+            }
+
+            // ── Settings / UI state mutations ─────────────────────────
+            DCE::SettingsUpdated { .. } => {
+                // Settings changes are handled by HighPriorityEvent::ChangeTheme /
+                // ChangeLanguage through the UI — nothing to re-emit from cache here.
+                debug!("[CHANGE] SettingsUpdated (no cache action)");
+            }
+
+            DCE::SavedLayoutChanged
+            | DCE::SearchHistoryChanged
+            | DCE::ReminderChanged
+            | DCE::SmartGroupChanged
+            | DCE::CloudSyncCompleted => {
+                debug!(?event, "[CHANGE] minor mutation — no cache refresh needed");
+            }
+
+            // ── Bulk refresh ──────────────────────────────────────────
+            DCE::BulkDataRefresh => {
+                debug!("[CHANGE] BulkDataRefresh → full reload");
+                let rt = self.rt.clone();
+                rt.block_on(self.load_all_into_cache());
+                self.emit_initial_data();
+            }
+
+            // ── DVR / Recording ───────────────────────────────────────
+            DCE::RecordingChanged { .. }
+            | DCE::WatchlistUpdated { .. }
+            | DCE::StorageBackendChanged { .. }
+            | DCE::TransferTaskChanged { .. } => {
+                debug!("[CHANGE] DVR/Watchlist/Storage change (no UI cache action)");
+            }
+
+            // ── Profile changes ───────────────────────────────────────
+            DCE::ProfileChanged { .. } => {
+                debug!("[CHANGE] ProfileChanged — no direct cache refresh needed");
+            }
+
+            // ── Source mutations ──────────────────────────────────────
+            DCE::SourceChanged { .. } | DCE::SourceDeleted { .. } => {
+                // Source add/edit/delete is handled via NormalEvent::SaveSource /
+                // DeleteSource which already calls emit_initial_data(). A
+                // DataChangeEvent here is informational — no extra reload needed.
+                debug!("[CHANGE] SourceChanged/SourceDeleted (handled by NormalEvent path)");
+            }
+
+            // ── EPG ───────────────────────────────────────────────────
+            DCE::EpgUpdated { .. } => {
+                debug!("[CHANGE] EpgUpdated — EPG will reload on next EPG screen open");
+            }
+        }
+    }
+
+    // ── NetworkMonitor subscriber ─────────────────────────────────────────
+
+    /// Handle a network state transition from `NetworkMonitor`.
+    ///
+    /// Converts `NetworkState` to the integer code used by `AppState.network-status`
+    /// in the Slint UI (0 = online, 1 = offline, 2 = degraded, 3 = source unavailable)
+    /// and emits a `DataEvent::NetworkStateChanged` so `apply_data_event` can update
+    /// `AppState.is-offline` and `AppState.network-status`.
+    fn handle_network_change(&self, state: crispy_core::services::network_monitor::NetworkState) {
+        use crispy_core::services::network_monitor::NetworkState;
+        let status = match state {
+            NetworkState::Online => 0,
+            NetworkState::Offline => 1,
+            NetworkState::Degraded => 2,
+        };
+        debug!(status, "[NET] network state changed");
+        self.send(DataEvent::NetworkStateChanged { status });
     }
 
     /// Send a `DataEvent` to the EventBridge, logging on failure.

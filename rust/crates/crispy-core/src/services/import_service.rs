@@ -298,6 +298,7 @@ fn make_source(
         last_sync_error: None,
         created_at: None,
         updated_at: None,
+        credentials_encrypted: false,
     }
 }
 

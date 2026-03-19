@@ -145,7 +145,7 @@ fn save_and_load_recordings() {
     );
     assert_eq!(resp["ok"], true);
 
-    let resp = send(&svc, &json!({"cmd": "loadRecordings", "id": "r2"}));
+    let resp = send(&svc, &json!({"cmd": "loadRecordings", "id": "r2", "args": {"profileId": "default", "role": "admin"}}));
     let data = resp["data"].as_array().unwrap();
     assert_eq!(data.len(), 1);
     assert_eq!(data[0]["program_name"], "Football");
@@ -174,7 +174,7 @@ fn delete_recording() {
         &json!({
             "cmd": "deleteRecording",
             "id": "r2",
-            "args": {"id": "rec1"},
+            "args": {"id": "rec1", "profileId": "default", "role": "admin"},
         }),
     );
     assert_eq!(resp["ok"], true);

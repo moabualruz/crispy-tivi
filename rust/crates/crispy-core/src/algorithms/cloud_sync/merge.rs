@@ -259,12 +259,10 @@ fn merge_watch_history(local: &[Value], cloud: &[Value]) -> Value {
             None => continue,
         };
 
-        let existing = by_id.get(&id);
-        if existing.is_none() {
+        let Some(existing) = by_id.get(&id) else {
             by_id.insert(id, item.clone());
             continue;
-        }
-        let existing = existing.unwrap();
+        };
 
         // Compute max position.
         let local_pos = item.get("positionMs").and_then(Value::as_i64).unwrap_or(0);

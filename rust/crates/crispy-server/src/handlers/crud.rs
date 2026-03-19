@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use anyhow::{Context, Result, anyhow};
 use serde_json::{Value, json};
 
+use crispy_core::algorithms::permission::{can_delete_recording, can_view_recording};
 use crispy_core::models::*;
 use crispy_core::services::CrispyService;
 
@@ -370,7 +371,23 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         })(),
 
         // ── Recordings ─────────────────────────
-        "loadRecordings" => svc_data!(svc, load_recordings),
+        // SECURITY: loadRecordings enforces per-profile visibility.
+        // Callers must supply profileId + role; recordings not owned by the
+        // profile are filtered out for "view_only" roles.
+        "loadRecordings" => (|| {
+            let profile_id = get_str(args, "profileId")?;
+            let role = get_str(args, "role")?;
+            let all: Vec<Recording> = svc.load_recordings().map_err(|e| anyhow!("{e}"))?;
+            let visible: Vec<&Recording> = all
+                .iter()
+                .filter(|rec| {
+                    let owner = rec.owner_profile_id.as_deref().unwrap_or("");
+                    can_view_recording(&role, owner, &profile_id)
+                })
+                .collect();
+            let data = serde_json::to_value(&visible).map_err(|e| anyhow!("{e}"))?;
+            Ok(json!({"data": data}))
+        })(),
         "saveRecording" => (|| {
             let rec: Recording = serde_json::from_value(
                 args.get("recording")
@@ -389,8 +406,24 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             .context("Invalid recording")?;
             svc_ok!(svc, save_recording, &rec)
         })(),
+        // SECURITY: deleteRecording enforces ownership. Callers must supply
+        // profileId + role; deletion is rejected unless can_delete_recording passes.
         "deleteRecording" => (|| {
             let id = get_str(args, "id")?;
+            let profile_id = get_str(args, "profileId")?;
+            let role = get_str(args, "role")?;
+            // Fetch the recording to read its owner before deleting.
+            let all: Vec<Recording> = svc.load_recordings().map_err(|e| anyhow!("{e}"))?;
+            let rec = all
+                .iter()
+                .find(|r| r.id == id)
+                .ok_or_else(|| anyhow!("Recording not found: {id}"))?;
+            let owner = rec.owner_profile_id.as_deref().unwrap_or("");
+            if !can_delete_recording(&role, owner, &profile_id) {
+                return Err(anyhow!(
+                    "Permission denied: role '{role}' cannot delete recording '{id}'"
+                ));
+            }
             svc_ok!(svc, delete_recording, &id)
         })(),
 

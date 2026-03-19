@@ -18,8 +18,8 @@ export component EpgProgramDetail inherits Rectangle {
     }
   }
 
-  // Dismiss on Escape key
-  FocusScope {
+  // Dismiss on Escape key; auto-focus when panel becomes visible so D-pad works immediately
+  detail-fs := FocusScope {
     width: 0; height: 0;
     key-pressed(event) => {
       if event.text == Key.Escape {
@@ -29,6 +29,7 @@ export component EpgProgramDetail inherits Rectangle {
       return reject;
     }
   }
+  changed visible => { if self.visible { detail-fs.focus(); } }
 
   // Bottom sheet card — slides up via y animation
   sheet := Rectangle {

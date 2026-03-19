@@ -1,9 +1,115 @@
 use rusqlite::params;
 
 use super::{CrispyService, bool_to_int, dt_to_ts, int_to_bool, opt_dt_to_ts, opt_ts_to_dt};
+use crate::algorithms::crypto::{decrypt_field, encrypt_field, get_or_create_encryption_key};
 use crate::database::{DbError, TABLE_CHANNELS, TABLE_EPG_ENTRIES, TABLE_SOURCES, TABLE_VOD_ITEMS};
+use crate::errors::CrispyError;
 use crate::events::DataChangeEvent;
 use crate::models::{Source, SourceStats};
+
+// ── Credential encryption helpers ─────────────────────────────────────────────
+
+/// Map a `CrispyError::Security` to a `DbError::Migration` so that the
+/// service methods (which return `DbError`) can propagate encryption failures.
+///
+/// Using `DbError::Migration` is intentional: it carries a `String` message
+/// and bubbles up as a non-fatal service error (no SQLite error code).
+fn crypto_to_db(e: CrispyError) -> DbError {
+    DbError::Migration(format!("Credential encryption error: {e}"))
+}
+
+/// Encrypt one optional credential field.
+///
+/// Returns `Ok(None)` when `value` is `None`. On encryption failure the
+/// error is mapped to `DbError` via [`crypto_to_db`].
+fn encrypt_opt(value: &Option<String>, key: &[u8; 32]) -> Result<Option<String>, DbError> {
+    match value {
+        Some(v) => encrypt_field(v, key).map(Some).map_err(crypto_to_db),
+        None => Ok(None),
+    }
+}
+
+/// Decrypt one optional credential field.
+///
+/// Returns `Ok(None)` when `value` is `None`. On decryption failure the
+/// error is mapped to `DbError` via [`crypto_to_db`].
+fn decrypt_opt(value: &Option<String>, key: &[u8; 32]) -> Result<Option<String>, DbError> {
+    match value {
+        Some(v) => decrypt_field(v, key).map(Some).map_err(crypto_to_db),
+        None => Ok(None),
+    }
+}
+
+/// Map a raw DB row into a `Source` (without decryption).
+///
+/// Column order: id, name, source_type, url, username, password,
+/// access_token, device_id, user_id, mac_address, epg_url, user_agent,
+/// refresh_interval_minutes, accept_self_signed, enabled, sort_order,
+/// last_sync_time, last_sync_status, last_sync_error, created_at,
+/// updated_at, credentials_encrypted.
+fn row_to_source(row: &rusqlite::Row<'_>) -> rusqlite::Result<Source> {
+    Ok(Source {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        source_type: row.get(2)?,
+        url: row.get(3)?,
+        username: row.get(4)?,
+        password: row.get(5)?,
+        access_token: row.get(6)?,
+        device_id: row.get(7)?,
+        user_id: row.get(8)?,
+        mac_address: row.get(9)?,
+        epg_url: row.get(10)?,
+        user_agent: row.get(11)?,
+        refresh_interval_minutes: row.get(12)?,
+        accept_self_signed: int_to_bool(row.get(13)?),
+        enabled: int_to_bool(row.get(14)?),
+        sort_order: row.get(15)?,
+        last_sync_time: opt_ts_to_dt(row.get(16)?),
+        last_sync_status: row.get(17)?,
+        last_sync_error: row.get(18)?,
+        created_at: opt_ts_to_dt(row.get(19)?),
+        updated_at: opt_ts_to_dt(row.get(20)?),
+        credentials_encrypted: int_to_bool(row.get::<_, i32>(21).unwrap_or(0)),
+    })
+}
+
+/// Decrypt credential fields on a source loaded from the DB.
+///
+/// If the source has `credentials_encrypted = false` (legacy plaintext row)
+/// and a keyring is available, this re-encrypts and saves the row so that
+/// future loads are encrypted.
+fn decrypt_source(svc: &CrispyService, mut source: Source) -> Result<Source, DbError> {
+    let Some(kr) = svc.keyring.as_deref() else {
+        // No keyring configured (tests or no-keyring build): return as-is.
+        return Ok(source);
+    };
+
+    let key = get_or_create_encryption_key(kr).map_err(crypto_to_db)?;
+
+    if source.credentials_encrypted {
+        // Already encrypted — decrypt in place.
+        source.password = decrypt_opt(&source.password, &key)?;
+        source.access_token = decrypt_opt(&source.access_token, &key)?;
+        source.mac_address = decrypt_opt(&source.mac_address, &key)?;
+        source.device_id = decrypt_opt(&source.device_id, &key)?;
+        source.credentials_encrypted = false; // expose plaintext to callers
+    } else {
+        // Legacy plaintext row — encrypt and persist immediately.
+        let encrypted = Source {
+            password: encrypt_opt(&source.password, &key)?,
+            access_token: encrypt_opt(&source.access_token, &key)?,
+            mac_address: encrypt_opt(&source.mac_address, &key)?,
+            device_id: encrypt_opt(&source.device_id, &key)?,
+            credentials_encrypted: true,
+            ..source.clone()
+        };
+        svc.save_source_raw(&encrypted)?;
+        // Return the plaintext version to the caller.
+    }
+
+    Ok(source)
+}
 
 impl CrispyService {
     /// Get all sources ordered by sort_order.
@@ -15,35 +121,19 @@ impl CrispyService {
                     epg_url, user_agent, refresh_interval_minutes,
                     accept_self_signed, enabled, sort_order,
                     last_sync_time, last_sync_status, last_sync_error,
-                    created_at, updated_at
+                    created_at, updated_at, credentials_encrypted
              FROM {TABLE_SOURCES} ORDER BY sort_order, name"
         ))?;
-        let rows = stmt.query_map([], |row| {
-            Ok(Source {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                source_type: row.get(2)?,
-                url: row.get(3)?,
-                username: row.get(4)?,
-                password: row.get(5)?,
-                access_token: row.get(6)?,
-                device_id: row.get(7)?,
-                user_id: row.get(8)?,
-                mac_address: row.get(9)?,
-                epg_url: row.get(10)?,
-                user_agent: row.get(11)?,
-                refresh_interval_minutes: row.get(12)?,
-                accept_self_signed: int_to_bool(row.get(13)?),
-                enabled: int_to_bool(row.get(14)?),
-                sort_order: row.get(15)?,
-                last_sync_time: opt_ts_to_dt(row.get(16)?),
-                last_sync_status: row.get(17)?,
-                last_sync_error: row.get(18)?,
-                created_at: opt_ts_to_dt(row.get(19)?),
-                updated_at: opt_ts_to_dt(row.get(20)?),
-            })
-        })?;
-        rows.collect::<Result<Vec<_>, _>>().map_err(DbError::Sqlite)
+        let rows = stmt.query_map([], row_to_source)?;
+        let sources: Vec<Source> = rows
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(DbError::Sqlite)?;
+        // Decrypt outside the borrow of `conn`.
+        drop(stmt);
+        sources
+            .into_iter()
+            .map(|s| decrypt_source(self, s))
+            .collect()
     }
 
     /// Get a single source by ID.
@@ -56,45 +146,50 @@ impl CrispyService {
                         epg_url, user_agent, refresh_interval_minutes,
                         accept_self_signed, enabled, sort_order,
                         last_sync_time, last_sync_status, last_sync_error,
-                        created_at, updated_at
+                        created_at, updated_at, credentials_encrypted
                  FROM {TABLE_SOURCES} WHERE id = ?1"
             ),
             params![id],
-            |row| {
-                Ok(Source {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    source_type: row.get(2)?,
-                    url: row.get(3)?,
-                    username: row.get(4)?,
-                    password: row.get(5)?,
-                    access_token: row.get(6)?,
-                    device_id: row.get(7)?,
-                    user_id: row.get(8)?,
-                    mac_address: row.get(9)?,
-                    epg_url: row.get(10)?,
-                    user_agent: row.get(11)?,
-                    refresh_interval_minutes: row.get(12)?,
-                    accept_self_signed: int_to_bool(row.get(13)?),
-                    enabled: int_to_bool(row.get(14)?),
-                    sort_order: row.get(15)?,
-                    last_sync_time: opt_ts_to_dt(row.get(16)?),
-                    last_sync_status: row.get(17)?,
-                    last_sync_error: row.get(18)?,
-                    created_at: opt_ts_to_dt(row.get(19)?),
-                    updated_at: opt_ts_to_dt(row.get(20)?),
-                })
-            },
+            row_to_source,
         );
         match result {
-            Ok(s) => Ok(Some(s)),
+            Ok(s) => {
+                drop(conn);
+                Ok(Some(decrypt_source(self, s)?))
+            }
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(DbError::Sqlite(e)),
         }
     }
 
-    /// Save (insert or replace) a source.
+    /// Save (insert or replace) a source, encrypting credentials if a keyring
+    /// is configured.
+    ///
+    /// Callers pass a source with plaintext credentials; this method encrypts
+    /// them before writing to the DB and sets `credentials_encrypted = true`.
     pub fn save_source(&self, source: &Source) -> Result<(), DbError> {
+        if let Some(kr) = self.keyring.as_deref() {
+            let key = get_or_create_encryption_key(kr).map_err(crypto_to_db)?;
+            let encrypted = Source {
+                password: encrypt_opt(&source.password, &key)?,
+                access_token: encrypt_opt(&source.access_token, &key)?,
+                mac_address: encrypt_opt(&source.mac_address, &key)?,
+                device_id: encrypt_opt(&source.device_id, &key)?,
+                credentials_encrypted: true,
+                ..source.clone()
+            };
+            self.save_source_raw(&encrypted)
+        } else {
+            // No keyring (tests / no-keyring build): store as-is.
+            self.save_source_raw(source)
+        }
+    }
+
+    /// Write a source row verbatim — callers are responsible for encryption.
+    ///
+    /// Not part of the public API; used by [`save_source`] and the legacy
+    /// re-encryption path in [`decrypt_source`].
+    pub(super) fn save_source_raw(&self, source: &Source) -> Result<(), DbError> {
         let conn = self.db.get()?;
         conn.execute(
             &format!(
@@ -104,9 +199,9 @@ impl CrispyService {
                   epg_url, user_agent, refresh_interval_minutes,
                   accept_self_signed, enabled, sort_order,
                   last_sync_time, last_sync_status, last_sync_error,
-                  created_at, updated_at)
+                  created_at, updated_at, credentials_encrypted)
                  VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,
-                         ?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21)"
+                         ?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22)"
             ),
             params![
                 source.id,
@@ -130,6 +225,7 @@ impl CrispyService {
                 source.last_sync_error,
                 opt_dt_to_ts(&source.created_at),
                 opt_dt_to_ts(&source.updated_at),
+                bool_to_int(source.credentials_encrypted),
             ],
         )?;
         self.emit(DataChangeEvent::SourceChanged {

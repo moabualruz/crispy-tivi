@@ -270,6 +270,7 @@ mod tests {
             last_sync_error: None,
             created_at: None,
             updated_at: None,
+            credentials_encrypted: false,
         };
         svc.save_source(&src).unwrap();
         svc.grant_source_access("p1", "src1").unwrap();

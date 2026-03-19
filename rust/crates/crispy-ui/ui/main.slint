@@ -120,6 +120,7 @@ export component AppWindow inherits Window {
         if AppState.show-cast-picker { AppState.show-cast-picker = false; return accept; }
         if AppState.show-profile-menu { AppState.show-profile-menu = false; return accept; }
         if AppState.show-source-dialog { AppState.show-source-dialog = false; return accept; }
+        if AppState.show-epg-detail { AppState.show-epg-detail = false; return accept; }
         if AppState.show-vod-detail { AppState.show-vod-detail = false; return accept; }
         if AppState.show-series-detail { AppState.show-series-detail = false; return accept; }
         if PlayerState.is-fullscreen {
@@ -127,12 +128,14 @@ export component AppWindow inherits Window {
           return accept;
         }
         if PlayerState.is-playing {
-          // M-005 + M-016: dismiss all overlays when playback stops
+          // M-005 + M-016: dismiss all overlays when playback stops, then return to Home
+          AppState.show-epg-detail = false;
           AppState.show-vod-detail = false;
           AppState.show-series-detail = false;
           AppState.show-source-dialog = false;
           AppState.show-profile-menu = false;
           PlayerState.stop();
+          AppState.active-screen = 0;
           return accept;
         }
       }

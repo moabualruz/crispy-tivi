@@ -517,6 +517,13 @@ pub struct Source {
     /// When the source was last updated.
     #[serde(default)]
     pub updated_at: Option<NaiveDateTime>,
+    /// Whether `password`, `access_token`, `mac_address`, and `device_id`
+    /// are stored as AES-256-GCM ciphertext (Base64-encoded).
+    ///
+    /// `false` means plaintext (legacy rows); the service layer re-encrypts
+    /// on first load and sets this to `true`.
+    #[serde(default)]
+    pub credentials_encrypted: bool,
 }
 
 // ── SourceStats ─────────────────────────────────────

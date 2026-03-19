@@ -26,8 +26,6 @@ use crate::errors::CrispyError;
 pub const ENCRYPTION_KEY_ID: &str = "crispy_db_encryption_key";
 
 /// AES-256-GCM nonce length in bytes (96-bit recommended by the spec).
-// Credential encryption call-sites are wired in the service layer (C-008/C-010).
-#[allow(dead_code)]
 const NONCE_LEN: usize = 12;
 
 /// Encrypt a plaintext string field with AES-256-GCM.
@@ -38,8 +36,6 @@ const NONCE_LEN: usize = 12;
 ///
 /// # Errors
 /// Returns [`CrispyError::Security`] on encryption failure.
-// Used by the credential encryption service (C-008/C-010); not yet wired at lib level.
-#[allow(dead_code)]
 pub(crate) fn encrypt_field(plaintext: &str, key: &[u8; 32]) -> Result<String, CrispyError> {
     let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
 
@@ -64,8 +60,6 @@ pub(crate) fn encrypt_field(plaintext: &str, key: &[u8; 32]) -> Result<String, C
 /// # Errors
 /// Returns [`CrispyError::Security`] if the Base64 is malformed, the data
 /// is too short to contain a nonce, or decryption / authentication fails.
-// Used by the credential encryption service (C-008/C-010); not yet wired at lib level.
-#[allow(dead_code)]
 pub(crate) fn decrypt_field(encrypted: &str, key: &[u8; 32]) -> Result<String, CrispyError> {
     let combined = BASE64
         .decode(encrypted)
@@ -87,6 +81,43 @@ pub(crate) fn decrypt_field(encrypted: &str, key: &[u8; 32]) -> Result<String, C
 
     String::from_utf8(plaintext_bytes)
         .map_err(|e| CrispyError::security(format!("Decrypted bytes are not valid UTF-8: {e}")))
+}
+
+/// Retrieve or generate the 32-byte AES-256-GCM database encryption key.
+///
+/// The key is stored in the OS credential manager under [`ENCRYPTION_KEY_ID`]
+/// as a Base64-encoded 32-byte value. If no key exists yet (first run), a
+/// fresh cryptographically random key is generated, stored, and returned.
+///
+/// # Errors
+/// Returns [`CrispyError::Security`] if the keyring is inaccessible or the
+/// stored value cannot be decoded to exactly 32 bytes.
+pub(crate) fn get_or_create_encryption_key(
+    keyring: &crate::services::secret_store::PlatformKeyring,
+) -> Result<[u8; 32], CrispyError> {
+    use crate::services::secret_store::ExposeSecret;
+
+    if let Some(existing) = keyring.get(ENCRYPTION_KEY_ID)? {
+        let bytes = BASE64
+            .decode(existing.expose_secret())
+            .map_err(|e| CrispyError::security(format!("Invalid encryption key Base64: {e}")))?;
+        if bytes.len() != 32 {
+            return Err(CrispyError::security(format!(
+                "Encryption key must be 32 bytes, got {}",
+                bytes.len()
+            )));
+        }
+        let mut key = [0u8; 32];
+        key.copy_from_slice(&bytes);
+        return Ok(key);
+    }
+
+    // First run: generate and persist a fresh key.
+    let mut key = [0u8; 32];
+    OsRng.fill_bytes(&mut key);
+    let b64_key = crate::services::secret_store::SecretString::from(BASE64.encode(key));
+    keyring.set(ENCRYPTION_KEY_ID, &b64_key)?;
+    Ok(key)
 }
 
 type HmacSha256 = Hmac<Sha256>;

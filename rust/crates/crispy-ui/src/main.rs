@@ -221,6 +221,34 @@ fn real_main() -> anyhow::Result<()> {
     let (sync_result_tx, sync_result_rx) = tokio::sync::mpsc::channel(32);
     let (data_tx, data_rx) = tokio::sync::mpsc::channel(512);
 
+    // ── DataChangeEvent bridge — CrispyService mutations → DataEngine ────
+    // CrispyService fires an EventCallback on every mutation (favorites,
+    // bookmarks, channel updates, etc.). We bridge that into an mpsc channel
+    // so DataEngine can react on its own task without blocking the service.
+    let (change_tx, change_rx) =
+        tokio::sync::mpsc::channel::<crispy_core::events::DataChangeEvent>(64);
+    service.set_event_callback(std::sync::Arc::new({
+        let tx = change_tx;
+        move |event: &crispy_core::events::DataChangeEvent| {
+            if let Err(e) = tx.try_send(event.clone()) {
+                tracing::debug!(error = %e, "[CHANGE] DataChangeEvent dropped (channel full)");
+            }
+        }
+    }));
+
+    // ── NetworkMonitor — watch channel → DataEngine ───────────────────────
+    let (network_monitor, network_rx) =
+        crispy_core::services::network_monitor::NetworkMonitor::new();
+    // Spawn periodic re-check (every 30 s, native only).
+    #[cfg(not(target_arch = "wasm32"))]
+    rt.spawn(
+        crispy_core::services::network_monitor::NetworkMonitor::start_periodic(
+            std::sync::Arc::new(network_monitor),
+        ),
+    );
+    #[cfg(target_arch = "wasm32")]
+    let _ = network_monitor;
+
     // ── MpvBackend (shared between player handler and data listener) ─────
     let backend = match MpvBackend::new() {
         Ok(b) => {
@@ -319,6 +347,8 @@ fn real_main() -> anyhow::Result<()> {
         sync_result_rx,
         data_tx,
         sync_result_tx,
+        change_rx,
+        network_rx,
         rt.handle().clone(),
         shared_data,
     );

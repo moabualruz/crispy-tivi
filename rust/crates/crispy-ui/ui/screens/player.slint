@@ -691,7 +691,7 @@ component OsdControls inherits Rectangle {
     // Settings
     OsdButton {
       btn-size: 48px;
-      activated => { /* Open settings */ }
+      activated => { AppState.open-player-settings(); }
       IconSettings { size: 24px; fill: Theme.btn-secondary-fg; }
     }
   }

@@ -5,6 +5,7 @@
 //! Authentication uses the two-step handshake + do_auth flow.
 
 use std::collections::HashMap;
+use std::fmt;
 
 use anyhow::{Context, Result, anyhow};
 
@@ -37,9 +38,23 @@ struct StalkerSession {
     /// Full portal URL including discovered path prefix.
     portal_url: String,
     /// Bearer token obtained from the handshake.
+    // SECURITY: never expose this field in logs or debug output — it is a live
+    // portal credential. See manual Debug impl below.
     token: String,
     /// Cookie header value: `mac={mac}; stb_lang=en; timezone=UTC`.
     mac_cookie: String,
+}
+
+/// Manual Debug impl that redacts the bearer token to prevent it appearing
+/// in tracing spans, error messages, or debug-formatted log lines.
+impl fmt::Debug for StalkerSession {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("StalkerSession")
+            .field("portal_url", &self.portal_url)
+            .field("token", &"[REDACTED]")
+            .field("mac_cookie", &self.mac_cookie)
+            .finish()
+    }
 }
 
 // ── Auth helpers ─────────────────────────────────────
@@ -110,6 +125,7 @@ async fn try_authenticate(
         .header("Cookie", &cookie)
         .header("User-Agent", "MAG250/1.0 (CrispyTivi)")
         .header("X-User-Agent", "Model: MAG250; Link: WiFi")
+        // SECURITY: token is a live credential — never log this header value.
         .header("Authorization", format!("Bearer {}", token))
         .send()
         .await
@@ -177,6 +193,7 @@ async fn stalker_get(
         .header("Cookie", &session.mac_cookie)
         .header("User-Agent", "MAG250/1.0 (CrispyTivi)")
         .header("X-User-Agent", "Model: MAG250; Link: WiFi")
+        // SECURITY: session.token is a live credential — never log this header value.
         .header("Authorization", format!("Bearer {}", session.token))
         .send()
         .await

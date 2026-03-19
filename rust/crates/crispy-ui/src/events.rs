@@ -434,4 +434,7 @@ pub enum DataEvent {
         /// id, title, poster_url, progress fraction (0.0–1.0), content_type
         items: Vec<ContinueWatchingInfo>,
     },
+    /// Network connectivity state changed — update offline banner.
+    /// `status`: 0 = online, 1 = offline, 2 = degraded.
+    NetworkStateChanged { status: i32 },
 }
