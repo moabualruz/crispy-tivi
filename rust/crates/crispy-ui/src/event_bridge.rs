@@ -49,6 +49,8 @@ pub(crate) struct SharedData {
     /// Incrementally wired: used when global key handler is connected.
     #[allow(dead_code)]
     pub input_mgr: Mutex<crate::input::InputManager>,
+    /// J-25: recent search queries, most-recent first, capped at 10.
+    pub recent_searches: Mutex<Vec<String>>,
 }
 
 impl SharedData {
@@ -62,6 +64,7 @@ impl SharedData {
             active_profile_id: Mutex::new(String::new()),
             focus_mgr: Mutex::new(crate::focus::manager::FocusManager::new("home")),
             input_mgr: Mutex::new(crate::input::InputManager::new()),
+            recent_searches: Mutex::new(Vec::new()),
         }
     }
 }
@@ -531,11 +534,61 @@ pub(crate) fn wire(
 
     app.on_perform_search({
         let tx = high_tx.clone();
+        let normal_tx_search = normal_tx.clone();
+        let shared_data_search = Arc::clone(&shared_data);
+        let ui_w_search = ui.as_weak();
         move |query| {
             if let Err(e) = tx.try_send(HighPriorityEvent::Search {
                 query: query.to_string(),
             }) {
                 tracing::warn!(error = %e, "high_tx full: Search dropped");
+            }
+            // J-25: persist recent searches (dedup, most-recent first, cap 10)
+            let q = query.to_string();
+            if q.len() >= 2 {
+                let updated = {
+                    let mut list = shared_data_search
+                        .recent_searches
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner());
+                    list.retain(|s| s != &q);
+                    list.insert(0, q.clone());
+                    list.truncate(10);
+                    list.clone()
+                };
+                // Update UI property
+                if let Some(ui) = ui_w_search.upgrade() {
+                    let slint_list: Vec<SharedString> = updated
+                        .iter()
+                        .map(|s| SharedString::from(s.as_str()))
+                        .collect();
+                    ui.global::<super::AppState>()
+                        .set_recent_searches(ModelRc::new(VecModel::from(slint_list)));
+                }
+                // Persist as JSON array
+                let json = format!(
+                    "[{}]",
+                    updated
+                        .iter()
+                        .map(|s| format!("\"{}\"", s.replace('"', "\\\"")))
+                        .collect::<Vec<_>>()
+                        .join(",")
+                );
+                let _ = normal_tx_search.try_send(NormalEvent::SavePreference {
+                    key: "recent_searches".into(),
+                    value: json,
+                });
+            }
+        }
+    });
+
+    app.on_search_epg({
+        let tx = high_tx.clone();
+        move |query| {
+            if let Err(e) = tx.try_send(HighPriorityEvent::SearchEpg {
+                query: query.to_string(),
+            }) {
+                tracing::warn!(error = %e, "high_tx full: SearchEpg dropped");
             }
         }
     });
@@ -1918,6 +1971,73 @@ pub(crate) fn wire(
         }
     });
 
+    // ── J-40: Clear watch history callback ───────────────────────────────
+    app.on_clear_watch_history({
+        let tx = normal_tx.clone();
+        move || {
+            if let Err(e) = tx.try_send(NormalEvent::ClearWatchHistory {
+                profile_id: "default".to_string(),
+            }) {
+                tracing::warn!(error = %e, "normal_tx full: ClearWatchHistory dropped");
+            }
+        }
+    });
+
+    // ── J-40: Auto-save watch position every 30s during playback ─────────
+    {
+        let ui_w = ui.as_weak();
+        let tx = normal_tx.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+                let ui_w2 = ui_w.clone();
+                let tx2 = tx.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(ui) = ui_w2.upgrade() {
+                        let ps = ui.global::<super::PlayerState>();
+                        let app = ui.global::<super::AppState>();
+                        if !ps.get_is_playing() || ps.get_is_live() {
+                            return;
+                        }
+                        let pos_secs = ps.get_position();
+                        let dur_secs = ps.get_duration();
+                        if pos_secs < 1.0 {
+                            return;
+                        }
+                        let title = ps.get_current_title().to_string();
+                        let channel_id = ps.get_current_channel_id().to_string();
+                        // Use channel_id as stream key; DataEngine derives history ID from it
+                        if channel_id.is_empty() && title.is_empty() {
+                            return;
+                        }
+                        // Use channel_id as stream_url proxy when no direct URL is available
+                        let stream_key = if !channel_id.is_empty() {
+                            channel_id
+                        } else {
+                            title.clone()
+                        };
+                        let media_type = if app.get_active_screen() == 1 {
+                            "channel"
+                        } else {
+                            "movie"
+                        };
+                        if let Err(e) = tx2.try_send(NormalEvent::SaveWatchEntry {
+                            id: String::new(), // derived from stream_url in DataEngine
+                            name: title,
+                            media_type: media_type.to_string(),
+                            stream_url: stream_key,
+                            position_ms: (pos_secs * 1000.0) as i64,
+                            duration_ms: (dur_secs * 1000.0) as i64,
+                            profile_id: "default".to_string(),
+                        }) {
+                            tracing::warn!(error = %e, "normal_tx full: SaveWatchEntry (30s) dropped");
+                        }
+                    }
+                });
+            }
+        });
+    }
+
     // ── Hero auto-advance timer (8s interval) ─────────────────────────────
     {
         let ui_w = ui.as_weak();
@@ -2822,6 +2942,50 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
         DataEvent::EpgFocusChannel { channel_id } => {
             tracing::debug!(channel_id, "[DATA] EPG focus channel");
             app.set_epg_jump_channel_id(SharedString::from(channel_id.as_str()));
+        }
+
+        DataEvent::EpgSearchResults { query, results } => {
+            tracing::debug!(query, count = results.len(), "[DATA] EPG search results");
+            // Store the search query so the EPG screen can show/hide the filtered state.
+            app.set_epg_search_query(SharedString::from(query.as_str()));
+        }
+
+        DataEvent::RecentSearchesReady { queries } => {
+            tracing::debug!(count = queries.len(), "[DATA] recent searches ready");
+            let slint_list: Vec<SharedString> = queries
+                .iter()
+                .map(|s| SharedString::from(s.as_str()))
+                .collect();
+            app.set_recent_searches(ModelRc::new(VecModel::from(slint_list)));
+        }
+
+        // J-40: populate Library History tab
+        DataEvent::WatchHistoryReady { entries } => {
+            tracing::debug!(count = entries.len(), "[DATA] watch history ready");
+            let slint_entries: Vec<super::WatchHistoryData> = entries
+                .iter()
+                .map(|e| super::WatchHistoryData {
+                    id: SharedString::from(e.id.as_str()),
+                    name: SharedString::from(e.name.as_str()),
+                    media_type: SharedString::from(e.media_type.as_str()),
+                    stream_url: SharedString::from(e.stream_url.as_str()),
+                    position_ms: e.position_ms.min(i32::MAX as i64) as i32,
+                    duration_ms: e.duration_ms.min(i32::MAX as i64) as i32,
+                    watched_at: SharedString::from(e.watched_at.as_str()),
+                    progress: if e.duration_ms > 0 {
+                        (e.position_ms as f32 / e.duration_ms as f32).clamp(0.0, 1.0)
+                    } else {
+                        0.0
+                    },
+                })
+                .collect();
+            app.set_watch_history(ModelRc::new(VecModel::from(slint_entries)));
+        }
+
+        // J-17/J-21: populate home screen continue-watching lane
+        DataEvent::ContinueWatchingReady { items } => {
+            tracing::debug!(count = items.len(), "[DATA] continue-watching ready");
+            // TODO(J-17): wire to home screen continue-watching VecModel when lane is implemented
         }
     }
 }

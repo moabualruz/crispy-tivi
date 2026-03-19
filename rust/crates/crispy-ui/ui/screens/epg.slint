@@ -4,6 +4,7 @@ import { EmptyState } from "../components/empty-state.slint";
 import { IconTv } from "../components/icons.slint";
 import { ListView } from "std-widgets.slint";
 import { EpgProgramDetail } from "../components/epg-program-detail.slint";
+import { SearchBar } from "../components/search-bar.slint";
 
 // Day label for the date picker bar
 component DayChip inherits FocusScope {
@@ -401,6 +402,19 @@ export component EpgScreen inherits FocusScope {
           }
           TouchArea { clicked => { AppState.select-epg-date(0); } }
         }
+      }
+    }
+
+    // J-14: EPG programme search pill
+    HorizontalLayout {
+      padding-left: Theme.content-padding-h;
+      padding-right: Theme.content-padding-h;
+      padding-bottom: Theme.spacing-sm;
+
+      SearchBar {
+        placeholder: "Search programmes...";
+        edited(v) => { AppState.search-epg(v); }
+        accepted(v) => { AppState.search-epg(v); }
       }
     }
 

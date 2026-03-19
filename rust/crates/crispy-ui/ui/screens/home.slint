@@ -1,5 +1,5 @@
 import { Theme } from "../globals/theme.slint";
-import { AppState, ChannelData, VodData } from "../globals/app-state.slint";
+import { AppState, ChannelData, VodData, ContinueWatchingData } from "../globals/app-state.slint";
 import { EmptyState } from "../components/empty-state.slint";
 import { VodCard } from "../components/vod-card.slint";
 import { LoadingIndicator } from "../components/loading-indicator.slint";
@@ -169,6 +169,69 @@ component HeroStatic inherits Rectangle {
   }
 }
 
+// Continue Watching card — shows poster + progress bar (J-17/J-21)
+component ContinueWatchingCard inherits FocusScope {
+  in property <ContinueWatchingData> item;
+  callback clicked();
+
+  width: 180px;
+  height: 120px;
+
+  key-pressed(event) => {
+    if event.text == Key.Return { root.clicked(); return accept; }
+    return reject;
+  }
+
+  Rectangle {
+    width: 100%; height: 100%;
+    border-radius: Theme.radius-md;
+    clip: true;
+    border-width: root.has-focus ? Theme.focus-ring-width : 1px;
+    border-color: root.has-focus ? Theme.focus-ring : Theme.card-border;
+    background: Theme.card-surface;
+
+    animate border-color { duration: 150ms; }
+    animate border-width { duration: 150ms; }
+
+    // Poster image
+    Image {
+      source: root.item.poster;
+      image-fit: cover;
+      width: 100%; height: 100%;
+    }
+
+    // Gradient overlay for title legibility
+    Rectangle {
+      width: 100%; height: 50%;
+      y: parent.height / 2;
+      background: @linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(10,10,12,0.85) 100%);
+    }
+
+    // Title
+    Text {
+      x: Theme.spacing-sm;
+      y: root.height - 34px;
+      width: root.width - Theme.spacing-sm * 2;
+      text: root.item.title;
+      color: Theme.text-primary;
+      font-family: Theme.font-body;
+      font-size: Theme.font-size-small;
+      font-weight: 600;
+      overflow: elide;
+    }
+
+    // Progress bar — 3px accent strip at bottom
+    Rectangle {
+      x: 0px; y: root.height - 3px;
+      width: root.width * root.item.progress;
+      height: 3px;
+      background: Theme.brand-gradient;
+    }
+
+    TouchArea { clicked => { root.clicked(); } }
+  }
+}
+
 export component HomeScreen inherits Rectangle {
   background: transparent;
 
@@ -206,6 +269,27 @@ export component HomeScreen inherits Rectangle {
       // Hero — dynamic or static fallback
       if AppState.hero-items.length > 0: HeroDynamic {}
       if AppState.hero-items.length == 0: HeroStatic {}
+
+      // Continue Watching lane (J-17/J-21)
+      if AppState.continue-watching-items.length > 0: VerticalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        spacing: Theme.spacing-md;
+
+        SectionHeader { title: "Continue Watching"; }
+
+        ScrollView {
+          height: 128px;
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            alignment: start;
+            for cw-item in AppState.continue-watching-items: ContinueWatchingCard {
+              item: cw-item;
+              clicked => { AppState.play-vod(cw-item.id); }
+            }
+          }
+        }
+      }
 
       // Recent channels
       if AppState.home-channels.length > 0: VerticalLayout {

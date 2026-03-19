@@ -115,12 +115,16 @@ fn clean(s: &str) -> String {
 /// Step 6: move a leading article to the end.
 ///
 /// "the matrix" → "matrix the"  (before the sort step)
+///
+/// Guard: only move when `tokens[1]` is **not** itself an article.
+/// Without this guard, two adjacent articles flip-flop on repeated
+/// application ("the a" → "a the" → "the a" …), breaking idempotency.
 fn move_article(s: &str) -> String {
     let tokens: Vec<&str> = s.split_whitespace().collect();
     if tokens.len() < 2 {
         return s.to_string();
     }
-    if ARTICLES.contains(&tokens[0]) {
+    if ARTICLES.contains(&tokens[0]) && !ARTICLES.contains(&tokens[1]) {
         let rest = tokens[1..].join(" ");
         format!("{rest} {}", tokens[0])
     } else {

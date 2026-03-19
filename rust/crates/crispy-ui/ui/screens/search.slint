@@ -61,8 +61,22 @@ export component SearchScreen inherits Rectangle {
           font-weight: 700;
         }
 
-        // Suggestion chips — placeholder genres until search history is persisted
-        HorizontalLayout {
+        // J-25: persisted recent search chips — populated from DB on startup
+        if AppState.recent-searches.length > 0: HorizontalLayout {
+          spacing: Theme.spacing-sm;
+
+          for chip in AppState.recent-searches: FilterChip {
+            label: chip;
+            active: false;
+            activated => {
+              AppState.search-text = chip;
+              AppState.perform-search(chip);
+            }
+          }
+        }
+
+        // Fallback genre chips when no recent searches exist yet
+        if AppState.recent-searches.length == 0: HorizontalLayout {
           spacing: Theme.spacing-sm;
 
           for chip in ["Sports", "News", "Movies", "Kids", "Music"]: FilterChip {

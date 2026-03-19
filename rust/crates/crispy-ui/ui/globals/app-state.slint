@@ -101,6 +101,35 @@ export struct CategoryData {
   category-type: string,
 }
 
+// ── Continue Watching (J-17/J-21) ──
+// J-40: Watch history entry for the Library History tab.
+export struct WatchHistoryData {
+  id: string,
+  name: string,
+  // "channel" | "movie" | "episode"
+  media-type: string,
+  stream-url: string,
+  // Playback position in milliseconds
+  position-ms: int,
+  // Total duration in milliseconds (0 for live)
+  duration-ms: int,
+  // Human-readable timestamp, e.g. "2026-03-19 14:32"
+  watched-at: string,
+  // Fractional progress 0.0–1.0
+  progress: float,
+}
+
+export struct ContinueWatchingData {
+  id: string,
+  title: string,
+  image-url: string,
+  // 0.0–1.0 fractional progress
+  progress: float,
+  // "channel" | "movie" | "episode"
+  content-type: string,
+  poster: image,
+}
+
 // ── Casting structs (Epoch 10) ──
 export struct CastDeviceData {
   id: string,
@@ -216,6 +245,7 @@ export global AppState {
   in-out property <string> channel-search-text: ""; // TODO: unused — remove when confirmed safe
 
   // Home screen preview lanes (small fixed slices, not the full model)
+  in-out property <[ContinueWatchingData]> continue-watching-items: [];
   in-out property <[ChannelData]> home-channels: [];
   in-out property <[VodData]> home-movies: [];
   in-out property <[VodData]> home-series: [];
@@ -323,6 +353,18 @@ export global AppState {
   // Search (debounced in Rust — UI fires immediately)
   callback perform-search(/* query */ string);
 
+  // J-40: watch history entries for the Library History tab (loaded on navigate)
+  in-out property <[WatchHistoryData]> watch-history: [];
+  // J-40: clear all watch history
+  callback clear-watch-history();
+
+  // J-25: recent search queries (persisted, most-recent first, max 10)
+  in-out property <[string]> recent-searches: [];
+
+  // EPG search (J-14)
+  in-out property <string> epg-search-query: "";
+  callback search-epg(/* query */ string);
+
   // Profile operations
   callback switch-profile(/* profile-id */ string);
   callback create-profile(/* name */ string, /* is-kids */ bool);
@@ -346,6 +388,9 @@ export global AppState {
   // Backup / restore (Epoch 13)
   callback export-backup();
   callback import-backup();
+
+  // GDPR — delete all user data (J-47)
+  callback delete-all-data();
 
   // ── Privacy consent (Epoch 13.15) ──
   // Shown on first launch after onboarding. User must accept to use the app.

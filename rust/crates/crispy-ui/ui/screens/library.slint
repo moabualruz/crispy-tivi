@@ -1,5 +1,5 @@
 import { Theme } from "../globals/theme.slint";
-import { AppState, VodData, ChannelData } from "../globals/app-state.slint";
+import { AppState, VodData, ChannelData, WatchHistoryData } from "../globals/app-state.slint";
 import { EmptyState } from "../components/empty-state.slint";
 import { FilterChip } from "../components/filter-chip.slint";
 import { VodCard } from "../components/vod-card.slint";
@@ -23,7 +23,7 @@ export component LibraryScreen inherits Rectangle {
     }
   }
 
-  // Active library tab: 0=Favorites 1=Watchlist 2=Recordings
+  // Active library tab: 0=Favorites 1=Watchlist 2=Recordings 3=History
   property <int> active-tab: 0;
 
   VerticalLayout {
@@ -52,6 +52,7 @@ export component LibraryScreen inherits Rectangle {
           { idx: 0, label: "Favorites" },
           { idx: 1, label: "Watchlist" },
           { idx: 2, label: "Recordings" },
+          { idx: 3, label: "History" },
         ]: FilterChip {
           label: tab-info.label;
           active: root.active-tab == tab-info.idx;
@@ -182,6 +183,150 @@ export component LibraryScreen inherits Rectangle {
         cta-clicked => {
           AppState.active-screen = 1;
           AppState.navigate(1);
+        }
+      }
+    }
+
+    // ── History tab (J-40) ─────────────────────────────────────────────────
+    if root.active-tab == 3: VerticalLayout {
+      vertical-stretch: 1;
+      spacing: 0px;
+
+      // Header row with Clear button
+      HorizontalLayout {
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
+        padding-top: Theme.spacing-lg;
+        padding-bottom: Theme.spacing-sm;
+
+        Text {
+          text: "Watch History";
+          color: Theme.text-primary;
+          font-family: Theme.font-display;
+          font-size: Theme.font-size-h2;
+          font-weight: 700;
+          horizontal-stretch: 1;
+        }
+
+        // Clear History button — visible only when history is non-empty
+        if AppState.watch-history.length > 0: Rectangle {
+          width: 140px;
+          height: 36px;
+          border-radius: Theme.radius-md;
+          background: Theme.surface-glass;
+          border-width: 1px;
+          border-color: Theme.focus-ring;
+
+          ta := TouchArea {
+            clicked => { AppState.clear-watch-history(); }
+          }
+
+          Text {
+            text: "Clear History";
+            color: ta.has-hover ? Theme.text-primary : Theme.text-secondary;
+            font-size: Theme.font-size-small;
+            font-weight: 600;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+          }
+        }
+      }
+
+      // History list
+      if AppState.watch-history.length > 0: ScrollView {
+        width: 100%;
+        vertical-stretch: 1;
+
+        VerticalLayout {
+          padding-left: Theme.content-padding-h;
+          padding-right: Theme.content-padding-h;
+          padding-bottom: Theme.spacing-2xl;
+          spacing: Theme.spacing-sm;
+
+          for entry in AppState.watch-history: Rectangle {
+            height: 80px;
+            border-radius: Theme.radius-md;
+            background: Theme.card-surface;
+            border-width: 1px;
+            border-color: Theme.surface;
+
+            row-ta := TouchArea {
+              clicked => { AppState.play-channel(entry.stream-url); }
+            }
+
+            HorizontalLayout {
+              padding: Theme.spacing-md;
+              spacing: Theme.spacing-md;
+
+              // Content info
+              VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                spacing: Theme.spacing-xs;
+
+                Text {
+                  text: entry.name;
+                  color: Theme.text-primary;
+                  font-size: Theme.font-size-body;
+                  font-weight: 600;
+                  overflow: elide;
+                }
+
+                HorizontalLayout {
+                  spacing: Theme.spacing-sm;
+
+                  Text {
+                    text: entry.media-type;
+                    color: Theme.text-secondary;
+                    font-size: Theme.font-size-small;
+                  }
+
+                  Text {
+                    text: "·";
+                    color: Theme.text-secondary;
+                    font-size: Theme.font-size-small;
+                  }
+
+                  Text {
+                    text: entry.watched-at;
+                    color: Theme.text-secondary;
+                    font-size: Theme.font-size-small;
+                  }
+                }
+
+                // Progress bar — only for VOD with known duration
+                if entry.duration-ms > 0: Rectangle {
+                  height: 3px;
+                  width: 100%;
+                  border-radius: Theme.radius-sm;
+                  background: Theme.surface;
+
+                  Rectangle {
+                    width: parent.width * entry.progress;
+                    height: parent.height;
+                    border-radius: Theme.radius-sm;
+                    background: @linear-gradient(90deg, #FF4B2B, #FF416C);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Empty state when history is empty
+      if AppState.watch-history.length == 0: Rectangle {
+        vertical-stretch: 1;
+
+        EmptyState {
+          title: "No watch history";
+          subtitle: "Content you watch will appear here for easy resuming.";
+          cta-text: "Browse Live TV";
+          cta-clicked => {
+            AppState.active-screen = 1;
+            AppState.navigate(1);
+          }
+          IconTv { size: 32px; fill: Theme.text-secondary; }
         }
       }
     }

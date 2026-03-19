@@ -146,6 +146,50 @@ impl CrispyService {
         });
         Ok(())
     }
+
+    // clear_all_watch_history lives in bulk.rs (single canonical location)
+
+    /// Load watch history filtered by profile, ordered by last_watched descending.
+    pub fn load_watch_history_for_profile(
+        &self,
+        profile_id: &str,
+    ) -> Result<Vec<WatchHistory>, DbError> {
+        let conn = self.db.get()?;
+        let mut stmt = conn.prepare(
+            "SELECT
+                id, media_type, name, stream_url,
+                poster_url, position_ms, duration_ms,
+                last_watched, series_id,
+                season_number, episode_number,
+                device_id, device_name, series_poster_url,
+                profile_id, source_id
+            FROM db_watch_history
+            WHERE profile_id = ?1
+            ORDER BY last_watched DESC
+            LIMIT 100",
+        )?;
+        let rows = stmt.query_map(params![profile_id], |row| {
+            Ok(WatchHistory {
+                id: row.get(0)?,
+                media_type: row.get(1)?,
+                name: row.get(2)?,
+                stream_url: row.get(3)?,
+                poster_url: row.get(4)?,
+                position_ms: row.get(5)?,
+                duration_ms: row.get(6)?,
+                last_watched: ts_to_dt(row.get(7)?),
+                series_id: row.get(8)?,
+                season_number: row.get(9)?,
+                episode_number: row.get(10)?,
+                device_id: row.get(11)?,
+                device_name: row.get(12)?,
+                series_poster_url: row.get(13)?,
+                profile_id: row.get(14)?,
+                source_id: row.get(15)?,
+            })
+        })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
 }
 
 #[cfg(test)]

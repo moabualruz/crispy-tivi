@@ -24,7 +24,8 @@ use crate::cache::{
     source_to_info,
 };
 use crate::events::{
-    DataEvent, HighPriorityEvent, LoadingKind, NormalEvent, Screen, SourceInfo, SyncResult, VodInfo,
+    DataEvent, HighPriorityEvent, LoadingKind, NormalEvent, Screen, SourceInfo, SyncResult,
+    VodInfo, WatchHistoryInfo,
 };
 
 // ── DataEngine ───────────────────────────────────────────────────────────────
@@ -213,6 +214,32 @@ impl DataEngine {
             }
         }
 
+        // ── Recent searches → SharedData ──────────────────────────────
+        let recent_queries: Vec<String> = self
+            .provider
+            .get_setting("recent_searches")
+            .unwrap_or(None)
+            .map(|raw| {
+                // Parse a simple JSON string array: ["a","b","c"]
+                raw.trim_matches(|c| c == '[' || c == ']')
+                    .split(',')
+                    .filter_map(|s| {
+                        let trimmed = s.trim().trim_matches('"');
+                        if trimmed.is_empty() {
+                            None
+                        } else {
+                            Some(trimmed.replace("\\\"", "\""))
+                        }
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        *self
+            .shared_data
+            .recent_searches
+            .lock()
+            .unwrap_or_else(|e| e.into_inner()) = recent_queries;
+
         debug!(
             sources = self.cache.sources.len(),
             channels = self.cache.all_channels.len(),
@@ -237,7 +264,7 @@ impl DataEngine {
             .collect();
         self.send(DataEvent::SourcesReady { sources });
 
-        // Channels — send ALL (WindowedModel handles windowing)
+        // Channels — send ALL (ScrollBridge handles windowing via VecModel slicing)
         self.send(DataEvent::LoadingStarted {
             kind: LoadingKind::Channels,
         });
@@ -296,6 +323,15 @@ impl DataEngine {
         self.send(DataEvent::LoadingFinished {
             kind: LoadingKind::Series,
         });
+
+        // J-25: emit persisted recent searches so EventBridge can populate the UI model
+        let queries = self
+            .shared_data
+            .recent_searches
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone();
+        self.send(DataEvent::RecentSearchesReady { queries });
     }
 
     // ── High-priority event handler ───────────────────────────────────────
@@ -305,6 +341,39 @@ impl DataEngine {
             HighPriorityEvent::Navigate { screen } => {
                 self.filters.active_screen = screen;
                 self.send(DataEvent::ScreenChanged { screen });
+
+                // J-40: load watch history when navigating to Library
+                if screen == Screen::Library {
+                    let svc = self.provider.clone();
+                    match self
+                        .rt
+                        .spawn_blocking(move || svc.load_watch_history())
+                        .await
+                    {
+                        Ok(Ok(entries)) => {
+                            let infos = entries
+                                .into_iter()
+                                .map(|e| WatchHistoryInfo {
+                                    id: e.id,
+                                    name: e.name,
+                                    media_type: e.media_type,
+                                    stream_url: e.stream_url,
+                                    position_ms: e.position_ms,
+                                    duration_ms: e.duration_ms,
+                                    watched_at: e.last_watched.format("%Y-%m-%d %H:%M").to_string(),
+                                    poster_url: e.poster_url,
+                                })
+                                .collect();
+                            self.send(DataEvent::WatchHistoryReady { entries: infos });
+                        }
+                        Ok(Err(e)) => {
+                            error!(error = %e, "Failed to load watch history");
+                        }
+                        Err(e) => {
+                            error!(error = %e, "load_watch_history task panicked");
+                        }
+                    }
+                }
             }
 
             HighPriorityEvent::PlayChannel { channel_id } => {
@@ -338,7 +407,7 @@ impl DataEngine {
             HighPriorityEvent::FilterContent { query } => {
                 self.filters.active_group = query;
 
-                // Apply as a group filter on channels — send ALL to WindowedModel
+                // Apply as a group filter on channels — send ALL; ScrollBridge windows the VecModel
                 let (ch_all, total, _) = filter_channels(
                     &self.cache.all_channels,
                     &self.filters.active_group,
@@ -592,6 +661,32 @@ impl DataEngine {
                 });
                 self.send(DataEvent::DiagnosticsInfo {
                     report: format!("EPG focus: channel '{ch_name}' ({channel_id})"),
+                });
+            }
+
+            HighPriorityEvent::SearchEpg { query } => {
+                let q = query.to_lowercase();
+                let epg_map = self
+                    .shared_data
+                    .epg_entries
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .clone();
+
+                let results: Vec<crispy_server::models::EpgEntry> = if q.is_empty() {
+                    Vec::new()
+                } else {
+                    epg_map
+                        .into_values()
+                        .flatten()
+                        .filter(|e| e.title.to_lowercase().contains(&q))
+                        .collect()
+                };
+
+                debug!(query, count = results.len(), "SearchEpg: results filtered");
+                self.send(DataEvent::EpgSearchResults {
+                    query,
+                    results: Arc::new(results),
                 });
             }
 
@@ -858,11 +953,237 @@ impl DataEngine {
                     }
                 }
             }
+            // J-34: Export backup via crispy-core BackupService
             NormalEvent::ExportBackup => {
-                warn!("Backup export not yet implemented (Epoch 8)");
+                let svc = self.provider.clone();
+                match self
+                    .rt
+                    .spawn_blocking(move || crispy_core::backup::export_backup(&svc))
+                    .await
+                {
+                    Ok(Ok(json)) => {
+                        let filename = format!(
+                            "crispy-backup-{}.json",
+                            chrono::Utc::now().format("%Y%m%d-%H%M%S")
+                        );
+                        let base = std::env::var("HOME")
+                            .or_else(|_| std::env::var("USERPROFILE"))
+                            .unwrap_or_else(|_| ".".to_string());
+                        let full_path = format!("{base}/{filename}");
+                        match std::fs::write(&full_path, json.as_bytes()) {
+                            Ok(()) => {
+                                info!(path = %full_path, "Backup exported");
+                                self.send(DataEvent::Error {
+                                    message: format!("Backup saved to {full_path}"),
+                                });
+                            }
+                            Err(e) => {
+                                error!(error = %e, "Failed to write backup file");
+                                self.send(DataEvent::Error {
+                                    message: format!("Backup write failed: {e}"),
+                                });
+                            }
+                        }
+                    }
+                    Ok(Err(e)) => {
+                        error!(error = %e, "Backup export failed");
+                        self.send(DataEvent::Error {
+                            message: format!("Backup failed: {e}"),
+                        });
+                    }
+                    Err(e) => {
+                        error!(error = %e, "export_backup task panicked");
+                    }
+                }
             }
+
+            // J-34: Import backup — merge sources/settings/profiles from JSON file
             NormalEvent::ImportBackup => {
-                warn!("Backup import not yet implemented (Epoch 8)");
+                let base = std::env::var("HOME")
+                    .or_else(|_| std::env::var("USERPROFILE"))
+                    .unwrap_or_else(|_| ".".to_string());
+                let full_path = format!("{base}/crispy-backup-import.json");
+                match std::fs::read_to_string(&full_path) {
+                    Ok(json) => {
+                        let svc = self.provider.clone();
+                        match self
+                            .rt
+                            .spawn_blocking(move || crispy_core::backup::import_backup(&svc, &json))
+                            .await
+                        {
+                            Ok(Ok(summary)) => {
+                                info!(?summary, "Backup imported");
+                                self.send(DataEvent::Error {
+                                    message: format!(
+                                        "Backup imported: {} sources, {} profiles",
+                                        summary.db_sources, summary.profiles
+                                    ),
+                                });
+                            }
+                            Ok(Err(e)) => {
+                                error!(error = %e, "Backup import failed");
+                                self.send(DataEvent::Error {
+                                    message: format!("Import failed: {e}"),
+                                });
+                            }
+                            Err(e) => {
+                                error!(error = %e, "import_backup task panicked");
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        error!(error = %e, path = %full_path, "Cannot read backup file");
+                        self.send(DataEvent::Error {
+                            message: format!("Cannot read {full_path}: {e}"),
+                        });
+                    }
+                }
+            }
+
+            // J-40: persist watch position (auto-save every 30s + on finish)
+            NormalEvent::SaveWatchEntry {
+                id,
+                name,
+                media_type,
+                stream_url,
+                position_ms,
+                duration_ms,
+                profile_id,
+            } => {
+                use crispy_core::algorithms::watch_history::derive_watch_history_id;
+                use crispy_core::models::WatchHistory;
+
+                let entry = WatchHistory {
+                    id: if id.is_empty() {
+                        derive_watch_history_id(&stream_url)
+                    } else {
+                        id
+                    },
+                    media_type,
+                    name,
+                    stream_url,
+                    poster_url: None,
+                    series_poster_url: None,
+                    position_ms,
+                    duration_ms,
+                    last_watched: Utc::now().naive_utc(),
+                    series_id: None,
+                    season_number: None,
+                    episode_number: None,
+                    device_id: None,
+                    device_name: None,
+                    profile_id: Some(profile_id),
+                    source_id: None,
+                };
+                let svc = self.provider.clone();
+                match self
+                    .rt
+                    .spawn_blocking(move || svc.save_watch_history(&entry))
+                    .await
+                {
+                    Ok(Ok(())) => {
+                        debug!("Watch entry saved");
+                    }
+                    Ok(Err(e)) => {
+                        error!(error = %e, "Failed to save watch entry");
+                    }
+                    Err(e) => {
+                        error!(error = %e, "save_watch_entry task panicked");
+                    }
+                }
+            }
+
+            // J-47: GDPR Art. 17 — erase all personal data for the active profile
+            NormalEvent::DeleteAllUserData { profile_id } => {
+                let svc = self.provider.clone();
+                match self
+                    .rt
+                    .spawn_blocking(move || -> Result<(), String> {
+                        svc.clear_all()
+                            .map_err(|e: crispy_core::database::DbError| e.to_string())?;
+                        Ok(())
+                    })
+                    .await
+                {
+                    Ok(Ok(())) => {
+                        info!(profile_id, "All user data deleted (GDPR)");
+                        // Clear continue-watching lane immediately
+                        self.send(DataEvent::ContinueWatchingReady { items: vec![] });
+                        self.send(DataEvent::WatchHistoryReady { entries: vec![] });
+                        self.send(DataEvent::Error {
+                            message: "All your data has been deleted.".to_string(),
+                        });
+                    }
+                    Ok(Err(e)) => {
+                        error!(error = %e, "DeleteAllUserData failed");
+                        self.send(DataEvent::Error {
+                            message: format!("Delete failed: {e}"),
+                        });
+                    }
+                    Err(e) => {
+                        error!(error = %e, "delete_all_user_data task panicked");
+                    }
+                }
+            }
+
+            // J-17/J-21: load continue-watching items for the home lane
+            NormalEvent::LoadContinueWatching { profile_id } => {
+                use crispy_core::algorithms::watch_history::filter_continue_watching;
+                let svc = self.provider.clone();
+                let pid = profile_id.clone();
+                match self
+                    .rt
+                    .spawn_blocking(move || svc.load_watch_history())
+                    .await
+                {
+                    Ok(Ok(history)) => {
+                        let items = filter_continue_watching(&history, None, Some(&pid))
+                            .into_iter()
+                            .map(|e| {
+                                let progress = if e.duration_ms > 0 {
+                                    (e.position_ms as f32 / e.duration_ms as f32).clamp(0.0, 1.0)
+                                } else {
+                                    0.0
+                                };
+                                crate::events::ContinueWatchingInfo {
+                                    id: e.id,
+                                    title: e.name,
+                                    image_url: e.poster_url,
+                                    progress,
+                                    content_type: e.media_type,
+                                }
+                            })
+                            .collect();
+                        self.send(DataEvent::ContinueWatchingReady { items });
+                    }
+                    Ok(Err(e)) => {
+                        error!(error = %e, "Failed to load continue-watching");
+                    }
+                    Err(e) => {
+                        error!(error = %e, "load_continue_watching task panicked");
+                    }
+                }
+            }
+
+            // J-40: clear all watch history and notify UI
+            NormalEvent::ClearWatchHistory { profile_id } => {
+                let svc = self.provider.clone();
+                match self
+                    .rt
+                    .spawn_blocking(move || svc.clear_all_watch_history())
+                    .await
+                {
+                    Ok(Ok(deleted)) => {
+                        info!(deleted, profile_id, "Watch history cleared");
+                        self.send(DataEvent::WatchHistoryReady { entries: vec![] });
+                    }
+                    Ok(Err(e)) => {
+                        error!(error = %e, "Failed to clear watch history");
+                    }
+                    Err(e) => {
+                        error!(error = %e, "clear_watch_history task panicked");
+                    }
+                }
             }
         }
     }
@@ -1028,7 +1349,7 @@ impl DataEngine {
         }
     }
 
-    /// Re-emit all filtered channels (for WindowedModel).
+    /// Re-emit all filtered channels; ScrollBridge in event_bridge.rs handles VecModel windowing.
     fn emit_filtered_channels(&self) {
         let (all, total, _) = filter_channels(
             &self.cache.all_channels,
@@ -1044,7 +1365,7 @@ impl DataEngine {
         });
     }
 
-    /// Re-emit all filtered VOD items (movies + series) for WindowedModel.
+    /// Re-emit all filtered VOD items (movies + series); ScrollBridge in event_bridge.rs windows them.
     fn emit_filtered_vod(&self) {
         let (movies, cats, total, _) = filter_vod(
             &self.cache.all_vod,

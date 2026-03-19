@@ -1,7 +1,7 @@
 //! Event types for the three-queue bidirectional event bus.
 //!
 //! `ChannelsReady`, `MoviesReady`, and `SeriesReady` carry `Arc<Vec<T>>` so
-//! the WindowedModel can share ownership without copying the full dataset.
+//! the ScrollBridge (slint-crispy-vscroll) can share ownership without copying the full dataset.
 //!
 //! # Queue Architecture
 //!
@@ -120,6 +120,45 @@ pub struct ChannelInfo {
     pub source_id: Option<String>,
     pub resolution: Option<String>,
     pub has_catchup: bool,
+}
+
+/// Lightweight watch history entry passed from DataEngine to EventBridge.
+#[derive(Debug, Clone, Default)]
+pub struct WatchHistoryInfo {
+    /// Unique history entry ID (derived from stream URL).
+    pub id: String,
+    /// Display name of the watched content.
+    pub name: String,
+    /// Content type: `"channel"`, `"movie"`, or `"episode"`.
+    pub media_type: String,
+    /// Stream URL for resume.
+    pub stream_url: String,
+    /// Playback position in milliseconds.
+    pub position_ms: i64,
+    /// Total duration in milliseconds (0 for live).
+    pub duration_ms: i64,
+    /// ISO-8601 timestamp of last watch.
+    pub watched_at: String,
+    /// Poster image URL (optional).
+    #[allow(dead_code)]
+    // Populated by history loader, consumed when Library history tab renders
+    pub poster_url: Option<String>,
+}
+
+/// Continue-watching item for the home screen lane (J-17/J-21).
+#[allow(dead_code)] // Incrementally wired — consumed when home screen continue-watching lane is connected
+#[derive(Debug, Clone, Default)]
+pub struct ContinueWatchingInfo {
+    /// Watch history entry ID (derived from stream URL).
+    pub id: String,
+    /// Display title.
+    pub title: String,
+    /// Poster image URL (optional).
+    pub image_url: Option<String>,
+    /// Fractional progress 0.0–1.0.
+    pub progress: f32,
+    /// `"channel"`, `"movie"`, or `"episode"`.
+    pub content_type: String,
 }
 
 /// Lightweight VOD descriptor passed from DataEngine to EventBridge.
@@ -244,6 +283,8 @@ pub enum HighPriorityEvent {
     JumpEpgToChannel { channel_id: String },
     /// Select a season for the currently open series detail view.
     SelectSeriesSeason { series_id: String, season: i32 },
+    /// Filter the EPG grid by programme title.
+    SearchEpg { query: String },
 }
 
 // ── NormalEvent ──────────────────────────────────────────────────────────────
@@ -281,6 +322,31 @@ pub enum NormalEvent {
     /// Import a backup file and restore sources, settings, and profiles.
     /// Handled by BackupService in crispy-core (Epoch 13).
     ImportBackup,
+    /// Persist a watch history entry (position auto-save or on content finish).
+    SaveWatchEntry {
+        /// Unique ID derived from stream URL (use `derive_watch_history_id`).
+        id: String,
+        /// Display name of the watched content.
+        name: String,
+        /// Content type: `"channel"`, `"movie"`, or `"episode"`.
+        media_type: String,
+        /// Stream URL that was playing.
+        stream_url: String,
+        /// Current playback position in milliseconds.
+        position_ms: i64,
+        /// Total duration in milliseconds (0 for live).
+        duration_ms: i64,
+        /// Profile ID this entry belongs to.
+        profile_id: String,
+    },
+    /// Clear all watch history for the given profile.
+    ClearWatchHistory { profile_id: String },
+    /// GDPR Art. 17 — erase all personal data for the given profile (J-47).
+    #[allow(dead_code)] // Wired when GDPR delete button is connected in settings
+    DeleteAllUserData { profile_id: String },
+    /// Load continue-watching items for the home screen (J-17/J-21).
+    #[allow(dead_code)] // Wired when home screen continue-watching lane is connected
+    LoadContinueWatching { profile_id: String },
 }
 
 // ── DataEvent ────────────────────────────────────────────────────────────────
@@ -294,19 +360,19 @@ pub enum NormalEvent {
 pub enum DataEvent {
     /// Initial source list is ready for display.
     SourcesReady { sources: Vec<SourceInfo> },
-    /// Full channel list is ready (all filtered results for WindowedModel).
+    /// Full channel list is ready (all filtered results; ScrollBridge windows the VecModel).
     ChannelsReady {
         channels: Arc<Vec<ChannelInfo>>,
         groups: Vec<String>,
         total: i32,
     },
-    /// Full movies list is ready (all filtered results for WindowedModel).
+    /// Full movies list is ready (all filtered results; ScrollBridge windows the VecModel).
     MoviesReady {
         movies: Arc<Vec<VodInfo>>,
         categories: Vec<String>,
         total: i32,
     },
-    /// Full series list is ready (all filtered results for WindowedModel).
+    /// Full series list is ready (all filtered results; ScrollBridge windows the VecModel).
     SeriesReady {
         series: Arc<Vec<VodInfo>>,
         categories: Vec<String>,
@@ -353,4 +419,19 @@ pub enum DataEvent {
     },
     /// EPG grid should scroll to and highlight this channel.
     EpgFocusChannel { channel_id: String },
+    /// EPG programme search results filtered by title query.
+    EpgSearchResults {
+        query: String,
+        /// Flat list of matching `EpgEntry` items from SharedData.
+        results: Arc<Vec<crispy_server::models::EpgEntry>>,
+    },
+    /// J-25: persisted recent search queries loaded from DB on startup.
+    RecentSearchesReady { queries: Vec<String> },
+    /// J-40: Watch history loaded for the Library screen.
+    WatchHistoryReady { entries: Vec<WatchHistoryInfo> },
+    /// J-17/J-21: Continue-watching items ready for the home screen lane.
+    ContinueWatchingReady {
+        /// id, title, poster_url, progress fraction (0.0–1.0), content_type
+        items: Vec<ContinueWatchingInfo>,
+    },
 }
