@@ -29,16 +29,12 @@ mod layout;
 mod provider;
 #[allow(dead_code)]
 mod remote_provider;
-#[allow(dead_code)]
-mod scroll_controller;
 mod scroll_integration;
 mod sync_task;
 #[allow(dead_code)]
 mod ui_tests;
 #[allow(dead_code)] // WASM entry point — compiled on wasm32, kept here for cfg(test)
 mod wasm_entry;
-#[allow(dead_code)]
-mod windowed_model;
 
 use std::sync::{
     Arc, Mutex,
