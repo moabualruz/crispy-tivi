@@ -239,6 +239,57 @@ mod tests {
     }
 
     #[test]
+    fn test_handle_line_mode_consumed_with_scaling() {
+        // Covers mouse.rs lines 66-67: WheelMode::Line branch in handle()
+        let handler = MouseWheelHandler::new(WheelConfig::default());
+        let ev = wheel_event(0.0, 2.0, WheelMode::Line);
+        let outcome = handler.handle(&ev);
+        // Should be consumed with delta = 2 * 20 = 40.0
+        match outcome {
+            EventOutcome::Consumed(crate::input::keyboard::KeyAction::ScrollDelta(d)) => {
+                assert!((d - 40.0).abs() < 0.001);
+            }
+            _ => panic!("expected Consumed"),
+        }
+    }
+
+    #[test]
+    fn test_handle_inverted_event_negates_delta() {
+        // Covers mouse.rs line 71: invert = -1.0 branch in handle()
+        let handler = MouseWheelHandler::new(WheelConfig::default());
+        let ev = RawInputEvent::Wheel(WheelData {
+            delta: Vec3 {
+                x: 0.0,
+                y: 30.0,
+                z: 0.0,
+            },
+            delta_mode: WheelMode::Pixel,
+            is_inverted: true, // is_inverted=true, natural_scrolling=false → XOR true → -1.0
+        });
+        let outcome = handler.handle(&ev);
+        match outcome {
+            EventOutcome::Consumed(crate::input::keyboard::KeyAction::ScrollDelta(d)) => {
+                assert!((d - (-30.0)).abs() < 0.001);
+            }
+            _ => panic!("expected Consumed"),
+        }
+    }
+
+    #[test]
+    fn test_handle_page_mode_consumed() {
+        // Covers mouse.rs line 67 (Page arm) in handle()
+        let handler = MouseWheelHandler::new(WheelConfig::default());
+        let ev = wheel_event(0.0, 1.0, WheelMode::Page);
+        let outcome = handler.handle(&ev);
+        match outcome {
+            EventOutcome::Consumed(crate::input::keyboard::KeyAction::ScrollDelta(d)) => {
+                assert!((d - 600.0).abs() < 0.001);
+            }
+            _ => panic!("expected Consumed"),
+        }
+    }
+
+    #[test]
     fn test_natural_scrolling_and_inverted_event_cancel_out() {
         // natural_scrolling=true XOR is_inverted=true → double-invert → positive
         let config = WheelConfig {

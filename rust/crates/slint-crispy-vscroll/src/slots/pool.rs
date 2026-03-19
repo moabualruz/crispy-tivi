@@ -297,6 +297,20 @@ mod tests {
     }
 
     #[test]
+    fn test_auto_mode_assigns_immediately_like_sync() {
+        // Covers pool.rs line 157: IntegrityMode::Auto => IntegrityMode::Sync in effective_mode()
+        let mut pool = SlotPool::new(5, IntegrityMode::Auto);
+        pool.update_visible_range(0..3, pos);
+        // Auto maps to Sync → slots should be Active immediately
+        let active = pool
+            .slots()
+            .iter()
+            .filter(|s| s.state == SlotState::Active)
+            .count();
+        assert_eq!(active, 3);
+    }
+
+    #[test]
     fn test_resize_shrink_below_active_is_noop() {
         let mut pool = SlotPool::new(5, IntegrityMode::Sync);
         pool.update_visible_range(0..4, pos);

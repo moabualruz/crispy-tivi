@@ -24,11 +24,9 @@ impl<T: Clone> RingBuffer<T> {
 
     /// Push a value. Panics if full.
     pub fn push(&mut self, value: T) {
-        assert!(
-            !self.is_full(),
-            "RingBuffer is full (capacity {})",
-            self.capacity
-        );
+        if self.is_full() {
+            panic!("RingBuffer is full (capacity {})", self.capacity);
+        }
         let tail = (self.head + self.len) % self.capacity;
         self.buf[tail] = Some(value);
         self.len += 1;

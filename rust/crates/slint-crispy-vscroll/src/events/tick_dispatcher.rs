@@ -287,4 +287,49 @@ mod tests {
         let result = order.lock().unwrap().clone();
         assert_eq!(result, vec![1, 4]);
     }
+
+    #[test]
+    fn test_all_six_event_kinds_canonical_order() {
+        // Covers canonical_order() for ALL six arms including FrameEnd (line 112)
+        let mut d = TickDispatcher::new();
+        let order = Arc::new(Mutex::new(Vec::<u8>::new()));
+
+        let o = order.clone();
+        d.on(TickEventKind::InputConsumed, move |_| {
+            o.lock().unwrap().push(0);
+        });
+        let o = order.clone();
+        d.on(TickEventKind::PhysicsStep, move |_| {
+            o.lock().unwrap().push(1);
+        });
+        let o = order.clone();
+        d.on(TickEventKind::SlotAssigned, move |_| {
+            o.lock().unwrap().push(2);
+        });
+        let o = order.clone();
+        d.on(TickEventKind::FocusChanged { new_index: 0 }, move |_| {
+            o.lock().unwrap().push(3);
+        });
+        let o = order.clone();
+        d.on(TickEventKind::ScrollUpdated, move |_| {
+            o.lock().unwrap().push(4);
+        });
+        let o = order.clone();
+        d.on(TickEventKind::FrameEnd, move |_| {
+            o.lock().unwrap().push(5);
+        });
+
+        // Dispatch in reverse canonical order — dispatcher must reorder
+        d.dispatch(vec![
+            (TickEventKind::FrameEnd, ev()),
+            (TickEventKind::ScrollUpdated, ev()),
+            (TickEventKind::FocusChanged { new_index: 1 }, ev()),
+            (TickEventKind::SlotAssigned, ev()),
+            (TickEventKind::PhysicsStep, ev()),
+            (TickEventKind::InputConsumed, ev()),
+        ]);
+
+        let result = order.lock().unwrap().clone();
+        assert_eq!(result, vec![0, 1, 2, 3, 4, 5]);
+    }
 }

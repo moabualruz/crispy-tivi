@@ -85,14 +85,9 @@ impl RustTickDriver {
         self.settle_threshold = threshold;
         self
     }
-}
 
-impl AnimationDriver for RustTickDriver {
-    fn tick(&mut self, dt_ms: f32) -> bool {
-        if self.is_settled() {
-            return false;
-        }
-
+    /// Advance elapsed time and interpolate current value toward target.
+    fn advance(&mut self, dt_ms: f32) {
         self.elapsed_ms = (self.elapsed_ms + dt_ms).min(self.duration_ms);
         let t = if self.duration_ms > 0.0 {
             self.elapsed_ms / self.duration_ms
@@ -101,7 +96,15 @@ impl AnimationDriver for RustTickDriver {
         };
         let eased = apply_easing(t, self.easing);
         self.current = self.start + (self.target - self.start) * eased;
+    }
+}
 
+impl AnimationDriver for RustTickDriver {
+    fn tick(&mut self, dt_ms: f32) -> bool {
+        if self.is_settled() {
+            return false;
+        }
+        self.advance(dt_ms);
         !self.is_settled()
     }
 
@@ -318,5 +321,27 @@ mod tests {
         }
         // After 320ms > 300ms duration, should be settled
         assert!(driver.is_settled());
+    }
+
+    #[test]
+    fn test_zero_duration_driver_snaps_on_first_tick() {
+        // Covers lines 96-103: tick() body when duration_ms == 0 → t = 1.0 branch (line 100)
+        let mut driver = RustTickDriver::new(0.0, 0.0, EasingCurve::Linear);
+        driver.set_target(200.0);
+        // With duration=0, is_settled() is false until we tick (elapsed < duration is 0==0, but
+        // current != target). Tick should jump to target immediately.
+        let running = driver.tick(0.0);
+        // After tick with zero duration, current should equal target
+        assert!((driver.current() - 200.0).abs() < 0.001);
+        // settled now
+        assert!(!running);
+    }
+
+    #[test]
+    fn test_ease_in_out_second_half() {
+        // Covers EaseInOut else branch (t >= 0.5): -1 + (4 - 2t)*t
+        let t = apply_easing(0.75, EasingCurve::EaseInOut);
+        // -1 + (4 - 1.5)*0.75 = -1 + 2.5*0.75 = -1 + 1.875 = 0.875
+        assert!((t - 0.875).abs() < 0.001);
     }
 }

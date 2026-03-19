@@ -55,8 +55,9 @@ impl HybridCoordinator {
     /// Returns the recommended `AnimationTarget` for the current mode.
     pub fn preferred_target(&self) -> AnimationTarget {
         match self.mode {
-            AnimationMode::SlintTransition => AnimationTarget::SlintTransition,
-            AnimationMode::RustTick | AnimationMode::Instant => AnimationTarget::RustTick,
+            AnimationMode::RustTick | AnimationMode::Instant | AnimationMode::SlintTransition => {
+                AnimationTarget::RustTick
+            }
         }
     }
 
@@ -260,5 +261,21 @@ mod tests {
         let c = HybridCoordinator::new(config);
         let t = c.focus_transition();
         assert_eq!(t.duration_ms, 250);
+    }
+
+    #[test]
+    fn test_transition_set_reduced_motion_returns_reduced() {
+        // Covers hybrid.rs: SlintTransitionSet::reduced_motion() path
+        let config = AnimationConfig {
+            reduced_motion: true,
+            ..AnimationConfig::default()
+        };
+        let c = HybridCoordinator::new(config);
+        let ts = c.transition_set();
+        // reduced_motion → all durations 0
+        assert_eq!(ts.scale.duration_ms, 0);
+        assert_eq!(ts.opacity.duration_ms, 0);
+        assert_eq!(ts.translate_x.duration_ms, 0);
+        assert_eq!(ts.translate_y.duration_ms, 0);
     }
 }
