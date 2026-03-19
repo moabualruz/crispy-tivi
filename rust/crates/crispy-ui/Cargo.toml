@@ -8,6 +8,7 @@ license.workspace = true
 crispy-core = { path = "../crispy-core" }
 crispy-server = { path = "../crispy-server" }
 crispy-player = { path = "../crispy-player" }
+slint-crispy-vscroll = { path = "../slint-crispy-vscroll", features = ["tv-app"] }
 slint.workspace = true
 tokio.workspace = true
 tracing.workspace = true

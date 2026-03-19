@@ -31,6 +31,7 @@ mod provider;
 mod remote_provider;
 #[allow(dead_code)]
 mod scroll_controller;
+mod scroll_integration;
 mod sync_task;
 #[allow(dead_code)]
 mod ui_tests;
