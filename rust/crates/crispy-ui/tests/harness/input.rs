@@ -135,7 +135,7 @@ mod tests {
         let golden_dir = tmp.path().join("golden");
         std::fs::create_dir_all(&run_dir).unwrap();
         std::fs::create_dir_all(&golden_dir).unwrap();
-        ScreenshotHarness::new("input_test", &run_dir, &golden_dir)
+        ScreenshotHarness::new_standalone("input_test", &run_dir, &golden_dir)
     }
 
     #[test]

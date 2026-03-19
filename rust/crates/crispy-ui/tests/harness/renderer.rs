@@ -57,14 +57,54 @@ pub struct ScreenshotHarness {
     counter: Cell<u32>,
     results: RefCell<Vec<ScreenshotResult>>,
     window: Rc<MinimalSoftwareWindow>,
+    /// Type-erased UI component handle (e.g. `AppWindow`).
+    /// Journeys downcast via `harness.ui::<AppWindow>()`.
+    pub ui_handle: Option<Box<dyn std::any::Any>>,
 }
 
 impl ScreenshotHarness {
-    pub fn new(journey_id: &str, run_dir: &Path, golden_dir: &Path) -> Self {
-        // --- env config ---
+    /// Create a harness backed by an externally-provided `MinimalSoftwareWindow`.
+    ///
+    /// Use this in the journey runner where `AppWindow::new()` has already
+    /// claimed the platform window.
+    pub fn new(
+        journey_id: &str,
+        run_dir: &Path,
+        golden_dir: &Path,
+        window: Rc<MinimalSoftwareWindow>,
+    ) -> Self {
+        let (width, height) = {
+            let sz = window.size();
+            (sz.width, sz.height)
+        };
+        Self::build(journey_id, run_dir, golden_dir, width, height, window)
+    }
+
+    /// Create a standalone harness that owns its own `MinimalSoftwareWindow`.
+    ///
+    /// Use this for harness unit tests that don't need `AppWindow`.
+    /// Requires that no Slint platform has been installed yet (or that
+    /// `i_slint_backend_testing` was already initialised for the test process).
+    pub fn new_standalone(journey_id: &str, run_dir: &Path, golden_dir: &Path) -> Self {
         let resolution = env::var("CRISPY_TEST_RESOLUTION").unwrap_or_else(|_| "1280x720".into());
         let (width, height) = parse_resolution(&resolution);
 
+        // NewBuffer: full frame is repainted on every draw_if_needed call,
+        // which is what we need for screenshot capture (no partial updates).
+        let window = MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
+        window.set_size(slint::PhysicalSize::new(width, height));
+
+        Self::build(journey_id, run_dir, golden_dir, width, height, window)
+    }
+
+    fn build(
+        journey_id: &str,
+        run_dir: &Path,
+        golden_dir: &Path,
+        width: u32,
+        height: u32,
+        window: Rc<MinimalSoftwareWindow>,
+    ) -> Self {
         let diff_threshold = env::var("CRISPY_DIFF_THRESHOLD")
             .ok()
             .and_then(|v| v.parse::<f64>().ok())
@@ -74,13 +114,6 @@ impl ScreenshotHarness {
             .ok()
             .and_then(|v| v.parse::<f64>().ok())
             .unwrap_or(30.0);
-
-        // --- Slint window ---
-        // NewBuffer: full frame is repainted on every draw_if_needed call,
-        // which is what we need for screenshot capture (no partial updates).
-        let window =
-            MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
-        window.set_size(slint::PhysicalSize::new(width, height));
 
         // --- output dirs ---
         let test_dir = run_dir.join("test").join(journey_id);
@@ -98,7 +131,16 @@ impl ScreenshotHarness {
             counter: Cell::new(0),
             results: RefCell::new(Vec::new()),
             window,
+            ui_handle: None,
         }
+    }
+
+    /// Access the type-erased UI handle as a concrete type.
+    ///
+    /// Returns `None` if no handle was set or the type doesn't match.
+    /// Journeys call this as `harness.ui::<AppWindow>()`.
+    pub fn ui<T: 'static>(&self) -> Option<&T> {
+        self.ui_handle.as_ref()?.downcast_ref::<T>()
     }
 
     // -----------------------------------------------------------------------
@@ -359,13 +401,15 @@ mod tests {
     use tempfile::TempDir;
 
     fn make_harness(tmp: &TempDir) -> ScreenshotHarness {
-        // Use i-slint-backend-testing so no real display is needed
+        // Use i-slint-backend-testing so no real display is needed.
+        // new_standalone() creates its own MinimalSoftwareWindow without
+        // requiring the screenshot platform to be installed.
         i_slint_backend_testing::init_no_event_loop();
         let run_dir = tmp.path().join("run");
         let golden_dir = tmp.path().join("golden");
         std::fs::create_dir_all(&run_dir).unwrap();
         std::fs::create_dir_all(&golden_dir).unwrap();
-        ScreenshotHarness::new("test_journey", &run_dir, &golden_dir)
+        ScreenshotHarness::new_standalone("test_journey", &run_dir, &golden_dir)
     }
 
     #[test]

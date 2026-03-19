@@ -9,6 +9,7 @@
 //! `"j05"` or `"j0*"`) to run only matching journey IDs.
 
 use std::{
+    any::Any,
     collections::{HashMap, HashSet, VecDeque},
     env,
     panic::{self, AssertUnwindSafe},
@@ -184,6 +185,10 @@ pub struct JourneyRunner {
     db: TestDb,
     entries: Vec<JourneyEntry>,
     results: Vec<JourneyRunResult>,
+    /// Factory that creates the UI component once per journey.
+    /// Returns a type-erased `Box<dyn Any>` holding e.g. `AppWindow`.
+    /// If `None`, journeys run without a UI handle (harness-only mode).
+    ui_factory: Option<Box<dyn Fn() -> Box<dyn Any>>>,
 }
 
 impl JourneyRunner {
@@ -199,7 +204,23 @@ impl JourneyRunner {
             db,
             entries: Vec::new(),
             results: Vec::new(),
+            ui_factory: None,
         }
+    }
+
+    /// Set a factory closure that creates the UI component for each journey.
+    ///
+    /// The factory is called once per journey run to produce a fresh
+    /// type-erased handle stored in `harness.ui_handle`.
+    ///
+    /// ```ignore
+    /// runner.set_ui_factory(|| Box::new(AppWindow::new().unwrap()));
+    /// ```
+    pub fn set_ui_factory<F>(&mut self, factory: F)
+    where
+        F: Fn() -> Box<dyn Any> + 'static,
+    {
+        self.ui_factory = Some(Box::new(factory));
     }
 
     /// Convenience constructor: resolves standard paths relative to
@@ -418,7 +439,20 @@ impl JourneyRunner {
             }
 
             // Build harness for this journey
-            let harness = ScreenshotHarness::new(id, &self.run_dir, &self.golden_dir);
+            let mut harness = if self.ui_factory.is_some() {
+                // Use the platform's shared window so AppWindow renders into our pixel buffer
+                let window = super::platform::get_shared_window();
+                ScreenshotHarness::new(id, &self.run_dir, &self.golden_dir, window)
+            } else {
+                ScreenshotHarness::new_standalone(id, &self.run_dir, &self.golden_dir)
+            };
+
+            // Attach a fresh UI handle if a factory is configured
+            if let Some(ref factory) = self.ui_factory {
+                harness.ui_handle = Some(factory());
+                // Pump timers so Slint initialises the component fully
+                slint::platform::update_timers_and_animations();
+            }
 
             // Run with panic catch
             // SAFETY: ScreenshotHarness is not truly UnwindSafe because of
@@ -545,6 +579,8 @@ mod tests {
     }
 
     fn make_runner(tmp: &TempDir) -> JourneyRunner {
+        // Use i-slint-backend-testing for runner unit tests — no AppWindow needed.
+        // No ui_factory is set so the runner uses new_standalone() for each harness.
         i_slint_backend_testing::init_no_event_loop();
         let run_dir = tmp.path().join("run");
         let golden_dir = tmp.path().join("golden");
