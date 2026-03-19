@@ -156,6 +156,22 @@ i-slint-backend-testing = "1.15"
 proptest = { workspace = true }
 criterion = { version = "0.5", features = ["html_reports"] }
 
+[[example]]
+name = "horizontal_carousel"
+required-features = ["tv-app"]
+
+[[example]]
+name = "grid_epg"
+required-features = ["tv-app"]
+
+[[example]]
+name = "nested_scroll"
+required-features = ["tv-app", "ecs"]
+
+[[example]]
+name = "apple_tv_parallax"
+required-features = ["z-cover-flow", "z-parallax", "input-dpad", "horizontal", "focus-tracking", "integrity-sync", "anim-hybrid"]
+
 [[bench]]
 name = "scroll_bench"
 harness = false
