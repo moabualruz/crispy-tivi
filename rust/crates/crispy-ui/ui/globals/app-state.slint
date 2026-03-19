@@ -429,6 +429,28 @@ export global AppState {
   in-out property <int> movie-window-start: 0;
   in-out property <int> series-window-start: 0;
 
+  // ── Kids mode (J-37) ──
+  // Set by Rust when a profile with is_child=true is activated.
+  in-out property <bool> is-kids-mode: false;
+
+  // ── Group management (J-09) ──
+  callback rename-group(/* old-name */ string, /* new-name */ string);
+  callback hide-group(/* group-name */ string);
+  callback reorder-group(/* group-name */ string, /* direction: 1=up, -1=down */ int);
+
+  // ── Custom collections (J-39) ──
+  in-out property <[string]> collection-names: [];
+  callback create-collection(/* name */ string);
+  callback delete-collection(/* name */ string);
+
+  // ── PiP (J-29) ──
+  in-out property <bool> pip-active: false;
+  callback toggle-pip();
+
+  // ── Server mode (J-41) ──
+  in-out property <bool> server-mode-enabled: false;
+  callback toggle-server-mode();
+
   // ── Casting & multi-device (Epoch 10) ──
 
   // 10.6: Cast picker

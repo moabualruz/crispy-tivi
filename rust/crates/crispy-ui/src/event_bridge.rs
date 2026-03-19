@@ -2074,6 +2074,54 @@ pub(crate) fn wire(
         });
     }
 
+    // ── J-09: Group management stubs ─────────────────────────────────────
+    app.on_rename_group(|old, new| {
+        tracing::info!(old = %old, new = %new, "rename-group: stub");
+    });
+
+    app.on_hide_group(|name| {
+        tracing::info!(name = %name, "hide-group: stub");
+    });
+
+    app.on_reorder_group(|name, dir| {
+        tracing::info!(name = %name, dir, "reorder-group: stub");
+    });
+
+    // ── J-39: Custom collections stubs ───────────────────────────────────
+    app.on_create_collection(|name| {
+        tracing::info!(name = %name, "create-collection: stub");
+    });
+
+    app.on_delete_collection(|name| {
+        tracing::info!(name = %name, "delete-collection: stub");
+    });
+
+    // ── J-29: PiP toggle stub ────────────────────────────────────────────
+    app.on_toggle_pip({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                let active = !app.get_pip_active();
+                app.set_pip_active(active);
+                tracing::info!(pip_active = active, "toggle-pip: stub");
+            }
+        }
+    });
+
+    // ── J-41: Server mode toggle stub ────────────────────────────────────
+    app.on_toggle_server_mode({
+        let ui_w = ui.as_weak();
+        move || {
+            if let Some(ui) = ui_w.upgrade() {
+                let app = ui.global::<super::AppState>();
+                let enabled = !app.get_server_mode_enabled();
+                app.set_server_mode_enabled(enabled);
+                tracing::info!(enabled, "toggle-server-mode: stub");
+            }
+        }
+    });
+
     // ── Hero auto-advance timer (8s interval) ─────────────────────────────
     {
         let ui_w = ui.as_weak();
@@ -3193,12 +3241,22 @@ fn do_profile_switch(
             .unwrap_or_else(|e| e.into_inner()) = id.to_string();
     }
     let name = profile_name.to_string();
+    // J-37: determine kids mode from the switching profile
+    let is_child = {
+        let profiles = sd.profiles.lock().unwrap_or_else(|e| e.into_inner());
+        profiles
+            .iter()
+            .find(|p| p.id == id)
+            .map(|p| p.is_child)
+            .unwrap_or(false)
+    };
     let ui_w2 = ui_w.clone();
     let _ = slint::invoke_from_event_loop(move || {
         if let Some(ui) = ui_w2.upgrade() {
             let app = ui.global::<super::AppState>();
             app.set_active_profile_name(SharedString::from(name.as_str()));
             app.set_show_profile_picker(false);
+            app.set_is_kids_mode(is_child); // J-37
         }
     });
     if let Err(e) = tx.try_send(NormalEvent::SyncAll) {
