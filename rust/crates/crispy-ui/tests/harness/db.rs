@@ -233,6 +233,35 @@ impl TestDb {
         db
     }
 
+    /// Create a fresh in-memory service for E2E testing.
+    ///
+    /// Sources and profiles are loaded from settings (including `.local`
+    /// overrides when present), but **no seed data** is inserted.  The E2E
+    /// journey flow is expected to trigger real network sync from scratch.
+    ///
+    /// If `test-settings.local.json` is absent this method behaves identically
+    /// to [`init`] but without seed data — callers should gate E2E runs on the
+    /// presence of that file.
+    pub fn init_e2e() -> Self {
+        let service = CrispyService::open_in_memory().expect("in-memory CrispyService");
+        let settings = load_settings();
+        let seed = TestSeed {
+            channels: vec![],
+            epg: vec![],
+            movies: vec![],
+            series: vec![],
+        };
+        let db = TestDb {
+            service,
+            settings,
+            seed,
+        };
+        db.insert_sources();
+        db.insert_profiles();
+        db.sync_sources_e2e();
+        db
+    }
+
     pub fn service(&self) -> &CrispyService {
         &self.service
     }
@@ -273,6 +302,80 @@ impl TestDb {
             self.service
                 .save_profile(&profile)
                 .unwrap_or_else(|e| panic!("insert profile '{}': {e}", tp.name));
+        }
+    }
+
+    /// Sync all inserted sources against real servers (E2E pipeline only).
+    ///
+    /// Each source is dispatched to the correct sync backend (M3U, Xtream,
+    /// Stalker) based on `source_type`. Network failures and timeouts are
+    /// logged via `eprintln!` and skipped — the pipeline continues with
+    /// whatever data was successfully fetched.
+    fn sync_sources_e2e(&self) {
+        use crispy_core::services::{m3u_sync, stalker_sync, xtream_sync};
+
+        let rt = tokio::runtime::Runtime::new().expect("tokio runtime for E2E sync");
+        let sources = self.service.get_sources().unwrap_or_default();
+
+        for source in &sources {
+            eprintln!(
+                "[E2E] Syncing source: {} (type={})",
+                source.name, source.source_type
+            );
+
+            let result: Result<_, String> = match source.source_type.as_str() {
+                "m3u" => {
+                    let url = source.url.clone();
+                    let sid = source.id.clone();
+                    let tls = source.accept_self_signed;
+                    let svc = &self.service;
+                    match rt.block_on(tokio::time::timeout(
+                        std::time::Duration::from_secs(60),
+                        m3u_sync::sync_m3u_source(svc, &url, &sid, tls),
+                    )) {
+                        Ok(Ok(_report)) => Ok(()),
+                        Ok(Err(e)) => Err(format!("{e}")),
+                        Err(_) => Err("timeout (60s)".to_string()),
+                    }
+                }
+                "xtream" => {
+                    let url = source.url.clone();
+                    let user = source.username.clone().unwrap_or_default();
+                    let pass = source.password.clone().unwrap_or_default();
+                    let sid = source.id.clone();
+                    let tls = source.accept_self_signed;
+                    let svc = &self.service;
+                    match rt.block_on(tokio::time::timeout(
+                        std::time::Duration::from_secs(60),
+                        xtream_sync::sync_xtream_source(svc, &url, &user, &pass, &sid, tls),
+                    )) {
+                        Ok(Ok(_report)) => Ok(()),
+                        Ok(Err(e)) => Err(format!("{e}")),
+                        Err(_) => Err("timeout (60s)".to_string()),
+                    }
+                }
+                "stalker" => {
+                    let url = source.url.clone();
+                    let mac = source.mac_address.clone().unwrap_or_default();
+                    let sid = source.id.clone();
+                    let tls = source.accept_self_signed;
+                    let svc = &self.service;
+                    match rt.block_on(tokio::time::timeout(
+                        std::time::Duration::from_secs(60),
+                        stalker_sync::sync_stalker_source(svc, &url, &mac, &sid, tls),
+                    )) {
+                        Ok(Ok(_report)) => Ok(()),
+                        Ok(Err(e)) => Err(format!("{e}")),
+                        Err(_) => Err("timeout (60s)".to_string()),
+                    }
+                }
+                other => Err(format!("unsupported source type '{other}' — skipped")),
+            };
+
+            match result {
+                Ok(()) => eprintln!("[E2E] Sync complete: {}", source.name),
+                Err(e) => eprintln!("[E2E] Sync failed for {}: {e}", source.name),
+            }
         }
     }
 
