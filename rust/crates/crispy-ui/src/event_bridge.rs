@@ -3091,6 +3091,11 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
             app.set_hero_items(ModelRc::new(VecModel::from(hero)));
         }
 
+        DataEvent::SeriesSeasonCount { count } => {
+            app.set_series_season_count(count);
+            tracing::debug!(count, "[DATA] series-season-count set");
+        }
+
         DataEvent::SeriesReady {
             series,
             categories: in_categories,

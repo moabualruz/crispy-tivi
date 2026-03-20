@@ -602,11 +602,63 @@ impl DataEngine {
             }
 
             HighPriorityEvent::OpenSeriesDetail { series_id } => {
-                debug!(series_id, "OpenSeriesDetail — navigating to detail");
+                debug!(
+                    series_id,
+                    "OpenSeriesDetail — navigating to detail + loading season 1"
+                );
                 self.filters.active_screen = Screen::Series;
                 self.send(DataEvent::ScreenChanged {
                     screen: Screen::Series,
                 });
+                // Auto-load season 1 episodes + compute season count
+                let svc = self.provider.clone();
+                let sid = series_id.clone();
+                match self.rt.spawn_blocking(move || svc.load_vod_items()).await {
+                    Ok(Ok(all_items)) => {
+                        // Compute max season number for this series
+                        let season_count = all_items
+                            .iter()
+                            .filter(|v| v.series_id.as_deref() == Some(sid.as_str()))
+                            .filter_map(|v| v.season_number)
+                            .max()
+                            .unwrap_or(1);
+
+                        // Load season 1 episodes
+                        let episodes: Vec<VodInfo> = all_items
+                            .iter()
+                            .filter(|v| {
+                                v.series_id.as_deref() == Some(sid.as_str())
+                                    && v.season_number == Some(1)
+                                    && v.item_type == "episode"
+                            })
+                            .map(crate::cache::vod_to_info)
+                            .collect();
+                        info!(
+                            series_id,
+                            season = 1,
+                            season_count,
+                            episode_count = episodes.len(),
+                            "OpenSeriesDetail: season 1 episodes loaded"
+                        );
+
+                        // Send season count via ScreenChanged metadata
+                        self.send(DataEvent::SeriesSeasonCount {
+                            count: season_count,
+                        });
+
+                        self.send(DataEvent::SeriesReady {
+                            series: Arc::new(episodes),
+                            categories: vec![],
+                            total: 0,
+                        });
+                    }
+                    Ok(Err(e)) => {
+                        error!(error = %e, series_id, "Failed to load season 1 episodes");
+                    }
+                    Err(e) => {
+                        error!(error = %e, series_id, "Spawn error loading season 1 episodes");
+                    }
+                }
             }
 
             HighPriorityEvent::SelectEpgDate { offset_days } => {

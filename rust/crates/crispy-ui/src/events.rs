@@ -390,6 +390,8 @@ pub enum DataEvent {
         categories: Vec<String>,
         total: i32,
     },
+    /// Season count for the currently open series detail.
+    SeriesSeasonCount { count: i32 },
     /// Full-text search results.
     SearchResults {
         query: String,

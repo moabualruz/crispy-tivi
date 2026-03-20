@@ -364,12 +364,12 @@ export component SeriesDetailScreen inherits Rectangle {
 
         HorizontalLayout {
           spacing: Theme.spacing-xs;
-          for s in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]: FilterChip {
-            label: "S" + s;
-            active: AppState.series-active-season == s;
+          for s in AppState.series-season-count: FilterChip {
+            label: "S" + (s + 1);
+            active: AppState.series-active-season == (s + 1);
             activated => {
-              AppState.series-active-season = s;
-              AppState.select-series-season(s);
+              AppState.series-active-season = s + 1;
+              AppState.select-series-season(s + 1);
             }
           }
         }
