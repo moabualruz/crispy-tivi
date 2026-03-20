@@ -1,22 +1,22 @@
 ---
-name: rice-screenshot-review
-description: AI reviews screenshot test failures against journey specs and design docs. Use when asked to "review screenshots", "check visual regressions", "review test run", "what broke visually".
+name: crispy-screenshot-review
+description: AI reviews CrispyTivi screenshot test failures against journey specs and design docs. Classifies each failure as regression, improvement, neutral, or spec violation. Use when asked to "review screenshots", "check visual regressions", "review test run", "what broke visually", "analyze screenshot failures". Triggers on: review screenshots, screenshot failures, visual regression review.
 ---
 
-# AI Screenshot Review
+# AI Screenshot Review — CrispyTivi
 
 Review screenshot test failures by comparing actual renders against journey specifications and design documents.
 
 ## Steps
 
 1. **Load test run data:**
-   - Read `rust/crates/crispy-ui/tests/runs/runs-index.json` to find latest run
+   - Read `rust/crates/crispy-ui/tests/output/{pipeline}/runs-index.json` to find latest run
    - Read `{latest_path}/manifest.json`
 
 2. **Load design context:**
-   - Read `.ai/crispy_tivi_design_spec.md` for visual design rules
-   - Read `.impeccable.md` for design context
-   - Read `.ai/planning/USER-JOURNEYS.md` for journey definitions
+   - Read `F:/work/crispy-tivi/.ai/crispy_tivi_design_spec.md` for visual design rules
+   - Read `F:/work/crispy-tivi/.impeccable.md` for design context
+   - Read `F:/work/crispy-tivi/.ai/planning/USER-JOURNEYS.md` for journey definitions
 
 3. **For each `fail` screenshot in manifest:**
    a. Read the `test` PNG file (using Read tool — Claude is multimodal)
@@ -59,5 +59,5 @@ Review screenshot test failures by comparing actual renders against journey spec
    - Identify which commit likely caused the regression
 
 7. Suggest next steps:
-   - If regressions found: "Fix the regressions, then re-run `/rice-screenshot-run`"
-   - If only improvements: "Run `/rice-screenshot-approve` to accept improvements"
+   - If regressions found: "Fix the regressions, then re-run `/crispy-screenshot-run`"
+   - If only improvements: "Run `/crispy-screenshot-approve` to accept improvements"

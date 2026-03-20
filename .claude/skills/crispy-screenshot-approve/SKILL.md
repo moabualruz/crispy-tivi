@@ -1,15 +1,15 @@
 ---
 name: crispy-screenshot-approve
-description: Approve or reject screenshot changes using the review pipeline. Use when asked to "approve screenshots", "accept visual changes", "update golden baselines".
+description: Approve or reject CrispyTivi screenshot changes using the review pipeline. Updates golden baselines in rust/crates/crispy-ui/tests/golden/ after human verification. Use when asked to "approve screenshots", "accept visual changes", "update golden baselines", "lock in screenshots". Triggers on: approve screenshots, update baselines, accept visual changes.
 ---
 
-# Screenshot Approve/Reject Workflow
+# Screenshot Approve/Reject Workflow — CrispyTivi
 
 ## Steps
 
 1. **Check for existing review:**
-   - If `/rice-screenshot-review` was already run this session, use those results
-   - Otherwise, run `/rice-screenshot-review` first
+   - If `/crispy-screenshot-review` was already run this session, use those results
+   - Otherwise, run `/crispy-screenshot-review` first
 
 2. **Process each classified screenshot:**
 

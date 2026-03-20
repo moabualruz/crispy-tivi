@@ -1,9 +1,9 @@
 ---
-name: rice-qa-fix-plan
-description: Generate a prioritized fix plan from QA analysis results. Groups issues by root cause, identifies affected files, estimates complexity. Use when asked to "plan fixes", "fix QA issues", "what to fix next", "prioritize bugs".
+name: crispy-qa-fix-plan
+description: Generate a prioritized fix plan from CrispyTivi QA analysis results. Groups issues by root cause, identifies affected Rust/Slint files, estimates complexity. Use when asked to "plan fixes", "fix QA issues", "what to fix next", "prioritize bugs", "create fix plan". Triggers on: fix plan, QA fix, prioritize issues, plan repairs.
 ---
 
-# QA Fix Plan Generator
+# QA Fix Plan Generator — CrispyTivi
 
 Turn QA issues into an actionable, prioritized implementation plan grouped by root cause.
 
@@ -11,8 +11,8 @@ Turn QA issues into an actionable, prioritized implementation plan grouped by ro
 
 1. **Load latest issues:**
    - Determine which pipeline to use (ask user or default to most recently run)
-   - Read `tests/output/{pipeline}/{latest}/analysis/issues.json`
-   - If `issues.json` is absent, run `/rice-qa-analyze` first, then return here
+   - Read `rust/crates/crispy-ui/tests/output/{pipeline}/{latest}/analysis/issues.json`
+   - If `issues.json` is absent, run `/crispy-qa-analyze` first, then return here
 
 2. **Load context files:**
    - Read `F:/work/crispy-tivi/.ai/planning/USER-JOURNEYS.md` — to understand what each broken journey should do
@@ -65,8 +65,8 @@ Turn QA issues into an actionable, prioritized implementation plan grouped by ro
    After all fixes:
    1. `cargo fmt --all && cargo clippy --workspace -- -D warnings`
    2. `CRISPY_PIPELINE=stub cargo test -p crispy-ui --test screenshots`
-   3. `/rice-qa-track` — confirm all previously failing journeys now pass
-   4. `/rice-screenshot-approve` — update golden baselines if all pass
+   3. `/crispy-qa-track` — confirm all previously failing journeys now pass
+   4. `/crispy-screenshot-approve` — update golden baselines if all pass
    ```
 
 7. **Suggest execution:**

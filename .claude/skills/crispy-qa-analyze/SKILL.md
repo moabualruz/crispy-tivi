@@ -1,9 +1,9 @@
 ---
 name: crispy-qa-analyze
-description: Deep analysis of screenshot test results from any pipeline. Reads screenshots + logs, compares against specs, identifies issues with root causes. Use when asked to "analyze test results", "what's wrong", "check screenshots", "diagnose issues", "why is this broken".
+description: Deep analysis of CrispyTivi screenshot test results from any pipeline. Reads screenshots + logs, compares against journey specs and design docs, identifies issues with root causes. Use when asked to "analyze test results", "what's wrong", "check screenshots", "diagnose issues", "why is this broken". Triggers on: analyze QA, analyze screenshots, diagnose failures, what's broken.
 ---
 
-# Deep QA Analysis
+# Deep QA Analysis — CrispyTivi
 
 Analyze the latest test run from any pipeline, combining visual review with structured log analysis.
 
@@ -15,7 +15,7 @@ Analyze the latest test run from any pipeline, combining visual review with stru
      ```bash
      ls -lt rust/crates/crispy-ui/tests/output/
      ```
-   - Read `tests/output/{pipeline}/runs-index.json` — use `latest_path`
+   - Read `rust/crates/crispy-ui/tests/output/{pipeline}/runs-index.json` — use `latest_path`
 
 2. **Read manifest:**
    - Read `{latest_path}/manifest.json`
@@ -67,7 +67,7 @@ Analyze the latest test run from any pipeline, combining visual review with stru
    ```
 
 7. **Save structured issues file:**
-   Write to `{latest_path}/analysis/issues.json` so `/rice-qa-track` and `/rice-qa-fix-plan` can consume it.
+   Write to `{latest_path}/analysis/issues.json` so `/crispy-qa-track` and `/crispy-qa-fix-plan` can consume it.
 
 ## Quick Mode
 

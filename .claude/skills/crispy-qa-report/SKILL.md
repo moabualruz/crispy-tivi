@@ -1,9 +1,9 @@
 ---
 name: crispy-qa-report
-description: Generate comprehensive QA status report across all 3 pipelines. Shows overall quality, cross-pipeline analysis, trend over time. Use when asked to "QA report", "testing summary", "quality status", "how's the app doing", "overall test status".
+description: Generate comprehensive CrispyTivi QA status report across all 3 pipelines (stub/cached/e2e). Shows overall quality score, cross-pipeline analysis, trend over time. Use when asked to "QA report", "testing summary", "quality status", "how's the app doing", "overall test status". Triggers on: QA report, test summary, quality overview, overall status.
 ---
 
-# Comprehensive QA Report
+# Comprehensive QA Report — CrispyTivi
 
 Cross-pipeline quality analysis — identifies which issues are fundamental (all 3 pipelines) vs data-dependent (e2e only) vs test-infrastructure (stub only).
 
@@ -37,7 +37,7 @@ Cross-pipeline quality analysis — identifies which issues are fundamental (all
 
 5. **Calculate quality score:**
    Score = (passing journeys / total journeys) × 100, weighted:
-   - E2E pass weight: 50% (most important — real data)
+   - E2E pass weight: 50% (most important — real IPTV data)
    - Cached pass weight: 30%
    - Stub pass weight: 20%
 
@@ -90,7 +90,7 @@ Cross-pipeline quality analysis — identifies which issues are fundamental (all
    Write to `F:/work/crispy-tivi/.ai/planning/QA-REPORT.md`
 
 9. **Recommend next steps:**
-   - If fundamental issues exist: `/rice-qa-fix-plan` to generate prioritized fixes
-   - If e2e-only failures: investigate real source data structure vs stub assumptions
+   - If fundamental issues exist: `/crispy-qa-fix-plan` to generate prioritized fixes
+   - If e2e-only failures: investigate real IPTV source data structure vs stub assumptions
    - If stub-only failures: update stub fixtures to match current real data shape
-   - If all pass: `/rice-screenshot-approve` to lock in golden baselines
+   - If all pass: `/crispy-screenshot-approve` to lock in golden baselines

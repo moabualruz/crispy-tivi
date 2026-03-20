@@ -1,9 +1,9 @@
 ---
-name: rice-qa-track
-description: Track QA issues across test runs, detect regressions and fixes. Use when asked to "track issues", "what's still broken", "QA status", "regression check", "what changed since last run".
+name: crispy-qa-track
+description: Track CrispyTivi QA issues across test runs, detect regressions and fixes. Use when asked to "track issues", "what's still broken", "QA status", "regression check", "what changed since last run", "are things improving". Triggers on: track issues, issue tracking, regression check, QA status, what's still broken.
 ---
 
-# QA Issue Tracking
+# QA Issue Tracking — CrispyTivi
 
 Compare test runs to track issue lifecycle: new → persistent → fixed → regressed.
 
@@ -11,7 +11,7 @@ Compare test runs to track issue lifecycle: new → persistent → fixed → reg
 
 1. **Determine pipeline and run range:**
    - Ask user which pipeline to track (`stub`, `cached`, `e2e`) or check all three
-   - Read `tests/output/{pipeline}/runs-index.json`
+   - Read `rust/crates/crispy-ui/tests/output/{pipeline}/runs-index.json`
    - Identify the last 2+ runs — use both `latest_path` and `previous_path` (or the runs list)
 
 2. **Compare manifests across runs:**
@@ -71,5 +71,5 @@ Compare test runs to track issue lifecycle: new → persistent → fixed → reg
 
 7. **Recommend actions:**
    - Stale persistent issues: "These X issues have been open for 3+ runs — escalate to fix plan"
-   - Regressions: "Run `/rice-qa-analyze` on the regressed journeys, then bisect the commit range"
-   - All stable: "No regressions. Consider running `/rice-screenshot-approve` to update golden baselines"
+   - Regressions: "Run `/crispy-qa-analyze` on the regressed journeys, then bisect the commit range"
+   - All stable: "No regressions. Consider running `/crispy-screenshot-approve` to update golden baselines"

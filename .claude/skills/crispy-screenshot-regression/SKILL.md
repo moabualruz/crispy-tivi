@@ -1,15 +1,15 @@
 ---
 name: crispy-screenshot-regression
-description: Analyze visual regressions across multiple test runs. Use when asked to "regression analysis", "what broke visually", "compare runs", "visual diff between commits".
+description: Analyze visual regressions in CrispyTivi across multiple test runs. Compares screenshots between runs, classifies changes, and correlates regressions with git commits. Use when asked to "regression analysis", "what broke visually", "compare runs", "visual diff between commits", "what changed visually". Triggers on: regression analysis, visual diff, compare runs, what broke.
 ---
 
-# Cross-Run Regression Analysis
+# Cross-Run Regression Analysis — CrispyTivi
 
 ## Steps
 
 1. **Load run history:**
-   - Read `rust/crates/crispy-ui/tests/runs/runs-index.json`
-   - Get the latest 2 runs (or N runs if specified)
+   - Read `rust/crates/crispy-ui/tests/output/{pipeline}/runs-index.json`
+   - Get the latest 2 runs (or N runs if specified by user)
 
 2. **Compare manifests:**
    - Read `manifest.json` from each run
@@ -22,7 +22,7 @@ description: Analyze visual regressions across multiple test runs. Use when aske
 
 3. **Cross-reference git:**
    - Get commits between the two runs: `git log {old_commit}..{new_commit} --oneline`
-   - For each new regression, identify which files changed that could affect that journey's screen
+   - For each new regression, identify which Rust/Slint files changed that could affect that journey's screen
 
 4. **Output regression report:**
    ```
@@ -38,3 +38,7 @@ description: Analyze visual regressions across multiple test runs. Use when aske
    ### Persistent Failures
    | Screenshot | Journey | Runs Failing |
    ```
+
+5. **Recommend next steps:**
+   - For regressions: "Run `/crispy-qa-analyze` to deep-dive failing journeys"
+   - For improvements: "Run `/crispy-screenshot-approve` to lock in improvements as new baselines"

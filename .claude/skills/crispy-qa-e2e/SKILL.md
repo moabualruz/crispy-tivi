@@ -1,14 +1,14 @@
 ---
 name: crispy-qa-e2e
-description: Run full E2E screenshot tests with real IPTV sources, then analyze screenshots and logs against journey specs and design docs. Use when asked to "run e2e tests", "test with real data", "full QA", "e2e validation", "test real sources".
+description: Run full E2E screenshot tests with real IPTV sources, then analyze screenshots and logs against CrispyTivi journey specs and design docs. Use when asked to "run e2e tests", "test with real data", "full QA", "e2e validation", "test real sources", "end-to-end test". Triggers on: e2e tests, real source test, full QA pipeline.
 ---
 
-# E2E Visual QA Pipeline
+# E2E Visual QA Pipeline — CrispyTivi
 
 Run Pipeline 3 (E2E) — fresh DB, real source sync, full user journey simulation.
 
 ## Prerequisites
-- `test-settings.local.json` must exist with real source credentials
+- `rust/crates/crispy-ui/tests/fixtures/test-settings.local.json` must exist with real IPTV source credentials
 - Network access to IPTV servers required
 
 ## Steps
@@ -100,6 +100,6 @@ Run Pipeline 3 (E2E) — fresh DB, real source sync, full user journey simulatio
    ```
 
 9. **Suggest next steps:**
-   - If critical issues found: run `/rice-qa-fix-plan` to generate an actionable fix plan
-   - If design violations found: run `/rice-screenshot-design-audit` for a full design audit
-   - If all journeys pass: run `/rice-screenshot-approve` to accept as golden baseline
+   - If critical issues found: run `/crispy-qa-fix-plan` to generate an actionable fix plan
+   - If design violations found: run `/crispy-screenshot-design-audit` for a full design audit
+   - If all journeys pass: run `/crispy-screenshot-approve` to accept as golden baseline
