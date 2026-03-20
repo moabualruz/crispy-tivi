@@ -8,6 +8,8 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use chrono::Timelike as _;
+
 use crispy_core::models::{Channel, EpgEntry, Source, UserProfile, VodItem};
 use crispy_core::services::CrispyService;
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
@@ -798,6 +800,116 @@ pub fn populate_ui(ui: &crate::AppWindow, service: &CrispyService) {
         .collect();
     app.set_profiles(ModelRc::new(VecModel::from(slint_profiles)));
     app.set_active_profile_name(SharedString::from(first_profile_name.as_str()));
+
+    // ── EPG Rows ──────────────────────────────────────────────────────────────
+    // Build one EpgChannelRow per channel (up to 50) with a stub "now" programme.
+    let now = chrono::Utc::now();
+    let now_hour = now.hour() as i32;
+    let now_minute = now.minute() as i32;
+    let epg_rows: Vec<crate::EpgChannelRow> = channels.iter().take(50).map(|ch| {
+        let stub_programme = crate::EpgData {
+            channel_id: SharedString::from(ch.id.as_str()),
+            channel_name: SharedString::from(ch.name.as_str()),
+            channel_logo: Default::default(),
+            title: SharedString::from(
+                format!("{} — Evening News", ch.name.as_str()).as_str()
+            ),
+            start_hour: now_hour,
+            start_minute: 0,
+            end_hour: (now_hour + 1).min(23),
+            end_minute: 0,
+            duration_minutes: 60,
+            progress_percent: now_minute as f32 / 60.0,
+            description: SharedString::default(),
+            category: SharedString::from(ch.channel_group.as_deref().unwrap_or("")),
+            has_catchup: ch.has_catchup,
+            is_now: true,
+        };
+        crate::EpgChannelRow {
+            channel_id: SharedString::from(ch.id.as_str()),
+            channel_name: SharedString::from(ch.name.as_str()),
+            channel_logo: Default::default(),
+            programmes: ModelRc::new(VecModel::from(vec![stub_programme])),
+        }
+    }).collect();
+    app.set_epg_rows(ModelRc::new(VecModel::from(epg_rows)));
+    eprintln!("[populate_ui] Populated EPG rows for up to 50 channels");
+
+    // ── VOD Categories ────────────────────────────────────────────────────────
+    // Collect unique genres from all VOD items; emit as CategoryData.
+    let mut seen_cats: Vec<String> = Vec::new();
+    for v in &all_vod {
+        if let Some(cat) = v.category.as_deref() {
+            if !cat.is_empty() && !seen_cats.contains(&cat.to_string()) {
+                seen_cats.push(cat.to_string());
+            }
+        }
+    }
+    let slint_cats: Vec<crate::CategoryData> = seen_cats.iter().map(|c| {
+        // Determine if this category belongs to movies, series, or both.
+        let has_movie = all_vod.iter().any(|v| v.item_type == "movie" && v.category.as_deref() == Some(c.as_str()));
+        let category_type = if has_movie { "movie" } else { "series" };
+        crate::CategoryData {
+            name: SharedString::from(c.as_str()),
+            category_type: SharedString::from(category_type),
+        }
+    }).collect();
+    app.set_vod_categories(ModelRc::new(VecModel::from(slint_cats)));
+    eprintln!("[populate_ui] Populated {} VOD categories", seen_cats.len());
+
+    // ── Home content lanes ────────────────────────────────────────────────────
+    let home_movies: Vec<crate::VodData> = all_vod
+        .iter()
+        .filter(|v| v.item_type == "movie")
+        .take(10)
+        .map(|v| crate::VodData {
+            id: SharedString::from(v.id.as_str()),
+            name: SharedString::from(v.name.as_str()),
+            stream_url: SharedString::from(v.stream_url.as_str()),
+            item_type: SharedString::from(v.item_type.as_str()),
+            poster_url: SharedString::from(v.poster_url.as_deref().unwrap_or("")),
+            backdrop_url: SharedString::from(v.backdrop_url.as_deref().unwrap_or("")),
+            description: SharedString::from(v.description.as_deref().unwrap_or("")),
+            genre: SharedString::default(),
+            year: SharedString::from(v.year.map(|y| y.to_string()).unwrap_or_default().as_str()),
+            rating: SharedString::from(v.rating.as_deref().unwrap_or("")),
+            duration_minutes: v.duration.unwrap_or(0),
+            is_favorite: v.is_favorite,
+            source_id: SharedString::from(v.source_id.as_deref().unwrap_or("")),
+            series_id: SharedString::default(),
+            season: 0,
+            episode: 0,
+            poster: Default::default(),
+        })
+        .collect();
+    app.set_home_movies(ModelRc::new(VecModel::from(home_movies)));
+
+    let home_series: Vec<crate::VodData> = all_vod
+        .iter()
+        .filter(|v| v.item_type == "series")
+        .take(10)
+        .map(|v| crate::VodData {
+            id: SharedString::from(v.id.as_str()),
+            name: SharedString::from(v.name.as_str()),
+            stream_url: SharedString::from(v.stream_url.as_str()),
+            item_type: SharedString::from(v.item_type.as_str()),
+            poster_url: SharedString::from(v.poster_url.as_deref().unwrap_or("")),
+            backdrop_url: SharedString::from(v.backdrop_url.as_deref().unwrap_or("")),
+            description: SharedString::from(v.description.as_deref().unwrap_or("")),
+            genre: SharedString::default(),
+            year: SharedString::from(v.year.map(|y| y.to_string()).unwrap_or_default().as_str()),
+            rating: SharedString::from(v.rating.as_deref().unwrap_or("")),
+            duration_minutes: v.duration.unwrap_or(0),
+            is_favorite: v.is_favorite,
+            source_id: SharedString::from(v.source_id.as_deref().unwrap_or("")),
+            series_id: SharedString::default(),
+            season: 0,
+            episode: 0,
+            poster: Default::default(),
+        })
+        .collect();
+    app.set_home_series(ModelRc::new(VecModel::from(home_series)));
+    eprintln!("[populate_ui] Home lanes: movies={}, series={}", movie_count.min(10), series_count.min(10));
 
     // ── Navigation state — skip onboarding, start on Home ────────────────────
     ui.global::<OnboardingState>().set_is_active(false);
