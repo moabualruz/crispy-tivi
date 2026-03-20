@@ -611,6 +611,41 @@ export component LiveTvScreen inherits Rectangle {
           }
         }
 
+        // Sort chips — Default / A-Z / Newest
+        Rectangle {
+          height: 40px;
+          HorizontalLayout {
+            padding-top: Theme.spacing-2xs;
+            padding-bottom: Theme.spacing-2xs;
+            spacing: Theme.spacing-sm;
+
+            FilterChip {
+              label: "Default";
+              active: AppState.channel-sort-mode == "default";
+              activated => {
+                AppState.channel-sort-mode = "default";
+                AppState.set-channel-sort("default");
+              }
+            }
+            FilterChip {
+              label: "A-Z";
+              active: AppState.channel-sort-mode == "name";
+              activated => {
+                AppState.channel-sort-mode = "name";
+                AppState.set-channel-sort("name");
+              }
+            }
+            FilterChip {
+              label: "Newest";
+              active: AppState.channel-sort-mode == "date_added";
+              activated => {
+                AppState.channel-sort-mode = "date_added";
+                AppState.set-channel-sort("date_added");
+              }
+            }
+          }
+        }
+
         // Full-screen channel list — M-010 progress bars, M-012 focus callbacks
         ScrollView {
           vertical-stretch: 1;

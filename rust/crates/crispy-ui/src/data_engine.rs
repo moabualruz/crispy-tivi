@@ -291,6 +291,7 @@ impl DataEngine {
             &self.cache.all_channels,
             &self.filters.active_group,
             &self.cache.favorites,
+            &self.filters.channel_sort,
             0,
             usize::MAX,
         );
@@ -431,6 +432,24 @@ impl DataEngine {
                     &self.cache.all_channels,
                     &self.filters.active_group,
                     &self.cache.favorites,
+                    &self.filters.channel_sort,
+                    0,
+                    usize::MAX,
+                );
+                self.send(DataEvent::ChannelsReady {
+                    channels: Arc::new(ch_all),
+                    groups: self.cache.channel_groups.clone(),
+                    total,
+                });
+            }
+
+            HighPriorityEvent::SetChannelSort { mode } => {
+                self.filters.channel_sort = mode;
+                let (ch_all, total, _) = filter_channels(
+                    &self.cache.all_channels,
+                    &self.filters.active_group,
+                    &self.cache.favorites,
+                    &self.filters.channel_sort,
                     0,
                     usize::MAX,
                 );
@@ -1022,6 +1041,45 @@ impl DataEngine {
                     Err(e) => {
                         error!(error = %e, "save_preference task panicked");
                     }
+                }
+            }
+            NormalEvent::SetHwdecMode { mode } => {
+                let svc = self.provider.clone();
+                let v = mode.clone();
+                match self
+                    .rt
+                    .spawn_blocking(move || svc.set_setting("hwdec_mode", &v))
+                    .await
+                {
+                    Ok(Ok(())) => info!(mode = %mode, "hwdec_mode saved"),
+                    Ok(Err(e)) => error!(error = %e, "Failed to save hwdec_mode"),
+                    Err(e) => error!(error = %e, "save hwdec_mode task panicked"),
+                }
+            }
+            NormalEvent::SetAspectRatio { ratio } => {
+                let svc = self.provider.clone();
+                let v = ratio.clone();
+                match self
+                    .rt
+                    .spawn_blocking(move || svc.set_setting("aspect_ratio", &v))
+                    .await
+                {
+                    Ok(Ok(())) => info!(ratio = %ratio, "aspect_ratio saved"),
+                    Ok(Err(e)) => error!(error = %e, "Failed to save aspect_ratio"),
+                    Err(e) => error!(error = %e, "save aspect_ratio task panicked"),
+                }
+            }
+            NormalEvent::SetAudioPassthrough { enabled } => {
+                let svc = self.provider.clone();
+                let v = enabled.clone();
+                match self
+                    .rt
+                    .spawn_blocking(move || svc.set_setting("audio_passthrough", &v))
+                    .await
+                {
+                    Ok(Ok(())) => info!(enabled = %enabled, "audio_passthrough saved"),
+                    Ok(Err(e)) => error!(error = %e, "Failed to save audio_passthrough"),
+                    Err(e) => error!(error = %e, "save audio_passthrough task panicked"),
                 }
             }
             // J-34: Export backup via crispy-core BackupService
@@ -1741,6 +1799,7 @@ impl DataEngine {
             &self.cache.all_channels,
             &self.filters.active_group,
             &self.cache.favorites,
+            &self.filters.channel_sort,
             0,
             usize::MAX,
         );

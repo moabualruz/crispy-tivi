@@ -659,6 +659,133 @@ export component SettingsScreen inherits Rectangle {
         }
       }
 
+      // ── Playback  [Simple]
+      if root.section-visible("playback hardware decoding aspect ratio audio passthrough", false): SettingsCard {
+        VerticalLayout {
+          padding: Theme.spacing-lg;
+          spacing: Theme.spacing-md;
+
+          Text {
+            text: "Playback";
+            color: Theme.text-primary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-h2;
+            font-weight: 700;
+          }
+
+          // Hardware Decoding
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            alignment: space-between;
+
+            VerticalLayout {
+              horizontal-stretch: 1;
+              spacing: Theme.spacing-2xs;
+              Text {
+                text: "Hardware Decoding";
+                color: Theme.text-primary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+              }
+              Text {
+                text: "GPU-accelerated video decode. Auto is recommended.";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                wrap: word-wrap;
+              }
+            }
+
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              for opt in [
+                { label: "Auto" },
+                { label: "Always" },
+                { label: "Never" },
+              ]: FilterChip {
+                label: opt.label;
+                active: opt.label == AppState.hwdec-mode;
+                activated => { AppState.set-hwdec-mode(opt.label); }
+              }
+            }
+          }
+
+          // Aspect Ratio
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            alignment: space-between;
+
+            VerticalLayout {
+              horizontal-stretch: 1;
+              spacing: Theme.spacing-2xs;
+              Text {
+                text: "Aspect Ratio";
+                color: Theme.text-primary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+              }
+              Text {
+                text: "Video display aspect ratio override.";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                wrap: word-wrap;
+              }
+            }
+
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              for opt in [
+                { label: "Auto" },
+                { label: "16:9" },
+                { label: "4:3" },
+                { label: "Fill" },
+              ]: FilterChip {
+                label: opt.label;
+                active: opt.label == AppState.aspect-ratio;
+                activated => { AppState.set-aspect-ratio(opt.label); }
+              }
+            }
+          }
+
+          // Audio Passthrough
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            alignment: space-between;
+
+            VerticalLayout {
+              horizontal-stretch: 1;
+              spacing: Theme.spacing-2xs;
+              Text {
+                text: "Audio Passthrough";
+                color: Theme.text-primary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+              }
+              Text {
+                text: "Pass encoded audio (Dolby/DTS) directly to the receiver.";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                wrap: word-wrap;
+              }
+            }
+
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              for opt in [
+                { label: "Off" },
+                { label: "On" },
+              ]: FilterChip {
+                label: opt.label;
+                active: opt.label == AppState.audio-passthrough-mode;
+                activated => { AppState.set-audio-passthrough-mode(opt.label); }
+              }
+            }
+          }
+        }
+      }
+
       // ── Audio  [Simple]
       if root.section-visible("audio language volume sound", false): SettingsCard {
         VerticalLayout {

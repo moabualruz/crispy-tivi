@@ -232,6 +232,13 @@ export global AppState {
   // Playback — persisted video quality preference ("Auto"|"1080p"|"720p"|"480p")
   in-out property <string> video-quality: "Auto";
 
+  // Playback — hardware decode mode ("Auto"|"Always"|"Never")
+  in-out property <string> hwdec-mode: "Auto";
+  // Playback — aspect ratio override ("Auto"|"16:9"|"4:3"|"Fill")
+  in-out property <string> aspect-ratio: "Auto";
+  // Playback — audio passthrough ("Off"|"On")
+  in-out property <string> audio-passthrough-mode: "Off";
+
   // ── Loading states (async pipeline) ──
   in-out property <bool> is-loading-channels: false;
   in-out property <bool> is-loading-vod: false;
@@ -327,6 +334,9 @@ export global AppState {
   callback toggle-favorite(/* channel-id */ string);
   callback filter-channels(/* group */ string, /* search */ string);
   callback play-channel(/* channel-id */ string);
+  // Channel sort mode: "default" (number then name), "name" (A-Z), "date_added" (newest first)
+  in-out property <string> channel-sort-mode: "default";
+  callback set-channel-sort(/* mode */ string);
   // Switch back to the previously watched live channel (J-06 previous-channel toggle).
   callback previous-channel();
 
@@ -334,6 +344,9 @@ export global AppState {
   callback set-video-quality(/* label: "Auto"|"1080p"|"720p"|"480p" */ string);
   callback set-audio-language(/* lang-code: "auto"|"en"|"ar"|"de"|"fr" */ string);
   callback set-audio-passthrough(/* enabled */ bool);
+  callback set-hwdec-mode(/* mode: "Auto"|"Always"|"Never" */ string);
+  callback set-aspect-ratio(/* ratio: "Auto"|"16:9"|"4:3"|"Fill" */ string);
+  callback set-audio-passthrough-mode(/* value: "Off"|"On" */ string);
   callback set-autoplay-next(/* enabled */ bool);
   callback set-subtitle-language(/* lang-code: "off"|"en"|"ar"|"de"|"fr" */ string);
   callback set-startup-screen(/* label */ string);

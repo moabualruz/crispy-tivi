@@ -658,6 +658,7 @@ pub fn populate_ui(ui: &crate::AppWindow, service: &CrispyService) {
             vod_count: 0,
             sync_status: SharedString::from(s.last_sync_status.as_deref().unwrap_or("")),
             last_sync_error: SharedString::from(s.last_sync_error.as_deref().unwrap_or("")),
+            enabled: s.enabled,
         })
         .collect();
     app.set_sources(ModelRc::new(VecModel::from(slint_sources)));
@@ -806,32 +807,34 @@ pub fn populate_ui(ui: &crate::AppWindow, service: &CrispyService) {
     let now = chrono::Utc::now();
     let now_hour = now.hour() as i32;
     let now_minute = now.minute() as i32;
-    let epg_rows: Vec<crate::EpgChannelRow> = channels.iter().take(50).map(|ch| {
-        let stub_programme = crate::EpgData {
-            channel_id: SharedString::from(ch.id.as_str()),
-            channel_name: SharedString::from(ch.name.as_str()),
-            channel_logo: Default::default(),
-            title: SharedString::from(
-                format!("{} — Evening News", ch.name.as_str()).as_str()
-            ),
-            start_hour: now_hour,
-            start_minute: 0,
-            end_hour: (now_hour + 1).min(23),
-            end_minute: 0,
-            duration_minutes: 60,
-            progress_percent: now_minute as f32 / 60.0,
-            description: SharedString::default(),
-            category: SharedString::from(ch.channel_group.as_deref().unwrap_or("")),
-            has_catchup: ch.has_catchup,
-            is_now: true,
-        };
-        crate::EpgChannelRow {
-            channel_id: SharedString::from(ch.id.as_str()),
-            channel_name: SharedString::from(ch.name.as_str()),
-            channel_logo: Default::default(),
-            programmes: ModelRc::new(VecModel::from(vec![stub_programme])),
-        }
-    }).collect();
+    let epg_rows: Vec<crate::EpgChannelRow> = channels
+        .iter()
+        .take(50)
+        .map(|ch| {
+            let stub_programme = crate::EpgData {
+                channel_id: SharedString::from(ch.id.as_str()),
+                channel_name: SharedString::from(ch.name.as_str()),
+                channel_logo: Default::default(),
+                title: SharedString::from(format!("{} — Evening News", ch.name.as_str()).as_str()),
+                start_hour: now_hour,
+                start_minute: 0,
+                end_hour: (now_hour + 1).min(23),
+                end_minute: 0,
+                duration_minutes: 60,
+                progress_percent: now_minute as f32 / 60.0,
+                description: SharedString::default(),
+                category: SharedString::from(ch.channel_group.as_deref().unwrap_or("")),
+                has_catchup: ch.has_catchup,
+                is_now: true,
+            };
+            crate::EpgChannelRow {
+                channel_id: SharedString::from(ch.id.as_str()),
+                channel_name: SharedString::from(ch.name.as_str()),
+                channel_logo: Default::default(),
+                programmes: ModelRc::new(VecModel::from(vec![stub_programme])),
+            }
+        })
+        .collect();
     app.set_epg_rows(ModelRc::new(VecModel::from(epg_rows)));
     eprintln!("[populate_ui] Populated EPG rows for up to 50 channels");
 
@@ -845,15 +848,20 @@ pub fn populate_ui(ui: &crate::AppWindow, service: &CrispyService) {
             }
         }
     }
-    let slint_cats: Vec<crate::CategoryData> = seen_cats.iter().map(|c| {
-        // Determine if this category belongs to movies, series, or both.
-        let has_movie = all_vod.iter().any(|v| v.item_type == "movie" && v.category.as_deref() == Some(c.as_str()));
-        let category_type = if has_movie { "movie" } else { "series" };
-        crate::CategoryData {
-            name: SharedString::from(c.as_str()),
-            category_type: SharedString::from(category_type),
-        }
-    }).collect();
+    let slint_cats: Vec<crate::CategoryData> = seen_cats
+        .iter()
+        .map(|c| {
+            // Determine if this category belongs to movies, series, or both.
+            let has_movie = all_vod
+                .iter()
+                .any(|v| v.item_type == "movie" && v.category.as_deref() == Some(c.as_str()));
+            let category_type = if has_movie { "movie" } else { "series" };
+            crate::CategoryData {
+                name: SharedString::from(c.as_str()),
+                category_type: SharedString::from(category_type),
+            }
+        })
+        .collect();
     app.set_vod_categories(ModelRc::new(VecModel::from(slint_cats)));
     eprintln!("[populate_ui] Populated {} VOD categories", seen_cats.len());
 
@@ -909,7 +917,11 @@ pub fn populate_ui(ui: &crate::AppWindow, service: &CrispyService) {
         })
         .collect();
     app.set_home_series(ModelRc::new(VecModel::from(home_series)));
-    eprintln!("[populate_ui] Home lanes: movies={}, series={}", movie_count.min(10), series_count.min(10));
+    eprintln!(
+        "[populate_ui] Home lanes: movies={}, series={}",
+        movie_count.min(10),
+        series_count.min(10)
+    );
 
     // ── Navigation state — skip onboarding, start on Home ────────────────────
     ui.global::<OnboardingState>().set_is_active(false);

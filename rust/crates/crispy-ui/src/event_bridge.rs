@@ -549,6 +549,17 @@ pub(crate) fn wire(
         }
     });
 
+    app.on_set_channel_sort({
+        let tx = high_tx.clone();
+        move |mode| {
+            if let Err(e) = tx.try_send(HighPriorityEvent::SetChannelSort {
+                mode: mode.to_string(),
+            }) {
+                tracing::warn!(error = %e, "high_tx full: SetChannelSort dropped");
+            }
+        }
+    });
+
     app.on_filter_vod_category({
         let tx = high_tx.clone();
         move |category| {
@@ -743,6 +754,50 @@ pub(crate) fn wire(
                 app.set_active_screen(7); // Settings screen
                 app.invoke_navigate(7);
             }
+        }
+    });
+
+    app.on_set_hwdec_mode({
+        let tx = normal_tx.clone();
+        let ui_w = ui.as_weak();
+        move |mode| {
+            tracing::info!(mode = %mode, "settings: hwdec mode changed");
+            if let Some(ui) = ui_w.upgrade() {
+                ui.global::<super::AppState>().set_hwdec_mode(mode.clone());
+            }
+            let _ = tx.try_send(NormalEvent::SetHwdecMode {
+                mode: mode.to_string(),
+            });
+        }
+    });
+
+    app.on_set_aspect_ratio({
+        let tx = normal_tx.clone();
+        let ui_w = ui.as_weak();
+        move |ratio| {
+            tracing::info!(ratio = %ratio, "settings: aspect ratio changed");
+            if let Some(ui) = ui_w.upgrade() {
+                ui.global::<super::AppState>()
+                    .set_aspect_ratio(ratio.clone());
+            }
+            let _ = tx.try_send(NormalEvent::SetAspectRatio {
+                ratio: ratio.to_string(),
+            });
+        }
+    });
+
+    app.on_set_audio_passthrough_mode({
+        let tx = normal_tx.clone();
+        let ui_w = ui.as_weak();
+        move |value| {
+            tracing::info!(value = %value, "settings: audio passthrough mode changed");
+            if let Some(ui) = ui_w.upgrade() {
+                ui.global::<super::AppState>()
+                    .set_audio_passthrough_mode(value.clone());
+            }
+            let _ = tx.try_send(NormalEvent::SetAudioPassthrough {
+                enabled: value.to_string(),
+            });
         }
     });
 

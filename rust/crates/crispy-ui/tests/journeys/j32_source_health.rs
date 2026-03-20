@@ -34,6 +34,7 @@ impl Journey for J32 {
                     vod_count: 0,
                     sync_status: "ok".into(),
                     last_sync_error: "".into(),
+                    enabled: true,
                 },
                 SourceData {
                     id: "src-2".into(),
@@ -46,6 +47,7 @@ impl Journey for J32 {
                     vod_count: 8500,
                     sync_status: "warning".into(),
                     last_sync_error: "EPG data stale (>24h)".into(),
+                    enabled: true,
                 },
                 SourceData {
                     id: "src-3".into(),
@@ -58,6 +60,7 @@ impl Journey for J32 {
                     vod_count: 0,
                     sync_status: "error".into(),
                     last_sync_error: "Connection refused".into(),
+                    enabled: false,
                 },
             ]));
             ui.global::<AppState>().set_sources(sources);

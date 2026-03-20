@@ -125,6 +125,28 @@ fn real_main() -> anyhow::Result<()> {
         .unwrap_or_else(|| "Auto".to_string());
     app_state.set_video_quality(video_quality.into());
 
+    // Load persisted playback preferences (non-fatal on failure)
+    let hwdec_mode = service
+        .get_setting("hwdec_mode")
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "Auto".to_string());
+    app_state.set_hwdec_mode(hwdec_mode.into());
+
+    let aspect_ratio = service
+        .get_setting("aspect_ratio")
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "Auto".to_string());
+    app_state.set_aspect_ratio(aspect_ratio.into());
+
+    let audio_passthrough = service
+        .get_setting("audio_passthrough")
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "Off".to_string());
+    app_state.set_audio_passthrough_mode(audio_passthrough.into());
+
     // Show onboarding if first run (check both keys for backwards compat)
     let is_first_run = service
         .get_setting("onboarding_done")

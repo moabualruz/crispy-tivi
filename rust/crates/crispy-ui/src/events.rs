@@ -287,6 +287,8 @@ pub enum HighPriorityEvent {
     SearchEpg { query: String },
     /// Apply a VOD category filter to Movies and Series screens.
     FilterVodCategory { category: String },
+    /// Set the channel sort mode: `"default"`, `"name"`, or `"date_added"`.
+    SetChannelSort { mode: String },
 }
 
 // ── NormalEvent ──────────────────────────────────────────────────────────────
@@ -351,6 +353,12 @@ pub enum NormalEvent {
     /// Load continue-watching items for the home screen (J-17/J-21).
     #[allow(dead_code)] // Wired when home screen continue-watching lane is connected
     LoadContinueWatching { profile_id: String },
+    /// Persist the hardware-decode mode preference ("Auto"|"Always"|"Never").
+    SetHwdecMode { mode: String },
+    /// Persist the aspect-ratio override preference ("Auto"|"16:9"|"4:3"|"Fill").
+    SetAspectRatio { ratio: String },
+    /// Persist the audio-passthrough preference ("Off"|"On").
+    SetAudioPassthrough { enabled: String },
 }
 
 // ── DataEvent ────────────────────────────────────────────────────────────────
