@@ -441,6 +441,11 @@ impl DataEngine {
                 });
             }
 
+            HighPriorityEvent::FilterVodCategory { category } => {
+                self.filters.active_vod_category = category;
+                self.emit_filtered_vod();
+            }
+
             HighPriorityEvent::Search { query } => {
                 // Bump generation; spawned task will discard if superseded.
                 let search_gen = self.search_generation.fetch_add(1, Ordering::SeqCst) + 1;
@@ -845,6 +850,52 @@ impl DataEngine {
                                 "Failed to delete source: {e}"
                             )),
                         });
+                    }
+                }
+            }
+
+            NormalEvent::ToggleSourceEnabled { source_id } => {
+                match self.provider.get_source(&source_id) {
+                    Ok(Some(mut source)) => {
+                        source.enabled = !source.enabled;
+                        let new_state = source.enabled;
+                        match self.provider.save_source(&source) {
+                            Ok(()) => {
+                                info!(source_id, enabled = new_state, "Source toggled");
+                                if let Some(cached) =
+                                    self.cache.sources.iter_mut().find(|s| s.id == source_id)
+                                {
+                                    cached.enabled = new_state;
+                                }
+                                // Re-emit sources list so the UI toggle button label updates.
+                                let source_stats = &self.cache.source_stats;
+                                let sources: Vec<SourceInfo> = self
+                                    .cache
+                                    .sources
+                                    .iter()
+                                    .map(|s| {
+                                        let stats =
+                                            source_stats.iter().find(|st| st.source_id == s.id);
+                                        source_to_info(s, stats)
+                                    })
+                                    .collect();
+                                self.send(DataEvent::SourcesReady { sources });
+                            }
+                            Err(e) => {
+                                error!(error = %e, source_id, "Failed to toggle source");
+                                self.send(DataEvent::Error {
+                                    message: Self::sanitize_error_for_ui(&format!(
+                                        "Failed to toggle source: {e}"
+                                    )),
+                                });
+                            }
+                        }
+                    }
+                    Ok(None) => {
+                        error!(source_id, "ToggleSourceEnabled: source not found");
+                    }
+                    Err(e) => {
+                        error!(error = %e, source_id, "ToggleSourceEnabled: DB error");
                     }
                 }
             }

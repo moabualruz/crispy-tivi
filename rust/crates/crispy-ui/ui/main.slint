@@ -143,6 +143,16 @@ export component AppWindow inherits Window {
     }
   }
 
+  // ── LAYER 0: Background safety net ────────────────────────────────────
+  // Always-visible dark background behind everything. Prevents transparent
+  // "empty window" flash when screen layers haven't rendered yet or mpv
+  // underlay hasn't started. Uses Theme.background so it always matches the theme.
+  Rectangle {
+    width: root.width;
+    height: root.height;
+    background: Theme.background;
+  }
+
   // ── LAYER 2: ScreenLayer ──────────────────────────────────────────────
   // All screens are singleton sublayers — always instantiated (pre-rendered),
   // shown/hidden via `visible:`. Enables instant navigation and smooth transitions.

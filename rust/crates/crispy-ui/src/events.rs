@@ -285,6 +285,8 @@ pub enum HighPriorityEvent {
     SelectSeriesSeason { series_id: String, season: i32 },
     /// Filter the EPG grid by programme title.
     SearchEpg { query: String },
+    /// Apply a VOD category filter to Movies and Series screens.
+    FilterVodCategory { category: String },
 }
 
 // ── NormalEvent ──────────────────────────────────────────────────────────────
@@ -298,6 +300,8 @@ pub enum NormalEvent {
     SaveSource { input: SourceInput },
     /// Delete a source (and all its channels/VOD) by ID.
     DeleteSource { source_id: String },
+    /// Flip the `enabled` flag of a source (enabled ↔ disabled).
+    ToggleSourceEnabled { source_id: String },
     /// Force a manual sync for one source.
     SyncSource { source_id: String },
     /// Sync all enabled sources.

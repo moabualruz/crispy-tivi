@@ -34,7 +34,7 @@ export struct SlotDescriptorSlint {
 }
 
 // Base component. Consumer inherits this and adds the item template.
-export component VirtualScrollBase inherits ScrollPrimitives {
+component VirtualScrollBase inherits ScrollPrimitives {
 
     // ── REQUIRED — must be set from Rust before first tick ────────────────
     in property <int> item-count: -1;       // sentinel: -1 = unset
@@ -65,4 +65,11 @@ export component VirtualScrollBase inherits ScrollPrimitives {
     callback on-scroll-start();
     // Fires when scroll settles (velocity < threshold)
     callback on-scroll-end(/* final-position */ float);
+}
+
+// Compile-time entry point — Slint requires exported components to inherit Window.
+// App code never instantiates this directly; consumers inherit VirtualScrollBase instead.
+export component VScrollPreview inherits Window {
+    background: #0a0a0c;
+    VirtualScrollBase { }
 }

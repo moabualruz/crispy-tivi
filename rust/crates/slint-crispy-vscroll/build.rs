@@ -1,5 +1,7 @@
 fn main() {
     // slint is always a dependency — compile .slint files unconditionally.
+    // Note: VirtualScrollBase is a reusable base component, not a Window.
+    // The "doesn't inherit Window" warning is expected for library crates.
     slint_build::compile("ui/virtual-scroll-base.slint").expect("slint compilation failed");
 
     println!("cargo:rerun-if-changed=ui/scroll-primitives.slint");

@@ -4,8 +4,8 @@
 //! outcomes via a [`tokio::sync::mpsc::Sender<SyncResult>`] channel,
 //! decoupling the sync work from any direct UI or data-reload calls.
 
-use crispy_core::services::{m3u_sync, stalker_sync, xtream_sync};
-use tracing::{debug, error, info};
+use crispy_core::services::{epg_sync, m3u_sync, stalker_sync, xtream_sync};
+use tracing::{debug, error, info, warn};
 
 use crate::events::{DataEvent, SyncResult};
 
@@ -70,6 +70,10 @@ pub(crate) fn spawn_sync(
         // 20% — about to fetch content from the remote source
         emit_progress(&data_tx, &sid, 20);
 
+        // `epg_url` is populated by Xtream sync when the source advertises one.
+        // It is resolved after the main sync completes (non-fatal on failure).
+        let mut pending_epg_url: Option<String> = None;
+
         let outcome = match source_type.as_str() {
             "m3u" => {
                 let url = source.url.clone();
@@ -106,6 +110,12 @@ pub(crate) fn spawn_sync(
                 });
                 emit_progress(&data_tx, &sid, 80); // VOD + series done, writing DB
                 emit_progress(&data_tx, &sid, 95); // DB writes complete
+
+                // Capture EPG URL for post-sync fetch (resolved below after outcome check).
+                if let Ok(ref report) = result {
+                    pending_epg_url = report.epg_url.clone();
+                }
+
                 result
             }
             "stalker" => {
@@ -136,6 +146,24 @@ pub(crate) fn spawn_sync(
                     "Sync completed: source_id={sid}, channels={}, vod={}",
                     report.channels_count, report.vod_count
                 );
+
+                // EPG fetch — non-fatal; runs after main sync is confirmed successful.
+                if let Some(epg_url) = pending_epg_url {
+                    emit_progress(&data_tx, &sid, 96);
+                    let epg_result = handle.block_on(async {
+                        epg_sync::fetch_and_save_xmltv_epg(&svc, &epg_url, false).await
+                    });
+                    match epg_result {
+                        Ok(count) => {
+                            info!("EPG synced: {count} entries for source {sid}");
+                        }
+                        Err(e) => {
+                            warn!("EPG sync failed for source {sid}: {e}");
+                        }
+                    }
+                    emit_progress(&data_tx, &sid, 99);
+                }
+
                 let _ = result_tx.blocking_send(SyncResult::Success {
                     source_id: sid,
                     channel_count: report.channels_count as u32,

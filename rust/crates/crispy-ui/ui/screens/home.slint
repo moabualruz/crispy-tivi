@@ -28,7 +28,7 @@ component HeroDynamic inherits Rectangle {
   property <bool> hero-live: AppState.hero-items[idx].is-live;
   property <image> hero-backdrop: AppState.hero-items[idx].backdrop;
 
-  min-height: 400px;
+  min-height: 280px;
   clip: true;
 
   // Backdrop image — edge-to-edge
@@ -143,7 +143,7 @@ component HeroDynamic inherits Rectangle {
 
 // Static fallback hero — shown when hero-items is empty
 component HeroStatic inherits Rectangle {
-  min-height: 400px;
+  min-height: 280px;
   background: @linear-gradient(135deg, rgba(255, 75, 43, 0.2) 0%, rgba(10, 10, 12, 0.95) 60%, rgba(255, 65, 108, 0.1) 100%); // token: Theme.background (gradient stops — cannot use token in @linear-gradient)
 
   VerticalLayout {

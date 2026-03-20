@@ -164,6 +164,13 @@ component SourceRow inherits FocusScope {
         alignment: end;
 
         ActionButton {
+          label: source.enabled ? "Disable" : "Enable";
+          width: 80px;
+          height: 32px;
+          clicked => { AppState.toggle-source-enabled(source.id); }
+        }
+
+        ActionButton {
           label: "Edit";
           width: 72px;
           height: 32px;

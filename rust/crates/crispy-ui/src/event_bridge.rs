@@ -549,6 +549,17 @@ pub(crate) fn wire(
         }
     });
 
+    app.on_filter_vod_category({
+        let tx = high_tx.clone();
+        move |category| {
+            if let Err(e) = tx.try_send(HighPriorityEvent::FilterVodCategory {
+                category: category.to_string(),
+            }) {
+                tracing::warn!(error = %e, "high_tx full: FilterVodCategory dropped");
+            }
+        }
+    });
+
     app.on_perform_search({
         let tx = high_tx.clone();
         let normal_tx_search = normal_tx.clone();
@@ -856,6 +867,17 @@ pub(crate) fn wire(
                 source_id: source_id.to_string(),
             }) {
                 tracing::warn!(error = %e, "normal_tx full: DeleteSource dropped");
+            }
+        }
+    });
+
+    app.on_toggle_source_enabled({
+        let tx = normal_tx.clone();
+        move |source_id| {
+            if let Err(e) = tx.try_send(NormalEvent::ToggleSourceEnabled {
+                source_id: source_id.to_string(),
+            }) {
+                tracing::warn!(error = %e, "normal_tx full: ToggleSourceEnabled dropped");
             }
         }
     });
@@ -3325,6 +3347,7 @@ fn source_info_to_slint(s: &SourceInfo) -> super::SourceData {
         vod_count: 0,
         sync_status: SharedString::from(s.last_sync_status.as_deref().unwrap_or("")),
         last_sync_error: SharedString::from(s.last_sync_error.as_deref().unwrap_or("")),
+        enabled: s.enabled,
     }
 }
 
@@ -3592,8 +3615,8 @@ pub(crate) fn build_hero_items(sd: &SharedData) -> Vec<super::HeroItem> {
 
     let mut items: Vec<super::HeroItem> = Vec::with_capacity(5);
 
-    // Prefer channels that have a logo URL
-    for ch in channels_snap.iter().filter(|c| c.logo_url.is_some()) {
+    // Use any channel — prefer ones with a logo URL but don't require it
+    for ch in channels_snap.iter() {
         if items.len() >= 5 {
             break;
         }
@@ -3607,8 +3630,12 @@ pub(crate) fn build_hero_items(sd: &SharedData) -> Vec<super::HeroItem> {
         });
     }
 
-    // Fill remaining slots with movies that have a backdrop
-    for mv in movies_snap.iter().filter(|v| v.backdrop_url.is_some()) {
+    // Fill remaining slots with movies — prefer backdrop URL but fall back to any movie
+    for mv in movies_snap
+        .iter()
+        .filter(|v| v.backdrop_url.is_some())
+        .chain(movies_snap.iter().filter(|v| v.backdrop_url.is_none()))
+    {
         if items.len() >= 5 {
             break;
         }

@@ -163,7 +163,7 @@ pub async fn sync_xtream_source(
         channel_groups,
         vod_count,
         vod_categories: vod_categories_list,
-        epg_url: None,
+        epg_url: Some(xtream::build_xmltv_url(&base, username, password)),
     })
 }
 

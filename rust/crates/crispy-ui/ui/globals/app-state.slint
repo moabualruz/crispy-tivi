@@ -18,6 +18,7 @@ export struct SourceData {
   vod-count: int,
   sync-status: string,
   last-sync-error: string,
+  enabled: bool,
 }
 
 export struct ChannelData {
@@ -306,6 +307,7 @@ export global AppState {
   callback save-source(/* name */ string, /* type */ string, /* url */ string, /* user */ string, /* pass */ string);
   callback edit-source(/* source-id */ string);
   callback delete-source(/* source-id */ string);
+  callback toggle-source-enabled(/* source-id */ string);
   // C-015→C-018: source dialog state + callbacks (moved from component to global for Rust access)
   in-out property <int> source-validate-state: 0;
   in-out property <string> source-field-url: "";
@@ -334,7 +336,8 @@ export global AppState {
   callback set-startup-screen(/* label */ string);
   callback open-player-settings();
 
-  // VOD operations (filter-vod is driven internally by category chip callbacks in vod screens)
+  // VOD operations
+  callback filter-vod-category(/* category-name: empty string = All */ string);
   callback play-vod(/* vod-id */ string);
   callback open-vod-detail(/* vod-id */ string);
   callback toggle-vod-favorite(/* vod-id */ string);

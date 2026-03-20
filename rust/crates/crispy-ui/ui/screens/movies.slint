@@ -4,6 +4,7 @@ import { EmptyState } from "../components/empty-state.slint";
 import { VodCard } from "../components/vod-card.slint";
 import { LoadingIndicator } from "../components/loading-indicator.slint";
 import { IconMovie } from "../components/icons.slint";
+import { FilterChip } from "../components/filter-chip.slint";
 import { ScrollView } from "std-widgets.slint";
 
 export component MoviesScreen inherits Rectangle {
@@ -49,6 +50,35 @@ export component MoviesScreen inherits Rectangle {
       font-family: Theme.font-display;
       font-size: Theme.font-size-h1;
       font-weight: 700;
+    }
+
+    // Category filter chips
+    if AppState.vod-categories.length > 0: Rectangle {
+      height: 48px;
+      clip: true;
+      HorizontalLayout {
+        padding-top: Theme.spacing-xs;
+        padding-bottom: Theme.spacing-xs;
+        spacing: Theme.spacing-sm;
+
+        FilterChip {
+          label: "All";
+          active: AppState.active-vod-category == "";
+          activated => {
+            AppState.active-vod-category = "";
+            AppState.filter-vod-category("");
+          }
+        }
+
+        for cat in AppState.vod-categories: FilterChip {
+          label: cat.name;
+          active: AppState.active-vod-category == cat.name;
+          activated => {
+            AppState.active-vod-category = cat.name;
+            AppState.filter-vod-category(cat.name);
+          }
+        }
+      }
     }
 
     ScrollView {
