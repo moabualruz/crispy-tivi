@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 
 use crate::algorithms::categories;
 use crate::http_client::get_fast_client;
-use crate::http_resilience::fetch_json_list;
+use crate::http_resilience::{fetch_json_list, fetch_json_object};
 use crate::models::SyncReport;
 use crate::parsers::{vod, xtream};
 use crate::services::CrispyService;
@@ -137,7 +137,51 @@ pub async fn sync_xtream_source(
 
     let mut series_items = vod::parse_series(&series_data, Some(source_id));
     series_items = categories::resolve_vod_categories(&series_items, &series_cat_map);
+
+    // 4b. Fetch episodes for each series (Xtream requires a per-series info call).
+    //     Capped at 100 to avoid timeout on servers with thousands of series.
+    let series_limit = series_items.len().min(100);
+    let total_series = series_limit;
+    let mut episode_items: Vec<crate::models::VodItem> = Vec::new();
+
+    for (idx, series_item) in series_items.iter().take(series_limit).enumerate() {
+        // Series IDs are stored as "series_<num>"; strip prefix to get the numeric ID.
+        let series_num_id = series_item
+            .id
+            .strip_prefix("series_")
+            .unwrap_or(&series_item.id);
+
+        emit_progress(
+            source_id,
+            "episodes",
+            0.6 + 0.25 * (idx as f64 / total_series.max(1) as f64),
+            &format!("Fetching episodes {}/{}", idx + 1, total_series),
+        );
+
+        let info_url = xtream::build_xtream_action_url(
+            &base,
+            username,
+            password,
+            "get_series_info",
+            &[("series_id".to_string(), series_num_id.to_string())],
+        );
+
+        match fetch_json_object(&info_url, accept_invalid_certs).await {
+            Ok(info) if !info.is_null() => {
+                let mut eps = vod::parse_episodes(&info, &base, username, password, series_num_id);
+                // Stamp source_id — parse_episodes leaves it None.
+                for ep in &mut eps {
+                    ep.source_id = Some(source_id.to_owned());
+                }
+                episode_items.append(&mut eps);
+            }
+            // Non-fatal: one series failure must not block the rest.
+            Ok(_) | Err(_) => continue,
+        }
+    }
+
     vod_items.extend(series_items);
+    vod_items.extend(episode_items);
 
     // 5. Extract sorted metadata before consuming the collections.
     let channel_groups = categories::extract_sorted_groups(&channels);
