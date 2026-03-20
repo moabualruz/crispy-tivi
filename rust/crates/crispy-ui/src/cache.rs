@@ -100,6 +100,8 @@ pub struct FilterState {
     pub epg_date_offset: i32,
     /// Channel ID to focus/scroll to in the EPG grid.
     pub epg_focused_channel_id: String,
+    /// Channel sort mode: `"default"` (number then name), `"name"` (A-Z), `"date_added"` (newest first).
+    pub channel_sort: String,
 }
 
 impl Default for FilterState {
@@ -110,6 +112,7 @@ impl Default for FilterState {
             active_screen: Screen::Home,
             epg_date_offset: 0,
             epg_focused_channel_id: String::new(),
+            channel_sort: String::from("default"),
         }
     }
 }
@@ -167,20 +170,22 @@ pub fn source_to_info(s: &Source, _stats: Option<&SourceStats>) -> SourceInfo {
 
 // ── Pure filter functions ────────────────────────────────────────────────────
 
-/// Filter channels by group and paginate.
+/// Filter channels by group, sort, and paginate.
 ///
 /// - `group`: empty string means "all groups"; any other value filters by exact match.
 /// - Channels in `favorites` are always present regardless of group when group is empty.
+/// - `sort`: `"default"` (number then name), `"name"` (A-Z case-insensitive), `"date_added"` (newest first).
 ///
 /// Returns `(page_items, total_matching, has_more)`.
 pub fn filter_channels(
     all: &[Channel],
     group: &str,
     favorites: &HashSet<String>,
+    sort: &str,
     offset: usize,
     page_size: usize,
 ) -> (Vec<ChannelInfo>, i32, bool) {
-    let filtered: Vec<&Channel> = all
+    let mut filtered: Vec<&Channel> = all
         .iter()
         .filter(|c| {
             if group.is_empty() {
@@ -193,6 +198,26 @@ pub fn filter_channels(
             }
         })
         .collect();
+
+    // Apply sort AFTER filtering — never sort the full 13K dataset
+    match sort {
+        "name" => {
+            filtered.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+        }
+        "date_added" => {
+            // NaiveDateTime implements Ord; None sorts before Some (treat as oldest)
+            filtered.sort_by(|a, b| b.added_at.cmp(&a.added_at));
+        }
+        _ => {
+            // "default": sort by number (None last) then name
+            filtered.sort_by(|a, b| match (a.number, b.number) {
+                (Some(na), Some(nb)) => na.cmp(&nb),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
+            });
+        }
+    }
 
     let total = filtered.len();
     let page: Vec<ChannelInfo> = filtered
@@ -367,7 +392,8 @@ mod tests {
             make_channel("c3", "Ungrouped", None),
         ];
         let favs = HashSet::new();
-        let (page, total, has_more) = filter_channels(&channels, "", &favs, 0, CHANNEL_PAGE_SIZE);
+        let (page, total, has_more) =
+            filter_channels(&channels, "", &favs, "default", 0, CHANNEL_PAGE_SIZE);
         assert_eq!(total, 3);
         assert_eq!(page.len(), 3);
         assert!(!has_more);
@@ -381,7 +407,8 @@ mod tests {
             make_channel("c3", "CNN", Some("News")),
         ];
         let favs = HashSet::new();
-        let (page, total, has_more) = filter_channels(&channels, "UK", &favs, 0, CHANNEL_PAGE_SIZE);
+        let (page, total, has_more) =
+            filter_channels(&channels, "UK", &favs, "default", 0, CHANNEL_PAGE_SIZE);
         assert_eq!(total, 2);
         assert_eq!(page.len(), 2);
         assert!(
@@ -398,18 +425,71 @@ mod tests {
             .collect();
         let favs = HashSet::new();
 
-        let (page1, total, has_more) = filter_channels(&channels, "", &favs, 0, 4);
+        let (page1, total, has_more) = filter_channels(&channels, "", &favs, "default", 0, 4);
         assert_eq!(total, 10);
         assert_eq!(page1.len(), 4);
         assert!(has_more);
 
-        let (page2, _, has_more2) = filter_channels(&channels, "", &favs, 4, 4);
+        let (page2, _, has_more2) = filter_channels(&channels, "", &favs, "default", 4, 4);
         assert_eq!(page2.len(), 4);
         assert!(has_more2);
 
-        let (page3, _, has_more3) = filter_channels(&channels, "", &favs, 8, 4);
+        let (page3, _, has_more3) = filter_channels(&channels, "", &favs, "default", 8, 4);
         assert_eq!(page3.len(), 2);
         assert!(!has_more3);
+    }
+
+    #[test]
+    fn test_filter_channels_sort_name_returns_az_order() {
+        let channels = vec![
+            make_channel("c1", "ZZZ Channel", Some("All")),
+            make_channel("c2", "aaa Channel", Some("All")),
+            make_channel("c3", "MMM Channel", Some("All")),
+        ];
+        let favs = HashSet::new();
+        let (page, _, _) = filter_channels(&channels, "", &favs, "name", 0, CHANNEL_PAGE_SIZE);
+        assert_eq!(page[0].name, "aaa Channel");
+        assert_eq!(page[1].name, "MMM Channel");
+        assert_eq!(page[2].name, "ZZZ Channel");
+    }
+
+    #[test]
+    fn test_filter_channels_sort_default_orders_by_number_then_name() {
+        let mut c1 = make_channel("c1", "BBC One", Some("All"));
+        c1.number = Some(1);
+        let mut c2 = make_channel("c2", "CNN", Some("All"));
+        c2.number = Some(2);
+        let c3 = make_channel("c3", "Ungrouped", None);
+        let channels = vec![c3.clone(), c2.clone(), c1.clone()];
+        let favs = HashSet::new();
+        let (page, _, _) = filter_channels(&channels, "", &favs, "default", 0, CHANNEL_PAGE_SIZE);
+        assert_eq!(page[0].id, "c1"); // number 1 first
+        assert_eq!(page[1].id, "c2"); // number 2 second
+        assert_eq!(page[2].id, "c3"); // no number last
+    }
+
+    #[test]
+    fn test_filter_channels_sort_date_added_newest_first() {
+        use chrono::NaiveDateTime;
+        let mut c1 = make_channel("c1", "Old Channel", Some("All"));
+        c1.added_at = Some(
+            NaiveDateTime::parse_from_str("2024-01-01 00:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+        );
+        let mut c2 = make_channel("c2", "New Channel", Some("All"));
+        c2.added_at = Some(
+            NaiveDateTime::parse_from_str("2026-01-01 00:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+        );
+        let mut c3 = make_channel("c3", "Middle Channel", Some("All"));
+        c3.added_at = Some(
+            NaiveDateTime::parse_from_str("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+        );
+        let channels = vec![c1, c2, c3];
+        let favs = HashSet::new();
+        let (page, _, _) =
+            filter_channels(&channels, "", &favs, "date_added", 0, CHANNEL_PAGE_SIZE);
+        assert_eq!(page[0].id, "c2"); // newest first
+        assert_eq!(page[1].id, "c3");
+        assert_eq!(page[2].id, "c1"); // oldest last
     }
 
     #[test]
@@ -422,7 +502,14 @@ mod tests {
         let mut favs = HashSet::new();
         favs.insert("c2".to_owned());
 
-        let (page, total, _) = filter_channels(&channels, "Favorites", &favs, 0, CHANNEL_PAGE_SIZE);
+        let (page, total, _) = filter_channels(
+            &channels,
+            "Favorites",
+            &favs,
+            "default",
+            0,
+            CHANNEL_PAGE_SIZE,
+        );
         assert_eq!(total, 1);
         assert_eq!(page[0].id, "c2");
         assert!(

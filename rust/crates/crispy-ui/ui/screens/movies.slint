@@ -84,15 +84,24 @@ export component MoviesScreen inherits Rectangle {
     ScrollView {
       vertical-stretch: 1;
 
+      // Row height: portrait card (width * 1.5) + row gap
+      property <length> item-stride: Theme.vod-card-width * 1.5 + Theme.spacing-md;
+      // Columns computed from available width (mirrors the GridLayout below)
+      property <int> columns: max(2, floor((root.width - Theme.content-padding-h * 2 + Theme.spacing-md) / Theme.vod-card-width));
+      // Virtual viewport covers the full dataset so the scroll bar range is correct
+      viewport-height: Math.ceil(AppState.total-movie-count / columns) * item-stride + Theme.spacing-md;
+
       scrolled() => {
         if self.viewport-height > 0px
           && (-self.viewport-y + self.visible-height > self.viewport-height - Theme.scroll-load-threshold) {
           AppState.scroll-movies(45);
+          self.viewport-y = self.viewport-y + 9 * self.item-stride;
         }
         if self.viewport-y < 0px
           && (-self.viewport-y < Theme.scroll-load-threshold)
           && AppState.movie-window-start > 0 {
           AppState.scroll-movies(-45);
+          self.viewport-y = self.viewport-y - 9 * self.item-stride;
         }
       }
 
