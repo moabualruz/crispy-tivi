@@ -9,8 +9,8 @@ export component SearchBar inherits Rectangle {
   callback edited(string);
 
   width: 100%;
-  height: 48px;
-  border-radius: Theme.radius-md;
+  height: 64px;
+  border-radius: Theme.radius-pill;
   background: focus-scope.has-focus ? Theme.focus-bg : Theme.card-surface;
   border-width: focus-scope.has-focus ? Theme.focus-ring-width : 1px;
   border-color: focus-scope.has-focus ? Theme.focus-ring : Theme.card-border;
@@ -36,8 +36,8 @@ export component SearchBar inherits Rectangle {
       VerticalLayout {
         alignment: center;
         IconSearch {
-          width: 20px;
-          height: 20px;
+          width: 24px;
+          height: 24px;
           fill: focus-scope.has-focus ? Theme.text-primary : Theme.text-secondary;
           animate fill { duration: 150ms; }
         }
@@ -48,7 +48,7 @@ export component SearchBar inherits Rectangle {
         input := TextInput {
           vertical-alignment: center;
           font-family: Theme.font-body;
-          font-size: Theme.font-size-body;
+          font-size: Theme.font-size-subtitle;
           color: Theme.text-primary;
           single-line: true;
 
@@ -59,7 +59,7 @@ export component SearchBar inherits Rectangle {
           vertical-alignment: center;
           text: root.placeholder;
           font-family: Theme.font-body;
-          font-size: Theme.font-size-body;
+          font-size: Theme.font-size-subtitle;
           color: Theme.text-secondary;
         }
       }

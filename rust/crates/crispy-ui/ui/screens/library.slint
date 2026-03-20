@@ -62,69 +62,22 @@ export component LibraryScreen inherits Rectangle {
     }
 
     // ── Favorites tab ──────────────────────────────────────────────────────
-    // Shows favorited channels and movies from the windowed model.
-    // Full favorites list requires a dedicated Rust-filtered model (future work).
-    if root.active-tab == 0: ScrollView {
-      width: 100%;
+    // Displays favorited items only. A dedicated Rust-filtered model (favorite-channels,
+    // favorite-movies) is required to populate this tab. Until that model is wired,
+    // the empty state is always shown — showing the full channels/movies list here
+    // would incorrectly display all content regardless of favorite status.
+    if root.active-tab == 0: Rectangle {
       vertical-stretch: 1;
 
-      VerticalLayout {
-        padding-left: Theme.content-padding-h;
-        padding-right: Theme.content-padding-h;
-        padding-top: Theme.spacing-lg;
-        padding-bottom: Theme.spacing-2xl;
-        spacing: Theme.spacing-xl;
-
-        // Favorite channels — shown from windowed model (starred items visible here)
-        if AppState.channels.length > 0: VerticalLayout {
-          spacing: Theme.spacing-sm;
-
-          Text {
-            text: "Channels";
-            color: Theme.text-primary;
-            font-family: Theme.font-display;
-            font-size: Theme.font-size-h2;
-            font-weight: 700;
-          }
-
-          for ch in AppState.channels: ChannelCard {
-            channel: ch;
-            clicked => { AppState.play-channel(ch.id); }
-          }
+      EmptyState {
+        title: "No favorites yet";
+        subtitle: "Star channels and movies to find them here quickly.";
+        cta-text: "Browse Live TV";
+        cta-clicked => {
+          AppState.active-screen = 1;
+          AppState.navigate(1);
         }
-
-        // Favorite movies — shown from windowed model
-        if AppState.movies.length > 0: VerticalLayout {
-          spacing: Theme.spacing-sm;
-
-          Text {
-            text: "Movies";
-            color: Theme.text-primary;
-            font-family: Theme.font-display;
-            font-size: Theme.font-size-h2;
-            font-weight: 700;
-          }
-
-          HorizontalLayout {
-            spacing: Theme.spacing-md;
-            for mv in AppState.movies: VodCard {
-              item: mv;
-              clicked => { AppState.open-vod-detail(mv.id); }
-            }
-          }
-        }
-
-        // Empty state when no data loaded
-        if AppState.channels.length == 0 && AppState.movies.length == 0: EmptyState {
-          title: "No favorites yet";
-          subtitle: "Star channels and movies to find them here quickly.";
-          cta-text: "Browse Live TV";
-          cta-clicked => {
-            AppState.active-screen = 1;
-            AppState.navigate(1);
-          }
-          IconStar { size: 32px; fill: Theme.text-secondary; }
-        }
+        IconStar { size: 32px; fill: Theme.text-secondary; }
       }
     }
 
