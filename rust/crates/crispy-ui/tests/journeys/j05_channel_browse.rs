@@ -162,7 +162,7 @@ impl Journey for J05 {
             ps.set_current_programme("Breaking News Hour 1".into());
             ps.set_show_osd(true);
             ps.set_buffered(0.4);
-            ui.global::<AppState>().set_active_screen(4); // Player
+            ui.global::<AppState>().set_active_screen(1); // Live TV (OSD overlays video underlay)
             slint::platform::update_timers_and_animations();
         }
 

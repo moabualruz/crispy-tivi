@@ -177,7 +177,7 @@ impl Journey for J43 {
         // ══════════════════════════════════════════════════════════════════
 
         if let Some(ui) = harness.ui::<AppWindow>() {
-            ui.global::<AppState>().set_active_screen(2);
+            ui.global::<AppState>().set_active_screen(3); // 3=Movies
             slint::platform::update_timers_and_animations();
         }
 
@@ -208,7 +208,7 @@ impl Journey for J43 {
         // ══════════════════════════════════════════════════════════════════
 
         if let Some(ui) = harness.ui::<AppWindow>() {
-            ui.global::<AppState>().set_active_screen(3);
+            ui.global::<AppState>().set_active_screen(4); // 4=Series
             slint::platform::update_timers_and_animations();
         }
 
@@ -231,7 +231,7 @@ impl Journey for J43 {
         // ══════════════════════════════════════════════════════════════════
 
         if let Some(ui) = harness.ui::<AppWindow>() {
-            ui.global::<AppState>().set_active_screen(4);
+            ui.global::<AppState>().set_active_screen(5); // 5=Search
             slint::platform::update_timers_and_animations();
         }
 
@@ -271,7 +271,7 @@ impl Journey for J43 {
         // ══════════════════════════════════════════════════════════════════
 
         if let Some(ui) = harness.ui::<AppWindow>() {
-            ui.global::<AppState>().set_active_screen(5);
+            ui.global::<AppState>().set_active_screen(2); // 2=EPG/Guide
             slint::platform::update_timers_and_animations();
         }
 

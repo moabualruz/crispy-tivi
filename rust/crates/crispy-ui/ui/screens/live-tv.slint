@@ -119,6 +119,7 @@ component ChannelRow inherits FocusScope {
   in property <string> ch-now-playing;
   in property <string> ch-group;
   in property <bool> compact: false;
+  in property <float> progress: 0.0;
   callback selected(string);
   // Fired when this row gains focus; parent uses this to populate preview panel
   callback focused-changed(string, string, string, string);
@@ -220,10 +221,11 @@ component ChannelRow inherits FocusScope {
         Rectangle {
           x: 0px;
           y: 0px;
-          width: parent.width * 0.5;
+          width: parent.width * root.progress;
           height: 100%;
           border-radius: Theme.radius-2xs;
           background: Theme.brand-gradient;
+          visible: root.progress > 0.0;
         }
       }
     }
