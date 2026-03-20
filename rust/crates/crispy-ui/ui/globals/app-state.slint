@@ -374,6 +374,10 @@ export global AppState {
   // Search (debounced in Rust — UI fires immediately)
   callback perform-search(/* query */ string);
 
+  // Library Favorites tab — favorited channels and VOD
+  in-out property <[ChannelData]> favorite-channels: [];
+  in-out property <[VodData]> favorite-vod: [];
+
   // J-40: watch history entries for the Library History tab (loaded on navigate)
   in-out property <[WatchHistoryData]> watch-history: [];
   // J-40: clear all watch history

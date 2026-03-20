@@ -3369,6 +3369,21 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
             app.set_watch_history(ModelRc::new(VecModel::from(slint_entries)));
         }
 
+        // Library Favorites tab — channels
+        DataEvent::FavoriteChannelsReady { channels } => {
+            tracing::debug!(count = channels.len(), "[DATA] favorite channels ready");
+            let slint_channels: Vec<super::ChannelData> =
+                channels.iter().map(channel_info_to_slint).collect();
+            app.set_favorite_channels(ModelRc::new(VecModel::from(slint_channels)));
+        }
+
+        // Library Favorites tab — VOD (movies + series)
+        DataEvent::FavoriteVodReady { items } => {
+            tracing::debug!(count = items.len(), "[DATA] favorite VOD ready");
+            let slint_vod: Vec<super::VodData> = items.iter().map(vod_info_to_slint).collect();
+            app.set_favorite_vod(ModelRc::new(VecModel::from(slint_vod)));
+        }
+
         // J-17/J-21: populate home screen continue-watching lane
         DataEvent::ContinueWatchingReady { items } => {
             tracing::debug!(count = items.len(), "[DATA] continue-watching ready");

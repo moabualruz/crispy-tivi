@@ -443,6 +443,10 @@ pub enum DataEvent {
     RecentSearchesReady { queries: Vec<String> },
     /// J-40: Watch history loaded for the Library screen.
     WatchHistoryReady { entries: Vec<WatchHistoryInfo> },
+    /// Library Favorites tab — favorited channels.
+    FavoriteChannelsReady { channels: Vec<ChannelInfo> },
+    /// Library Favorites tab — favorited movies and series.
+    FavoriteVodReady { items: Vec<VodInfo> },
     /// J-17/J-21: Continue-watching items ready for the home screen lane.
     ContinueWatchingReady {
         /// id, title, poster_url, progress fraction (0.0–1.0), content_type

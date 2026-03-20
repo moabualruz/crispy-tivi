@@ -673,6 +673,45 @@ export component SettingsScreen inherits Rectangle {
             font-weight: 700;
           }
 
+          // Video Quality
+          HorizontalLayout {
+            spacing: Theme.spacing-md;
+            alignment: space-between;
+
+            VerticalLayout {
+              horizontal-stretch: 1;
+              spacing: Theme.spacing-2xs;
+              Text {
+                text: "Video Quality";
+                color: Theme.text-primary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-body;
+              }
+              Text {
+                text: "Maximum stream quality to request. Auto lets the source decide.";
+                color: Theme.text-secondary;
+                font-family: Theme.font-body;
+                font-size: Theme.font-size-caption;
+                wrap: word-wrap;
+              }
+            }
+
+            HorizontalLayout {
+              spacing: Theme.spacing-xs;
+              for opt in [
+                { label: "Auto" },
+                { label: "4K" },
+                { label: "1080p" },
+                { label: "720p" },
+                { label: "480p" },
+              ]: FilterChip {
+                label: opt.label;
+                active: opt.label == AppState.video-quality;
+                activated => { AppState.set-video-quality(opt.label); }
+              }
+            }
+          }
+
           // Hardware Decoding
           HorizontalLayout {
             spacing: Theme.spacing-md;

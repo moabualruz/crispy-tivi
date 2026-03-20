@@ -62,14 +62,11 @@ export component LibraryScreen inherits Rectangle {
     }
 
     // ── Favorites tab ──────────────────────────────────────────────────────
-    // Displays favorited items only. A dedicated Rust-filtered model (favorite-channels,
-    // favorite-movies) is required to populate this tab. Until that model is wired,
-    // the empty state is always shown — showing the full channels/movies list here
-    // would incorrectly display all content regardless of favorite status.
     if root.active-tab == 0: Rectangle {
       vertical-stretch: 1;
 
-      EmptyState {
+      // Empty state — shown only when both lists are empty
+      if AppState.favorite-channels.length == 0 && AppState.favorite-vod.length == 0: EmptyState {
         title: "No favorites yet";
         subtitle: "Star channels and movies to find them here quickly.";
         cta-text: "Browse Live TV";
@@ -78,6 +75,61 @@ export component LibraryScreen inherits Rectangle {
           AppState.navigate(1);
         }
         IconStar { size: 32px; fill: Theme.text-secondary; }
+      }
+
+      // Content — shown when there is at least one favorite
+      if AppState.favorite-channels.length > 0 || AppState.favorite-vod.length > 0: ScrollView {
+        width: 100%; height: 100%;
+
+        VerticalLayout {
+          padding-left: Theme.content-padding-h;
+          padding-right: Theme.content-padding-h;
+          padding-top: Theme.spacing-lg;
+          padding-bottom: Theme.spacing-2xl;
+          spacing: Theme.spacing-xl;
+
+          // Favorite channels section
+          if AppState.favorite-channels.length > 0: VerticalLayout {
+            spacing: Theme.spacing-sm;
+
+            Text {
+              text: "Channels";
+              color: Theme.text-primary;
+              font-family: Theme.font-display;
+              font-size: Theme.font-size-h2;
+              font-weight: 700;
+            }
+
+            HorizontalLayout {
+              spacing: Theme.spacing-md;
+              for ch in AppState.favorite-channels: ChannelCard {
+                channel: ch;
+                clicked => { AppState.play-channel(ch.id); }
+              }
+            }
+          }
+
+          // Favorite VOD section
+          if AppState.favorite-vod.length > 0: VerticalLayout {
+            spacing: Theme.spacing-sm;
+
+            Text {
+              text: "Movies & Series";
+              color: Theme.text-primary;
+              font-family: Theme.font-display;
+              font-size: Theme.font-size-h2;
+              font-weight: 700;
+            }
+
+            HorizontalLayout {
+              spacing: Theme.spacing-md;
+              for item in AppState.favorite-vod: VodCard {
+                item: item;
+                clicked => { AppState.open-vod-detail(item.id); }
+              }
+            }
+          }
+        }
       }
     }
 

@@ -24,8 +24,8 @@ use crate::cache::{
     source_to_info,
 };
 use crate::events::{
-    DataEvent, HighPriorityEvent, LoadingKind, NormalEvent, Screen, SourceInfo, SyncResult,
-    VodInfo, WatchHistoryInfo,
+    ChannelInfo, DataEvent, HighPriorityEvent, LoadingKind, NormalEvent, Screen, SourceInfo,
+    SyncResult, VodInfo, WatchHistoryInfo,
 };
 
 // ── DataEngine ───────────────────────────────────────────────────────────────
@@ -362,8 +362,9 @@ impl DataEngine {
                 self.filters.active_screen = screen;
                 self.send(DataEvent::ScreenChanged { screen });
 
-                // J-40: load watch history when navigating to Library
+                // J-40: load watch history + favorites when navigating to Library
                 if screen == Screen::Library {
+                    // Watch history
                     let svc = self.provider.clone();
                     match self
                         .rt
@@ -393,6 +394,33 @@ impl DataEngine {
                             error!(error = %e, "load_watch_history task panicked");
                         }
                     }
+
+                    // Favorite channels — filter from cache using the favorites set
+                    let fav_channels: Vec<ChannelInfo> = self
+                        .cache
+                        .all_channels
+                        .iter()
+                        .filter(|c| self.cache.favorites.contains(&c.id))
+                        .map(|c| crate::cache::channel_to_info(c, &self.cache.favorites))
+                        .collect();
+                    debug!(
+                        count = fav_channels.len(),
+                        "[LIBRARY] favorite channels ready"
+                    );
+                    self.send(DataEvent::FavoriteChannelsReady {
+                        channels: fav_channels,
+                    });
+
+                    // Favorite VOD (movies + series) — is_favorite flag is on the VodItem
+                    let fav_vod: Vec<VodInfo> = self
+                        .cache
+                        .all_vod
+                        .iter()
+                        .filter(|v| v.is_favorite)
+                        .map(crate::cache::vod_to_info)
+                        .collect();
+                    debug!(count = fav_vod.len(), "[LIBRARY] favorite VOD ready");
+                    self.send(DataEvent::FavoriteVodReady { items: fav_vod });
                 }
             }
 
