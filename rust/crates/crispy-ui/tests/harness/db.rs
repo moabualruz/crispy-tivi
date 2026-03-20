@@ -314,7 +314,11 @@ impl TestDb {
     fn sync_sources_e2e(&self) {
         use crispy_core::services::{m3u_sync, stalker_sync, xtream_sync};
 
-        let rt = tokio::runtime::Runtime::new().expect("tokio runtime for E2E sync");
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .worker_threads(2)
+            .build()
+            .expect("tokio runtime for E2E sync");
         let sources = self.service.get_sources().unwrap_or_default();
 
         for source in &sources {
@@ -329,10 +333,13 @@ impl TestDb {
                     let sid = source.id.clone();
                     let tls = source.accept_self_signed;
                     let svc = &self.service;
-                    match rt.block_on(tokio::time::timeout(
-                        std::time::Duration::from_secs(60),
-                        m3u_sync::sync_m3u_source(svc, &url, &sid, tls),
-                    )) {
+                    match rt.block_on(async {
+                        tokio::time::timeout(
+                            std::time::Duration::from_secs(60),
+                            m3u_sync::sync_m3u_source(svc, &url, &sid, tls),
+                        )
+                        .await
+                    }) {
                         Ok(Ok(_report)) => Ok(()),
                         Ok(Err(e)) => Err(format!("{e}")),
                         Err(_) => Err("timeout (60s)".to_string()),
@@ -345,10 +352,13 @@ impl TestDb {
                     let sid = source.id.clone();
                     let tls = source.accept_self_signed;
                     let svc = &self.service;
-                    match rt.block_on(tokio::time::timeout(
-                        std::time::Duration::from_secs(60),
-                        xtream_sync::sync_xtream_source(svc, &url, &user, &pass, &sid, tls),
-                    )) {
+                    match rt.block_on(async {
+                        tokio::time::timeout(
+                            std::time::Duration::from_secs(60),
+                            xtream_sync::sync_xtream_source(svc, &url, &user, &pass, &sid, tls),
+                        )
+                        .await
+                    }) {
                         Ok(Ok(_report)) => Ok(()),
                         Ok(Err(e)) => Err(format!("{e}")),
                         Err(_) => Err("timeout (60s)".to_string()),
@@ -360,10 +370,13 @@ impl TestDb {
                     let sid = source.id.clone();
                     let tls = source.accept_self_signed;
                     let svc = &self.service;
-                    match rt.block_on(tokio::time::timeout(
-                        std::time::Duration::from_secs(60),
-                        stalker_sync::sync_stalker_source(svc, &url, &mac, &sid, tls),
-                    )) {
+                    match rt.block_on(async {
+                        tokio::time::timeout(
+                            std::time::Duration::from_secs(60),
+                            stalker_sync::sync_stalker_source(svc, &url, &mac, &sid, tls),
+                        )
+                        .await
+                    }) {
                         Ok(Ok(_report)) => Ok(()),
                         Ok(Err(e)) => Err(format!("{e}")),
                         Err(_) => Err("timeout (60s)".to_string()),
