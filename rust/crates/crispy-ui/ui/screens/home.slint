@@ -220,11 +220,11 @@ component ContinueWatchingCard inherits FocusScope {
       overflow: elide;
     }
 
-    // Progress bar — 3px accent strip at bottom
+    // Progress bar — accent strip at bottom
     Rectangle {
-      x: 0px; y: root.height - 3px;
+      x: 0px; y: root.height - Theme.progress-bar-height;
       width: root.width * root.item.progress;
-      height: 3px;
+      height: Theme.progress-bar-height;
       background: Theme.brand-gradient;
     }
 
@@ -263,7 +263,7 @@ export component HomeScreen inherits Rectangle {
       padding-top: Theme.screen-padding-top;
       padding-left: 0px;
       padding-right: 0px;
-      padding-bottom: 40px; // clear ButtonLegend bar
+      padding-bottom: Theme.button-legend-clearance; // clear ButtonLegend bar
       spacing: Theme.spacing-xl;
 
       // Hero — dynamic or static fallback

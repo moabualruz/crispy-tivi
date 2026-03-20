@@ -54,7 +54,7 @@ export component MoviesScreen inherits Rectangle {
 
     // Category filter chips
     if AppState.vod-categories.length > 0: Rectangle {
-      height: 48px;
+      height: Theme.filter-chip-height;
       clip: true;
       HorizontalLayout {
         padding-top: Theme.spacing-xs;
@@ -86,11 +86,11 @@ export component MoviesScreen inherits Rectangle {
 
       scrolled() => {
         if self.viewport-height > 0px
-          && (-self.viewport-y + self.visible-height > self.viewport-height - 500px) {
+          && (-self.viewport-y + self.visible-height > self.viewport-height - Theme.scroll-load-threshold) {
           AppState.scroll-movies(45);
         }
         if self.viewport-y < 0px
-          && (-self.viewport-y < 500px)
+          && (-self.viewport-y < Theme.scroll-load-threshold)
           && AppState.movie-window-start > 0 {
           AppState.scroll-movies(-45);
         }
@@ -99,7 +99,7 @@ export component MoviesScreen inherits Rectangle {
       VerticalLayout {
         spacing: Theme.spacing-md;
 
-        property <int> columns: max(2, floor((root.width - Theme.content-padding-h * 2 + Theme.spacing-md) / 176px));
+        property <int> columns: max(2, floor((root.width - Theme.content-padding-h * 2 + Theme.spacing-md) / Theme.vod-card-width));
 
         GridLayout {
           spacing: Theme.spacing-md;
