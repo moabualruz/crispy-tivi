@@ -1,0 +1,43 @@
+# CodeSearch Ignore Patterns
+#
+# Add patterns below to exclude files/directories from indexing.
+# One pattern per line. Lines starting with # are comments.
+# Supports glob patterns (**, *, ?, etc.)
+#
+# NOTE: CodeSearch already ignores common directories by default:
+#   - node_modules, .git, .svn, .hg
+#   - bin, obj, .vs, .vscode, .idea
+#   - dist, build, coverage, .next, .nuxt
+#   - __pycache__, .pytest_cache, .mypy_cache
+#   - .coa (CodeSearch's own index directory)
+#
+# Examples (uncomment to use):
+
+# Ignore all test resource directories
+# **/Tests/Resources/**
+# **/Resources/GoldenMaster/**
+
+# Ignore test projects entirely
+# **/*.Tests/**
+
+# Ignore generated files
+# **/*.g.cs
+# **/*.generated.cs
+# **/*.Designer.cs
+
+# Ignore documentation directories
+# **/docs/**
+# **/documentation/**
+
+# Ignore vendor/third-party code
+# **/vendor/**
+# **/third-party/**
+# **/packages/**
+
+# Ignore specific file types
+# **/*.min.js
+# **/*.min.css
+# **/*.map
+
+# Add your custom patterns below:
+

@@ -5,6 +5,7 @@
 //! Authentication uses the two-step handshake + do_auth flow.
 
 use std::collections::HashMap;
+use std::fmt;
 
 use anyhow::{Context, Result, anyhow};
 
@@ -14,6 +15,7 @@ use crate::http_client::{get_fast_client, get_shared_client};
 use crate::models::SyncReport;
 use crate::parsers::stalker;
 use crate::services::CrispyService;
+use crate::services::url_validator::validate_url;
 use crate::sync_progress::emit_progress;
 
 // ── Constants ────────────────────────────────────────
@@ -36,9 +38,23 @@ struct StalkerSession {
     /// Full portal URL including discovered path prefix.
     portal_url: String,
     /// Bearer token obtained from the handshake.
+    // SECURITY: never expose this field in logs or debug output — it is a live
+    // portal credential. See manual Debug impl below.
     token: String,
     /// Cookie header value: `mac={mac}; stb_lang=en; timezone=UTC`.
     mac_cookie: String,
+}
+
+/// Manual Debug impl that redacts the bearer token to prevent it appearing
+/// in tracing spans, error messages, or debug-formatted log lines.
+impl fmt::Debug for StalkerSession {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("StalkerSession")
+            .field("portal_url", &self.portal_url)
+            .field("token", &"[REDACTED]")
+            .field("mac_cookie", &self.mac_cookie)
+            .finish()
+    }
 }
 
 // ── Auth helpers ─────────────────────────────────────
@@ -100,12 +116,16 @@ async fn try_authenticate(
         "{}?type=stb&action=do_auth&login=&password=&device_id={}&device_id2={}&JsHttpRequest=1-xml",
         portal_url, device_id, device_id
     );
+    // Log only the base portal URL — the full auth_url contains login/password
+    // query parameters and must never appear in logs.
+    tracing::debug!(portal_url = %portal_url, "stalker do_auth request");
 
     let auth_resp = get_fast_client(accept_invalid_certs)
         .get(&auth_url)
         .header("Cookie", &cookie)
         .header("User-Agent", "MAG250/1.0 (CrispyTivi)")
         .header("X-User-Agent", "Model: MAG250; Link: WiFi")
+        // SECURITY: token is a live credential — never log this header value.
         .header("Authorization", format!("Bearer {}", token))
         .send()
         .await
@@ -173,6 +193,7 @@ async fn stalker_get(
         .header("Cookie", &session.mac_cookie)
         .header("User-Agent", "MAG250/1.0 (CrispyTivi)")
         .header("X-User-Agent", "Model: MAG250; Link: WiFi")
+        // SECURITY: session.token is a live credential — never log this header value.
         .header("Authorization", format!("Bearer {}", session.token))
         .send()
         .await
@@ -268,6 +289,7 @@ pub async fn verify_stalker_portal(
     mac_address: &str,
     accept_invalid_certs: bool,
 ) -> Result<bool> {
+    validate_url(base_url).map_err(anyhow::Error::from)?;
     if !validate_mac_address(mac_address) {
         return Ok(false);
     }
@@ -297,6 +319,7 @@ pub async fn sync_stalker_source(
     source_id: &str,
     accept_invalid_certs: bool,
 ) -> Result<SyncReport> {
+    validate_url(base_url).map_err(anyhow::Error::from)?;
     let base = base_url.trim_end_matches('/').to_string();
     emit_progress(
         source_id,

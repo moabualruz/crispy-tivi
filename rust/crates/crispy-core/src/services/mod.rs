@@ -12,10 +12,48 @@ use rusqlite::params;
 use crate::database::{Database, DbError};
 use crate::events::{DataChangeEvent, EventCallback};
 
+pub mod activity_log;
+pub mod airplay_service;
+pub mod app_metadata;
 pub mod app_update;
+pub mod audio_output;
+pub mod backup_service;
+pub mod cast_service;
+pub mod content_filter;
+pub mod crash_recovery;
+pub mod deep_link_router;
+pub mod device_discovery;
+pub mod diagnostics;
+pub mod display_manager;
+pub mod dlna_service;
+pub mod epg_cache;
 pub mod epg_sync;
+pub mod feature_flags;
+pub mod gdpr_service;
+pub mod help_service;
+pub mod i18n_service;
+pub mod image_cache_policy;
+pub mod import_service;
+pub mod locale_format;
 pub mod m3u_sync;
+pub mod media_session;
+pub mod network_monitor;
+pub mod notification_service;
+pub mod offline_outbox;
+pub mod pin_security;
+pub mod playback_recovery;
+pub mod playback_watchdog;
+pub mod qoe_collector;
+pub mod radio_service;
+pub mod reconnect_manager;
+pub mod secret_store;
 pub mod stalker_sync;
+pub mod theme_service;
+pub mod tmdb;
+pub mod update_checker;
+pub mod url_validator;
+pub mod viewing_limits;
+pub mod watch_position_sync;
 pub mod xtream_sync;
 
 mod bookmarks;
@@ -100,6 +138,11 @@ pub struct CrispyService {
     pub(super) db: Database,
     pub(super) event_cb: Arc<Mutex<Option<EventCallback>>>,
     pub(super) batching: Arc<Mutex<bool>>,
+    /// Optional OS keyring used for credential encryption/decryption (spec 7.5).
+    ///
+    /// `None` in test builds (no keyring available). When `Some`, credentials
+    /// are encrypted with AES-256-GCM before being stored and decrypted on load.
+    pub(super) keyring: Option<Arc<secret_store::PlatformKeyring>>,
 }
 
 /// Build a comma-separated SQL IN-clause placeholder string
@@ -155,12 +198,26 @@ pub(super) fn delete_removed_by_source(
 }
 
 impl CrispyService {
-    /// Create a service wrapping an existing database.
+    /// Create a service wrapping an existing database (no credential encryption).
     pub fn new(db: Database) -> Self {
         Self {
             db,
             event_cb: Arc::new(Mutex::new(None)),
             batching: Arc::new(Mutex::new(false)),
+            keyring: None,
+        }
+    }
+
+    /// Create a service with OS keyring for AES-256-GCM credential encryption.
+    ///
+    /// Use this constructor in production. The `keyring` is used to retrieve or
+    /// generate the 32-byte database encryption key on first access.
+    pub fn with_keyring(db: Database, keyring: secret_store::PlatformKeyring) -> Self {
+        Self {
+            db,
+            event_cb: Arc::new(Mutex::new(None)),
+            batching: Arc::new(Mutex::new(false)),
+            keyring: Some(Arc::new(keyring)),
         }
     }
 
@@ -266,6 +323,138 @@ impl CrispyService {
         drop(_guard);
         self.emit(DataChangeEvent::BulkDataRefresh);
         result
+    }
+}
+
+#[cfg(test)]
+mod helper_tests {
+    use super::*;
+    use chrono::NaiveDateTime;
+
+    // ── dt_to_ts / ts_to_dt ─────────────────────────
+
+    #[test]
+    fn test_dt_to_ts_epoch_returns_zero() {
+        let dt = NaiveDateTime::from_timestamp_opt(0, 0).unwrap();
+        assert_eq!(dt_to_ts(&dt), 0);
+    }
+
+    #[test]
+    fn test_dt_to_ts_positive_timestamp() {
+        let dt = NaiveDateTime::from_timestamp_opt(1_700_000_000, 0).unwrap();
+        assert_eq!(dt_to_ts(&dt), 1_700_000_000);
+    }
+
+    #[test]
+    fn test_ts_to_dt_zero_returns_epoch() {
+        let dt = ts_to_dt(0);
+        assert_eq!(dt.and_utc().timestamp(), 0);
+    }
+
+    #[test]
+    fn test_ts_to_dt_roundtrips_with_dt_to_ts() {
+        let original = NaiveDateTime::from_timestamp_opt(1_600_000_000, 0).unwrap();
+        let ts = dt_to_ts(&original);
+        let back = ts_to_dt(ts);
+        assert_eq!(back.and_utc().timestamp(), 1_600_000_000);
+    }
+
+    #[test]
+    fn test_opt_dt_to_ts_none_returns_none() {
+        assert_eq!(opt_dt_to_ts(&None), None);
+    }
+
+    #[test]
+    fn test_opt_dt_to_ts_some_returns_some() {
+        let dt = NaiveDateTime::from_timestamp_opt(12345, 0).unwrap();
+        assert_eq!(opt_dt_to_ts(&Some(dt)), Some(12345));
+    }
+
+    #[test]
+    fn test_opt_ts_to_dt_none_returns_none() {
+        assert!(opt_ts_to_dt(None).is_none());
+    }
+
+    #[test]
+    fn test_opt_ts_to_dt_some_returns_datetime() {
+        let result = opt_ts_to_dt(Some(0));
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().and_utc().timestamp(), 0);
+    }
+
+    // ── bool_to_int / int_to_bool ───────────────────
+
+    #[test]
+    fn test_bool_to_int_true_returns_one() {
+        assert_eq!(bool_to_int(true), 1);
+    }
+
+    #[test]
+    fn test_bool_to_int_false_returns_zero() {
+        assert_eq!(bool_to_int(false), 0);
+    }
+
+    #[test]
+    fn test_int_to_bool_zero_returns_false() {
+        assert!(!int_to_bool(0));
+    }
+
+    #[test]
+    fn test_int_to_bool_one_returns_true() {
+        assert!(int_to_bool(1));
+    }
+
+    #[test]
+    fn test_int_to_bool_nonzero_returns_true() {
+        assert!(int_to_bool(-1));
+        assert!(int_to_bool(42));
+    }
+
+    #[test]
+    fn test_bool_to_int_roundtrips_with_int_to_bool() {
+        assert!(int_to_bool(bool_to_int(true)));
+        assert!(!int_to_bool(bool_to_int(false)));
+    }
+
+    // ── build_in_placeholders ───────────────────────
+
+    #[test]
+    fn test_build_in_placeholders_single_param() {
+        assert_eq!(build_in_placeholders(1), "?1");
+    }
+
+    #[test]
+    fn test_build_in_placeholders_three_params() {
+        assert_eq!(build_in_placeholders(3), "?1, ?2, ?3");
+    }
+
+    #[test]
+    fn test_build_in_placeholders_zero_returns_empty() {
+        assert_eq!(build_in_placeholders(0), "");
+    }
+
+    // ── CrispyService construction ──────────────────
+
+    #[test]
+    fn test_open_in_memory_succeeds() {
+        let result = CrispyService::open_in_memory();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cloned_service_shares_event_callback() {
+        use crate::events::DataChangeEvent;
+        use std::sync::{Arc, Mutex};
+        let svc = CrispyService::open_in_memory().unwrap();
+        let clone = svc.clone();
+        let events: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+        let events2 = events.clone();
+        svc.set_event_callback(Arc::new(move |_: &DataChangeEvent| {
+            events2.lock().unwrap().push("called".to_string());
+        }));
+        // Emit via the clone — shared Arc means original callback fires.
+        clone.set_setting("k", "v").unwrap();
+        assert!(!events.lock().unwrap().is_empty());
     }
 }
 

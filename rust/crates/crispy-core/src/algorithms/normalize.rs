@@ -16,6 +16,19 @@ static MULTI_SPACE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+").unwrap
 static MAC_ADDR: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$").unwrap());
 
+/// Quality suffix pattern — ordered longest-first to avoid partial matches.
+/// Matches as a whole word at the end of the string (case-insensitive).
+#[allow(dead_code)] // Used by channel dedup pipeline in Epoch 5.12 UI wiring
+static QUALITY_SUFFIX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)\s+(H\.265|H\.264|HEVC|H265|H264|FHD|UHD|4K|SD|HD)\s*$").unwrap()
+});
+
+/// Trailing 2–3 letter country code preceded by a space (e.g. " US", " UK", " DE").
+/// Only matches at end of string.
+#[allow(dead_code)] // Used by channel dedup pipeline in Epoch 5.12 UI wiring
+static COUNTRY_CODE_SUFFIX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r" [A-Z]{2,3}$").unwrap());
+
 /// Normalize a channel/programme name for fuzzy matching.
 ///
 /// Lowercase, strip non-alphanumeric (except spaces),
@@ -82,6 +95,28 @@ pub fn parse_epg_timestamp(value: &str) -> Option<NaiveDateTime> {
 /// Each XX must be 2 hex digits. Case-insensitive.
 pub fn validate_mac_address(mac: &str) -> bool {
     MAC_ADDR.is_match(mac)
+}
+
+/// Strip a trailing quality suffix from a channel name.
+///
+/// Removes tokens like `HD`, `FHD`, `4K`, `UHD`, `SD`, `H.265`, `HEVC`, `H.264`
+/// when they appear at the end of the name (case-insensitive, preceded by whitespace).
+/// Ordered longest-first internally to avoid partial matches (e.g. "FHD" before "HD").
+///
+#[allow(dead_code)] // Used by channel dedup pipeline in Epoch 5.12 UI wiring
+pub(crate) fn strip_quality_suffix(name: &str) -> String {
+    QUALITY_SUFFIX.replace(name, "").trim().to_string()
+}
+
+/// Strip a trailing 2–3 letter country code from a channel name.
+///
+/// Removes tokens like ` US`, ` UK`, ` DE`, ` FR` only when they appear
+/// at the very end of the name, preceded by a space.  Embedded country
+/// codes (e.g. "ABC USA Network") are left untouched.
+///
+#[allow(dead_code)] // Used by channel dedup pipeline in Epoch 5.12 UI wiring
+pub(crate) fn strip_country_code(name: &str) -> String {
+    COUNTRY_CODE_SUFFIX.replace(name, "").to_string()
 }
 
 /// Normalize a category string for matching.
@@ -301,5 +336,51 @@ mod tests {
     fn logo_domains_empty_input() {
         assert!(guess_logo_domains("").is_empty());
         assert!(guess_logo_domains("   ").is_empty());
+    }
+
+    // ── strip_quality_suffix ──────────────────────────────
+
+    #[test]
+    fn test_strip_quality_suffix_removes_hd() {
+        assert_eq!(strip_quality_suffix("BBC One HD"), "BBC One");
+        assert_eq!(strip_quality_suffix("Sky Sports SD"), "Sky Sports");
+        assert_eq!(strip_quality_suffix("Movie FHD"), "Movie");
+    }
+
+    #[test]
+    fn test_strip_quality_suffix_removes_4k_uhd() {
+        assert_eq!(strip_quality_suffix("Channel 4K"), "Channel");
+        assert_eq!(strip_quality_suffix("StreamUHD UHD"), "StreamUHD");
+        assert_eq!(strip_quality_suffix("Film H.265"), "Film");
+        assert_eq!(strip_quality_suffix("Film HEVC"), "Film");
+        assert_eq!(strip_quality_suffix("Film H.264"), "Film");
+    }
+
+    #[test]
+    fn test_strip_quality_suffix_preserves_name_without_suffix() {
+        assert_eq!(strip_quality_suffix("CNN"), "CNN");
+        assert_eq!(strip_quality_suffix("HBO"), "HBO");
+        // "HD" embedded (not trailing) should be preserved
+        assert_eq!(strip_quality_suffix("HDTV Network"), "HDTV Network");
+    }
+
+    // ── strip_country_code ────────────────────────────────
+
+    #[test]
+    fn test_strip_country_code_removes_trailing_code() {
+        assert_eq!(strip_country_code("CNN US"), "CNN");
+        assert_eq!(strip_country_code("BBC UK"), "BBC");
+        assert_eq!(strip_country_code("ARD DE"), "ARD");
+        assert_eq!(strip_country_code("TF1 FR"), "TF1");
+    }
+
+    #[test]
+    fn test_strip_country_code_preserves_embedded_codes() {
+        // Code in the middle — must not be stripped
+        assert_eq!(strip_country_code("CNN"), "CNN");
+        // Three-letter codes at the end
+        assert_eq!(strip_country_code("ESPN USA"), "ESPN");
+        // Lowercase — should NOT match (regex is uppercase only)
+        assert_eq!(strip_country_code("CNN us"), "CNN us");
     }
 }

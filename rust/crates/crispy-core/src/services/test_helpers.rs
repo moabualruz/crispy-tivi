@@ -98,6 +98,7 @@ pub fn make_source(id: &str, name: &str, source_type: &str) -> Source {
         last_sync_error: None,
         created_at: None,
         updated_at: None,
+        credentials_encrypted: false,
     }
 }
 

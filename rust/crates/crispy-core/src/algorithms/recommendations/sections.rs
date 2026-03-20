@@ -1,5 +1,7 @@
 //! Section-builder functions for the recommendation
 //! engine.
+//!
+//! Tests live at the bottom of this file in a `#[cfg(test)] mod tests` block.
 
 use std::collections::{HashMap, HashSet};
 
@@ -382,6 +384,387 @@ pub(super) fn build_trending(
         title: "Trending Now".to_string(),
         section_type: "trending".to_string(),
         items,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDateTime;
+    use std::collections::{HashMap, HashSet};
+
+    fn epoch_ms(days_ago: i64) -> i64 {
+        let now = chrono::Utc::now();
+        let past = now - chrono::Duration::days(days_ago);
+        past.timestamp_millis()
+    }
+
+    fn now_dt() -> NaiveDateTime {
+        chrono::Utc::now().naive_utc()
+    }
+
+    fn make_vod(
+        id: &str,
+        category: Option<&str>,
+        item_type: &str,
+        rating: Option<&str>,
+        added_days_ago: Option<i64>,
+    ) -> VodItem {
+        use chrono::Duration;
+        VodItem {
+            id: id.to_string(),
+            name: format!("Film {id}"),
+            stream_url: "http://stream".to_string(),
+            item_type: item_type.to_string(),
+            poster_url: None,
+            backdrop_url: None,
+            description: None,
+            rating: rating.map(|s| s.to_string()),
+            year: Some(2020),
+            duration: None,
+            category: category.map(|s| s.to_string()),
+            series_id: None,
+            season_number: None,
+            episode_number: None,
+            ext: None,
+            is_favorite: false,
+            added_at: added_days_ago.map(|d| (chrono::Utc::now() - Duration::days(d)).naive_utc()),
+            updated_at: None,
+            source_id: None,
+        }
+    }
+
+    fn make_channel(id: &str, group: Option<&str>) -> Channel {
+        Channel {
+            id: id.to_string(),
+            name: format!("Channel {id}"),
+            stream_url: "http://stream".to_string(),
+            number: None,
+            channel_group: group.map(|s| s.to_string()),
+            logo_url: None,
+            tvg_id: None,
+            tvg_name: None,
+            is_favorite: false,
+            user_agent: None,
+            has_catchup: false,
+            catchup_days: 0,
+            catchup_type: None,
+            catchup_source: None,
+            resolution: None,
+            source_id: None,
+            added_at: None,
+            updated_at: None,
+            is_247: false,
+        }
+    }
+
+    fn make_signal(
+        item_id: &str,
+        media_type: &str,
+        watched_percent: f64,
+        last_watched_ms: i64,
+    ) -> WatchSignal {
+        WatchSignal {
+            item_id: item_id.to_string(),
+            media_type: media_type.to_string(),
+            watched_percent,
+            last_watched_ms,
+        }
+    }
+
+    // ── category_for ────────────────────────────────
+
+    #[test]
+    fn test_category_for_returns_channel_group_when_media_type_is_channel() {
+        let ch = make_channel("c1", Some("Sports"));
+        let mut channel_by_id: HashMap<&str, &Channel> = HashMap::new();
+        channel_by_id.insert("c1", &ch);
+        let vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
+        let result = category_for("c1", "channel", &vod_by_id, &channel_by_id);
+        assert_eq!(result.as_deref(), Some("Sports"));
+    }
+
+    #[test]
+    fn test_category_for_returns_vod_category_when_media_type_is_movie() {
+        let vod = make_vod("v1", Some("Action"), "movie", None, None);
+        let mut vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
+        vod_by_id.insert("v1", &vod);
+        let channel_by_id: HashMap<&str, &Channel> = HashMap::new();
+        let result = category_for("v1", "movie", &vod_by_id, &channel_by_id);
+        assert_eq!(result.as_deref(), Some("Action"));
+    }
+
+    #[test]
+    fn test_category_for_returns_none_when_item_not_found() {
+        let vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
+        let channel_by_id: HashMap<&str, &Channel> = HashMap::new();
+        let result = category_for("missing", "movie", &vod_by_id, &channel_by_id);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_category_for_returns_none_when_channel_has_no_group() {
+        let ch = make_channel("c1", None);
+        let mut channel_by_id: HashMap<&str, &Channel> = HashMap::new();
+        channel_by_id.insert("c1", &ch);
+        let vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
+        let result = category_for("c1", "channel", &vod_by_id, &channel_by_id);
+        assert!(result.is_none());
+    }
+
+    // ── build_genre_affinity ─────────────────────────
+
+    #[test]
+    fn test_build_genre_affinity_empty_history_and_no_favs_returns_empty() {
+        let vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
+        let channel_by_id: HashMap<&str, &Channel> = HashMap::new();
+        let scores = build_genre_affinity(&[], &[], &[], &[], &vod_by_id, &channel_by_id, now_dt());
+        assert!(scores.is_empty());
+    }
+
+    #[test]
+    fn test_build_genre_affinity_normalizes_to_one() {
+        let vod = make_vod("v1", Some("Action"), "movie", None, None);
+        let vods = vec![vod.clone()];
+        let mut vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
+        vod_by_id.insert("v1", &vod);
+        let channel_by_id: HashMap<&str, &Channel> = HashMap::new();
+        let history = vec![make_signal("v1", "movie", 0.9, epoch_ms(1))];
+        let scores = build_genre_affinity(
+            &history,
+            &[],
+            &[],
+            &vods,
+            &vod_by_id,
+            &channel_by_id,
+            now_dt(),
+        );
+        let max: f64 = scores.values().copied().fold(0.0_f64, f64::max);
+        assert!(max <= 1.0 + f64::EPSILON, "max score {max} exceeds 1.0");
+    }
+
+    #[test]
+    fn test_build_genre_affinity_favorite_channel_boosts_group() {
+        let ch = make_channel("c1", Some("news"));
+        let channels = vec![ch.clone()];
+        let mut channel_by_id: HashMap<&str, &Channel> = HashMap::new();
+        channel_by_id.insert("c1", &ch);
+        let vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
+        let scores = build_genre_affinity(
+            &[],
+            &["c1".to_string()],
+            &[],
+            &[],
+            &vod_by_id,
+            &channel_by_id,
+            now_dt(),
+        );
+        assert!(scores.contains_key("news"));
+    }
+
+    // ── build_top_picks ──────────────────────────────
+
+    #[test]
+    fn test_build_top_picks_excludes_episodes() {
+        let ep = make_vod("e1", Some("drama"), "episode", None, None);
+        let vods = vec![ep];
+        let watched: HashSet<&str> = HashSet::new();
+        let affinity: HashMap<String, f64> = HashMap::new();
+        let section = build_top_picks(&vods, &watched, &affinity, &[], now_dt());
+        assert!(section.items.is_empty());
+    }
+
+    #[test]
+    fn test_build_top_picks_excludes_already_watched() {
+        let movie = make_vod("v1", Some("action"), "movie", None, None);
+        let vods = vec![movie];
+        let mut watched: HashSet<&str> = HashSet::new();
+        watched.insert("v1");
+        let affinity: HashMap<String, f64> = HashMap::new();
+        let section = build_top_picks(&vods, &watched, &affinity, &[], now_dt());
+        assert!(section.items.is_empty());
+    }
+
+    #[test]
+    fn test_build_top_picks_section_type_is_correct() {
+        let section = build_top_picks(&[], &HashSet::new(), &HashMap::new(), &[], now_dt());
+        assert_eq!(section.section_type, "topPicks");
+        assert_eq!(section.title, "Top Picks for You");
+    }
+
+    #[test]
+    fn test_build_top_picks_includes_unwatched_movies() {
+        let movie = make_vod("v1", Some("action"), "movie", Some("8.0"), Some(5));
+        let vods = vec![movie];
+        let watched: HashSet<&str> = HashSet::new();
+        let mut affinity: HashMap<String, f64> = HashMap::new();
+        affinity.insert("action".to_string(), 1.0);
+        let section = build_top_picks(&vods, &watched, &affinity, &[], now_dt());
+        assert_eq!(section.items.len(), 1);
+        assert_eq!(section.items[0].id, "v1");
+    }
+
+    // ── build_because_you_watched ────────────────────
+
+    #[test]
+    fn test_build_because_you_watched_empty_history_returns_empty() {
+        let vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
+        let watched: HashSet<&str> = HashSet::new();
+        let sections = build_because_you_watched(&[], &[], &vod_by_id, &watched);
+        assert!(sections.is_empty());
+    }
+
+    #[test]
+    fn test_build_because_you_watched_skips_channel_history() {
+        let vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
+        let watched: HashSet<&str> = HashSet::new();
+        let history = vec![make_signal("c1", "channel", 0.9, epoch_ms(1))];
+        let sections = build_because_you_watched(&history, &[], &vod_by_id, &watched);
+        assert!(sections.is_empty());
+    }
+
+    #[test]
+    fn test_build_because_you_watched_skips_low_watch_percent() {
+        let vod = make_vod("v1", Some("drama"), "movie", None, None);
+        let vods = vec![vod.clone()];
+        let mut vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
+        vod_by_id.insert("v1", &vod);
+        let watched: HashSet<&str> = HashSet::new();
+        // 0.2 < NEXT_EPISODE_THRESHOLD (0.25) so should be skipped
+        let history = vec![make_signal("v1", "movie", 0.2, epoch_ms(1))];
+        let sections = build_because_you_watched(&history, &vods, &vod_by_id, &watched);
+        assert!(sections.is_empty());
+    }
+
+    // ── build_trending ───────────────────────────────
+
+    #[test]
+    fn test_build_trending_section_type_and_title() {
+        let vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
+        let watched: HashSet<&str> = HashSet::new();
+        let section = build_trending(&[], &[], &vod_by_id, &watched, now_dt());
+        assert_eq!(section.section_type, "trending");
+        assert_eq!(section.title, "Trending Now");
+        assert!(section.items.is_empty());
+    }
+
+    #[test]
+    fn test_build_trending_excludes_channel_history() {
+        let vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
+        let watched: HashSet<&str> = HashSet::new();
+        let history = vec![make_signal("c1", "channel", 1.0, epoch_ms(1))];
+        let section = build_trending(&history, &[], &vod_by_id, &watched, now_dt());
+        assert!(section.items.is_empty());
+    }
+
+    #[test]
+    fn test_build_trending_excludes_old_history_beyond_7_days() {
+        let vod = make_vod("v1", Some("action"), "movie", None, None);
+        let vod_clone = vod.clone();
+        let mut vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
+        vod_by_id.insert("v1", &vod);
+        let watched: HashSet<&str> = HashSet::new();
+        // 8 days ago — outside the 7-day window
+        let history = vec![make_signal("v1", "movie", 1.0, epoch_ms(8))];
+        let vods = vec![vod_clone];
+        let section = build_trending(&history, &vods, &vod_by_id, &watched, now_dt());
+        assert!(section.items.is_empty());
+    }
+
+    // ── build_new_for_you ────────────────────────────
+
+    #[test]
+    fn test_build_new_for_you_excludes_items_older_than_14_days() {
+        let old = make_vod("v1", Some("action"), "movie", None, Some(20));
+        let vods = vec![old];
+        let watched: HashSet<&str> = HashSet::new();
+        let affinity: HashMap<String, f64> = HashMap::new();
+        let section = build_new_for_you(&vods, &watched, &affinity, now_dt());
+        assert!(section.items.is_empty());
+    }
+
+    #[test]
+    fn test_build_new_for_you_includes_items_within_14_days() {
+        let recent = make_vod("v1", Some("action"), "movie", None, Some(5));
+        let vods = vec![recent];
+        let watched: HashSet<&str> = HashSet::new();
+        let mut affinity: HashMap<String, f64> = HashMap::new();
+        affinity.insert("action".to_string(), 1.0);
+        let section = build_new_for_you(&vods, &watched, &affinity, now_dt());
+        assert_eq!(section.items.len(), 1);
+        assert_eq!(section.section_type, "newForYou");
+    }
+
+    #[test]
+    fn test_build_new_for_you_excludes_episodes() {
+        let ep = make_vod("e1", Some("drama"), "episode", None, Some(3));
+        let vods = vec![ep];
+        let watched: HashSet<&str> = HashSet::new();
+        let section = build_new_for_you(&vods, &watched, &HashMap::new(), now_dt());
+        assert!(section.items.is_empty());
+    }
+
+    // ── build_cold_start ─────────────────────────────
+
+    #[test]
+    fn test_build_cold_start_returns_empty_when_no_vod() {
+        let sections = build_cold_start(&[], &HashSet::new());
+        assert!(sections.is_empty());
+    }
+
+    #[test]
+    fn test_build_cold_start_highly_rated_section_created() {
+        let movie = make_vod("v1", Some("action"), "movie", Some("9.0"), None);
+        let vods = vec![movie];
+        let sections = build_cold_start(&vods, &HashSet::new());
+        let types: Vec<&str> = sections.iter().map(|s| s.section_type.as_str()).collect();
+        assert!(types.contains(&"highlyRated"));
+    }
+
+    #[test]
+    fn test_build_cold_start_recently_added_section_created() {
+        let movie = make_vod("v1", Some("action"), "movie", None, Some(3));
+        let vods = vec![movie];
+        let sections = build_cold_start(&vods, &HashSet::new());
+        let types: Vec<&str> = sections.iter().map(|s| s.section_type.as_str()).collect();
+        assert!(types.contains(&"recentlyAdded"));
+    }
+
+    #[test]
+    fn test_build_cold_start_excludes_episodes() {
+        let ep = make_vod("e1", Some("drama"), "episode", Some("9.5"), Some(1));
+        let vods = vec![ep];
+        let sections = build_cold_start(&vods, &HashSet::new());
+        // No section can have episodes
+        for s in &sections {
+            for item in &s.items {
+                assert_ne!(item.id, "e1");
+            }
+        }
+    }
+
+    // ── build_popular_in_genre ───────────────────────
+
+    #[test]
+    fn test_build_popular_in_genre_empty_affinity_returns_empty() {
+        let movie = make_vod("v1", Some("action"), "movie", None, None);
+        let vods = vec![movie];
+        let watched: HashSet<&str> = HashSet::new();
+        let sections = build_popular_in_genre(&HashMap::new(), &vods, &watched, &[]);
+        assert!(sections.is_empty());
+    }
+
+    #[test]
+    fn test_build_popular_in_genre_creates_section_per_top_genre() {
+        let movie = make_vod("v1", Some("action"), "movie", Some("7.0"), None);
+        let vods = vec![movie];
+        let watched: HashSet<&str> = HashSet::new();
+        let mut affinity: HashMap<String, f64> = HashMap::new();
+        affinity.insert("action".to_string(), 1.0);
+        let sections = build_popular_in_genre(&affinity, &vods, &watched, &[]);
+        assert!(!sections.is_empty());
+        assert_eq!(sections[0].section_type, "popularInGenre");
+        assert!(sections[0].title.contains("Action"));
     }
 }
 

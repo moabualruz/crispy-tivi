@@ -114,6 +114,16 @@ pub fn build_xtream_action_url(
     format!("{base}/player_api.php?{query}")
 }
 
+/// Build the XMLTV EPG URL for an Xtream server.
+///
+/// Endpoint: `{base}/xmltv.php?username={user}&password={pass}`
+pub fn build_xmltv_url(base_url: &str, username: &str, password: &str) -> String {
+    let base = normalize_base_url(base_url);
+    let enc_user = encode_credential(username);
+    let enc_pass = encode_credential(password);
+    format!("{base}/xmltv.php?username={enc_user}&password={enc_pass}")
+}
+
 /// Build an Xtream stream URL.
 ///
 /// Format depends on `stream_type`:

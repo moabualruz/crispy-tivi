@@ -5,9 +5,18 @@
 //! - `shared_client()` — general fetching (playlists, EPG, streams)
 //! - `fast_client()` — credential verification, URL checks
 //!
-//! Each profile also has an insecure variant that accepts self-signed
-//! TLS certificates, accessible via `get_shared_client(true)` and
-//! `get_fast_client(true)`.
+//! # TLS policy
+//!
+//! The default shared clients ALWAYS verify TLS certificates. Per-source
+//! insecure clients are constructed on demand (non-static, owned) so that
+//! a single source's `accept_self_signed=true` flag cannot bleed into
+//! requests for other sources. See [`build_insecure_shared_client`] and
+//! [`build_insecure_fast_client`].
+//!
+//! # Security audit
+//!
+//! Any construction of an insecure client is logged at `WARN` level via
+//! [`tracing`] so that every TLS bypass leaves an audit trail.
 
 use std::sync::OnceLock;
 use std::time::Duration;
@@ -17,18 +26,14 @@ use reqwest::Client;
 /// General-purpose HTTP client for playlist/EPG fetching.
 ///
 /// Connection-pooled, gzip-enabled, 15s connect / 120s total timeout.
+/// Certificate verification is ALWAYS enabled on this static instance.
 static HTTP_CLIENT: OnceLock<Client> = OnceLock::new();
 
 /// Fast HTTP client for credential verification and URL checks.
 ///
 /// Shorter timeouts (5s connect / 10s total) for quick pass/fail.
+/// Certificate verification is ALWAYS enabled on this static instance.
 static FAST_CLIENT: OnceLock<Client> = OnceLock::new();
-
-/// Insecure general-purpose client (self-signed certs accepted).
-static INSECURE_HTTP_CLIENT: OnceLock<Client> = OnceLock::new();
-
-/// Insecure fast client (self-signed certs accepted).
-static INSECURE_FAST_CLIENT: OnceLock<Client> = OnceLock::new();
 
 /// Returns the shared general-purpose HTTP client.
 pub fn shared_client() -> &'static Client {
@@ -61,54 +66,89 @@ pub fn fast_client() -> &'static Client {
     })
 }
 
-/// Returns the insecure shared client (accepts invalid certs).
-fn insecure_shared_client() -> &'static Client {
-    INSECURE_HTTP_CLIENT.get_or_init(|| {
-        Client::builder()
-            .danger_accept_invalid_certs(true)
-            .pool_max_idle_per_host(4)
-            .pool_idle_timeout(Duration::from_secs(90))
-            .tcp_keepalive(Duration::from_secs(60))
-            .connect_timeout(Duration::from_secs(15))
-            .timeout(Duration::from_secs(120))
-            .user_agent("CrispyTivi/1.0")
-            .redirect(reqwest::redirect::Policy::limited(5))
-            .gzip(true)
-            .build()
-            .expect("Insecure HTTP client build failed")
-    })
+/// Builds a **new, owned** general-purpose client that accepts invalid TLS certs.
+///
+/// # Security
+///
+/// This intentionally returns an owned `Client` (not a static reference) so
+/// that the insecure configuration is scoped to a single source. It cannot
+/// persist beyond the caller's lifetime or leak into requests for other sources.
+///
+/// Call sites must emit a `WARN` log before using this (enforced by
+/// [`get_shared_client`] and [`fetch_with_retry`]).
+fn build_insecure_shared_client() -> Client {
+    Client::builder()
+        // SECURITY: accept_self_signed is a per-source opt-in. This client is
+        // intentionally non-static so the insecure config cannot bleed into
+        // other sources' requests (C-026 fix).
+        .danger_accept_invalid_certs(true)
+        .pool_max_idle_per_host(4)
+        .pool_idle_timeout(Duration::from_secs(90))
+        .tcp_keepalive(Duration::from_secs(60))
+        .connect_timeout(Duration::from_secs(15))
+        .timeout(Duration::from_secs(120))
+        .user_agent("CrispyTivi/1.0")
+        .redirect(reqwest::redirect::Policy::limited(5))
+        .gzip(true)
+        .build()
+        .expect("Insecure HTTP client build failed")
 }
 
-/// Returns the insecure fast client (accepts invalid certs).
-fn insecure_fast_client() -> &'static Client {
-    INSECURE_FAST_CLIENT.get_or_init(|| {
-        Client::builder()
-            .danger_accept_invalid_certs(true)
-            .connect_timeout(Duration::from_secs(5))
-            .timeout(Duration::from_secs(10))
-            .user_agent("CrispyTivi/1.0")
-            .redirect(reqwest::redirect::Policy::limited(3))
-            .gzip(true)
-            .build()
-            .expect("Insecure fast client build failed")
-    })
+/// Builds a **new, owned** fast client that accepts invalid TLS certs.
+///
+/// # Security
+///
+/// Returns an owned `Client` for the same isolation reason as
+/// [`build_insecure_shared_client`] — insecure config is per-source only.
+fn build_insecure_fast_client() -> Client {
+    Client::builder()
+        // SECURITY: intentionally non-static — scoped to one source (C-026 fix).
+        .danger_accept_invalid_certs(true)
+        .connect_timeout(Duration::from_secs(5))
+        .timeout(Duration::from_secs(10))
+        .user_agent("CrispyTivi/1.0")
+        .redirect(reqwest::redirect::Policy::limited(3))
+        .gzip(true)
+        .build()
+        .expect("Insecure fast client build failed")
 }
 
 /// Returns the appropriate general-purpose client based on TLS policy.
-pub fn get_shared_client(accept_invalid_certs: bool) -> &'static Client {
+///
+/// - `accept_invalid_certs = false` → returns the shared static client (cert
+///   verification always on).
+/// - `accept_invalid_certs = true` → builds and returns a **new owned** client
+///   with cert verification disabled, emitting a `WARN` log for the audit trail.
+///   The owned client is scoped to the caller so insecure config cannot bleed
+///   into other sources (C-026 fix).
+pub fn get_shared_client(accept_invalid_certs: bool) -> std::borrow::Cow<'static, Client> {
     if accept_invalid_certs {
-        insecure_shared_client()
+        tracing::warn!(
+            security = "tls_bypass",
+            client = "shared",
+            "Per-source insecure HTTP client constructed: TLS certificate verification disabled"
+        );
+        std::borrow::Cow::Owned(build_insecure_shared_client())
     } else {
-        shared_client()
+        std::borrow::Cow::Borrowed(shared_client())
     }
 }
 
 /// Returns the appropriate fast client based on TLS policy.
-pub fn get_fast_client(accept_invalid_certs: bool) -> &'static Client {
+///
+/// - `accept_invalid_certs = false` → returns the shared static client.
+/// - `accept_invalid_certs = true` → builds and returns a **new owned** client,
+///   emitting a `WARN` log (C-026 fix).
+pub fn get_fast_client(accept_invalid_certs: bool) -> std::borrow::Cow<'static, Client> {
     if accept_invalid_certs {
-        insecure_fast_client()
+        tracing::warn!(
+            security = "tls_bypass",
+            client = "fast",
+            "Per-source insecure fast HTTP client constructed: TLS certificate verification disabled"
+        );
+        std::borrow::Cow::Owned(build_insecure_fast_client())
     } else {
-        fast_client()
+        std::borrow::Cow::Borrowed(fast_client())
     }
 }
 
@@ -130,7 +170,10 @@ pub async fn fetch_with_retry(
     url: &str,
     accept_invalid_certs: bool,
 ) -> anyhow::Result<reqwest::Response> {
-    let client = get_shared_client(accept_invalid_certs);
+    // Hold the Cow for the entire retry loop so an insecure owned client is
+    // constructed once per fetch call, not once globally (C-026 fix).
+    let cow = get_shared_client(accept_invalid_certs);
+    let client: &Client = &cow;
     let mut last_err = None;
 
     for attempt in 0..=MAX_RETRIES {
@@ -197,20 +240,42 @@ mod tests {
     }
 
     #[test]
-    fn insecure_clients_are_singletons() {
-        let a = get_shared_client(true) as *const Client;
-        let b = get_shared_client(true) as *const Client;
-        assert!(std::ptr::eq(a, b));
+    fn insecure_clients_are_owned_not_static() {
+        // C-026: insecure clients must be per-call owned values, not singletons.
+        // Each call produces a distinct allocation — addresses must NOT be equal.
+        let a = get_shared_client(true);
+        let b = get_shared_client(true);
+        let a_ptr = &*a as *const Client;
+        let b_ptr = &*b as *const Client;
+        assert!(
+            !std::ptr::eq(a_ptr, b_ptr),
+            "insecure clients must not share a static allocation"
+        );
 
-        let c = get_fast_client(true) as *const Client;
-        let d = get_fast_client(true) as *const Client;
-        assert!(std::ptr::eq(c, d));
+        let c = get_fast_client(true);
+        let d = get_fast_client(true);
+        let c_ptr = &*c as *const Client;
+        let d_ptr = &*d as *const Client;
+        assert!(
+            !std::ptr::eq(c_ptr, d_ptr),
+            "insecure fast clients must not share a static allocation"
+        );
     }
 
     #[test]
-    fn secure_and_insecure_are_distinct() {
-        let secure = get_shared_client(false) as *const Client;
-        let insecure = get_shared_client(true) as *const Client;
-        assert!(!std::ptr::eq(secure, insecure));
+    fn secure_client_is_static_and_insecure_is_owned() {
+        // Secure path returns the static reference; insecure returns a new owned value.
+        let secure_a = get_shared_client(false);
+        let secure_b = get_shared_client(false);
+        assert!(
+            std::ptr::eq(&*secure_a as *const Client, &*secure_b as *const Client),
+            "secure clients must be the same static instance"
+        );
+
+        let insecure = get_shared_client(true);
+        assert!(
+            !std::ptr::eq(&*secure_a as *const Client, &*insecure as *const Client),
+            "secure and insecure must be distinct"
+        );
     }
 }

@@ -1,13 +1,124 @@
-//! AWS S3 Signature V4 signing.
+//! Cryptographic utilities for CrispyTivi.
 //!
-//! Ports the SigV4 logic from Dart
-//! `s3_storage_provider.dart` to Rust.
+//! - AES-256-GCM field encryption for credential storage (spec 7.5)
+//! - AWS S3 Signature V4 signing (ports `s3_storage_provider.dart`)
 
 use std::collections::HashMap;
 
+use aes_gcm::{
+    Aes256Gcm, Key, KeyInit, Nonce,
+    aead::rand_core::RngCore,
+    aead::{Aead, OsRng},
+};
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use chrono::{Datelike, NaiveDateTime, Timelike};
 use hmac::{Hmac, Mac};
 use sha2::{Digest, Sha256};
+
+use crate::errors::CrispyError;
+
+// ── AES-256-GCM field encryption ─────────────────────────────────────────────
+
+/// Keyring key ID used when looking up the DB encryption key.
+///
+/// The 32-byte key is stored in the OS credential manager under this name.
+/// Never stored in the database alongside the encrypted values.
+pub const ENCRYPTION_KEY_ID: &str = "crispy_db_encryption_key";
+
+/// AES-256-GCM nonce length in bytes (96-bit recommended by the spec).
+const NONCE_LEN: usize = 12;
+
+/// Encrypt a plaintext string field with AES-256-GCM.
+///
+/// A fresh random 12-byte nonce is generated for every call.
+/// Returns a Base64-encoded string containing `nonce || ciphertext || tag`
+/// (the GCM tag is appended to the ciphertext by `aes-gcm` automatically).
+///
+/// # Errors
+/// Returns [`CrispyError::Security`] on encryption failure.
+pub(crate) fn encrypt_field(plaintext: &str, key: &[u8; 32]) -> Result<String, CrispyError> {
+    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
+
+    let mut nonce_bytes = [0u8; NONCE_LEN];
+    OsRng.fill_bytes(&mut nonce_bytes);
+    let nonce = Nonce::from_slice(&nonce_bytes);
+
+    let ciphertext = cipher
+        .encrypt(nonce, plaintext.as_bytes())
+        .map_err(|e| CrispyError::security(format!("AES-GCM encrypt failed: {e}")))?;
+
+    // Concatenate nonce || ciphertext (tag already appended by aes-gcm).
+    let mut combined = Vec::with_capacity(NONCE_LEN + ciphertext.len());
+    combined.extend_from_slice(&nonce_bytes);
+    combined.extend_from_slice(&ciphertext);
+
+    Ok(BASE64.encode(combined))
+}
+
+/// Decrypt a Base64-encoded `nonce || ciphertext || tag` field.
+///
+/// # Errors
+/// Returns [`CrispyError::Security`] if the Base64 is malformed, the data
+/// is too short to contain a nonce, or decryption / authentication fails.
+pub(crate) fn decrypt_field(encrypted: &str, key: &[u8; 32]) -> Result<String, CrispyError> {
+    let combined = BASE64
+        .decode(encrypted)
+        .map_err(|e| CrispyError::security(format!("Base64 decode failed: {e}")))?;
+
+    if combined.len() < NONCE_LEN {
+        return Err(CrispyError::security(
+            "Encrypted field too short to contain nonce".to_string(),
+        ));
+    }
+
+    let (nonce_bytes, ciphertext) = combined.split_at(NONCE_LEN);
+    let nonce = Nonce::from_slice(nonce_bytes);
+
+    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
+    let plaintext_bytes = cipher
+        .decrypt(nonce, ciphertext)
+        .map_err(|e| CrispyError::security(format!("AES-GCM decrypt failed: {e}")))?;
+
+    String::from_utf8(plaintext_bytes)
+        .map_err(|e| CrispyError::security(format!("Decrypted bytes are not valid UTF-8: {e}")))
+}
+
+/// Retrieve or generate the 32-byte AES-256-GCM database encryption key.
+///
+/// The key is stored in the OS credential manager under [`ENCRYPTION_KEY_ID`]
+/// as a Base64-encoded 32-byte value. If no key exists yet (first run), a
+/// fresh cryptographically random key is generated, stored, and returned.
+///
+/// # Errors
+/// Returns [`CrispyError::Security`] if the keyring is inaccessible or the
+/// stored value cannot be decoded to exactly 32 bytes.
+pub(crate) fn get_or_create_encryption_key(
+    keyring: &crate::services::secret_store::PlatformKeyring,
+) -> Result<[u8; 32], CrispyError> {
+    use crate::services::secret_store::ExposeSecret;
+
+    if let Some(existing) = keyring.get(ENCRYPTION_KEY_ID)? {
+        let bytes = BASE64
+            .decode(existing.expose_secret())
+            .map_err(|e| CrispyError::security(format!("Invalid encryption key Base64: {e}")))?;
+        if bytes.len() != 32 {
+            return Err(CrispyError::security(format!(
+                "Encryption key must be 32 bytes, got {}",
+                bytes.len()
+            )));
+        }
+        let mut key = [0u8; 32];
+        key.copy_from_slice(&bytes);
+        return Ok(key);
+    }
+
+    // First run: generate and persist a fresh key.
+    let mut key = [0u8; 32];
+    OsRng.fill_bytes(&mut key);
+    let b64_key = crate::services::secret_store::SecretString::from(BASE64.encode(key));
+    keyring.set(ENCRYPTION_KEY_ID, &b64_key)?;
+    Ok(key)
+}
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -25,7 +136,8 @@ fn sha256_hex(data: &str) -> String {
 
 /// HMAC-SHA256 of `data` keyed by `key`.
 fn hmac_sha256(key: &[u8], data: &[u8]) -> Vec<u8> {
-    let mut mac = HmacSha256::new_from_slice(key).expect("HMAC accepts any key length");
+    let mut mac =
+        <HmacSha256 as hmac::Mac>::new_from_slice(key).expect("HMAC accepts any key length");
     mac.update(data);
     mac.finalize().into_bytes().to_vec()
 }
@@ -245,6 +357,96 @@ pub fn generate_presigned_url(
 mod tests {
     use super::*;
     use chrono::NaiveDate;
+
+    // ── AES-256-GCM field encryption tests ───────────────────────────────────
+
+    fn test_key() -> [u8; 32] {
+        [0x42u8; 32]
+    }
+
+    #[test]
+    fn test_encrypt_decrypt_roundtrip() {
+        let key = test_key();
+        let plaintext = "super-secret-password";
+        let encrypted = encrypt_field(plaintext, &key).expect("encrypt");
+        let decrypted = decrypt_field(&encrypted, &key).expect("decrypt");
+        assert_eq!(decrypted, plaintext);
+    }
+
+    #[test]
+    fn test_encrypt_produces_different_output_each_time() {
+        // Random nonce means same plaintext encrypts to different ciphertexts.
+        let key = test_key();
+        let plaintext = "same-input";
+        let enc1 = encrypt_field(plaintext, &key).expect("encrypt 1");
+        let enc2 = encrypt_field(plaintext, &key).expect("encrypt 2");
+        assert_ne!(
+            enc1, enc2,
+            "nonce must be random — equal outputs would indicate nonce reuse"
+        );
+    }
+
+    #[test]
+    fn test_decrypt_fails_with_wrong_key() {
+        let key1 = [0x11u8; 32];
+        let key2 = [0x22u8; 32];
+        let encrypted = encrypt_field("secret", &key1).expect("encrypt");
+        let result = decrypt_field(&encrypted, &key2);
+        assert!(result.is_err(), "decryption with wrong key must fail");
+    }
+
+    #[test]
+    fn test_decrypt_fails_with_corrupted_data() {
+        let key = test_key();
+        let result = decrypt_field("not-valid-base64!!!", &key);
+        assert!(result.is_err(), "corrupted base64 must fail");
+    }
+
+    #[test]
+    fn test_decrypt_fails_with_truncated_data() {
+        // Valid base64 but too short to contain a nonce.
+        let short = BASE64.encode([0u8; 4]);
+        let key = test_key();
+        let result = decrypt_field(&short, &key);
+        assert!(result.is_err(), "truncated data must fail");
+    }
+
+    #[test]
+    fn test_empty_string_encrypts_and_decrypts() {
+        let key = test_key();
+        let encrypted = encrypt_field("", &key).expect("encrypt empty");
+        let decrypted = decrypt_field(&encrypted, &key).expect("decrypt empty");
+        assert_eq!(decrypted, "");
+    }
+
+    #[test]
+    fn test_unicode_string_encrypts_and_decrypts() {
+        let key = test_key();
+        let plaintext = "пароль🔑السرّ日本語";
+        let encrypted = encrypt_field(plaintext, &key).expect("encrypt unicode");
+        let decrypted = decrypt_field(&encrypted, &key).expect("decrypt unicode");
+        assert_eq!(decrypted, plaintext);
+    }
+
+    #[test]
+    fn test_encrypted_field_is_base64() {
+        let key = test_key();
+        let encrypted = encrypt_field("test", &key).expect("encrypt");
+        // Must decode without error — proves it is valid Base64.
+        let decoded = BASE64.decode(&encrypted).expect("must be valid base64");
+        // Minimum: 12-byte nonce + 1-byte plaintext + 16-byte GCM tag = 29 bytes.
+        assert!(decoded.len() >= NONCE_LEN + 16, "decoded length too short");
+    }
+
+    #[test]
+    fn test_encryption_key_length_must_be_32_bytes() {
+        // The function signature enforces exactly 32 bytes via `&[u8; 32]`.
+        // This test confirms a 32-byte key works end-to-end without panic.
+        let key: [u8; 32] = (0u8..32).collect::<Vec<_>>().try_into().unwrap();
+        let enc = encrypt_field("data", &key).expect("encrypt");
+        let dec = decrypt_field(&enc, &key).expect("decrypt");
+        assert_eq!(dec, "data");
+    }
 
     /// Known test vector: verify the 4-level HMAC
     /// derivation produces deterministic output.

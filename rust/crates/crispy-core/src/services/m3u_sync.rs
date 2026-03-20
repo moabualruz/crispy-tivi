@@ -11,9 +11,11 @@ use crate::http_client::get_shared_client;
 use crate::models::SyncReport;
 use crate::parsers::{m3u, vod};
 use crate::services::CrispyService;
+use crate::services::url_validator::validate_url;
 use crate::sync_progress::emit_progress;
 
 pub async fn verify_m3u_url(url: &str, accept_invalid_certs: bool) -> Result<bool> {
+    validate_url(url).map_err(anyhow::Error::from)?;
     let client = get_shared_client(accept_invalid_certs);
     let req = client.head(url).send().await;
     match req {
@@ -35,6 +37,7 @@ pub async fn sync_m3u_source(
     source_id: &str,
     accept_invalid_certs: bool,
 ) -> Result<SyncReport> {
+    validate_url(url).map_err(anyhow::Error::from)?;
     emit_progress(source_id, "downloading", 0.0, "Downloading M3U playlist");
 
     // 1. Download M3U content.
