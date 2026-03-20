@@ -3219,9 +3219,51 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
         // PlaybackReady is handled in spawn_data_listener before reaching here
         DataEvent::PlaybackReady { .. } => {}
 
-        DataEvent::EpgProgrammesReady { programmes, .. } => {
+        DataEvent::EpgProgrammesReady {
+            programmes,
+            window_start,
+            window_end,
+        } => {
             tracing::debug!(count = programmes.len(), "[DATA] EPG programmes ready");
-            // TODO: convert to Slint EPG model and set on AppState when EPG grid is implemented
+            // Merge the windowed entries into SharedData.epg_entries so build_epg_rows
+            // picks them up. Group by channel_id — replace only channels present in
+            // this batch (keeps data for channels not in the window intact).
+            {
+                let mut epg_snap = shared_data
+                    .epg_entries
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                // Collect all channel_ids in this batch so we can clear stale entries.
+                let mut seen_channels: std::collections::HashSet<String> =
+                    std::collections::HashSet::new();
+                for e in programmes.iter() {
+                    seen_channels.insert(e.channel_id.clone());
+                }
+                // Replace each affected channel's entry list.
+                for ch_id in &seen_channels {
+                    epg_snap.insert(ch_id.clone(), Vec::new());
+                }
+                for e in programmes.iter() {
+                    epg_snap
+                        .entry(e.channel_id.clone())
+                        .or_default()
+                        .push(e.clone());
+                }
+                tracing::debug!(
+                    channels = seen_channels.len(),
+                    window_start,
+                    window_end,
+                    "[DATA] SharedData.epg_entries updated from EpgProgrammesReady"
+                );
+            }
+            // Rebuild and push EPG rows for the current date offset.
+            let offset = app.get_epg_selected_date_offset();
+            let epg_rows = build_epg_rows(shared_data, offset);
+            tracing::debug!(
+                count = epg_rows.len(),
+                "[DATA] epg-rows refreshed from EpgProgrammesReady"
+            );
+            app.set_epg_rows(ModelRc::new(VecModel::from(epg_rows)));
         }
 
         DataEvent::EpgFocusChannel { channel_id } => {

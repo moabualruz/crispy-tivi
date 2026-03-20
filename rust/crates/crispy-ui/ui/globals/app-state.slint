@@ -229,6 +229,9 @@ export global AppState {
   in-out property <string> active-language: "en";
   in-out property <bool> is-rtl: false;
 
+  // Playback — persisted video quality preference ("Auto"|"1080p"|"720p"|"480p")
+  in-out property <string> video-quality: "Auto";
+
   // ── Loading states (async pipeline) ──
   in-out property <bool> is-loading-channels: false;
   in-out property <bool> is-loading-vod: false;

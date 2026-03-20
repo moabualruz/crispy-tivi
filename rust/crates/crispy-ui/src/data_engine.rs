@@ -1309,6 +1309,26 @@ impl DataEngine {
                 self.cache.rebuild_groups();
                 self.cache.rebuild_vod_categories();
 
+                // Reload EPG entries into SharedData so build_epg_rows reflects
+                // newly synced EPG data when emit_initial_data triggers ChannelsReady.
+                match self.provider.load_epg_entries() {
+                    Ok(epg_map) => {
+                        let count: usize = epg_map.values().map(|v| v.len()).sum();
+                        *self
+                            .shared_data
+                            .epg_entries
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner()) = epg_map;
+                        debug!(
+                            entries = count,
+                            "[SYNC] EPG entries reloaded into SharedData"
+                        );
+                    }
+                    Err(e) => {
+                        error!(error = %e, "[SYNC] Failed to reload EPG entries after sync");
+                    }
+                }
+
                 self.send(DataEvent::SyncCompleted { result });
                 self.send(DataEvent::LoadingFinished {
                     kind: LoadingKind::Sync,
@@ -1624,7 +1644,65 @@ impl DataEngine {
 
             // ── EPG ───────────────────────────────────────────────────
             DCE::EpgUpdated { .. } => {
-                debug!("[CHANGE] EpgUpdated — EPG will reload on next EPG screen open");
+                debug!("[CHANGE] EpgUpdated — reloading EPG entries into SharedData");
+                match self.provider.load_epg_entries() {
+                    Ok(epg_map) => {
+                        let count: usize = epg_map.values().map(|v| v.len()).sum();
+                        *self
+                            .shared_data
+                            .epg_entries
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner()) = epg_map;
+                        debug!(
+                            entries = count,
+                            "[CHANGE] EPG entries updated in SharedData"
+                        );
+                        // Recompute the current day window and push fresh rows to the UI.
+                        let offset = self.filters.epg_date_offset;
+                        let now_date = chrono::Utc::now().date_naive();
+                        let target_date = now_date + chrono::Duration::days(i64::from(offset));
+                        let window_start = target_date
+                            .and_hms_opt(0, 0, 0)
+                            .expect("midnight always valid")
+                            .and_utc()
+                            .timestamp();
+                        let window_end = window_start + 86_400;
+                        let channel_ids: Vec<String> = self
+                            .cache
+                            .all_channels
+                            .iter()
+                            .map(|c| c.id.clone())
+                            .collect();
+                        if !channel_ids.is_empty() {
+                            let svc = self.provider.clone();
+                            let data_tx = self.data_tx.clone();
+                            self.rt.spawn_blocking(move || {
+                                match svc.get_epgs_for_channels(
+                                    &channel_ids,
+                                    window_start,
+                                    window_end,
+                                ) {
+                                    Ok(map) => {
+                                        let mut all: Vec<crispy_server::models::EpgEntry> =
+                                            map.into_values().flatten().collect();
+                                        all.sort_by_key(|e| e.start_time);
+                                        let _ = data_tx.try_send(DataEvent::EpgProgrammesReady {
+                                            window_start,
+                                            window_end,
+                                            programmes: std::sync::Arc::new(all),
+                                        });
+                                    }
+                                    Err(e) => {
+                                        error!(error = %e, "[CHANGE] EpgUpdated: EPG fetch failed");
+                                    }
+                                }
+                            });
+                        }
+                    }
+                    Err(e) => {
+                        error!(error = %e, "[CHANGE] Failed to reload EPG entries on EpgUpdated");
+                    }
+                }
             }
         }
     }

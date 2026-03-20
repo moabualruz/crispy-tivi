@@ -117,6 +117,14 @@ fn real_main() -> anyhow::Result<()> {
     app_state.set_is_rtl(i18n::is_rtl(&lang));
     i18n::set_locale(&lang);
 
+    // Load persisted video quality preference
+    let video_quality = service
+        .get_setting("video_quality")
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "Auto".to_string());
+    app_state.set_video_quality(video_quality.into());
+
     // Show onboarding if first run (check both keys for backwards compat)
     let is_first_run = service
         .get_setting("onboarding_done")
