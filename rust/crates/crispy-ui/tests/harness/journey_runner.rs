@@ -14,10 +14,15 @@ use std::{
     env,
     panic::{self, AssertUnwindSafe},
     path::{Path, PathBuf},
+    rc::Rc,
 };
 
 use super::{
-    db::TestDb, input::InputEmulation, renderer::ScreenshotHarness, renderer::ScreenshotResult,
+    db::TestDb,
+    input::InputEmulation,
+    logger::TestLogger,
+    renderer::ScreenshotHarness,
+    renderer::ScreenshotResult,
 };
 use slint::platform::Key;
 
@@ -193,6 +198,8 @@ pub struct JourneyRunner {
     ui_factory: Option<Box<dyn Fn() -> Box<dyn Any>>>,
     /// Pipeline mode forwarded to each journey's `ScreenshotHarness`.
     pipeline_mode: String,
+    /// Optional logger — receives journey_start/end events when set.
+    logger: Option<Rc<TestLogger>>,
 }
 
 impl JourneyRunner {
@@ -210,6 +217,7 @@ impl JourneyRunner {
             results: Vec::new(),
             ui_factory: None,
             pipeline_mode: "stub".to_owned(),
+            logger: None,
         }
     }
 
@@ -217,6 +225,15 @@ impl JourneyRunner {
     /// harness exposes `has_real_data()` correctly.
     pub fn set_pipeline_mode(&mut self, mode: &str) {
         self.pipeline_mode = mode.to_owned();
+    }
+
+    /// Attach a logger so journey start/end events are recorded.
+    ///
+    /// The logger is shared (`Rc`) so the caller retains access to flush it
+    /// after `run_all()` returns.  Uses `Rc` (not `Arc`) because `TestLogger`
+    /// uses `RefCell` and the entire test suite is single-threaded.
+    pub fn set_logger(&mut self, logger: Rc<TestLogger>) {
+        self.logger = Some(logger);
     }
 
     /// Set a factory closure that creates the UI component for each journey.
@@ -445,6 +462,15 @@ impl JourneyRunner {
                 continue;
             }
 
+            // Log journey start
+            if let Some(ref log) = self.logger {
+                log.event(
+                    "journey",
+                    "journey_start",
+                    &[("id", id), ("name", entry.name)],
+                );
+            }
+
             // Build harness for this journey
             let mut harness = if self.ui_factory.is_some() {
                 // Use the platform's shared window so AppWindow renders into our pixel buffer
@@ -454,6 +480,9 @@ impl JourneyRunner {
                 ScreenshotHarness::new_standalone(id, &self.run_dir, &self.golden_dir)
             };
             harness.pipeline_mode = self.pipeline_mode.clone();
+            if let Some(ref log) = self.logger {
+                harness.set_logger(Rc::clone(log));
+            }
 
             // Attach a fresh UI handle if a factory is configured
             if let Some(ref factory) = self.ui_factory {
@@ -482,6 +511,18 @@ impl JourneyRunner {
             match result {
                 Ok(()) => {
                     passed.insert(id.to_owned());
+                    let sc_count = screenshots.len().to_string();
+                    if let Some(ref log) = self.logger {
+                        log.event(
+                            "journey",
+                            "journey_end",
+                            &[
+                                ("id", id),
+                                ("status", "pass"),
+                                ("screenshots", sc_count.as_str()),
+                            ],
+                        );
+                    }
                     self.results.push(JourneyRunResult {
                         id: id.to_owned(),
                         name: entry.name.to_owned(),
@@ -494,6 +535,19 @@ impl JourneyRunner {
                 Err(panic_payload) => {
                     failed.insert(id.to_owned());
                     let msg = extract_panic_message(&panic_payload);
+                    let sc_count = screenshots.len().to_string();
+                    if let Some(ref log) = self.logger {
+                        log.event(
+                            "journey",
+                            "journey_end",
+                            &[
+                                ("id", id),
+                                ("status", "fail"),
+                                ("screenshots", sc_count.as_str()),
+                                ("error", msg.as_str()),
+                            ],
+                        );
+                    }
                     self.results.push(JourneyRunResult {
                         id: id.to_owned(),
                         name: entry.name.to_owned(),

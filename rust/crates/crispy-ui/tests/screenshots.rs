@@ -8,6 +8,7 @@ mod journeys;
 
 use harness::{journey_runner::JourneyRunner, logger::TestLogger, platform, report};
 use slint::ComponentHandle;
+use std::rc::Rc;
 
 // ── Pipeline selector ─────────────────────────────────────────────────────────
 
@@ -61,7 +62,7 @@ fn run_pipeline(name: &str) {
     let run_dir = output_dir.join(&timestamp);
     std::fs::create_dir_all(&run_dir).unwrap();
 
-    let logger = TestLogger::new(&run_dir);
+    let logger = Rc::new(TestLogger::new(&run_dir));
     logger.event(
         "pipeline",
         "start",
@@ -71,6 +72,7 @@ fn run_pipeline(name: &str) {
     let db = harness::db::TestDb::init();
     let mut runner = JourneyRunner::new(run_dir.clone(), golden_dir, db);
     runner.set_pipeline_mode(name);
+    runner.set_logger(Rc::clone(&logger));
 
     runner.set_ui_factory(|| {
         let ui = AppWindow::new().expect("AppWindow::new() failed in screenshot mode");
@@ -89,6 +91,7 @@ fn run_pipeline(name: &str) {
 
     runner.assert_no_failures();
 }
+
 
 fn run_pipeline_e2e() {
     let fixtures = fixtures_dir();
@@ -109,13 +112,14 @@ fn run_pipeline_e2e() {
     let run_dir = output_dir.join(&timestamp);
     std::fs::create_dir_all(&run_dir).unwrap();
 
-    let logger = TestLogger::new(&run_dir);
+    let logger = Rc::new(TestLogger::new(&run_dir));
     logger.event("pipeline", "start", &[("name", "e2e"), ("ts", &timestamp)]);
 
     // E2E: sources from .local settings, NO seed data — journeys drive real sync.
     let db = harness::db::TestDb::init_e2e();
     let mut runner = JourneyRunner::new(run_dir.clone(), golden_dir, db);
     runner.set_pipeline_mode("e2e");
+    runner.set_logger(Rc::clone(&logger));
 
     runner.set_ui_factory(|| {
         let ui = AppWindow::new().expect("AppWindow::new() failed in screenshot mode");

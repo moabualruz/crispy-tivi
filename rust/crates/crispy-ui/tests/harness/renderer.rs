@@ -9,6 +9,8 @@ use std::{
     rc::Rc,
 };
 
+use super::logger::TestLogger;
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -62,6 +64,8 @@ pub struct ScreenshotHarness {
     pub ui_handle: Option<Box<dyn std::any::Any>>,
     /// Pipeline mode: "stub" | "cached" | "e2e"
     pub pipeline_mode: String,
+    /// Optional structured logger for screenshot events.
+    logger: Option<Rc<TestLogger>>,
 }
 
 impl ScreenshotHarness {
@@ -134,7 +138,13 @@ impl ScreenshotHarness {
             window,
             ui_handle: None,
             pipeline_mode: "stub".to_owned(),
+            logger: None,
         }
+    }
+
+    /// Attach a structured logger to capture screenshot events.
+    pub fn set_logger(&mut self, logger: Rc<TestLogger>) {
+        self.logger = Some(logger);
     }
 
     /// Access the type-erased UI handle as a concrete type.
@@ -269,6 +279,29 @@ impl ScreenshotHarness {
         }
 
         let id = format!("{}::{counter_used:03}::{label}", self.journey_id);
+
+        // Log the screenshot event to structured logger when attached.
+        if let Some(ref log) = self.logger {
+            let status_str = match &status {
+                ScreenshotStatus::Pass => "pass",
+                ScreenshotStatus::Fail => "fail",
+                ScreenshotStatus::New => "new",
+                ScreenshotStatus::Skipped => "skipped",
+            };
+            let diff_str = format!("{diff_pct:.4}");
+            log.event(
+                "render",
+                "screenshot",
+                &[
+                    ("journey", self.journey_id.as_str()),
+                    ("label", label),
+                    ("step", journey_step),
+                    ("status", status_str),
+                    ("diff_pct", diff_str.as_str()),
+                ],
+            );
+        }
+
         self.results.borrow_mut().push(ScreenshotResult {
             id,
             label: label.to_owned(),
