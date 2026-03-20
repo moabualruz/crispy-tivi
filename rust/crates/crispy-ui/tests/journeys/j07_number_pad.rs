@@ -43,7 +43,6 @@ impl Journey for J07 {
                     })
                     .collect();
                 app.set_channels(ModelRc::new(VecModel::from(channels)));
-                app.set_channel_window_start(0);
             }
 
             let ps = ui.global::<PlayerState>();
@@ -131,7 +130,6 @@ impl Journey for J07 {
                 logo: Default::default(),
             }];
             app.set_channels(ModelRc::new(VecModel::from(matched)));
-            app.set_channel_window_start(0);
             slint::platform::update_timers_and_animations();
         }
 

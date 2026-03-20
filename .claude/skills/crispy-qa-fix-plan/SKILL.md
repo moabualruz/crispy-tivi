@@ -18,15 +18,35 @@ Turn QA issues into an actionable, prioritized implementation plan grouped by ro
    - Read `F:/work/crispy-tivi/.ai/planning/USER-JOURNEYS.md` — to understand what each broken journey should do
    - Read `F:/work/crispy-tivi/.ai/crispy_tivi_design_spec.md` — for design violation fixes
 
-3. **Group issues by root cause:**
+3. **Classify each issue (MANDATORY before grouping):**
+
+   Every issue MUST be classified as one of:
+   - **PRODUCTION BUG** — broken code in `src/` (event_bridge.rs, data_engine.rs, sync_task.rs, scroll_integration.rs)
+   - **UI MARKUP BUG** — broken layout/styling in `.slint` files
+   - **TEST HARNESS BUG** — broken test setup in `tests/harness/` (db.rs, renderer.rs, journey files)
+   - **SPEC GAP** — feature not implemented yet (no code exists)
+
+   **Priority order:** PRODUCTION > UI > SPEC GAP > TEST HARNESS
+
+   **Rule:** NEVER fix a TEST HARNESS bug if a PRODUCTION BUG causes the same symptom. If Movies screen is empty, check `event_bridge.rs` scroll callbacks and `ScrollBridge.set_total()` BEFORE touching `populate_ui()` in db.rs.
+
+4. **Group issues by root cause:**
    Issues that share the same root cause (same missing callback wiring, same incorrect Slint property, same unset data field) must be grouped into ONE fix item — not treated as separate items. Fixing the root once resolves all symptoms.
 
    Common root cause groupings:
    - "All focus states invisible" → single missing `Theme.focus-ring` application in a shared component
    - "All poster images blank" → single missing HTTP timeout or broken image loader
    - "Navigation goes to wrong screen" → single `on_selected` callback wired to wrong handler
+   - "All VOD screens empty after sync" → `ScrollBridge.set_total()` never called (production bug, not test data)
 
-4. **For each root cause group, produce a fix item:**
+   ### Scroll/Viewport Issues
+   If the issue involves empty lists, missing items, or scroll not working:
+   - Check `scroll_integration.rs` — is `ScrollBridge.set_total()` called with actual data length?
+   - Check `event_bridge.rs` — do `on_scroll_xxx` callbacks handle delta==0 (forced repopulate)?
+   - Check `.ai/slint-crispy-vscroll/spec/` for correct usage patterns
+   - NEVER reimplement scroll logic — always use ScrollBridge
+
+5. **For each root cause group, produce a fix item:**
    ```markdown
    ### FIX-{n}: {short title}
    **Root Cause:** {specific code problem}
@@ -39,7 +59,7 @@ Turn QA issues into an actionable, prioritized implementation plan grouped by ro
    **Test:** After fix, re-run `CRISPY_PIPELINE=stub cargo test -p crispy-ui --test screenshots`
    ```
 
-5. **Prioritize fix items:**
+6. **Prioritize fix items:**
    Order strictly as:
    1. **Critical** — user flow completely blocked (can't navigate, can't play)
    2. **Data bugs** — content not rendering (empty lists, blank cards, wrong titles)
@@ -48,7 +68,7 @@ Turn QA issues into an actionable, prioritized implementation plan grouped by ro
    5. **Performance issues** — slow steps, excessive load times
    6. **Polish** — minor visual inconsistencies, animation glitches
 
-6. **Write plan file:**
+7. **Write plan file:**
    Save to `F:/work/crispy-tivi/.ai/planning/plans/YYYY-MM-DD-qa-fixes.md`:
    ```markdown
    # QA Fix Plan — {date}
@@ -69,5 +89,5 @@ Turn QA issues into an actionable, prioritized implementation plan grouped by ro
    4. `/crispy-screenshot-approve` — update golden baselines if all pass
    ```
 
-7. **Suggest execution:**
+8. **Suggest execution:**
    "Plan written to `.ai/planning/plans/YYYY-MM-DD-qa-fixes.md`. Run `/superpowers:executing-plans` on it to begin implementing the fixes."

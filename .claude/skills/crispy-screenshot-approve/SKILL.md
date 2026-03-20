@@ -42,3 +42,8 @@ description: Approve or reject CrispyTivi screenshot changes using the review pi
    ```
    Approved: X | Rejected: Y | Needs Fix: Z | Human Review: W
    ```
+
+### Approval Guards
+- NEVER approve screenshots that mask production bugs — if test harness was modified to make screenshots pass, verify production code path works first
+- After approving new baselines, re-run stub pipeline once to confirm stability (no flaky tests)
+- NEVER approve screenshots that violate the design spec — run `/crispy-screenshot-design-audit` first

@@ -1,7 +1,7 @@
 //! Event types for the three-queue bidirectional event bus.
 //!
 //! `ChannelsReady`, `MoviesReady`, and `SeriesReady` carry `Arc<Vec<T>>` so
-//! the ScrollBridge (slint-crispy-vscroll) can share ownership without copying the full dataset.
+//! SharedData can share ownership without copying the full dataset.
 //!
 //! # Queue Architecture
 //!
@@ -372,19 +372,19 @@ pub enum NormalEvent {
 pub enum DataEvent {
     /// Initial source list is ready for display.
     SourcesReady { sources: Vec<SourceInfo> },
-    /// Full channel list is ready (all filtered results; ScrollBridge windows the VecModel).
+    /// Full channel list is ready (all filtered results; set as full VecModel on UI thread).
     ChannelsReady {
         channels: Arc<Vec<ChannelInfo>>,
         groups: Vec<String>,
         total: i32,
     },
-    /// Full movies list is ready (all filtered results; ScrollBridge windows the VecModel).
+    /// Full movies list is ready (all filtered results; set as full VecModel on UI thread).
     MoviesReady {
         movies: Arc<Vec<VodInfo>>,
         categories: Vec<String>,
         total: i32,
     },
-    /// Full series list is ready (all filtered results; ScrollBridge windows the VecModel).
+    /// Full series list is ready (all filtered results; set as full VecModel on UI thread).
     SeriesReady {
         series: Arc<Vec<VodInfo>>,
         categories: Vec<String>,

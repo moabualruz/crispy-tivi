@@ -26,8 +26,14 @@ use crate::events::{
     SourceInfo, SourceInput, VodInfo,
 };
 
-// ── Virtual scroll — use slint-crispy-vscroll bridge ───────────────────────
-use crate::scroll_integration::{CHANNEL_WINDOW, ScrollBridge, VOD_WINDOW};
+// Virtual scroll removed — ListView virtualizes natively.
+
+/// Post a closure to the Slint UI event loop.
+/// Panics if the event loop has already stopped — this is correct because
+/// background tasks should be cancelled before the event loop exits.
+fn post_to_ui(f: impl FnOnce() + Send + 'static) {
+    slint::invoke_from_event_loop(f).expect("Slint event loop must be running");
+}
 
 // ── Shared data stores ──────────────────────────────────────────────────────
 /// Full datasets (Send+Sync). VecModel only gets a windowed slice.
@@ -80,7 +86,7 @@ pub(crate) fn wire(
     player_tx: mpsc::Sender<PlayerEvent>,
     high_tx: mpsc::Sender<HighPriorityEvent>,
     normal_tx: mpsc::Sender<NormalEvent>,
-    image_loader: crate::image_loader::ImageLoader,
+    _image_loader: crate::image_loader::ImageLoader,
     shared_data: Arc<SharedData>,
 ) {
     // ── PlayerState callbacks ─────────────────────────────────────────────
@@ -387,14 +393,6 @@ pub(crate) fn wire(
     let series_model: Rc<VecModel<super::VodData>> = Rc::new(VecModel::default());
     app.set_series(ModelRc::from(series_model.clone()));
 
-    // ── ScrollBridge instances (one per scrollable list) ─────────────────
-    // Each bridge wraps a VirtualScroller from slint-crispy-vscroll and
-    // translates Slint scroll-delta events into VecModel window positions.
-    // Wrapped in Rc<RefCell> so the on_scroll_* closures can mutate them.
-    let channel_bridge = Rc::new(std::cell::RefCell::new(ScrollBridge::new(CHANNEL_WINDOW)));
-    let movie_bridge = Rc::new(std::cell::RefCell::new(ScrollBridge::new(VOD_WINDOW)));
-    let series_bridge = Rc::new(std::cell::RefCell::new(ScrollBridge::new(VOD_WINDOW)));
-
     app.on_navigate({
         let tx = high_tx.clone();
         let sd = Arc::clone(&shared_data);
@@ -427,7 +425,7 @@ pub(crate) fn wire(
             // M-001: mark "Browse channels" getting-started step when user visits Live TV
             if screen == Screen::LiveTv {
                 let ui_w2 = ui_w_nav.clone();
-                let _ = slint::invoke_from_event_loop(move || {
+                post_to_ui(move || {
                     if let Some(ui) = ui_w2.upgrade() {
                         ui.global::<super::AppState>().set_gs_browsed_channels(true);
                     }
@@ -488,7 +486,7 @@ pub(crate) fn wire(
                                 tracing::warn!(error = %e, "high_tx full: PlayChannel (zap) dropped");
                             }
                             // M-001: mark "Play your first channel" getting-started step
-                            let _ = slint::invoke_from_event_loop(move || {
+                            post_to_ui(move || {
                                 if let Some(ui) = ui_w_gs.upgrade() {
                                     ui.global::<super::AppState>().set_gs_played_channel(true);
                                 }
@@ -855,7 +853,7 @@ pub(crate) fn wire(
             }
             // M-001: mark "Add a source" getting-started step complete
             let ui_w2 = ui_w.clone();
-            let _ = slint::invoke_from_event_loop(move || {
+            post_to_ui(move || {
                 if let Some(ui) = ui_w2.upgrade() {
                     ui.global::<super::AppState>().set_gs_source_added(true);
                 }
@@ -990,7 +988,7 @@ pub(crate) fn wire(
                 let badges = build_source_badges(&sd, &vod.name, &vod.item_type, &primary_sid);
                 let has_multi = badges.len() > 1;
                 let ui_w2 = ui_w.clone();
-                let _ = slint::invoke_from_event_loop(move || {
+                post_to_ui(move || {
                     if let Some(ui) = ui_w2.upgrade() {
                         let app = ui.global::<super::AppState>();
                         app.set_vod_detail_item(vod_info_to_slint(&vod));
@@ -1033,7 +1031,7 @@ pub(crate) fn wire(
                 let badges = build_source_badges(&sd, &s.name, &s.item_type, &primary_sid);
                 let has_multi = badges.len() > 1;
                 let ui_w2 = ui_w.clone();
-                let _ = slint::invoke_from_event_loop(move || {
+                post_to_ui(move || {
                     if let Some(ui) = ui_w2.upgrade() {
                         let app = ui.global::<super::AppState>();
                         app.set_series_detail_item(vod_info_to_slint(&s));
@@ -1116,7 +1114,7 @@ pub(crate) fn wire(
         let ui_w = ui.as_weak();
         move |offset_days| {
             let ui_w2 = ui_w.clone();
-            let _ = slint::invoke_from_event_loop(move || {
+            post_to_ui(move || {
                 if let Some(ui) = ui_w2.upgrade() {
                     ui.global::<super::AppState>()
                         .set_epg_selected_date_offset(offset_days);
@@ -1135,7 +1133,7 @@ pub(crate) fn wire(
             let id = channel_id.to_string();
             let ui_w2 = ui_w.clone();
             let id2 = id.clone();
-            let _ = slint::invoke_from_event_loop(move || {
+            post_to_ui(move || {
                 if let Some(ui) = ui_w2.upgrade() {
                     ui.global::<super::AppState>()
                         .set_epg_jump_channel_id(SharedString::from(id2.as_str()));
@@ -1169,7 +1167,7 @@ pub(crate) fn wire(
                 let ui_w2 = ui_w.clone();
                 let sd2 = Arc::clone(&sd);
                 let ch_id = id.clone();
-                let _ = slint::invoke_from_event_loop(move || {
+                post_to_ui(move || {
                     if let Some(ui) = ui_w2.upgrade() {
                         let app = ui.global::<super::AppState>();
                         // Resolve channel display name from channels cache
@@ -1238,100 +1236,17 @@ pub(crate) fn wire(
         }
     });
 
-    // ── Scroll callbacks: VecModel window driven by ScrollBridge ───────
-    app.on_scroll_channels({
-        let loader = image_loader.clone();
-        let ui_w = ui.as_weak();
-        let sd = Arc::clone(&shared_data);
-        let model = Rc::clone(&channel_model);
-        let bridge = Rc::clone(&channel_bridge);
-        move |delta| {
-            tracing::debug!(delta, "[SCROLL] scroll-channels FIRED");
-            let Some(ui) = ui_w.upgrade() else { return };
-            let app = ui.global::<super::AppState>();
-            // M-008: nav auto-hide — hide on scroll down, show on scroll up
-            if delta > 0 {
-                app.set_nav_visible(false);
-            } else if delta < 0 {
-                app.set_nav_visible(true);
-            }
-            let data = sd.channels.lock().unwrap_or_else(|e| e.into_inner());
-            if data.is_empty() {
-                while model.row_count() > 0 {
-                    model.remove(model.row_count() - 1);
-                }
-                return;
-            }
-
-            let old_start = app.get_channel_window_start() as usize;
-            // Keep bridge total in sync with actual dataset size
-            bridge.borrow_mut().set_total(data.len());
-            let buf = bridge.borrow().buffer_size();
-
-            // delta==0 is a forced repopulate (e.g. after sync)
-            if delta == 0 {
-                bridge.borrow_mut().reset();
-                while model.row_count() > 0 {
-                    model.remove(model.row_count() - 1);
-                }
-                let end = buf.min(data.len());
-                for item in data[0..end].iter() {
-                    model.push(channel_info_to_slint(item));
-                }
-                tracing::debug!(end, "[SCROLL] channels RESET (forced)");
-                app.set_channel_window_start(0);
-                drop(data);
-                loader.load_channels(&ui_w, None);
-                return;
-            }
-
-            let shift = bridge.borrow_mut().apply_delta(delta, old_start);
-
-            if !shift.shifted {
-                tracing::debug!(old_start, "[SCROLL] channels no shift needed");
-                drop(data);
-                return;
-            }
-
-            let new_start = shift.new_start;
-            let new_end = (new_start + buf).min(data.len());
-
-            let old_end = (old_start + buf).min(data.len());
-            if new_start > old_start {
-                for i in old_end..new_end {
-                    model.push(channel_info_to_slint(&data[i]));
-                }
-                let remove_count = (new_start - old_start).min(model.row_count());
-                for _ in 0..remove_count {
-                    model.remove(0);
-                }
-            } else {
-                for i in (new_start..old_start).rev() {
-                    model.insert(0, channel_info_to_slint(&data[i]));
-                }
-                while model.row_count() > new_end.saturating_sub(new_start) {
-                    model.remove(model.row_count() - 1);
-                }
-            }
-            tracing::debug!(old_start, new_start, "[SCROLL] channels window SHIFT");
-            app.set_channel_window_start(new_start as i32);
-            drop(data);
-            tracing::debug!("[IMG] channels image load for VecModel window");
-            loader.load_channels(&ui_w, None);
-        }
-    });
+    // ── Windowed scroll for VOD grids (movies/series) ─────────────────
+    // ScrollView+GridLayout doesn't virtualize — keep ~300-item window.
+    const VOD_WINDOW: usize = 300;
 
     app.on_scroll_movies({
-        let loader = image_loader.clone();
+        let loader = _image_loader.clone();
         let ui_w = ui.as_weak();
         let sd = Arc::clone(&shared_data);
-        let model = Rc::clone(&movie_model);
-        let bridge = Rc::clone(&movie_bridge);
         move |delta| {
-            tracing::debug!(delta, "[SCROLL] scroll-movies FIRED");
             let Some(ui) = ui_w.upgrade() else { return };
             let app = ui.global::<super::AppState>();
-            // M-008: nav auto-hide
             if delta > 0 {
                 app.set_nav_visible(false);
             } else if delta < 0 {
@@ -1339,62 +1254,22 @@ pub(crate) fn wire(
             }
             let data = sd.movies.lock().unwrap_or_else(|e| e.into_inner());
             if data.is_empty() {
-                while model.row_count() > 0 {
-                    model.remove(model.row_count() - 1);
-                }
                 return;
             }
-
             let old_start = app.get_movie_window_start() as usize;
-            // Keep bridge total in sync with actual dataset size
-            bridge.borrow_mut().set_total(data.len());
-            let buf = bridge.borrow().buffer_size();
-
-            // delta==0 is a forced repopulate (e.g. after sync)
-            if delta == 0 {
-                bridge.borrow_mut().reset();
-                while model.row_count() > 0 {
-                    model.remove(model.row_count() - 1);
-                }
-                let end = buf.min(data.len());
-                for item in data[0..end].iter() {
-                    model.push(vod_info_to_slint(item));
-                }
-                tracing::debug!(end, "[SCROLL] movies RESET (forced)");
-                app.set_movie_window_start(0);
-                drop(data);
-                loader.load_movies(&ui_w, None);
-                return;
-            }
-
-            let shift = bridge.borrow_mut().apply_delta(delta, old_start);
-
-            if !shift.shifted {
-                drop(data);
-                return;
-            }
-
-            let new_start = shift.new_start;
-            let new_end = (new_start + buf).min(data.len());
-
-            let old_end = (old_start + buf).min(data.len());
-            if new_start > old_start {
-                for i in old_end..new_end {
-                    model.push(vod_info_to_slint(&data[i]));
-                }
-                let remove_count = (new_start - old_start).min(model.row_count());
-                for _ in 0..remove_count {
-                    model.remove(0);
-                }
+            let total = data.len();
+            let new_start = if delta == 0 {
+                0
+            } else if delta > 0 {
+                (old_start + delta as usize).min(total.saturating_sub(VOD_WINDOW))
             } else {
-                for i in (new_start..old_start).rev() {
-                    model.insert(0, vod_info_to_slint(&data[i]));
-                }
-                while model.row_count() > new_end.saturating_sub(new_start) {
-                    model.remove(model.row_count() - 1);
-                }
-            }
-            tracing::debug!(old_start, new_start, "[SCROLL] movies window SHIFT");
+                old_start.saturating_sub((-delta) as usize)
+            };
+            let end = (new_start + VOD_WINDOW).min(total);
+            let items: Vec<super::VodData> =
+                data[new_start..end].iter().map(vod_info_to_slint).collect();
+            tracing::debug!(new_start, end, total, "[SCROLL] movies window");
+            app.set_movies(ModelRc::new(VecModel::from(items)));
             app.set_movie_window_start(new_start as i32);
             drop(data);
             loader.load_movies(&ui_w, None);
@@ -1402,16 +1277,12 @@ pub(crate) fn wire(
     });
 
     app.on_scroll_series({
-        let loader = image_loader.clone();
+        let loader = _image_loader.clone();
         let ui_w = ui.as_weak();
         let sd = Arc::clone(&shared_data);
-        let model = Rc::clone(&series_model);
-        let bridge = Rc::clone(&series_bridge);
         move |delta| {
-            tracing::debug!(delta, "[SCROLL] scroll-series FIRED");
             let Some(ui) = ui_w.upgrade() else { return };
             let app = ui.global::<super::AppState>();
-            // M-008: nav auto-hide
             if delta > 0 {
                 app.set_nav_visible(false);
             } else if delta < 0 {
@@ -1419,62 +1290,22 @@ pub(crate) fn wire(
             }
             let data = sd.series.lock().unwrap_or_else(|e| e.into_inner());
             if data.is_empty() {
-                while model.row_count() > 0 {
-                    model.remove(model.row_count() - 1);
-                }
                 return;
             }
-
             let old_start = app.get_series_window_start() as usize;
-            // Keep bridge total in sync with actual dataset size
-            bridge.borrow_mut().set_total(data.len());
-            let buf = bridge.borrow().buffer_size();
-
-            // delta==0 is a forced repopulate (e.g. after sync)
-            if delta == 0 {
-                bridge.borrow_mut().reset();
-                while model.row_count() > 0 {
-                    model.remove(model.row_count() - 1);
-                }
-                let end = buf.min(data.len());
-                for item in data[0..end].iter() {
-                    model.push(vod_info_to_slint(item));
-                }
-                tracing::debug!(end, "[SCROLL] series RESET (forced)");
-                app.set_series_window_start(0);
-                drop(data);
-                loader.load_series(&ui_w, None);
-                return;
-            }
-
-            let shift = bridge.borrow_mut().apply_delta(delta, old_start);
-
-            if !shift.shifted {
-                drop(data);
-                return;
-            }
-
-            let new_start = shift.new_start;
-            let new_end = (new_start + buf).min(data.len());
-
-            let old_end = (old_start + buf).min(data.len());
-            if new_start > old_start {
-                for i in old_end..new_end {
-                    model.push(vod_info_to_slint(&data[i]));
-                }
-                let remove_count = (new_start - old_start).min(model.row_count());
-                for _ in 0..remove_count {
-                    model.remove(0);
-                }
+            let total = data.len();
+            let new_start = if delta == 0 {
+                0
+            } else if delta > 0 {
+                (old_start + delta as usize).min(total.saturating_sub(VOD_WINDOW))
             } else {
-                for i in (new_start..old_start).rev() {
-                    model.insert(0, vod_info_to_slint(&data[i]));
-                }
-                while model.row_count() > new_end.saturating_sub(new_start) {
-                    model.remove(model.row_count() - 1);
-                }
-            }
-            tracing::debug!(old_start, new_start, "[SCROLL] series window SHIFT");
+                old_start.saturating_sub((-delta) as usize)
+            };
+            let end = (new_start + VOD_WINDOW).min(total);
+            let items: Vec<super::VodData> =
+                data[new_start..end].iter().map(vod_info_to_slint).collect();
+            tracing::debug!(new_start, end, total, "[SCROLL] series window");
+            app.set_series(ModelRc::new(VecModel::from(items)));
             app.set_series_window_start(new_start as i32);
             drop(data);
             loader.load_series(&ui_w, None);
@@ -1613,7 +1444,7 @@ pub(crate) fn wire(
                 let ui_w2 = ui_w.clone();
                 let id2 = id.clone();
                 let name2 = profile_name.clone();
-                let _ = slint::invoke_from_event_loop(move || {
+                post_to_ui(move || {
                     if let Some(ui) = ui_w2.upgrade() {
                         let app = ui.global::<super::AppState>();
                         app.set_pin_target_profile_id(SharedString::from(id2.as_str()));
@@ -1669,7 +1500,7 @@ pub(crate) fn wire(
             let ui_w2 = ui_w.clone();
             let tx2 = tx.clone();
             let sd2 = Arc::clone(&sd);
-            let _ = slint::invoke_from_event_loop(move || {
+            post_to_ui(move || {
                 let Some(ui) = ui_w2.upgrade() else { return };
                 let app = ui.global::<super::AppState>();
                 let target_id = app.get_pin_target_profile_id().to_string();
@@ -1764,7 +1595,7 @@ pub(crate) fn wire(
                     .unwrap_or_else(|| "Default".to_string())
             };
             let ui_w2 = ui_w.clone();
-            let _ = slint::invoke_from_event_loop(move || {
+            post_to_ui(move || {
                 if let Some(ui) = ui_w2.upgrade() {
                     let app = ui.global::<super::AppState>();
                     app.set_profiles(ModelRc::new(VecModel::from(slint_profiles)));
@@ -1798,7 +1629,7 @@ pub(crate) fn wire(
         let ui_w = ui.as_weak();
         let tx = normal_tx.clone();
         move || {
-            let _ = slint::invoke_from_event_loop({
+            post_to_ui({
                 let ui_w2 = ui_w.clone();
                 move || {
                     if let Some(ui) = ui_w2.upgrade() {
@@ -1821,7 +1652,7 @@ pub(crate) fn wire(
         let ui_w = ui.as_weak();
         let tx = normal_tx.clone();
         move |rating_index| {
-            let _ = slint::invoke_from_event_loop({
+            post_to_ui({
                 let ui_w2 = ui_w.clone();
                 move || {
                     if let Some(ui) = ui_w2.upgrade() {
@@ -1844,7 +1675,7 @@ pub(crate) fn wire(
     app.on_set_viewing_time_limit({
         let ui_w = ui.as_weak();
         move |minutes| {
-            let _ = slint::invoke_from_event_loop({
+            post_to_ui({
                 let ui_w2 = ui_w.clone();
                 move || {
                     if let Some(ui) = ui_w2.upgrade() {
@@ -1862,7 +1693,7 @@ pub(crate) fn wire(
     app.on_set_analytics_playback({
         let ui_w = ui.as_weak();
         move |enabled| {
-            let _ = slint::invoke_from_event_loop({
+            post_to_ui({
                 let ui_w2 = ui_w.clone();
                 move || {
                     if let Some(ui) = ui_w2.upgrade() {
@@ -1878,7 +1709,7 @@ pub(crate) fn wire(
     app.on_set_analytics_crash({
         let ui_w = ui.as_weak();
         move |enabled| {
-            let _ = slint::invoke_from_event_loop({
+            post_to_ui({
                 let ui_w2 = ui_w.clone();
                 move || {
                     if let Some(ui) = ui_w2.upgrade() {
@@ -2171,7 +2002,7 @@ pub(crate) fn wire(
                 tokio::time::sleep(std::time::Duration::from_secs(30)).await;
                 let ui_w2 = ui_w.clone();
                 let tx2 = tx.clone();
-                let _ = slint::invoke_from_event_loop(move || {
+                post_to_ui(move || {
                     if let Some(ui) = ui_w2.upgrade() {
                         let ps = ui.global::<super::PlayerState>();
                         let app = ui.global::<super::AppState>();
@@ -2271,7 +2102,7 @@ pub(crate) fn wire(
         tokio::spawn(async move {
             loop {
                 tokio::time::sleep(std::time::Duration::from_secs(8)).await;
-                let _ = slint::invoke_from_event_loop({
+                post_to_ui({
                     let ui_w2 = ui_w.clone();
                     move || {
                         if let Some(ui) = ui_w2.upgrade() {
@@ -2352,7 +2183,7 @@ pub(crate) fn spawn_player_handler(
                 _ = osd_timeout => {
                     osd_hide_deadline = None;
                     let ui_w = ui_weak.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
+                    post_to_ui(move || {
                         if let Some(ui) = ui_w.upgrade() {
                             ui.global::<super::PlayerState>().set_show_osd(false);
                         }
@@ -2380,7 +2211,7 @@ pub(crate) fn spawn_player_handler(
                         tracing::error!(error = %e, "Pause failed");
                     }
                     let ui_w = ui_weak.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
+                    post_to_ui(move || {
                         if let Some(ui) = ui_w.upgrade() {
                             let ps = ui.global::<super::PlayerState>();
                             ps.set_is_paused(!ps.get_is_paused());
@@ -2397,7 +2228,7 @@ pub(crate) fn spawn_player_handler(
                         tracing::error!(error = %e, "Stop failed");
                     }
                     let ui_w = ui_weak.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
+                    post_to_ui(move || {
                         if let Some(ui) = ui_w.upgrade() {
                             let ps = ui.global::<super::PlayerState>();
                             ps.set_is_playing(false);
@@ -2483,7 +2314,7 @@ pub(crate) fn spawn_player_handler(
                         tracing::error!(error = %e, "SetVolume failed");
                     }
                     let ui_w = ui_weak.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
+                    post_to_ui(move || {
                         if let Some(ui) = ui_w.upgrade() {
                             let ps = ui.global::<super::PlayerState>();
                             ps.set_volume(vol.clamp(0.0, 1.0));
@@ -2494,7 +2325,7 @@ pub(crate) fn spawn_player_handler(
 
                 PlayerEvent::ToggleMute => {
                     let ui_w = ui_weak.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
+                    post_to_ui(move || {
                         if let Some(ui) = ui_w.upgrade() {
                             let ps = ui.global::<super::PlayerState>();
                             ps.set_is_muted(!ps.get_is_muted());
@@ -2508,7 +2339,7 @@ pub(crate) fn spawn_player_handler(
                     // the Slint property; no extra spawned timer needed.
                     let v = *visible;
                     let ui_w = ui_weak.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
+                    post_to_ui(move || {
                         if let Some(ui) = ui_w.upgrade() {
                             let ps = ui.global::<super::PlayerState>();
                             // visible=true toggles OSD on; visible=false forces hide.
@@ -2525,7 +2356,7 @@ pub(crate) fn spawn_player_handler(
                 PlayerEvent::SetFullscreen { fullscreen } => {
                     let fs = *fullscreen;
                     let ui_w = ui_weak.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
+                    post_to_ui(move || {
                         if let Some(ui) = ui_w.upgrade() {
                             ui.global::<super::PlayerState>().set_is_fullscreen(fs);
                         }
@@ -2580,7 +2411,7 @@ pub(crate) fn spawn_player_handler(
                         tracing::debug!(speed = spd, "Playback speed set");
                         // M-040: sync current-speed property to Slint
                         let ui_w = ui_weak.clone();
-                        let _ = slint::invoke_from_event_loop(move || {
+                        post_to_ui(move || {
                             if let Some(ui) = ui_w.upgrade() {
                                 ui.global::<super::PlayerState>().set_current_speed(spd);
                             }
@@ -2710,7 +2541,7 @@ pub(crate) fn spawn_position_poller(
             };
 
             let ui_w = ui_weak.clone();
-            let _ = slint::invoke_from_event_loop(move || {
+            post_to_ui(move || {
                 if let Some(ui) = ui_w.upgrade() {
                     let ps = ui.global::<super::PlayerState>();
                     if ps.get_is_playing() {
@@ -2800,13 +2631,14 @@ pub(crate) fn spawn_position_poller(
 /// `PlaybackReady` is handled here — it locks the shared backend and calls `play()`.
 /// Data events (ChannelsReady, etc.) carry `Arc<Vec<S>>` and are dispatched to the
 /// UI thread via `invoke_from_event_loop` where `apply_data_event` converts them to
-/// VecModel. Image loading is triggered exclusively via scroll callbacks in `wire()`.
+/// VecModel. Image loading is triggered after setting models for initial viewport.
 pub(crate) fn spawn_data_listener(
     ui_weak: slint::Weak<super::AppWindow>,
     mut data_rx: mpsc::Receiver<DataEvent>,
     backend: Arc<Mutex<Option<crispy_player::mpv_backend::MpvBackend>>>,
     render_context_ready: Arc<AtomicBool>,
     shared_data: Arc<SharedData>,
+    image_loader: crate::image_loader::ImageLoader,
 ) {
     tokio::spawn(async move {
         while let Some(event) = data_rx.recv().await {
@@ -2913,7 +2745,7 @@ pub(crate) fn spawn_data_listener(
                         (group, ch_id, logo, programme)
                     };
                     let ui_w = ui_weak.clone();
-                    let _ = slint::invoke_from_event_loop(move || {
+                    post_to_ui(move || {
                         if let Some(ui) = ui_w.upgrade() {
                             let ps = ui.global::<super::PlayerState>();
                             ps.set_current_title(SharedString::from(title_clone.as_str()));
@@ -2936,9 +2768,23 @@ pub(crate) fn spawn_data_listener(
                 other => {
                     let ui_w = ui_weak.clone();
                     let sd2 = Arc::clone(&shared_data);
+                    let loader = image_loader.clone();
+                    let is_channels = matches!(&other, DataEvent::ChannelsReady { .. });
+                    let is_movies = matches!(&other, DataEvent::MoviesReady { .. });
+                    let is_series =
+                        matches!(&other, DataEvent::SeriesReady { total, .. } if *total > 0);
                     if let Err(e) = slint::invoke_from_event_loop(move || {
                         if let Some(ui) = ui_w.upgrade() {
                             apply_data_event(&ui, other, &sd2);
+                            // Load images for initial viewport after model is set
+                            let weak = ui.as_weak();
+                            if is_channels {
+                                loader.load_channels(&weak, Some((0, 50)));
+                            } else if is_movies {
+                                loader.load_movies(&weak, Some((0, 100)));
+                            } else if is_series {
+                                loader.load_series(&weak, Some((0, 100)));
+                            }
                         }
                     }) {
                         tracing::error!("invoke_from_event_loop failed: {e:?}");
@@ -2980,11 +2826,15 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
                 .set_channel_count(total);
             // m-002: reset active group filter so stale selection doesn't persist after re-sync
             app.set_active_channel_group(SharedString::default());
-            // Windowed: scroll callback (delta=0) does full reset
-            app.set_channel_window_start(0);
             app.set_total_channel_count(total);
-            // Trigger scroll callback so images load for initial viewport
-            app.invoke_scroll_channels(0);
+            // Full model — ListView virtualizes natively
+            let slint_channels: Vec<super::ChannelData> =
+                channels.iter().map(channel_info_to_slint).collect();
+            tracing::debug!(
+                count = slint_channels.len(),
+                "[DATA] channels full model set"
+            );
+            app.set_channels(ModelRc::new(VecModel::from(slint_channels)));
             let sc_groups: Vec<SharedString> = in_groups
                 .into_iter()
                 .map(|s| SharedString::from(s.as_str()))
@@ -3064,9 +2914,9 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
             }
             // m-003: reset active category filter so stale selection doesn't persist after re-sync
             app.set_active_vod_category(SharedString::default());
-            app.set_movie_window_start(0);
             app.set_total_movie_count(total);
-            // Trigger scroll callback so images load for initial viewport
+            // Windowed model — scroll callback (delta=0) populates initial window
+            app.set_movie_window_start(0);
             app.invoke_scroll_movies(0);
             let sc_cats: Vec<super::CategoryData> = in_categories
                 .into_iter()
@@ -3118,9 +2968,9 @@ pub(crate) fn apply_data_event(ui: &super::AppWindow, event: DataEvent, shared_d
                 let prev = diag.get_vod_count();
                 diag.set_vod_count(prev + total);
             }
-            app.set_series_window_start(0);
             app.set_total_series_count(total);
-            // Trigger scroll callback so images load for initial viewport
+            // Windowed model — scroll callback (delta=0) populates initial window
+            app.set_series_window_start(0);
             app.invoke_scroll_series(0);
             let sc_cats: Vec<super::CategoryData> = in_categories
                 .into_iter()
@@ -3575,7 +3425,7 @@ fn do_profile_switch(
             .unwrap_or(false)
     };
     let ui_w2 = ui_w.clone();
-    let _ = slint::invoke_from_event_loop(move || {
+    post_to_ui(move || {
         if let Some(ui) = ui_w2.upgrade() {
             let app = ui.global::<super::AppState>();
             app.set_active_profile_name(SharedString::from(name.as_str()));

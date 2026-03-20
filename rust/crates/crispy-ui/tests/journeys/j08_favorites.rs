@@ -55,7 +55,6 @@ impl Journey for J08 {
                     })
                     .collect();
                 app.set_channels(ModelRc::new(VecModel::from(channels)));
-                app.set_channel_window_start(0);
             }
             slint::platform::update_timers_and_animations();
         }
@@ -216,7 +215,6 @@ impl Journey for J08 {
                 },
             ];
             app.set_channels(ModelRc::new(VecModel::from(fav_channels)));
-            app.set_channel_window_start(0);
             slint::platform::update_timers_and_animations();
         }
 

@@ -17,12 +17,37 @@ Analyze the latest test run from any pipeline, combining visual review with stru
      ```
    - Read `rust/crates/crispy-ui/tests/output/{pipeline}/runs-index.json` — use `latest_path`
 
-2. **Read manifest:**
+2. **Production Code Path Verification (MANDATORY)**
+
+   **When ANY screen shows empty/missing/stale data, trace the PRODUCTION data flow BEFORE touching the test harness.** Fixing the test harness to mask a production bug is WORSE than leaving the test red.
+
+   a. **Trace the event chain** for the broken screen:
+      - `DataEngine` → emits `DataEvent::XxxReady` (e.g., `MoviesReady`, `ChannelsReady`, `SeriesReady`)
+      - `data_listener` task in `event_bridge.rs` → stores into `SharedData` + posts to UI via `invoke_from_event_loop`
+      - `apply_data_event()` → sets Slint properties, calls `invoke_scroll_xxx(0)`
+      - `on_scroll_xxx` callback → reads `SharedData`, calls `bridge.apply_delta()`, populates `VecModel`
+
+   b. **Check ScrollBridge state** (`scroll_integration.rs`):
+      - Is `bridge.set_total(data.len())` called with actual data length? If `total==0`, `apply_delta()` always returns `shifted: false`
+      - Does `apply_delta()` return `shifted: true`?
+      - Is `bridge.reset()` called on forced repopulate (delta==0)?
+
+   c. **Cross-reference screens** to distinguish data vs delivery bugs:
+      - Home shows movies but Movies screen empty → data EXISTS, delivery path broken (production bug)
+      - Both Home AND Movies empty → data never arrived (sync issue)
+      - Only E2E empty, stub works → production sync/populate path broken
+
+   d. **Decision gate:**
+      - Production code broken? → **Fix production code FIRST**, then verify test
+      - Production code correct + test harness wrong? → Fix test harness
+      - **NEVER fix test harness to make screenshots "look right" when production code is broken**
+
+3. **Read manifest:**
    - Read `{latest_path}/manifest.json`
    - Note: total screenshots, pass/fail/new counts, per-journey statuses
    - Identify which journeys have failures, diffs, or are completely new
 
-3. **For EACH journey with failures, diffs, or new screenshots:**
+4. **For EACH journey with failures, diffs, or new screenshots:**
 
    a. **View every screenshot in order** — use the Read tool on each PNG file (Claude is multimodal)
    b. **Read corresponding log events** from `{latest_path}/logs/test.log` filtered to that journey's timestamps
@@ -38,7 +63,7 @@ Analyze the latest test run from any pipeline, combining visual review with stru
 
    For each issue, find the corresponding log event that explains it.
 
-4. **Classify each issue:**
+5. **Classify each issue:**
    | Type | Meaning |
    |------|---------|
    | `VISUAL_BUG` | Rendering incorrect — wrong layout, colors, clipping, or artifacts |
@@ -49,14 +74,16 @@ Analyze the latest test run from any pipeline, combining visual review with stru
    | `DESIGN_VIOLATION` | Visual output doesn't match design spec or theme tokens |
    | `SPEC_GAP` | Journey step not implemented — screen is blank or shows placeholder |
 
-5. **Correlate issues with code:**
-   For each bug found, use CodeSearch to locate the responsible code:
-   - Search `event_bridge.rs` for the callback that should handle the triggering action
-   - Search the relevant `.slint` file for the component that renders incorrectly
-   - Check whether the Rust side sets the expected property on the Slint component
-   - Use `mcp__codesearch__symbol_search` or `mcp__codesearch__text_search` — do NOT grep manually
+6. **Correlate issues with production code:**
+   For each bug found, use sqry to locate the responsible code:
+   - `sqry semantic_search` — find the callback/handler for the triggering action
+   - `sqry trace_path` — trace from event emission to UI model population
+   - `sqry get_references` — find all call sites for a broken function
+   - Search `event_bridge.rs` for the callback, `scroll_integration.rs` for bridge state
+   - Check whether `SharedData` is populated AND `VecModel` is updated (both must happen)
+   - Do NOT use grep for symbol lookup — sqry has a pre-computed call graph
 
-6. **Output detailed report:**
+7. **Output detailed report:**
    For every issue:
    ```
    [ISSUE-{n}] {type} — {journey} / step {step}
@@ -66,7 +93,7 @@ Analyze the latest test run from any pipeline, combining visual review with stru
    Fix:        {specific change needed}
    ```
 
-7. **Save structured issues file:**
+8. **Save structured issues file:**
    Write to `{latest_path}/analysis/issues.json` so `/crispy-qa-track` and `/crispy-qa-fix-plan` can consume it.
 
 ## Quick Mode

@@ -222,7 +222,7 @@ impl ImageLoader {
                     };
 
                     let idx = req.idx;
-                    let _ = slint::invoke_from_event_loop(move || {
+                    slint::invoke_from_event_loop(move || {
                         let Some(ui) = ui_w.upgrade() else { return };
                         let app = ui.global::<super::AppState>();
                         let img = slint::Image::from_rgba8(buf);
@@ -254,7 +254,8 @@ impl ImageLoader {
                         }
 
                         ui.window().request_redraw();
-                    });
+                    })
+                    .expect("Slint event loop must be running");
                 });
             }
         });

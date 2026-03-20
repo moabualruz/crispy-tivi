@@ -61,10 +61,6 @@ fn setup_windows(arch: &str, cache_dir: &Path) {
         && (resolved.join("mpv.lib").exists() || resolved.join("libmpv.dll.a").exists())
     {
         println!("cargo:rustc-link-search=native={}", resolved.display());
-        println!(
-            "cargo:warning=Using bundled mpv from {}",
-            resolved.display()
-        );
 
         copy_dll_to_target(&resolved);
         return;

@@ -442,14 +442,11 @@ export global AppState {
   in-out property <bool> gs-profile-set: false;
   callback dismiss-getting-started();
 
-  // ── Virtual scroll — D-pad focus tracking ──
-  callback scroll-channels(/* delta: +1 down, -1 up */ int);
+  // ── Windowed scroll for VOD grids ──
+  // ScrollView+GridLayout doesn't virtualize — windowed VecModel (~300 items).
+  // Channels use ListView (virtualizes natively).
   callback scroll-movies(/* delta */ int);
   callback scroll-series(/* delta */ int);
-  in-out property <int> channel-focus-index: 0; // TODO: unused — remove when confirmed safe
-  in-out property <int> movie-focus-index: 0;   // TODO: unused — remove when confirmed safe
-  in-out property <int> series-focus-index: 0;  // TODO: unused — remove when confirmed safe
-  in-out property <int> channel-window-start: 0;
   in-out property <int> movie-window-start: 0;
   in-out property <int> series-window-start: 0;
 

@@ -73,3 +73,8 @@ Compare test runs to track issue lifecycle: new → persistent → fixed → reg
    - Stale persistent issues: "These X issues have been open for 3+ runs — escalate to fix plan"
    - Regressions: "Run `/crispy-qa-analyze` on the regressed journeys, then bisect the commit range"
    - All stable: "No regressions. Consider running `/crispy-screenshot-approve` to update golden baselines"
+
+### Escalation Rules
+- Issues unresolved for 3+ consecutive runs MUST be escalated — likely incorrect root cause analysis
+- When marking an issue "fixed", verify the fix was in PRODUCTION code (event_bridge.rs, data_engine.rs), not just test harness (db.rs)
+- Issues "fixed" only in test harness should be classified as MASKED, not RESOLVED

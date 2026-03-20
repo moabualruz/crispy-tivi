@@ -103,3 +103,9 @@ Run Pipeline 3 (E2E) — fresh DB, real source sync, full user journey simulatio
    - If critical issues found: run `/crispy-qa-fix-plan` to generate an actionable fix plan
    - If design violations found: run `/crispy-screenshot-design-audit` for a full design audit
    - If all journeys pass: run `/crispy-screenshot-approve` to accept as golden baseline
+
+### Post-Run Verification (MANDATORY)
+- Verify sync produced non-zero counts: check logs for `channels=X vod=Y` where X,Y > 0
+- If sync count is zero, the E2E run is invalid — investigate sync credentials/network before analyzing screenshots
+- After E2E completes, invoke `/crispy-qa-analyze` which includes mandatory production code path verification
+- Network timeout: E2E sync timeout is 120s. If exceeded, check credentials in `test-settings.local.json`

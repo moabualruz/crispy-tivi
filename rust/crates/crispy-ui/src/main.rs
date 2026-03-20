@@ -29,7 +29,6 @@ mod layout;
 mod provider;
 #[allow(dead_code)]
 mod remote_provider;
-mod scroll_integration;
 mod sync_task;
 #[allow(dead_code)]
 mod ui_tests;
@@ -256,7 +255,7 @@ fn real_main() -> anyhow::Result<()> {
     // bookmarks, channel updates, etc.). We bridge that into an mpsc channel
     // so DataEngine can react on its own task without blocking the service.
     let (change_tx, change_rx) =
-        tokio::sync::mpsc::channel::<crispy_core::events::DataChangeEvent>(64);
+        tokio::sync::mpsc::channel::<crispy_core::events::DataChangeEvent>(1024);
     service.set_event_callback(std::sync::Arc::new({
         let tx = change_tx;
         move |event: &crispy_core::events::DataChangeEvent| {
@@ -347,6 +346,7 @@ fn real_main() -> anyhow::Result<()> {
         backend_shared,
         Arc::clone(&render_context_ready),
         Arc::clone(&shared_data),
+        img_loader.clone(),
     );
 
     // ── Wire SyncProgress callback → DataEvent::SyncProgress ─────────────

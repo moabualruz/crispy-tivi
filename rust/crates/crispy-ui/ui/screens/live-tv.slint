@@ -301,42 +301,20 @@ component ChannelOverlaySidebar inherits FocusScope {
         font-weight: 700;
       }
 
-      // Compact channel list
-      ScrollView {
+      // Compact channel list — ListView virtualizes natively
+      ListView {
         vertical-stretch: 1;
 
-        property <length> item-stride: 56px + Theme.spacing-xs;
-        // Virtual viewport covers full channel dataset
-        viewport-height: AppState.total-channel-count * self.item-stride + Theme.spacing-md;
-
-        scrolled() => {
-          root.idle-ticks = 0;
-          if self.viewport-height > 0px
-            && (-self.viewport-y + self.visible-height > self.viewport-height - 200px) {
-            AppState.scroll-channels(15);
-            self.viewport-y = self.viewport-y + 15 * self.item-stride;
-          }
-          if self.viewport-y < 0px
-            && (-self.viewport-y < 200px)
-            && AppState.channel-window-start > 0 {
-            AppState.scroll-channels(-15);
-            self.viewport-y = self.viewport-y - 15 * self.item-stride;
-          }
-        }
-
-        VerticalLayout {
-          spacing: Theme.spacing-xs;
-          for ch in AppState.channels: ChannelRow {
-            ch-id: ch.id;
-            ch-name: ch.name;
-            ch-logo: ch.logo;
-            ch-now-playing: ch.now-playing;
-            ch-group: ch.group;
-            compact: true;
-            selected(id) => {
-              root.idle-ticks = 0;
-              AppState.play-channel(id);
-            }
+        for ch in AppState.channels: ChannelRow {
+          ch-id: ch.id;
+          ch-name: ch.name;
+          ch-logo: ch.logo;
+          ch-now-playing: ch.now-playing;
+          ch-group: ch.group;
+          compact: true;
+          selected(id) => {
+            root.idle-ticks = 0;
+            AppState.play-channel(id);
           }
         }
       }
@@ -648,45 +626,23 @@ export component LiveTvScreen inherits Rectangle {
           }
         }
 
-        // Full-screen channel list — M-010 progress bars, M-012 focus callbacks
-        ScrollView {
+        // Full-screen channel list — ListView virtualizes natively
+        ListView {
           vertical-stretch: 1;
 
-          // Stride matches updated non-compact row height (76px)
-          property <length> item-stride: 76px + Theme.spacing-xs;
-          // Virtual viewport covers full channel dataset
-          viewport-height: AppState.total-channel-count * self.item-stride + Theme.spacing-md;
-
-          scrolled() => {
-            if self.viewport-height > 0px
-              && (-self.viewport-y + self.visible-height > self.viewport-height - 300px) {
-              AppState.scroll-channels(15);
-              self.viewport-y = self.viewport-y + 15 * self.item-stride;
-            }
-            if self.viewport-y < 0px
-              && (-self.viewport-y < 300px)
-              && AppState.channel-window-start > 0 {
-              AppState.scroll-channels(-15);
-              self.viewport-y = self.viewport-y - 15 * self.item-stride;
-            }
-          }
-
-          VerticalLayout {
-            spacing: Theme.spacing-xs;
-            for ch in AppState.channels: ChannelRow {
-              ch-id: ch.id;
-              ch-name: ch.name;
-              ch-logo: ch.logo;
-              ch-now-playing: ch.now-playing;
-              ch-group: ch.group;
-              compact: false;
-              selected(id) => { AppState.play-channel(id); }
-              focused-changed(id, name, programme, group) => {
-                root.preview-ch-id = id;
-                root.preview-ch-name = name;
-                root.preview-ch-programme = programme;
-                root.preview-ch-group = group;
-              }
+          for ch in AppState.channels: ChannelRow {
+            ch-id: ch.id;
+            ch-name: ch.name;
+            ch-logo: ch.logo;
+            ch-now-playing: ch.now-playing;
+            ch-group: ch.group;
+            compact: false;
+            selected(id) => { AppState.play-channel(id); }
+            focused-changed(id, name, programme, group) => {
+              root.preview-ch-id = id;
+              root.preview-ch-name = name;
+              root.preview-ch-programme = programme;
+              root.preview-ch-group = group;
             }
           }
         }

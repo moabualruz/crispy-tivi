@@ -283,7 +283,7 @@ impl DataEngine {
             .collect();
         self.send(DataEvent::SourcesReady { sources });
 
-        // Channels — send ALL (ScrollBridge handles windowing via VecModel slicing)
+        // Channels — send ALL (full model set on UI thread)
         self.send(DataEvent::LoadingStarted {
             kind: LoadingKind::Channels,
         });
@@ -455,7 +455,7 @@ impl DataEngine {
             HighPriorityEvent::FilterContent { query } => {
                 self.filters.active_group = query;
 
-                // Apply as a group filter on channels — send ALL; ScrollBridge windows the VecModel
+                // Apply as a group filter on channels — send ALL; full model set on UI thread
                 let (ch_all, total, _) = filter_channels(
                     &self.cache.all_channels,
                     &self.filters.active_group,
@@ -1873,7 +1873,7 @@ impl DataEngine {
         }
     }
 
-    /// Re-emit all filtered channels; ScrollBridge in event_bridge.rs handles VecModel windowing.
+    /// Re-emit all filtered channels as a full model.
     fn emit_filtered_channels(&self) {
         let (all, total, _) = filter_channels(
             &self.cache.all_channels,
@@ -1890,7 +1890,7 @@ impl DataEngine {
         });
     }
 
-    /// Re-emit all filtered VOD items (movies + series); ScrollBridge in event_bridge.rs windows them.
+    /// Re-emit all filtered VOD items (movies + series) as full models.
     fn emit_filtered_vod(&self) {
         let (movies, cats, total, _) = filter_vod(
             &self.cache.all_vod,

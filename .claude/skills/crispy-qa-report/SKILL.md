@@ -94,3 +94,9 @@ Cross-pipeline quality analysis — identifies which issues are fundamental (all
    - If e2e-only failures: investigate real IPTV source data structure vs stub assumptions
    - If stub-only failures: update stub fixtures to match current real data shape
    - If all pass: `/crispy-screenshot-approve` to lock in golden baselines
+
+### Cross-Pipeline Interpretation Rules
+- Fails in stub+cached but not e2e → test fixture/harness issue
+- Fails in e2e only → production data handling bug (check event_bridge.rs, scroll_integration.rs)
+- Fails in ALL pipelines → UI markup or layout bug in .slint files
+- Screen A has data but Screen B doesn't → production data delivery bug, NOT missing data

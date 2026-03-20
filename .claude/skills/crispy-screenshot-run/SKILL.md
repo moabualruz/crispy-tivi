@@ -45,3 +45,10 @@ description: Run CrispyTivi screenshot journey tests and report results. Execute
 - `CRISPY_JOURNEY_FILTER` — run specific journeys (e.g., `j05*`)
 - `CRISPY_TEST_RESOLUTION` — render resolution (default `1280x720`)
 - `CRISPY_UPDATE_SNAPSHOTS=1` — regenerate all golden baselines
+
+### Error Type Disambiguation
+Distinguish between:
+1. **Compilation failure** — `cargo test` won't build → fix Rust/Slint errors first
+2. **Test panic during sync** — sync crashes → check credentials, network, source availability
+3. **Test passes but screenshots wrong** — most subtle → invoke `/crispy-qa-analyze` with production code path verification
+4. After run completes, check `journey.log` for any `status: fail` entries before declaring success

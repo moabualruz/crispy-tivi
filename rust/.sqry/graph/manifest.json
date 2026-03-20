@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "snapshot_format_version": 2,
+  "built_at": "2026-03-20T05:59:00.870211700+00:00",
+  "root_path": "\\\\?\\F:\\work\\crispy-tivi\\rust",
+  "node_count": 102710,
+  "edge_count": 118688,
+  "raw_edge_count": 134010,
+  "snapshot_sha256": "85a086dc4c45403bc967a81bc46e8516039e24523d412df6f080506de5a61832",
+  "build_provenance": {
+    "sqry_version": "4.10.1",
+    "build_timestamp": "2026-03-20T05:59:00.870211700+00:00",
+    "build_command": "mcp:auto_index"
+  },
+  "file_count": {
+    "rust": 340,
+    "sql": 4
+  },
+  "confidence": {
+    "rust": {
+      "level": "partial",
+      "limitations": [
+        "Elided lifetime in reference type; full resolution requires rust-analyzer",
+        "rust-analyzer exited with status exit code: 1",
+        "Module 'harness' not found, searched: [\"\\\\\\\\?\\\\F:\\\\work\\\\crispy-tivi\\\\rust\\\\crates\\\\crispy-ui\\\\tests\\\\screenshot_tests\\\\harness.rs\", \"\\\\\\\\?\\\\F:\\\\work\\\\crispy-tivi\\\\rust\\\\crates\\\\crispy-ui\\\\tests\\\\screenshot_tests\\\\harness\\\\mod.rs\"]",
+        "Module 'journeys' not found, searched: [\"\\\\\\\\?\\\\F:\\\\work\\\\crispy-tivi\\\\rust\\\\crates\\\\crispy-ui\\\\tests\\\\screenshot_tests\\\\journeys.rs\", \"\\\\\\\\?\\\\F:\\\\work\\\\crispy-tivi\\\\rust\\\\crates\\\\crispy-ui\\\\tests\\\\screenshot_tests\\\\journeys\\\\mod.rs\"]",
+        "Module 'harness' not found, searched: [\"\\\\\\\\?\\\\F:\\\\work\\\\crispy-tivi\\\\rust\\\\crates\\\\crispy-ui\\\\tests\\\\screenshots\\\\harness.rs\", \"\\\\\\\\?\\\\F:\\\\work\\\\crispy-tivi\\\\rust\\\\crates\\\\crispy-ui\\\\tests\\\\screenshots\\\\harness\\\\mod.rs\"]",
+        "Module 'journeys' not found, searched: [\"\\\\\\\\?\\\\F:\\\\work\\\\crispy-tivi\\\\rust\\\\crates\\\\crispy-ui\\\\tests\\\\screenshots\\\\journeys.rs\", \"\\\\\\\\?\\\\F:\\\\work\\\\crispy-tivi\\\\rust\\\\crates\\\\crispy-ui\\\\tests\\\\screenshots\\\\journeys\\\\mod.rs\"]"
+      ],
+      "unavailable_features": [
+        "type_inference"
+      ]
+    }
+  },
+  "last_indexed_commit": "bed5c98050b2d66f6ec8705a59a0f62c46b479bd"
+}

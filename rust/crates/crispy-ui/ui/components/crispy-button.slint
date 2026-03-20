@@ -1,0 +1,38 @@
+import { Theme } from "../globals/theme.slint";
+import { Button } from "std-widgets.slint";
+
+// CrispyButton — wraps std-widgets Button with D-pad focus ring.
+// Use for Settings forms and dialogs where Material styling is appropriate.
+// For navigation, cards, and OSD — use ActionButton instead.
+export component CrispyButton inherits Rectangle {
+  in property <string> text;
+  in property <bool> primary: false;
+  callback clicked;
+
+  height: 40px;
+  border-radius: Theme.radius-sm;
+  border-width: fs.has-focus ? Theme.focus-ring-width : 0px;
+  border-color: Theme.focus-ring;
+  background: transparent;
+
+  animate border-width { duration: 80ms; }
+
+  fs := FocusScope {
+    width: 100%; height: 100%;
+
+    key-pressed(event) => {
+      if event.text == Key.Return || event.text == " " {
+        root.clicked();
+        return accept;
+      }
+      return reject;
+    }
+  }
+
+  btn := Button {
+    width: 100%; height: 100%;
+    text: root.text;
+    primary: root.primary;
+    clicked => { root.clicked(); }
+  }
+}

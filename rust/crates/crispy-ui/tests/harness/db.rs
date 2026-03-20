@@ -704,7 +704,6 @@ pub fn populate_ui(ui: &crate::AppWindow, service: &CrispyService) {
     app.set_channel_groups(ModelRc::new(VecModel::from(slint_groups)));
     app.set_channels(ModelRc::new(VecModel::from(slint_channels)));
     app.set_total_channel_count(channel_count);
-    app.set_channel_window_start(0);
     eprintln!("[populate_ui] Loaded {} channels", channel_count);
 
     // ── VOD — Movies ─────────────────────────────────────────────────────────
@@ -736,7 +735,6 @@ pub fn populate_ui(ui: &crate::AppWindow, service: &CrispyService) {
     let movie_count = movies.len() as i32;
     app.set_movies(ModelRc::new(VecModel::from(movies)));
     app.set_total_movie_count(movie_count);
-    app.set_movie_window_start(0);
     eprintln!("[populate_ui] Loaded {} movies", movie_count);
 
     // ── VOD — Series ─────────────────────────────────────────────────────────
@@ -766,7 +764,6 @@ pub fn populate_ui(ui: &crate::AppWindow, service: &CrispyService) {
     let series_count = series.len() as i32;
     app.set_series(ModelRc::new(VecModel::from(series)));
     app.set_total_series_count(series_count);
-    app.set_series_window_start(0);
     eprintln!("[populate_ui] Loaded {} series", series_count);
 
     // ── Profiles ─────────────────────────────────────────────────────────────

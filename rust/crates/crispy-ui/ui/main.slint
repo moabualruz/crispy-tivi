@@ -1,5 +1,6 @@
 import { Theme } from "globals/theme.slint";
 import { AppState } from "globals/app-state.slint";
+import { Palette } from "std-widgets.slint";
 import { TopNav } from "components/top-nav.slint";
 
 // Re-export globals so Rust can access them via ui.global::<T>()
@@ -37,6 +38,10 @@ export component AppWindow inherits Window {
   min-height: 480px;
   preferred-width: 1280px;
   preferred-height: 720px;
+
+  // Force dark color scheme — aligns Palette with our dark Theme tokens.
+  // Ensures std-widgets (ListView, ScrollView, etc.) render in dark mode.
+  init => { Palette.color-scheme = ColorScheme.dark; }
 
   // Window background transparent so mpv OpenGL underlay (VideoLayer) is visible
   background: transparent;

@@ -98,6 +98,52 @@ pub async fn fetch_json_list(
     parse_json_list_resilient(&text)
 }
 
+/// Fetches a URL and returns the response body as a single JSON object.
+///
+/// Used for Xtream endpoints that return a single object (e.g. `get_series_info`).
+/// Applies the same resilience logic as [`fetch_json_list`] for sanitization,
+/// but expects (and returns) a `serde_json::Value` instead of an array.
+///
+/// Returns `Ok(Value::Null)` on empty response rather than an error, so
+/// callers can treat an empty/missing body as non-fatal.
+///
+/// When `accept_invalid_certs` is `true`, TLS certificate verification
+/// is skipped to support self-signed server certificates.
+pub async fn fetch_json_object(url: &str, accept_invalid_certs: bool) -> Result<serde_json::Value> {
+    let resp = fetch_with_retry(url, accept_invalid_certs)
+        .await
+        .with_context(|| format!("Failed to fetch {url}"))?;
+
+    let bytes = resp
+        .bytes()
+        .await
+        .with_context(|| format!("Failed to read response from {url}"))?;
+
+    if bytes.is_empty() {
+        return Ok(serde_json::Value::Null);
+    }
+
+    let text = String::from_utf8_lossy(&bytes);
+    let sanitized = sanitize_json(&text);
+
+    match serde_json::from_str::<serde_json::Value>(&sanitized) {
+        Ok(v) => Ok(v),
+        Err(_) => {
+            // Fast-path failed; attempt array recovery then take first element.
+            match serde_json::from_str::<serde_json::Value>(&text) {
+                Ok(v) => Ok(v),
+                Err(e) => {
+                    eprintln!(
+                        "fetch_json_object: JSON parse failed for {} bytes: {e}",
+                        text.len()
+                    );
+                    Ok(serde_json::Value::Null)
+                }
+            }
+        }
+    }
+}
+
 /// Parses a JSON string into a list with resilient recovery.
 ///
 /// Separated from `fetch_json_list` for direct testing without HTTP.

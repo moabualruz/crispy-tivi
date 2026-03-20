@@ -61,3 +61,8 @@ Review screenshot test failures by comparing actual renders against journey spec
 7. Suggest next steps:
    - If regressions found: "Fix the regressions, then re-run `/crispy-screenshot-run`"
    - If only improvements: "Run `/crispy-screenshot-approve` to accept improvements"
+
+### Review Protocol
+- Read the planning doc for the journey BEFORE classifying any failure — plan defines expected behavior
+- When classifying: if test harness was modified to fix the screenshot, classify as MASKED — not FIXED
+- Cross-reference: if data shows on one screen but not another, flag as PRODUCTION BUG regardless of visual appearance

@@ -42,3 +42,8 @@ description: Analyze visual regressions in CrispyTivi across multiple test runs.
 5. **Recommend next steps:**
    - For regressions: "Run `/crispy-qa-analyze` to deep-dive failing journeys"
    - For improvements: "Run `/crispy-screenshot-approve` to lock in improvements as new baselines"
+
+### Regression Source Analysis
+- When regression appears only in E2E pipeline, check if production data flow changed (event_bridge.rs, scroll_integration.rs)
+- Correlate regression timestamp with `git log --since` to identify the breaking commit
+- If regression involves empty screens, check ScrollBridge.set_total() and apply_delta() before blaming UI changes

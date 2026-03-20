@@ -49,3 +49,11 @@ Audit ALL screenshots (not just failures) against the CrispyTivi design specific
    ```
 
 4. Suggest fixes for each major violation with the specific Theme token from `rust/crates/crispy-ui/ui/globals/theme.slint` that should replace the hardcoded value.
+
+### Theme Token Validation
+Before auditing screenshots, read `rust/crates/crispy-ui/ui/globals/theme.slint` to get the complete token list. Check every screenshot for:
+- Colors: all must use `Theme.text-primary`, `Theme.surface`, etc. — no hardcoded `rgba()` or `#hex`
+- Fonts: must use `Theme.font-display` (Outfit) or `Theme.font-body` (Inter) — no raw font names
+- Spacing: must use `Theme.spacing-xs/sm/md/lg/xl` — no raw px values
+- Radii: must use `Theme.radius-sm/md/lg/pill` — no raw border-radius
+- Focus: every interactive element must have `Theme.focus-ring` border on focus
