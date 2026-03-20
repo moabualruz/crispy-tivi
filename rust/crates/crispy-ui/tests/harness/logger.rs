@@ -6,7 +6,7 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fs::{create_dir_all, File};
+use std::fs::{File, create_dir_all};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 
@@ -35,19 +35,12 @@ impl TestLogger {
         let ts = Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
         let mut obj = serde_json::Map::new();
         obj.insert("ts".into(), serde_json::Value::String(ts));
-        obj.insert(
-            "cat".into(),
-            serde_json::Value::String(category.into()),
-        );
-        obj.insert(
-            "event".into(),
-            serde_json::Value::String(event.into()),
-        );
+        obj.insert("cat".into(), serde_json::Value::String(category.into()));
+        obj.insert("event".into(), serde_json::Value::String(event.into()));
         for (k, v) in fields {
             obj.insert((*k).into(), serde_json::Value::String((*v).into()));
         }
-        let line =
-            serde_json::to_string(&serde_json::Value::Object(obj)).unwrap();
+        let line = serde_json::to_string(&serde_json::Value::Object(obj)).unwrap();
 
         // Write to category-specific log file.
         let log_name = format!("{category}.log");
@@ -78,12 +71,10 @@ impl TestLogger {
 
     fn write_to(&self, log_name: &str, line: &str) {
         let mut writers = self.writers.borrow_mut();
-        let writer = writers
-            .entry(log_name.to_owned())
-            .or_insert_with(|| {
-                let path = self.log_dir.join(log_name);
-                BufWriter::new(File::create(path).expect("create log file"))
-            });
+        let writer = writers.entry(log_name.to_owned()).or_insert_with(|| {
+            let path = self.log_dir.join(log_name);
+            BufWriter::new(File::create(path).expect("create log file"))
+        });
         writeln!(writer, "{}", line).ok();
         writer.flush().ok();
     }
@@ -98,10 +89,7 @@ mod tests {
 
     #[test]
     fn test_logger_writes_category_and_combined_log() {
-        let tmp = std::env::temp_dir().join(format!(
-            "crispy_logger_test_{}",
-            uuid::Uuid::new_v4()
-        ));
+        let tmp = std::env::temp_dir().join(format!("crispy_logger_test_{}", uuid::Uuid::new_v4()));
         fs::create_dir_all(&tmp).unwrap();
 
         let logger = TestLogger::new(&tmp);
@@ -130,10 +118,8 @@ mod tests {
 
     #[test]
     fn test_logger_test_category_not_duplicated_in_combined() {
-        let tmp = std::env::temp_dir().join(format!(
-            "crispy_logger_nodup_{}",
-            uuid::Uuid::new_v4()
-        ));
+        let tmp =
+            std::env::temp_dir().join(format!("crispy_logger_nodup_{}", uuid::Uuid::new_v4()));
         fs::create_dir_all(&tmp).unwrap();
 
         let logger = TestLogger::new(&tmp);

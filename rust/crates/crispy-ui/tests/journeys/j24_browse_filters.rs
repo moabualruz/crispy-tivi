@@ -47,8 +47,7 @@ impl Journey for J24 {
 
             if !harness.has_real_data() {
                 let cats = slint::VecModel::<CategoryData>::default();
-                for (name, ct) in &[("Sci-Fi", "genre"), ("Action", "genre"), ("Drama", "genre")]
-                {
+                for (name, ct) in &[("Sci-Fi", "genre"), ("Action", "genre"), ("Drama", "genre")] {
                     cats.push(CategoryData {
                         name: (*name).into(),
                         category_type: (*ct).into(),
@@ -57,7 +56,14 @@ impl Journey for J24 {
                 app.set_vod_categories(slint::ModelRc::new(cats));
 
                 let movies = slint::VecModel::<VodData>::default();
-                movies.push(make_movie("m1", "Interstellar", "Sci-Fi", "2014", "8.6", 169));
+                movies.push(make_movie(
+                    "m1",
+                    "Interstellar",
+                    "Sci-Fi",
+                    "2014",
+                    "8.6",
+                    169,
+                ));
                 movies.push(make_movie(
                     "m2",
                     "The Dark Knight",

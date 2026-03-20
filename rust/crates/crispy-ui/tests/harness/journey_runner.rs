@@ -18,10 +18,7 @@ use std::{
 };
 
 use super::{
-    db::TestDb,
-    input::InputEmulation,
-    logger::TestLogger,
-    renderer::ScreenshotHarness,
+    db::TestDb, input::InputEmulation, logger::TestLogger, renderer::ScreenshotHarness,
     renderer::ScreenshotResult,
 };
 use slint::platform::Key;

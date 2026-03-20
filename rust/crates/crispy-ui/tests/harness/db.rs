@@ -654,12 +654,8 @@ pub fn populate_ui(ui: &crate::AppWindow, service: &CrispyService) {
             password: SharedString::default(),
             channel_count: 0,
             vod_count: 0,
-            sync_status: SharedString::from(
-                s.last_sync_status.as_deref().unwrap_or(""),
-            ),
-            last_sync_error: SharedString::from(
-                s.last_sync_error.as_deref().unwrap_or(""),
-            ),
+            sync_status: SharedString::from(s.last_sync_status.as_deref().unwrap_or("")),
+            last_sync_error: SharedString::from(s.last_sync_error.as_deref().unwrap_or("")),
         })
         .collect();
     app.set_sources(ModelRc::new(VecModel::from(slint_sources)));
@@ -687,8 +683,7 @@ pub fn populate_ui(ui: &crate::AppWindow, service: &CrispyService) {
         .collect();
 
     // Home preview: first 20 channels
-    let home_channels: Vec<crate::ChannelData> =
-        slint_channels.iter().take(20).cloned().collect();
+    let home_channels: Vec<crate::ChannelData> = slint_channels.iter().take(20).cloned().collect();
     app.set_home_channels(ModelRc::new(VecModel::from(home_channels)));
 
     // Collect distinct groups
@@ -724,9 +719,7 @@ pub fn populate_ui(ui: &crate::AppWindow, service: &CrispyService) {
             backdrop_url: SharedString::from(v.backdrop_url.as_deref().unwrap_or("")),
             description: SharedString::from(v.description.as_deref().unwrap_or("")),
             genre: SharedString::default(),
-            year: SharedString::from(
-                v.year.map(|y| y.to_string()).unwrap_or_default().as_str(),
-            ),
+            year: SharedString::from(v.year.map(|y| y.to_string()).unwrap_or_default().as_str()),
             rating: SharedString::from(v.rating.as_deref().unwrap_or("")),
             duration_minutes: v.duration.unwrap_or(0),
             is_favorite: v.is_favorite,
@@ -756,9 +749,7 @@ pub fn populate_ui(ui: &crate::AppWindow, service: &CrispyService) {
             backdrop_url: SharedString::from(v.backdrop_url.as_deref().unwrap_or("")),
             description: SharedString::from(v.description.as_deref().unwrap_or("")),
             genre: SharedString::default(),
-            year: SharedString::from(
-                v.year.map(|y| y.to_string()).unwrap_or_default().as_str(),
-            ),
+            year: SharedString::from(v.year.map(|y| y.to_string()).unwrap_or_default().as_str()),
             rating: SharedString::from(v.rating.as_deref().unwrap_or("")),
             duration_minutes: v.duration.unwrap_or(0),
             is_favorite: v.is_favorite,
@@ -837,10 +828,7 @@ mod tests {
     fn test_load_settings_returns_data() {
         let settings = load_settings();
         // Must have at least one source (from base or .local override)
-        assert!(
-            !settings.sources.is_empty(),
-            "expected at least one source"
-        );
+        assert!(!settings.sources.is_empty(), "expected at least one source");
         assert!(
             !settings.profiles.is_empty(),
             "expected at least one profile"

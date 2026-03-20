@@ -41,9 +41,7 @@ fn screenshot_journeys() {
                 run_pipeline_e2e();
             }
         }
-        _ => panic!(
-            "Unknown CRISPY_PIPELINE={pipe}. Valid values: stub | cached | e2e | all"
-        ),
+        _ => panic!("Unknown CRISPY_PIPELINE={pipe}. Valid values: stub | cached | e2e | all"),
     }
 }
 
@@ -63,11 +61,7 @@ fn run_pipeline(name: &str) {
     std::fs::create_dir_all(&run_dir).unwrap();
 
     let logger = Rc::new(TestLogger::new(&run_dir));
-    logger.event(
-        "pipeline",
-        "start",
-        &[("name", name), ("ts", &timestamp)],
-    );
+    logger.event("pipeline", "start", &[("name", name), ("ts", &timestamp)]);
 
     let db = harness::db::TestDb::init();
     let mut runner = JourneyRunner::new(run_dir.clone(), golden_dir, db);
@@ -91,7 +85,6 @@ fn run_pipeline(name: &str) {
 
     runner.assert_no_failures();
 }
-
 
 fn run_pipeline_e2e() {
     let fixtures = fixtures_dir();
