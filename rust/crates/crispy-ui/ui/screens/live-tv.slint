@@ -306,6 +306,8 @@ component ChannelOverlaySidebar inherits FocusScope {
         vertical-stretch: 1;
 
         property <length> item-stride: 56px + Theme.spacing-xs;
+        // Virtual viewport covers full channel dataset
+        viewport-height: AppState.total-channel-count * self.item-stride + Theme.spacing-md;
 
         scrolled() => {
           root.idle-ticks = 0;
@@ -652,6 +654,8 @@ export component LiveTvScreen inherits Rectangle {
 
           // Stride matches updated non-compact row height (76px)
           property <length> item-stride: 76px + Theme.spacing-xs;
+          // Virtual viewport covers full channel dataset
+          viewport-height: AppState.total-channel-count * self.item-stride + Theme.spacing-md;
 
           scrolled() => {
             if self.viewport-height > 0px
