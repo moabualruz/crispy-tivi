@@ -179,10 +179,23 @@ component ChannelRow inherits FocusScope {
           background: Theme.card-surface;
           clip: true;
 
-          Image {
+          if root.ch-logo.width > 0: Image {
             width: 100%; height: 100%;
             source: root.ch-logo;
             image-fit: contain;
+          }
+          if root.ch-logo.width == 0: Text {
+            width: 100%; height: 100%;
+            // Show up to first 2 chars — Slint has no substring; truncate via overflow
+            text: root.ch-name;
+            color: Theme.text-secondary;
+            font-family: Theme.font-display;
+            font-size: Theme.font-size-small;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            overflow: elide;
+            max-width: root.compact ? 32px : 40px;
           }
         }
 
@@ -408,7 +421,7 @@ export component LiveTvScreen inherits Rectangle {
       padding-top: Theme.screen-padding-top;
       padding-left: Theme.content-padding-h;
       padding-right: Theme.content-padding-h;
-      padding-bottom: Theme.spacing-lg;
+      padding-bottom: 40px; // clear ButtonLegend bar
       spacing: Theme.spacing-md;
 
       // Header row: title + sub-view tabs

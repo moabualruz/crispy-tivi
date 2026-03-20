@@ -346,6 +346,7 @@ export component EpgScreen inherits FocusScope {
 
   VerticalLayout {
     padding-top: Theme.screen-padding-top;
+    padding-bottom: 40px; // clear ButtonLegend bar
     spacing: 0px;
 
     // Date navigation bar
@@ -505,15 +506,15 @@ export component EpgScreen inherits FocusScope {
 
               ChannelSidebarRow {
                 x: 0;
-                width: root.width * 0.10;
+                width: max(120px, root.width * 0.15);
                 height: parent.height;
                 ch-name: row.channel-name;
                 ch-logo: row.channel-logo;
               }
 
               Rectangle {
-                x: root.width * 0.10;
-                width: root.width * 0.90;
+                x: max(120px, root.width * 0.15);
+                width: root.width - max(120px, root.width * 0.15);
                 height: parent.height;
                 clip: true;
                 background: transparent;

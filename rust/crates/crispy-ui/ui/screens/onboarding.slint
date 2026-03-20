@@ -27,10 +27,10 @@ component StepIndicator inherits HorizontalLayout {
   alignment: center;
 
   for i in [0, 1, 2, 3, 4]: Rectangle {
-    width: i == current-step ? 28px : 8px;
-    height: 8px;
+    width: i == current-step ? 28px : 10px;
+    height: 10px;
     border-radius: Theme.radius-xs;
-    background: i == current-step ? Theme.accent-gradient : Theme.focus-glow;
+    background: i == current-step ? #FFFFFF : rgba(255, 255, 255, 0.4);
 
     animate width { duration: 250ms; easing: ease-in-out; }
     animate background { duration: 250ms; }
@@ -649,6 +649,8 @@ export component OnboardingScreen inherits Rectangle {
         alignment: center;
         padding-top: Theme.spacing-2xl;
         padding-bottom: Theme.spacing-2xl;
+        padding-left: Theme.content-padding-h;
+        padding-right: Theme.content-padding-h;
 
         VerticalLayout {
           alignment: center;
