@@ -76,9 +76,7 @@ e2e/robot_tests/node_modules
 # Local test credentials (real IPTV creds — never commit)
 **/test_creds.local.json
 
-# AI/agent config (managed in crispy-ai-config private repo)
-# Clone into .ai/ and run .ai/scripts/setup-ai.sh to restore
-.ai/
+# AI/agent config (managed as git submodule in .ai/)
 CLAUDE.md
 GEMINI.md
 .cursorrules
