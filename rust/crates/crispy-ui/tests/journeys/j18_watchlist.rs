@@ -21,27 +21,29 @@ impl Journey for J18 {
         if let Some(ui) = harness.ui::<AppWindow>() {
             ui.global::<AppState>().set_active_screen(3); // Movies
             ui.global::<AppState>().set_show_vod_detail(true);
-            ui.global::<AppState>().set_vod_detail_item(VodData {
-                id: "movie-oppenheimer".into(),
-                name: "Oppenheimer".into(),
-                stream_url: "http://iptv.example.com/movie/oppenheimer.ts".into(),
-                item_type: "movie".into(),
-                poster_url: "".into(),
-                backdrop_url: "".into(),
-                description:
-                    "The story of J. Robert Oppenheimer and the development of the atomic bomb."
-                        .into(),
-                genre: "Drama".into(),
-                year: "2023".into(),
-                rating: "8.9".into(),
-                duration_minutes: 180,
-                is_favorite: false,
-                source_id: "src-1".into(),
-                series_id: "".into(),
-                season: 0,
-                episode: 0,
-                poster: slint::Image::default(),
-            });
+            if !harness.has_real_data() {
+                ui.global::<AppState>().set_vod_detail_item(VodData {
+                    id: "movie-oppenheimer".into(),
+                    name: "Oppenheimer".into(),
+                    stream_url: "http://iptv.example.com/movie/oppenheimer.ts".into(),
+                    item_type: "movie".into(),
+                    poster_url: "".into(),
+                    backdrop_url: "".into(),
+                    description:
+                        "The story of J. Robert Oppenheimer and the development of the atomic bomb."
+                            .into(),
+                    genre: "Drama".into(),
+                    year: "2023".into(),
+                    rating: "8.9".into(),
+                    duration_minutes: 180,
+                    is_favorite: false,
+                    source_id: "src-1".into(),
+                    series_id: "".into(),
+                    season: 0,
+                    episode: 0,
+                    poster: slint::Image::default(),
+                });
+            }
             slint::platform::update_timers_and_animations();
         }
 

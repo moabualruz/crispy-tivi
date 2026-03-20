@@ -22,39 +22,41 @@ impl Journey for J08 {
             let app = ui.global::<AppState>();
             app.set_active_screen(1); // Live TV
 
-            // Groups: Favorites pinned first (even when empty it should appear)
-            let groups: Vec<slint::SharedString> = vec![
-                "Favorites".into(),
-                "News".into(),
-                "Sports".into(),
-                "Movies".into(),
-            ];
-            app.set_channel_groups(ModelRc::new(VecModel::from(groups)));
-            app.set_active_channel_group("".into()); // All
+            if !harness.has_real_data() {
+                // Groups: Favorites pinned first (even when empty it should appear)
+                let groups: Vec<slint::SharedString> = vec![
+                    "Favorites".into(),
+                    "News".into(),
+                    "Sports".into(),
+                    "Movies".into(),
+                ];
+                app.set_channel_groups(ModelRc::new(VecModel::from(groups)));
+                app.set_active_channel_group("".into()); // All
 
-            // Channels — none favorited yet
-            let channels: Vec<ChannelData> = (1u32..=10)
-                .map(|i| ChannelData {
-                    id: format!("ch_{i}").into(),
-                    name: format!("Channel {i:03}").into(),
-                    group: if i <= 3 {
-                        "News".into()
-                    } else {
-                        "Sports".into()
-                    },
-                    logo_url: "".into(),
-                    stream_url: format!("http://iptv.example.com/live/ch{i}.ts").into(),
-                    source_id: "test_src_0".into(),
-                    number: i as i32,
-                    is_favorite: false,
-                    has_catchup: false,
-                    resolution: "1080p".into(),
-                    now_playing: format!("Show on Ch {i}").into(),
-                    logo: Default::default(),
-                })
-                .collect();
-            app.set_channels(ModelRc::new(VecModel::from(channels)));
-            app.set_channel_window_start(0);
+                // Channels — none favorited yet
+                let channels: Vec<ChannelData> = (1u32..=10)
+                    .map(|i| ChannelData {
+                        id: format!("ch_{i}").into(),
+                        name: format!("Channel {i:03}").into(),
+                        group: if i <= 3 {
+                            "News".into()
+                        } else {
+                            "Sports".into()
+                        },
+                        logo_url: "".into(),
+                        stream_url: format!("http://iptv.example.com/live/ch{i}.ts").into(),
+                        source_id: "test_src_0".into(),
+                        number: i as i32,
+                        is_favorite: false,
+                        has_catchup: false,
+                        resolution: "1080p".into(),
+                        now_playing: format!("Show on Ch {i}").into(),
+                        logo: Default::default(),
+                    })
+                    .collect();
+                app.set_channels(ModelRc::new(VecModel::from(channels)));
+                app.set_channel_window_start(0);
+            }
             slint::platform::update_timers_and_animations();
         }
 

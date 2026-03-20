@@ -60,6 +60,8 @@ pub struct ScreenshotHarness {
     /// Type-erased UI component handle (e.g. `AppWindow`).
     /// Journeys downcast via `harness.ui::<AppWindow>()`.
     pub ui_handle: Option<Box<dyn std::any::Any>>,
+    /// Pipeline mode: "stub" | "cached" | "e2e"
+    pub pipeline_mode: String,
 }
 
 impl ScreenshotHarness {
@@ -131,6 +133,7 @@ impl ScreenshotHarness {
             results: RefCell::new(Vec::new()),
             window,
             ui_handle: None,
+            pipeline_mode: "stub".to_owned(),
         }
     }
 
@@ -140,6 +143,18 @@ impl ScreenshotHarness {
     /// Journeys call this as `harness.ui::<AppWindow>()`.
     pub fn ui<T: 'static>(&self) -> Option<&T> {
         self.ui_handle.as_ref()?.downcast_ref::<T>()
+    }
+
+    /// Returns the current pipeline mode: "stub", "cached", or "e2e".
+    pub fn pipeline(&self) -> &str {
+        &self.pipeline_mode
+    }
+
+    /// Returns true when the pipeline has real data (cached or e2e).
+    /// In these modes `populate_ui()` has already seeded meaningful content —
+    /// journeys must NOT overwrite it with inline stub data.
+    pub fn has_real_data(&self) -> bool {
+        matches!(self.pipeline_mode.as_str(), "cached" | "e2e")
     }
 
     // -----------------------------------------------------------------------

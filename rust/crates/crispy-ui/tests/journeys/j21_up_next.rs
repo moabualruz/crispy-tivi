@@ -20,8 +20,10 @@ impl Journey for J21 {
 
         if let Some(ui) = harness.ui::<AppWindow>() {
             ui.global::<AppState>().set_active_screen(0); // Home
-            ui.global::<AppState>()
-                .set_continue_watching_items(slint::ModelRc::new(slint::VecModel::default()));
+            if !harness.has_real_data() {
+                ui.global::<AppState>()
+                    .set_continue_watching_items(slint::ModelRc::new(slint::VecModel::default()));
+            }
             slint::platform::update_timers_and_animations();
         }
 
@@ -35,36 +37,38 @@ impl Journey for J21 {
         // Each series contributes exactly one card — the next unwatched episode.
 
         if let Some(ui) = harness.ui::<AppWindow>() {
-            let cw = slint::VecModel::<ContinueWatchingData>::default();
-            // Most recent: Breaking Bad S1E3
-            cw.push(ContinueWatchingData {
-                id: "bb-s1e3".into(),
-                title: "Breaking Bad · S1E3".into(),
-                image_url: "".into(),
-                progress: 0.0, // next unwatched — no progress yet
-                content_type: "episode".into(),
-                poster: slint::Image::default(),
-            });
-            // Second: Succession S2E5 (in progress)
-            cw.push(ContinueWatchingData {
-                id: "succ-s2e5".into(),
-                title: "Succession · S2E5".into(),
-                image_url: "".into(),
-                progress: 0.62,
-                content_type: "episode".into(),
-                poster: slint::Image::default(),
-            });
-            // Third: The Wire S1E1 (just started)
-            cw.push(ContinueWatchingData {
-                id: "wire-s1e1".into(),
-                title: "The Wire · S1E1".into(),
-                image_url: "".into(),
-                progress: 0.08,
-                content_type: "episode".into(),
-                poster: slint::Image::default(),
-            });
-            ui.global::<AppState>()
-                .set_continue_watching_items(slint::ModelRc::new(cw));
+            if !harness.has_real_data() {
+                let cw = slint::VecModel::<ContinueWatchingData>::default();
+                // Most recent: Breaking Bad S1E3
+                cw.push(ContinueWatchingData {
+                    id: "bb-s1e3".into(),
+                    title: "Breaking Bad · S1E3".into(),
+                    image_url: "".into(),
+                    progress: 0.0, // next unwatched — no progress yet
+                    content_type: "episode".into(),
+                    poster: slint::Image::default(),
+                });
+                // Second: Succession S2E5 (in progress)
+                cw.push(ContinueWatchingData {
+                    id: "succ-s2e5".into(),
+                    title: "Succession · S2E5".into(),
+                    image_url: "".into(),
+                    progress: 0.62,
+                    content_type: "episode".into(),
+                    poster: slint::Image::default(),
+                });
+                // Third: The Wire S1E1 (just started)
+                cw.push(ContinueWatchingData {
+                    id: "wire-s1e1".into(),
+                    title: "The Wire · S1E1".into(),
+                    image_url: "".into(),
+                    progress: 0.08,
+                    content_type: "episode".into(),
+                    poster: slint::Image::default(),
+                });
+                ui.global::<AppState>()
+                    .set_continue_watching_items(slint::ModelRc::new(cw));
+            }
             slint::platform::update_timers_and_animations();
         }
 

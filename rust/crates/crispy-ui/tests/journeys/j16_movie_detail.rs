@@ -21,29 +21,31 @@ impl Journey for J16 {
         if let Some(ui) = harness.ui::<AppWindow>() {
             ui.global::<AppState>().set_active_screen(3); // Movies
             ui.global::<AppState>().set_show_vod_detail(true);
-            ui.global::<AppState>().set_vod_detail_item(VodData {
-                id: "movie-interstellar".into(),
-                name: "Interstellar".into(),
-                stream_url: "http://iptv.example.com/movie/interstellar.ts".into(),
-                item_type: "movie".into(),
-                poster_url: "".into(),
-                backdrop_url: "".into(),
-                description: "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.".into(),
-                genre: "Sci-Fi".into(),
-                year: "2014".into(),
-                rating: "8.6".into(),
-                duration_minutes: 169,
-                is_favorite: false,
-                source_id: "src-1".into(),
-                series_id: "".into(),
-                season: 0,
-                episode: 0,
-                poster: slint::Image::default(),
-            });
-            ui.global::<AppState>()
-                .set_vod_detail_has_multi_source(false);
-            ui.global::<AppState>()
-                .set_vod_detail_sources(slint::ModelRc::new(slint::VecModel::default()));
+            if !harness.has_real_data() {
+                ui.global::<AppState>().set_vod_detail_item(VodData {
+                    id: "movie-interstellar".into(),
+                    name: "Interstellar".into(),
+                    stream_url: "http://iptv.example.com/movie/interstellar.ts".into(),
+                    item_type: "movie".into(),
+                    poster_url: "".into(),
+                    backdrop_url: "".into(),
+                    description: "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.".into(),
+                    genre: "Sci-Fi".into(),
+                    year: "2014".into(),
+                    rating: "8.6".into(),
+                    duration_minutes: 169,
+                    is_favorite: false,
+                    source_id: "src-1".into(),
+                    series_id: "".into(),
+                    season: 0,
+                    episode: 0,
+                    poster: slint::Image::default(),
+                });
+                ui.global::<AppState>()
+                    .set_vod_detail_has_multi_source(false);
+                ui.global::<AppState>()
+                    .set_vod_detail_sources(slint::ModelRc::new(slint::VecModel::default()));
+            }
             slint::platform::update_timers_and_animations();
         }
 

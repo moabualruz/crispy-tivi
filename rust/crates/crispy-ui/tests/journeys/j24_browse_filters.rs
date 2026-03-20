@@ -45,34 +45,30 @@ impl Journey for J24 {
             app.set_active_screen(3); // Movies
             app.set_active_vod_category("".into());
 
-            let cats = slint::VecModel::<CategoryData>::default();
-            for (name, ct) in &[("Sci-Fi", "genre"), ("Action", "genre"), ("Drama", "genre")] {
-                cats.push(CategoryData {
-                    name: (*name).into(),
-                    category_type: (*ct).into(),
-                });
-            }
-            app.set_vod_categories(slint::ModelRc::new(cats));
+            if !harness.has_real_data() {
+                let cats = slint::VecModel::<CategoryData>::default();
+                for (name, ct) in &[("Sci-Fi", "genre"), ("Action", "genre"), ("Drama", "genre")]
+                {
+                    cats.push(CategoryData {
+                        name: (*name).into(),
+                        category_type: (*ct).into(),
+                    });
+                }
+                app.set_vod_categories(slint::ModelRc::new(cats));
 
-            let movies = slint::VecModel::<VodData>::default();
-            movies.push(make_movie(
-                "m1",
-                "Interstellar",
-                "Sci-Fi",
-                "2014",
-                "8.6",
-                169,
-            ));
-            movies.push(make_movie(
-                "m2",
-                "The Dark Knight",
-                "Action",
-                "2008",
-                "9.0",
-                152,
-            ));
-            movies.push(make_movie("m3", "Arrival", "Sci-Fi", "2016", "7.9", 116));
-            app.set_movies(slint::ModelRc::new(movies));
+                let movies = slint::VecModel::<VodData>::default();
+                movies.push(make_movie("m1", "Interstellar", "Sci-Fi", "2014", "8.6", 169));
+                movies.push(make_movie(
+                    "m2",
+                    "The Dark Knight",
+                    "Action",
+                    "2008",
+                    "9.0",
+                    152,
+                ));
+                movies.push(make_movie("m3", "Arrival", "Sci-Fi", "2016", "7.9", 116));
+                app.set_movies(slint::ModelRc::new(movies));
+            }
             slint::platform::update_timers_and_animations();
         }
 

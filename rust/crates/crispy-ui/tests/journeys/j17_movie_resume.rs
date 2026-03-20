@@ -21,34 +21,36 @@ impl Journey for J17 {
         if let Some(ui) = harness.ui::<AppWindow>() {
             ui.global::<AppState>().set_active_screen(0); // Home
 
-            // Three movies in progress, sorted most-recent first
-            let cw = slint::VecModel::<ContinueWatchingData>::default();
-            cw.push(ContinueWatchingData {
-                id: "movie-dune2".into(),
-                title: "Dune: Part Two".into(),
-                image_url: "".into(),
-                progress: 0.68,
-                content_type: "movie".into(),
-                poster: slint::Image::default(),
-            });
-            cw.push(ContinueWatchingData {
-                id: "movie-interstellar".into(),
-                title: "Interstellar".into(),
-                image_url: "".into(),
-                progress: 0.45,
-                content_type: "movie".into(),
-                poster: slint::Image::default(),
-            });
-            cw.push(ContinueWatchingData {
-                id: "movie-arrival".into(),
-                title: "Arrival".into(),
-                image_url: "".into(),
-                progress: 0.22,
-                content_type: "movie".into(),
-                poster: slint::Image::default(),
-            });
-            ui.global::<AppState>()
-                .set_continue_watching_items(slint::ModelRc::new(cw));
+            if !harness.has_real_data() {
+                // Three movies in progress, sorted most-recent first
+                let cw = slint::VecModel::<ContinueWatchingData>::default();
+                cw.push(ContinueWatchingData {
+                    id: "movie-dune2".into(),
+                    title: "Dune: Part Two".into(),
+                    image_url: "".into(),
+                    progress: 0.68,
+                    content_type: "movie".into(),
+                    poster: slint::Image::default(),
+                });
+                cw.push(ContinueWatchingData {
+                    id: "movie-interstellar".into(),
+                    title: "Interstellar".into(),
+                    image_url: "".into(),
+                    progress: 0.45,
+                    content_type: "movie".into(),
+                    poster: slint::Image::default(),
+                });
+                cw.push(ContinueWatchingData {
+                    id: "movie-arrival".into(),
+                    title: "Arrival".into(),
+                    image_url: "".into(),
+                    progress: 0.22,
+                    content_type: "movie".into(),
+                    poster: slint::Image::default(),
+                });
+                ui.global::<AppState>()
+                    .set_continue_watching_items(slint::ModelRc::new(cw));
+            }
             slint::platform::update_timers_and_animations();
         }
 

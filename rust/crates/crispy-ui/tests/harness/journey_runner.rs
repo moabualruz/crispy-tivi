@@ -191,6 +191,8 @@ pub struct JourneyRunner {
     /// Returns a type-erased `Box<dyn Any>` holding e.g. `AppWindow`.
     /// If `None`, journeys run without a UI handle (harness-only mode).
     ui_factory: Option<Box<dyn Fn() -> Box<dyn Any>>>,
+    /// Pipeline mode forwarded to each journey's `ScreenshotHarness`.
+    pipeline_mode: String,
 }
 
 impl JourneyRunner {
@@ -207,7 +209,14 @@ impl JourneyRunner {
             entries: Vec::new(),
             results: Vec::new(),
             ui_factory: None,
+            pipeline_mode: "stub".to_owned(),
         }
+    }
+
+    /// Set the pipeline mode ("stub" | "cached" | "e2e") so each journey's
+    /// harness exposes `has_real_data()` correctly.
+    pub fn set_pipeline_mode(&mut self, mode: &str) {
+        self.pipeline_mode = mode.to_owned();
     }
 
     /// Set a factory closure that creates the UI component for each journey.
@@ -444,6 +453,7 @@ impl JourneyRunner {
             } else {
                 ScreenshotHarness::new_standalone(id, &self.run_dir, &self.golden_dir)
             };
+            harness.pipeline_mode = self.pipeline_mode.clone();
 
             // Attach a fresh UI handle if a factory is configured
             if let Some(ref factory) = self.ui_factory {

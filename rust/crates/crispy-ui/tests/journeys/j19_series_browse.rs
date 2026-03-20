@@ -21,8 +21,10 @@ impl Journey for J19 {
         if let Some(ui) = harness.ui::<AppWindow>() {
             ui.global::<AppState>().set_active_screen(4); // Series
             ui.global::<AppState>().set_is_loading_vod(false);
-            ui.global::<AppState>()
-                .set_series(slint::ModelRc::new(slint::VecModel::default()));
+            if !harness.has_real_data() {
+                ui.global::<AppState>()
+                    .set_series(slint::ModelRc::new(slint::VecModel::default()));
+            }
             slint::platform::update_timers_and_animations();
         }
 
@@ -35,42 +37,44 @@ impl Journey for J19 {
         // ── Step 1: Series grid populated ────────────────────────────────
 
         if let Some(ui) = harness.ui::<AppWindow>() {
-            let cats = slint::VecModel::<CategoryData>::default();
-            for name in &["Drama", "Action", "Comedy", "Thriller"] {
-                cats.push(CategoryData {
-                    name: (*name).into(),
-                    category_type: "genre".into(),
-                });
-            }
-            ui.global::<AppState>()
-                .set_vod_categories(slint::ModelRc::new(cats));
-            ui.global::<AppState>()
-                .set_active_vod_category("Drama".into());
+            if !harness.has_real_data() {
+                let cats = slint::VecModel::<CategoryData>::default();
+                for name in &["Drama", "Action", "Comedy", "Thriller"] {
+                    cats.push(CategoryData {
+                        name: (*name).into(),
+                        category_type: "genre".into(),
+                    });
+                }
+                ui.global::<AppState>()
+                    .set_vod_categories(slint::ModelRc::new(cats));
+                ui.global::<AppState>()
+                    .set_active_vod_category("Drama".into());
 
-            let series_list = slint::VecModel::<VodData>::default();
-            for i in 0..10u32 {
-                series_list.push(VodData {
-                    id: format!("series-{i}").into(),
-                    name: format!("Drama Series {}", i + 1).into(),
-                    stream_url: "".into(),
-                    item_type: "series".into(),
-                    poster_url: "".into(),
-                    backdrop_url: "".into(),
-                    description: "A gripping drama.".into(),
-                    genre: "Drama".into(),
-                    year: "2023".into(),
-                    rating: "8.2".into(),
-                    duration_minutes: 0,
-                    is_favorite: false,
-                    source_id: "src-1".into(),
-                    series_id: slint::SharedString::from(format!("series-{i}")).into(),
-                    season: 0,
-                    episode: 0,
-                    poster: slint::Image::default(),
-                });
+                let series_list = slint::VecModel::<VodData>::default();
+                for i in 0..10u32 {
+                    series_list.push(VodData {
+                        id: format!("series-{i}").into(),
+                        name: format!("Drama Series {}", i + 1).into(),
+                        stream_url: "".into(),
+                        item_type: "series".into(),
+                        poster_url: "".into(),
+                        backdrop_url: "".into(),
+                        description: "A gripping drama.".into(),
+                        genre: "Drama".into(),
+                        year: "2023".into(),
+                        rating: "8.2".into(),
+                        duration_minutes: 0,
+                        is_favorite: false,
+                        source_id: "src-1".into(),
+                        series_id: slint::SharedString::from(format!("series-{i}")).into(),
+                        season: 0,
+                        episode: 0,
+                        poster: slint::Image::default(),
+                    });
+                }
+                ui.global::<AppState>()
+                    .set_series(slint::ModelRc::new(series_list));
             }
-            ui.global::<AppState>()
-                .set_series(slint::ModelRc::new(series_list));
             slint::platform::update_timers_and_animations();
         }
 

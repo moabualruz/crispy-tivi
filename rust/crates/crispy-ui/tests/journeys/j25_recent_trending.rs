@@ -23,10 +23,12 @@ impl Journey for J25 {
             app.set_active_screen(5);
             app.set_search_text("".into());
             app.set_is_searching(false);
-            // Empty recent searches → genre chips shown as fallback
-            app.set_recent_searches(slint::ModelRc::new(
-                slint::VecModel::<slint::SharedString>::default(),
-            ));
+            if !harness.has_real_data() {
+                // Empty recent searches → genre chips shown as fallback
+                app.set_recent_searches(slint::ModelRc::new(
+                    slint::VecModel::<slint::SharedString>::default(),
+                ));
+            }
             slint::platform::update_timers_and_animations();
         }
 

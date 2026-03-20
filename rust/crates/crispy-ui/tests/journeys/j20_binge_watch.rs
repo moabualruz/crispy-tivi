@@ -21,52 +21,55 @@ impl Journey for J20 {
 
         if let Some(ui) = harness.ui::<AppWindow>() {
             ui.global::<AppState>().set_active_screen(4); // Series screen behind player
-            // Show series detail context
-            ui.global::<AppState>().set_series_detail_item(VodData {
-                id: "series-breaking".into(),
-                name: "Breaking Bad".into(),
-                stream_url: "".into(),
-                item_type: "series".into(),
-                poster_url: "".into(),
-                backdrop_url: "".into(),
-                description: "A chemistry teacher turned drug lord.".into(),
-                genre: "Drama".into(),
-                year: "2008".into(),
-                rating: "9.5".into(),
-                duration_minutes: 0,
-                is_favorite: false,
-                source_id: "src-1".into(),
-                series_id: "series-breaking".into(),
-                season: 1,
-                episode: 0,
-                poster: slint::Image::default(),
-            });
-            ui.global::<AppState>().set_series_active_season(1);
 
-            let eps = slint::VecModel::<VodData>::default();
-            for i in 0..7u32 {
-                eps.push(VodData {
-                    id: format!("bb-s1e{}", i + 1).into(),
-                    name: format!("Episode {}", i + 1).into(),
-                    stream_url: format!("http://iptv.example.com/bb/s1e{}", i + 1).into(),
-                    item_type: "episode".into(),
+            if !harness.has_real_data() {
+                // Show series detail context
+                ui.global::<AppState>().set_series_detail_item(VodData {
+                    id: "series-breaking".into(),
+                    name: "Breaking Bad".into(),
+                    stream_url: "".into(),
+                    item_type: "series".into(),
                     poster_url: "".into(),
                     backdrop_url: "".into(),
-                    description: "".into(),
+                    description: "A chemistry teacher turned drug lord.".into(),
                     genre: "Drama".into(),
                     year: "2008".into(),
-                    rating: "".into(),
-                    duration_minutes: 48,
+                    rating: "9.5".into(),
+                    duration_minutes: 0,
                     is_favorite: false,
                     source_id: "src-1".into(),
                     series_id: "series-breaking".into(),
                     season: 1,
-                    episode: (i + 1) as i32,
+                    episode: 0,
                     poster: slint::Image::default(),
                 });
+                ui.global::<AppState>().set_series_active_season(1);
+
+                let eps = slint::VecModel::<VodData>::default();
+                for i in 0..7u32 {
+                    eps.push(VodData {
+                        id: format!("bb-s1e{}", i + 1).into(),
+                        name: format!("Episode {}", i + 1).into(),
+                        stream_url: format!("http://iptv.example.com/bb/s1e{}", i + 1).into(),
+                        item_type: "episode".into(),
+                        poster_url: "".into(),
+                        backdrop_url: "".into(),
+                        description: "".into(),
+                        genre: "Drama".into(),
+                        year: "2008".into(),
+                        rating: "".into(),
+                        duration_minutes: 48,
+                        is_favorite: false,
+                        source_id: "src-1".into(),
+                        series_id: "series-breaking".into(),
+                        season: 1,
+                        episode: (i + 1) as i32,
+                        poster: slint::Image::default(),
+                    });
+                }
+                ui.global::<AppState>()
+                    .set_series_episodes(slint::ModelRc::new(eps));
             }
-            ui.global::<AppState>()
-                .set_series_episodes(slint::ModelRc::new(eps));
             slint::platform::update_timers_and_animations();
         }
 

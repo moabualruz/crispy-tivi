@@ -22,79 +22,81 @@ impl Journey for J39 {
             let app = ui.global::<AppState>();
             app.set_active_screen(6); // Library
 
-            // Seed some VOD items for favorites display
-            let movies = vec![
-                crate::VodData {
-                    id: "m001".into(),
-                    name: "Interstellar".into(),
-                    poster_url: "".into(),
-                    backdrop_url: "".into(),
-                    stream_url: "".into(),
-                    item_type: "movie".into(),
-                    description: "".into(),
-                    duration_minutes: 169,
-                    is_favorite: true,
-                    rating: "PG".into(),
-                    year: "2014".into(),
-                    genre: "Sci-Fi".into(),
-                    source_id: "src1".into(),
-                    series_id: "".into(),
-                    season: 0,
-                    episode: 0,
-                    poster: Default::default(),
-                },
-                crate::VodData {
-                    id: "m002".into(),
-                    name: "Dune".into(),
-                    poster_url: "".into(),
-                    backdrop_url: "".into(),
-                    stream_url: "".into(),
-                    item_type: "movie".into(),
-                    description: "".into(),
-                    duration_minutes: 155,
-                    is_favorite: true,
-                    rating: "PG-13".into(),
-                    year: "2021".into(),
-                    genre: "Sci-Fi".into(),
-                    source_id: "src1".into(),
-                    series_id: "".into(),
-                    season: 0,
-                    episode: 0,
-                    poster: Default::default(),
-                },
-            ];
-            app.set_movies(ModelRc::new(VecModel::from(movies)));
+            if !harness.has_real_data() {
+                // Seed some VOD items for favorites display
+                let movies = vec![
+                    crate::VodData {
+                        id: "m001".into(),
+                        name: "Interstellar".into(),
+                        poster_url: "".into(),
+                        backdrop_url: "".into(),
+                        stream_url: "".into(),
+                        item_type: "movie".into(),
+                        description: "".into(),
+                        duration_minutes: 169,
+                        is_favorite: true,
+                        rating: "PG".into(),
+                        year: "2014".into(),
+                        genre: "Sci-Fi".into(),
+                        source_id: "src1".into(),
+                        series_id: "".into(),
+                        season: 0,
+                        episode: 0,
+                        poster: Default::default(),
+                    },
+                    crate::VodData {
+                        id: "m002".into(),
+                        name: "Dune".into(),
+                        poster_url: "".into(),
+                        backdrop_url: "".into(),
+                        stream_url: "".into(),
+                        item_type: "movie".into(),
+                        description: "".into(),
+                        duration_minutes: 155,
+                        is_favorite: true,
+                        rating: "PG-13".into(),
+                        year: "2021".into(),
+                        genre: "Sci-Fi".into(),
+                        source_id: "src1".into(),
+                        series_id: "".into(),
+                        season: 0,
+                        episode: 0,
+                        poster: Default::default(),
+                    },
+                ];
+                app.set_movies(ModelRc::new(VecModel::from(movies)));
 
-            // Seed watch history
-            let history = vec![
-                crate::WatchHistoryData {
-                    id: "m002".into(),
-                    name: "Dune".into(),
-                    media_type: "movie".into(),
-                    stream_url: "".into(),
-                    position_ms: 4914000, // ~82 min of 155 = 45%
-                    duration_ms: 9300000,
-                    watched_at: "Today, 20:15".into(),
-                    progress: 0.45,
-                },
-                crate::WatchHistoryData {
-                    id: "ch_bbc1".into(),
-                    name: "BBC One".into(),
-                    media_type: "channel".into(),
-                    stream_url: "".into(),
-                    position_ms: 0,
-                    duration_ms: 0,
-                    watched_at: "Today, 18:30".into(),
-                    progress: 0.0,
-                },
-            ];
-            app.set_watch_history(ModelRc::new(VecModel::from(history)));
+                // Seed watch history
+                let history = vec![
+                    crate::WatchHistoryData {
+                        id: "m002".into(),
+                        name: "Dune".into(),
+                        media_type: "movie".into(),
+                        stream_url: "".into(),
+                        position_ms: 4914000, // ~82 min of 155 = 45%
+                        duration_ms: 9300000,
+                        watched_at: "Today, 20:15".into(),
+                        progress: 0.45,
+                    },
+                    crate::WatchHistoryData {
+                        id: "ch_bbc1".into(),
+                        name: "BBC One".into(),
+                        media_type: "channel".into(),
+                        stream_url: "".into(),
+                        position_ms: 0,
+                        duration_ms: 0,
+                        watched_at: "Today, 18:30".into(),
+                        progress: 0.0,
+                    },
+                ];
+                app.set_watch_history(ModelRc::new(VecModel::from(history)));
 
-            // Seed custom collections
-            app.set_collection_names(ModelRc::new(VecModel::from(vec![
-                "Sci-Fi Night".into(),
-                "Weekend Movies".into(),
-            ])));
+                // Seed custom collections
+                app.set_collection_names(ModelRc::new(VecModel::from(vec![
+                    "Sci-Fi Night".into(),
+                    "Weekend Movies".into(),
+                ])));
+            }
 
             slint::platform::update_timers_and_animations();
         }

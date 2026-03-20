@@ -21,48 +21,51 @@ impl Journey for J05 {
         if let Some(ui) = harness.ui::<AppWindow>() {
             let app = ui.global::<AppState>();
             app.set_active_screen(1); // Live TV
-            app.set_total_channel_count(10_500);
             app.set_is_loading_channels(false);
 
-            // Group sidebar entries
-            let groups: Vec<slint::SharedString> = vec![
-                "News".into(),
-                "Sports".into(),
-                "Movies".into(),
-                "Entertainment".into(),
-                "Kids".into(),
-                "Documentary".into(),
-            ];
-            app.set_channel_groups(ModelRc::new(VecModel::from(groups)));
-            app.set_active_channel_group("".into()); // "All" selected
+            if !harness.has_real_data() {
+                app.set_total_channel_count(10_500);
 
-            // Windowed channel list — first 30 visible slots representing 10k+ dataset
-            let channels: Vec<ChannelData> = (1u32..=30)
-                .map(|i| ChannelData {
-                    id: format!("ch_{i}").into(),
-                    name: format!("Channel {i:03}").into(),
-                    group: if i <= 5 {
-                        "News".into()
-                    } else {
-                        "Sports".into()
-                    },
-                    logo_url: "".into(),
-                    stream_url: format!("http://iptv.example.com/live/ch{i}.ts").into(),
-                    source_id: "test_src_0".into(),
-                    number: i as i32,
-                    is_favorite: i <= 3,
-                    has_catchup: i % 3 == 0,
-                    resolution: if i % 5 == 0 {
-                        "4K".into()
-                    } else {
-                        "1080p".into()
-                    },
-                    now_playing: format!("Programme {i}: Evening News").into(),
-                    logo: Default::default(),
-                })
-                .collect();
-            app.set_channels(ModelRc::new(VecModel::from(channels)));
-            app.set_channel_window_start(0);
+                // Group sidebar entries
+                let groups: Vec<slint::SharedString> = vec![
+                    "News".into(),
+                    "Sports".into(),
+                    "Movies".into(),
+                    "Entertainment".into(),
+                    "Kids".into(),
+                    "Documentary".into(),
+                ];
+                app.set_channel_groups(ModelRc::new(VecModel::from(groups)));
+                app.set_active_channel_group("".into()); // "All" selected
+
+                // Windowed channel list — first 30 visible slots representing 10k+ dataset
+                let channels: Vec<ChannelData> = (1u32..=30)
+                    .map(|i| ChannelData {
+                        id: format!("ch_{i}").into(),
+                        name: format!("Channel {i:03}").into(),
+                        group: if i <= 5 {
+                            "News".into()
+                        } else {
+                            "Sports".into()
+                        },
+                        logo_url: "".into(),
+                        stream_url: format!("http://iptv.example.com/live/ch{i}.ts").into(),
+                        source_id: "test_src_0".into(),
+                        number: i as i32,
+                        is_favorite: i <= 3,
+                        has_catchup: i % 3 == 0,
+                        resolution: if i % 5 == 0 {
+                            "4K".into()
+                        } else {
+                            "1080p".into()
+                        },
+                        now_playing: format!("Programme {i}: Evening News").into(),
+                        logo: Default::default(),
+                    })
+                    .collect();
+                app.set_channels(ModelRc::new(VecModel::from(channels)));
+                app.set_channel_window_start(0);
+            }
             slint::platform::update_timers_and_animations();
         }
 

@@ -22,24 +22,26 @@ impl Journey for J06 {
             let app = ui.global::<AppState>();
             app.set_active_screen(4); // Player screen
 
-            // Populate the channel list for zap navigation
-            let channels: Vec<ChannelData> = (1u32..=20)
-                .map(|i| ChannelData {
-                    id: format!("ch_{i}").into(),
-                    name: format!("Channel {i:03}").into(),
-                    group: "All".into(),
-                    logo_url: "".into(),
-                    stream_url: format!("http://iptv.example.com/live/ch{i}.ts").into(),
-                    source_id: "test_src_0".into(),
-                    number: i as i32,
-                    is_favorite: i <= 3,
-                    has_catchup: false,
-                    resolution: "1080p".into(),
-                    now_playing: format!("Programme on Ch {i}").into(),
-                    logo: Default::default(),
-                })
-                .collect();
-            app.set_channels(ModelRc::new(VecModel::from(channels)));
+            if !harness.has_real_data() {
+                // Populate the channel list for zap navigation
+                let channels: Vec<ChannelData> = (1u32..=20)
+                    .map(|i| ChannelData {
+                        id: format!("ch_{i}").into(),
+                        name: format!("Channel {i:03}").into(),
+                        group: "All".into(),
+                        logo_url: "".into(),
+                        stream_url: format!("http://iptv.example.com/live/ch{i}.ts").into(),
+                        source_id: "test_src_0".into(),
+                        number: i as i32,
+                        is_favorite: i <= 3,
+                        has_catchup: false,
+                        resolution: "1080p".into(),
+                        now_playing: format!("Programme on Ch {i}").into(),
+                        logo: Default::default(),
+                    })
+                    .collect();
+                app.set_channels(ModelRc::new(VecModel::from(channels)));
+            }
 
             let ps = ui.global::<PlayerState>();
             ps.set_is_playing(true);

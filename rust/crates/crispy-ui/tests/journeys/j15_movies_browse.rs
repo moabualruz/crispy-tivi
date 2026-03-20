@@ -21,8 +21,10 @@ impl Journey for J15 {
         if let Some(ui) = harness.ui::<AppWindow>() {
             ui.global::<AppState>().set_active_screen(3); // Movies
             ui.global::<AppState>().set_is_loading_vod(false);
-            ui.global::<AppState>()
-                .set_movies(slint::ModelRc::new(slint::VecModel::default()));
+            if !harness.has_real_data() {
+                ui.global::<AppState>()
+                    .set_movies(slint::ModelRc::new(slint::VecModel::default()));
+            }
             slint::platform::update_timers_and_animations();
         }
 
@@ -50,25 +52,27 @@ impl Journey for J15 {
         if let Some(ui) = harness.ui::<AppWindow>() {
             ui.global::<AppState>().set_is_loading_vod(false);
 
-            let cw = slint::VecModel::<ContinueWatchingData>::default();
-            cw.push(ContinueWatchingData {
-                id: "movie-cw-1".into(),
-                title: "Interstellar".into(),
-                image_url: "".into(),
-                progress: 0.45,
-                content_type: "movie".into(),
-                poster: slint::Image::default(),
-            });
-            cw.push(ContinueWatchingData {
-                id: "movie-cw-2".into(),
-                title: "Dune: Part Two".into(),
-                image_url: "".into(),
-                progress: 0.12,
-                content_type: "movie".into(),
-                poster: slint::Image::default(),
-            });
-            ui.global::<AppState>()
-                .set_continue_watching_items(slint::ModelRc::new(cw));
+            if !harness.has_real_data() {
+                let cw = slint::VecModel::<ContinueWatchingData>::default();
+                cw.push(ContinueWatchingData {
+                    id: "movie-cw-1".into(),
+                    title: "Interstellar".into(),
+                    image_url: "".into(),
+                    progress: 0.45,
+                    content_type: "movie".into(),
+                    poster: slint::Image::default(),
+                });
+                cw.push(ContinueWatchingData {
+                    id: "movie-cw-2".into(),
+                    title: "Dune: Part Two".into(),
+                    image_url: "".into(),
+                    progress: 0.12,
+                    content_type: "movie".into(),
+                    poster: slint::Image::default(),
+                });
+                ui.global::<AppState>()
+                    .set_continue_watching_items(slint::ModelRc::new(cw));
+            }
             slint::platform::update_timers_and_animations();
         }
 
@@ -81,42 +85,44 @@ impl Journey for J15 {
         // ── Step 3: Genre categories + movies grid ─────────────────────────
 
         if let Some(ui) = harness.ui::<AppWindow>() {
-            let cats = slint::VecModel::<CategoryData>::default();
-            for name in &["Action", "Drama", "Sci-Fi", "Comedy", "Thriller"] {
-                cats.push(CategoryData {
-                    name: (*name).into(),
-                    category_type: "genre".into(),
-                });
-            }
-            ui.global::<AppState>()
-                .set_vod_categories(slint::ModelRc::new(cats));
-            ui.global::<AppState>()
-                .set_active_vod_category("Action".into());
+            if !harness.has_real_data() {
+                let cats = slint::VecModel::<CategoryData>::default();
+                for name in &["Action", "Drama", "Sci-Fi", "Comedy", "Thriller"] {
+                    cats.push(CategoryData {
+                        name: (*name).into(),
+                        category_type: "genre".into(),
+                    });
+                }
+                ui.global::<AppState>()
+                    .set_vod_categories(slint::ModelRc::new(cats));
+                ui.global::<AppState>()
+                    .set_active_vod_category("Action".into());
 
-            let movies = slint::VecModel::<VodData>::default();
-            for i in 0..12u32 {
-                movies.push(VodData {
-                    id: format!("movie-{i}").into(),
-                    name: format!("Action Movie {}", i + 1).into(),
-                    stream_url: "".into(),
-                    item_type: "movie".into(),
-                    poster_url: "".into(),
-                    backdrop_url: "".into(),
-                    description: "An action-packed thriller.".into(),
-                    genre: "Action".into(),
-                    year: "2024".into(),
-                    rating: "8.1".into(),
-                    duration_minutes: 120,
-                    is_favorite: false,
-                    source_id: "src-1".into(),
-                    series_id: "".into(),
-                    season: 0,
-                    episode: 0,
-                    poster: slint::Image::default(),
-                });
+                let movies = slint::VecModel::<VodData>::default();
+                for i in 0..12u32 {
+                    movies.push(VodData {
+                        id: format!("movie-{i}").into(),
+                        name: format!("Action Movie {}", i + 1).into(),
+                        stream_url: "".into(),
+                        item_type: "movie".into(),
+                        poster_url: "".into(),
+                        backdrop_url: "".into(),
+                        description: "An action-packed thriller.".into(),
+                        genre: "Action".into(),
+                        year: "2024".into(),
+                        rating: "8.1".into(),
+                        duration_minutes: 120,
+                        is_favorite: false,
+                        source_id: "src-1".into(),
+                        series_id: "".into(),
+                        season: 0,
+                        episode: 0,
+                        poster: slint::Image::default(),
+                    });
+                }
+                ui.global::<AppState>()
+                    .set_movies(slint::ModelRc::new(movies));
             }
-            ui.global::<AppState>()
-                .set_movies(slint::ModelRc::new(movies));
             slint::platform::update_timers_and_animations();
         }
 

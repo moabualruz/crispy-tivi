@@ -22,45 +22,48 @@ impl Journey for J43 {
     const DEPENDS_ON: &'static [&'static str] = &["j03"];
 
     fn run(harness: &ScreenshotHarness, _db: &TestDb) {
-        // Seed minimal data so screens render populated states
-        if let Some(ui) = harness.ui::<AppWindow>() {
-            let app = ui.global::<AppState>();
-            let channels = vec![crate::ChannelData {
-                id: "ch1".into(),
-                name: "BBC One".into(),
-                logo_url: "".into(),
-                group: "General".into(),
-                now_playing: "News at Ten".into(),
-                is_favorite: false,
-                stream_url: "http://example.com/bbc1".into(),
-                source_id: "src1".into(),
-                number: 1,
-                has_catchup: false,
-                resolution: "1080p".into(),
-                logo: Default::default(),
-            }];
-            app.set_channels(ModelRc::new(VecModel::from(channels)));
-            let movies = vec![crate::VodData {
-                id: "m1".into(),
-                name: "Dune".into(),
-                poster_url: "".into(),
-                backdrop_url: "".into(),
-                stream_url: "".into(),
-                item_type: "movie".into(),
-                description: "".into(),
-                duration_minutes: 155,
-                is_favorite: false,
-                rating: "PG-13".into(),
-                year: "2021".into(),
-                genre: "Sci-Fi".into(),
-                source_id: "src1".into(),
-                series_id: "".into(),
-                season: 0,
-                episode: 0,
-                poster: Default::default(),
-            }];
-            app.set_movies(ModelRc::new(VecModel::from(movies)));
-            slint::platform::update_timers_and_animations();
+        // Seed minimal data so screens render populated states (stub mode only;
+        // in cached/e2e modes populate_ui() has already set real data).
+        if !harness.has_real_data() {
+            if let Some(ui) = harness.ui::<AppWindow>() {
+                let app = ui.global::<AppState>();
+                let channels = vec![crate::ChannelData {
+                    id: "ch1".into(),
+                    name: "BBC One".into(),
+                    logo_url: "".into(),
+                    group: "General".into(),
+                    now_playing: "News at Ten".into(),
+                    is_favorite: false,
+                    stream_url: "http://example.com/bbc1".into(),
+                    source_id: "src1".into(),
+                    number: 1,
+                    has_catchup: false,
+                    resolution: "1080p".into(),
+                    logo: Default::default(),
+                }];
+                app.set_channels(ModelRc::new(VecModel::from(channels)));
+                let movies = vec![crate::VodData {
+                    id: "m1".into(),
+                    name: "Dune".into(),
+                    poster_url: "".into(),
+                    backdrop_url: "".into(),
+                    stream_url: "".into(),
+                    item_type: "movie".into(),
+                    description: "".into(),
+                    duration_minutes: 155,
+                    is_favorite: false,
+                    rating: "PG-13".into(),
+                    year: "2021".into(),
+                    genre: "Sci-Fi".into(),
+                    source_id: "src1".into(),
+                    series_id: "".into(),
+                    season: 0,
+                    episode: 0,
+                    poster: Default::default(),
+                }];
+                app.set_movies(ModelRc::new(VecModel::from(movies)));
+                slint::platform::update_timers_and_animations();
+            }
         }
 
         // ══════════════════════════════════════════════════════════════════

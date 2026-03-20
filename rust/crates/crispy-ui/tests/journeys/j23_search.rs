@@ -53,77 +53,79 @@ impl Journey for J23 {
             let app = ui.global::<AppState>();
             app.set_is_searching(false);
 
-            let channels = slint::VecModel::<ChannelData>::default();
-            channels.push(ChannelData {
-                id: "ch-bbc1".into(),
-                name: "BBC One".into(),
-                group: "Entertainment".into(),
-                logo_url: "".into(),
-                stream_url: "http://example.com/bbc1.ts".into(),
-                source_id: "src1".into(),
-                number: 1,
-                is_favorite: false,
-                has_catchup: true,
-                resolution: "1080p".into(),
-                now_playing: "News at Six".into(),
-                logo: slint::Image::default(),
-            });
-            channels.push(ChannelData {
-                id: "ch-bbc2".into(),
-                name: "BBC Two".into(),
-                group: "Entertainment".into(),
-                logo_url: "".into(),
-                stream_url: "http://example.com/bbc2.ts".into(),
-                source_id: "src1".into(),
-                number: 2,
-                is_favorite: false,
-                has_catchup: false,
-                resolution: "720p".into(),
-                now_playing: "Panorama".into(),
-                logo: slint::Image::default(),
-            });
-            app.set_search_channels(slint::ModelRc::new(channels));
+            if !harness.has_real_data() {
+                let channels = slint::VecModel::<ChannelData>::default();
+                channels.push(ChannelData {
+                    id: "ch-bbc1".into(),
+                    name: "BBC One".into(),
+                    group: "Entertainment".into(),
+                    logo_url: "".into(),
+                    stream_url: "http://example.com/bbc1.ts".into(),
+                    source_id: "src1".into(),
+                    number: 1,
+                    is_favorite: false,
+                    has_catchup: true,
+                    resolution: "1080p".into(),
+                    now_playing: "News at Six".into(),
+                    logo: slint::Image::default(),
+                });
+                channels.push(ChannelData {
+                    id: "ch-bbc2".into(),
+                    name: "BBC Two".into(),
+                    group: "Entertainment".into(),
+                    logo_url: "".into(),
+                    stream_url: "http://example.com/bbc2.ts".into(),
+                    source_id: "src1".into(),
+                    number: 2,
+                    is_favorite: false,
+                    has_catchup: false,
+                    resolution: "720p".into(),
+                    now_playing: "Panorama".into(),
+                    logo: slint::Image::default(),
+                });
+                app.set_search_channels(slint::ModelRc::new(channels));
 
-            let vod = slint::VecModel::<VodData>::default();
-            vod.push(VodData {
-                id: "v-breaking-bad".into(),
-                name: "Breaking Bad".into(),
-                stream_url: "http://example.com/bb.mp4".into(),
-                item_type: "series".into(),
-                poster_url: "".into(),
-                backdrop_url: "".into(),
-                description: "A chemistry teacher turned drug kingpin.".into(),
-                genre: "Drama".into(),
-                year: "2008".into(),
-                rating: "9.5".into(),
-                duration_minutes: 47,
-                is_favorite: false,
-                source_id: "src1".into(),
-                series_id: "".into(),
-                season: 0,
-                episode: 0,
-                poster: slint::Image::default(),
-            });
-            vod.push(VodData {
-                id: "v-blade".into(),
-                name: "Blade Runner 2049".into(),
-                stream_url: "http://example.com/br2049.mp4".into(),
-                item_type: "movie".into(),
-                poster_url: "".into(),
-                backdrop_url: "".into(),
-                description: "A blade runner uncovers a buried secret.".into(),
-                genre: "Sci-Fi".into(),
-                year: "2017".into(),
-                rating: "8.0".into(),
-                duration_minutes: 164,
-                is_favorite: false,
-                source_id: "src1".into(),
-                series_id: "".into(),
-                season: 0,
-                episode: 0,
-                poster: slint::Image::default(),
-            });
-            app.set_search_vod(slint::ModelRc::new(vod));
+                let vod = slint::VecModel::<VodData>::default();
+                vod.push(VodData {
+                    id: "v-breaking-bad".into(),
+                    name: "Breaking Bad".into(),
+                    stream_url: "http://example.com/bb.mp4".into(),
+                    item_type: "series".into(),
+                    poster_url: "".into(),
+                    backdrop_url: "".into(),
+                    description: "A chemistry teacher turned drug kingpin.".into(),
+                    genre: "Drama".into(),
+                    year: "2008".into(),
+                    rating: "9.5".into(),
+                    duration_minutes: 47,
+                    is_favorite: false,
+                    source_id: "src1".into(),
+                    series_id: "".into(),
+                    season: 0,
+                    episode: 0,
+                    poster: slint::Image::default(),
+                });
+                vod.push(VodData {
+                    id: "v-blade".into(),
+                    name: "Blade Runner 2049".into(),
+                    stream_url: "http://example.com/br2049.mp4".into(),
+                    item_type: "movie".into(),
+                    poster_url: "".into(),
+                    backdrop_url: "".into(),
+                    description: "A blade runner uncovers a buried secret.".into(),
+                    genre: "Sci-Fi".into(),
+                    year: "2017".into(),
+                    rating: "8.0".into(),
+                    duration_minutes: 164,
+                    is_favorite: false,
+                    source_id: "src1".into(),
+                    series_id: "".into(),
+                    season: 0,
+                    episode: 0,
+                    poster: slint::Image::default(),
+                });
+                app.set_search_vod(slint::ModelRc::new(vod));
+            }
 
             slint::platform::update_timers_and_animations();
         }

@@ -21,70 +21,73 @@ impl Journey for J22 {
         if let Some(ui) = harness.ui::<AppWindow>() {
             ui.global::<AppState>().set_active_screen(4); // Series
             ui.global::<AppState>().set_show_series_detail(true);
-            ui.global::<AppState>().set_series_detail_item(VodData {
-                id: "series-succession".into(),
-                name: "Succession".into(),
-                stream_url: "".into(),
-                item_type: "series".into(),
-                poster_url: "".into(),
-                backdrop_url: "".into(),
-                description: "The Roy family battles over their media empire.".into(),
-                genre: "Drama".into(),
-                year: "2018".into(),
-                rating: "9.3".into(),
-                duration_minutes: 0,
-                is_favorite: true,
-                source_id: "src-1".into(),
-                series_id: "series-succession".into(),
-                season: 1,
-                episode: 0,
-                poster: slint::Image::default(),
-            });
-            ui.global::<AppState>().set_series_active_season(1);
 
-            // Build episode list: E1–E3 watched, E4 in-progress, E5–E10 unwatched
-            let eps = slint::VecModel::<VodData>::default();
-            for i in 0..10u32 {
-                eps.push(VodData {
-                    id: format!("succ-s1e{}", i + 1).into(),
-                    name: format!(
-                        "Ep {}: {}",
-                        i + 1,
-                        match i {
-                            0 => "Celebration",
-                            1 => "Shit Show at the F**k Factory",
-                            2 => "Lifeboats",
-                            3 => "Sad Sack Wasp Trap",
-                            4 => "I Went to Market",
-                            5 => "Which Side Are You On?",
-                            6 => "Austerlitz",
-                            7 => "Prague",
-                            8 => "Pre-Nuptial",
-                            _ => "Nobody Is Ever Missing",
-                        }
-                    )
-                    .into(),
-                    stream_url: format!("http://iptv.example.com/succ/s1e{}", i + 1).into(),
-                    item_type: "episode".into(),
+            if !harness.has_real_data() {
+                ui.global::<AppState>().set_series_detail_item(VodData {
+                    id: "series-succession".into(),
+                    name: "Succession".into(),
+                    stream_url: "".into(),
+                    item_type: "series".into(),
                     poster_url: "".into(),
                     backdrop_url: "".into(),
-                    description: "Episode synopsis.".into(),
+                    description: "The Roy family battles over their media empire.".into(),
                     genre: "Drama".into(),
                     year: "2018".into(),
-                    rating: "".into(),
-                    duration_minutes: 55,
-                    // E1–E3 marked as favourite to simulate watched (is_favorite is
-                    // the only per-item bool available; Rust tracks watched state in DB)
-                    is_favorite: i < 3,
+                    rating: "9.3".into(),
+                    duration_minutes: 0,
+                    is_favorite: true,
                     source_id: "src-1".into(),
                     series_id: "series-succession".into(),
                     season: 1,
-                    episode: (i + 1) as i32,
+                    episode: 0,
                     poster: slint::Image::default(),
                 });
+                ui.global::<AppState>().set_series_active_season(1);
+
+                // Build episode list: E1–E3 watched, E4 in-progress, E5–E10 unwatched
+                let eps = slint::VecModel::<VodData>::default();
+                for i in 0..10u32 {
+                    eps.push(VodData {
+                        id: format!("succ-s1e{}", i + 1).into(),
+                        name: format!(
+                            "Ep {}: {}",
+                            i + 1,
+                            match i {
+                                0 => "Celebration",
+                                1 => "Shit Show at the F**k Factory",
+                                2 => "Lifeboats",
+                                3 => "Sad Sack Wasp Trap",
+                                4 => "I Went to Market",
+                                5 => "Which Side Are You On?",
+                                6 => "Austerlitz",
+                                7 => "Prague",
+                                8 => "Pre-Nuptial",
+                                _ => "Nobody Is Ever Missing",
+                            }
+                        )
+                        .into(),
+                        stream_url: format!("http://iptv.example.com/succ/s1e{}", i + 1).into(),
+                        item_type: "episode".into(),
+                        poster_url: "".into(),
+                        backdrop_url: "".into(),
+                        description: "Episode synopsis.".into(),
+                        genre: "Drama".into(),
+                        year: "2018".into(),
+                        rating: "".into(),
+                        duration_minutes: 55,
+                        // E1–E3 marked as favourite to simulate watched (is_favorite is
+                        // the only per-item bool available; Rust tracks watched state in DB)
+                        is_favorite: i < 3,
+                        source_id: "src-1".into(),
+                        series_id: "series-succession".into(),
+                        season: 1,
+                        episode: (i + 1) as i32,
+                        poster: slint::Image::default(),
+                    });
+                }
+                ui.global::<AppState>()
+                    .set_series_episodes(slint::ModelRc::new(eps));
             }
-            ui.global::<AppState>()
-                .set_series_episodes(slint::ModelRc::new(eps));
             slint::platform::update_timers_and_animations();
         }
 

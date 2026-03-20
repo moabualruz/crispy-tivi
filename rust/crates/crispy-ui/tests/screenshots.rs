@@ -70,6 +70,7 @@ fn run_pipeline(name: &str) {
 
     let db = harness::db::TestDb::init();
     let mut runner = JourneyRunner::new(run_dir.clone(), golden_dir, db);
+    runner.set_pipeline_mode(name);
 
     runner.set_ui_factory(|| {
         let ui = AppWindow::new().expect("AppWindow::new() failed in screenshot mode");
@@ -114,6 +115,7 @@ fn run_pipeline_e2e() {
     // E2E: sources from .local settings, NO seed data — journeys drive real sync.
     let db = harness::db::TestDb::init_e2e();
     let mut runner = JourneyRunner::new(run_dir.clone(), golden_dir, db);
+    runner.set_pipeline_mode("e2e");
 
     runner.set_ui_factory(|| {
         let ui = AppWindow::new().expect("AppWindow::new() failed in screenshot mode");
