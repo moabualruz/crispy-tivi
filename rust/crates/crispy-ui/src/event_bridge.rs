@@ -1187,6 +1187,27 @@ pub(crate) fn wire(
             }
 
             let old_start = app.get_channel_window_start() as usize;
+            // Keep bridge total in sync with actual dataset size
+            bridge.borrow_mut().set_total(data.len());
+            let buf = bridge.borrow().buffer_size();
+
+            // delta==0 is a forced repopulate (e.g. after sync)
+            if delta == 0 {
+                bridge.borrow_mut().reset();
+                while model.row_count() > 0 {
+                    model.remove(model.row_count() - 1);
+                }
+                let end = buf.min(data.len());
+                for item in data[0..end].iter() {
+                    model.push(channel_info_to_slint(item));
+                }
+                tracing::debug!(end, "[SCROLL] channels RESET (forced)");
+                app.set_channel_window_start(0);
+                drop(data);
+                loader.load_channels(&ui_w, None);
+                return;
+            }
+
             let shift = bridge.borrow_mut().apply_delta(delta, old_start);
 
             if !shift.shifted {
@@ -1196,45 +1217,26 @@ pub(crate) fn wire(
             }
 
             let new_start = shift.new_start;
-            let buf = bridge.borrow().buffer_size();
             let new_end = (new_start + buf).min(data.len());
 
-            if delta == 0 {
-                // Full reset: clear and repopulate
-                while model.row_count() > 0 {
+            let old_end = (old_start + buf).min(data.len());
+            if new_start > old_start {
+                for i in old_end..new_end {
+                    model.push(channel_info_to_slint(&data[i]));
+                }
+                let remove_count = (new_start - old_start).min(model.row_count());
+                for _ in 0..remove_count {
+                    model.remove(0);
+                }
+            } else {
+                for i in (new_start..old_start).rev() {
+                    model.insert(0, channel_info_to_slint(&data[i]));
+                }
+                while model.row_count() > new_end.saturating_sub(new_start) {
                     model.remove(model.row_count() - 1);
                 }
-                for item in data[new_start..new_end].iter() {
-                    model.push(channel_info_to_slint(item));
-                }
-                tracing::debug!(
-                    new_start,
-                    new_end,
-                    count = new_end - new_start,
-                    "[SCROLL] channels RESET"
-                );
-            } else {
-                let old_end = (old_start + buf).min(data.len());
-                if new_start > old_start {
-                    // Forward: push new items at end, then remove old from start
-                    for i in old_end..new_end {
-                        model.push(channel_info_to_slint(&data[i]));
-                    }
-                    let remove_count = (new_start - old_start).min(model.row_count());
-                    for _ in 0..remove_count {
-                        model.remove(0);
-                    }
-                } else {
-                    // Backward: insert at start, remove from end
-                    for i in (new_start..old_start).rev() {
-                        model.insert(0, channel_info_to_slint(&data[i]));
-                    }
-                    while model.row_count() > new_end.saturating_sub(new_start) {
-                        model.remove(model.row_count() - 1);
-                    }
-                }
-                tracing::debug!(old_start, new_start, "[SCROLL] channels window SHIFT");
             }
+            tracing::debug!(old_start, new_start, "[SCROLL] channels window SHIFT");
             app.set_channel_window_start(new_start as i32);
             drop(data);
             tracing::debug!("[IMG] channels image load for VecModel window");
@@ -1267,6 +1269,27 @@ pub(crate) fn wire(
             }
 
             let old_start = app.get_movie_window_start() as usize;
+            // Keep bridge total in sync with actual dataset size
+            bridge.borrow_mut().set_total(data.len());
+            let buf = bridge.borrow().buffer_size();
+
+            // delta==0 is a forced repopulate (e.g. after sync)
+            if delta == 0 {
+                bridge.borrow_mut().reset();
+                while model.row_count() > 0 {
+                    model.remove(model.row_count() - 1);
+                }
+                let end = buf.min(data.len());
+                for item in data[0..end].iter() {
+                    model.push(vod_info_to_slint(item));
+                }
+                tracing::debug!(end, "[SCROLL] movies RESET (forced)");
+                app.set_movie_window_start(0);
+                drop(data);
+                loader.load_movies(&ui_w, None);
+                return;
+            }
+
             let shift = bridge.borrow_mut().apply_delta(delta, old_start);
 
             if !shift.shifted {
@@ -1275,45 +1298,28 @@ pub(crate) fn wire(
             }
 
             let new_start = shift.new_start;
-            let buf = bridge.borrow().buffer_size();
             let new_end = (new_start + buf).min(data.len());
 
-            if delta == 0 {
-                while model.row_count() > 0 {
+            let old_end = (old_start + buf).min(data.len());
+            if new_start > old_start {
+                for i in old_end..new_end {
+                    model.push(vod_info_to_slint(&data[i]));
+                }
+                let remove_count = (new_start - old_start).min(model.row_count());
+                for _ in 0..remove_count {
+                    model.remove(0);
+                }
+            } else {
+                for i in (new_start..old_start).rev() {
+                    model.insert(0, vod_info_to_slint(&data[i]));
+                }
+                while model.row_count() > new_end.saturating_sub(new_start) {
                     model.remove(model.row_count() - 1);
                 }
-                for item in data[new_start..new_end].iter() {
-                    model.push(vod_info_to_slint(item));
-                }
-                tracing::debug!(
-                    new_start,
-                    new_end,
-                    count = new_end - new_start,
-                    "[SCROLL] movies RESET"
-                );
-            } else {
-                let old_end = (old_start + buf).min(data.len());
-                if new_start > old_start {
-                    for i in old_end..new_end {
-                        model.push(vod_info_to_slint(&data[i]));
-                    }
-                    let remove_count = (new_start - old_start).min(model.row_count());
-                    for _ in 0..remove_count {
-                        model.remove(0);
-                    }
-                } else {
-                    for i in (new_start..old_start).rev() {
-                        model.insert(0, vod_info_to_slint(&data[i]));
-                    }
-                    while model.row_count() > new_end.saturating_sub(new_start) {
-                        model.remove(model.row_count() - 1);
-                    }
-                }
-                tracing::debug!(old_start, new_start, "[SCROLL] movies window SHIFT");
             }
+            tracing::debug!(old_start, new_start, "[SCROLL] movies window SHIFT");
             app.set_movie_window_start(new_start as i32);
             drop(data);
-            tracing::debug!("[IMG] movies image load for VecModel window");
             loader.load_movies(&ui_w, None);
         }
     });
@@ -1343,6 +1349,27 @@ pub(crate) fn wire(
             }
 
             let old_start = app.get_series_window_start() as usize;
+            // Keep bridge total in sync with actual dataset size
+            bridge.borrow_mut().set_total(data.len());
+            let buf = bridge.borrow().buffer_size();
+
+            // delta==0 is a forced repopulate (e.g. after sync)
+            if delta == 0 {
+                bridge.borrow_mut().reset();
+                while model.row_count() > 0 {
+                    model.remove(model.row_count() - 1);
+                }
+                let end = buf.min(data.len());
+                for item in data[0..end].iter() {
+                    model.push(vod_info_to_slint(item));
+                }
+                tracing::debug!(end, "[SCROLL] series RESET (forced)");
+                app.set_series_window_start(0);
+                drop(data);
+                loader.load_series(&ui_w, None);
+                return;
+            }
+
             let shift = bridge.borrow_mut().apply_delta(delta, old_start);
 
             if !shift.shifted {
@@ -1351,45 +1378,28 @@ pub(crate) fn wire(
             }
 
             let new_start = shift.new_start;
-            let buf = bridge.borrow().buffer_size();
             let new_end = (new_start + buf).min(data.len());
 
-            if delta == 0 {
-                while model.row_count() > 0 {
+            let old_end = (old_start + buf).min(data.len());
+            if new_start > old_start {
+                for i in old_end..new_end {
+                    model.push(vod_info_to_slint(&data[i]));
+                }
+                let remove_count = (new_start - old_start).min(model.row_count());
+                for _ in 0..remove_count {
+                    model.remove(0);
+                }
+            } else {
+                for i in (new_start..old_start).rev() {
+                    model.insert(0, vod_info_to_slint(&data[i]));
+                }
+                while model.row_count() > new_end.saturating_sub(new_start) {
                     model.remove(model.row_count() - 1);
                 }
-                for item in data[new_start..new_end].iter() {
-                    model.push(vod_info_to_slint(item));
-                }
-                tracing::debug!(
-                    new_start,
-                    new_end,
-                    count = new_end - new_start,
-                    "[SCROLL] series RESET"
-                );
-            } else {
-                let old_end = (old_start + buf).min(data.len());
-                if new_start > old_start {
-                    for i in old_end..new_end {
-                        model.push(vod_info_to_slint(&data[i]));
-                    }
-                    let remove_count = (new_start - old_start).min(model.row_count());
-                    for _ in 0..remove_count {
-                        model.remove(0);
-                    }
-                } else {
-                    for i in (new_start..old_start).rev() {
-                        model.insert(0, vod_info_to_slint(&data[i]));
-                    }
-                    while model.row_count() > new_end.saturating_sub(new_start) {
-                        model.remove(model.row_count() - 1);
-                    }
-                }
-                tracing::debug!(old_start, new_start, "[SCROLL] series window SHIFT");
             }
+            tracing::debug!(old_start, new_start, "[SCROLL] series window SHIFT");
             app.set_series_window_start(new_start as i32);
             drop(data);
-            tracing::debug!("[IMG] series image load for VecModel window");
             loader.load_series(&ui_w, None);
         }
     });
@@ -2849,11 +2859,13 @@ pub(crate) fn spawn_data_listener(
                 other => {
                     let ui_w = ui_weak.clone();
                     let sd2 = Arc::clone(&shared_data);
-                    let _ = slint::invoke_from_event_loop(move || {
+                    if let Err(e) = slint::invoke_from_event_loop(move || {
                         if let Some(ui) = ui_w.upgrade() {
                             apply_data_event(&ui, other, &sd2);
                         }
-                    });
+                    }) {
+                        tracing::error!("invoke_from_event_loop failed: {e:?}");
+                    }
                 }
             }
         }
