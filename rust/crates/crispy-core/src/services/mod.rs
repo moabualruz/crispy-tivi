@@ -26,6 +26,7 @@ pub mod device_discovery;
 pub mod diagnostics;
 pub mod display_manager;
 pub mod dlna_service;
+pub mod epg_bulk_fetch;
 pub mod epg_cache;
 pub mod epg_facade;
 pub mod epg_fetcher;

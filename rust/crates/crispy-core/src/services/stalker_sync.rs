@@ -464,6 +464,15 @@ pub async fn sync_stalker_source(
 
     emit_progress(source_id, "complete", 1.0, "Sync complete");
 
+    // Spawn background bulk EPG fetch for Stalker channels.
+    if let Ok(Some(src)) = service.get_source(source_id) {
+        crate::services::epg_bulk_fetch::spawn_bulk_epg_fetch(
+            service.clone(),
+            src,
+            channels,
+        );
+    }
+
     Ok(SyncReport {
         channels_count,
         channel_groups,

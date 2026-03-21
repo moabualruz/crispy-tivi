@@ -323,6 +323,17 @@ pub async fn sync_xtream_source(
 
     emit_progress(source_id, "complete", 1.0, "Sync complete");
 
+    // 8. Spawn background bulk EPG fetch — runs async, doesn't block sync.
+    // Fetches per-channel short EPG for channels missing cached data,
+    // in batches of 50 with Semaphore(5) concurrency control.
+    if let Ok(Some(src)) = service.get_source(source_id) {
+        crate::services::epg_bulk_fetch::spawn_bulk_epg_fetch(
+            service.clone(),
+            src,
+            channels,
+        );
+    }
+
     Ok(SyncReport {
         channels_count,
         channel_groups,
