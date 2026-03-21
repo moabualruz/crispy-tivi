@@ -146,7 +146,9 @@ class EpgProgramInfoPanel extends StatelessWidget {
             const Spacer(),
 
           // ── Action buttons ──
-          Row(
+          Wrap(
+            spacing: CrispySpacing.sm,
+            runSpacing: CrispySpacing.xs,
             children: [
               if (isLive)
                 FilledButton.icon(
@@ -160,7 +162,6 @@ class EpgProgramInfoPanel extends StatelessWidget {
                     minimumSize: const Size(0, 32),
                   ),
                 ),
-              if (isLive) const SizedBox(width: CrispySpacing.sm),
               OutlinedButton.icon(
                 onPressed: onRecord,
                 icon: const Icon(Icons.fiber_manual_record, size: 14),

@@ -209,86 +209,89 @@ class _ChannelListItemState extends State<ChannelListItem> {
               ],
             ),
           ),
-          const SizedBox(width: CrispySpacing.sm),
-          if (channel.resolution != null)
-            Container(
-              margin: const EdgeInsets.only(right: CrispySpacing.xs),
-              padding: const EdgeInsets.symmetric(
-                horizontal: CrispySpacing.xs,
-                vertical: 2,
-              ),
-              decoration: BoxDecoration(
-                color: colorScheme.onSurface.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(CrispyRadius.xs),
-              ),
-              child: Text(
-                channel.resolution!,
-                style: textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          // Catch-up badge — shown when the channel supports archive
-          // playback (hasCatchup == true from M3U/Xtream metadata).
-          if (channel.hasCatchup)
-            Padding(
-              padding: const EdgeInsets.only(right: CrispySpacing.xs),
-              child: TooltipVisibility(
-                visible: !InputModeScope.of(context),
-                child: Tooltip(
-                  message:
-                      channel.catchupDays > 0
-                          ? 'Catch-up: ${channel.catchupDays}d'
-                          : 'Catch-up available',
-                  child: Icon(
-                    Icons.history,
-                    size: 15,
-                    color: colorScheme.tertiary,
+          const SizedBox(width: CrispySpacing.xs),
+          // Trailing badges — wrap to prevent overflow when
+          // multiple badges (resolution, catch-up, smart, dup,
+          // favorite) stack up on narrow screens.
+          Wrap(
+            spacing: CrispySpacing.xxs,
+            runSpacing: CrispySpacing.xxs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (channel.resolution != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: CrispySpacing.xs,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.onSurface.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(CrispyRadius.xs),
+                  ),
+                  child: Text(
+                    channel.resolution!,
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
-            ),
-          if (widget.isInSmartGroup)
-            Padding(
-              padding: const EdgeInsets.only(right: CrispySpacing.xs),
-              child: TooltipVisibility(
-                visible: !InputModeScope.of(context),
-                child: Tooltip(
-                  message: 'Smart group',
-                  child: Icon(Icons.bolt, size: 15, color: colorScheme.primary),
+              if (channel.hasCatchup)
+                TooltipVisibility(
+                  visible: !InputModeScope.of(context),
+                  child: Tooltip(
+                    message:
+                        channel.catchupDays > 0
+                            ? 'Catch-up: ${channel.catchupDays}d'
+                            : 'Catch-up available',
+                    child: Icon(
+                      Icons.history,
+                      size: 15,
+                      color: colorScheme.tertiary,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          if (widget.isDuplicate)
-            Container(
-              margin: const EdgeInsets.only(right: CrispySpacing.xs),
-              padding: const EdgeInsets.symmetric(
-                horizontal: CrispySpacing.xs,
-                vertical: 2,
-              ),
-              decoration: BoxDecoration(
-                color: colorScheme.tertiary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(CrispyRadius.xs),
-              ),
-              child: Text(
-                'DUP',
-                style: textTheme.labelSmall?.copyWith(
-                  color: colorScheme.tertiary,
-                  fontWeight: FontWeight.bold,
+              if (widget.isInSmartGroup)
+                TooltipVisibility(
+                  visible: !InputModeScope.of(context),
+                  child: Tooltip(
+                    message: 'Smart group',
+                    child: Icon(
+                      Icons.bolt,
+                      size: 15,
+                      color: colorScheme.primary,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          // Actionable favorite star
-          if (widget.onToggleFavorite != null)
-            FavoriteStarOverlay(
-              isFavorite: channel.isFavorite,
-              isHovered: _isHovered,
-              onToggle: widget.onToggleFavorite!,
-              size: 20,
-            )
-          else if (channel.isFavorite)
-            Icon(Icons.star, size: 20, color: colorScheme.primary),
+              if (widget.isDuplicate)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: CrispySpacing.xs,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.tertiary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(CrispyRadius.xs),
+                  ),
+                  child: Text(
+                    'DUP',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.tertiary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              if (widget.onToggleFavorite != null)
+                FavoriteStarOverlay(
+                  isFavorite: channel.isFavorite,
+                  isHovered: _isHovered,
+                  onToggle: widget.onToggleFavorite!,
+                  size: 20,
+                )
+              else if (channel.isFavorite)
+                Icon(Icons.star, size: 20, color: colorScheme.primary),
+            ],
+          ),
         ],
       ),
     );

@@ -119,10 +119,14 @@ class EpgProgramDetailSheet extends ConsumerWidget {
                     ),
                   ),
                 ),
-                Text(
-                  resolvedChannel.name,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.primary,
+                Expanded(
+                  child: Text(
+                    resolvedChannel.name,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.primary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -140,12 +144,16 @@ class EpgProgramDetailSheet extends ConsumerWidget {
                 color: colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: CrispySpacing.xs),
-              Text(
-                '${_fmt(entry.startTime)}'
-                ' – ${_fmt(entry.endTime)}'
-                '  (${DurationFormatter.humanShort(entry.duration)})',
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+              Expanded(
+                child: Text(
+                  '${_fmt(entry.startTime)}'
+                  ' – ${_fmt(entry.endTime)}'
+                  '  (${DurationFormatter.humanShort(entry.duration)})',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
