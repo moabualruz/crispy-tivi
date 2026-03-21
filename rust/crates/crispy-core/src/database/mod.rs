@@ -241,9 +241,10 @@ mod tests {
             "idx_vod_source",
             "idx_watch_history_profile",
             "idx_watch_history_source",
+            "idx_epg_channel_time",
         ];
 
-        assert_eq!(indexes.len(), 16, "expected 16 indexes",);
+        assert_eq!(indexes.len(), 17, "expected 17 indexes",);
         for name in &expected {
             assert!(indexes.contains(&name.to_string()), "missing index: {name}",);
         }
