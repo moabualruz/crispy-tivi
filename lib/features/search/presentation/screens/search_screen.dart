@@ -52,17 +52,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    // Clear stale search state from previous session, cancel dangling
+    // timers, and bump generation to discard any in-flight results.
+    ref.read(searchControllerProvider.notifier).resetForNewSession();
+
     // Sync text field with state on initialization.
     // S-010: also pre-populate from the deep-link ?q= query parameter.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final deepLinkQuery =
           GoRouterState.of(context).uri.queryParameters['q'] ?? '';
-      final stateQuery = ref.read(searchControllerProvider).query;
-      final initial = deepLinkQuery.isNotEmpty ? deepLinkQuery : stateQuery;
-      if (initial.isNotEmpty) {
-        _searchController.text = initial;
-        ref.read(searchControllerProvider.notifier).search(initial);
+      if (deepLinkQuery.isNotEmpty) {
+        _searchController.text = deepLinkQuery;
+        ref.read(searchControllerProvider.notifier).search(deepLinkQuery);
       }
     });
   }
