@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../vod/domain/entities/vod_item.dart';
 import '../providers/player_providers.dart';
-import 'channel_zap_overlay.dart';
 import 'lock_indicator.dart';
 import 'movie_completion_overlay.dart';
 import 'next_episode_overlay.dart';
@@ -161,22 +160,10 @@ class PlayerStack extends ConsumerWidget {
             edgeThreshold: rightEdgeThreshold,
             onSwipeLeft: onSwipeLeftEdge,
           ),
-        if (isLive &&
-            channelList != null &&
-            channelList!.isNotEmpty &&
-            !isInPip)
-          RepaintBoundary(
-            child: ChannelZapOverlay(
-              channels: channelList!,
-              currentChannelId:
-                  currentChannelIndex < channelList!.length
-                      ? channelList![currentChannelIndex].id
-                      : '',
-              isVisible: showZapOverlay,
-              onDismiss: onZapDismiss,
-              onChannelSelected: onChannelSelected,
-            ),
-          ),
+        // NOTE: ChannelZapOverlay is rendered OUTSIDE this Stack
+        // (as a sibling above the GestureDetector in the parent
+        // player_fullscreen_overlay.dart) so it can receive tap
+        // events without the GestureDetector intercepting them.
         if (nextEpisode != null && !isInPip)
           NextEpisodeOverlay(
             nextEpisode: nextEpisode!,

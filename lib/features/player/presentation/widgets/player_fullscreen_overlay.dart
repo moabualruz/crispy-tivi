@@ -9,6 +9,7 @@ import 'package:universal_io/io.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../../../config/settings_notifier.dart';
+import 'channel_zap_overlay.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
@@ -850,7 +851,7 @@ class _PlayerFullscreenOverlayState
                 onScaleStart: isInPip ? null : onScaleStart,
                 onScaleUpdate: isInPip ? null : onScaleUpdate,
                 onScaleEnd: isInPip ? null : onScaleEnd,
-                behavior: HitTestBehavior.translucent,
+                behavior: HitTestBehavior.opaque,
                 child: ScreensaverController(
                   child: PlayerStack(
                     // Transparent placeholder — video is in
@@ -963,6 +964,31 @@ class _PlayerFullscreenOverlayState
             ),
           ),
         ),
+
+        // ── Channel zap overlay (outside GestureDetector for tap passthrough) ──
+        if (session.isLive &&
+            session.channelList != null &&
+            session.channelList!.isNotEmpty &&
+            !isInPip)
+          RepaintBoundary(
+            child: ChannelZapOverlay(
+              channels: session.channelList!,
+              currentChannelId:
+                  session.channelIndex < session.channelList!.length
+                      ? session.channelList![session.channelIndex].id
+                      : '',
+              isVisible: _showZapOverlay,
+              onDismiss: () {
+                setState(() => _showZapOverlay = false);
+                _restoreFocus();
+              },
+              onChannelSelected: (ch) {
+                _zapToChannel(ch);
+                setState(() => _showZapOverlay = false);
+                _restoreFocus();
+              },
+            ),
+          ),
 
         // ── Shortcuts help overlay (? key) ──
         if (_showShortcutsHelp && !isInPip)

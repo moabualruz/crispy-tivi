@@ -248,12 +248,22 @@ impl CrispyService {
 
         // Build reverse index: epg_key → Vec<internal_channel_id>.
         // This allows O(1) lookup per entry instead of O(channels).
+        //
+        // tvg_id is ONLY used for M3U channels where the provider
+        // controls both M3U and XMLTV files. Xtream (xc_) and
+        // Stalker (stk_) channels skip tvg_id because providers
+        // reuse the same epg_channel_id across unrelated channels
+        // (e.g. 46 channels sharing ID "397424"). For those,
+        // per-channel API data is stored under the internal ID.
         let mut key_to_channels: HashMap<String, Vec<String>> = HashMap::new();
         let mut lookup_keys: HashSet<String> = HashSet::new();
         for row in tvg_rows {
             let (ch_id, tvg_id) = row?;
-            // Map tvg_id → channel
-            if let Some(ref tvg) = tvg_id
+            // Only use tvg_id for M3U channels (not xc_/stk_ prefixed).
+            let is_api_sourced =
+                ch_id.starts_with("xc_") || ch_id.starts_with("stk_");
+            if !is_api_sourced
+                && let Some(ref tvg) = tvg_id
                 && !tvg.is_empty()
             {
                 lookup_keys.insert(tvg.clone());
@@ -262,7 +272,7 @@ impl CrispyService {
                     .or_default()
                     .push(ch_id.clone());
             }
-            // Map internal_id → channel (for legacy entries)
+            // Always map internal_id → channel.
             lookup_keys.insert(ch_id.clone());
             key_to_channels
                 .entry(ch_id.clone())
