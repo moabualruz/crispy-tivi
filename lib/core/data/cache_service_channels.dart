@@ -94,6 +94,28 @@ mixin _CacheChannelsMixin on _CacheServiceBase {
     return result;
   }
 
+  /// Fetch EPG via the 3-layer facade (L1 hot cache → L2 SQLite → L3 API).
+  Future<Map<String, List<EpgEntry>>> getChannelsEpg(
+    List<String> channelIds,
+    DateTime start,
+    DateTime end,
+  ) async {
+    if (channelIds.isEmpty) return {};
+    final sw = Stopwatch()..start();
+    final raw = await _backend.getChannelsEpg(channelIds, start, end);
+    final result = <String, List<EpgEntry>>{};
+    int count = 0;
+    for (final entry in raw.entries) {
+      result[entry.key] = entry.value.map(mapToEpgEntry).toList();
+      count += entry.value.length;
+    }
+    debugPrint(
+      'CacheService: loaded $count EPG entries (facade) for '
+      '${result.length} channels in ${sw.elapsedMilliseconds}ms',
+    );
+    return result;
+  }
+
   /// Saves EPG entries using upsert.
   Future<void> saveEpgEntries(
     Map<String, List<EpgEntry>> entriesByChannel,

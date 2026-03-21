@@ -197,6 +197,13 @@ abstract class _BackendDataMethods {
     List<String> sourceIds,
   );
 
+  /// Fetch EPG via the 3-layer facade (L1 hot cache → L2 SQLite → L3 API).
+  Future<Map<String, List<Map<String, dynamic>>>> getChannelsEpg(
+    List<String> channelIds,
+    DateTime start,
+    DateTime end,
+  );
+
   /// Load EPG entries as {channelId: [entries]}.
   Future<Map<String, List<Map<String, dynamic>>>> loadEpgEntries();
 

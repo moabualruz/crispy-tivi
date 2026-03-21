@@ -112,6 +112,44 @@ mixin _FfiEpgMixin on _FfiBackendBase {
 
   Future<void> clearEpgEntries() => rust_api.clearEpgEntries();
 
+  // ── EPG Facade (L1 hot cache → L2 SQLite → L3 API) ──
+
+  /// Fetch EPG for a single channel via the 3-layer facade.
+  Future<Map<String, List<Map<String, dynamic>>>> getChannelEpg(
+    String channelId,
+    int count,
+  ) async {
+    final json = await rust_api.getChannelEpg(
+      channelId: channelId,
+      count: BigInt.from(count),
+    );
+    final list = jsonDecode(json) as List;
+    return {channelId: list.cast<Map<String, dynamic>>()};
+  }
+
+  /// Fetch EPG for multiple channels via the 3-layer facade.
+  Future<Map<String, List<Map<String, dynamic>>>> getChannelsEpg(
+    List<String> channelIds,
+    DateTime start,
+    DateTime end,
+  ) async {
+    final json = await rust_api.getChannelsEpg(
+      channelIdsJson: jsonEncode(channelIds),
+      startTime: PlatformInt64Util.from(start.millisecondsSinceEpoch ~/ 1000),
+      endTime: PlatformInt64Util.from(end.millisecondsSinceEpoch ~/ 1000),
+    );
+    final decoded = jsonDecode(json) as Map<String, dynamic>;
+    return decoded.map(
+      (key, value) =>
+          MapEntry(key, (value as List).cast<Map<String, dynamic>>()),
+    );
+  }
+
+  Future<void> invalidateEpgCache(String channelId) =>
+      rust_api.invalidateEpgCache(channelId: channelId);
+
+  Future<void> clearEpgCaches() => rust_api.clearEpgCaches();
+
   // ── EPG Mappings ─────────────────────────────────
 
   Future<void> saveEpgMapping(Map<String, dynamic> mapping) =>

@@ -179,3 +179,40 @@ Future<String> filterUpcomingPrograms({
   windowMinutes: windowMinutes,
   limit: limit,
 );
+
+/// Get EPG for a single channel via the 3-layer facade.
+///
+/// Resolution: L1 moka hot cache → L2 SQLite → L3 per-channel API fetch.
+/// Returns JSON array of EpgEntry.
+Future<String> getChannelEpg({
+  required String channelId,
+  required BigInt count,
+}) => RustLib.instance.api.crateApiEpgGetChannelEpg(
+  channelId: channelId,
+  count: count,
+);
+
+/// Get EPG for multiple channels within a time window via the 3-layer facade.
+///
+/// Returns JSON `{channel_id: [entries]}`.
+Future<String> getChannelsEpg({
+  required String channelIdsJson,
+  required PlatformInt64 startTime,
+  required PlatformInt64 endTime,
+}) => RustLib.instance.api.crateApiEpgGetChannelsEpg(
+  channelIdsJson: channelIdsJson,
+  startTime: startTime,
+  endTime: endTime,
+);
+
+/// Invalidate the L1 hot cache for a specific channel.
+Future<void> invalidateEpgCache({required String channelId}) =>
+    RustLib.instance.api.crateApiEpgInvalidateEpgCache(channelId: channelId);
+
+/// Clear all EPG caches (L1 hot cache).
+Future<void> clearEpgCaches() =>
+    RustLib.instance.api.crateApiEpgClearEpgCaches();
+
+/// Get the number of channels in the L1 hot cache.
+Future<BigInt> epgHotCacheSize() =>
+    RustLib.instance.api.crateApiEpgEpgHotCacheSize();

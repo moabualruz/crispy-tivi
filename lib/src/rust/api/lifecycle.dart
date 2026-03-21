@@ -8,6 +8,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// Initialize the Rust backend with a database path.
 /// Must be called once before any other API function.
+///
+/// Installs a custom panic hook that logs instead of aborting,
+/// keeping the app alive when a Rust thread panics.
 Future<void> initBackend({required String dbPath}) =>
     RustLib.instance.api.crateApiLifecycleInitBackend(dbPath: dbPath);
 

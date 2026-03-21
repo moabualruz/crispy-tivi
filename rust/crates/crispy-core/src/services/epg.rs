@@ -249,22 +249,31 @@ impl CrispyService {
         // Build reverse index: epg_key → Vec<internal_channel_id>.
         // This allows O(1) lookup per entry instead of O(channels).
         //
-        // tvg_id is ONLY used for M3U channels where the provider
-        // controls both M3U and XMLTV files. Xtream (xc_) and
-        // Stalker (stk_) channels skip tvg_id because providers
-        // reuse the same epg_channel_id across unrelated channels
-        // (e.g. 46 channels sharing ID "397424"). For those,
-        // per-channel API data is stored under the internal ID.
-        let mut key_to_channels: HashMap<String, Vec<String>> = HashMap::new();
-        let mut lookup_keys: HashSet<String> = HashSet::new();
+        // Two-pass approach for tvg_id:
+        // Pass 1: Collect all (ch_id, tvg_id) pairs and count tvg_id usage.
+        // Pass 2: Only use tvg_id when it maps to a SINGLE requested channel.
+        //         Shared tvg_ids (e.g. 46 channels all with ID "397424")
+        //         produce wrong EPG assignments and are skipped.
+        let mut rows_vec: Vec<(String, Option<String>)> = Vec::new();
+        let mut tvg_usage: HashMap<String, usize> = HashMap::new();
         for row in tvg_rows {
             let (ch_id, tvg_id) = row?;
-            // Only use tvg_id for M3U channels (not xc_/stk_ prefixed).
-            let is_api_sourced =
-                ch_id.starts_with("xc_") || ch_id.starts_with("stk_");
-            if !is_api_sourced
-                && let Some(ref tvg) = tvg_id
+            if let Some(ref tvg) = tvg_id
                 && !tvg.is_empty()
+            {
+                *tvg_usage.entry(tvg.clone()).or_default() += 1;
+            }
+            rows_vec.push((ch_id, tvg_id));
+        }
+
+        let mut key_to_channels: HashMap<String, Vec<String>> = HashMap::new();
+        let mut lookup_keys: HashSet<String> = HashSet::new();
+        for (ch_id, tvg_id) in &rows_vec {
+            // Only use tvg_id when it uniquely maps to one channel
+            // in this request batch — avoids wrong EPG from shared IDs.
+            if let Some(tvg) = tvg_id
+                && !tvg.is_empty()
+                && tvg_usage.get(tvg.as_str()).copied().unwrap_or(0) == 1
             {
                 lookup_keys.insert(tvg.clone());
                 key_to_channels
@@ -277,7 +286,7 @@ impl CrispyService {
             key_to_channels
                 .entry(ch_id.clone())
                 .or_default()
-                .push(ch_id);
+                .push(ch_id.clone());
         }
 
         if lookup_keys.is_empty() {

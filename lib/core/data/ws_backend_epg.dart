@@ -52,6 +52,12 @@ mixin _WsEpgMixin on _WsBackendBase {
     );
   }
 
+  Future<Map<String, List<Map<String, dynamic>>>> getChannelsEpg(
+    List<String> channelIds,
+    DateTime start,
+    DateTime end,
+  ) => getEpgsForChannels(channelIds, start, end);
+
   Future<Map<String, List<Map<String, dynamic>>>> getEpgBySources(
     List<String> sourceIds,
   ) async {

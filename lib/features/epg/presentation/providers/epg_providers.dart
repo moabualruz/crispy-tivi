@@ -302,7 +302,10 @@ class EpgNotifier extends Notifier<EpgState> {
 
     try {
       final cache = ref.read(cacheServiceProvider);
-      final newEntries = await cache.getEpgsForChannels(channelIds, start, end);
+      // Use the 3-layer facade: L1 hot cache → L2 SQLite → L3 per-channel API.
+      // This replaces the old bulk-only path that couldn't fetch EPG for
+      // Xtream/Stalker channels with shared tvg_ids.
+      final newEntries = await cache.getChannelsEpg(channelIds, start, end);
 
       // Serialize both maps to the Rust epoch-ms format, merge via backend.
       final backend = ref.read(crispyBackendProvider);
