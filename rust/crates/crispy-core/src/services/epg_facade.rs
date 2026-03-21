@@ -146,8 +146,7 @@ impl EpgFacade {
                 && !entries.is_empty()
             {
                 // L1 fill.
-                self.hot_cache
-                    .insert(ch_id.clone(), entries.clone());
+                self.hot_cache.insert(ch_id.clone(), entries.clone());
                 result.insert(ch_id.clone(), entries.clone());
                 continue;
             }
@@ -172,8 +171,7 @@ impl EpgFacade {
             .await?;
             for (ch_id, entries) in fetched {
                 if !entries.is_empty() {
-                    self.hot_cache
-                        .insert(ch_id.clone(), entries.clone());
+                    self.hot_cache.insert(ch_id.clone(), entries.clone());
                     result.insert(ch_id, entries);
                 }
             }
@@ -245,20 +243,13 @@ impl EpgFacade {
 
     /// Fallback: query SQLite directly for channels without a
     /// recognizable source (e.g. M3U with XMLTV EPG stored by tvg_id).
-    fn get_from_sqlite_only(
-        &self,
-        channel_id: &str,
-        count: usize,
-    ) -> Result<Vec<EpgEntry>> {
+    fn get_from_sqlite_only(&self, channel_id: &str, count: usize) -> Result<Vec<EpgEntry>> {
         let now = chrono::Utc::now().timestamp();
         let end = now + 86_400;
         let result = self
             .service
             .get_epgs_for_channels(&[channel_id.to_string()], now, end)?;
-        let mut entries = result
-            .get(channel_id)
-            .cloned()
-            .unwrap_or_default();
+        let mut entries = result.get(channel_id).cloned().unwrap_or_default();
         entries.sort_by_key(|e| e.start_time);
         entries.truncate(count);
         Ok(entries)

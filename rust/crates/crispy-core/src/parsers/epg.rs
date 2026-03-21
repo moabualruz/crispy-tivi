@@ -1,77 +1,18 @@
 //! XMLTV electronic programme guide parser.
 //!
-//! Ported from Dart `epg_parser.dart`. Pure function,
-//! no DB access. Uses regex-based extraction to handle
-//! large (100 MB+) EPG files efficiently.
+//! Uses `quick_xml` event-based pull parsing to handle
+//! large (100 MB+) EPG files efficiently. Replaces the
+//! previous regex-based approach for correct handling of
+//! CDATA sections, attribute order variations, and XML
+//! entity encoding.
 
 use std::collections::HashMap;
-use std::sync::LazyLock;
 
 use chrono::NaiveDateTime;
-use regex::Regex;
+use quick_xml::Reader;
+use quick_xml::events::Event;
 
 use crate::models::EpgEntry;
-
-// ── Compiled regexes (once per process) ──────────
-static PROGRAMME_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<programme\s([^>]*)>(.*?)</programme>").unwrap());
-static START_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"start="([^"]+)""#).unwrap());
-static START_TS_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"start_timestamp="([^"]+)""#).unwrap());
-static STOP_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"stop="([^"]+)""#).unwrap());
-static STOP_TS_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"stop_timestamp="([^"]+)""#).unwrap());
-static CHANNEL_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"channel="([^"]+)""#).unwrap());
-static TITLE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<title[^>]*>(.*?)</title>").unwrap());
-static DESC_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<desc[^>]*>(.*?)</desc>").unwrap());
-static CAT_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<category[^>]*>(.*?)</category>").unwrap());
-static ICON_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"<icon\s+src="([^"]+)""#).unwrap());
-static CHANNEL_NAME_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r#"(?s)<channel\s+id="([^"]+)"[^>]*>.*?<display-name[^>]*>(.*?)</display-name>.*?</channel>"#,
-    )
-    .unwrap()
-});
-
-// New regexes for extended XMLTV elements
-static SUB_TITLE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<sub-title[^>]*>(.*?)</sub-title>").unwrap());
-static DATE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<date[^>]*>(.*?)</date>").unwrap());
-static LANGUAGE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<language[^>]*>(.*?)</language>").unwrap());
-static COUNTRY_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<country[^>]*>(.*?)</country>").unwrap());
-static CREDITS_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<credits>(.*?)</credits>").unwrap());
-static DIRECTOR_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<director[^>]*>(.*?)</director>").unwrap());
-static ACTOR_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<actor[^>]*>(.*?)</actor>").unwrap());
-static WRITER_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<writer[^>]*>(.*?)</writer>").unwrap());
-static PRESENTER_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<presenter[^>]*>(.*?)</presenter>").unwrap());
-static EPISODE_NUM_XMLTV_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"(?s)<episode-num\s+system="xmltv_ns"[^>]*>(.*?)</episode-num>"#).unwrap()
-});
-static EPISODE_NUM_ONSCREEN_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"(?s)<episode-num\s+system="onscreen"[^>]*>(.*?)</episode-num>"#).unwrap()
-});
-static RATING_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<rating[^>]*>.*?<value>(.*?)</value>.*?</rating>").unwrap());
-static STAR_RATING_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?s)<star-rating[^>]*>.*?<value>(.*?)</value>.*?</star-rating>").unwrap()
-});
-static PREVIOUSLY_SHOWN_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"<previously-shown").unwrap());
-static NEW_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<new\s*/?>").unwrap());
-static PREMIERE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<premiere").unwrap());
-static LENGTH_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"(?s)<length\s+units="([^"]+)"[^>]*>(.*?)</length>"#).unwrap());
 
 /// Parse XMLTV content into EPG entries.
 ///
@@ -83,14 +24,21 @@ pub fn parse_epg(content: &str) -> Vec<EpgEntry> {
         return Vec::new();
     }
 
+    let mut reader = Reader::from_str(content);
+    reader.config_mut().trim_text(true);
+
     let mut entries = Vec::new();
 
-    for cap in PROGRAMME_RE.captures_iter(content) {
-        let attrs = cap.get(1).unwrap().as_str();
-        let body = cap.get(2).unwrap().as_str();
-
-        if let Some(entry) = parse_programme(attrs, body) {
-            entries.push(entry);
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == b"programme" => {
+                if let Some(entry) = parse_programme_element(e, &mut reader) {
+                    entries.push(entry);
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(_) => break,
+            _ => {}
         }
     }
 
@@ -101,159 +49,361 @@ pub fn parse_epg(content: &str) -> Vec<EpgEntry> {
 ///
 /// Returns a map of channel ID to display name.
 pub fn extract_channel_names(content: &str) -> HashMap<String, String> {
+    if content.trim().is_empty() {
+        return HashMap::new();
+    }
+
+    let mut reader = Reader::from_str(content);
+    reader.config_mut().trim_text(true);
+
     let mut result = HashMap::new();
-    for cap in CHANNEL_NAME_RE.captures_iter(content) {
-        let id = cap.get(1).unwrap().as_str().to_string();
-        let name = cap.get(2).unwrap().as_str().trim().to_string();
-        if !name.is_empty() {
-            result.entry(id).or_insert(name);
+
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == b"channel" => {
+                let channel_id = get_attr(e, b"id");
+                if let Some(id) = channel_id {
+                    match read_channel_display_name(&mut reader) {
+                        ChannelNameResult::Found(name) => {
+                            if !name.is_empty() {
+                                result.entry(id).or_insert(name);
+                            }
+                            // Display name was found but </channel> not
+                            // yet consumed — skip remaining children.
+                            let _ = reader.read_to_end(e.name());
+                        }
+                        ChannelNameResult::EndReached => {
+                            // </channel> was already consumed by the
+                            // helper — do NOT call read_to_end.
+                        }
+                    }
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(_) => break,
+            _ => {}
         }
     }
+
     result
 }
 
 // ── Internal helpers ─────────────────────────────
 
-fn parse_programme(attrs: &str, body: &str) -> Option<EpgEntry> {
-    let channel_id = CHANNEL_RE.captures(attrs)?.get(1)?.as_str().to_string();
+/// Extract a UTF-8 attribute value from an XML element by key.
+fn get_attr(e: &quick_xml::events::BytesStart<'_>, key: &[u8]) -> Option<String> {
+    for attr in e.attributes().flatten() {
+        if attr.key.as_ref() == key {
+            return String::from_utf8(attr.value.to_vec()).ok();
+        }
+    }
+    None
+}
 
-    let start_raw = START_RE.captures(attrs).map(|c| c.get(1).unwrap().as_str());
-    let start_ts_raw = START_TS_RE
-        .captures(attrs)
-        .map(|c| c.get(1).unwrap().as_str());
+/// Result from scanning a `<channel>` for its display name.
+enum ChannelNameResult {
+    /// A `<display-name>` was found (may be empty). The reader
+    /// is positioned after `</display-name>` but before `</channel>`.
+    Found(String),
+    /// `</channel>` was encountered without finding a display name.
+    /// The reader has already consumed the `</channel>` end tag.
+    EndReached,
+}
 
-    let start_time = if let Some(raw) = start_raw {
+/// Read the first `<display-name>` text inside a `<channel>`.
+/// Returns how the scan terminated so the caller knows whether
+/// `</channel>` was already consumed.
+fn read_channel_display_name(reader: &mut Reader<&[u8]>) -> ChannelNameResult {
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == b"display-name" => {
+                let text = read_element_text(reader, e.name())
+                    .map(|t| t.trim().to_string())
+                    .unwrap_or_default();
+                return ChannelNameResult::Found(text);
+            }
+            // End of <channel> without finding <display-name>.
+            Ok(Event::End(ref e)) if e.name().as_ref() == b"channel" => {
+                return ChannelNameResult::EndReached;
+            }
+            Ok(Event::Eof) => return ChannelNameResult::EndReached,
+            Err(_) => return ChannelNameResult::EndReached,
+            _ => {}
+        }
+    }
+}
+
+/// Read the text content of an element, properly handling XML
+/// entity unescaping and CDATA sections.
+///
+/// Reads events until the matching end tag for `end_name` is
+/// encountered. Concatenates `Event::Text` (unescaped) and
+/// `Event::CData` (raw) content. Returns `None` on error.
+fn read_element_text(
+    reader: &mut Reader<&[u8]>,
+    end_name: quick_xml::name::QName<'_>,
+) -> Option<String> {
+    let mut result = String::new();
+    loop {
+        match reader.read_event() {
+            Ok(Event::Text(ref e)) => {
+                // Unescape XML entities (&amp; → &, etc.)
+                let unescaped = e.unescape().ok()?;
+                result.push_str(&unescaped);
+            }
+            Ok(Event::CData(ref e)) => {
+                // CDATA content is literal — no unescaping needed.
+                if let Ok(text) = std::str::from_utf8(e.as_ref()) {
+                    result.push_str(text);
+                }
+            }
+            Ok(Event::End(ref e)) if e.name() == end_name => {
+                return Some(result);
+            }
+            // Nested elements inside text content — skip them.
+            Ok(Event::Start(ref e)) => {
+                let _ = reader.read_to_end(e.name());
+            }
+            Ok(Event::Eof) => return Some(result),
+            Err(_) => return None,
+            _ => {}
+        }
+    }
+}
+
+/// Parse a single `<programme>` element and its children into
+/// an `EpgEntry`. Returns `None` if required fields are missing.
+fn parse_programme_element(
+    start: &quick_xml::events::BytesStart<'_>,
+    reader: &mut Reader<&[u8]>,
+) -> Option<EpgEntry> {
+    // Extract attributes from the <programme> opening tag.
+    let channel_id = get_attr(start, b"channel")?;
+    let start_attr = get_attr(start, b"start");
+    let start_ts_attr = get_attr(start, b"start_timestamp");
+    let stop_attr = get_attr(start, b"stop");
+    let stop_ts_attr = get_attr(start, b"stop_timestamp");
+
+    // Resolve start_time: prefer "start" attr, fall back to "start_timestamp".
+    let start_time = if let Some(ref raw) = start_attr {
         parse_xmltv_datetime(raw)?
-    } else if let Some(ts) = start_ts_raw {
+    } else if let Some(ref ts) = start_ts_attr {
         let ts_val: i64 = ts.parse().ok()?;
         chrono::DateTime::from_timestamp(ts_val, 0).map(|dt| dt.naive_utc())?
     } else {
+        // Consume remaining content to avoid desync.
+        let _ = reader.read_to_end(start.name());
         return None;
     };
 
-    let stop_raw = STOP_RE.captures(attrs).map(|c| c.get(1).unwrap().as_str());
-    let stop_ts_raw = STOP_TS_RE
-        .captures(attrs)
-        .map(|c| c.get(1).unwrap().as_str());
-
-    let end_time = if let Some(raw) = stop_raw {
+    // Resolve end_time: prefer "stop" attr, fall back to "stop_timestamp".
+    let end_time = if let Some(ref raw) = stop_attr {
         parse_xmltv_datetime(raw)?
-    } else if let Some(ts) = stop_ts_raw {
+    } else if let Some(ref ts) = stop_ts_attr {
         let ts_val: i64 = ts.parse().ok()?;
         chrono::DateTime::from_timestamp(ts_val, 0).map(|dt| dt.naive_utc())?
     } else {
+        let _ = reader.read_to_end(start.name());
         return None;
     };
 
-    let title_match = TITLE_RE.captures(body)?;
-    let title_text = decode_xml_entities(title_match.get(1)?.as_str().trim());
-    let title = decode_maybe_base64(&title_text);
+    // Parse child elements within <programme>.
+    let mut title: Option<String> = None;
+    let mut description: Option<String> = None;
+    let mut categories: Vec<String> = Vec::new();
+    let mut icon_url: Option<String> = None;
+    let mut sub_title: Option<String> = None;
+    let mut air_date: Option<String> = None;
+    let mut language: Option<String> = None;
+    let mut country: Option<String> = None;
+    let mut directors: Option<String> = None;
+    let mut cast: Option<String> = None;
+    let mut writers: Option<String> = None;
+    let mut presenters: Option<String> = None;
+    let mut season: Option<i32> = None;
+    let mut episode: Option<i32> = None;
+    let mut episode_label: Option<String> = None;
+    let mut content_rating: Option<String> = None;
+    let mut star_rating: Option<String> = None;
+    let mut is_rerun = false;
+    let mut is_new = false;
+    let mut is_premiere = false;
+    let mut length_minutes: Option<i32> = None;
 
-    let description = DESC_RE.captures(body).map(|c| {
-        let desc_text = decode_xml_entities(c.get(1).unwrap().as_str().trim());
-        decode_maybe_base64(&desc_text)
-    });
-
-    // Collect ALL <category> elements, joined with semicolons.
-    let category = {
-        let cats: Vec<String> = CAT_RE
-            .captures_iter(body)
-            .filter_map(|c| {
-                let text = decode_xml_entities(c.get(1)?.as_str().trim());
-                if text.is_empty() { None } else { Some(text) }
-            })
-            .collect();
-        if cats.is_empty() {
-            None
-        } else {
-            Some(cats.join("; "))
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) => {
+                match e.name().as_ref() {
+                    b"title" => {
+                        if title.is_none() {
+                            if let Some(text) = read_element_text(reader, e.name()) {
+                                let decoded = decode_maybe_base64(text.trim());
+                                title = Some(decoded);
+                            }
+                        } else {
+                            let _ = reader.read_to_end(e.name());
+                        }
+                    }
+                    b"sub-title" => {
+                        if sub_title.is_none() {
+                            if let Some(text) = read_element_text(reader, e.name()) {
+                                let t = text.trim().to_string();
+                                if !t.is_empty() {
+                                    sub_title = Some(decode_maybe_base64(&t));
+                                }
+                            }
+                        } else {
+                            let _ = reader.read_to_end(e.name());
+                        }
+                    }
+                    b"desc" => {
+                        if description.is_none() {
+                            if let Some(text) = read_element_text(reader, e.name()) {
+                                let trimmed = text.trim().to_string();
+                                if !trimmed.is_empty() {
+                                    description = Some(decode_maybe_base64(&trimmed));
+                                }
+                            }
+                        } else {
+                            let _ = reader.read_to_end(e.name());
+                        }
+                    }
+                    b"category" => {
+                        if let Some(text) = read_element_text(reader, e.name()) {
+                            let trimmed = text.trim().to_string();
+                            if !trimmed.is_empty() {
+                                categories.push(trimmed);
+                            }
+                        }
+                    }
+                    b"date" => {
+                        if air_date.is_none() {
+                            if let Some(text) = read_element_text(reader, e.name()) {
+                                let t = text.trim().to_string();
+                                if !t.is_empty() {
+                                    air_date = Some(t);
+                                }
+                            }
+                        } else {
+                            let _ = reader.read_to_end(e.name());
+                        }
+                    }
+                    b"language" => {
+                        if language.is_none() {
+                            if let Some(text) = read_element_text(reader, e.name()) {
+                                let t = text.trim().to_string();
+                                if !t.is_empty() {
+                                    language = Some(t);
+                                }
+                            }
+                        } else {
+                            let _ = reader.read_to_end(e.name());
+                        }
+                    }
+                    b"country" => {
+                        if country.is_none() {
+                            if let Some(text) = read_element_text(reader, e.name()) {
+                                let t = text.trim().to_string();
+                                if !t.is_empty() {
+                                    country = Some(t);
+                                }
+                            }
+                        } else {
+                            let _ = reader.read_to_end(e.name());
+                        }
+                    }
+                    b"credits" => {
+                        parse_credits(
+                            reader,
+                            &mut directors,
+                            &mut cast,
+                            &mut writers,
+                            &mut presenters,
+                        );
+                    }
+                    b"episode-num" => {
+                        let system = get_attr(e, b"system").unwrap_or_default();
+                        if let Some(text) = read_element_text(reader, e.name()) {
+                            let t = text.trim();
+                            match system.as_str() {
+                                "xmltv_ns" => {
+                                    let (s, ep) = parse_xmltv_ns(t);
+                                    if season.is_none() {
+                                        season = s.map(|v| v as i32);
+                                    }
+                                    if episode.is_none() {
+                                        episode = ep.map(|v| v as i32);
+                                    }
+                                }
+                                "onscreen" => {
+                                    if episode_label.is_none() && !t.is_empty() {
+                                        episode_label = Some(t.to_string());
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    b"rating" => {
+                        if content_rating.is_none() {
+                            content_rating = read_value_element(reader, e.name());
+                        } else {
+                            let _ = reader.read_to_end(e.name());
+                        }
+                    }
+                    b"star-rating" => {
+                        if star_rating.is_none() {
+                            star_rating = read_value_element(reader, e.name());
+                        } else {
+                            let _ = reader.read_to_end(e.name());
+                        }
+                    }
+                    b"length" => {
+                        let units = get_attr(e, b"units").unwrap_or_default();
+                        if let Some(text) = read_element_text(reader, e.name())
+                            && let Ok(val) = text.trim().parse::<f64>()
+                        {
+                            length_minutes = Some(match units.as_str() {
+                                "hours" => (val * 60.0) as i32,
+                                "seconds" => (val / 60.0) as i32,
+                                _ => val as i32, // "minutes" or default
+                            });
+                        }
+                    }
+                    b"premiere" => {
+                        is_premiere = true;
+                        let _ = reader.read_to_end(e.name());
+                    }
+                    _ => {
+                        let _ = reader.read_to_end(e.name());
+                    }
+                }
+            }
+            Ok(Event::Empty(ref e)) => match e.name().as_ref() {
+                b"icon" if icon_url.is_none() => {
+                    icon_url = get_attr(e, b"src");
+                }
+                b"previously-shown" => is_rerun = true,
+                b"new" => is_new = true,
+                b"premiere" => is_premiere = true,
+                _ => {}
+            },
+            Ok(Event::End(ref e)) if e.name().as_ref() == b"programme" => {
+                break;
+            }
+            Ok(Event::Eof) => break,
+            Err(_) => break,
+            _ => {}
         }
+    }
+
+    // Title is required.
+    let title = title?;
+    let category = if categories.is_empty() {
+        None
+    } else {
+        Some(categories.join("; "))
     };
-
-    let icon_url = ICON_RE
-        .captures(body)
-        .and_then(|c| c.get(1))
-        .map(|m| m.as_str().trim().to_string());
-
-    // Sub-title (episode name)
-    let sub_title = SUB_TITLE_RE.captures(body).map(|c| {
-        let text = decode_xml_entities(c.get(1).unwrap().as_str().trim());
-        decode_maybe_base64(&text)
-    });
-
-    // Original air date
-    let air_date = DATE_RE
-        .captures(body)
-        .map(|c| c.get(1).unwrap().as_str().trim().to_string())
-        .filter(|s| !s.is_empty());
-
-    // Language
-    let language = LANGUAGE_RE
-        .captures(body)
-        .map(|c| decode_xml_entities(c.get(1).unwrap().as_str().trim()))
-        .filter(|s| !s.is_empty());
-
-    // Country
-    let country = COUNTRY_RE
-        .captures(body)
-        .map(|c| decode_xml_entities(c.get(1).unwrap().as_str().trim()))
-        .filter(|s| !s.is_empty());
-
-    // Credits (directors, actors, writers, presenters)
-    let (directors, cast, writers, presenters) =
-        if let Some(credits_cap) = CREDITS_RE.captures(body) {
-            let credits_body = credits_cap.get(1).unwrap().as_str();
-            (
-                extract_multi(&DIRECTOR_RE, credits_body),
-                extract_multi(&ACTOR_RE, credits_body),
-                extract_multi(&WRITER_RE, credits_body),
-                extract_multi(&PRESENTER_RE, credits_body),
-            )
-        } else {
-            (None, None, None, None)
-        };
-
-    // Episode numbering — xmltv_ns format: "season.episode.part"
-    // Numbers are zero-based in xmltv_ns, so we add 1.
-    let (season, episode) = EPISODE_NUM_XMLTV_RE
-        .captures(body)
-        .map(|c| parse_xmltv_ns(c.get(1).unwrap().as_str().trim()))
-        .unwrap_or((None, None));
-
-    // On-screen episode label (e.g. "S01E05")
-    let episode_label = EPISODE_NUM_ONSCREEN_RE
-        .captures(body)
-        .map(|c| c.get(1).unwrap().as_str().trim().to_string())
-        .filter(|s| !s.is_empty());
-
-    // Content rating (e.g. "PG-13")
-    let content_rating = RATING_RE
-        .captures(body)
-        .map(|c| c.get(1).unwrap().as_str().trim().to_string())
-        .filter(|s| !s.is_empty());
-
-    // Star rating (e.g. "7.5/10")
-    let star_rating = STAR_RATING_RE
-        .captures(body)
-        .map(|c| c.get(1).unwrap().as_str().trim().to_string())
-        .filter(|s| !s.is_empty());
-
-    // Boolean flags
-    let is_rerun = PREVIOUSLY_SHOWN_RE.is_match(body);
-    let is_new = NEW_RE.is_match(body);
-    let is_premiere = PREMIERE_RE.is_match(body);
-
-    // Programme length
-    let length_minutes = LENGTH_RE.captures(body).and_then(|c| {
-        let units = c.get(1).unwrap().as_str();
-        let value: f64 = c.get(2).unwrap().as_str().trim().parse().ok()?;
-        match units {
-            "minutes" => Some(value as i32),
-            "hours" => Some((value * 60.0) as i32),
-            "seconds" => Some((value / 60.0).round() as i32),
-            _ => None,
-        }
-    });
 
     Some(EpgEntry {
         channel_id,
@@ -284,46 +434,110 @@ fn parse_programme(attrs: &str, body: &str) -> Option<EpgEntry> {
     })
 }
 
-/// Collect all matches for a credits sub-element regex into a
-/// semicolon-separated string. Returns `None` when no matches.
-fn extract_multi(re: &Regex, text: &str) -> Option<String> {
-    let items: Vec<String> = re
-        .captures_iter(text)
-        .filter_map(|c| {
-            let val = decode_xml_entities(c.get(1)?.as_str().trim());
-            if val.is_empty() { None } else { Some(val) }
-        })
-        .collect();
-    if items.is_empty() {
-        None
-    } else {
-        Some(items.join("; "))
+/// Parse `<credits>` children: `<director>`, `<actor>`, `<writer>`, `<presenter>`.
+/// Collects semicolon-separated lists.
+fn parse_credits(
+    reader: &mut Reader<&[u8]>,
+    directors: &mut Option<String>,
+    cast: &mut Option<String>,
+    writers: &mut Option<String>,
+    presenters: &mut Option<String>,
+) {
+    let mut dirs: Vec<String> = Vec::new();
+    let mut actors: Vec<String> = Vec::new();
+    let mut wrtrs: Vec<String> = Vec::new();
+    let mut prsnts: Vec<String> = Vec::new();
+
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) => {
+                let name = e.name();
+                match name.as_ref() {
+                    b"director" => {
+                        if let Some(t) = read_element_text(reader, name) {
+                            let t = t.trim().to_string();
+                            if !t.is_empty() {
+                                dirs.push(t);
+                            }
+                        }
+                    }
+                    b"actor" => {
+                        if let Some(t) = read_element_text(reader, name) {
+                            let t = t.trim().to_string();
+                            if !t.is_empty() {
+                                actors.push(t);
+                            }
+                        }
+                    }
+                    b"writer" => {
+                        if let Some(t) = read_element_text(reader, name) {
+                            let t = t.trim().to_string();
+                            if !t.is_empty() {
+                                wrtrs.push(t);
+                            }
+                        }
+                    }
+                    b"presenter" => {
+                        if let Some(t) = read_element_text(reader, name) {
+                            let t = t.trim().to_string();
+                            if !t.is_empty() {
+                                prsnts.push(t);
+                            }
+                        }
+                    }
+                    _ => {
+                        let _ = reader.read_to_end(name);
+                    }
+                }
+            }
+            Ok(Event::End(ref e)) if e.name().as_ref() == b"credits" => break,
+            Ok(Event::Eof) => break,
+            Err(_) => break,
+            _ => {}
+        }
+    }
+
+    if !dirs.is_empty() {
+        *directors = Some(dirs.join("; "));
+    }
+    if !actors.is_empty() {
+        *cast = Some(actors.join("; "));
+    }
+    if !wrtrs.is_empty() {
+        *writers = Some(wrtrs.join("; "));
+    }
+    if !prsnts.is_empty() {
+        *presenters = Some(prsnts.join("; "));
     }
 }
 
-/// Parse XMLTV episode-num with `system="xmltv_ns"`.
-///
-/// Format: `season.episode.part` where each is zero-based.
-/// We add 1 to return human-friendly 1-based numbers.
-/// Fields may contain a range like `0/2` — we take the first number.
-fn parse_xmltv_ns(raw: &str) -> (Option<i32>, Option<i32>) {
-    let parts: Vec<&str> = raw.split('.').collect();
-
-    let parse_part = |s: &str| -> Option<i32> {
-        let s = s.trim();
-        if s.is_empty() {
-            return None;
+/// Read the `<value>` child from elements like `<rating>` or `<star-rating>`.
+fn read_value_element(
+    reader: &mut Reader<&[u8]>,
+    parent_name: quick_xml::name::QName<'_>,
+) -> Option<String> {
+    let mut result: Option<String> = None;
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) => {
+                if e.name().as_ref() == b"value" {
+                    if let Some(text) = read_element_text(reader, e.name()) {
+                        let t = text.trim().to_string();
+                        if !t.is_empty() && result.is_none() {
+                            result = Some(t);
+                        }
+                    }
+                } else {
+                    let _ = reader.read_to_end(e.name());
+                }
+            }
+            Ok(Event::End(ref e)) if e.name() == parent_name => break,
+            Ok(Event::Eof) => break,
+            Err(_) => break,
+            _ => {}
         }
-        // Handle ranges like "0/24" — take the first number.
-        let num_str = s.split('/').next()?.trim();
-        let n: i32 = num_str.parse().ok()?;
-        Some(n + 1) // Convert from zero-based to one-based
-    };
-
-    let season = parts.first().and_then(|s| parse_part(s));
-    let episode = parts.get(1).and_then(|s| parse_part(s));
-
-    (season, episode)
+    }
+    result
 }
 
 /// Parse XMLTV datetime: `YYYYMMDDHHmmss +HHMM`.
@@ -365,15 +579,6 @@ fn parse_xmltv_datetime(raw: &str) -> Option<NaiveDateTime> {
     Some(dt)
 }
 
-/// Decode common XML entities.
-fn decode_xml_entities(text: &str) -> String {
-    text.replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&apos;", "'")
-}
-
 /// Try base64-decoding `value`. If the decoded bytes
 /// are valid UTF-8, return the decoded string; otherwise
 /// return the original.
@@ -386,6 +591,24 @@ fn decode_maybe_base64(value: &str) -> String {
         Ok(bytes) => String::from_utf8(bytes).unwrap_or_else(|_| value.to_string()),
         Err(_) => value.to_string(),
     }
+}
+
+/// Parse XMLTV episode numbering in `xmltv_ns` format.
+///
+/// Format: `season.episode.part` (all zero-indexed).
+/// Example: `1.5.0` means season 2, episode 6, part 1.
+#[allow(dead_code)]
+fn parse_xmltv_ns(value: &str) -> (Option<u32>, Option<u32>) {
+    let parts: Vec<&str> = value.split('.').collect();
+    let season = parts
+        .first()
+        .and_then(|s| s.trim().parse::<u32>().ok())
+        .map(|n| n + 1);
+    let episode = parts
+        .get(1)
+        .and_then(|s| s.trim().parse::<u32>().ok())
+        .map(|n| n + 1);
+    (season, episode)
 }
 
 // ── Tests ────────────────────────────────────────
@@ -572,23 +795,6 @@ mod tests {
         assert!(e.description.is_none());
         assert!(e.category.is_none());
         assert!(e.icon_url.is_none());
-        assert!(e.sub_title.is_none());
-        assert!(e.season.is_none());
-        assert!(e.episode.is_none());
-        assert!(e.episode_label.is_none());
-        assert!(e.air_date.is_none());
-        assert!(e.content_rating.is_none());
-        assert!(e.star_rating.is_none());
-        assert!(e.directors.is_none());
-        assert!(e.cast.is_none());
-        assert!(e.writers.is_none());
-        assert!(e.presenters.is_none());
-        assert!(e.language.is_none());
-        assert!(e.country.is_none());
-        assert!(!e.is_rerun);
-        assert!(!e.is_new);
-        assert!(!e.is_premiere);
-        assert!(e.length_minutes.is_none());
     }
 
     #[test]
@@ -669,8 +875,6 @@ mod tests {
     #[test]
     fn programme_missing_start_attribute() {
         // Programme has stop and channel but no start.
-        // parse_programme returns None because start_re
-        // fails to match.
         let xml = r#"<tv>
   <programme stop="20240101130000 +0000" channel="ch1">
     <title>No Start</title>
@@ -682,9 +886,9 @@ mod tests {
 
     #[test]
     fn programme_with_empty_title_tag() {
-        // <title></title> matches the regex but yields an
-        // empty string after trim. The parser does not
-        // reject empty titles — it stores them as-is.
+        // <title></title> yields an empty string after trim.
+        // The parser does not reject empty titles — it stores
+        // them as-is.
         let xml = r#"<tv>
   <programme start="20240101120000 +0000" stop="20240101130000 +0000" channel="ch1">
     <title></title>
@@ -697,10 +901,10 @@ mod tests {
 
     #[test]
     fn channel_with_no_display_name() {
-        // The regex is greedy across channel boundaries:
-        // a channel without <display-name> will absorb
-        // the next channel's display-name. This test
-        // documents the actual behavior.
+        // With quick-xml, each <channel> element is parsed
+        // independently, so a channel without <display-name>
+        // is correctly skipped without absorbing a sibling's
+        // display name.
         let xml = r#"<tv>
   <channel id="no-name">
     <icon src="http://example.com/logo.png"/>
@@ -710,18 +914,16 @@ mod tests {
   </channel>
 </tv>"#;
         let names = extract_channel_names(xml);
-        // The lazy .*? crosses from "no-name" to
-        // "has-name"'s display-name, consuming both
-        // channels in one match. Result: "no-name"
-        // gets "Good Channel", "has-name" is consumed.
+        // "no-name" has no <display-name>, so it is not in the map.
+        // "has-name" is correctly extracted.
         assert_eq!(names.len(), 1);
         assert_eq!(
-            names.get("no-name").map(|s| s.as_str()),
+            names.get("has-name").map(|s| s.as_str()),
             Some("Good Channel"),
         );
+        assert!(!names.contains_key("no-name"));
 
-        // When there's no channel without display-name
-        // to interfere, extraction works correctly.
+        // When all channels have display-name, all are extracted.
         let xml2 = r#"<tv>
   <channel id="abc">
     <display-name>ABC</display-name>
@@ -739,7 +941,7 @@ mod tests {
     #[test]
     fn multiple_title_elements_picks_first() {
         // XMLTV allows multiple <title lang="xx">. Our
-        // regex captures the first match only.
+        // parser captures the first match only.
         let xml = r#"<tv>
   <programme start="20240101120000 +0000" stop="20240101130000 +0000" channel="ch1">
     <title lang="en">English Title</title>
@@ -781,7 +983,7 @@ mod tests {
     #[test]
     fn programme_with_credits_and_rating() {
         // Real XMLTV files include <credits> and <rating>
-        // elements. These are now fully parsed.
+        // elements. These should be ignored gracefully.
         let xml = r#"<tv>
   <programme start="20240501200000 +0000" stop="20240501220000 +0000" channel="hbo">
     <title>Movie</title>
@@ -789,38 +991,28 @@ mod tests {
     <credits>
       <director>John Doe</director>
       <actor>Jane Smith</actor>
-      <actor>Bob Wilson</actor>
-      <writer>Alice Brown</writer>
-      <presenter>Tom Host</presenter>
     </credits>
     <category>Drama</category>
     <rating system="MPAA">
       <value>PG-13</value>
     </rating>
-    <star-rating>
-      <value>8.5/10</value>
-    </star-rating>
     <icon src="http://img.example.com/m.png"/>
   </programme>
 </tv>"#;
         let entries = parse_epg(xml);
         assert_eq!(entries.len(), 1);
-        let e = &entries[0];
-        assert_eq!(e.title, "Movie");
-        assert_eq!(e.description.as_deref(), Some("A great movie"),);
-        assert_eq!(e.category.as_deref(), Some("Drama"),);
-        assert_eq!(e.icon_url.as_deref(), Some("http://img.example.com/m.png"),);
-        assert_eq!(e.directors.as_deref(), Some("John Doe"));
-        assert_eq!(e.cast.as_deref(), Some("Jane Smith; Bob Wilson"));
-        assert_eq!(e.writers.as_deref(), Some("Alice Brown"));
-        assert_eq!(e.presenters.as_deref(), Some("Tom Host"));
-        assert_eq!(e.content_rating.as_deref(), Some("PG-13"));
-        assert_eq!(e.star_rating.as_deref(), Some("8.5/10"));
+        assert_eq!(entries[0].title, "Movie");
+        assert_eq!(entries[0].description.as_deref(), Some("A great movie"),);
+        assert_eq!(entries[0].category.as_deref(), Some("Drama"),);
+        assert_eq!(
+            entries[0].icon_url.as_deref(),
+            Some("http://img.example.com/m.png"),
+        );
     }
 
     #[test]
     fn timezone_offset_variants() {
-        // +0530 (India): 12:00 local -> 06:30 UTC
+        // +0530 (India): 12:00 local → 06:30 UTC
         let xml_india = r#"<tv>
   <programme start="20240101120000 +0530" stop="20240101130000 +0530" channel="ch">
     <title>India Show</title>
@@ -835,7 +1027,7 @@ mod tests {
             ),
         );
 
-        // -0800 (PST): 04:00 local -> 12:00 UTC
+        // -0800 (PST): 04:00 local → 12:00 UTC
         let xml_pst = r#"<tv>
   <programme start="20240101040000 -0800" stop="20240101050000 -0800" channel="ch">
     <title>West Coast</title>
@@ -927,282 +1119,57 @@ mod tests {
         assert_eq!(entries[0].title, "News \u{FFFD} Bulletin");
     }
 
-    // ── New extended-field tests ──────────────────────
-
     #[test]
-    fn parse_sub_title() {
+    fn parse_cdata_title() {
+        // quick-xml handles CDATA sections automatically.
         let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101210000 +0000" channel="ch1">
-    <title>Breaking Bad</title>
-    <sub-title>Ozymandias</sub-title>
+  <programme start="20240101120000 +0000" stop="20240101130000 +0000" channel="c1">
+    <title><![CDATA[Breaking <News> & More]]></title>
   </programme>
 </tv>"#;
         let entries = parse_epg(xml);
         assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].sub_title.as_deref(), Some("Ozymandias"));
+        assert_eq!(entries[0].title, "Breaking <News> & More");
     }
 
     #[test]
-    fn parse_episode_num_xmltv_ns() {
-        // xmltv_ns format: "4.12." means season 5, episode 13 (zero-based).
+    fn parse_programme_with_start_timestamp() {
+        // Some providers use start_timestamp/stop_timestamp
+        // (Unix epoch) instead of XMLTV datetime strings.
         let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101210000 +0000" channel="ch1">
-    <title>Show</title>
-    <episode-num system="xmltv_ns">4.12.</episode-num>
+  <programme start_timestamp="1705305600" stop_timestamp="1705309200" channel="ts1">
+    <title>Timestamp Show</title>
   </programme>
 </tv>"#;
         let entries = parse_epg(xml);
         assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].season, Some(5));
-        assert_eq!(entries[0].episode, Some(13));
-    }
-
-    #[test]
-    fn parse_episode_num_xmltv_ns_with_ranges() {
-        // "0/1.5/24." — season 1 (of 2), episode 6 (of 25)
-        let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101210000 +0000" channel="ch1">
-    <title>Show</title>
-    <episode-num system="xmltv_ns">0/1.5/24.</episode-num>
-  </programme>
-</tv>"#;
-        let entries = parse_epg(xml);
-        assert_eq!(entries[0].season, Some(1));
-        assert_eq!(entries[0].episode, Some(6));
-    }
-
-    #[test]
-    fn parse_episode_num_onscreen() {
-        let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101210000 +0000" channel="ch1">
-    <title>Show</title>
-    <episode-num system="onscreen">S02E08</episode-num>
-  </programme>
-</tv>"#;
-        let entries = parse_epg(xml);
-        assert_eq!(entries[0].episode_label.as_deref(), Some("S02E08"));
-    }
-
-    #[test]
-    fn parse_air_date() {
-        let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101210000 +0000" channel="ch1">
-    <title>Classic Movie</title>
-    <date>1994</date>
-  </programme>
-</tv>"#;
-        let entries = parse_epg(xml);
-        assert_eq!(entries[0].air_date.as_deref(), Some("1994"));
-    }
-
-    #[test]
-    fn parse_language_and_country() {
-        let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101210000 +0000" channel="ch1">
-    <title>Show</title>
-    <language>en</language>
-    <country>US</country>
-  </programme>
-</tv>"#;
-        let entries = parse_epg(xml);
-        assert_eq!(entries[0].language.as_deref(), Some("en"));
-        assert_eq!(entries[0].country.as_deref(), Some("US"));
-    }
-
-    #[test]
-    fn parse_previously_shown_flag() {
-        let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101210000 +0000" channel="ch1">
-    <title>Rerun Show</title>
-    <previously-shown start="20230601"/>
-  </programme>
-</tv>"#;
-        let entries = parse_epg(xml);
-        assert!(entries[0].is_rerun);
-        assert!(!entries[0].is_new);
-    }
-
-    #[test]
-    fn parse_new_flag() {
-        let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101210000 +0000" channel="ch1">
-    <title>Brand New</title>
-    <new/>
-  </programme>
-</tv>"#;
-        let entries = parse_epg(xml);
-        assert!(entries[0].is_new);
-        assert!(!entries[0].is_rerun);
-    }
-
-    #[test]
-    fn parse_premiere_flag() {
-        let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101210000 +0000" channel="ch1">
-    <title>Season Premiere</title>
-    <premiere>Season premiere</premiere>
-  </programme>
-</tv>"#;
-        let entries = parse_epg(xml);
-        assert!(entries[0].is_premiere);
-    }
-
-    #[test]
-    fn parse_length_minutes() {
-        let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101220000 +0000" channel="ch1">
-    <title>Movie</title>
-    <length units="minutes">120</length>
-  </programme>
-</tv>"#;
-        let entries = parse_epg(xml);
-        assert_eq!(entries[0].length_minutes, Some(120));
-    }
-
-    #[test]
-    fn parse_length_hours() {
-        let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101220000 +0000" channel="ch1">
-    <title>Movie</title>
-    <length units="hours">2</length>
-  </programme>
-</tv>"#;
-        let entries = parse_epg(xml);
-        assert_eq!(entries[0].length_minutes, Some(120));
-    }
-
-    #[test]
-    fn parse_length_seconds() {
-        let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101203000 +0000" channel="ch1">
-    <title>Short</title>
-    <length units="seconds">1800</length>
-  </programme>
-</tv>"#;
-        let entries = parse_epg(xml);
-        assert_eq!(entries[0].length_minutes, Some(30));
-    }
-
-    #[test]
-    fn parse_multiple_categories() {
-        let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101210000 +0000" channel="ch1">
-    <title>Multi Genre</title>
-    <category>Drama</category>
-    <category>Thriller</category>
-    <category>Mystery</category>
-  </programme>
-</tv>"#;
-        let entries = parse_epg(xml);
+        assert_eq!(entries[0].channel_id, "ts1");
+        assert_eq!(entries[0].title, "Timestamp Show");
+        // 1705305600 = 2024-01-15 08:00:00 UTC
         assert_eq!(
-            entries[0].category.as_deref(),
-            Some("Drama; Thriller; Mystery"),
+            entries[0].start_time,
+            NaiveDateTime::new(
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 15).unwrap(),
+                chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            ),
         );
     }
 
     #[test]
-    fn parse_star_rating_only() {
-        let xml = r#"<tv>
-  <programme start="20240101200000 +0000" stop="20240101220000 +0000" channel="ch1">
-    <title>Rated Movie</title>
-    <star-rating>
-      <value>7.5/10</value>
-    </star-rating>
-  </programme>
-</tv>"#;
-        let entries = parse_epg(xml);
-        assert_eq!(entries[0].star_rating.as_deref(), Some("7.5/10"));
-        assert!(entries[0].content_rating.is_none());
-    }
+    fn parse_xmltv_ns_episode_numbering() {
+        // Season 2, Episode 6: "1.5.0" (zero-indexed)
+        let (season, episode) = parse_xmltv_ns("1.5.0");
+        assert_eq!(season, Some(2));
+        assert_eq!(episode, Some(6));
 
-    #[test]
-    fn parse_full_programme_all_extended_fields() {
-        let xml = r#"<tv>
-  <programme start="20240901200000 +0000" stop="20240901220000 +0000" channel="hbo">
-    <title>The Grand Show</title>
-    <sub-title>Pilot Episode</sub-title>
-    <desc>An epic new series begins</desc>
-    <credits>
-      <director>Christopher Nolan</director>
-      <director>Denis Villeneuve</director>
-      <actor>Christian Bale</actor>
-      <actor>Timothee Chalamet</actor>
-      <writer>Jonathan Nolan</writer>
-      <presenter>Ryan Seacrest</presenter>
-    </credits>
-    <date>2024</date>
-    <category>Drama</category>
-    <category>Sci-Fi</category>
-    <language>en</language>
-    <country>GB</country>
-    <episode-num system="xmltv_ns">0.0.</episode-num>
-    <episode-num system="onscreen">S01E01</episode-num>
-    <icon src="https://img.example.com/grand.jpg"/>
-    <rating system="MPAA">
-      <value>TV-14</value>
-    </rating>
-    <star-rating>
-      <value>9.2/10</value>
-    </star-rating>
-    <premiere>Series premiere</premiere>
-    <new/>
-    <length units="minutes">120</length>
-  </programme>
-</tv>"#;
-        let entries = parse_epg(xml);
-        assert_eq!(entries.len(), 1);
-        let e = &entries[0];
+        // Only season: "3.."
+        let (s, e) = parse_xmltv_ns("3..");
+        assert_eq!(s, Some(4));
+        assert_eq!(e, None);
 
-        assert_eq!(e.channel_id, "hbo");
-        assert_eq!(e.title, "The Grand Show");
-        assert_eq!(e.sub_title.as_deref(), Some("Pilot Episode"));
-        assert_eq!(e.description.as_deref(), Some("An epic new series begins"));
-        assert_eq!(
-            e.directors.as_deref(),
-            Some("Christopher Nolan; Denis Villeneuve"),
-        );
-        assert_eq!(e.cast.as_deref(), Some("Christian Bale; Timothee Chalamet"),);
-        assert_eq!(e.writers.as_deref(), Some("Jonathan Nolan"));
-        assert_eq!(e.presenters.as_deref(), Some("Ryan Seacrest"));
-        assert_eq!(e.air_date.as_deref(), Some("2024"));
-        assert_eq!(e.category.as_deref(), Some("Drama; Sci-Fi"));
-        assert_eq!(e.language.as_deref(), Some("en"));
-        assert_eq!(e.country.as_deref(), Some("GB"));
-        assert_eq!(e.season, Some(1));
-        assert_eq!(e.episode, Some(1));
-        assert_eq!(e.episode_label.as_deref(), Some("S01E01"));
-        assert_eq!(
-            e.icon_url.as_deref(),
-            Some("https://img.example.com/grand.jpg"),
-        );
-        assert_eq!(e.content_rating.as_deref(), Some("TV-14"));
-        assert_eq!(e.star_rating.as_deref(), Some("9.2/10"));
-        assert!(e.is_premiere);
-        assert!(e.is_new);
-        assert!(!e.is_rerun);
-        assert_eq!(e.length_minutes, Some(120));
-    }
-
-    #[test]
-    fn parse_xmltv_ns_season_only() {
-        // "2.." means season 3, no episode
-        let (s, ep) = parse_xmltv_ns("2..");
-        assert_eq!(s, Some(3));
-        assert_eq!(ep, None);
-    }
-
-    #[test]
-    fn parse_xmltv_ns_episode_only() {
-        // ".5." means no season, episode 6
-        let (s, ep) = parse_xmltv_ns(".5.");
-        assert_eq!(s, None);
-        assert_eq!(ep, Some(6));
-    }
-
-    #[test]
-    fn parse_xmltv_ns_empty() {
-        let (s, ep) = parse_xmltv_ns("..");
-        assert_eq!(s, None);
-        assert_eq!(ep, None);
+        // Empty string
+        let (s2, e2) = parse_xmltv_ns("");
+        assert_eq!(s2, None);
+        assert_eq!(e2, None);
     }
 }

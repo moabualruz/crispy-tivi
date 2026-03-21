@@ -44,11 +44,7 @@ impl ThrottledEpgFetcher {
     ///
     /// Concurrent identical requests are coalesced via singleflight.
     /// Returns empty vec on network errors (logged, not propagated).
-    pub async fn fetch_xtream_channel(
-        &self,
-        source: &Source,
-        channel_id: &str,
-    ) -> Vec<EpgEntry> {
+    pub async fn fetch_xtream_channel(&self, source: &Source, channel_id: &str) -> Vec<EpgEntry> {
         let key = format!("xtream:{}:{}", source.id, channel_id);
         let source_clone = source.clone();
         let ch_id = channel_id.to_string();
@@ -70,11 +66,7 @@ impl ThrottledEpgFetcher {
     }
 
     /// Fetch EPG for a single Stalker channel via `get_short_epg`.
-    pub async fn fetch_stalker_channel(
-        &self,
-        source: &Source,
-        channel_id: &str,
-    ) -> Vec<EpgEntry> {
+    pub async fn fetch_stalker_channel(&self, source: &Source, channel_id: &str) -> Vec<EpgEntry> {
         let key = format!("stalker:{}:{}", source.id, channel_id);
         let source_clone = source.clone();
         let ch_id = channel_id.to_string();
@@ -209,8 +201,7 @@ async fn fetch_stalker_short_epg(
     if let Some(listings) = data.as_object() {
         let list_str = serde_json::to_string(listings)?;
         Ok(crate::parsers::stalker::parse_stalker_epg(
-            &list_str,
-            channel_id,
+            &list_str, channel_id,
         ))
     } else {
         Ok(vec![])
@@ -224,12 +215,18 @@ mod tests {
     #[test]
     fn fetcher_creation() {
         let fetcher = ThrottledEpgFetcher::new();
-        assert_eq!(fetcher.semaphore.available_permits(), MAX_CONCURRENT_FETCHES);
+        assert_eq!(
+            fetcher.semaphore.available_permits(),
+            MAX_CONCURRENT_FETCHES
+        );
     }
 
     #[test]
     fn default_creates_same_as_new() {
         let fetcher = ThrottledEpgFetcher::default();
-        assert_eq!(fetcher.semaphore.available_permits(), MAX_CONCURRENT_FETCHES);
+        assert_eq!(
+            fetcher.semaphore.available_permits(),
+            MAX_CONCURRENT_FETCHES
+        );
     }
 }

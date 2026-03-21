@@ -7,8 +7,8 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use moka::sync::Cache;
 use moka::Expiry;
+use moka::sync::Cache;
 
 use crate::models::EpgEntry;
 

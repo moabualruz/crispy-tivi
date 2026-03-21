@@ -32,12 +32,7 @@ pub async fn resolve_epg_for_channels(
     // Find channels with no cached data.
     let missing: Vec<String> = channel_ids
         .iter()
-        .filter(|id| {
-            cached
-                .get(*id)
-                .map(|v| v.is_empty())
-                .unwrap_or(true)
-        })
+        .filter(|id| cached.get(*id).map(|v| v.is_empty()).unwrap_or(true))
         .cloned()
         .collect();
 
@@ -87,10 +82,7 @@ pub async fn resolve_epg_for_channel(
     )
     .await?;
 
-    let mut entries = result
-        .get(channel_id)
-        .cloned()
-        .unwrap_or_default();
+    let mut entries = result.get(channel_id).cloned().unwrap_or_default();
 
     // Sort by start time and truncate.
     entries.sort_by_key(|e| e.start_time);
