@@ -22,6 +22,7 @@ class EpgState {
     this.channels = const [],
     this.entries = const {},
     this.epgOverrides = const {},
+    this.tvgIdIndex = const {},
     this.focusedTime,
     this.selectedChannel,
     this.selectedEntry,
@@ -42,6 +43,9 @@ class EpgState {
 
   /// Manual EPG assignment overrides (channelId → targetId).
   final Map<String, String> epgOverrides;
+
+  /// Reverse index: internal channel ID → tvg_id (XMLTV ID).
+  final Map<String, String> tvgIdIndex;
 
   /// Currently focused time slot (for cursor navigation).
   final DateTime? focusedTime;
@@ -106,7 +110,13 @@ class EpgState {
   /// manual EPG assignment, returns entries for the target.
   List<EpgEntry> entriesForChannel(String channelId) {
     final effectiveId = epgOverrides[channelId] ?? channelId;
-    return entries[effectiveId] ?? const [];
+    final direct = entries[effectiveId];
+    if (direct != null && direct.isNotEmpty) return direct;
+    final tvgId = tvgIdIndex[channelId];
+    if (tvgId != null && tvgId.isNotEmpty) {
+      return entries[tvgId] ?? const [];
+    }
+    return const [];
   }
 
   /// Returns the currently-live EPG entry for [channelId],
@@ -180,6 +190,7 @@ class EpgState {
     List<Channel>? channels,
     Map<String, List<EpgEntry>>? entries,
     Map<String, String>? epgOverrides,
+    Map<String, String>? tvgIdIndex,
     DateTime? focusedTime,
     String? selectedChannel,
     EpgEntry? selectedEntry,
@@ -199,6 +210,7 @@ class EpgState {
       channels: channels ?? this.channels,
       entries: entries ?? this.entries,
       epgOverrides: epgOverrides ?? this.epgOverrides,
+      tvgIdIndex: tvgIdIndex ?? this.tvgIdIndex,
       focusedTime: focusedTime ?? this.focusedTime,
       selectedChannel: selectedChannel ?? this.selectedChannel,
       selectedEntry:
@@ -235,10 +247,12 @@ class EpgNotifier extends Notifier<EpgState> {
     Map<String, List<EpgEntry>> entries = const {},
     Map<String, String>? epgOverrides,
   }) {
+    final tvgIndex = _buildTvgIndex(channels);
     state = state.copyWith(
       channels: channels,
       entries: entries,
       epgOverrides: epgOverrides,
+      tvgIdIndex: tvgIndex,
       focusedTime: DateTime.now(),
       isLoading: false,
     );
@@ -252,11 +266,24 @@ class EpgNotifier extends Notifier<EpgState> {
     required List<Channel> channels,
     Map<String, String>? epgOverrides,
   }) {
+    final tvgIndex = _buildTvgIndex(channels);
     state = state.copyWith(
       channels: channels,
       epgOverrides: epgOverrides,
+      tvgIdIndex: tvgIndex,
       isLoading: false,
     );
+  }
+
+  static Map<String, String> _buildTvgIndex(List<Channel> channels) {
+    final idx = <String, String>{};
+    for (final ch in channels) {
+      final tvg = ch.tvgId;
+      if (tvg != null && tvg.isNotEmpty) {
+        idx[ch.id] = tvg;
+      }
+    }
+    return idx;
   }
 
   /// Fetches an EPG window tailored to the currently filtered channels.

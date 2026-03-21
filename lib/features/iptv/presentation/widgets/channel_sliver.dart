@@ -70,19 +70,26 @@ class ChannelSliver extends ConsumerWidget {
     }
 
     return SliverList(
-      delegate: SliverChildBuilderDelegate((ctx, i) {
-        final ch = channels[i];
-        return ChannelSliverItem(
-          key: ValueKey(ch.id),
-          channel: ch,
-          onTap: onTap,
-          onDoubleTap: onDoubleTap,
-          onFocus: onFocus,
-          onMiddleClick: onMiddleClick,
-          onToggleFavorite: onToggleFavorite,
-          autofocus: i == 0,
-        );
-      }, childCount: channels.length),
+      delegate: SliverChildBuilderDelegate(
+        (ctx, i) {
+          final ch = channels[i];
+          return ChannelSliverItem(
+            key: ValueKey(ch.id),
+            channel: ch,
+            onTap: onTap,
+            onDoubleTap: onDoubleTap,
+            onFocus: onFocus,
+            onMiddleClick: onMiddleClick,
+            onToggleFavorite: onToggleFavorite,
+            autofocus: i == 0,
+          );
+        },
+        childCount: channels.length,
+        // Channel items are ConsumerWidgets — state lives in
+        // Riverpod providers, not widget State. No need to keep
+        // off-screen items alive in memory.
+        addAutomaticKeepAlives: false,
+      ),
     );
   }
 }

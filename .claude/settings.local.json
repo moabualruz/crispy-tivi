@@ -51,5 +51,6 @@
       "Bash(node --version:*)",
       "Bash(node -e:*)"
     ]
-  }
+  },
+  "prefersReducedMotion": false
 }

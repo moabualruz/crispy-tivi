@@ -10,11 +10,12 @@ import '../../../core/network/http_service.dart';
 import '../domain/entities/channel.dart';
 import '../domain/entities/epg_entry.dart';
 
-/// TTL for on-demand per-channel EPG fetches.
+/// Minimum TTL for on-demand per-channel EPG fetches.
 ///
-/// If a channel was fetched less than this duration ago, the
-/// cached result is returned without an API call.
-const _kChannelEpgTtl = Duration(minutes: 5);
+/// The actual TTL is the longer of this and the time remaining
+/// until the current show ends — so a 2-hour movie fetched
+/// 6 minutes ago won't re-fetch until it finishes.
+const _kMinChannelEpgTtl = Duration(minutes: 5);
 
 /// In-memory cache entry for per-channel EPG data.
 class _CacheEntry {
@@ -23,7 +24,25 @@ class _CacheEntry {
   final List<EpgEntry> entries;
   final DateTime fetchedAt;
 
-  bool get isExpired => DateTime.now().difference(fetchedAt) >= _kChannelEpgTtl;
+  /// Expired when both: (a) minimum TTL has passed, and
+  /// (b) the currently-live show (if any) has ended.
+  bool get isExpired {
+    final now = DateTime.now().toUtc();
+    final age = now.difference(fetchedAt);
+    // Find the live entry and use its end time as TTL.
+    for (final e in entries) {
+      if (e.isLiveAt(now)) {
+        final showRemaining = e.endTime.difference(now);
+        final ttl =
+            showRemaining > _kMinChannelEpgTtl
+                ? showRemaining
+                : _kMinChannelEpgTtl;
+        return age >= ttl;
+      }
+    }
+    // No live show — use minimum TTL.
+    return age >= _kMinChannelEpgTtl;
+  }
 }
 
 /// In-memory TTL cache for per-channel on-demand EPG results.

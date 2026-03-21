@@ -12,7 +12,6 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 use sha2::{Digest, Sha256};
 
-use crate::algorithms;
 use crate::http_client::shared_client;
 use crate::models::{Channel, EpgEntry};
 use crate::parsers;
@@ -50,21 +49,23 @@ pub async fn fetch_and_save_xmltv_epg(
         return Ok(0);
     }
 
-    // 2. Extract channel display names
-    let display_names = parsers::epg::extract_channel_names(&xml_content);
-
-    // 3. Parse EPG
+    // 2. Parse EPG entries — keyed by XMLTV channel ID.
     let entries = parsers::epg::parse_epg(&xml_content);
 
-    // 4. Load all channels
-    let channels = service.load_channels()?;
+    // 3. Store EPG entries keyed by XMLTV channel ID (as-is
+    //    from the parser). Multiple internal channels with the
+    //    same tvg_id all share this EPG data — the join happens
+    //    at query time via db_channels.tvg_id.
+    let mut grouped: HashMap<String, Vec<EpgEntry>> = HashMap::new();
+    for entry in entries {
+        grouped
+            .entry(entry.channel_id.clone())
+            .or_default()
+            .push(entry);
+    }
 
-    // 5. Match EPG to physical channels
-    let match_result =
-        algorithms::epg_matching::match_epg_to_channels(&entries, &channels, &display_names);
-
-    // 6. Save directly to the database
-    let count = service.save_epg_entries(&match_result.entries)?;
+    // 5. Save directly to the database
+    let count = service.save_epg_entries(&grouped)?;
 
     // 7. Mark cooldown timestamp on success.
     mark_refreshed(service, url);

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use rusqlite::params;
 
@@ -213,6 +213,11 @@ impl CrispyService {
     }
 
     /// Load EPG entries for a specific set of channels within a time window.
+    ///
+    /// Looks up EPG entries by both the internal channel ID and
+    /// the channel's `tvg_id` (XMLTV channel ID). This allows
+    /// multiple channels sharing the same `tvg_id` to all
+    /// receive the same EPG data without duplication in storage.
     pub fn get_epgs_for_channels(
         &self,
         channel_ids: &[String],
@@ -224,7 +229,54 @@ impl CrispyService {
             return Ok(HashMap::new());
         }
 
-        let placeholders: Vec<String> = (1..=channel_ids.len()).map(|i| format!("?{i}")).collect();
+        // Collect tvg_ids for the requested channels so we
+        // can match EPG stored under the XMLTV channel ID.
+        let ch_placeholders: Vec<String> =
+            (1..=channel_ids.len()).map(|i| format!("?{i}")).collect();
+        let tvg_query = format!(
+            "SELECT id, tvg_id FROM db_channels WHERE id IN ({})",
+            ch_placeholders.join(", ")
+        );
+        let mut tvg_stmt = conn.prepare(&tvg_query)?;
+        let mut ch_params: Vec<&dyn rusqlite::types::ToSql> = Vec::with_capacity(channel_ids.len());
+        for id in channel_ids {
+            ch_params.push(id as &dyn rusqlite::types::ToSql);
+        }
+        let tvg_rows = tvg_stmt.query_map(ch_params.as_slice(), |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
+        })?;
+
+        // Build reverse index: epg_key → Vec<internal_channel_id>.
+        // This allows O(1) lookup per entry instead of O(channels).
+        let mut key_to_channels: HashMap<String, Vec<String>> = HashMap::new();
+        let mut lookup_keys: HashSet<String> = HashSet::new();
+        for row in tvg_rows {
+            let (ch_id, tvg_id) = row?;
+            // Map tvg_id → channel
+            if let Some(ref tvg) = tvg_id
+                && !tvg.is_empty()
+            {
+                lookup_keys.insert(tvg.clone());
+                key_to_channels
+                    .entry(tvg.clone())
+                    .or_default()
+                    .push(ch_id.clone());
+            }
+            // Map internal_id → channel (for legacy entries)
+            lookup_keys.insert(ch_id.clone());
+            key_to_channels
+                .entry(ch_id.clone())
+                .or_default()
+                .push(ch_id);
+        }
+
+        if lookup_keys.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        // Query EPG entries matching any of the lookup keys.
+        let keys_vec: Vec<String> = lookup_keys.into_iter().collect();
+        let placeholders: Vec<String> = (1..=keys_vec.len()).map(|i| format!("?{i}")).collect();
         let query = format!(
             "SELECT {cols}
             FROM db_epg_entries
@@ -234,26 +286,29 @@ impl CrispyService {
             ORDER BY channel_id, start_time",
             cols = EPG_SELECT_COLS,
             placeholders = placeholders.join(", "),
-            start_p = channel_ids.len() + 1,
-            end_p = channel_ids.len() + 2,
+            start_p = keys_vec.len() + 1,
+            end_p = keys_vec.len() + 2,
         );
 
         let mut stmt = conn.prepare(&query)?;
-
-        let mut params: Vec<&dyn rusqlite::types::ToSql> =
-            Vec::with_capacity(channel_ids.len() + 2);
-        for id in channel_ids {
-            params.push(id as &dyn rusqlite::types::ToSql);
+        let mut params: Vec<&dyn rusqlite::types::ToSql> = Vec::with_capacity(keys_vec.len() + 2);
+        for key in &keys_vec {
+            params.push(key as &dyn rusqlite::types::ToSql);
         }
         params.push(&start_time as &dyn rusqlite::types::ToSql);
         params.push(&end_time as &dyn rusqlite::types::ToSql);
 
         let rows = stmt.query_map(params.as_slice(), epg_entry_from_row)?;
 
+        // Single-pass O(entries) mapping via reverse index.
         let mut map: HashMap<String, Vec<EpgEntry>> = HashMap::new();
         for r in rows {
             let entry = r?;
-            map.entry(entry.channel_id.clone()).or_default().push(entry);
+            if let Some(ch_ids) = key_to_channels.get(&entry.channel_id) {
+                for ch_id in ch_ids {
+                    map.entry(ch_id.clone()).or_default().push(entry.clone());
+                }
+            }
         }
         Ok(map)
     }
@@ -343,8 +398,13 @@ mod tests {
     #[test]
     fn get_epgs_for_channels_filters_by_window() {
         let svc = make_service();
+        // Create a channel in db so the tvg_id lookup works.
+        let ch = make_channel("ch1", "Test Channel");
+        svc.save_channels(&[ch]).unwrap();
+
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
+        // Store EPG under the channel's internal ID (legacy path).
         let entry = EpgEntry {
             channel_id: "ch1".to_string(),
             title: "News".to_string(),

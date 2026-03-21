@@ -2,7 +2,6 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::algorithms::epg_fuzzy::fuzzy_name_score;
 use crate::algorithms::normalize::normalize_name;
 use crate::models::{Channel, EpgEntry};
 
@@ -72,27 +71,20 @@ pub fn match_epg_with_confidence(
         })
         .collect();
 
-    // Channel display names for fuzzy matching.
-    let channel_displays: Vec<(&str, &str)> = channels
-        .iter()
-        .map(|c| {
-            let display = c
-                .tvg_name
-                .as_deref()
-                .filter(|n| !n.is_empty())
-                .unwrap_or(c.name.as_str());
-            (c.id.as_str(), display)
-        })
-        .collect();
-
     // Collect unique XMLTV channel IDs with original forms
-    // and sample titles for CJK check.
+    // and compute CJK ratio (majority-vote) for script guard.
     let mut xmltv_info: HashMap<String, (String, String)> = HashMap::new();
+    let mut cjk_counts: HashMap<String, (u32, u32)> = HashMap::new();
     for entry in entries {
         let trimmed = entry.channel_id.trim().to_string();
         xmltv_info
-            .entry(trimmed)
+            .entry(trimmed.clone())
             .or_insert_with(|| (entry.channel_id.clone(), entry.title.clone()));
+        let counter = cjk_counts.entry(trimmed).or_insert((0, 0));
+        counter.1 += 1;
+        if super::types::contains_cjk(&entry.title) {
+            counter.0 += 1;
+        }
     }
 
     let mut candidates: Vec<EpgMatchCandidate> = Vec::new();
@@ -186,25 +178,10 @@ pub fn match_epg_with_confidence(
             }
         }
 
-        // Strategy 7: fuzzy matching.
-        // Only run when no high-confidence match found (optimization).
-        let best_so_far = matches
-            .values()
-            .flat_map(|v| v.iter().map(|(_, c)| *c))
-            .fold(0.0_f64, f64::max);
-
-        if best_so_far < MatchStrategy::NormName.confidence() {
-            let query = dn.map(String::as_str).unwrap_or(xmltv_id.as_str());
-            for &(ch_id, ch_display) in &channel_displays {
-                let score = fuzzy_name_score(query, ch_display);
-                if score >= SUGGEST_THRESHOLD {
-                    matches
-                        .entry(ch_id.to_string())
-                        .or_default()
-                        .push((MatchStrategy::Fuzzy, score));
-                }
-            }
-        }
+        // Strategy 7 (fuzzy matching): REMOVED.
+        // tvg-id / epg_channel_id / xmltv_id is a direct
+        // XMLTV key — fuzzy matching causes wrong EPG
+        // assignments across unrelated channels.
 
         // Build candidates from matches.
         for (ch_id, strats) in &matches {
@@ -218,11 +195,21 @@ pub fn match_epg_with_confidence(
                 continue;
             }
 
-            // CJK script guard.
-            if let Some(&ch_name) = channel_names.get(ch_id.as_str())
-                && !scripts_compatible(ch_name, sample_title)
-            {
-                continue;
+            // Majority-vote CJK script guard: use the CJK
+            // ratio of the XMLTV source, not just one title.
+            let epg_is_cjk = cjk_counts
+                .get(xmltv_id)
+                .map(|&(cjk, total)| total > 0 && (cjk as f64 / total as f64) >= 0.30)
+                .unwrap_or(false);
+            if let Some(&ch_name) = channel_names.get(ch_id.as_str()) {
+                let ch_is_cjk = super::types::contains_cjk(ch_name);
+                if !ch_is_cjk && epg_is_cjk {
+                    continue;
+                }
+                // Also check individual sample title.
+                if !scripts_compatible(ch_name, sample_title) {
+                    continue;
+                }
             }
 
             candidates.push(EpgMatchCandidate {

@@ -20,14 +20,95 @@ class MediaKitPlayer implements CrispyPlayer {
   VideoController? _videoController;
   String? _currentUrl;
 
+  /// Whether the current platform needs a fixed texture size to
+  /// prevent the ANGLE/EGL texture Free→Create crash during
+  /// channel switching with resolution changes.
+  ///
+  /// Applies to: Windows (ANGLE/D3D11), Linux (EGL), macOS (OpenGL),
+  /// iOS (OpenGL ES). NOT Android (SurfaceProducer, no texture
+  /// destroy/recreate) or Web (HTML5 video, no mpv).
+  static bool get _shouldFixTextureSize =>
+      !kIsWeb && defaultTargetPlatform != TargetPlatform.android;
+
+  /// Fixed texture resolution for desktop/iOS platforms.
+  ///
+  /// 3840×2160 covers native 4K IPTV content without quality loss.
+  /// Lower-resolution streams (720p/1080p) are GPU-upscaled by
+  /// mpv's renderer — zero CPU cost.
+  static const _fixedTextureWidth = 3840;
+  static const _fixedTextureHeight = 2160;
+
   VideoController get _ctrl {
-    _videoController ??= VideoController(
-      _player,
-      configuration: const VideoControllerConfiguration(
-        enableHardwareAcceleration: true,
-      ),
-    );
+    if (_videoController == null) {
+      // WIN-02 / LNX-02 / MAC-01 / IOS-02: Lock the output texture
+      // at 4K on desktop/iOS to prevent the ANGLE/EGL texture
+      // Free→Create cycle that crashes during channel switching
+      // when video resolution changes between streams.
+      final config =
+          _shouldFixTextureSize
+              ? const VideoControllerConfiguration(
+                enableHardwareAcceleration: true,
+                width: _fixedTextureWidth,
+                height: _fixedTextureHeight,
+              )
+              : const VideoControllerConfiguration(
+                enableHardwareAcceleration: true,
+              );
+
+      _videoController = VideoController(_player, configuration: config);
+
+      // Cancel the NativeVideoController's videoParamsSubscription
+      // which unconditionally overrides the fixed width/height with
+      // actual video dimensions on every stream load. Without this,
+      // the fixed config is immediately defeated and the texture
+      // resizes on resolution change → crash.
+      //
+      // Uses dynamic dispatch to avoid importing media_kit's src/
+      // internals. Fails silently on platforms that don't use
+      // NativeVideoController (Android, Web).
+      if (_shouldFixTextureSize) {
+        _cancelVideoParamsOverride();
+      }
+    }
     return _videoController!;
+  }
+
+  /// Cancels the NativeVideoController's internal
+  /// videoParamsSubscription that overrides fixed texture
+  /// dimensions with actual video resolution.
+  ///
+  /// The subscription is a public field on
+  /// NativeVideoController. We access it via dynamic
+  /// dispatch through VideoController.platform to avoid
+  /// importing media_kit's src/ internals.
+  void _cancelVideoParamsOverride() {
+    // VideoController.platform is Future<PlatformVideoController>.
+    // NativeVideoController.videoParamsSubscription is
+    // StreamSubscription<VideoParams>?.
+    try {
+      final controller = _videoController!;
+      controller.platform.future.then((platformCtrl) {
+        try {
+          // ignore: avoid_dynamic_calls
+          (platformCtrl as dynamic).videoParamsSubscription?.cancel();
+          debugPrint(
+            'MediaKitPlayer: videoParamsSubscription cancelled '
+            '— texture locked at '
+            '${_fixedTextureWidth}x$_fixedTextureHeight',
+          );
+        } catch (e) {
+          debugPrint(
+            'MediaKitPlayer: failed to cancel '
+            'videoParamsSubscription: $e',
+          );
+        }
+      });
+    } catch (e) {
+      debugPrint(
+        'MediaKitPlayer: _cancelVideoParamsOverride '
+        'failed: $e',
+      );
+    }
   }
 
   // ── Commands ────────────────────────────────────────
@@ -40,16 +121,6 @@ class MediaKitPlayer implements CrispyPlayer {
     Duration startPosition = Duration.zero,
   }) async {
     _currentUrl = url;
-
-    // LNX-01: Recreate VideoController on Linux to avoid blank
-    // screen after stream switch (media-kit#1016).
-    if (!kIsWeb &&
-        defaultTargetPlatform == TargetPlatform.linux &&
-        _videoController != null) {
-      _videoController = null;
-      final _ = _ctrl; // Force recreation
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
 
     await _player.open(
       Media(

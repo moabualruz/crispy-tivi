@@ -42,44 +42,77 @@ class MyFavoritesTab extends ConsumerWidget {
       );
     }
 
-    return ListView(
-      padding: const EdgeInsets.all(CrispySpacing.md),
-      children: [
+    return CustomScrollView(
+      slivers: [
+        const SliverPadding(
+          padding: EdgeInsets.only(top: CrispySpacing.md),
+          sliver: SliverToBoxAdapter(child: SizedBox.shrink()),
+        ),
         if (favChannels.isNotEmpty) ...[
-          SectionHeader(title: 'Channels (${favChannels.length})'),
-          const SizedBox(height: CrispySpacing.xs),
-          ...favChannels.map(
-            (channel) => RecentlyWatchedItem(
-              channel: channel,
-              isSelecting: false,
-              isSelected: false,
-              onPlay: () {
-                ref
-                    .read(playbackSessionProvider.notifier)
-                    .startPlayback(
-                      streamUrl: channel.streamUrl,
-                      isLive: true,
-                      channelName: channel.name,
-                      channelLogoUrl: channel.logoUrl,
-                      sourceId: channel.sourceId,
-                    );
-              },
-              onRemove: () {
-                ref
-                    .read(favoritesControllerProvider.notifier)
-                    .toggleFavorite(channel);
-              },
-              onLongPress: () {},
-              onToggleSelect: () {},
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),
+            sliver: SliverToBoxAdapter(
+              child: SectionHeader(title: 'Channels (${favChannels.length})'),
             ),
           ),
-          const SizedBox(height: CrispySpacing.md),
+          const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xs)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),
+            sliver: SliverList.builder(
+              itemCount: favChannels.length,
+              itemBuilder: (ctx, index) {
+                final channel = favChannels[index];
+                return RecentlyWatchedItem(
+                  channel: channel,
+                  isSelecting: false,
+                  isSelected: false,
+                  onPlay: () {
+                    ref
+                        .read(playbackSessionProvider.notifier)
+                        .startPlayback(
+                          streamUrl: channel.streamUrl,
+                          isLive: true,
+                          channelName: channel.name,
+                          channelLogoUrl: channel.logoUrl,
+                          sourceId: channel.sourceId,
+                        );
+                  },
+                  onRemove: () {
+                    ref
+                        .read(favoritesControllerProvider.notifier)
+                        .toggleFavorite(channel);
+                  },
+                  onLongPress: () {},
+                  onToggleSelect: () {},
+                );
+              },
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.md)),
         ],
         if (favVods.isNotEmpty) ...[
-          SectionHeader(title: 'Movies & Series (${favVods.length})'),
-          const SizedBox(height: CrispySpacing.xs),
-          ...favVods.map((vod) => _VodFavoriteItem(vod: vod)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),
+            sliver: SliverToBoxAdapter(
+              child: SectionHeader(
+                title: 'Movies & Series (${favVods.length})',
+              ),
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xs)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),
+            sliver: SliverList.builder(
+              itemCount: favVods.length,
+              itemBuilder:
+                  (ctx, index) => _VodFavoriteItem(vod: favVods[index]),
+            ),
+          ),
         ],
+        const SliverPadding(
+          padding: EdgeInsets.only(bottom: CrispySpacing.md),
+          sliver: SliverToBoxAdapter(child: SizedBox.shrink()),
+        ),
       ],
     );
   }

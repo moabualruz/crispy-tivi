@@ -7,7 +7,7 @@ import '../../../../core/utils/date_format_utils.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../application/duplicate_detection_service.dart';
 import '../../domain/entities/channel.dart';
-import '../providers/channel_epg_provider.dart';
+import '../../../epg/presentation/providers/epg_providers.dart';
 import '../providers/channel_providers.dart';
 import '../providers/smart_group_providers.dart';
 import 'channel_context_menu.dart';
@@ -44,9 +44,18 @@ class ChannelSliverItem extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ch = channel;
 
-    // Best-effort on-demand EPG (supplements batch XMLTV).
-    final nowPlaying = bestNowPlaying(ref, ch);
-    final nextEntry = bestNextProgram(ref, ch);
+    // Read from batch XMLTV data already loaded in epgProvider.
+    // Do NOT use channelEpgProvider here — it triggers individual
+    // HTTP API calls per channel, flooding the server when 20+
+    // channels are visible. Short EPG API is reserved for the
+    // player OSD only (single active channel).
+    final epgState = ref.watch(epgProvider);
+    final nowPlaying = epgState.getNowPlaying(ch.id);
+    final nextEntry = epgState.getNextProgram(ch.id);
+    assert(() {
+      debugPrint('[EPG-PERF] ChannelSliverItem.build: ${ch.name}');
+      return true;
+    }());
 
     final nextLabel =
         nextEntry != null

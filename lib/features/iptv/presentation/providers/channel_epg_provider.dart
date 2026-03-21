@@ -8,13 +8,14 @@ import 'channel_providers.dart';
 
 /// On-demand per-channel EPG provider keyed by [Channel].
 ///
-/// Fetches current and upcoming EPG data from the channel's source
-/// API (Xtream `get_short_epg` or Stalker `get_short_epg`).
+/// **IMPORTANT:** This provider triggers individual HTTP API calls
+/// (`get_short_epg` for Xtream, `get_short_epg` for Stalker).
+/// Only use in **player OSD widgets** for the single active channel.
+/// Channel list items MUST use [epgProvider] batch data instead —
+/// watching this from a ListView causes N concurrent API calls.
 ///
-/// Results are cached in-memory with a 5-minute TTL. The provider
-/// auto-disposes when the widget that watches it unmounts, but the
-/// in-memory cache persists across provider rebuilds so re-entering
-/// a screen does not re-fetch immediately.
+/// Results are cached in-memory with a smart TTL (time until
+/// current show ends, minimum 5 minutes).
 final channelEpgProvider = FutureProvider.family
     .autoDispose<List<EpgEntry>, Channel>((ref, channel) async {
       return fetchChannelEpg(ref, channel);
@@ -35,66 +36,6 @@ final channelEpgByIdProvider = FutureProvider.family
       if (channel == null) return const [];
       return fetchChannelEpg(ref, channel);
     });
-
-/// Returns the best available "now playing" EPG entry for a channel.
-///
-/// Prefers on-demand data (fresher) over batch XMLTV data. Falls back
-/// to the global [epgProvider] state when on-demand data is unavailable
-/// or still loading.
-///
-/// This is the single source of truth for "what is airing now" that
-/// should be used by channel list items, the OSD, and the mini-guide.
-EpgEntry? bestNowPlaying(WidgetRef ref, Channel channel) {
-  // Try on-demand data first (may be loading or unavailable).
-  final onDemand = ref.watch(channelEpgProvider(channel));
-  final onDemandEntries = onDemand.asData?.value;
-
-  // Try batch XMLTV data.
-  final epgState = ref.watch(epgProvider);
-  final batchEntry = epgState.getNowPlaying(channel.id);
-
-  if (onDemandEntries != null && onDemandEntries.isNotEmpty) {
-    final now = DateTime.now().toUtc();
-    for (final e in onDemandEntries) {
-      if (e.isLiveAt(now)) return e;
-    }
-  }
-
-  // Fall back to batch XMLTV data.
-  return batchEntry;
-}
-
-/// Returns the best available "next" EPG entry for a channel.
-///
-/// Same freshness logic as [bestNowPlaying].
-EpgEntry? bestNextProgram(WidgetRef ref, Channel channel) {
-  final onDemand = ref.watch(channelEpgProvider(channel));
-  final onDemandEntries = onDemand.asData?.value;
-
-  final epgState = ref.watch(epgProvider);
-  final batchNext = epgState.getNextProgram(channel.id);
-
-  if (onDemandEntries != null && onDemandEntries.isNotEmpty) {
-    final now = DateTime.now().toUtc();
-    EpgEntry? liveEntry;
-    for (final e in onDemandEntries) {
-      if (e.isLiveAt(now)) {
-        liveEntry = e;
-        break;
-      }
-    }
-    if (liveEntry != null) {
-      for (final e in onDemandEntries) {
-        if (e.startTime.isAfter(liveEntry.startTime) &&
-            !e.startTime.isBefore(liveEntry.endTime)) {
-          return e;
-        }
-      }
-    }
-  }
-
-  return batchNext;
-}
 
 /// Returns the best available "now playing" EPG entry by channel ID.
 ///

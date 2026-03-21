@@ -241,6 +241,7 @@ class _ChannelZapOverlayState extends State<ChannelZapOverlay> {
                             horizontal: CrispySpacing.sm,
                           ),
                           itemCount: filtered.length,
+                          itemExtent: 40.0,
                           itemBuilder: (context, index) {
                             final ch = filtered[index];
                             final isCurrent = ch.id == widget.currentChannelId;
