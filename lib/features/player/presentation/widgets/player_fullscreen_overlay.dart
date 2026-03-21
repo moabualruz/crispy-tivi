@@ -850,7 +850,7 @@ class _PlayerFullscreenOverlayState
                 onScaleStart: isInPip ? null : onScaleStart,
                 onScaleUpdate: isInPip ? null : onScaleUpdate,
                 onScaleEnd: isInPip ? null : onScaleEnd,
-                behavior: HitTestBehavior.opaque,
+                behavior: HitTestBehavior.translucent,
                 child: ScreensaverController(
                   child: PlayerStack(
                     // Transparent placeholder — video is in

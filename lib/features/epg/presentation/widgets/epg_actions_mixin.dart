@@ -61,7 +61,9 @@ mixin EpgActionsMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     }
 
     // Keep session provider in sync so OSD actions
-    // (external player, copy URL) read the current URL.
+    // (external player, copy URL, zap) read the current URL.
+    final epgChannels = ref.read(epgProvider).filteredChannels;
+    final channelIndex = epgChannels.indexWhere((c) => c.id == channel.id);
     ref
         .read(playbackSessionProvider.notifier)
         .startPreview(
@@ -69,6 +71,8 @@ mixin EpgActionsMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
           isLive: true,
           channelName: channel.name,
           channelLogoUrl: channel.logoUrl,
+          channelList: epgChannels,
+          channelIndex: channelIndex >= 0 ? channelIndex : 0,
           headers:
               channel.userAgent != null
                   ? {'User-Agent': channel.userAgent!}

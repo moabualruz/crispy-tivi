@@ -166,9 +166,7 @@ void handlePlayerKeyEvent({
       service.setVolume(service.state.volume - 0.1);
       osd.show();
     case RemoteAction.seekForward:
-      if (isLive && canZap && !osdVisible) {
-        onShowZap();
-      } else if (!isLive) {
+      if (!isLive) {
         _progressiveSeek(event, service, ref, LogicalKeyboardKey.arrowRight);
         onSeekForward();
       }
