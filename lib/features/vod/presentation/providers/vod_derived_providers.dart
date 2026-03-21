@@ -6,8 +6,9 @@ import '../../../../core/data/dart_algorithm_fallbacks.dart';
 import '../../../dvr/domain/utils/dvr_payload.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../profiles/data/profile_service.dart';
-import '../../domain/entities/vod_item.dart';
 import '../../data/episode_progress_codec.dart';
+import '../../data/vod_detail_fetcher.dart';
+import '../../domain/entities/vod_item.dart';
 import '../../domain/utils/vod_utils.dart';
 import '../widgets/series_episode_fetcher.dart';
 import '../widgets/vod_source_picker.dart';
@@ -333,3 +334,27 @@ final vodAlternativeSourcesProvider = FutureProvider.family
         );
       }).toList();
     });
+
+// ══════════════════════════════════════════════════════════════════
+//  On-Demand VOD Metadata Fetch
+// ══════════════════════════════════════════════════════════════════
+
+/// Lazily fetches full VOD metadata from the Xtream
+/// `get_vod_info` endpoint when the detail pane opens.
+///
+/// The bulk `get_vod_streams` only returns basic info
+/// (name, poster, rating). Full metadata (plot, cast,
+/// director, genre, duration, backdrop, tmdb_id) is
+/// only available per-item from `get_vod_info`.
+///
+/// Keyed by the VOD item so the fetch is deduplicated
+/// across the TV detail pane and full detail screen.
+///
+/// autoDispose: freed when the detail view unmounts,
+/// re-fetched on next open if cache was invalidated.
+final vodDetailProvider = FutureProvider.family.autoDispose<VodItem?, VodItem>((
+  ref,
+  item,
+) async {
+  return fetchVodDetail(ref, item);
+});

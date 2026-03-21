@@ -30,18 +30,32 @@ mixin _FfiSyncMixin on _FfiBackendBase {
     acceptInvalidCerts: acceptInvalidCerts,
   );
 
+  Future<String> fetchXtreamAccountInfo({
+    required String baseUrl,
+    required String username,
+    required String password,
+    bool acceptInvalidCerts = false,
+  }) => rust_api.fetchXtreamAccountInfo(
+    baseUrl: baseUrl,
+    username: username,
+    password: password,
+    acceptInvalidCerts: acceptInvalidCerts,
+  );
+
   Future<String> syncXtreamSource({
     required String baseUrl,
     required String username,
     required String password,
     required String sourceId,
     bool acceptInvalidCerts = false,
+    bool enrichVodOnSync = false,
   }) => rust_api.syncXtreamSource(
     baseUrl: baseUrl,
     username: username,
     password: password,
     sourceId: sourceId,
     acceptInvalidCerts: acceptInvalidCerts,
+    enrichVodOnSync: enrichVodOnSync,
   );
 
   Future<String> syncM3uSource({
@@ -89,6 +103,100 @@ mixin _FfiSyncMixin on _FfiBackendBase {
   );
 
   Stream<String> subscribeSyncProgress() => rust_api.subscribeSyncProgress();
+
+  // ── Stalker On-Demand ─────────────────────────────
+
+  Future<String> resolveStalkerStreamUrl({
+    required String baseUrl,
+    required String macAddress,
+    required String cmd,
+    required String streamType,
+    bool acceptInvalidCerts = false,
+  }) => rust_api.resolveStalkerStreamUrl(
+    baseUrl: baseUrl,
+    macAddress: macAddress,
+    cmd: cmd,
+    streamType: streamType,
+    acceptInvalidCerts: acceptInvalidCerts,
+  );
+
+  Future<String> fetchStalkerAccountInfo({
+    required String baseUrl,
+    required String macAddress,
+    bool acceptInvalidCerts = false,
+  }) => rust_api.fetchStalkerAccountInfo(
+    baseUrl: baseUrl,
+    macAddress: macAddress,
+    acceptInvalidCerts: acceptInvalidCerts,
+  );
+
+  Future<void> stalkerKeepalive({
+    required String baseUrl,
+    required String macAddress,
+    required String curPlayType,
+    bool acceptInvalidCerts = false,
+  }) => rust_api.stalkerKeepalive(
+    baseUrl: baseUrl,
+    macAddress: macAddress,
+    curPlayType: curPlayType,
+    acceptInvalidCerts: acceptInvalidCerts,
+  );
+
+  Future<String> fetchStalkerVodDetail({
+    required String baseUrl,
+    required String macAddress,
+    required String movieId,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) => rust_api.fetchStalkerVodDetail(
+    baseUrl: baseUrl,
+    macAddress: macAddress,
+    movieId: movieId,
+    sourceId: sourceId,
+    acceptInvalidCerts: acceptInvalidCerts,
+  );
+
+  Future<String> fetchStalkerSeriesDetail({
+    required String baseUrl,
+    required String macAddress,
+    required String movieId,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) => rust_api.fetchStalkerSeriesDetail(
+    baseUrl: baseUrl,
+    macAddress: macAddress,
+    movieId: movieId,
+    sourceId: sourceId,
+    acceptInvalidCerts: acceptInvalidCerts,
+  );
+
+  Future<String> getStalkerFavorites({
+    required String baseUrl,
+    required String macAddress,
+    required String streamType,
+    bool acceptInvalidCerts = false,
+  }) => rust_api.getStalkerFavorites(
+    baseUrl: baseUrl,
+    macAddress: macAddress,
+    streamType: streamType,
+    acceptInvalidCerts: acceptInvalidCerts,
+  );
+
+  Future<void> setStalkerFavorite({
+    required String baseUrl,
+    required String macAddress,
+    required String favId,
+    required String streamType,
+    required bool remove,
+    bool acceptInvalidCerts = false,
+  }) => rust_api.setStalkerFavorite(
+    baseUrl: baseUrl,
+    macAddress: macAddress,
+    favId: favId,
+    streamType: streamType,
+    remove: remove,
+    acceptInvalidCerts: acceptInvalidCerts,
+  );
 
   // ── Backup ───────────────────────────────────────
 

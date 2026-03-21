@@ -9,7 +9,6 @@ import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/device_form_factor.dart';
-import '../../../../core/widgets/alpha_jump_bar.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../../core/widgets/content_badge.dart';
 import '../../../../core/widgets/genre_pill_row.dart';
@@ -166,116 +165,94 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
     ContentBadge? newEpisodeBadge(VodItem item) =>
         newEpisodesIds.contains(item.id) ? ContentBadge.newEpisode : null;
 
-    final names = allSeries.map((s) => s.name).toList();
-    final indexOffsets = AlphaJumpBar.computeIndexOffsets(names);
-
-    return Stack(
-      children: [
-        _wrapRefresh(
-          CustomScrollView(
-            key: const PageStorageKey('series_browser'),
-            controller: _scrollController,
-            slivers: [
-              // Search bar + sort controls
-              SliverToBoxAdapter(
-                child: VodSearchSortBar(
-                  searchQuery: searchQuery,
-                  searchController: searchController,
-                  hintText: 'Search series...',
-                  onSearchChanged: (q) {
-                    setState(() => searchQuery = q);
-                  },
-                  sortOption: sortOption,
-                  onSortChanged: onSortOptionChanged,
-                ),
-              ),
-
-              // Source filter bar (hidden when ≤1 source).
-              const SliverToBoxAdapter(child: SourceSelectorBar()),
-
-              // T10: Featured series hero banner (hidden during search/filter).
-              if (!isSearchOrCategory && allSeries.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: SeriesFeaturedBanner(items: allSeries),
-                ),
-
-              // Continue watching
-              if (!isSearchOrCategory)
-                ...cw.when(
-                  data:
-                      (items) =>
-                          items.isEmpty
-                              ? <Widget>[]
-                              : <Widget>[
-                                SliverToBoxAdapter(
-                                  child: ContinueWatchingSection(
-                                    title: context.l10n.vodContinueWatching,
-                                    icon: Icons.play_circle_outline,
-                                    items: items,
-                                  ),
-                                ),
-                              ],
-                  loading: () => <Widget>[],
-                  error: (_, _) => <Widget>[],
-                ),
-
-              // Recently Added Series
-              if (!isSearchOrCategory)
-                SliverToBoxAdapter(
-                  child: RecentlyAddedSection(
-                    showSeriesOnly: true,
-                    onItemTap: (item) {
-                      context.push(AppRoutes.seriesDetail, extra: item);
-                    },
-                  ),
-                ),
-
-              // Favorites
-              if (_favorites.isNotEmpty && !isSearchOrCategory)
-                SliverToBoxAdapter(
-                  child: VodRow(
-                    title: context.l10n.commonFavorites,
-                    icon: Icons.star,
-                    items: _favorites,
-                    badgeBuilder: newEpisodeBadge,
-                  ),
-                ),
-
-              // Genre pill row
-              SliverToBoxAdapter(
-                child: GenrePillRow(
-                  categories: seriesCategories,
-                  selectedCategory: selectedCategory,
-                  onCategorySelected: (cat) {
-                    setState(() => selectedCategory = cat);
-                  },
-                ),
-              ),
-
-              // Series grid or swimlanes
-              if (isSearchOrCategory)
-                SeriesMoviesGrid(series: series)
-              else
-                _buildCategorySwimlanes(seriesCategories, allSeries),
-
-              const SliverToBoxAdapter(
-                child: SizedBox(height: CrispySpacing.xl),
-              ),
-            ],
+    return _wrapRefresh(
+      CustomScrollView(
+        key: const PageStorageKey('series_browser'),
+        controller: _scrollController,
+        slivers: [
+          // Search bar + sort controls
+          SliverToBoxAdapter(
+            child: VodSearchSortBar(
+              searchQuery: searchQuery,
+              searchController: searchController,
+              hintText: 'Search series...',
+              onSearchChanged: (q) {
+                setState(() => searchQuery = q);
+              },
+              sortOption: sortOption,
+              onSortChanged: onSortOptionChanged,
+            ),
           ),
-        ),
-        // Alpha jump bar — right edge.
-        Positioned(
-          right: 0,
-          top: 0,
-          bottom: 0,
-          child: _SeriesAlphaJumpAdapter(
-            scrollController: _scrollController,
-            indexOffsets: indexOffsets,
-            totalItemCount: allSeries.length,
+
+          // Source filter bar (hidden when ≤1 source).
+          const SliverToBoxAdapter(child: SourceSelectorBar()),
+
+          // Genre filter pills — always visible at top.
+          SliverToBoxAdapter(
+            child: GenrePillRow(
+              categories: seriesCategories,
+              selectedCategory: selectedCategory,
+              onCategorySelected: (cat) {
+                setState(() => selectedCategory = cat);
+              },
+            ),
           ),
-        ),
-      ],
+
+          // T10: Featured series hero banner (hidden during search/filter).
+          if (!isSearchOrCategory && allSeries.isNotEmpty)
+            SliverToBoxAdapter(child: SeriesFeaturedBanner(items: allSeries)),
+
+          // Continue watching
+          if (!isSearchOrCategory)
+            ...cw.when(
+              data:
+                  (items) =>
+                      items.isEmpty
+                          ? <Widget>[]
+                          : <Widget>[
+                            SliverToBoxAdapter(
+                              child: ContinueWatchingSection(
+                                title: context.l10n.vodContinueWatching,
+                                icon: Icons.play_circle_outline,
+                                items: items,
+                              ),
+                            ),
+                          ],
+              loading: () => <Widget>[],
+              error: (_, _) => <Widget>[],
+            ),
+
+          // Recently Added Series
+          if (!isSearchOrCategory)
+            SliverToBoxAdapter(
+              child: RecentlyAddedSection(
+                showSeriesOnly: true,
+                onItemTap: (item) {
+                  context.push(AppRoutes.seriesDetail, extra: item);
+                },
+              ),
+            ),
+
+          // Favorites
+          if (_favorites.isNotEmpty && !isSearchOrCategory)
+            SliverToBoxAdapter(
+              child: VodRow(
+                title: context.l10n.commonFavorites,
+                icon: Icons.star,
+                items: _favorites,
+                badgeBuilder: newEpisodeBadge,
+              ),
+            ),
+
+          // Series grid or swimlanes
+          if (isSearchOrCategory)
+            SeriesMoviesGrid(series: series)
+          else
+            _buildCategorySwimlanes(seriesCategories, allSeries),
+
+          const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xl)),
+        ],
+      ),
     );
   }
 
@@ -309,79 +286,6 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
           badgeBuilder: newEpisodeBadge,
         );
       }, childCount: nonEmptyCategories.length),
-    );
-  }
-}
-
-/// Adapter that converts index-based offsets to pixel offsets
-/// once the scroll controller's max extent is known.
-class _SeriesAlphaJumpAdapter extends StatefulWidget {
-  final ScrollController scrollController;
-  final Map<String, double> indexOffsets;
-  final int totalItemCount;
-
-  const _SeriesAlphaJumpAdapter({
-    required this.scrollController,
-    required this.indexOffsets,
-    required this.totalItemCount,
-  });
-
-  @override
-  State<_SeriesAlphaJumpAdapter> createState() =>
-      _SeriesAlphaJumpAdapterState();
-}
-
-class _SeriesAlphaJumpAdapterState extends State<_SeriesAlphaJumpAdapter> {
-  Map<String, double> _pixelOffsets = const {};
-  bool _extentReady = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _update());
-    widget.scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void didUpdateWidget(_SeriesAlphaJumpAdapter old) {
-    super.didUpdateWidget(old);
-    if (old.indexOffsets != widget.indexOffsets ||
-        old.totalItemCount != widget.totalItemCount) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _update());
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.scrollController.removeListener(_onScroll);
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (!_extentReady && widget.scrollController.hasClients) {
-      _update();
-    }
-  }
-
-  void _update() {
-    if (!widget.scrollController.hasClients) return;
-    final maxExtent = widget.scrollController.position.maxScrollExtent;
-    if (maxExtent <= 0) return;
-    _extentReady = true;
-    final scaled = AlphaJumpBar.scaleOffsets(
-      widget.indexOffsets,
-      maxExtent,
-      widget.totalItemCount,
-    );
-    if (mounted) setState(() => _pixelOffsets = scaled);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlphaJumpBar(
-      controller: widget.scrollController,
-      sectionOffsets: _pixelOffsets,
-      totalItemCount: widget.totalItemCount,
     );
   }
 }

@@ -254,11 +254,27 @@ Future<void> main() async {
     return true;
   };
 
-  runApp(
-    ProviderScope(
-      overrides: [crispyBackendProvider.overrideWithValue(backend)],
-      child: const CrispyTiviApp(),
-    ),
+  // Wrap the entire app in runZonedGuarded to catch ALL uncaught
+  // errors — including platform channel exceptions, isolate errors,
+  // and anything that slips through Future.onError. This is the
+  // last-resort safety net that prevents the app from crashing.
+  runZonedGuarded(
+    () {
+      runApp(
+        ProviderScope(
+          overrides: [crispyBackendProvider.overrideWithValue(backend)],
+          child: const CrispyTiviApp(),
+        ),
+      );
+    },
+    (error, stack) {
+      // Log but do NOT rethrow — keeps the app alive.
+      debugPrint('╔══════════════════════════════════════════');
+      debugPrint('║ UNCAUGHT ZONE ERROR (app kept alive)');
+      debugPrint('║ $error');
+      debugPrint('╚══════════════════════════════════════════');
+      debugPrint('$stack');
+    },
   );
 }
 

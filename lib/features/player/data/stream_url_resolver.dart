@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/core/data/crispy_backend.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/features/media_servers/shared/utils/media_server_auth.dart';
 
@@ -25,32 +26,63 @@ class ResolvedStream {
 /// - `jellyfin://sourceId/itemId`
 /// - `plex://sourceId/itemId`
 ///
+/// Stalker portal items use regular HTTP URLs but require a
+/// `create_link` API call to obtain a temporary token-bearing URL.
+/// When [sourceId] is provided and belongs to a Stalker source, the
+/// resolver calls [CrispyBackend.resolveStalkerStreamUrl].
+///
 /// This class maps those synthetic URLs back to real playback URLs
 /// by looking up the source configuration from [_sources].
 ///
-/// Regular `http://` / `https://` URLs pass through as `null`
-/// (no resolution needed — play directly).
+/// Regular `http://` / `https://` URLs that are not from Stalker
+/// sources pass through as `null` (no resolution needed — play
+/// directly).
 class StreamUrlResolver {
   /// Creates a [StreamUrlResolver] backed by the given [sources] list.
   ///
   /// [sources] must contain all [PlaylistSource] entries that could
   /// appear as the authority segment of a synthetic URL.
-  StreamUrlResolver(this._sources);
+  ///
+  /// [backend] is optional. When provided, enables Stalker stream
+  /// URL resolution via the Rust FFI bridge.
+  StreamUrlResolver(this._sources, {CrispyBackend? backend})
+    : _backend = backend;
 
   final List<PlaylistSource> _sources;
+  final CrispyBackend? _backend;
 
   /// Resolves a [url] to a [ResolvedStream], or returns `null` for
-  /// regular HTTP(S) URLs.
+  /// regular HTTP(S) URLs that don't need resolution.
   ///
-  /// Throws [StateError] when the source ID encoded in the synthetic
+  /// When [sourceId] is provided, checks whether the source is a
+  /// Stalker portal and resolves the URL via `create_link`.
+  ///
+  /// When [streamType] is provided for Stalker sources, it is passed
+  /// to the Rust backend. Defaults to `"itv"` for live streams.
+  ///
+  /// Throws [StateError] when the source ID encoded in a synthetic
   /// URL is not found in [_sources].
   ///
   /// URI parsing note for synthetic schemes:
-  /// - `plex://sourceId/itemId` → `uri.host == 'sourceid'` (Dart lowercases
+  /// - `plex://sourceId/itemId` -> `uri.host == 'sourceid'` (Dart lowercases
   ///   the authority), `uri.pathSegments.first == 'itemId'`.
   /// - Same applies to `emby://` and `jellyfin://`.
   /// - Source ID lookup is case-insensitive to handle this transparently.
-  Future<ResolvedStream?> resolve(String url) async {
+  Future<ResolvedStream?> resolve(
+    String url, {
+    String? sourceId,
+    String? streamType,
+  }) async {
+    // Check for Stalker resolution first (before URI scheme check)
+    // since Stalker items have regular http:// URLs but still need
+    // create_link resolution.
+    if (sourceId != null && _backend != null) {
+      final source = _findSourceById(sourceId);
+      if (source != null && source.type == PlaylistSourceType.stalkerPortal) {
+        return _resolveStalker(url, source, streamType ?? 'itv');
+      }
+    }
+
     final uri = Uri.tryParse(url);
     if (uri == null) return null;
 
@@ -63,6 +95,21 @@ class StreamUrlResolver {
   }
 
   // ── Private helpers ─────────────────────────────────────────────────────
+
+  Future<ResolvedStream> _resolveStalker(
+    String streamUrl,
+    PlaylistSource source,
+    String streamType,
+  ) async {
+    final resolvedUrl = await _backend!.resolveStalkerStreamUrl(
+      baseUrl: source.url,
+      macAddress: source.macAddress ?? '',
+      cmd: streamUrl,
+      streamType: streamType,
+      acceptInvalidCerts: source.acceptSelfSigned,
+    );
+    return ResolvedStream(url: resolvedUrl);
+  }
 
   ResolvedStream _resolveEmbyJellyfin(Uri uri) {
     final sourceId = uri.host;
@@ -97,7 +144,7 @@ class StreamUrlResolver {
     );
   }
 
-  /// Finds a source by ID, case-insensitively.
+  /// Finds a source by ID (from synthetic URL host), case-insensitively.
   ///
   /// Dart's [Uri] lowercases the authority component, so a synthetic URL
   /// `emby://SRC1/item` yields `uri.host == 'src1'`. Comparing with
@@ -110,5 +157,12 @@ class StreamUrlResolver {
     } on StateError {
       throw StateError('Source not found: $sourceId');
     }
+  }
+
+  /// Finds a source by exact ID (for Stalker/direct lookups).
+  /// Returns `null` if not found.
+  PlaylistSource? _findSourceById(String sourceId) {
+    final lower = sourceId.toLowerCase();
+    return _sources.where((s) => s.id.toLowerCase() == lower).firstOrNull;
   }
 }

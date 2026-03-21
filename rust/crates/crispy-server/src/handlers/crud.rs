@@ -527,6 +527,10 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                 .get("acceptInvalidCerts")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(false);
+            let enrich_vod_on_sync = args
+                .get("enrichVodOnSync")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
             let report = tokio::runtime::Handle::current()
                 .block_on(crispy_core::services::xtream_sync::sync_xtream_source(
                     svc,
@@ -535,6 +539,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                     &password,
                     &source_id,
                     accept_invalid_certs,
+                    enrich_vod_on_sync,
                 ))
                 .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"data": report}))

@@ -32,11 +32,19 @@ class _CloudTvLayoutState extends State<CloudTvLayout> {
   @override
   Widget build(BuildContext context) {
     return TvMasterDetailLayout(
+      showDetail: _selectedFile != null,
+      onDetailDismissed: () => setState(() => _selectedFile = null),
       masterPanel: _FileMasterPanel(
         files: widget.files,
         selectedFile: _selectedFile,
-        onFileFocused: (file) => setState(() => _selectedFile = file),
-        onFileSelected: widget.onTapFile,
+        onFileFocused: (_) {},
+        onFileSelected: (file) {
+          if (file.isDirectory) {
+            widget.onTapFile(file);
+          } else {
+            setState(() => _selectedFile = file);
+          }
+        },
       ),
       detailPanel: _FileDetailPanel(file: _selectedFile),
     );

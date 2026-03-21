@@ -146,6 +146,7 @@ class ProfileManagementScreen extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return TvMasterDetailLayout(
+      showDetail: true,
       masterPanel: _buildProfileList(context, ref, state, state.activeProfile!),
       detailPanel: Center(
         child: Column(

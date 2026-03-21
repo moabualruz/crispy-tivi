@@ -68,7 +68,7 @@ final class SportsScoreProvider
   }
 }
 
-String _$sportsScoreHash() => r'088112a38250dfa55b86ed66e1f6272e64fae1dd';
+String _$sportsScoreHash() => r'dd39f58739f915eddbd7e093fc6d0594097e4c38';
 
 /// Manages live sports score data for a multiview slot.
 ///

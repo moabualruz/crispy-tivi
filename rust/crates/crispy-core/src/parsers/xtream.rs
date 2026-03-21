@@ -11,6 +11,8 @@ use std::collections::HashSet;
 use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 use serde_json::Value;
 
+use chrono::DateTime;
+
 use crate::algorithms::normalize::{parse_epg_timestamp, try_base64_decode};
 use crate::models::{Channel, EpgEntry};
 use crate::utils::image_sanitizer::sanitize_image_url;
@@ -67,9 +69,7 @@ pub fn parse_short_epg(listings: &[Value], channel_id: &str) -> Vec<EpgEntry> {
             start_time,
             end_time,
             description,
-            category: None,
-            icon_url: None,
-            source_id: None,
+            ..EpgEntry::default()
         });
     }
 
@@ -272,6 +272,32 @@ pub fn parse_xtream_live_streams(
 
         let has_catchup = tv_archive == 1 && tv_archive_duration > 0;
 
+        // ── Xtream-specific fields ─────────────
+        let is_adult = obj.get("is_adult").and_then(json_as_i64).unwrap_or(0) == 1;
+
+        let custom_sid = obj
+            .get("custom_sid")
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+            .map(String::from);
+
+        let direct_source = obj
+            .get("direct_source")
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+            .map(String::from);
+
+        // ── added timestamp (unix epoch) ───────
+        let added_at = obj
+            .get("added")
+            .and_then(|v| {
+                // May be a numeric string or integer.
+                v.as_i64()
+                    .or_else(|| v.as_str().and_then(|s| s.parse::<i64>().ok()))
+            })
+            .and_then(|ts| DateTime::from_timestamp(ts, 0))
+            .map(|dt| dt.naive_utc());
+
         channels.push(Channel {
             id: format!("xc_{stream_id}"),
             name: name.clone(),
@@ -293,9 +319,18 @@ pub fn parse_xtream_live_streams(
             catchup_source: None,
             resolution: None,
             source_id: None,
-            added_at: None,
+            added_at,
             updated_at: None,
             is_247: false,
+            tvg_shift: None,
+            tvg_language: None,
+            tvg_country: None,
+            parent_code: None,
+            is_radio: false,
+            tvg_rec: None,
+            is_adult,
+            custom_sid,
+            direct_source,
         });
     }
 
@@ -729,5 +764,157 @@ mod tests {
             url.contains("p%2Fw"),
             "/ in password must be encoded in stream URL",
         );
+    }
+
+    // ── Xtream extended field mapping tests ────
+
+    #[test]
+    fn parse_live_stream_is_adult_mapped() {
+        let mut item = make_live_stream(400, "Adult Ch", "adult1", "", "Adult", 0, 0, None);
+        item["is_adult"] = json!(1);
+        let channels = parse_xtream_live_streams(&[item], "http://tv.example.com", "u", "p");
+        assert!(channels[0].is_adult, "is_adult=1 must map to true");
+    }
+
+    #[test]
+    fn parse_live_stream_is_adult_zero_is_false() {
+        let mut item = make_live_stream(401, "Normal Ch", "ch1", "", "General", 0, 0, None);
+        item["is_adult"] = json!(0);
+        let channels = parse_xtream_live_streams(&[item], "http://tv.example.com", "u", "p");
+        assert!(!channels[0].is_adult, "is_adult=0 must map to false");
+    }
+
+    #[test]
+    fn parse_live_stream_is_adult_string() {
+        // Some providers send is_adult as a string "1".
+        let mut item = make_live_stream(402, "Adult Str", "a2", "", "Adult", 0, 0, None);
+        item["is_adult"] = json!("1");
+        let channels = parse_xtream_live_streams(&[item], "http://tv.example.com", "u", "p");
+        assert!(channels[0].is_adult, "is_adult=\"1\" must map to true");
+    }
+
+    #[test]
+    fn parse_live_stream_is_adult_missing_defaults_false() {
+        // No is_adult field at all.
+        let item = make_live_stream(403, "No Adult", "na", "", "General", 0, 0, None);
+        let channels = parse_xtream_live_streams(&[item], "http://tv.example.com", "u", "p");
+        assert!(
+            !channels[0].is_adult,
+            "missing is_adult must default to false",
+        );
+    }
+
+    #[test]
+    fn parse_live_stream_custom_sid_mapped() {
+        let mut item = make_live_stream(500, "Custom", "c1", "", "General", 0, 0, None);
+        item["custom_sid"] = json!("my_custom_sid_123");
+        let channels = parse_xtream_live_streams(&[item], "http://tv.example.com", "u", "p");
+        assert_eq!(channels[0].custom_sid.as_deref(), Some("my_custom_sid_123"),);
+    }
+
+    #[test]
+    fn parse_live_stream_custom_sid_empty_is_none() {
+        let mut item = make_live_stream(501, "Empty SID", "c2", "", "General", 0, 0, None);
+        item["custom_sid"] = json!("");
+        let channels = parse_xtream_live_streams(&[item], "http://tv.example.com", "u", "p");
+        assert!(
+            channels[0].custom_sid.is_none(),
+            "empty custom_sid must map to None",
+        );
+    }
+
+    #[test]
+    fn parse_live_stream_direct_source_mapped() {
+        let mut item = make_live_stream(600, "Direct", "d1", "", "General", 0, 0, None);
+        item["direct_source"] = json!("http://direct.example.com/stream");
+        let channels = parse_xtream_live_streams(&[item], "http://tv.example.com", "u", "p");
+        assert_eq!(
+            channels[0].direct_source.as_deref(),
+            Some("http://direct.example.com/stream"),
+        );
+    }
+
+    #[test]
+    fn parse_live_stream_direct_source_empty_is_none() {
+        let mut item = make_live_stream(601, "No Direct", "d2", "", "General", 0, 0, None);
+        item["direct_source"] = json!("");
+        let channels = parse_xtream_live_streams(&[item], "http://tv.example.com", "u", "p");
+        assert!(
+            channels[0].direct_source.is_none(),
+            "empty direct_source must map to None",
+        );
+    }
+
+    #[test]
+    fn parse_live_stream_added_timestamp_mapped() {
+        let mut item = make_live_stream(700, "Added", "a1", "", "General", 0, 0, None);
+        // 2024-01-15 12:00:00 UTC
+        item["added"] = json!("1705320000");
+        let channels = parse_xtream_live_streams(&[item], "http://tv.example.com", "u", "p");
+        let added = channels[0].added_at.expect("added_at must be Some");
+        assert_eq!(added.and_utc().timestamp(), 1705320000);
+    }
+
+    #[test]
+    fn parse_live_stream_added_numeric_timestamp() {
+        let mut item = make_live_stream(701, "Added Num", "a2", "", "General", 0, 0, None);
+        item["added"] = json!(1705320000_i64);
+        let channels = parse_xtream_live_streams(&[item], "http://tv.example.com", "u", "p");
+        let added = channels[0].added_at.expect("added_at must be Some");
+        assert_eq!(added.and_utc().timestamp(), 1705320000);
+    }
+
+    #[test]
+    fn parse_live_stream_added_missing_is_none() {
+        // No `added` field.
+        let item = make_live_stream(702, "No Added", "a3", "", "General", 0, 0, None);
+        let channels = parse_xtream_live_streams(&[item], "http://tv.example.com", "u", "p");
+        assert!(
+            channels[0].added_at.is_none(),
+            "missing added must result in None",
+        );
+    }
+
+    #[test]
+    fn parse_live_stream_all_xtream_fields() {
+        // Full Xtream response with all fields.
+        let item = json!({
+            "stream_id": 999,
+            "name": "Full Channel",
+            "stream_type": "live",
+            "epg_channel_id": "full_epg",
+            "stream_icon": "http://icon.example.com/full.png",
+            "category_id": "42",
+            "category_name": "Premium",
+            "num": 5,
+            "added": "1705320000",
+            "custom_sid": "custom_999",
+            "tv_archive": 1,
+            "tv_archive_duration": 14,
+            "direct_source": "http://direct.example.com/full",
+            "is_adult": 1,
+        });
+        let channels = parse_xtream_live_streams(&[item], "http://tv.example.com", "u", "p");
+        assert_eq!(channels.len(), 1);
+        let ch = &channels[0];
+        assert_eq!(ch.id, "xc_999");
+        assert_eq!(ch.name, "Full Channel");
+        assert_eq!(ch.tvg_id.as_deref(), Some("full_epg"));
+        assert_eq!(
+            ch.logo_url.as_deref(),
+            Some("http://icon.example.com/full.png"),
+        );
+        assert_eq!(ch.channel_group.as_deref(), Some("Premium"));
+        assert_eq!(ch.number, Some(5));
+        assert!(ch.has_catchup);
+        assert_eq!(ch.catchup_days, 14);
+        assert!(ch.is_adult);
+        assert_eq!(ch.custom_sid.as_deref(), Some("custom_999"));
+        assert_eq!(
+            ch.direct_source.as_deref(),
+            Some("http://direct.example.com/full"),
+        );
+        assert!(ch.added_at.is_some());
+        assert_eq!(ch.added_at.unwrap().and_utc().timestamp(), 1705320000);
     }
 }

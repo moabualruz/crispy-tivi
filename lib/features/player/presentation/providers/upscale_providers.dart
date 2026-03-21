@@ -17,7 +17,7 @@ import '../../domain/entities/upscale_quality.dart';
 /// When `false` (default), all upscaling is bypassed
 /// and standard bilinear playback is used. This is a
 /// global (not per-profile) setting under Experimental.
-final upscaleEnabledProvider = Provider<bool>((ref) {
+final upscaleEnabledProvider = Provider.autoDispose<bool>((ref) {
   final settings = ref.watch(settingsNotifierProvider);
   return settings.value?.config.player.upscaleEnabled ?? false;
 });
@@ -28,7 +28,7 @@ final upscaleEnabledProvider = Provider<bool>((ref) {
 /// globally disabled, regardless of the saved mode.
 /// Defaults to [UpscaleMode.auto] if settings are
 /// not yet loaded.
-final upscaleModeProvider = Provider<UpscaleMode>((ref) {
+final upscaleModeProvider = Provider.autoDispose<UpscaleMode>((ref) {
   final enabled = ref.watch(upscaleEnabledProvider);
   if (!enabled) return UpscaleMode.off;
   final settings = ref.watch(settingsNotifierProvider);
@@ -40,7 +40,7 @@ final upscaleModeProvider = Provider<UpscaleMode>((ref) {
 ///
 /// Defaults to [UpscaleQuality.balanced] if settings
 /// are not yet loaded.
-final upscaleQualityProvider = Provider<UpscaleQuality>((ref) {
+final upscaleQualityProvider = Provider.autoDispose<UpscaleQuality>((ref) {
   final settings = ref.watch(settingsNotifierProvider);
   final value = settings.value?.config.player.upscaleQuality ?? 'balanced';
   return UpscaleQuality.fromValue(value);
@@ -54,9 +54,10 @@ final upscaleQualityProvider = Provider<UpscaleQuality>((ref) {
 ///
 /// See `.ai/docs/project-specs/video_upscaling_spec.md` §3.4 for tier
 /// definitions.
-final upscaleActiveProvider = NotifierProvider<UpscaleActiveNotifier, int?>(
-  UpscaleActiveNotifier.new,
-);
+final upscaleActiveProvider =
+    NotifierProvider.autoDispose<UpscaleActiveNotifier, int?>(
+      UpscaleActiveNotifier.new,
+    );
 
 /// Notifier for the active upscale tier level.
 class UpscaleActiveNotifier extends Notifier<int?> {
@@ -71,7 +72,7 @@ class UpscaleActiveNotifier extends Notifier<int?> {
 ///
 /// Manages shader extraction, filter application, and
 /// the fallback chain. Disposed with the provider.
-final upscaleManagerProvider = Provider<UpscaleManager>((ref) {
+final upscaleManagerProvider = Provider.autoDispose<UpscaleManager>((ref) {
   return UpscaleManager();
 });
 

@@ -8,7 +8,7 @@ use crate::database::{DbError, TABLE_CHANNELS};
 use crate::events::DataChangeEvent;
 use crate::models::Channel;
 
-/// SELECT column list for `db_channels` (18 columns, positional order).
+/// SELECT column list for `db_channels` (27 columns, positional order).
 ///
 /// Use with `format!("SELECT {CHANNEL_COLUMNS} FROM db_channels ...")`.
 /// Column order matches `channel_from_row` index bindings.
@@ -17,14 +17,19 @@ pub(crate) const CHANNEL_COLUMNS: &str = "id, name, stream_url, number, \
      tvg_name, is_favorite, user_agent, \
      has_catchup, catchup_days, \
      catchup_type, catchup_source, \
-     source_id, added_at, updated_at, is_247";
+     source_id, added_at, updated_at, is_247, \
+     tvg_shift, tvg_language, tvg_country, \
+     parent_code, is_radio, tvg_rec, \
+     is_adult, custom_sid, direct_source";
 
 /// Map a single SQLite row to a `Channel`.
 ///
 /// Column order must match `CHANNEL_COLUMNS`:
 /// `id, name, stream_url, number, channel_group, logo_url, tvg_id,
 ///  tvg_name, is_favorite, user_agent, has_catchup, catchup_days,
-///  catchup_type, catchup_source, source_id, added_at, updated_at, is_247`
+///  catchup_type, catchup_source, source_id, added_at, updated_at, is_247,
+///  tvg_shift, tvg_language, tvg_country, parent_code, is_radio, tvg_rec,
+///  is_adult, custom_sid, direct_source`
 fn channel_from_row(row: &Row) -> rusqlite::Result<Channel> {
     Ok(Channel {
         id: row.get(0)?,
@@ -46,6 +51,15 @@ fn channel_from_row(row: &Row) -> rusqlite::Result<Channel> {
         added_at: opt_ts_to_dt(row.get(15)?),
         updated_at: opt_ts_to_dt(row.get(16)?),
         is_247: int_to_bool(row.get(17)?),
+        tvg_shift: row.get(18)?,
+        tvg_language: row.get(19)?,
+        tvg_country: row.get(20)?,
+        parent_code: row.get(21)?,
+        is_radio: int_to_bool(row.get(22)?),
+        tvg_rec: row.get(23)?,
+        is_adult: int_to_bool(row.get(24)?),
+        custom_sid: row.get(25)?,
+        direct_source: row.get(26)?,
     })
 }
 
@@ -65,11 +79,15 @@ impl CrispyService {
                     tvg_name, is_favorite, user_agent,
                     has_catchup, catchup_days,
                     catchup_type, catchup_source,
-                    source_id, added_at, updated_at, is_247
+                    source_id, added_at, updated_at, is_247,
+                    tvg_shift, tvg_language, tvg_country,
+                    parent_code, is_radio, tvg_rec,
+                    is_adult, custom_sid, direct_source
                 ) VALUES (
                     ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
                     ?9, ?10, ?11, ?12, ?13, ?14, ?15,
-                    ?16, ?17, ?18
+                    ?16, ?17, ?18, ?19, ?20, ?21,
+                    ?22, ?23, ?24, ?25, ?26, ?27
                 )",
                 params![
                     ch.id,
@@ -90,6 +108,15 @@ impl CrispyService {
                     opt_dt_to_ts(&ch.added_at),
                     opt_dt_to_ts(&ch.updated_at),
                     bool_to_int(ch.is_247),
+                    ch.tvg_shift,
+                    ch.tvg_language,
+                    ch.tvg_country,
+                    ch.parent_code,
+                    bool_to_int(ch.is_radio),
+                    ch.tvg_rec,
+                    bool_to_int(ch.is_adult),
+                    ch.custom_sid,
+                    ch.direct_source,
                 ],
             )?;
             count += 1;

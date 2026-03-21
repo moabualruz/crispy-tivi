@@ -1,30 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../../core/widgets/tv_master_detail_layout.dart';
 import 'home_sections.dart';
 import 'my_list_section.dart';
 import 'quick_access_row.dart';
 
-/// TV master-detail layout for the Home screen.
+/// TV layout for the Home screen.
 ///
-/// Master panel: scrollable list of home sections (categories).
-/// Detail panel: welcome message (no selection state on home).
+/// Full-width scrollable list of home sections — no detail pane.
 class HomeTvLayout extends StatelessWidget {
   /// Creates the home TV layout.
   const HomeTvLayout({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const TvMasterDetailLayout(
-      masterPanel: _HomeMasterPanel(),
-      detailPanel: _HomeDetailPanel(),
-    );
-  }
-}
-
-class _HomeMasterPanel extends StatelessWidget {
-  const _HomeMasterPanel();
 
   @override
   Widget build(BuildContext context) {
@@ -59,43 +45,6 @@ class _HomeMasterPanel extends StatelessWidget {
           const SliverToBoxAdapter(child: HomeLatestVodSection()),
 
           const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xxl)),
-        ],
-      ),
-    );
-  }
-}
-
-class _HomeDetailPanel extends StatelessWidget {
-  const _HomeDetailPanel();
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.home_rounded,
-            size: 64,
-            color: colorScheme.onSurface.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: CrispySpacing.md),
-          Text(
-            'Welcome to CrispyTivi',
-            style: textTheme.headlineSmall?.copyWith(
-              color: colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: CrispySpacing.sm),
-          Text(
-            'Browse content from the sections on the left',
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurface.withValues(alpha: 0.4),
-            ),
-          ),
         ],
       ),
     );

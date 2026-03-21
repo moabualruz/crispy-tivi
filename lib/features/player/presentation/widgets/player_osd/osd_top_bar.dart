@@ -10,7 +10,7 @@ import '../../../../../core/theme/crispy_spacing.dart';
 import '../../../../../core/utils/date_format_utils.dart';
 import '../../../../../core/widgets/live_badge.dart';
 import '../../../../../core/widgets/smart_image.dart';
-import '../../../../epg/presentation/providers/epg_providers.dart';
+import '../../../../iptv/presentation/providers/channel_epg_provider.dart';
 import '../../../domain/entities/playback_state.dart';
 import 'format_badge_row.dart';
 import 'osd_profile_switcher.dart';
@@ -198,26 +198,20 @@ class CurrentProgramLabel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final current = ref.watch(
-      epgProvider.select((s) {
-        final entries = s.entriesForChannel(channelEpgId);
-        for (final entry in entries) {
-          if (entry.isLive) {
-            return (
-              title: entry.title,
-              startTime: entry.startTime,
-              endTime: entry.endTime,
-              progress: entry.progress,
-            );
-          }
-        }
-        return null;
-      }),
-    );
+    // Use best-of-breed EPG: on-demand (fresher) with batch
+    // XMLTV fallback via the unified helper.
+    final nowEntry = bestNowPlayingById(ref, channelEpgId);
 
-    if (current == null) {
+    if (nowEntry == null || !nowEntry.isLive) {
       return const SizedBox.shrink();
     }
+
+    final current = (
+      title: nowEntry.title,
+      startTime: nowEntry.startTime,
+      endTime: nowEntry.endTime,
+      progress: nowEntry.progress,
+    );
 
     final timeRange =
         '${formatH12mm(current.startTime)}'

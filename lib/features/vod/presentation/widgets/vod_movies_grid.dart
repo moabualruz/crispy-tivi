@@ -14,6 +14,7 @@ import '../providers/vod_providers.dart';
 import 'media_grid.dart';
 import 'vod_poster_card.dart';
 import 'vod_search_sort_bar.dart';
+import 'vod_tv_layout.dart';
 
 /// Responsive max card extent for VOD poster grids.
 ///
@@ -68,10 +69,17 @@ class VodMoviesGrid extends ConsumerWidget {
       heroTag: tag,
       autofocus: autofocus,
       onTap: () {
-        context.push(
-          AppRoutes.vodDetails,
-          extra: {'item': item, 'heroTag': tag},
-        );
+        final tvScope = VodTvSelectionScope.maybeOf(context);
+        if (tvScope != null) {
+          tvScope.onItemSelected(item);
+        } else if (item.type == VodType.series) {
+          context.push(AppRoutes.seriesDetail, extra: item);
+        } else {
+          context.push(
+            AppRoutes.vodDetails,
+            extra: {'item': item, 'heroTag': tag},
+          );
+        }
       },
       onLongPress:
           () => showContextMenuPanel(

@@ -68,13 +68,26 @@ abstract class _BackendStorageMethods {
     bool acceptInvalidCerts = false,
   });
 
+  /// Fetch Xtream account and server info.
+  /// Returns JSON `XtreamAccountInfo`.
+  Future<String> fetchXtreamAccountInfo({
+    required String baseUrl,
+    required String username,
+    required String password,
+    bool acceptInvalidCerts = false,
+  });
+
   /// Full Xtream source sync. Returns JSON `SyncReport`.
+  ///
+  /// When [enrichVodOnSync] is `true`, calls `get_vod_info`
+  /// per movie to fetch plot, cast, duration, etc.
   Future<String> syncXtreamSource({
     required String baseUrl,
     required String username,
     required String password,
     required String sourceId,
     bool acceptInvalidCerts = false,
+    bool enrichVodOnSync = false,
   });
 
   /// Full M3U source sync. Returns JSON `SyncReport`.
@@ -108,6 +121,78 @@ abstract class _BackendStorageMethods {
   /// Subscribe to sync progress events from Rust.
   /// Returns a stream of JSON-encoded `SyncProgress` objects.
   Stream<String> subscribeSyncProgress();
+
+  // ── Stalker On-Demand ──────────────────────────────────
+
+  /// Resolve a Stalker stream URL via `create_link`.
+  ///
+  /// [cmd] is the raw stream URL from the catalog.
+  /// [streamType] is `"itv"` for live or `"vod"` for VOD.
+  /// Returns the temporary token-bearing playback URL.
+  Future<String> resolveStalkerStreamUrl({
+    required String baseUrl,
+    required String macAddress,
+    required String cmd,
+    required String streamType,
+    bool acceptInvalidCerts = false,
+  });
+
+  /// Fetch Stalker portal account/subscription info.
+  /// Returns JSON string of account details.
+  Future<String> fetchStalkerAccountInfo({
+    required String baseUrl,
+    required String macAddress,
+    bool acceptInvalidCerts = false,
+  });
+
+  /// Send a Stalker session keepalive (watchdog) during playback.
+  ///
+  /// [curPlayType] is `"itv"` for live or `"vod"` for VOD.
+  Future<void> stalkerKeepalive({
+    required String baseUrl,
+    required String macAddress,
+    required String curPlayType,
+    bool acceptInvalidCerts = false,
+  });
+
+  /// Fetch detailed VOD metadata for a single Stalker movie.
+  /// Returns JSON string of VodItem.
+  Future<String> fetchStalkerVodDetail({
+    required String baseUrl,
+    required String macAddress,
+    required String movieId,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  });
+
+  /// Fetch series season/episode structure from a Stalker portal.
+  /// Returns JSON array of VodItem episodes.
+  Future<String> fetchStalkerSeriesDetail({
+    required String baseUrl,
+    required String macAddress,
+    required String movieId,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  });
+
+  /// Fetch server-side favorite IDs from a Stalker portal.
+  /// Returns JSON array of ID strings.
+  Future<String> getStalkerFavorites({
+    required String baseUrl,
+    required String macAddress,
+    required String streamType,
+    bool acceptInvalidCerts = false,
+  });
+
+  /// Set or remove a server-side favorite on a Stalker portal.
+  Future<void> setStalkerFavorite({
+    required String baseUrl,
+    required String macAddress,
+    required String favId,
+    required String streamType,
+    required bool remove,
+    bool acceptInvalidCerts = false,
+  });
 
   // ── Recordings ───────────────────────────────────────
 

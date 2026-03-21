@@ -65,6 +65,7 @@ class _SettingsTvLayoutState extends State<SettingsTvLayout> {
   @override
   Widget build(BuildContext context) {
     return TvMasterDetailLayout(
+      showDetail: true,
       masterPanel: _buildCategoryList(context),
       detailPanel: _buildDetailPane(context),
     );

@@ -5,7 +5,34 @@ use crispy_core::services::CrispyService;
 
 /// Initialize the Rust backend with a database path.
 /// Must be called once before any other API function.
+///
+/// Installs a custom panic hook that logs instead of aborting,
+/// keeping the app alive when a Rust thread panics.
 pub fn init_backend(db_path: String) -> Result<()> {
+    // Install graceful panic hook — log the panic and continue
+    // instead of aborting the process. This prevents Rust panics
+    // from crashing the entire Flutter app.
+    std::panic::set_hook(Box::new(|info| {
+        let location = info
+            .location()
+            .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
+            .unwrap_or_else(|| "unknown".to_string());
+        let payload = if let Some(s) = info.payload().downcast_ref::<&str>() {
+            s.to_string()
+        } else if let Some(s) = info.payload().downcast_ref::<String>() {
+            s.clone()
+        } else {
+            "Box<dyn Any>".to_string()
+        };
+        eprintln!(
+            "╔══════════════════════════════════════════\n\
+             ║ RUST PANIC (thread kept alive)\n\
+             ║ {payload}\n\
+             ║ at {location}\n\
+             ╚══════════════════════════════════════════"
+        );
+    }));
+
     let service = CrispyService::open(&db_path)?;
     SERVICE
         .set(service)

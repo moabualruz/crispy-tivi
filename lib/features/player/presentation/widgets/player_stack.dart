@@ -8,6 +8,7 @@ import 'channel_zap_overlay.dart';
 import 'lock_indicator.dart';
 import 'movie_completion_overlay.dart';
 import 'next_episode_overlay.dart';
+import 'still_watching_overlay.dart';
 import 'player_indicators.dart';
 import 'pip_overlay.dart';
 import 'player_osd_builder.dart';
@@ -49,6 +50,9 @@ class PlayerStack extends ConsumerWidget {
     required this.nextEpisode,
     required this.onPlayNext,
     required this.onCancelNext,
+    required this.stillWatchingCount,
+    required this.onStillWatchingContinue,
+    required this.onStillWatchingDone,
     required this.showMovieCompletion,
     required this.currentTitle,
     required this.onWatchAgain,
@@ -90,6 +94,11 @@ class PlayerStack extends ConsumerWidget {
   final VodItem? nextEpisode;
   final VoidCallback? onPlayNext;
   final VoidCallback? onCancelNext;
+
+  /// Non-zero when "Still Watching?" prompt should show.
+  final int stillWatchingCount;
+  final VoidCallback? onStillWatchingContinue;
+  final VoidCallback? onStillWatchingDone;
   final bool showMovieCompletion;
   final String? currentTitle;
   final VoidCallback? onWatchAgain;
@@ -173,6 +182,12 @@ class PlayerStack extends ConsumerWidget {
             nextEpisode: nextEpisode!,
             onPlayNext: onPlayNext ?? () {},
             onCancel: onCancelNext ?? () {},
+          ),
+        if (stillWatchingCount > 0 && !isInPip)
+          StillWatchingOverlay(
+            episodeCount: stillWatchingCount,
+            onContinue: onStillWatchingContinue ?? () {},
+            onDone: onStillWatchingDone ?? () {},
           ),
         if (showMovieCompletion && !isInPip)
           MovieCompletionOverlay(

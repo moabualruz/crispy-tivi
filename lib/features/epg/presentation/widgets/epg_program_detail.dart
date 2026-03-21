@@ -252,6 +252,7 @@ class EpgProgramDetailSheet extends ConsumerWidget {
           channelName: ch.name,
           channelLogoUrl: ch.logoUrl,
           isLive: true,
+          sourceId: ch.sourceId,
         );
   }
 

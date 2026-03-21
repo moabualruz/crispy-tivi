@@ -134,6 +134,7 @@ class ProfileWatchHistoryScreen extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return TvMasterDetailLayout(
+      showDetail: true,
       masterPanel: _buildList(context, ref, entries),
       detailPanel:
           entries.isEmpty

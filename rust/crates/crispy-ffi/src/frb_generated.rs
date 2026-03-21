@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1492666448;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1523916492;
 
 // Section: executor
 
@@ -2720,6 +2720,231 @@ fn wire__crate__api__vod__extract_sorted_vod_categories_impl(
         },
     )
 }
+fn wire__crate__api__sync__fetch_stalker_account_info_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "fetch_stalker_account_info",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_base_url = <String>::sse_decode(&mut deserializer);
+            let api_mac_address = <String>::sse_decode(&mut deserializer);
+            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::sync::fetch_stalker_account_info(
+                            api_base_url,
+                            api_mac_address,
+                            api_accept_invalid_certs,
+                        )
+                        .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__sync__fetch_stalker_profile_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "fetch_stalker_profile",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_base_url = <String>::sse_decode(&mut deserializer);
+            let api_mac_address = <String>::sse_decode(&mut deserializer);
+            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::sync::fetch_stalker_profile(
+                            api_base_url,
+                            api_mac_address,
+                            api_accept_invalid_certs,
+                        )
+                        .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__sync__fetch_stalker_series_detail_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "fetch_stalker_series_detail",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_base_url = <String>::sse_decode(&mut deserializer);
+            let api_mac_address = <String>::sse_decode(&mut deserializer);
+            let api_movie_id = <String>::sse_decode(&mut deserializer);
+            let api_source_id = <String>::sse_decode(&mut deserializer);
+            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::sync::fetch_stalker_series_detail(
+                            api_base_url,
+                            api_mac_address,
+                            api_movie_id,
+                            api_source_id,
+                            api_accept_invalid_certs,
+                        )
+                        .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__sync__fetch_stalker_vod_detail_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "fetch_stalker_vod_detail",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_base_url = <String>::sse_decode(&mut deserializer);
+            let api_mac_address = <String>::sse_decode(&mut deserializer);
+            let api_movie_id = <String>::sse_decode(&mut deserializer);
+            let api_source_id = <String>::sse_decode(&mut deserializer);
+            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::sync::fetch_stalker_vod_detail(
+                            api_base_url,
+                            api_mac_address,
+                            api_movie_id,
+                            api_source_id,
+                            api_accept_invalid_certs,
+                        )
+                        .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__sync__fetch_xtream_account_info_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "fetch_xtream_account_info",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_base_url = <String>::sse_decode(&mut deserializer);
+            let api_username = <String>::sse_decode(&mut deserializer);
+            let api_password = <String>::sse_decode(&mut deserializer);
+            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::sync::fetch_xtream_account_info(
+                            api_base_url,
+                            api_username,
+                            api_password,
+                            api_accept_invalid_certs,
+                        )
+                        .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__algorithms__filter_and_sort_channels_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -4492,6 +4717,51 @@ fn wire__crate__api__sources__get_sources_impl(
                         let output_ok = crate::api::sources::get_sources()?;
                         Ok(output_ok)
                     })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__sync__get_stalker_favorites_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_stalker_favorites",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_base_url = <String>::sse_decode(&mut deserializer);
+            let api_mac_address = <String>::sse_decode(&mut deserializer);
+            let api_stream_type = <String>::sse_decode(&mut deserializer);
+            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::sync::get_stalker_favorites(
+                            api_base_url,
+                            api_mac_address,
+                            api_stream_type,
+                            api_accept_invalid_certs,
+                        )
+                        .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
                 )
             }
         },
@@ -6598,6 +6868,7 @@ fn wire__crate__api__parsers__parse_stalker_vod_items_impl(
             let api_json = <String>::sse_decode(&mut deserializer);
             let api_base_url = <String>::sse_decode(&mut deserializer);
             let api_vod_type = <Option<String>>::sse_decode(&mut deserializer);
+            let api_source_id = <Option<String>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
@@ -6606,6 +6877,7 @@ fn wire__crate__api__parsers__parse_stalker_vod_items_impl(
                             api_json,
                             api_base_url,
                             api_vod_type,
+                            api_source_id,
                         )?;
                         Ok(output_ok)
                     })(),
@@ -7705,6 +7977,53 @@ fn wire__crate__api__algorithms__resolve_next_episodes_impl(
         },
     )
 }
+fn wire__crate__api__sync__resolve_stalker_stream_url_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "resolve_stalker_stream_url",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_base_url = <String>::sse_decode(&mut deserializer);
+            let api_mac_address = <String>::sse_decode(&mut deserializer);
+            let api_cmd = <String>::sse_decode(&mut deserializer);
+            let api_stream_type = <String>::sse_decode(&mut deserializer);
+            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::sync::resolve_stalker_stream_url(
+                            api_base_url,
+                            api_mac_address,
+                            api_cmd,
+                            api_stream_type,
+                            api_accept_invalid_certs,
+                        )
+                        .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__vod__resolve_vod_categories_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -8761,6 +9080,55 @@ fn wire__crate__api__profiles__set_source_access_impl(
         },
     )
 }
+fn wire__crate__api__sync__set_stalker_favorite_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "set_stalker_favorite",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_base_url = <String>::sse_decode(&mut deserializer);
+            let api_mac_address = <String>::sse_decode(&mut deserializer);
+            let api_fav_id = <String>::sse_decode(&mut deserializer);
+            let api_stream_type = <String>::sse_decode(&mut deserializer);
+            let api_remove = <bool>::sse_decode(&mut deserializer);
+            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::sync::set_stalker_favorite(
+                            api_base_url,
+                            api_mac_address,
+                            api_fav_id,
+                            api_stream_type,
+                            api_remove,
+                            api_accept_invalid_certs,
+                        )
+                        .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__algorithms__sign_s3_request_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -9026,6 +9394,51 @@ fn wire__crate__api__vod__sort_vod_items_impl(
                     ))?;
                     Ok(output_ok)
                 })())
+            }
+        },
+    )
+}
+fn wire__crate__api__sync__stalker_keepalive_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "stalker_keepalive",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_base_url = <String>::sse_decode(&mut deserializer);
+            let api_mac_address = <String>::sse_decode(&mut deserializer);
+            let api_cur_play_type = <String>::sse_decode(&mut deserializer);
+            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::sync::stalker_keepalive(
+                            api_base_url,
+                            api_mac_address,
+                            api_cur_play_type,
+                            api_accept_invalid_certs,
+                        )
+                        .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
             }
         },
     )
@@ -9341,6 +9754,7 @@ fn wire__crate__api__sync__sync_xtream_source_impl(
             let api_password = <String>::sse_decode(&mut deserializer);
             let api_source_id = <String>::sse_decode(&mut deserializer);
             let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+            let api_enrich_vod_on_sync = <bool>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
@@ -9351,6 +9765,7 @@ fn wire__crate__api__sync__sync_xtream_source_impl(
                             api_password,
                             api_source_id,
                             api_accept_invalid_certs,
+                            api_enrich_vod_on_sync,
                         )
                         .await?;
                         Ok(output_ok)
@@ -10089,479 +10504,512 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        75 => wire__crate__api__algorithms__filter_and_sort_channels_impl(
+        75 => wire__crate__api__sync__fetch_stalker_account_info_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        76 => {
+        76 => wire__crate__api__sync__fetch_stalker_profile_impl(port, ptr, rust_vec_len, data_len),
+        77 => wire__crate__api__sync__fetch_stalker_series_detail_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        78 => {
+            wire__crate__api__sync__fetch_stalker_vod_detail_impl(port, ptr, rust_vec_len, data_len)
+        }
+        79 => wire__crate__api__sync__fetch_xtream_account_info_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        80 => wire__crate__api__algorithms__filter_and_sort_channels_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        81 => {
             wire__crate__api__vod__filter_and_sort_vod_items_impl(port, ptr, rust_vec_len, data_len)
         }
-        77 => wire__crate__api__algorithms__filter_by_cw_status_impl(
+        82 => wire__crate__api__algorithms__filter_by_cw_status_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        78 => wire__crate__api__channels__filter_channels_by_source_impl(
+        83 => wire__crate__api__channels__filter_channels_by_source_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        79 => {
+        84 => {
             wire__crate__api__dvr__filter_continue_watching_impl(port, ptr, rust_vec_len, data_len)
         }
-        80 => wire__crate__api__algorithms__filter_continue_watching_positions_impl(
+        85 => wire__crate__api__algorithms__filter_continue_watching_positions_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        81 => wire__crate__api__dvr__filter_cross_device_impl(port, ptr, rust_vec_len, data_len),
-        82 => wire__crate__api__dvr__filter_dvr_recordings_impl(port, ptr, rust_vec_len, data_len),
-        83 => wire__crate__api__algorithms__filter_recently_added_impl(
+        86 => wire__crate__api__dvr__filter_cross_device_impl(port, ptr, rust_vec_len, data_len),
+        87 => wire__crate__api__dvr__filter_dvr_recordings_impl(port, ptr, rust_vec_len, data_len),
+        88 => wire__crate__api__algorithms__filter_recently_added_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        84 => wire__crate__api__vod__filter_top_vod_impl(port, ptr, rust_vec_len, data_len),
-        85 => {
+        89 => wire__crate__api__vod__filter_top_vod_impl(port, ptr, rust_vec_len, data_len),
+        90 => {
             wire__crate__api__epg__filter_upcoming_programs_impl(port, ptr, rust_vec_len, data_len)
         }
-        86 => wire__crate__api__vod__filter_vod_by_content_rating_impl(
+        91 => wire__crate__api__vod__filter_vod_by_content_rating_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        87 => wire__crate__api__channels__find_group_for_channel_impl(
+        92 => wire__crate__api__channels__find_group_for_channel_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        88 => wire__crate__api__vod__find_vod_alternatives_impl(port, ptr, rust_vec_len, data_len),
-        94 => wire__crate__api__algorithms__generate_presigned_url_impl(
+        93 => wire__crate__api__vod__find_vod_alternatives_impl(port, ptr, rust_vec_len, data_len),
+        99 => wire__crate__api__algorithms__generate_presigned_url_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        95 => wire__crate__api__algorithms__get_all_duplicate_ids_impl(
+        100 => wire__crate__api__algorithms__get_all_duplicate_ids_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        96 => wire__crate__api__parsers__get_bif_thumbnail_impl(port, ptr, rust_vec_len, data_len),
-        98 => wire__crate__api__buffer__get_buffer_tier_impl(port, ptr, rust_vec_len, data_len),
-        99 => wire__crate__api__channels__get_categories_by_sources_impl(
+        101 => wire__crate__api__parsers__get_bif_thumbnail_impl(port, ptr, rust_vec_len, data_len),
+        103 => wire__crate__api__buffer__get_buffer_tier_impl(port, ptr, rust_vec_len, data_len),
+        104 => wire__crate__api__channels__get_categories_by_sources_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        100 => {
+        105 => {
             wire__crate__api__channels__get_channels_by_ids_impl(port, ptr, rust_vec_len, data_len)
         }
-        101 => wire__crate__api__channels__get_channels_by_sources_impl(
+        106 => wire__crate__api__channels__get_channels_by_sources_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        102 => wire__crate__api__epg__get_epg_by_sources_impl(port, ptr, rust_vec_len, data_len),
-        103 => wire__crate__api__epg__get_epg_mappings_impl(port, ptr, rust_vec_len, data_len),
-        104 => wire__crate__api__epg__get_epgs_for_channels_impl(port, ptr, rust_vec_len, data_len),
-        105 => wire__crate__api__channels__get_favorite_categories_impl(
+        107 => wire__crate__api__epg__get_epg_by_sources_impl(port, ptr, rust_vec_len, data_len),
+        108 => wire__crate__api__epg__get_epg_mappings_impl(port, ptr, rust_vec_len, data_len),
+        109 => wire__crate__api__epg__get_epgs_for_channels_impl(port, ptr, rust_vec_len, data_len),
+        110 => wire__crate__api__channels__get_favorite_categories_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        106 => wire__crate__api__channels__get_favorites_impl(port, ptr, rust_vec_len, data_len),
-        107 => wire__crate__api__vod__get_filtered_vod_impl(port, ptr, rust_vec_len, data_len),
-        108 => {
+        111 => wire__crate__api__channels__get_favorites_impl(port, ptr, rust_vec_len, data_len),
+        112 => wire__crate__api__vod__get_filtered_vod_impl(port, ptr, rust_vec_len, data_len),
+        113 => {
             wire__crate__api__settings__get_last_sync_time_impl(port, ptr, rust_vec_len, data_len)
         }
-        109 => wire__crate__api__epg__get_pending_epg_suggestions_impl(
+        114 => wire__crate__api__epg__get_pending_epg_suggestions_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        111 => wire__crate__api__profiles__get_profiles_for_source_impl(
+        116 => wire__crate__api__profiles__get_profiles_for_source_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        112 => wire__crate__api__dvr__get_recording_markers_impl(port, ptr, rust_vec_len, data_len),
-        113 => {
+        117 => wire__crate__api__dvr__get_recording_markers_impl(port, ptr, rust_vec_len, data_len),
+        118 => {
             wire__crate__api__dvr__get_recordings_to_start_impl(port, ptr, rust_vec_len, data_len)
         }
-        114 => wire__crate__api__settings__get_saved_layout_by_id_impl(
+        119 => wire__crate__api__settings__get_saved_layout_by_id_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        115 => wire__crate__api__settings__get_setting_impl(port, ptr, rust_vec_len, data_len),
-        116 => wire__crate__api__smart_groups__get_smart_group_alternatives_impl(
+        120 => wire__crate__api__settings__get_setting_impl(port, ptr, rust_vec_len, data_len),
+        121 => wire__crate__api__smart_groups__get_smart_group_alternatives_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        117 => wire__crate__api__smart_groups__get_smart_group_for_channel_impl(
+        122 => wire__crate__api__smart_groups__get_smart_group_for_channel_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        118 => wire__crate__api__smart_groups__get_smart_groups_json_impl(
+        123 => wire__crate__api__smart_groups__get_smart_groups_json_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        119 => wire__crate__api__sources__get_source_impl(port, ptr, rust_vec_len, data_len),
-        120 => {
+        124 => wire__crate__api__sources__get_source_impl(port, ptr, rust_vec_len, data_len),
+        125 => {
             wire__crate__api__profiles__get_source_access_impl(port, ptr, rust_vec_len, data_len)
         }
-        121 => wire__crate__api__sources__get_source_stats_impl(port, ptr, rust_vec_len, data_len),
-        122 => wire__crate__api__sources__get_sources_impl(port, ptr, rust_vec_len, data_len),
-        123 => wire__crate__api__stream_health__get_stream_health_score_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        124 => wire__crate__api__stream_health__get_stream_health_scores_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        126 => wire__crate__api__vod__get_vod_by_sources_impl(port, ptr, rust_vec_len, data_len),
-        127 => wire__crate__api__vod__get_vod_favorites_impl(port, ptr, rust_vec_len, data_len),
+        126 => wire__crate__api__sources__get_source_stats_impl(port, ptr, rust_vec_len, data_len),
+        127 => wire__crate__api__sources__get_sources_impl(port, ptr, rust_vec_len, data_len),
         128 => {
+            wire__crate__api__sync__get_stalker_favorites_impl(port, ptr, rust_vec_len, data_len)
+        }
+        129 => wire__crate__api__stream_health__get_stream_health_score_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        130 => wire__crate__api__stream_health__get_stream_health_scores_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        132 => wire__crate__api__vod__get_vod_by_sources_impl(port, ptr, rust_vec_len, data_len),
+        133 => wire__crate__api__vod__get_vod_favorites_impl(port, ptr, rust_vec_len, data_len),
+        134 => {
             wire__crate__api__watchlist__get_watchlist_items_impl(port, ptr, rust_vec_len, data_len)
         }
-        129 => {
+        135 => {
             wire__crate__api__profiles__grant_source_access_impl(port, ptr, rust_vec_len, data_len)
         }
-        130 => wire__crate__api__algorithms__group_search_results_impl(
+        136 => wire__crate__api__algorithms__group_search_results_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        133 => wire__crate__api__settings__import_backup_impl(port, ptr, rust_vec_len, data_len),
-        134 => wire__crate__api__lifecycle__init_backend_impl(port, ptr, rust_vec_len, data_len),
-        138 => {
+        139 => wire__crate__api__settings__import_backup_impl(port, ptr, rust_vec_len, data_len),
+        140 => wire__crate__api__lifecycle__init_backend_impl(port, ptr, rust_vec_len, data_len),
+        144 => {
             wire__crate__api__settings__is_logo_index_stale_impl(port, ptr, rust_vec_len, data_len)
         }
-        139 => wire__crate__api__bookmarks__load_bookmarks_impl(port, ptr, rust_vec_len, data_len),
-        140 => wire__crate__api__channels__load_categories_impl(port, ptr, rust_vec_len, data_len),
-        141 => {
+        145 => wire__crate__api__bookmarks__load_bookmarks_impl(port, ptr, rust_vec_len, data_len),
+        146 => wire__crate__api__channels__load_categories_impl(port, ptr, rust_vec_len, data_len),
+        147 => {
             wire__crate__api__channels__load_channel_order_impl(port, ptr, rust_vec_len, data_len)
         }
-        142 => wire__crate__api__channels__load_channels_impl(port, ptr, rust_vec_len, data_len),
-        143 => wire__crate__api__epg__load_epg_entries_impl(port, ptr, rust_vec_len, data_len),
-        144 => wire__crate__api__profiles__load_profiles_impl(port, ptr, rust_vec_len, data_len),
-        145 => wire__crate__api__dvr__load_recordings_impl(port, ptr, rust_vec_len, data_len),
-        146 => wire__crate__api__dvr__load_reminders_impl(port, ptr, rust_vec_len, data_len),
-        147 => {
+        148 => wire__crate__api__channels__load_channels_impl(port, ptr, rust_vec_len, data_len),
+        149 => wire__crate__api__epg__load_epg_entries_impl(port, ptr, rust_vec_len, data_len),
+        150 => wire__crate__api__profiles__load_profiles_impl(port, ptr, rust_vec_len, data_len),
+        151 => wire__crate__api__dvr__load_recordings_impl(port, ptr, rust_vec_len, data_len),
+        152 => wire__crate__api__dvr__load_reminders_impl(port, ptr, rust_vec_len, data_len),
+        153 => {
             wire__crate__api__settings__load_saved_layouts_impl(port, ptr, rust_vec_len, data_len)
         }
-        148 => {
+        154 => {
             wire__crate__api__settings__load_search_history_impl(port, ptr, rust_vec_len, data_len)
         }
-        149 => wire__crate__api__dvr__load_storage_backends_impl(port, ptr, rust_vec_len, data_len),
-        150 => wire__crate__api__dvr__load_transfer_tasks_impl(port, ptr, rust_vec_len, data_len),
-        151 => wire__crate__api__vod__load_vod_items_impl(port, ptr, rust_vec_len, data_len),
-        152 => wire__crate__api__dvr__load_watch_history_impl(port, ptr, rust_vec_len, data_len),
-        153 => wire__crate__api__epg__lock_epg_mapping_impl(port, ptr, rust_vec_len, data_len),
-        156 => wire__crate__api__dvr__mark_reminder_fired_impl(port, ptr, rust_vec_len, data_len),
-        157 => wire__crate__api__epg__match_epg_to_channels_impl(port, ptr, rust_vec_len, data_len),
-        158 => {
+        155 => wire__crate__api__dvr__load_storage_backends_impl(port, ptr, rust_vec_len, data_len),
+        156 => wire__crate__api__dvr__load_transfer_tasks_impl(port, ptr, rust_vec_len, data_len),
+        157 => wire__crate__api__vod__load_vod_items_impl(port, ptr, rust_vec_len, data_len),
+        158 => wire__crate__api__dvr__load_watch_history_impl(port, ptr, rust_vec_len, data_len),
+        159 => wire__crate__api__epg__lock_epg_mapping_impl(port, ptr, rust_vec_len, data_len),
+        162 => wire__crate__api__dvr__mark_reminder_fired_impl(port, ptr, rust_vec_len, data_len),
+        163 => wire__crate__api__epg__match_epg_to_channels_impl(port, ptr, rust_vec_len, data_len),
+        164 => {
             wire__crate__api__epg__match_epg_with_confidence_impl(port, ptr, rust_vec_len, data_len)
         }
-        160 => wire__crate__api__algorithms__merge_cloud_backups_impl(
+        166 => wire__crate__api__algorithms__merge_cloud_backups_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        161 => wire__crate__api__algorithms__merge_dedup_sort_history_impl(
+        167 => wire__crate__api__algorithms__merge_dedup_sort_history_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        162 => wire__crate__api__algorithms__merge_epg_matched_channels_impl(
+        168 => wire__crate__api__algorithms__merge_epg_matched_channels_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        163 => wire__crate__api__epg__merge_epg_window_impl(port, ptr, rust_vec_len, data_len),
-        169 => wire__crate__api__parsers__parse_bif_index_impl(port, ptr, rust_vec_len, data_len),
-        170 => wire__crate__api__parsers__parse_epg_impl(port, ptr, rust_vec_len, data_len),
-        171 => wire__crate__api__parsers__parse_episodes_impl(port, ptr, rust_vec_len, data_len),
-        172 => wire__crate__api__parsers__parse_m3u_impl(port, ptr, rust_vec_len, data_len),
-        173 => wire__crate__api__parsers__parse_m3u_vod_impl(port, ptr, rust_vec_len, data_len),
-        174 => wire__crate__api__algorithms__parse_recommendation_sections_impl(
+        169 => wire__crate__api__epg__merge_epg_window_impl(port, ptr, rust_vec_len, data_len),
+        175 => wire__crate__api__parsers__parse_bif_index_impl(port, ptr, rust_vec_len, data_len),
+        176 => wire__crate__api__parsers__parse_epg_impl(port, ptr, rust_vec_len, data_len),
+        177 => wire__crate__api__parsers__parse_episodes_impl(port, ptr, rust_vec_len, data_len),
+        178 => wire__crate__api__parsers__parse_m3u_impl(port, ptr, rust_vec_len, data_len),
+        179 => wire__crate__api__parsers__parse_m3u_vod_impl(port, ptr, rust_vec_len, data_len),
+        180 => wire__crate__api__algorithms__parse_recommendation_sections_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        175 => {
+        181 => {
             wire__crate__api__parsers__parse_s3_list_objects_impl(port, ptr, rust_vec_len, data_len)
         }
-        176 => wire__crate__api__parsers__parse_series_impl(port, ptr, rust_vec_len, data_len),
-        177 => wire__crate__api__parsers__parse_stalker_categories_impl(
+        182 => wire__crate__api__parsers__parse_series_impl(port, ptr, rust_vec_len, data_len),
+        183 => wire__crate__api__parsers__parse_stalker_categories_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        178 => wire__crate__api__parsers__parse_stalker_channels_impl(
+        184 => wire__crate__api__parsers__parse_stalker_channels_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        179 => wire__crate__api__parsers__parse_stalker_create_link_impl(
+        185 => wire__crate__api__parsers__parse_stalker_create_link_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        180 => wire__crate__api__parsers__parse_stalker_epg_impl(port, ptr, rust_vec_len, data_len),
-        181 => wire__crate__api__parsers__parse_stalker_live_streams_impl(
+        186 => wire__crate__api__parsers__parse_stalker_epg_impl(port, ptr, rust_vec_len, data_len),
+        187 => wire__crate__api__parsers__parse_stalker_live_streams_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        182 => wire__crate__api__parsers__parse_stalker_vod_items_impl(
+        188 => wire__crate__api__parsers__parse_stalker_vod_items_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        183 => wire__crate__api__parsers__parse_stalker_vod_result_impl(
+        189 => wire__crate__api__parsers__parse_stalker_vod_result_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        184 => wire__crate__api__parsers__parse_vod_streams_impl(port, ptr, rust_vec_len, data_len),
-        185 => {
+        190 => wire__crate__api__parsers__parse_vod_streams_impl(port, ptr, rust_vec_len, data_len),
+        191 => {
             wire__crate__api__parsers__parse_vtt_thumbnails_impl(port, ptr, rust_vec_len, data_len)
         }
-        186 => wire__crate__api__parsers__parse_xtream_categories_impl(
+        192 => wire__crate__api__parsers__parse_xtream_categories_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        187 => wire__crate__api__parsers__parse_xtream_live_streams_impl(
+        193 => wire__crate__api__parsers__parse_xtream_live_streams_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        188 => {
+        194 => {
             wire__crate__api__epg__parse_xtream_short_epg_impl(port, ptr, rust_vec_len, data_len)
         }
-        189 => wire__crate__api__buffer__prune_buffer_tiers_impl(port, ptr, rust_vec_len, data_len),
-        190 => wire__crate__api__stream_health__prune_stream_health_impl(
+        195 => wire__crate__api__buffer__prune_buffer_tiers_impl(port, ptr, rust_vec_len, data_len),
+        196 => wire__crate__api__stream_health__prune_stream_health_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        191 => wire__crate__api__stream_health__rank_stream_alternatives_impl(
+        197 => wire__crate__api__stream_health__rank_stream_alternatives_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        192 => wire__crate__api__stream_health__record_buffer_sample_impl(
+        198 => wire__crate__api__stream_health__record_buffer_sample_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        193 => wire__crate__api__stream_health__record_stream_stall_impl(
+        199 => wire__crate__api__stream_health__record_stream_stall_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        194 => wire__crate__api__stream_health__record_ttff_impl(port, ptr, rust_vec_len, data_len),
-        195 => {
+        200 => wire__crate__api__stream_health__record_ttff_impl(port, ptr, rust_vec_len, data_len),
+        201 => {
             wire__crate__api__settings__refresh_logo_index_impl(port, ptr, rust_vec_len, data_len)
         }
-        196 => wire__crate__api__channels__remove_favorite_impl(port, ptr, rust_vec_len, data_len),
-        197 => wire__crate__api__channels__remove_favorite_category_impl(
+        202 => wire__crate__api__channels__remove_favorite_impl(port, ptr, rust_vec_len, data_len),
+        203 => wire__crate__api__channels__remove_favorite_category_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        198 => wire__crate__api__settings__remove_setting_impl(port, ptr, rust_vec_len, data_len),
-        199 => wire__crate__api__smart_groups__remove_smart_group_member_impl(
+        204 => wire__crate__api__settings__remove_setting_impl(port, ptr, rust_vec_len, data_len),
+        205 => wire__crate__api__smart_groups__remove_smart_group_member_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        200 => wire__crate__api__vod__remove_vod_favorite_impl(port, ptr, rust_vec_len, data_len),
-        201 => wire__crate__api__watchlist__remove_watchlist_item_impl(
+        206 => wire__crate__api__vod__remove_vod_favorite_impl(port, ptr, rust_vec_len, data_len),
+        207 => wire__crate__api__watchlist__remove_watchlist_item_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        202 => wire__crate__api__smart_groups__rename_smart_group_impl(
+        208 => wire__crate__api__smart_groups__rename_smart_group_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        203 => wire__crate__api__smart_groups__reorder_smart_group_members_impl(
+        209 => wire__crate__api__smart_groups__reorder_smart_group_members_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        204 => wire__crate__api__sources__reorder_sources_impl(port, ptr, rust_vec_len, data_len),
-        205 => wire__crate__api__buffer__reset_buffer_state_impl(port, ptr, rust_vec_len, data_len),
-        206 => {
+        210 => wire__crate__api__sources__reorder_sources_impl(port, ptr, rust_vec_len, data_len),
+        211 => wire__crate__api__buffer__reset_buffer_state_impl(port, ptr, rust_vec_len, data_len),
+        212 => {
             wire__crate__api__channels__reset_channel_order_impl(port, ptr, rust_vec_len, data_len)
         }
-        207 => wire__crate__api__stream_health__reset_failover_state_impl(
+        213 => wire__crate__api__stream_health__reset_failover_state_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        208 => wire__crate__api__channels__resolve_channel_categories_impl(
+        214 => wire__crate__api__channels__resolve_channel_categories_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        209 => {
+        215 => {
             wire__crate__api__settings__resolve_channel_logo_impl(port, ptr, rust_vec_len, data_len)
         }
-        210 => {
+        216 => {
             wire__crate__api__settings__resolve_logos_batch_impl(port, ptr, rust_vec_len, data_len)
         }
-        211 => wire__crate__api__algorithms__resolve_next_episodes_impl(
+        217 => wire__crate__api__algorithms__resolve_next_episodes_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        212 => {
+        218 => wire__crate__api__sync__resolve_stalker_stream_url_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        219 => {
             wire__crate__api__vod__resolve_vod_categories_impl(port, ptr, rust_vec_len, data_len)
         }
-        214 => {
+        221 => {
             wire__crate__api__profiles__revoke_source_access_impl(port, ptr, rust_vec_len, data_len)
         }
-        216 => wire__crate__api__bookmarks__save_bookmark_impl(port, ptr, rust_vec_len, data_len),
-        217 => wire__crate__api__channels__save_categories_impl(port, ptr, rust_vec_len, data_len),
-        218 => {
+        223 => wire__crate__api__bookmarks__save_bookmark_impl(port, ptr, rust_vec_len, data_len),
+        224 => wire__crate__api__channels__save_categories_impl(port, ptr, rust_vec_len, data_len),
+        225 => {
             wire__crate__api__channels__save_channel_order_impl(port, ptr, rust_vec_len, data_len)
         }
-        219 => wire__crate__api__channels__save_channels_impl(port, ptr, rust_vec_len, data_len),
-        220 => wire__crate__api__epg__save_epg_entries_impl(port, ptr, rust_vec_len, data_len),
-        221 => wire__crate__api__epg__save_epg_mapping_impl(port, ptr, rust_vec_len, data_len),
-        222 => wire__crate__api__profiles__save_profile_impl(port, ptr, rust_vec_len, data_len),
-        223 => wire__crate__api__dvr__save_recording_impl(port, ptr, rust_vec_len, data_len),
-        224 => wire__crate__api__dvr__save_reminder_impl(port, ptr, rust_vec_len, data_len),
-        225 => {
+        226 => wire__crate__api__channels__save_channels_impl(port, ptr, rust_vec_len, data_len),
+        227 => wire__crate__api__epg__save_epg_entries_impl(port, ptr, rust_vec_len, data_len),
+        228 => wire__crate__api__epg__save_epg_mapping_impl(port, ptr, rust_vec_len, data_len),
+        229 => wire__crate__api__profiles__save_profile_impl(port, ptr, rust_vec_len, data_len),
+        230 => wire__crate__api__dvr__save_recording_impl(port, ptr, rust_vec_len, data_len),
+        231 => wire__crate__api__dvr__save_reminder_impl(port, ptr, rust_vec_len, data_len),
+        232 => {
             wire__crate__api__settings__save_saved_layout_impl(port, ptr, rust_vec_len, data_len)
         }
-        226 => {
+        233 => {
             wire__crate__api__settings__save_search_entry_impl(port, ptr, rust_vec_len, data_len)
         }
-        227 => wire__crate__api__sources__save_source_impl(port, ptr, rust_vec_len, data_len),
-        228 => wire__crate__api__dvr__save_storage_backend_impl(port, ptr, rust_vec_len, data_len),
-        229 => wire__crate__api__dvr__save_transfer_task_impl(port, ptr, rust_vec_len, data_len),
-        230 => wire__crate__api__vod__save_vod_items_impl(port, ptr, rust_vec_len, data_len),
-        231 => wire__crate__api__dvr__save_watch_history_impl(port, ptr, rust_vec_len, data_len),
-        232 => wire__crate__api__algorithms__search_channels_by_live_program_impl(
+        234 => wire__crate__api__sources__save_source_impl(port, ptr, rust_vec_len, data_len),
+        235 => wire__crate__api__dvr__save_storage_backend_impl(port, ptr, rust_vec_len, data_len),
+        236 => wire__crate__api__dvr__save_transfer_task_impl(port, ptr, rust_vec_len, data_len),
+        237 => wire__crate__api__vod__save_vod_items_impl(port, ptr, rust_vec_len, data_len),
+        238 => wire__crate__api__dvr__save_watch_history_impl(port, ptr, rust_vec_len, data_len),
+        239 => wire__crate__api__algorithms__search_channels_by_live_program_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        233 => wire__crate__api__algorithms__search_content_impl(port, ptr, rust_vec_len, data_len),
-        234 => wire__crate__api__algorithms__series_ids_with_new_episodes_impl(
+        240 => wire__crate__api__algorithms__search_content_impl(port, ptr, rust_vec_len, data_len),
+        241 => wire__crate__api__algorithms__series_ids_with_new_episodes_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        235 => wire__crate__api__buffer__set_buffer_tier_impl(port, ptr, rust_vec_len, data_len),
-        236 => wire__crate__api__epg__set_channel_247_impl(port, ptr, rust_vec_len, data_len),
-        237 => {
+        242 => wire__crate__api__buffer__set_buffer_tier_impl(port, ptr, rust_vec_len, data_len),
+        243 => wire__crate__api__epg__set_channel_247_impl(port, ptr, rust_vec_len, data_len),
+        244 => {
             wire__crate__api__settings__set_last_sync_time_impl(port, ptr, rust_vec_len, data_len)
         }
-        239 => wire__crate__api__settings__set_setting_impl(port, ptr, rust_vec_len, data_len),
-        240 => {
+        246 => wire__crate__api__settings__set_setting_impl(port, ptr, rust_vec_len, data_len),
+        247 => {
             wire__crate__api__profiles__set_source_access_impl(port, ptr, rust_vec_len, data_len)
         }
-        241 => {
+        248 => wire__crate__api__sync__set_stalker_favorite_impl(port, ptr, rust_vec_len, data_len),
+        249 => {
             wire__crate__api__algorithms__sign_s3_request_impl(port, ptr, rust_vec_len, data_len)
         }
-        242 => {
+        250 => {
             wire__crate__api__algorithms__similar_vod_items_impl(port, ptr, rust_vec_len, data_len)
         }
-        244 => {
+        252 => {
             wire__crate__api__channels__sort_channels_json_impl(port, ptr, rust_vec_len, data_len)
         }
-        246 => wire__crate__api__dvr__sort_remote_files_impl(port, ptr, rust_vec_len, data_len),
-        247 => wire__crate__api__vod__sort_vod_items_impl(port, ptr, rust_vec_len, data_len),
-        248 => wire__crate__api__lifecycle__subscribe_data_events_impl(
+        254 => wire__crate__api__dvr__sort_remote_files_impl(port, ptr, rust_vec_len, data_len),
+        255 => wire__crate__api__vod__sort_vod_items_impl(port, ptr, rust_vec_len, data_len),
+        256 => wire__crate__api__sync__stalker_keepalive_impl(port, ptr, rust_vec_len, data_len),
+        257 => wire__crate__api__lifecycle__subscribe_data_events_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        249 => {
+        258 => {
             wire__crate__api__sync__subscribe_sync_progress_impl(port, ptr, rust_vec_len, data_len)
         }
-        250 => wire__crate__api__sync__sync_m3u_source_impl(port, ptr, rust_vec_len, data_len),
-        251 => wire__crate__api__epg__sync_stalker_epg_impl(port, ptr, rust_vec_len, data_len),
-        252 => wire__crate__api__sync__sync_stalker_source_impl(port, ptr, rust_vec_len, data_len),
-        253 => wire__crate__api__epg__sync_xmltv_epg_impl(port, ptr, rust_vec_len, data_len),
-        254 => wire__crate__api__epg__sync_xtream_epg_impl(port, ptr, rust_vec_len, data_len),
-        255 => wire__crate__api__sync__sync_xtream_source_impl(port, ptr, rust_vec_len, data_len),
-        257 => wire__crate__api__dvr__update_recording_impl(port, ptr, rust_vec_len, data_len),
-        258 => wire__crate__api__sources__update_source_sync_status_impl(
+        259 => wire__crate__api__sync__sync_m3u_source_impl(port, ptr, rust_vec_len, data_len),
+        260 => wire__crate__api__epg__sync_stalker_epg_impl(port, ptr, rust_vec_len, data_len),
+        261 => wire__crate__api__sync__sync_stalker_source_impl(port, ptr, rust_vec_len, data_len),
+        262 => wire__crate__api__epg__sync_xmltv_epg_impl(port, ptr, rust_vec_len, data_len),
+        263 => wire__crate__api__epg__sync_xtream_epg_impl(port, ptr, rust_vec_len, data_len),
+        264 => wire__crate__api__sync__sync_xtream_source_impl(port, ptr, rust_vec_len, data_len),
+        266 => wire__crate__api__dvr__update_recording_impl(port, ptr, rust_vec_len, data_len),
+        267 => wire__crate__api__sources__update_source_sync_status_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        259 => wire__crate__api__dvr__update_transfer_task_impl(port, ptr, rust_vec_len, data_len),
-        260 => wire__crate__api__vod__update_vod_favorite_impl(port, ptr, rust_vec_len, data_len),
-        262 => wire__crate__api__sync__verify_m3u_url_impl(port, ptr, rust_vec_len, data_len),
-        264 => {
+        268 => wire__crate__api__dvr__update_transfer_task_impl(port, ptr, rust_vec_len, data_len),
+        269 => wire__crate__api__vod__update_vod_favorite_impl(port, ptr, rust_vec_len, data_len),
+        271 => wire__crate__api__sync__verify_m3u_url_impl(port, ptr, rust_vec_len, data_len),
+        273 => {
             wire__crate__api__sync__verify_stalker_portal_impl(port, ptr, rust_vec_len, data_len)
         }
-        265 => wire__crate__api__sync__verify_xtream_credentials_impl(
+        274 => wire__crate__api__sync__verify_xtream_credentials_impl(
             port,
             ptr,
             rust_vec_len,
@@ -10614,58 +11062,58 @@ fn pde_ffi_dispatcher_sync_impl(
             wire__crate__api__algorithms__episode_count_by_season_impl(ptr, rust_vec_len, data_len)
         }
         71 => wire__crate__api__stream_health__extract_call_sign_impl(ptr, rust_vec_len, data_len),
-        89 => {
+        94 => {
             wire__crate__api__algorithms__format_duration_minutes_impl(ptr, rust_vec_len, data_len)
         }
-        90 => wire__crate__api__algorithms__format_epg_datetime_impl(ptr, rust_vec_len, data_len),
-        91 => wire__crate__api__algorithms__format_epg_time_impl(ptr, rust_vec_len, data_len),
-        92 => {
+        95 => wire__crate__api__algorithms__format_epg_datetime_impl(ptr, rust_vec_len, data_len),
+        96 => wire__crate__api__algorithms__format_epg_time_impl(ptr, rust_vec_len, data_len),
+        97 => {
             wire__crate__api__algorithms__format_playback_duration_impl(ptr, rust_vec_len, data_len)
         }
-        93 => {
+        98 => {
             wire__crate__api__algorithms__format_time_with_seconds_impl(ptr, rust_vec_len, data_len)
         }
-        97 => wire__crate__api__buffer__get_buffer_cap_mb_impl(ptr, rust_vec_len, data_len),
-        110 => {
+        102 => wire__crate__api__buffer__get_buffer_cap_mb_impl(ptr, rust_vec_len, data_len),
+        115 => {
             wire__crate__api__app_update__get_platform_asset_url_impl(ptr, rust_vec_len, data_len)
         }
-        125 => wire__crate__api__algorithms__get_timezone_offset_minutes_impl(
+        131 => wire__crate__api__algorithms__get_timezone_offset_minutes_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        131 => wire__crate__api__algorithms__guess_logo_domains_impl(ptr, rust_vec_len, data_len),
-        132 => wire__crate__api__algorithms__hash_pin_impl(ptr, rust_vec_len, data_len),
-        135 => wire__crate__api__algorithms__is_duplicate_impl(ptr, rust_vec_len, data_len),
-        136 => wire__crate__api__algorithms__is_hashed_pin_impl(ptr, rust_vec_len, data_len),
-        137 => wire__crate__api__algorithms__is_lock_active_impl(ptr, rust_vec_len, data_len),
-        154 => wire__crate__api__algorithms__lock_remaining_ms_impl(ptr, rust_vec_len, data_len),
-        155 => wire__crate__api__algorithms__mac_to_device_id_impl(ptr, rust_vec_len, data_len),
-        159 => wire__crate__api__algorithms__match_group_icon_impl(ptr, rust_vec_len, data_len),
-        164 => {
+        137 => wire__crate__api__algorithms__guess_logo_domains_impl(ptr, rust_vec_len, data_len),
+        138 => wire__crate__api__algorithms__hash_pin_impl(ptr, rust_vec_len, data_len),
+        141 => wire__crate__api__algorithms__is_duplicate_impl(ptr, rust_vec_len, data_len),
+        142 => wire__crate__api__algorithms__is_hashed_pin_impl(ptr, rust_vec_len, data_len),
+        143 => wire__crate__api__algorithms__is_lock_active_impl(ptr, rust_vec_len, data_len),
+        160 => wire__crate__api__algorithms__lock_remaining_ms_impl(ptr, rust_vec_len, data_len),
+        161 => wire__crate__api__algorithms__mac_to_device_id_impl(ptr, rust_vec_len, data_len),
+        165 => wire__crate__api__algorithms__match_group_icon_impl(ptr, rust_vec_len, data_len),
+        170 => {
             wire__crate__api__algorithms__next_episode_threshold_impl(ptr, rust_vec_len, data_len)
         }
-        165 => {
+        171 => {
             wire__crate__api__algorithms__normalize_api_base_url_impl(ptr, rust_vec_len, data_len)
         }
-        166 => {
+        172 => {
             wire__crate__api__algorithms__normalize_channel_name_impl(ptr, rust_vec_len, data_len)
         }
-        167 => wire__crate__api__algorithms__normalize_server_url_impl(ptr, rust_vec_len, data_len),
-        168 => wire__crate__api__algorithms__normalize_stream_url_impl(ptr, rust_vec_len, data_len),
-        213 => wire__crate__api__algorithms__resolve_vod_quality_impl(ptr, rust_vec_len, data_len),
-        215 => wire__crate__api__dvr__sanitize_filename_impl(ptr, rust_vec_len, data_len),
-        238 => wire__crate__api__settings__set_nested_value_impl(ptr, rust_vec_len, data_len),
-        243 => wire__crate__api__algorithms__sort_categories_with_favorites_impl(
+        173 => wire__crate__api__algorithms__normalize_server_url_impl(ptr, rust_vec_len, data_len),
+        174 => wire__crate__api__algorithms__normalize_stream_url_impl(ptr, rust_vec_len, data_len),
+        220 => wire__crate__api__algorithms__resolve_vod_quality_impl(ptr, rust_vec_len, data_len),
+        222 => wire__crate__api__dvr__sanitize_filename_impl(ptr, rust_vec_len, data_len),
+        245 => wire__crate__api__settings__set_nested_value_impl(ptr, rust_vec_len, data_len),
+        251 => wire__crate__api__algorithms__sort_categories_with_favorites_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        245 => wire__crate__api__algorithms__sort_favorites_impl(ptr, rust_vec_len, data_len),
-        256 => wire__crate__api__algorithms__try_base64_decode_impl(ptr, rust_vec_len, data_len),
-        261 => wire__crate__api__algorithms__validate_mac_address_impl(ptr, rust_vec_len, data_len),
-        263 => wire__crate__api__algorithms__verify_pin_impl(ptr, rust_vec_len, data_len),
-        266 => wire__crate__api__algorithms__vod_badge_kind_impl(ptr, rust_vec_len, data_len),
+        253 => wire__crate__api__algorithms__sort_favorites_impl(ptr, rust_vec_len, data_len),
+        265 => wire__crate__api__algorithms__try_base64_decode_impl(ptr, rust_vec_len, data_len),
+        270 => wire__crate__api__algorithms__validate_mac_address_impl(ptr, rust_vec_len, data_len),
+        272 => wire__crate__api__algorithms__verify_pin_impl(ptr, rust_vec_len, data_len),
+        275 => wire__crate__api__algorithms__vod_badge_kind_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }

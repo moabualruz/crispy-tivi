@@ -21,7 +21,8 @@ export 'source_extra_sections.dart'
         UserAgentSettingsSection,
         ContentFilterSettingsSection,
         EpgUrlSettingsSection,
-        SourceTlsSettingsSection;
+        SourceTlsSettingsSection,
+        StalkerAccountInfoSection;
 
 /// Sources settings section: add/remove playlists,
 /// Xtream, Stalker, EPG, media servers, duplicates,

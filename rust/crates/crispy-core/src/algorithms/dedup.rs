@@ -125,6 +125,15 @@ mod tests {
             added_at: None,
             updated_at: None,
             is_247: false,
+            tvg_shift: None,
+            tvg_language: None,
+            tvg_country: None,
+            parent_code: None,
+            is_radio: false,
+            tvg_rec: None,
+            is_adult: false,
+            custom_sid: None,
+            direct_source: None,
         }
     }
 
@@ -337,6 +346,15 @@ mod tests {
                 added_at: None,
                 updated_at: None,
                 is_247: false,
+                tvg_shift: None,
+                tvg_language: None,
+                tvg_country: None,
+                parent_code: None,
+                is_radio: false,
+                tvg_rec: None,
+                is_adult: false,
+                custom_sid: None,
+                direct_source: None,
             },
             Channel {
                 id: "b".to_string(),
@@ -358,6 +376,15 @@ mod tests {
                 added_at: None,
                 updated_at: None,
                 is_247: false,
+                tvg_shift: None,
+                tvg_language: None,
+                tvg_country: None,
+                parent_code: None,
+                is_radio: false,
+                tvg_rec: None,
+                is_adult: false,
+                custom_sid: None,
+                direct_source: None,
             },
         ];
 

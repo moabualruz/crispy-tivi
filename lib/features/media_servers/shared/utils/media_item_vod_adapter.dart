@@ -28,6 +28,31 @@ extension MediaItemVodAdapter on MediaItem {
         break;
     }
 
+    // Extract cast from metadata (List<String> or null).
+    final rawCast = metadata['cast'];
+    final cast = rawCast is List ? rawCast.cast<String>().toList() : null;
+
+    // Extract director from metadata (String or null).
+    final director = metadata['director'] as String?;
+
+    // Extract genres from metadata for category fallback.
+    final rawGenres = metadata['genres'];
+    final genres = rawGenres is List ? rawGenres.cast<String>().toList() : null;
+
+    // Use explicit category, or fall back to first genre if available.
+    final resolvedCategory =
+        category ?? (genres != null && genres.isNotEmpty ? genres.first : null);
+
+    // Extract favorite status from metadata.
+    final isFavorite = metadata['isFavorite'] as bool? ?? false;
+
+    // Extract series hierarchy metadata.
+    final seriesId = metadata['seriesId'] as String?;
+    final seasonCount = metadata['seasonCount'] as int?;
+
+    // Extract container format for file extension.
+    final container = metadata['container'] as String?;
+
     return VodItem(
       id: id,
       name: name,
@@ -39,12 +64,17 @@ extension MediaItemVodAdapter on MediaItem {
       rating: rating,
       year: year,
       duration: durationMs != null ? durationMs! ~/ 60000 : null,
-      category: category,
+      category: resolvedCategory,
       sourceId: sourceId,
       seasonNumber: metadata['parentIndex'] as int?,
       episodeNumber: metadata['index'] as int?,
-      isFavorite: false,
+      isFavorite: isFavorite,
       addedAt: DateTime.now(),
+      cast: cast,
+      director: director,
+      seriesId: seriesId,
+      seasonCount: seasonCount,
+      extension: container,
     );
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/utils/keyboard_utils.dart';
 import '../../../settings/domain/entities/remote_action.dart';
 import '../../domain/entities/playback_state.dart' as app;
 import '../../data/player_service.dart';
@@ -60,6 +62,32 @@ void handlePlayerKeyEvent({
   VoidAction? onAlwaysOnTop,
   VoidAction? onCycleShader,
 }) {
+  // Skip player shortcuts when the user is typing in a text field.
+  // D-pad / arrow keys are NOT blocked — they still navigate between
+  // fields. Only character and symbol keys (letters, digits, slash,
+  // brackets, etc.) are suppressed so they reach the TextField.
+  if (isTextFieldFocused()) {
+    final key = event.logicalKey;
+    // Allow navigation, activation, media, and Escape keys through
+    // to the player handler even when a text field is focused.
+    final isNavOrMediaKey =
+        key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.escape ||
+        key == LogicalKeyboardKey.goBack ||
+        key == LogicalKeyboardKey.browserBack ||
+        key == LogicalKeyboardKey.gameButtonB ||
+        key == LogicalKeyboardKey.mediaPlayPause ||
+        key == LogicalKeyboardKey.mediaStop ||
+        key == LogicalKeyboardKey.mediaRewind ||
+        key == LogicalKeyboardKey.mediaFastForward ||
+        key == LogicalKeyboardKey.channelUp ||
+        key == LogicalKeyboardKey.channelDown;
+    if (!isNavOrMediaKey) return;
+  }
+
   // Reset progressive seek on key release.
   if (event is KeyUpEvent) {
     final k = event.logicalKey;

@@ -386,6 +386,10 @@ class MediaServerSource implements MediaSource {
                 '?tag=${item.backdropImageTag}'
             : null;
 
+    // Extract cast and director from People.
+    final castNames = item.castNames;
+    final directorName = item.directorName;
+
     return MediaItem(
       id: item.id,
       name: item.name,
@@ -412,6 +416,22 @@ class MediaServerSource implements MediaSource {
         if (item.indexNumber != null) 'index': item.indexNumber,
         if (item.parentIndexNumber != null)
           'parentIndex': item.parentIndexNumber,
+        // Cast, director, and genre data from People/Genres fields.
+        if (castNames.isNotEmpty) 'cast': castNames,
+        if (directorName != null) 'director': directorName,
+        if (item.genres.isNotEmpty) 'genres': item.genres,
+        if (item.studios.isNotEmpty) 'studios': item.studios,
+        // Favorite status from UserData.
+        'isFavorite': item.userData?.isFavorite ?? false,
+        // Series hierarchy metadata.
+        if (item.seriesId != null) 'seriesId': item.seriesId,
+        if (item.seasonCount != null) 'seasonCount': item.seasonCount,
+        // Container format (e.g. "mkv", "mp4").
+        if (item.container != null) 'container': item.container,
+        // Original title for foreign-language items.
+        if (item.originalTitle != null) 'originalTitle': item.originalTitle,
+        // Content rating (e.g. "PG-13") for dedicated field.
+        if (item.officialRating != null) 'contentRating': item.officialRating,
       },
     );
   }

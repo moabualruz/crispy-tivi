@@ -135,6 +135,25 @@ class CrispyColors extends ThemeExtension<CrispyColors> {
   /// Scrim overlay — full (90% black). Used for immersive overlays.
   static const Color scrimFull = Color(0xE6000000);
 
+  /// Scrim overlay — 60% black. Used for EPG strip and info panels.
+  static const Color scrim60 = Color(0x99000000);
+
+  /// Scrim overlay — 80% black. Used for hero banner bottom fade.
+  static const Color scrim80 = Color(0xCC000000);
+
+  // ── OSD panel tokens ──────────────────────────────────────
+
+  /// OSD panel background — 70% black. Used for player OSD strips.
+  static const Color osdPanel = Color(0xB3000000);
+
+  /// OSD panel background — dense / 85% dark. Used for compact OSD areas.
+  static const Color osdPanelDense = Color(0xD91A1A1A);
+
+  // ── Seek bar tokens ───────────────────────────────────────
+
+  /// Seek bar segment highlight — 50% amber. Used for A-B loop / chapter markers.
+  static const Color segmentHighlight = Color(0x80FFB300);
+
   // ── EPG genre tint overlay tokens ───────────────────────────
 
   /// EPG genre tint overlay — sports (≈12% opacity green, #4CAF50).

@@ -210,6 +210,15 @@ mod tests {
             added_at: None,
             updated_at: None,
             source_id: source_id.map(|s| s.to_string()),
+            cast: None,
+            director: None,
+            genre: None,
+            youtube_trailer: None,
+            tmdb_id: None,
+            rating_5based: None,
+            original_name: None,
+            is_adult: false,
+            content_rating: None,
         }
     }
 

@@ -12,6 +12,7 @@ import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/utils/keyboard_utils.dart';
 import '../../../../core/utils/platform_capabilities.dart';
 import '../../../../core/utils/screen_brightness_helper.dart';
 import '../../../favorites/data/favorites_history_service.dart';
@@ -117,7 +118,11 @@ class _PlayerFullscreenOverlayState
           final style = ref.read(subtitleStyleProvider);
           final player = ref.read(playerProvider);
           applySubtitleStyleToPlayer(player, style);
-        } catch (_) {}
+        } catch (e) {
+          debugPrint(
+            '[PlayerFullscreenOverlay] apply subtitle style failed: $e',
+          );
+        }
       }
     });
 
@@ -485,17 +490,91 @@ class _PlayerFullscreenOverlayState
   /// focus is lost (e.g. after mouse clicks steal focus).
   /// Restores focus to [_focusNode] so subsequent key events are
   /// handled by [KeyboardListener.onKeyEvent] directly.
+  ///
+  /// Skips text-input keys (letters, digits, symbols) when an
+  /// [EditableText] has focus so TextFields work normally.
   KeyEventResult _lateKeyHandler(KeyEvent event) {
     if (!mounted) return KeyEventResult.ignored;
     if (ModalRoute.of(context)?.isCurrent != true) {
       return KeyEventResult.ignored;
     }
+
+    // Let text fields handle their own input — only skip character
+    // keys and symbols, NOT D-pad / arrow / Escape / media keys.
+    if (isTextFieldFocused() && _isTextInputKey(event)) {
+      return KeyEventResult.ignored;
+    }
+
     // Restore focus so primary handler takes over next time.
     if (!_focusNode.hasPrimaryFocus) {
       _focusNode.requestFocus();
     }
     _onKeyEvent(event);
     return KeyEventResult.handled;
+  }
+
+  /// Returns `true` for keys that produce text input — letters,
+  /// digits, and printable symbols. Returns `false` for navigation
+  /// (arrows, Tab), activation (Enter, Space), media transport,
+  /// and modifier keys so those still work for player control and
+  /// D-pad navigation even when a text field is focused.
+  static bool _isTextInputKey(KeyEvent event) {
+    final key = event.logicalKey;
+    final keyId = key.keyId;
+
+    // Letters: a-z (keyId range 0x00000061 – 0x0000007A).
+    if (keyId >= 0x00000061 && keyId <= 0x0000007A) return true;
+
+    // Main-row digits: 0-9 (keyId range 0x00000030 – 0x00000039).
+    if (keyId >= 0x00000030 && keyId <= 0x00000039) return true;
+
+    // Numpad digits.
+    if (key == LogicalKeyboardKey.numpad0 ||
+        key == LogicalKeyboardKey.numpad1 ||
+        key == LogicalKeyboardKey.numpad2 ||
+        key == LogicalKeyboardKey.numpad3 ||
+        key == LogicalKeyboardKey.numpad4 ||
+        key == LogicalKeyboardKey.numpad5 ||
+        key == LogicalKeyboardKey.numpad6 ||
+        key == LogicalKeyboardKey.numpad7 ||
+        key == LogicalKeyboardKey.numpad8 ||
+        key == LogicalKeyboardKey.numpad9) {
+      return true;
+    }
+
+    // Common printable symbols that appear in URLs and text.
+    if (key == LogicalKeyboardKey.slash ||
+        key == LogicalKeyboardKey.backslash ||
+        key == LogicalKeyboardKey.period ||
+        key == LogicalKeyboardKey.comma ||
+        key == LogicalKeyboardKey.semicolon ||
+        key == LogicalKeyboardKey.quoteSingle ||
+        key == LogicalKeyboardKey.quote ||
+        key == LogicalKeyboardKey.bracketLeft ||
+        key == LogicalKeyboardKey.bracketRight ||
+        key == LogicalKeyboardKey.minus ||
+        key == LogicalKeyboardKey.equal ||
+        key == LogicalKeyboardKey.backquote ||
+        key == LogicalKeyboardKey.space ||
+        key == LogicalKeyboardKey.at ||
+        key == LogicalKeyboardKey.colon ||
+        key == LogicalKeyboardKey.underscore ||
+        key == LogicalKeyboardKey.exclamation ||
+        key == LogicalKeyboardKey.numberSign ||
+        key == LogicalKeyboardKey.dollar ||
+        key == LogicalKeyboardKey.percent ||
+        key == LogicalKeyboardKey.ampersand ||
+        key == LogicalKeyboardKey.asterisk ||
+        key == LogicalKeyboardKey.parenthesisLeft ||
+        key == LogicalKeyboardKey.parenthesisRight ||
+        key == LogicalKeyboardKey.less ||
+        key == LogicalKeyboardKey.greater ||
+        key == LogicalKeyboardKey.question ||
+        key == LogicalKeyboardKey.backspace) {
+      return true;
+    }
+
+    return false;
   }
 
   /// Restores keyboard focus to the player's [_focusNode].
@@ -813,10 +892,26 @@ class _PlayerFullscreenOverlayState
                     nextEpisode: nextEpisodeToShow,
                     onPlayNext:
                         nextEpisodeToShow != null
-                            ? () => playNextEpisode(nextEpisodeToShow!)
+                            ? () => playNextEpisode(
+                              nextEpisodeToShow!,
+                              isAutoAdvance: true,
+                            )
                             : null,
-                    onCancelNext:
-                        () => setState(() => nextEpisodeToShow = null),
+                    onCancelNext: () {
+                      ref
+                          .read(playbackProgressProvider.notifier)
+                          .resetAutoAdvanceCounter();
+                      setState(() => nextEpisodeToShow = null);
+                    },
+                    stillWatchingCount: stillWatchingPrompt?.count ?? 0,
+                    onStillWatchingContinue:
+                        stillWatchingPrompt != null
+                            ? confirmStillWatching
+                            : null,
+                    onStillWatchingDone:
+                        stillWatchingPrompt != null
+                            ? dismissStillWatching
+                            : null,
                     showMovieCompletion: showMovieCompletion,
                     currentTitle: session.channelName,
                     onWatchAgain:

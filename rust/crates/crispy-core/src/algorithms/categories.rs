@@ -445,6 +445,15 @@ mod tests {
             added_at: None,
             updated_at: None,
             is_247: false,
+            tvg_shift: None,
+            tvg_language: None,
+            tvg_country: None,
+            parent_code: None,
+            is_radio: false,
+            tvg_rec: None,
+            is_adult: false,
+            custom_sid: None,
+            direct_source: None,
         }
     }
 
@@ -469,6 +478,15 @@ mod tests {
             added_at: None,
             updated_at: None,
             source_id: None,
+            cast: None,
+            director: None,
+            genre: None,
+            youtube_trailer: None,
+            tmdb_id: None,
+            rating_5based: None,
+            original_name: None,
+            is_adult: false,
+            content_rating: None,
         }
     }
 
@@ -678,6 +696,15 @@ mod tests {
             added_at: None,
             updated_at: None,
             source_id: None,
+            cast: None,
+            director: None,
+            genre: None,
+            youtube_trailer: None,
+            tmdb_id: None,
+            rating_5based: None,
+            original_name: None,
+            is_adult: false,
+            content_rating: None,
         }
     }
 

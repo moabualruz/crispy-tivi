@@ -398,6 +398,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           SourceTlsSettingsSection(sources: settings.sources),
         ],
 
+        // ── Stalker Account Info ──
+        if (settings.sources.isNotEmpty) ...[
+          const SizedBox(height: CrispySpacing.lg),
+          StalkerAccountInfoSection(sources: settings.sources),
+        ],
+
         const SizedBox(height: CrispySpacing.xl),
       ],
     );

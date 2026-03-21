@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../config/settings_notifier.dart';
+import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../profiles/data/profile_service.dart';
 import '../../data/repositories/favorites_repository_impl.dart';
+import '../../data/stalker_favorites_service.dart';
 
 /// Manages the list of favorite channels for the
 /// active profile.
@@ -15,6 +18,10 @@ class FavoritesController extends AsyncNotifier<List<Channel>> {
   }
 
   /// Toggles the favorite status of a channel.
+  ///
+  /// For Stalker portal channels (IDs starting with `stk_`), also
+  /// pushes the change to the server via [StalkerFavoritesService]
+  /// so the portal stays in sync with the local state.
   Future<void> toggleFavorite(Channel channel) async {
     final repo = ref.read(favoritesRepositoryProvider);
     final currentList = state.value ?? [];
@@ -32,9 +39,46 @@ class FavoritesController extends AsyncNotifier<List<Channel>> {
         final updated = [...currentList, channel.copyWith(isFavorite: true)];
         state = AsyncData(updated);
       }
+
+      // Push to Stalker server if this is a Stalker channel.
+      _pushStalkerFavorite(channel, remove: isFav);
     } catch (e, st) {
       state = AsyncError(e, st);
     }
+  }
+
+  /// Pushes a favorite toggle to the Stalker portal (fire-and-forget).
+  ///
+  /// Only acts when [channel.sourceId] maps to a Stalker source or
+  /// the channel ID starts with `stk_`.
+  void _pushStalkerFavorite(Channel channel, {required bool remove}) {
+    final settings = ref.read(settingsNotifierProvider).value;
+    if (settings == null) return;
+
+    // Find the Stalker source for this channel.
+    PlaylistSource? source;
+    if (channel.sourceId != null) {
+      source =
+          settings.sources.where((s) => s.id == channel.sourceId).firstOrNull;
+    }
+    // Fallback: infer from ID prefix.
+    if (source == null && channel.id.startsWith('stk_')) {
+      source =
+          settings.sources
+              .where((s) => s.type == PlaylistSourceType.stalkerPortal)
+              .firstOrNull;
+    }
+    if (source == null || source.type != PlaylistSourceType.stalkerPortal) {
+      return;
+    }
+
+    ref
+        .read(stalkerFavoritesServiceProvider)
+        .pushFavoriteToServer(
+          channelId: channel.id,
+          source: source,
+          remove: remove,
+        );
   }
 
   /// Checks if a channel is favorite (synchronously
@@ -45,6 +89,6 @@ class FavoritesController extends AsyncNotifier<List<Channel>> {
 }
 
 final favoritesControllerProvider =
-    AsyncNotifierProvider<FavoritesController, List<Channel>>(
+    AsyncNotifierProvider.autoDispose<FavoritesController, List<Channel>>(
       FavoritesController.new,
     );

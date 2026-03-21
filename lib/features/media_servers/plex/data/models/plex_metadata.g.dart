@@ -31,6 +31,28 @@ PlexMetadata _$PlexMetadataFromJson(Map<String, dynamic> json) => PlexMetadata(
   viewOffset: (json['viewOffset'] as num?)?.toInt(),
   viewCount: (json['viewCount'] as num?)?.toInt(),
   contentRating: json['contentRating'] as String?,
+  genre:
+      (json['Genre'] as List<dynamic>?)
+          ?.map((e) => PlexTag.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  director:
+      (json['Director'] as List<dynamic>?)
+          ?.map((e) => PlexTag.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  role:
+      (json['Role'] as List<dynamic>?)
+          ?.map((e) => PlexTag.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  studio: json['studio'] as String?,
+  audienceRating: (json['audienceRating'] as num?)?.toDouble(),
+  rating: (json['rating'] as num?)?.toDouble(),
+  parentIndex: (json['parentIndex'] as num?)?.toInt(),
+  parentRatingKey: json['parentRatingKey'] as String?,
+  grandparentRatingKey: json['grandparentRatingKey'] as String?,
+  originalTitle: json['originalTitle'] as String?,
 );
 
 Map<String, dynamic> _$PlexMetadataToJson(PlexMetadata instance) =>
@@ -56,6 +78,16 @@ Map<String, dynamic> _$PlexMetadataToJson(PlexMetadata instance) =>
       'viewOffset': instance.viewOffset,
       'viewCount': instance.viewCount,
       'contentRating': instance.contentRating,
+      'Genre': instance.genre,
+      'Director': instance.director,
+      'Role': instance.role,
+      'studio': instance.studio,
+      'audienceRating': instance.audienceRating,
+      'rating': instance.rating,
+      'parentIndex': instance.parentIndex,
+      'parentRatingKey': instance.parentRatingKey,
+      'grandparentRatingKey': instance.grandparentRatingKey,
+      'originalTitle': instance.originalTitle,
     };
 
 PlexMedia _$PlexMediaFromJson(Map<String, dynamic> json) => PlexMedia(
@@ -111,4 +143,16 @@ Map<String, dynamic> _$PlexPartToJson(PlexPart instance) => <String, dynamic>{
   'size': instance.size,
   'container': instance.container,
   'videoProfile': instance.videoProfile,
+};
+
+PlexTag _$PlexTagFromJson(Map<String, dynamic> json) => PlexTag(
+  tag: json['tag'] as String,
+  role: json['role'] as String?,
+  thumb: json['thumb'] as String?,
+);
+
+Map<String, dynamic> _$PlexTagToJson(PlexTag instance) => <String, dynamic>{
+  'tag': instance.tag,
+  'role': instance.role,
+  'thumb': instance.thumb,
 };

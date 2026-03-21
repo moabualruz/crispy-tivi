@@ -2,8 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/data/cache_service.dart';
+import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../vod/domain/entities/vod_item.dart';
+import '../../data/stalker_session_service.dart';
 import '../../data/stream_url_resolver.dart';
 import '../../domain/entities/playback_session_params.dart';
 import '../widgets/bookmark_overlay.dart';
@@ -153,6 +156,12 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
   /// startPlayback call is already in flight.
   bool _isPending = false;
 
+  /// Monotonically increasing request counter used to detect
+  /// stale async continuations. When a newer [startPlayback]
+  /// call arrives, the previous in-flight call detects the
+  /// mismatch after its next `await` and bails out.
+  int _requestId = 0;
+
   /// Starts a full-screen playback session.
   ///
   /// Persists all session metadata, calls
@@ -182,10 +191,15 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
     String? seriesPosterUrl,
     String? sourceId,
   }) async {
+    // Increment request counter so any in-flight call from
+    // a previous invocation will detect it was superseded.
+    final myRequestId = ++_requestId;
+
     if (_isPending) return;
     _isPending = true;
     try {
       // Resolve synthetic media server URLs (plex://, emby://, jellyfin://)
+      // and Stalker portal URLs (require create_link for temp auth tokens)
       // to real HTTP(S) playback URLs before passing to PlayerService.
       // If resolution fails for a synthetic URL, abort — mpv cannot
       // open plex://, emby://, or jellyfin:// schemes directly and
@@ -199,7 +213,17 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
       ].contains(Uri.tryParse(streamUrl)?.scheme);
       try {
         final sources = ref.read(settingsNotifierProvider).value?.sources ?? [];
-        final resolved = await StreamUrlResolver(sources).resolve(streamUrl);
+        final backend = ref.read(crispyBackendProvider);
+        final resolver = StreamUrlResolver(sources, backend: backend);
+        // Determine Stalker stream type: "itv" for live, "vod" for VOD.
+        final stalkerStreamType = isLive ? 'itv' : 'vod';
+        final resolved = await resolver.resolve(
+          streamUrl,
+          sourceId: sourceId,
+          streamType: stalkerStreamType,
+        );
+        // Bail out if a newer request superseded this one.
+        if (_requestId != myRequestId) return;
         if (resolved != null) {
           effectiveUrl = resolved.url;
           effectiveHeaders = {...?headers, ...?resolved.headers};
@@ -212,6 +236,26 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
           );
           return;
         }
+      }
+
+      // Bail out if a newer request superseded this one.
+      if (_requestId != myRequestId) return;
+
+      // Start Stalker session keepalive if this is a Stalker source.
+      final stalkerSession = ref.read(stalkerSessionServiceProvider);
+      if (sourceId != null) {
+        final sources = ref.read(settingsNotifierProvider).value?.sources ?? [];
+        final source = sources.where((s) => s.id == sourceId).firstOrNull;
+        if (source != null && source.type == PlaylistSourceType.stalkerPortal) {
+          stalkerSession.startKeepalive(
+            source: source,
+            streamType: isLive ? 'itv' : 'vod',
+          );
+        } else {
+          stalkerSession.stopKeepalive();
+        }
+      } else {
+        stalkerSession.stopKeepalive();
       }
 
       state = PlaybackSessionState(
@@ -245,6 +289,9 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
             headers: effectiveHeaders,
           );
 
+      // Bail out if a newer request superseded this one.
+      if (_requestId != myRequestId) return;
+
       // PS-17: Restore last-used playback speed for VOD.
       // Live TV always plays at 1× — speed memory only
       // applies to on-demand content.
@@ -256,6 +303,9 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
         // boosted speed previously.
         await ref.read(playerServiceProvider).setSpeed(1.0);
       }
+
+      // Bail out if a newer request superseded this one.
+      if (_requestId != myRequestId) return;
 
       ref
           .read(playerModeProvider.notifier)
@@ -374,7 +424,10 @@ class PlaybackSessionNotifier extends Notifier<PlaybackSessionState> {
   }
 
   /// Clears all session metadata and returns to idle.
+  ///
+  /// Also stops any active Stalker session keepalive.
   void clearSession() {
+    ref.read(stalkerSessionServiceProvider).stopKeepalive();
     state = const PlaybackSessionState();
   }
 }

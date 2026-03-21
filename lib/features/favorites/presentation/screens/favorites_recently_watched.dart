@@ -156,6 +156,7 @@ class _RecentlyWatchedTabState extends ConsumerState<RecentlyWatchedTab> {
                           isLive: true,
                           channelName: channel.name,
                           channelLogoUrl: channel.logoUrl,
+                          sourceId: channel.sourceId,
                         );
                   },
                   onRemove: () {

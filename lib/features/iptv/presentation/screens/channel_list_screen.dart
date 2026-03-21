@@ -456,6 +456,7 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
           channelList: chs,
           channelIndex: idx >= 0 ? idx : 0,
           headers: ch.userAgent != null ? {'User-Agent': ch.userAgent!} : null,
+          sourceId: ch.sourceId,
         );
     // Navigate to fullscreen player immediately per requirements.
     if (context.mounted) {

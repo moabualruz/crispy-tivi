@@ -24,6 +24,8 @@ class Channel {
     this.sourceId,
     this.resolution,
     this.addedAt,
+    this.updatedAt,
+    this.is247 = false,
     this.isSport = false,
   });
 
@@ -81,6 +83,12 @@ class Channel {
   /// Timestamp when this channel was first added.
   final DateTime? addedAt;
 
+  /// Timestamp when this channel was last refreshed/updated.
+  final DateTime? updatedAt;
+
+  /// Whether this is a 24/7 loop channel.
+  final bool is247;
+
   /// Flag to identify if a channel primarily broadcasts sports content.
   final bool isSport;
 
@@ -103,6 +111,8 @@ class Channel {
     String? sourceId,
     String? resolution,
     DateTime? addedAt,
+    DateTime? updatedAt,
+    bool? is247,
     bool? isSport,
   }) {
     return Channel(
@@ -123,6 +133,8 @@ class Channel {
       sourceId: sourceId ?? this.sourceId,
       resolution: resolution ?? this.resolution,
       addedAt: addedAt ?? this.addedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      is247: is247 ?? this.is247,
       isSport: isSport ?? this.isSport,
     );
   }

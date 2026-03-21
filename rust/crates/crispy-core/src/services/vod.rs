@@ -8,17 +8,22 @@ use crate::database::{DbError, TABLE_VOD_ITEMS};
 use crate::events::DataChangeEvent;
 use crate::models::VodItem;
 
-/// SELECT column list for `db_vod_items` (19 columns, positional order).
+/// SELECT column list for `db_vod_items` (28 columns, positional order).
 ///
 /// Use with `format!("SELECT {VOD_COLUMNS} FROM db_vod_items ...")`.
 /// Column order matches `vod_item_from_row` index bindings.
+///
+/// NOTE: `cast` is a SQL reserved keyword and must be quoted in queries.
 pub(crate) const VOD_COLUMNS: &str = "id, name, stream_url, type, \
      poster_url, backdrop_url, \
      description, rating, year, \
      duration, category, series_id, \
      season_number, episode_number, \
      ext, is_favorite, added_at, \
-     updated_at, source_id";
+     updated_at, source_id, \
+     \"cast\", director, genre, \
+     youtube_trailer, tmdb_id, rating_5based, \
+     original_name, is_adult, content_rating";
 
 /// Same as `VOD_COLUMNS` but qualified with table alias `v.` for JOIN queries.
 ///
@@ -29,7 +34,10 @@ pub(crate) const VOD_COLUMNS_V: &str = "v.id, v.name, v.stream_url, v.type, \
      v.duration, v.category, v.series_id, \
      v.season_number, v.episode_number, \
      v.ext, v.is_favorite, v.added_at, \
-     v.updated_at, v.source_id";
+     v.updated_at, v.source_id, \
+     v.\"cast\", v.director, v.genre, \
+     v.youtube_trailer, v.tmdb_id, v.rating_5based, \
+     v.original_name, v.is_adult, v.content_rating";
 
 /// Map a single SQLite row to a `VodItem`.
 ///
@@ -37,7 +45,8 @@ pub(crate) const VOD_COLUMNS_V: &str = "v.id, v.name, v.stream_url, v.type, \
 /// `id, name, stream_url, type, poster_url, backdrop_url,
 ///  description, rating, year, duration, category, series_id,
 ///  season_number, episode_number, ext, is_favorite,
-///  added_at, updated_at, source_id`
+///  added_at, updated_at, source_id, cast, director, genre,
+///  youtube_trailer, tmdb_id, rating_5based`
 pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
     Ok(VodItem {
         id: row.get(0)?,
@@ -59,6 +68,15 @@ pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
         added_at: opt_ts_to_dt(row.get(16)?),
         updated_at: opt_ts_to_dt(row.get(17)?),
         source_id: row.get(18)?,
+        cast: row.get(19)?,
+        director: row.get(20)?,
+        genre: row.get(21)?,
+        youtube_trailer: row.get(22)?,
+        tmdb_id: row.get(23)?,
+        rating_5based: row.get(24)?,
+        original_name: row.get(25)?,
+        is_adult: int_to_bool(row.get(26)?),
+        content_rating: row.get(27)?,
     })
 }
 
@@ -79,11 +97,15 @@ impl CrispyService {
                     duration, category, series_id,
                     season_number, episode_number,
                     ext, is_favorite, added_at,
-                    updated_at, source_id
+                    updated_at, source_id,
+                    \"cast\", director, genre,
+                    youtube_trailer, tmdb_id, rating_5based,
+                    original_name, is_adult, content_rating
                 ) VALUES (
                     ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
                     ?9, ?10, ?11, ?12, ?13, ?14, ?15,
-                    ?16, ?17, ?18, ?19
+                    ?16, ?17, ?18, ?19, ?20, ?21, ?22,
+                    ?23, ?24, ?25, ?26, ?27, ?28
                 )",
                 params![
                     v.id,
@@ -105,6 +127,15 @@ impl CrispyService {
                     opt_dt_to_ts(&v.added_at),
                     opt_dt_to_ts(&v.updated_at),
                     v.source_id,
+                    v.cast,
+                    v.director,
+                    v.genre,
+                    v.youtube_trailer,
+                    v.tmdb_id,
+                    v.rating_5based,
+                    v.original_name,
+                    bool_to_int(v.is_adult),
+                    v.content_rating,
                 ],
             )?;
             count += 1;

@@ -12,12 +12,23 @@ mixin _MemorySyncMixin on _MemoryStorage {
     bool acceptInvalidCerts = false,
   }) async => true;
 
+  Future<String> fetchXtreamAccountInfo({
+    required String baseUrl,
+    required String username,
+    required String password,
+    bool acceptInvalidCerts = false,
+  }) async =>
+      '{"auth":1,"status":"Active","exp_date":"1735689600",'
+      '"is_trial":"0","max_connections":"2",'
+      '"allowed_output_formats":["m3u8","ts"]}';
+
   Future<String> syncXtreamSource({
     required String baseUrl,
     required String username,
     required String password,
     required String sourceId,
     bool acceptInvalidCerts = false,
+    bool enrichVodOnSync = false,
   }) async =>
       '{"channels_count":0,"channel_groups":[],"vod_count":0,"vod_categories":[],"epg_url":null}';
 
@@ -48,6 +59,61 @@ mixin _MemorySyncMixin on _MemoryStorage {
       '{"channels_count":0,"channel_groups":[],"vod_count":0,"vod_categories":[],"epg_url":null}';
 
   Stream<String> subscribeSyncProgress() => const Stream.empty();
+
+  // ── Stalker On-Demand ────────────────────────────
+
+  Future<String> resolveStalkerStreamUrl({
+    required String baseUrl,
+    required String macAddress,
+    required String cmd,
+    required String streamType,
+    bool acceptInvalidCerts = false,
+  }) async => cmd;
+
+  Future<String> fetchStalkerAccountInfo({
+    required String baseUrl,
+    required String macAddress,
+    bool acceptInvalidCerts = false,
+  }) async => '{}';
+
+  Future<void> stalkerKeepalive({
+    required String baseUrl,
+    required String macAddress,
+    required String curPlayType,
+    bool acceptInvalidCerts = false,
+  }) async {}
+
+  Future<String> fetchStalkerVodDetail({
+    required String baseUrl,
+    required String macAddress,
+    required String movieId,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) async => '{}';
+
+  Future<String> fetchStalkerSeriesDetail({
+    required String baseUrl,
+    required String macAddress,
+    required String movieId,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) async => '[]';
+
+  Future<String> getStalkerFavorites({
+    required String baseUrl,
+    required String macAddress,
+    required String streamType,
+    bool acceptInvalidCerts = false,
+  }) async => '[]';
+
+  Future<void> setStalkerFavorite({
+    required String baseUrl,
+    required String macAddress,
+    required String favId,
+    required String streamType,
+    required bool remove,
+    bool acceptInvalidCerts = false,
+  }) async {}
 
   // ── Backup ─────────────────────────────────────
 

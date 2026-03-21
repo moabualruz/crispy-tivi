@@ -21,6 +21,9 @@ mixin PlayerHistoryMixin on ConsumerState<PlayerFullscreenOverlay> {
   VodItem? nextEpisodeToShow;
   bool showMovieCompletion = false;
 
+  /// Non-null when "Still Watching?" prompt should show.
+  StillWatchingPrompt? stillWatchingPrompt;
+
   // ── Lifecycle ────────────────────────────────────────────
 
   /// Called by [_PlayerFullscreenOverlayState.dispose] to flush
@@ -39,6 +42,7 @@ mixin PlayerHistoryMixin on ConsumerState<PlayerFullscreenOverlay> {
   void resetHistoryState() {
     nextEpisodeToShow = null;
     showMovieCompletion = false;
+    stillWatchingPrompt = null;
   }
 
   // ── Session start ────────────────────────────────────────
@@ -59,7 +63,9 @@ mixin PlayerHistoryMixin on ConsumerState<PlayerFullscreenOverlay> {
       playbackProgressProvider.select((s) => s.completionEvent),
       (_, event) {
         if (event == null || !mounted) return;
-        if (event is NextEpisodeAvailable) {
+        if (event is StillWatchingPrompt) {
+          setState(() => stillWatchingPrompt = event);
+        } else if (event is NextEpisodeAvailable) {
           setState(() => nextEpisodeToShow = event.next);
         } else if (event is ContentFinished) {
           setState(() => showMovieCompletion = true);
@@ -78,7 +84,10 @@ mixin PlayerHistoryMixin on ConsumerState<PlayerFullscreenOverlay> {
   // ── Next-episode navigation ──────────────────────────────
 
   /// Starts playback of [next] and resets the completion UI.
-  void playNextEpisode(VodItem next) {
+  ///
+  /// When [isAutoAdvance] is true, increments the consecutive
+  /// auto-advance counter used for the "Still Watching?" prompt.
+  void playNextEpisode(VodItem next, {bool isAutoAdvance = false}) {
     final session = ref.read(playbackSessionProvider);
     final channelName = session.channelName ?? '';
     final seriesName =
@@ -86,8 +95,18 @@ mixin PlayerHistoryMixin on ConsumerState<PlayerFullscreenOverlay> {
             ? channelName.split(' — ').first
             : channelName;
 
-    setState(() => nextEpisodeToShow = null);
-    ref.read(playbackProgressProvider.notifier).clearCompletionEvent();
+    setState(() {
+      nextEpisodeToShow = null;
+      stillWatchingPrompt = null;
+    });
+
+    final notifier = ref.read(playbackProgressProvider.notifier);
+    notifier.clearCompletionEvent();
+    if (isAutoAdvance) {
+      notifier.recordAutoAdvance();
+    } else {
+      notifier.resetAutoAdvanceCounter();
+    }
 
     ref
         .read(playbackSessionProvider.notifier)
@@ -103,5 +122,21 @@ mixin PlayerHistoryMixin on ConsumerState<PlayerFullscreenOverlay> {
           seriesPosterUrl: session.seriesPosterUrl,
           episodeList: session.episodeList,
         );
+  }
+
+  /// User confirmed "Continue Watching" from the Still Watching prompt.
+  void confirmStillWatching() {
+    final prompt = stillWatchingPrompt;
+    if (prompt == null) return;
+    ref.read(playbackProgressProvider.notifier).resetAutoAdvanceCounter();
+    playNextEpisode(prompt.next);
+  }
+
+  /// User chose "I'm Done" from the Still Watching prompt.
+  void dismissStillWatching() {
+    setState(() => stillWatchingPrompt = null);
+    ref.read(playbackProgressProvider.notifier)
+      ..resetAutoAdvanceCounter()
+      ..clearCompletionEvent();
   }
 }

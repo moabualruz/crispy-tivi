@@ -7,6 +7,50 @@ use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::models::EpgEntry;
 
+/// Column list for all EPG SELECT queries. Kept in one place so
+/// every load method stays in sync with `epg_entry_from_row`.
+const EPG_SELECT_COLS: &str = "\
+    channel_id, title, start_time, end_time, \
+    description, category, icon_url, source_id, \
+    sub_title, season, episode, episode_label, \
+    air_date, content_rating, star_rating, \
+    directors, cast_members, writers, presenters, \
+    language, country, \
+    is_rerun, is_new, is_premiere, length_minutes";
+
+/// Map a database row (matching [`EPG_SELECT_COLS`] order) to an
+/// [`EpgEntry`]. The `cast_members` DB column maps to the `cast`
+/// Rust field (avoiding the SQL reserved word).
+fn epg_entry_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<EpgEntry> {
+    Ok(EpgEntry {
+        channel_id: row.get(0)?,
+        title: row.get(1)?,
+        start_time: ts_to_dt(row.get(2)?),
+        end_time: ts_to_dt(row.get(3)?),
+        description: row.get(4)?,
+        category: row.get(5)?,
+        icon_url: row.get(6)?,
+        source_id: row.get(7)?,
+        sub_title: row.get(8)?,
+        season: row.get(9)?,
+        episode: row.get(10)?,
+        episode_label: row.get(11)?,
+        air_date: row.get(12)?,
+        content_rating: row.get(13)?,
+        star_rating: row.get(14)?,
+        directors: row.get(15)?,
+        cast: row.get(16)?,
+        writers: row.get(17)?,
+        presenters: row.get(18)?,
+        language: row.get(19)?,
+        country: row.get(20)?,
+        is_rerun: row.get(21)?,
+        is_new: row.get(22)?,
+        is_premiere: row.get(23)?,
+        length_minutes: row.get(24)?,
+    })
+}
+
 impl CrispyService {
     // ── EPG ─────────────────────────────────────────
 
@@ -82,9 +126,21 @@ impl CrispyService {
                          channel_id, title,
                          start_time, end_time,
                          description, category,
-                         icon_url, source_id
+                         icon_url, source_id,
+                         sub_title, season, episode,
+                         episode_label, air_date,
+                         content_rating, star_rating,
+                         directors, cast_members,
+                         writers, presenters,
+                         language, country,
+                         is_rerun, is_new, is_premiere,
+                         length_minutes
                      ) VALUES (
-                         ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
+                         ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
+                         ?9, ?10, ?11, ?12, ?13,
+                         ?14, ?15, ?16, ?17,
+                         ?18, ?19, ?20, ?21,
+                         ?22, ?23, ?24, ?25
                      )",
                     params![
                         matched_channel_id,
@@ -95,6 +151,23 @@ impl CrispyService {
                         e.category,
                         e.icon_url,
                         e.source_id,
+                        e.sub_title,
+                        e.season,
+                        e.episode,
+                        e.episode_label,
+                        e.air_date,
+                        e.content_rating,
+                        e.star_rating,
+                        e.directors,
+                        e.cast,
+                        e.writers,
+                        e.presenters,
+                        e.language,
+                        e.country,
+                        e.is_rerun,
+                        e.is_new,
+                        e.is_premiere,
+                        e.length_minutes,
                     ],
                 )?;
                 // Update in-memory map for subsequent iterations.
@@ -126,26 +199,11 @@ impl CrispyService {
     /// Load all EPG entries grouped by channel_id.
     pub fn load_epg_entries(&self) -> Result<HashMap<String, Vec<EpgEntry>>, DbError> {
         let conn = self.db.get()?;
-        let mut stmt = conn.prepare(
-            "SELECT
-                channel_id, title, start_time,
-                end_time, description, category,
-                icon_url, source_id
-            FROM db_epg_entries
-            ORDER BY channel_id, start_time",
-        )?;
-        let rows = stmt.query_map([], |row| {
-            Ok(EpgEntry {
-                channel_id: row.get(0)?,
-                title: row.get(1)?,
-                start_time: ts_to_dt(row.get(2)?),
-                end_time: ts_to_dt(row.get(3)?),
-                description: row.get(4)?,
-                category: row.get(5)?,
-                icon_url: row.get(6)?,
-                source_id: row.get(7)?,
-            })
-        })?;
+        let mut stmt = conn.prepare(&format!(
+            "SELECT {} FROM db_epg_entries ORDER BY channel_id, start_time",
+            EPG_SELECT_COLS
+        ))?;
+        let rows = stmt.query_map([], epg_entry_from_row)?;
         let mut map: HashMap<String, Vec<EpgEntry>> = HashMap::new();
         for r in rows {
             let entry = r?;
@@ -168,18 +226,16 @@ impl CrispyService {
 
         let placeholders: Vec<String> = (1..=channel_ids.len()).map(|i| format!("?{i}")).collect();
         let query = format!(
-            "SELECT
-                channel_id, title, start_time,
-                end_time, description, category,
-                icon_url, source_id
+            "SELECT {cols}
             FROM db_epg_entries
-            WHERE channel_id IN ({})
-              AND end_time > ?{}
-              AND start_time < ?{}
+            WHERE channel_id IN ({placeholders})
+              AND end_time > ?{start_p}
+              AND start_time < ?{end_p}
             ORDER BY channel_id, start_time",
-            placeholders.join(", "),
-            channel_ids.len() + 1,
-            channel_ids.len() + 2
+            cols = EPG_SELECT_COLS,
+            placeholders = placeholders.join(", "),
+            start_p = channel_ids.len() + 1,
+            end_p = channel_ids.len() + 2,
         );
 
         let mut stmt = conn.prepare(&query)?;
@@ -192,18 +248,7 @@ impl CrispyService {
         params.push(&start_time as &dyn rusqlite::types::ToSql);
         params.push(&end_time as &dyn rusqlite::types::ToSql);
 
-        let rows = stmt.query_map(params.as_slice(), |row| {
-            Ok(EpgEntry {
-                channel_id: row.get(0)?,
-                title: row.get(1)?,
-                start_time: ts_to_dt(row.get(2)?),
-                end_time: ts_to_dt(row.get(3)?),
-                description: row.get(4)?,
-                category: row.get(5)?,
-                icon_url: row.get(6)?,
-                source_id: row.get(7)?,
-            })
-        })?;
+        let rows = stmt.query_map(params.as_slice(), epg_entry_from_row)?;
 
         let mut map: HashMap<String, Vec<EpgEntry>> = HashMap::new();
         for r in rows {
@@ -228,29 +273,16 @@ impl CrispyService {
         let conn = self.db.get()?;
         let placeholders: Vec<String> = (1..=source_ids.len()).map(|i| format!("?{i}")).collect();
         let sql = format!(
-            "SELECT
-                channel_id, title, start_time,
-                end_time, description, category,
-                icon_url, source_id
+            "SELECT {cols}
             FROM db_epg_entries
-            WHERE source_id IN ({})
+            WHERE source_id IN ({placeholders})
             ORDER BY channel_id, start_time",
-            placeholders.join(", ")
+            cols = EPG_SELECT_COLS,
+            placeholders = placeholders.join(", "),
         );
         let mut stmt = conn.prepare(&sql)?;
         let params = str_params(source_ids);
-        let rows = stmt.query_map(params.as_slice(), |row| {
-            Ok(EpgEntry {
-                channel_id: row.get(0)?,
-                title: row.get(1)?,
-                start_time: ts_to_dt(row.get(2)?),
-                end_time: ts_to_dt(row.get(3)?),
-                description: row.get(4)?,
-                category: row.get(5)?,
-                icon_url: row.get(6)?,
-                source_id: row.get(7)?,
-            })
-        })?;
+        let rows = stmt.query_map(params.as_slice(), epg_entry_from_row)?;
         let mut map: HashMap<String, Vec<EpgEntry>> = HashMap::new();
         for r in rows {
             let entry = r?;
@@ -296,10 +328,7 @@ mod tests {
             title: "News".to_string(),
             start_time: dt,
             end_time: dt_end,
-            description: None,
-            category: None,
-            icon_url: None,
-            source_id: None,
+            ..EpgEntry::default()
         };
         let mut map = HashMap::new();
         map.insert("ch1".to_string(), vec![entry]);
@@ -321,10 +350,7 @@ mod tests {
             title: "News".to_string(),
             start_time: dt,
             end_time: dt_end,
-            description: None,
-            category: None,
-            icon_url: None,
-            source_id: None,
+            ..EpgEntry::default()
         };
         let mut map = HashMap::new();
         map.insert("ch1".to_string(), vec![entry]);
@@ -357,10 +383,8 @@ mod tests {
             title: "Show".to_string(),
             start_time: dt,
             end_time: dt_end,
-            description: None,
-            category: None,
-            icon_url: None,
             source_id: Some(src.to_string()),
+            ..EpgEntry::default()
         };
         let mut map = HashMap::new();
         map.insert("ch1".to_string(), vec![make_entry("ch1", "src_a")]);
@@ -384,10 +408,8 @@ mod tests {
             title: "Show".to_string(),
             start_time: dt,
             end_time: dt_end,
-            description: None,
-            category: None,
-            icon_url: None,
             source_id: Some(src.to_string()),
+            ..EpgEntry::default()
         };
         let mut map = HashMap::new();
         map.insert("ch1".to_string(), vec![make_entry("ch1", "src_a")]);
@@ -412,10 +434,7 @@ mod tests {
             title: "Old Show".to_string(),
             start_time: old_dt,
             end_time: old_end,
-            description: None,
-            category: None,
-            icon_url: None,
-            source_id: None,
+            ..EpgEntry::default()
         };
         let mut map = HashMap::new();
         map.insert("ch1".to_string(), vec![entry]);
@@ -439,10 +458,7 @@ mod tests {
             title: "News".to_string(),
             start_time: dt,
             end_time: dt_end,
-            description: None,
-            category: None,
-            icon_url: None,
-            source_id: None,
+            ..EpgEntry::default()
         };
         let mut map = HashMap::new();
         map.insert("ch1".to_string(), vec![entry]);
@@ -471,10 +487,7 @@ mod tests {
             title: "Show".to_string(),
             start_time: dt,
             end_time: dt_end,
-            description: None,
-            category: None,
-            icon_url: None,
-            source_id: None,
+            ..EpgEntry::default()
         };
         let mut map = HashMap::new();
         map.insert("ch1".to_string(), vec![make_entry("ch1")]);
@@ -507,10 +520,8 @@ mod tests {
             title: title.to_string(),
             start_time: parse_dt("2025-06-01 10:00:00"),
             end_time: parse_dt("2025-06-01 11:00:00"),
-            description: None,
-            category: None,
-            icon_url: None,
             source_id: source_id.map(|s| s.to_string()),
+            ..EpgEntry::default()
         }
     }
 

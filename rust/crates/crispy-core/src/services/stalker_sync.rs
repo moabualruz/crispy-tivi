@@ -333,6 +333,46 @@ pub async fn sync_stalker_source(
         .await
         .context("Stalker portal authentication failed")?;
 
+    // ── 1a. Fetch profile (non-fatal) ─────────────
+    match stalker_get(
+        &session,
+        "?type=stb&action=get_profile",
+        accept_invalid_certs,
+    )
+    .await
+    {
+        Ok(text) => {
+            let profile = stalker::parse_stalker_profile(&text);
+            tracing::info!(
+                timezone = ?profile.timezone,
+                locale = ?profile.locale,
+                "Stalker profile"
+            );
+        }
+        Err(e) => tracing::warn!("Failed to fetch Stalker profile: {e}"),
+    }
+
+    // ── 1b. Fetch account info (non-fatal) ────────
+    match stalker_get(
+        &session,
+        "?type=account_info&action=get_main_info",
+        accept_invalid_certs,
+    )
+    .await
+    {
+        Ok(text) => {
+            let info = stalker::parse_stalker_account_info(&text);
+            tracing::info!(
+                login = ?info.login,
+                status = info.status,
+                exp_date = ?info.exp_date,
+                tariff = ?info.tariff_name,
+                "Stalker account info"
+            );
+        }
+        Err(e) => tracing::warn!("Failed to fetch Stalker account info: {e}"),
+    }
+
     emit_progress(source_id, "channels", 0.1, "Fetching live channels");
 
     // ── 2. Live categories ───────────────────────────
@@ -373,38 +413,36 @@ pub async fn sync_stalker_source(
 
     // ── 5. VOD movies (paginated) ────────────────────
     let base_for_vod = base.clone();
+    let sid_for_vod = source_id.to_string();
     let mut vod_items = fetch_all_pages(
         &session,
         "?type=vod&action=get_ordered_list&category=*",
         stalker::parse_stalker_vod_result,
-        move |items| stalker::parse_stalker_vod_items(items, &base_for_vod, "movie"),
+        move |items| stalker::parse_stalker_vod_items(items, &base_for_vod, "movie", &sid_for_vod),
         accept_invalid_certs,
     )
     .await;
 
     vod_items = categories::resolve_vod_categories(&vod_items, &vod_cat_map);
-    for v in &mut vod_items {
-        v.source_id = Some(source_id.to_string());
-    }
 
     emit_progress(source_id, "series", 0.6, "Fetching series");
 
     // ── 6. Series (paginated) ────────────────────────
     // Series use the same VOD category map.
     let base_for_series = base.clone();
+    let sid_for_series = source_id.to_string();
     let mut series_items = fetch_all_pages(
         &session,
         "?type=series&action=get_ordered_list&category=*",
         stalker::parse_stalker_vod_result,
-        move |items| stalker::parse_stalker_vod_items(items, &base_for_series, "series"),
+        move |items| {
+            stalker::parse_stalker_vod_items(items, &base_for_series, "series", &sid_for_series)
+        },
         accept_invalid_certs,
     )
     .await;
 
     series_items = categories::resolve_vod_categories(&series_items, &vod_cat_map);
-    for v in &mut series_items {
-        v.source_id = Some(source_id.to_string());
-    }
     vod_items.extend(series_items);
 
     // ── 7. Extract sorted metadata ───────────────────
@@ -433,6 +471,255 @@ pub async fn sync_stalker_source(
         vod_categories: vod_categories_list,
         epg_url: None,
     })
+}
+
+// ── On-demand endpoints ─────────────────────────
+
+/// Resolves a temporary authenticated stream URL via Stalker's
+/// `create_link` endpoint.
+///
+/// Some portals require this step to convert a stored `cmd` into a
+/// time-limited, token-bearing URL suitable for playback.
+pub async fn resolve_stalker_stream_url(
+    base_url: &str,
+    mac_address: &str,
+    cmd: &str,
+    stream_type: &str,
+    accept_invalid_certs: bool,
+) -> Result<String> {
+    validate_url(base_url).map_err(anyhow::Error::from)?;
+    let base = base_url.trim_end_matches('/').to_string();
+
+    let session = authenticate(&base, mac_address, accept_invalid_certs)
+        .await
+        .context("Stalker authentication failed for create_link")?;
+
+    let encoded_cmd = urlencoding::encode(cmd);
+    let query = format!(
+        "?type={}&action=create_link&cmd={}",
+        stream_type, encoded_cmd
+    );
+
+    let text = stalker_get(&session, &query, accept_invalid_certs)
+        .await
+        .context("Stalker create_link request failed")?;
+
+    stalker::parse_stalker_create_link(&text, &base)
+        .ok_or_else(|| anyhow!("Failed to parse create_link response"))
+}
+
+/// Fetches user profile information from a Stalker portal.
+///
+/// Returns timezone, locale, and geographic data. This is called
+/// during the sync flow after authentication to capture portal
+/// settings.
+pub async fn fetch_stalker_profile(
+    base_url: &str,
+    mac_address: &str,
+    accept_invalid_certs: bool,
+) -> Result<stalker::StalkerProfile> {
+    validate_url(base_url).map_err(anyhow::Error::from)?;
+    let base = base_url.trim_end_matches('/').to_string();
+
+    let session = authenticate(&base, mac_address, accept_invalid_certs)
+        .await
+        .context("Stalker authentication failed for get_profile")?;
+
+    let text = stalker_get(
+        &session,
+        "?type=stb&action=get_profile",
+        accept_invalid_certs,
+    )
+    .await
+    .context("Stalker get_profile request failed")?;
+
+    let profile = stalker::parse_stalker_profile(&text);
+    tracing::debug!(?profile, "Stalker profile fetched for {}", base_url);
+
+    Ok(profile)
+}
+
+/// Fetches account/subscription information from a Stalker portal.
+///
+/// Returns login, MAC, account status, expiration date, and tariff
+/// name. Useful for displaying subscription status in the UI.
+pub async fn fetch_stalker_account_info(
+    base_url: &str,
+    mac_address: &str,
+    accept_invalid_certs: bool,
+) -> Result<stalker::StalkerAccountInfo> {
+    validate_url(base_url).map_err(anyhow::Error::from)?;
+    let base = base_url.trim_end_matches('/').to_string();
+
+    let session = authenticate(&base, mac_address, accept_invalid_certs)
+        .await
+        .context("Stalker authentication failed for account_info")?;
+
+    let text = stalker_get(
+        &session,
+        "?type=account_info&action=get_main_info",
+        accept_invalid_certs,
+    )
+    .await
+    .context("Stalker account_info request failed")?;
+
+    let info = stalker::parse_stalker_account_info(&text);
+    tracing::debug!(
+        login = ?info.login,
+        status = info.status,
+        exp_date = ?info.exp_date,
+        "Stalker account info fetched"
+    );
+
+    Ok(info)
+}
+
+/// Sends a session keepalive / watchdog event to the Stalker portal.
+///
+/// Should be called periodically during playback to prevent the portal
+/// from terminating the session. `cur_play_type` is typically "itv"
+/// for live or "vod" for on-demand.
+pub async fn stalker_keepalive(
+    base_url: &str,
+    mac_address: &str,
+    cur_play_type: &str,
+    accept_invalid_certs: bool,
+) -> Result<()> {
+    validate_url(base_url).map_err(anyhow::Error::from)?;
+    let base = base_url.trim_end_matches('/').to_string();
+
+    let session = authenticate(&base, mac_address, accept_invalid_certs)
+        .await
+        .context("Stalker authentication failed for watchdog")?;
+
+    let query = format!(
+        "?type=watchdog&action=get_events&cur_play_type={}&event=cur_play",
+        cur_play_type
+    );
+
+    stalker_get(&session, &query, accept_invalid_certs)
+        .await
+        .context("Stalker watchdog request failed")?;
+
+    tracing::trace!("Stalker keepalive sent for {}", base_url);
+    Ok(())
+}
+
+/// Fetches detailed VOD metadata for a single movie from a Stalker
+/// portal.
+///
+/// Calls `type=vod&action=get_vod_info&movie_id={id}` and returns
+/// an enriched [`crate::models::VodItem`] with full metadata.
+pub async fn fetch_stalker_vod_detail(
+    base_url: &str,
+    mac_address: &str,
+    movie_id: &str,
+    source_id: &str,
+    accept_invalid_certs: bool,
+) -> Result<crate::models::VodItem> {
+    validate_url(base_url).map_err(anyhow::Error::from)?;
+    let base = base_url.trim_end_matches('/').to_string();
+
+    let session = authenticate(&base, mac_address, accept_invalid_certs)
+        .await
+        .context("Stalker authentication failed for get_vod_info")?;
+
+    let query = format!("?type=vod&action=get_vod_info&movie_id={}", movie_id);
+    let text = stalker_get(&session, &query, accept_invalid_certs)
+        .await
+        .context("Stalker get_vod_info request failed")?;
+
+    stalker::parse_stalker_vod_detail(&text, &base, source_id).ok_or_else(|| {
+        anyhow!(
+            "Failed to parse get_vod_info response for movie_id={}",
+            movie_id
+        )
+    })
+}
+
+/// Fetches series season/episode structure from a Stalker portal.
+///
+/// Calls `type=series&action=get_series_info&movie_id={id}` and
+/// returns a flat list of episode [`crate::models::VodItem`]s with
+/// `series_id`, `season_number`, and `episode_number` populated.
+pub async fn fetch_stalker_series_detail(
+    base_url: &str,
+    mac_address: &str,
+    movie_id: &str,
+    source_id: &str,
+    accept_invalid_certs: bool,
+) -> Result<Vec<crate::models::VodItem>> {
+    validate_url(base_url).map_err(anyhow::Error::from)?;
+    let base = base_url.trim_end_matches('/').to_string();
+
+    let session = authenticate(&base, mac_address, accept_invalid_certs)
+        .await
+        .context("Stalker authentication failed for get_series_info")?;
+
+    let query = format!("?type=series&action=get_series_info&movie_id={}", movie_id);
+    let text = stalker_get(&session, &query, accept_invalid_certs)
+        .await
+        .context("Stalker get_series_info request failed")?;
+
+    let series_id = format!("stk_vod_{}", movie_id);
+    let episodes = stalker::parse_stalker_series_detail(&text, &base, &series_id, source_id);
+
+    Ok(episodes)
+}
+
+/// Fetches server-side favorite IDs from a Stalker portal.
+///
+/// Returns a list of Stalker-internal IDs for channels/items
+/// marked as favorites on the portal.
+pub async fn get_stalker_favorites(
+    base_url: &str,
+    mac_address: &str,
+    stream_type: &str,
+    accept_invalid_certs: bool,
+) -> Result<Vec<String>> {
+    validate_url(base_url).map_err(anyhow::Error::from)?;
+    let base = base_url.trim_end_matches('/').to_string();
+
+    let session = authenticate(&base, mac_address, accept_invalid_certs)
+        .await
+        .context("Stalker authentication failed for get_fav")?;
+
+    let query = format!("?type={}&action=get_fav", stream_type);
+    let text = stalker_get(&session, &query, accept_invalid_certs)
+        .await
+        .context("Stalker get_fav request failed")?;
+
+    Ok(stalker::parse_stalker_favorites(&text))
+}
+
+/// Sets or removes a server-side favorite on a Stalker portal.
+///
+/// When `remove` is `true`, the item is unfavorited; otherwise
+/// it is added to favorites.
+pub async fn set_stalker_favorite(
+    base_url: &str,
+    mac_address: &str,
+    fav_id: &str,
+    stream_type: &str,
+    remove: bool,
+    accept_invalid_certs: bool,
+) -> Result<()> {
+    validate_url(base_url).map_err(anyhow::Error::from)?;
+    let base = base_url.trim_end_matches('/').to_string();
+
+    let session = authenticate(&base, mac_address, accept_invalid_certs)
+        .await
+        .context("Stalker authentication failed for set_fav")?;
+
+    let action = if remove { "del_fav" } else { "set_fav" };
+    let query = format!("?type={}&action={}&fav_id={}", stream_type, action, fav_id);
+
+    stalker_get(&session, &query, accept_invalid_certs)
+        .await
+        .context("Stalker set_fav request failed")?;
+
+    tracing::debug!(fav_id, remove, stream_type, "Stalker favorite updated");
+    Ok(())
 }
 
 #[cfg(test)]
@@ -501,5 +788,211 @@ mod tests {
             .expect("verify should not error on auth failure");
 
         assert!(!result, "empty token should cause auth to fail → false");
+    }
+
+    /// Mounts handshake + do_auth mocks that succeed on the first portal path.
+    async fn mount_auth_mocks(mock_server: &MockServer) {
+        Mock::given(method("GET"))
+            .and(path(PORTAL_PATH))
+            .and(query_param("type", "stb"))
+            .and(query_param("action", "handshake"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_string(r#"{"js":{"token":"tok123"}}"#),
+            )
+            .mount(mock_server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path(PORTAL_PATH))
+            .and(query_param("type", "stb"))
+            .and(query_param("action", "do_auth"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(r#"{"js":{"id":"1"}}"#))
+            .mount(mock_server)
+            .await;
+    }
+
+    #[tokio::test]
+    async fn resolve_stalker_stream_url_success() {
+        let mock_server = MockServer::start().await;
+        mount_auth_mocks(&mock_server).await;
+
+        Mock::given(method("GET"))
+            .and(path(PORTAL_PATH))
+            .and(query_param("type", "itv"))
+            .and(query_param("action", "create_link"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_string(r#"{"js":{"cmd":"ffrt http://cdn/stream.m3u8?token=xyz"}}"#),
+            )
+            .mount(&mock_server)
+            .await;
+
+        let url = resolve_stalker_stream_url(
+            &mock_server.uri(),
+            TEST_MAC,
+            "http://old/stream",
+            "itv",
+            false,
+        )
+        .await
+        .expect("create_link should succeed");
+
+        assert_eq!(url, "http://cdn/stream.m3u8?token=xyz");
+    }
+
+    #[tokio::test]
+    async fn fetch_stalker_profile_success() {
+        let mock_server = MockServer::start().await;
+        mount_auth_mocks(&mock_server).await;
+
+        Mock::given(method("GET"))
+            .and(path(PORTAL_PATH))
+            .and(query_param("type", "stb"))
+            .and(query_param("action", "get_profile"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_string(r#"{"js":{"timezone":"Europe/London","locale":"en_GB"}}"#),
+            )
+            .mount(&mock_server)
+            .await;
+
+        let profile = fetch_stalker_profile(&mock_server.uri(), TEST_MAC, false)
+            .await
+            .expect("get_profile should succeed");
+
+        assert_eq!(profile.timezone.as_deref(), Some("Europe/London"));
+        assert_eq!(profile.locale.as_deref(), Some("en_GB"));
+    }
+
+    #[tokio::test]
+    async fn fetch_stalker_account_info_success() {
+        let mock_server = MockServer::start().await;
+        mount_auth_mocks(&mock_server).await;
+
+        Mock::given(method("GET"))
+            .and(path(PORTAL_PATH))
+            .and(query_param("type", "account_info"))
+            .and(query_param("action", "get_main_info"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(
+                r#"{"js":{"login":"user1","status":0,"exp_date":"2025-12-31","tariff_name":"HD"}}"#,
+            ))
+            .mount(&mock_server)
+            .await;
+
+        let info = fetch_stalker_account_info(&mock_server.uri(), TEST_MAC, false)
+            .await
+            .expect("account_info should succeed");
+
+        assert_eq!(info.login.as_deref(), Some("user1"));
+        assert_eq!(info.status, 0);
+        assert_eq!(info.exp_date.as_deref(), Some("2025-12-31"));
+        assert_eq!(info.tariff_name.as_deref(), Some("HD"));
+    }
+
+    #[tokio::test]
+    async fn stalker_keepalive_success() {
+        let mock_server = MockServer::start().await;
+        mount_auth_mocks(&mock_server).await;
+
+        Mock::given(method("GET"))
+            .and(path(PORTAL_PATH))
+            .and(query_param("type", "watchdog"))
+            .and(query_param("action", "get_events"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(r#"{"js":true}"#))
+            .mount(&mock_server)
+            .await;
+
+        let result = stalker_keepalive(&mock_server.uri(), TEST_MAC, "itv", false).await;
+        assert!(result.is_ok(), "keepalive should succeed");
+    }
+
+    #[tokio::test]
+    async fn fetch_stalker_vod_detail_success() {
+        let mock_server = MockServer::start().await;
+        mount_auth_mocks(&mock_server).await;
+
+        Mock::given(method("GET"))
+            .and(path(PORTAL_PATH))
+            .and(query_param("type", "vod"))
+            .and(query_param("action", "get_vod_info"))
+            .and(query_param("movie_id", "501"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(
+                r#"{"js":{"movie":{"id":"501","name":"Test Movie","cmd":"http://vod/501.mp4","description":"Great film"}}}"#,
+            ))
+            .mount(&mock_server)
+            .await;
+
+        let item = fetch_stalker_vod_detail(&mock_server.uri(), TEST_MAC, "501", "src_1", false)
+            .await
+            .expect("vod_detail should succeed");
+
+        assert_eq!(item.name, "Test Movie");
+        assert_eq!(item.description.as_deref(), Some("Great film"));
+    }
+
+    #[tokio::test]
+    async fn fetch_stalker_series_detail_success() {
+        let mock_server = MockServer::start().await;
+        mount_auth_mocks(&mock_server).await;
+
+        Mock::given(method("GET"))
+            .and(path(PORTAL_PATH))
+            .and(query_param("type", "series"))
+            .and(query_param("action", "get_series_info"))
+            .and(query_param("movie_id", "300"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(
+                r#"{"js":{"seasons":[{"season_number":1,"episodes":[{"id":"301","name":"Pilot","cmd":"http://vod/301.mp4"}]}]}}"#,
+            ))
+            .mount(&mock_server)
+            .await;
+
+        let episodes =
+            fetch_stalker_series_detail(&mock_server.uri(), TEST_MAC, "300", "src_1", false)
+                .await
+                .expect("series_detail should succeed");
+
+        assert_eq!(episodes.len(), 1);
+        assert_eq!(episodes[0].name, "Pilot");
+        assert_eq!(episodes[0].season_number, Some(1));
+        assert_eq!(episodes[0].series_id.as_deref(), Some("stk_vod_300"));
+    }
+
+    #[tokio::test]
+    async fn get_stalker_favorites_success() {
+        let mock_server = MockServer::start().await;
+        mount_auth_mocks(&mock_server).await;
+
+        Mock::given(method("GET"))
+            .and(path(PORTAL_PATH))
+            .and(query_param("type", "itv"))
+            .and(query_param("action", "get_fav"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(r#"{"js":"1,2,3"}"#))
+            .mount(&mock_server)
+            .await;
+
+        let favs = get_stalker_favorites(&mock_server.uri(), TEST_MAC, "itv", false)
+            .await
+            .expect("get_fav should succeed");
+
+        assert_eq!(favs, vec!["1", "2", "3"]);
+    }
+
+    #[tokio::test]
+    async fn set_stalker_favorite_success() {
+        let mock_server = MockServer::start().await;
+        mount_auth_mocks(&mock_server).await;
+
+        Mock::given(method("GET"))
+            .and(path(PORTAL_PATH))
+            .and(query_param("type", "itv"))
+            .and(query_param("action", "set_fav"))
+            .and(query_param("fav_id", "42"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(r#"{"js":true}"#))
+            .mount(&mock_server)
+            .await;
+
+        let result =
+            set_stalker_favorite(&mock_server.uri(), TEST_MAC, "42", "itv", false, false).await;
+        assert!(result.is_ok(), "set_fav should succeed");
     }
 }

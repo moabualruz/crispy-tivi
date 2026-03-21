@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../domain/entities/playback_state.dart';
 import '../../domain/entities/thumbnail_sprite.dart';
@@ -349,7 +350,7 @@ class _SegmentBarPainter extends CustomPainter {
   final int durationMs;
   final double trackHeight;
 
-  static const _segmentColor = Color(0x80FFB300); // amber, 50% alpha
+  static const _segmentColor = CrispyColors.segmentHighlight;
 
   @override
   void paint(Canvas canvas, Size size) {

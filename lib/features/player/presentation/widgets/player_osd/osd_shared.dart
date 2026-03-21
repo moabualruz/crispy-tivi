@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/theme/crispy_colors.dart';
+
 /// Top gradient: black 0.7 at top fading to transparent.
 const osdTopGradient = LinearGradient(
   begin: Alignment.topCenter,
   end: Alignment.bottomCenter,
-  colors: [
-    Color(0xB3000000), // rgba(0,0,0,0.7)
-    Colors.transparent,
-  ],
+  colors: [CrispyColors.osdPanel, Colors.transparent],
 );
 
 /// Bottom gradient: black 0.7 at bottom fading to
@@ -15,14 +14,11 @@ const osdTopGradient = LinearGradient(
 const osdBottomGradient = LinearGradient(
   begin: Alignment.bottomCenter,
   end: Alignment.topCenter,
-  colors: [
-    Color(0xB3000000), // rgba(0,0,0,0.7)
-    Colors.transparent,
-  ],
+  colors: [CrispyColors.osdPanel, Colors.transparent],
 );
 
 /// Panel background for audio/subtitle picker.
-const osdPanelColor = Color(0xD91A1A1A); // #1A1A1A @ 85%
+const osdPanelColor = CrispyColors.osdPanelDense;
 
 /// Height reserved for the OSD bottom bar, used by overlays
 /// (completion, next-episode) to position above the controls.

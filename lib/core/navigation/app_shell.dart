@@ -123,6 +123,10 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   /// Builds the keyboard shortcut map for the given layout mode.
+  ///
+  /// Shortcuts that conflict with text input (slash, digits, Ctrl+K)
+  /// are guarded by [isTextFieldFocused] so they pass through to the
+  /// active [TextField] instead of firing navigation actions.
   Map<ShortcutActivator, VoidCallback> _shortcutsFor(
     BuildContext context,
     bool usesSideNav,
@@ -143,6 +147,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final map = <ShortcutActivator, VoidCallback>{
       // Home key: panic shortcut — navigate to Home from anywhere.
       const SingleActivator(LogicalKeyboardKey.home): () {
+        if (isTextFieldFocused()) return;
         Future.microtask(() {
           if (context.mounted) {
             _stopPreviewIfLeaving(AppRoutes.home);
@@ -151,16 +156,22 @@ class _AppShellState extends ConsumerState<AppShell> {
         });
       },
       // Search: / or Ctrl+K
-      const SingleActivator(LogicalKeyboardKey.slash):
-          () => _openSearch(context),
-      const SingleActivator(LogicalKeyboardKey.keyK, control: true):
-          () => _openSearch(context),
+      const SingleActivator(LogicalKeyboardKey.slash): () {
+        if (isTextFieldFocused()) return;
+        _openSearch(context);
+      },
+      const SingleActivator(LogicalKeyboardKey.keyK, control: true): () {
+        if (isTextFieldFocused()) return;
+        _openSearch(context);
+      },
       // Keyboard shortcuts overlay: ? (Shift+/)
       // Only on desktop/web — TV and mobile don't use keyboard shortcuts.
       if (!DeviceFormFactorService.current.isTV &&
           !DeviceFormFactorService.current.isMobile)
-        const SingleActivator(LogicalKeyboardKey.slash, shift: true):
-            () => showKeyboardShortcutsOverlay(context),
+        const SingleActivator(LogicalKeyboardKey.slash, shift: true): () {
+          if (isTextFieldFocused()) return;
+          showKeyboardShortcutsOverlay(context);
+        },
       // Back: Escape, GoBack, BrowserBack, Gamepad B
       // NOTE: Backspace is handled in _onKeyEvent (not here) so it
       // doesn't get swallowed when a TextField is focused.
@@ -182,6 +193,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (!isChannelScreen) {
       for (var i = 0; i < navDests.length && i < digitKeys.length; i++) {
         map[SingleActivator(digitKeys[i])] = () {
+          if (isTextFieldFocused()) return;
           _stopPreviewIfLeaving(navDests[i].route);
           // FE-AS-09: mark section visited via keyboard shortcut too.
           ref

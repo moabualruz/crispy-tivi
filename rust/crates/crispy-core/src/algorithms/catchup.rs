@@ -208,10 +208,7 @@ mod tests {
             title: "Test Program".to_string(),
             start_time: start,
             end_time: end,
-            description: None,
-            category: None,
-            icon_url: None,
-            source_id: None,
+            ..EpgEntry::default()
         }
     }
 
@@ -224,10 +221,7 @@ mod tests {
             title: "Future Show".to_string(),
             start_time: start,
             end_time: end,
-            description: None,
-            category: None,
-            icon_url: None,
-            source_id: None,
+            ..EpgEntry::default()
         }
     }
 
@@ -252,6 +246,15 @@ mod tests {
             added_at: None,
             updated_at: None,
             is_247: false,
+            tvg_shift: None,
+            tvg_language: None,
+            tvg_country: None,
+            parent_code: None,
+            is_radio: false,
+            tvg_rec: None,
+            is_adult: false,
+            custom_sid: None,
+            direct_source: None,
         }
     }
 
@@ -276,6 +279,15 @@ mod tests {
             added_at: None,
             updated_at: None,
             is_247: false,
+            tvg_shift: None,
+            tvg_language: None,
+            tvg_country: None,
+            parent_code: None,
+            is_radio: false,
+            tvg_rec: None,
+            is_adult: false,
+            custom_sid: None,
+            direct_source: None,
         }
     }
 
@@ -300,6 +312,15 @@ mod tests {
             added_at: None,
             updated_at: None,
             is_247: false,
+            tvg_shift: None,
+            tvg_language: None,
+            tvg_country: None,
+            parent_code: None,
+            is_radio: false,
+            tvg_rec: None,
+            is_adult: false,
+            custom_sid: None,
+            direct_source: None,
         }
     }
 

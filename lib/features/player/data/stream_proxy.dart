@@ -101,25 +101,33 @@ class StreamProxy {
         for (final chunk in dataBuffer) {
           try {
             request.response.add(chunk);
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('[StreamProxy] send buffered chunk failed: $e');
+          }
         }
 
         final sub = broadcast.listen(
           (data) {
             try {
               request.response.add(data);
-            } catch (_) {}
+            } catch (e) {
+              debugPrint('[StreamProxy] send stream data failed: $e');
+            }
           },
           onDone: () {
             try {
               request.response.close();
-            } catch (_) {}
+            } catch (e) {
+              debugPrint('[StreamProxy] close response on done failed: $e');
+            }
             _clients.remove(request.response);
           },
           onError: (_) {
             try {
               request.response.close();
-            } catch (_) {}
+            } catch (e) {
+              debugPrint('[StreamProxy] close response on error failed: $e');
+            }
             _clients.remove(request.response);
           },
           cancelOnError: true,
@@ -160,21 +168,27 @@ class StreamProxy {
     for (final client in _clients) {
       try {
         client.close();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[StreamProxy] close client failed: $e');
+      }
     }
     _clients.clear();
 
     if (_ffmpeg != null) {
       try {
         _ffmpeg!.kill(ProcessSignal.sigterm);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[StreamProxy] kill ffmpeg process failed: $e');
+      }
       _ffmpeg = null;
     }
 
     if (_server != null) {
       try {
         await _server!.close(force: true);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[StreamProxy] close server failed: $e');
+      }
       _server = null;
     }
   }
@@ -188,7 +202,9 @@ class StreamProxy {
         if (result.exitCode == 0) {
           return (result.stdout as String).trim().split('\n').first.trim();
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[StreamProxy] ffmpeg lookup via where failed: $e');
+      }
       return null;
     }
 
@@ -209,7 +225,9 @@ class StreamProxy {
       if (result.exitCode == 0) {
         return (result.stdout as String).trim();
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[StreamProxy] ffmpeg lookup via which failed: $e');
+    }
 
     return null;
   }

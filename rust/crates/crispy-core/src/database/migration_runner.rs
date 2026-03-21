@@ -24,7 +24,7 @@ use super::DbError;
 ///
 /// When adding a new migration file, update this constant to match the
 /// new `PRAGMA user_version` value set by that file.
-pub const LATEST_VERSION: u32 = 39;
+pub const LATEST_VERSION: u32 = 44;
 
 /// Ordered list of `(target_user_version, sql)` pairs.
 ///
@@ -45,6 +45,22 @@ static MIGRATIONS: &[(u32, &str)] = &[
     //        to db_sources so the service layer can detect and re-encrypt
     //        any pre-existing plaintext rows on first run (spec C-008)
     (39, include_str!("migrations/004_encrypt_credentials.sql")),
+    // 005 — extended M3U channel attributes: tvg_shift, tvg_language,
+    //        tvg_country, parent_code, is_radio, tvg_rec
+    (
+        40,
+        include_str!("migrations/005_channel_extended_attrs.sql"),
+    ),
+    // 006 — add VOD metadata fields: cast, director, genre, youtube_trailer,
+    //        tmdb_id, rating_5based to db_vod_items
+    (41, include_str!("migrations/006_vod_metadata_fields.sql")),
+    // 007 — Xtream-specific channel fields: is_adult, custom_sid, direct_source
+    (42, include_str!("migrations/007_channel_xtream_fields.sql")),
+    // 008 — Extended XMLTV EPG fields: sub-title, episode numbering, credits,
+    //        ratings, broadcast flags, language, country, and duration
+    (43, include_str!("migrations/008_epg_extended_fields.sql")),
+    // 009 — Extended VOD fields: original_name, is_adult, content_rating
+    (44, include_str!("migrations/009_vod_extended_fields.sql")),
 ];
 
 /// Run all pending migrations against `conn`.

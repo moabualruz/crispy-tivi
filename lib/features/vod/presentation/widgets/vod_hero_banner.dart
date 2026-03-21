@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_animation.dart';
+import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/responsive_layout.dart';
@@ -168,7 +169,10 @@ class _TrailerOverlayState extends State<_TrailerOverlay> {
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               stops: [0.35, 1.0],
-                              colors: [Colors.transparent, Color(0xCC000000)],
+                              colors: [
+                                Colors.transparent,
+                                CrispyColors.scrim80,
+                              ],
                             ),
                           ),
                         ),

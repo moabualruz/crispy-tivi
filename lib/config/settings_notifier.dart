@@ -161,6 +161,10 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
             )
             : VodDisplayMode.poster;
 
+    // ── VOD Enrichment ──
+    final enrichVodStr = await _cache.getSetting(kEnrichVodOnSyncKey);
+    final enrichVodOnSync = enrichVodStr == 'true';
+
     // ── Locale ──
     final locale = await _cache.getSetting(kLocaleKey);
 
@@ -194,6 +198,7 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
       gridDensity: gridDensity,
       spoilerBlurEnabled: spoilerBlurEnabled,
       vodDisplayMode: vodDisplayMode,
+      enrichVodOnSync: enrichVodOnSync,
       locale: locale,
     );
   }
@@ -397,6 +402,18 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
   }
 
   // ── Sync ──
+
+  /// Enable or disable VOD enrichment during Xtream sync.
+  ///
+  /// When enabled, `get_vod_info` is called per movie to
+  /// fetch plot, cast, duration, etc. Disabled by default
+  /// because it is slow.
+  Future<void> setEnrichVodOnSync(bool enabled) async {
+    final current = state.value;
+    if (current == null) return;
+    await _cache.setSetting(kEnrichVodOnSyncKey, enabled.toString());
+    state = AsyncData(current.copyWith(enrichVodOnSync: enabled));
+  }
 
   Future<void> setSyncInterval(int hours) async {
     final current = state.value;

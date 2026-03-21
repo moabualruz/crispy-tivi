@@ -33,6 +33,15 @@ pub fn make_channel(id: &str, name: &str) -> Channel {
         added_at: None,
         updated_at: None,
         is_247: false,
+        tvg_shift: None,
+        tvg_language: None,
+        tvg_country: None,
+        parent_code: None,
+        is_radio: false,
+        tvg_rec: None,
+        is_adult: false,
+        custom_sid: None,
+        direct_source: None,
     }
 }
 
@@ -72,6 +81,15 @@ pub fn make_vod_item(id: &str, name: &str) -> VodItem {
         added_at: None,
         updated_at: None,
         source_id: Some("src1".to_string()),
+        cast: None,
+        director: None,
+        genre: None,
+        youtube_trailer: None,
+        tmdb_id: None,
+        rating_5based: None,
+        original_name: None,
+        is_adult: false,
+        content_rating: None,
     }
 }
 

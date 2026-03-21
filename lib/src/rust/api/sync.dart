@@ -25,19 +25,39 @@ Future<bool> verifyXtreamCredentials({
   acceptInvalidCerts: acceptInvalidCerts,
 );
 
+/// Fetch Xtream account and server info.
+/// Returns JSON `XtreamAccountInfo`.
+Future<String> fetchXtreamAccountInfo({
+  required String baseUrl,
+  required String username,
+  required String password,
+  required bool acceptInvalidCerts,
+}) => RustLib.instance.api.crateApiSyncFetchXtreamAccountInfo(
+  baseUrl: baseUrl,
+  username: username,
+  password: password,
+  acceptInvalidCerts: acceptInvalidCerts,
+);
+
 /// Full Xtream source sync. Returns JSON `SyncReport`.
+///
+/// When `enrich_vod_on_sync` is `true`, calls `get_vod_info`
+/// per movie to fetch plot, cast, duration, etc. This is slow
+/// (~4 min for 12K items) and disabled by default.
 Future<String> syncXtreamSource({
   required String baseUrl,
   required String username,
   required String password,
   required String sourceId,
   required bool acceptInvalidCerts,
+  required bool enrichVodOnSync,
 }) => RustLib.instance.api.crateApiSyncSyncXtreamSource(
   baseUrl: baseUrl,
   username: username,
   password: password,
   sourceId: sourceId,
   acceptInvalidCerts: acceptInvalidCerts,
+  enrichVodOnSync: enrichVodOnSync,
 );
 
 /// Verify M3U URL connectivity. Returns `true` if reachable.
@@ -81,5 +101,120 @@ Future<String> syncStalkerSource({
   baseUrl: baseUrl,
   macAddress: macAddress,
   sourceId: sourceId,
+  acceptInvalidCerts: acceptInvalidCerts,
+);
+
+/// Resolve an authenticated stream URL via Stalker's `create_link`.
+/// Returns the temporary token-bearing URL for playback.
+Future<String> resolveStalkerStreamUrl({
+  required String baseUrl,
+  required String macAddress,
+  required String cmd,
+  required String streamType,
+  required bool acceptInvalidCerts,
+}) => RustLib.instance.api.crateApiSyncResolveStalkerStreamUrl(
+  baseUrl: baseUrl,
+  macAddress: macAddress,
+  cmd: cmd,
+  streamType: streamType,
+  acceptInvalidCerts: acceptInvalidCerts,
+);
+
+/// Fetch Stalker portal user profile. Returns JSON `StalkerProfile`.
+Future<String> fetchStalkerProfile({
+  required String baseUrl,
+  required String macAddress,
+  required bool acceptInvalidCerts,
+}) => RustLib.instance.api.crateApiSyncFetchStalkerProfile(
+  baseUrl: baseUrl,
+  macAddress: macAddress,
+  acceptInvalidCerts: acceptInvalidCerts,
+);
+
+/// Fetch Stalker portal account/subscription info.
+/// Returns JSON `StalkerAccountInfo`.
+Future<String> fetchStalkerAccountInfo({
+  required String baseUrl,
+  required String macAddress,
+  required bool acceptInvalidCerts,
+}) => RustLib.instance.api.crateApiSyncFetchStalkerAccountInfo(
+  baseUrl: baseUrl,
+  macAddress: macAddress,
+  acceptInvalidCerts: acceptInvalidCerts,
+);
+
+/// Send a Stalker session keepalive (watchdog) during playback.
+Future<void> stalkerKeepalive({
+  required String baseUrl,
+  required String macAddress,
+  required String curPlayType,
+  required bool acceptInvalidCerts,
+}) => RustLib.instance.api.crateApiSyncStalkerKeepalive(
+  baseUrl: baseUrl,
+  macAddress: macAddress,
+  curPlayType: curPlayType,
+  acceptInvalidCerts: acceptInvalidCerts,
+);
+
+/// Fetch detailed VOD metadata for a single movie from a Stalker portal.
+/// Returns JSON `VodItem`.
+Future<String> fetchStalkerVodDetail({
+  required String baseUrl,
+  required String macAddress,
+  required String movieId,
+  required String sourceId,
+  required bool acceptInvalidCerts,
+}) => RustLib.instance.api.crateApiSyncFetchStalkerVodDetail(
+  baseUrl: baseUrl,
+  macAddress: macAddress,
+  movieId: movieId,
+  sourceId: sourceId,
+  acceptInvalidCerts: acceptInvalidCerts,
+);
+
+/// Fetch series season/episode structure from a Stalker portal.
+/// Returns JSON array of `VodItem` episodes.
+Future<String> fetchStalkerSeriesDetail({
+  required String baseUrl,
+  required String macAddress,
+  required String movieId,
+  required String sourceId,
+  required bool acceptInvalidCerts,
+}) => RustLib.instance.api.crateApiSyncFetchStalkerSeriesDetail(
+  baseUrl: baseUrl,
+  macAddress: macAddress,
+  movieId: movieId,
+  sourceId: sourceId,
+  acceptInvalidCerts: acceptInvalidCerts,
+);
+
+/// Fetch server-side favorite IDs from a Stalker portal.
+/// Returns JSON array of ID strings.
+Future<String> getStalkerFavorites({
+  required String baseUrl,
+  required String macAddress,
+  required String streamType,
+  required bool acceptInvalidCerts,
+}) => RustLib.instance.api.crateApiSyncGetStalkerFavorites(
+  baseUrl: baseUrl,
+  macAddress: macAddress,
+  streamType: streamType,
+  acceptInvalidCerts: acceptInvalidCerts,
+);
+
+/// Set or remove a server-side favorite on a Stalker portal.
+Future<void> setStalkerFavorite({
+  required String baseUrl,
+  required String macAddress,
+  required String favId,
+  required String streamType,
+  required bool remove,
+  required bool acceptInvalidCerts,
+}) => RustLib.instance.api.crateApiSyncSetStalkerFavorite(
+  baseUrl: baseUrl,
+  macAddress: macAddress,
+  favId: favId,
+  streamType: streamType,
+  remove: remove,
   acceptInvalidCerts: acceptInvalidCerts,
 );

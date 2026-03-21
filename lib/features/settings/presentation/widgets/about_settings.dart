@@ -65,7 +65,9 @@ class _AboutSettingsSectionState extends ConsumerState<AboutSettingsSection> {
           _updateResult = result;
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[AboutSettings] auto update check failed: $e');
+    }
   }
 
   Future<void> _manualCheck() async {

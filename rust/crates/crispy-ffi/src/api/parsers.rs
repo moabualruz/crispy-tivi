@@ -127,10 +127,12 @@ pub fn parse_stalker_vod_items(
     json: String,
     base_url: String,
     vod_type: Option<String>,
+    source_id: Option<String>,
 ) -> Result<String> {
     let data: Vec<serde_json::Value> = from_json(&json)?;
     let vt = vod_type.as_deref().unwrap_or("movie");
-    let items = crispy_core::parsers::stalker::parse_stalker_vod_items(&data, &base_url, vt);
+    let sid = source_id.as_deref().unwrap_or("");
+    let items = crispy_core::parsers::stalker::parse_stalker_vod_items(&data, &base_url, vt, sid);
     Ok(serde_json::to_string(&items)?)
 }
 

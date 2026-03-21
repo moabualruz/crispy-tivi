@@ -8,20 +8,23 @@ import '../../domain/entities/saved_layout.dart';
 import '../../domain/repositories/layout_repository.dart';
 
 /// Repository provider for saved layouts.
-final layoutRepositoryProvider = Provider<LayoutRepository>((ref) {
+final layoutRepositoryProvider = Provider.autoDispose<LayoutRepository>((ref) {
   final cache = ref.watch(cacheServiceProvider);
   return LayoutRepositoryImpl(cache);
 });
 
 /// List of saved layouts (async).
-final savedLayoutsProvider = FutureProvider<List<SavedLayout>>((ref) {
+final savedLayoutsProvider = FutureProvider.autoDispose<List<SavedLayout>>((
+  ref,
+) {
   final repo = ref.watch(layoutRepositoryProvider);
   return repo.getAll();
 });
 
-final multiViewProvider = NotifierProvider<MultiViewNotifier, MultiViewSession>(
-  MultiViewNotifier.new,
-);
+final multiViewProvider =
+    NotifierProvider.autoDispose<MultiViewNotifier, MultiViewSession>(
+      MultiViewNotifier.new,
+    );
 
 class MultiViewNotifier extends Notifier<MultiViewSession> {
   @override

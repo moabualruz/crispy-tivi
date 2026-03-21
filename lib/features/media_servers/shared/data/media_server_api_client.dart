@@ -38,7 +38,7 @@ abstract class MediaServerApiClient {
     @Query('SortOrder') String sortOrder = 'Ascending',
     @Query('Fields')
     String fields =
-        'Overview,Path,ParentId,DisplayPreferencesId,DateCreated,MediaStreams,SeasonUserData,DateLastMediaAdded',
+        'Overview,Path,ParentId,DisplayPreferencesId,DateCreated,MediaStreams,SeasonUserData,DateLastMediaAdded,People,Genres,Studios,ChildCount',
     @Query('ExcludeItemTypes') String? excludeItemTypes,
     @Query('IncludeItemTypes') String? includeItemTypes,
     @Query('Recursive') bool? recursive,

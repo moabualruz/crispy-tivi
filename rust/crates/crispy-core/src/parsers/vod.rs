@@ -5,6 +5,7 @@
 
 use std::sync::LazyLock;
 
+use chrono::DateTime;
 use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 use regex::Regex;
 use serde_json::Value;
@@ -62,7 +63,13 @@ pub fn parse_vod_streams(
                 base_url, enc_user, enc_pass, stream_id, ext,
             );
 
-            let year = parse_year(map.get("releasedate").or_else(|| map.get("year")));
+            let year = parse_year(
+                map.get("releasedate")
+                    .or_else(|| map.get("release_date"))
+                    .or_else(|| map.get("year")),
+            );
+
+            let backdrop_url = parse_backdrop(map.get("backdrop_path"));
 
             Some(VodItem {
                 id: format!("vod_{}", stream_id),
@@ -73,15 +80,22 @@ pub fn parse_vod_streams(
                     .get("stream_icon")
                     .and_then(Value::as_str)
                     .map(String::from),
-                backdrop_url: None,
-                description: None,
+                backdrop_url,
+                description: map.get("plot").and_then(Value::as_str).map(String::from),
                 rating: map.get("rating").map(|v| {
                     v.as_str()
                         .map(String::from)
                         .unwrap_or_else(|| v.to_string())
                 }),
                 year,
-                duration: None,
+                duration: map.get("duration").and_then(|v| {
+                    // Xtream returns "H:MM:SS" or minutes as string/int.
+                    if let Some(s) = v.as_str() {
+                        parse_duration_minutes(s)
+                    } else {
+                        v.as_i64().map(|m| m as i32)
+                    }
+                }),
                 category: map.get("category_id").map(|v| {
                     v.as_str()
                         .map(String::from)
@@ -92,9 +106,28 @@ pub fn parse_vod_streams(
                 episode_number: None,
                 ext: Some(ext.to_string()),
                 is_favorite: false,
-                added_at: None,
+                added_at: parse_unix_timestamp(map.get("added")),
                 updated_at: None,
                 source_id: source_id.map(String::from),
+                cast: map.get("cast").and_then(Value::as_str).map(String::from),
+                director: map
+                    .get("director")
+                    .and_then(Value::as_str)
+                    .map(String::from),
+                genre: map.get("genre").and_then(Value::as_str).map(String::from),
+                youtube_trailer: map
+                    .get("youtube_trailer")
+                    .and_then(Value::as_str)
+                    .filter(|s| !s.is_empty())
+                    .map(String::from),
+                tmdb_id: parse_optional_i64(map.get("tmdb_id")),
+                rating_5based: map.get("rating_5based").and_then(|v| {
+                    v.as_f64()
+                        .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
+                }),
+                original_name: None,
+                is_adult: false,
+                content_rating: None,
             })
         })
         .collect();
@@ -136,13 +169,20 @@ pub fn parse_series(data: &[Value], source_id: Option<&str>) -> Vec<VodItem> {
             };
             let name = map.get("name").and_then(Value::as_str).unwrap_or("Unknown");
 
-            let backdrop_url = match map.get("backdrop_path") {
-                Some(Value::Array(arr)) => arr.first().and_then(Value::as_str).map(String::from),
-                Some(Value::String(s)) => Some(s.clone()),
-                _ => None,
-            };
+            let backdrop_url = parse_backdrop(map.get("backdrop_path"));
 
-            let year = parse_year(map.get("releaseDate").or_else(|| map.get("year")));
+            let year = parse_year(
+                map.get("releaseDate")
+                    .or_else(|| map.get("releasedate"))
+                    .or_else(|| map.get("year")),
+            );
+
+            // episode_run_time may be a string or int representing minutes.
+            let duration = map.get("episode_run_time").and_then(|v| {
+                v.as_i64()
+                    .map(|n| n as i32)
+                    .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
+            });
 
             Some(VodItem {
                 id: format!("series_{}", series_id),
@@ -158,7 +198,7 @@ pub fn parse_series(data: &[Value], source_id: Option<&str>) -> Vec<VodItem> {
                         .unwrap_or_else(|| v.to_string())
                 }),
                 year,
-                duration: None,
+                duration,
                 category: map.get("category_id").map(|v| {
                     v.as_str()
                         .map(String::from)
@@ -170,8 +210,27 @@ pub fn parse_series(data: &[Value], source_id: Option<&str>) -> Vec<VodItem> {
                 ext: None,
                 is_favorite: false,
                 added_at: None,
-                updated_at: None,
+                updated_at: parse_unix_timestamp(map.get("last_modified")),
                 source_id: source_id.map(String::from),
+                cast: map.get("cast").and_then(Value::as_str).map(String::from),
+                director: map
+                    .get("director")
+                    .and_then(Value::as_str)
+                    .map(String::from),
+                genre: map.get("genre").and_then(Value::as_str).map(String::from),
+                youtube_trailer: map
+                    .get("youtube_trailer")
+                    .and_then(Value::as_str)
+                    .filter(|s| !s.is_empty())
+                    .map(String::from),
+                tmdb_id: parse_optional_i64(map.get("tmdb_id")),
+                rating_5based: map.get("rating_5based").and_then(|v| {
+                    v.as_f64()
+                        .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
+                }),
+                original_name: None,
+                is_adult: false,
+                content_rating: None,
             })
         })
         .collect();
@@ -264,7 +323,53 @@ pub fn parse_episodes(
             let duration = info
                 .and_then(|i| i.get("duration_secs"))
                 .and_then(Value::as_i64)
-                .map(|s| (s / 60) as i32);
+                .map(|s| (s / 60) as i32)
+                .or_else(|| {
+                    // Fallback: parse "H:MM:SS" duration string.
+                    info.and_then(|i| i.get("duration"))
+                        .and_then(Value::as_str)
+                        .and_then(parse_duration_minutes)
+                });
+
+            let rating = info.and_then(|i| {
+                i.get("rating").map(|v| {
+                    v.as_str()
+                        .map(String::from)
+                        .unwrap_or_else(|| v.to_string())
+                })
+            });
+
+            let year = info.and_then(|i| parse_year(i.get("releasedate")));
+
+            let backdrop_url = info.and_then(|i| parse_backdrop(i.get("backdrop_path")));
+
+            let cast = info
+                .and_then(|i| i.get("cast"))
+                .and_then(Value::as_str)
+                .map(String::from);
+
+            let director = info
+                .and_then(|i| i.get("director"))
+                .and_then(Value::as_str)
+                .map(String::from);
+
+            let genre = info
+                .and_then(|i| i.get("genre"))
+                .and_then(Value::as_str)
+                .map(String::from);
+
+            let tmdb_id = info.and_then(|i| parse_optional_i64(i.get("tmdb_id")));
+
+            // Also read season from the episode object (not just the map key)
+            // in case the API provides it explicitly.
+            let season_from_ep = map
+                .get("season")
+                .and_then(|v| {
+                    v.as_i64()
+                        .map(|n| n as i32)
+                        .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
+                })
+                .unwrap_or(season_num);
 
             episodes.push(VodItem {
                 id: format!("ep_{}_{}", series_id, ep_id,),
@@ -272,20 +377,29 @@ pub fn parse_episodes(
                 stream_url,
                 item_type: "episode".to_string(),
                 poster_url,
-                backdrop_url: None,
+                backdrop_url,
                 description,
-                rating: None,
-                year: None,
+                rating,
+                year,
                 duration,
                 category: None,
                 series_id: Some(format!("series_{}", series_id,)),
-                season_number: Some(season_num),
+                season_number: Some(season_from_ep),
                 episode_number,
                 ext: Some(ext.to_string()),
                 is_favorite: false,
                 added_at: None,
                 updated_at: None,
                 source_id: None,
+                cast,
+                director,
+                genre,
+                youtube_trailer: None,
+                tmdb_id,
+                rating_5based: None,
+                original_name: None,
+                is_adult: false,
+                content_rating: None,
             });
         }
     }
@@ -365,6 +479,15 @@ pub fn parse_m3u_vod(channels: &[Value], source_id: Option<&str>) -> Vec<VodItem
                 added_at: None,
                 updated_at: None,
                 source_id: source_id.map(String::from),
+                cast: None,
+                director: None,
+                genre: None,
+                youtube_trailer: None,
+                tmdb_id: None,
+                rating_5based: None,
+                original_name: None,
+                is_adult: false,
+                content_rating: None,
             })
         })
         .collect()
@@ -386,6 +509,31 @@ fn parse_year(value: Option<&Value>) -> Option<i32> {
     None
 }
 
+/// Parses a duration string (e.g. "1:30:00", "90", "01:45:00")
+/// into total minutes.
+pub fn parse_duration_minutes(s: &str) -> Option<i32> {
+    let s = s.trim();
+    if s.is_empty() {
+        return None;
+    }
+    // Try "H:MM:SS" or "HH:MM:SS" format.
+    let parts: Vec<&str> = s.split(':').collect();
+    match parts.len() {
+        3 => {
+            let h = parts[0].parse::<i32>().ok()?;
+            let m = parts[1].parse::<i32>().ok()?;
+            Some(h * 60 + m)
+        }
+        2 => {
+            let h = parts[0].parse::<i32>().ok()?;
+            let m = parts[1].parse::<i32>().ok()?;
+            Some(h * 60 + m)
+        }
+        1 => s.parse::<i32>().ok(), // plain minutes
+        _ => None,
+    }
+}
+
 /// Simple hash for stable IDs (mirrors Dart hashCode
 /// usage).
 fn simple_hash(s: &str) -> u64 {
@@ -393,6 +541,170 @@ fn simple_hash(s: &str) -> u64 {
     let mut h = DefaultHasher::new();
     s.hash(&mut h);
     h.finish()
+}
+
+/// Parse a backdrop URL from a JSON value that may be an array of
+/// URLs or a single string.
+pub fn parse_backdrop(value: Option<&Value>) -> Option<String> {
+    match value {
+        Some(Value::Array(arr)) => arr.first().and_then(Value::as_str).map(String::from),
+        Some(Value::String(s)) if !s.is_empty() => Some(s.clone()),
+        _ => None,
+    }
+}
+
+/// Parse a unix timestamp (seconds since epoch) into a `NaiveDateTime`.
+/// Handles both integer and string representations.
+fn parse_unix_timestamp(value: Option<&Value>) -> Option<chrono::NaiveDateTime> {
+    let v = value?;
+    let ts = v
+        .as_i64()
+        .or_else(|| v.as_str().and_then(|s| s.parse().ok()))?;
+    DateTime::from_timestamp(ts, 0).map(|dt| dt.naive_utc())
+}
+
+/// Parse a JSON value as an optional i64. Handles both integer and
+/// string representations, filtering out zero/empty values.
+pub fn parse_optional_i64(value: Option<&Value>) -> Option<i64> {
+    let v = value?;
+    let n = v
+        .as_i64()
+        .or_else(|| v.as_str().and_then(|s| s.parse().ok()))?;
+    if n == 0 { None } else { Some(n) }
+}
+
+// ── Enrichment ──────────────────────────────────
+
+/// Enriches a [`VodItem`] with metadata from an Xtream `get_vod_info`
+/// response.
+///
+/// The response has the shape `{"info": {...}, "movie_data": {...}}`.
+/// Only fields that are currently `None` (or zero for duration) on the
+/// item are populated — existing data is never overwritten.
+pub fn enrich_vod_from_info(item: &mut VodItem, json: &Value) {
+    let Some(info) = json.get("info") else {
+        return;
+    };
+
+    if item.description.is_none() {
+        item.description = info.get("plot").and_then(Value::as_str).map(String::from);
+    }
+    if item.cast.is_none() {
+        item.cast = info.get("cast").and_then(Value::as_str).map(String::from);
+    }
+    if item.director.is_none() {
+        item.director = info
+            .get("director")
+            .and_then(Value::as_str)
+            .map(String::from);
+    }
+    if item.genre.is_none() {
+        item.genre = info.get("genre").and_then(Value::as_str).map(String::from);
+    }
+    if item.duration.is_none() || item.duration == Some(0) {
+        item.duration = info
+            .get("duration")
+            .and_then(Value::as_str)
+            .and_then(parse_duration_minutes)
+            .or_else(|| {
+                info.get("duration_secs")
+                    .and_then(Value::as_i64)
+                    .map(|s| (s / 60) as i32)
+            });
+    }
+    if item.backdrop_url.is_none() {
+        item.backdrop_url = parse_backdrop(info.get("backdrop_path"));
+    }
+    if item.tmdb_id.is_none() {
+        item.tmdb_id = parse_optional_i64(info.get("tmdb_id"));
+    }
+    if item.youtube_trailer.is_none() {
+        item.youtube_trailer = info
+            .get("youtube_trailer")
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+            .map(String::from);
+    }
+    if item.rating_5based.is_none() {
+        item.rating_5based = info.get("rating_5based").and_then(|v| {
+            v.as_f64()
+                .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
+        });
+    }
+    if item.year.is_none() {
+        item.year = parse_year(
+            info.get("releasedate")
+                .or_else(|| info.get("release_date"))
+                .or_else(|| info.get("year")),
+        );
+    }
+    if item.content_rating.is_none() {
+        item.content_rating = info
+            .get("rating_mpaa")
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+            .map(String::from);
+    }
+}
+
+/// Enriches a series [`VodItem`] container with metadata from an Xtream
+/// `get_series_info` response.
+///
+/// The response has the shape `{"info": {...}, "episodes": {...}}`.
+/// Only fields that are currently `None` on the item are populated.
+pub fn enrich_series_from_info(item: &mut VodItem, json: &Value) {
+    let Some(info) = json.get("info") else {
+        return;
+    };
+
+    if item.description.is_none() {
+        item.description = info.get("plot").and_then(Value::as_str).map(String::from);
+    }
+    if item.cast.is_none() {
+        item.cast = info.get("cast").and_then(Value::as_str).map(String::from);
+    }
+    if item.director.is_none() {
+        item.director = info
+            .get("director")
+            .and_then(Value::as_str)
+            .map(String::from);
+    }
+    if item.genre.is_none() {
+        item.genre = info.get("genre").and_then(Value::as_str).map(String::from);
+    }
+    if item.backdrop_url.is_none() {
+        item.backdrop_url = parse_backdrop(info.get("backdrop_path"));
+    }
+    if item.tmdb_id.is_none() {
+        item.tmdb_id = parse_optional_i64(info.get("tmdb_id"));
+    }
+    if item.youtube_trailer.is_none() {
+        item.youtube_trailer = info
+            .get("youtube_trailer")
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+            .map(String::from);
+    }
+    if item.rating_5based.is_none() {
+        item.rating_5based = info.get("rating_5based").and_then(|v| {
+            v.as_f64()
+                .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
+        });
+    }
+    if item.year.is_none() {
+        item.year = parse_year(
+            info.get("releaseDate")
+                .or_else(|| info.get("releasedate"))
+                .or_else(|| info.get("year")),
+        );
+    }
+    if item.content_rating.is_none() {
+        item.content_rating = info
+            .get("rating_mpaa")
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+            .map(String::from);
+    }
 }
 
 // ── Tests ────────────────────────────────────────
@@ -975,5 +1287,253 @@ mod tests {
         );
         assert!(url.contains("user%2Fname"), "/ in username should be %2F",);
         assert!(url.contains("pass%3Fword"), "? in password should be %3F",);
+    }
+
+    // ── Enrichment Tests ─────────────────────────
+
+    #[test]
+    fn enrich_vod_from_info_populates_empty_fields() {
+        let mut item = VodItem {
+            id: "vod_101".into(),
+            name: "Test Movie".into(),
+            item_type: "movie".into(),
+            ..VodItem::default()
+        };
+
+        let info_json = json!({
+            "info": {
+                "plot": "A great adventure",
+                "cast": "Actor A, Actor B",
+                "director": "Director X",
+                "genre": "Action, Drama",
+                "duration": "1:45:00",
+                "backdrop_path": ["http://img/backdrop.jpg"],
+                "tmdb_id": "12345",
+                "youtube_trailer": "abc123",
+                "rating_5based": "4.2",
+                "releasedate": "2020-05-15",
+                "rating_mpaa": "PG-13",
+            }
+        });
+
+        enrich_vod_from_info(&mut item, &info_json);
+
+        assert_eq!(item.description.as_deref(), Some("A great adventure"));
+        assert_eq!(item.cast.as_deref(), Some("Actor A, Actor B"));
+        assert_eq!(item.director.as_deref(), Some("Director X"));
+        assert_eq!(item.genre.as_deref(), Some("Action, Drama"));
+        assert_eq!(item.duration, Some(105)); // 1h45m
+        assert_eq!(
+            item.backdrop_url.as_deref(),
+            Some("http://img/backdrop.jpg"),
+        );
+        assert_eq!(item.tmdb_id, Some(12345));
+        assert_eq!(item.youtube_trailer.as_deref(), Some("abc123"));
+        assert!((item.rating_5based.unwrap() - 4.2).abs() < 0.01);
+        assert_eq!(item.year, Some(2020));
+        assert_eq!(item.content_rating.as_deref(), Some("PG-13"));
+    }
+
+    #[test]
+    fn enrich_vod_from_info_does_not_overwrite_existing() {
+        let mut item = VodItem {
+            id: "vod_102".into(),
+            name: "Test Movie 2".into(),
+            item_type: "movie".into(),
+            description: Some("Original plot".into()),
+            cast: Some("Original Cast".into()),
+            director: Some("Original Director".into()),
+            genre: Some("Original Genre".into()),
+            duration: Some(90),
+            backdrop_url: Some("http://original/backdrop.jpg".into()),
+            tmdb_id: Some(999),
+            youtube_trailer: Some("original_trailer".into()),
+            rating_5based: Some(3.5),
+            year: Some(2019),
+            content_rating: Some("R".into()),
+            ..VodItem::default()
+        };
+
+        let info_json = json!({
+            "info": {
+                "plot": "New plot",
+                "cast": "New Cast",
+                "director": "New Director",
+                "genre": "New Genre",
+                "duration": "2:00:00",
+                "backdrop_path": "http://new/backdrop.jpg",
+                "tmdb_id": 5555,
+                "youtube_trailer": "new_trailer",
+                "rating_5based": 4.8,
+                "releasedate": "2022-01-01",
+                "rating_mpaa": "PG",
+            }
+        });
+
+        enrich_vod_from_info(&mut item, &info_json);
+
+        // All fields should remain unchanged.
+        assert_eq!(item.description.as_deref(), Some("Original plot"));
+        assert_eq!(item.cast.as_deref(), Some("Original Cast"));
+        assert_eq!(item.director.as_deref(), Some("Original Director"));
+        assert_eq!(item.genre.as_deref(), Some("Original Genre"));
+        assert_eq!(item.duration, Some(90));
+        assert_eq!(
+            item.backdrop_url.as_deref(),
+            Some("http://original/backdrop.jpg"),
+        );
+        assert_eq!(item.tmdb_id, Some(999));
+        assert_eq!(item.youtube_trailer.as_deref(), Some("original_trailer"));
+        assert!((item.rating_5based.unwrap() - 3.5).abs() < 0.01);
+        assert_eq!(item.year, Some(2019));
+        assert_eq!(item.content_rating.as_deref(), Some("R"));
+    }
+
+    #[test]
+    fn enrich_vod_from_info_missing_info_key_noop() {
+        let mut item = VodItem {
+            id: "vod_103".into(),
+            name: "No Info".into(),
+            item_type: "movie".into(),
+            ..VodItem::default()
+        };
+
+        let info_json = json!({"movie_data": {"stream_id": 103}});
+
+        enrich_vod_from_info(&mut item, &info_json);
+
+        assert!(item.description.is_none());
+        assert!(item.cast.is_none());
+    }
+
+    #[test]
+    fn enrich_vod_from_info_zero_duration_overwritten() {
+        let mut item = VodItem {
+            id: "vod_104".into(),
+            name: "Zero Duration".into(),
+            item_type: "movie".into(),
+            duration: Some(0),
+            ..VodItem::default()
+        };
+
+        let info_json = json!({
+            "info": {
+                "duration": "2:30:00",
+            }
+        });
+
+        enrich_vod_from_info(&mut item, &info_json);
+
+        assert_eq!(item.duration, Some(150)); // 2h30m
+    }
+
+    #[test]
+    fn enrich_vod_from_info_duration_secs_fallback() {
+        let mut item = VodItem {
+            id: "vod_105".into(),
+            name: "Duration Secs".into(),
+            item_type: "movie".into(),
+            ..VodItem::default()
+        };
+
+        let info_json = json!({
+            "info": {
+                "duration_secs": 7200,
+            }
+        });
+
+        enrich_vod_from_info(&mut item, &info_json);
+
+        assert_eq!(item.duration, Some(120)); // 7200s / 60
+    }
+
+    #[test]
+    fn enrich_vod_from_info_backdrop_string() {
+        let mut item = VodItem {
+            id: "vod_106".into(),
+            name: "Backdrop String".into(),
+            item_type: "movie".into(),
+            ..VodItem::default()
+        };
+
+        let info_json = json!({
+            "info": {
+                "backdrop_path": "http://img/single_backdrop.jpg",
+            }
+        });
+
+        enrich_vod_from_info(&mut item, &info_json);
+
+        assert_eq!(
+            item.backdrop_url.as_deref(),
+            Some("http://img/single_backdrop.jpg"),
+        );
+    }
+
+    #[test]
+    fn enrich_series_from_info_populates_fields() {
+        let mut item = VodItem {
+            id: "series_50".into(),
+            name: "Test Series".into(),
+            item_type: "series".into(),
+            ..VodItem::default()
+        };
+
+        let info_json = json!({
+            "info": {
+                "plot": "An epic series",
+                "cast": "Star A, Star B",
+                "director": "Director Y",
+                "genre": "Sci-Fi",
+                "backdrop_path": ["http://img/series_bg.jpg"],
+                "tmdb_id": 678,
+                "youtube_trailer": "trailer_xyz",
+                "rating_5based": "3.9",
+                "releaseDate": "2021-09-10",
+                "rating_mpaa": "TV-MA",
+            },
+            "episodes": {}
+        });
+
+        enrich_series_from_info(&mut item, &info_json);
+
+        assert_eq!(item.description.as_deref(), Some("An epic series"));
+        assert_eq!(item.cast.as_deref(), Some("Star A, Star B"));
+        assert_eq!(item.director.as_deref(), Some("Director Y"));
+        assert_eq!(item.genre.as_deref(), Some("Sci-Fi"));
+        assert_eq!(
+            item.backdrop_url.as_deref(),
+            Some("http://img/series_bg.jpg"),
+        );
+        assert_eq!(item.tmdb_id, Some(678));
+        assert_eq!(item.youtube_trailer.as_deref(), Some("trailer_xyz"));
+        assert!((item.rating_5based.unwrap() - 3.9).abs() < 0.01);
+        assert_eq!(item.year, Some(2021));
+        assert_eq!(item.content_rating.as_deref(), Some("TV-MA"));
+    }
+
+    #[test]
+    fn enrich_series_from_info_does_not_overwrite() {
+        let mut item = VodItem {
+            id: "series_51".into(),
+            name: "Existing Series".into(),
+            item_type: "series".into(),
+            description: Some("Existing desc".into()),
+            cast: Some("Existing cast".into()),
+            ..VodItem::default()
+        };
+
+        let info_json = json!({
+            "info": {
+                "plot": "New desc",
+                "cast": "New cast",
+            },
+            "episodes": {}
+        });
+
+        enrich_series_from_info(&mut item, &info_json);
+
+        assert_eq!(item.description.as_deref(), Some("Existing desc"));
+        assert_eq!(item.cast.as_deref(), Some("Existing cast"));
     }
 }

@@ -345,7 +345,10 @@ Channel mapToChannel(Map<String, dynamic> m) {
     catchupType: m['catchup_type'] as String?,
     catchupSource: m['catchup_source'] as String?,
     sourceId: m['source_id'] as String?,
+    resolution: m['resolution'] as String?,
     addedAt: parseMapDateTime(m['added_at']),
+    updatedAt: parseMapDateTime(m['updated_at']),
+    is247: m['is_247'] as bool? ?? false,
     isSport:
         m['is_sport'] as bool? ?? _guessIsSport(m['channel_group'] as String?),
   );
@@ -369,7 +372,10 @@ Map<String, dynamic> channelToMap(Channel c) {
     'catchup_type': c.catchupType,
     'catchup_source': c.catchupSource,
     'source_id': c.sourceId,
+    'resolution': c.resolution,
     'added_at': c.addedAt != null ? _toNaiveDateTime(c.addedAt!) : null,
+    'updated_at': c.updatedAt != null ? _toNaiveDateTime(c.updatedAt!) : null,
+    'is_247': c.is247,
     'is_sport': c.isSport,
   };
 }
@@ -386,6 +392,7 @@ EpgEntry mapToEpgEntry(Map<String, dynamic> m) {
     description: m['description'] as String?,
     category: m['category'] as String?,
     iconUrl: m['icon_url'] as String?,
+    sourceId: m['source_id'] as String?,
   );
 }
 
@@ -399,5 +406,6 @@ Map<String, dynamic> epgEntryToMap(EpgEntry e) {
     'description': e.description,
     'category': e.category,
     'icon_url': e.iconUrl,
+    'source_id': e.sourceId,
   };
 }

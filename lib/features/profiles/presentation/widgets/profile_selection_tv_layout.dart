@@ -25,48 +25,12 @@ class ProfileSelectionTvLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TvMasterDetailLayout(
+      showDetail: selectedProfile != null,
       masterPanel: FocusTraversalGroup(child: Center(child: profileGrid)),
       detailPanel:
           selectedProfile != null
               ? _ProfileDetailPane(profile: selectedProfile!)
-              : const _ProfileWelcomePane(),
-    );
-  }
-}
-
-class _ProfileWelcomePane extends StatelessWidget {
-  const _ProfileWelcomePane();
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.people_outline_rounded,
-            size: 64,
-            color: colorScheme.onSurface.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: CrispySpacing.md),
-          Text(
-            'Select a profile',
-            style: textTheme.headlineSmall?.copyWith(
-              color: colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: CrispySpacing.sm),
-          Text(
-            'Choose who is watching',
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurface.withValues(alpha: 0.4),
-            ),
-          ),
-        ],
-      ),
+              : const SizedBox.shrink(),
     );
   }
 }

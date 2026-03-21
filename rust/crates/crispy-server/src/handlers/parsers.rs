@@ -112,10 +112,12 @@ pub(super) fn handle(_svc: &CrispyService, cmd: &str, args: &Value) -> Option<Re
             let json_str = get_str(args, "json")?;
             let base_url = get_str(args, "baseUrl")?;
             let vod_type = get_str_opt(args, "vodType")?.unwrap_or_else(|| "movie".to_string());
+            let source_id = get_str_opt(args, "sourceId")?.unwrap_or_default();
             let data: Vec<serde_json::Value> =
                 serde_json::from_str(&json_str).context("Invalid Stalker VOD JSON")?;
-            let items =
-                crispy_core::parsers::stalker::parse_stalker_vod_items(&data, &base_url, &vod_type);
+            let items = crispy_core::parsers::stalker::parse_stalker_vod_items(
+                &data, &base_url, &vod_type, &source_id,
+            );
             let s = serde_json::to_string(&items)?;
             Ok(json!({"data": s}))
         })(),

@@ -124,13 +124,9 @@ pub fn build_catchup_url(
 
     let entry = EpgEntry {
         channel_id: channel.id.clone(),
-        title: String::new(),
         start_time: start_dt,
         end_time: end_dt,
-        description: None,
-        category: None,
-        icon_url: None,
-        source_id: None,
+        ..EpgEntry::default()
     };
 
     // Try M3U catchup (flussonic, shift, template).

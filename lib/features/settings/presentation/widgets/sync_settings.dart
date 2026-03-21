@@ -118,6 +118,21 @@ class _SyncSettingsSectionState extends ConsumerState<SyncSettingsSection> {
               ),
             ),
             const Divider(height: 1),
+            SwitchListTile(
+              secondary: const Icon(Icons.movie_filter),
+              title: const Text('Enrich VOD on Sync'),
+              subtitle: const Text(
+                'Fetch full movie details during sync '
+                '(slower but complete metadata)',
+              ),
+              value: settings.enrichVodOnSync,
+              onChanged: (val) {
+                ref
+                    .read(settingsNotifierProvider.notifier)
+                    .setEnrichVodOnSync(val);
+              },
+            ),
+            const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.refresh),
               title: const Text('Sync Now'),

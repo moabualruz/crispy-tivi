@@ -115,10 +115,12 @@ Future<String> parseStalkerVodItems({
   required String json,
   required String baseUrl,
   String? vodType,
+  String? sourceId,
 }) => RustLib.instance.api.crateApiParsersParseStalkerVodItems(
   json: json,
   baseUrl: baseUrl,
   vodType: vodType,
+  sourceId: sourceId,
 );
 
 /// Parse Stalker channels paginated result.

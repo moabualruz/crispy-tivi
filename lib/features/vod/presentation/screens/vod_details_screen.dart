@@ -81,7 +81,7 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
     final textTheme = Theme.of(context).textTheme;
     // Find the up-to-date item from provider,
     // fallback to passed item
-    final liveItem = ref.watch(
+    final baseLiveItem = ref.watch(
       vodProvider.select(
         (s) => s.items.firstWhere(
           (element) => element.id == widget.item.id,
@@ -89,6 +89,12 @@ class _VodDetailsScreenState extends ConsumerState<VodDetailsScreen> {
         ),
       ),
     );
+
+    // Trigger on-demand metadata fetch for items with
+    // incomplete detail (e.g. missing description/cast).
+    // The fetched item merges new fields and persists to DB.
+    final detailAsync = ref.watch(vodDetailProvider(baseLiveItem));
+    final liveItem = detailAsync.asData?.value ?? baseLiveItem;
 
     final recommendations = ref.watch(vodSimilarItemsProvider(liveItem.id));
     final quality = ref

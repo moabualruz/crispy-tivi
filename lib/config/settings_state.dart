@@ -63,6 +63,15 @@ const kGridDensityKey = 'crispy_grid_density';
 /// Values: 'true' | 'false' (default: 'false').
 const kSpoilerBlurEnabledKey = 'crispy_spoiler_blur_enabled';
 
+/// Key for persisting the VOD enrichment on sync toggle.
+///
+/// When enabled, the Xtream sync calls `get_vod_info` per movie to
+/// fetch plot, cast, duration, etc. Disabled by default because it
+/// is slow (~4 min for 12K items).
+///
+/// Values: 'true' | 'false' (default: 'false').
+const kEnrichVodOnSyncKey = 'crispy_enrich_vod_on_sync';
+
 /// Key for persisting the VOD display mode.
 ///
 /// Values: 'poster' | 'banner'
@@ -281,6 +290,7 @@ class SettingsState {
     this.gridDensity = DensityMode.comfortable,
     this.spoilerBlurEnabled = false,
     this.vodDisplayMode = VodDisplayMode.poster,
+    this.enrichVodOnSync = false,
     this.locale,
   }) : remoteKeyMap = remoteKeyMap ?? defaultRemoteKeyMap;
 
@@ -419,6 +429,16 @@ class SettingsState {
   /// Persisted via [kVodDisplayModeKey].
   final VodDisplayMode vodDisplayMode;
 
+  /// Whether to fetch full movie details (`get_vod_info`) during
+  /// Xtream sync.
+  ///
+  /// When `true`, the sync calls `get_vod_info` per movie to
+  /// populate plot, cast, duration, etc. Disabled by default
+  /// because it is slow (~4 min for 12K items).
+  ///
+  /// Persisted via [kEnrichVodOnSyncKey].
+  final bool enrichVodOnSync;
+
   /// User's preferred locale (language code).
   ///
   /// When `null`, the system locale is used.
@@ -462,6 +482,7 @@ class SettingsState {
     DensityMode? gridDensity,
     bool? spoilerBlurEnabled,
     VodDisplayMode? vodDisplayMode,
+    bool? enrichVodOnSync,
     String? locale,
   }) {
     return SettingsState(
@@ -497,6 +518,7 @@ class SettingsState {
       gridDensity: gridDensity ?? this.gridDensity,
       spoilerBlurEnabled: spoilerBlurEnabled ?? this.spoilerBlurEnabled,
       vodDisplayMode: vodDisplayMode ?? this.vodDisplayMode,
+      enrichVodOnSync: enrichVodOnSync ?? this.enrichVodOnSync,
       locale: locale ?? this.locale,
     );
   }

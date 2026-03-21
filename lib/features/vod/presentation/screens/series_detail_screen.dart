@@ -11,6 +11,7 @@ import '../../../../core/utils/stream_url_actions.dart';
 import '../../../../core/widgets/context_menu_builders.dart';
 import '../../../../core/widgets/context_menu_panel.dart';
 import '../../domain/entities/vod_item.dart';
+import '../providers/vod_derived_providers.dart';
 import '../providers/vod_favorites_provider.dart';
 import '../providers/vod_providers.dart';
 import '../widgets/episode_playback_helper.dart';
@@ -54,7 +55,14 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     final tt = Theme.of(context).textTheme;
     final s = widget.series;
 
-    final episodesKey = (seriesId: s.id, sourceId: s.sourceId);
+    // Trigger on-demand metadata + episode refresh from API.
+    final detailAsync = ref.watch(vodDetailProvider(s));
+    final liveSeries = detailAsync.asData?.value ?? s;
+
+    final episodesKey = (
+      seriesId: liveSeries.id,
+      sourceId: liveSeries.sourceId,
+    );
     final episodesAsync = ref.watch(seriesEpisodesProvider(episodesKey));
 
     // Initialise season selection once data loads — only on first load.

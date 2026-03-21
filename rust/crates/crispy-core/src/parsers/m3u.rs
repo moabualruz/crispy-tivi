@@ -190,11 +190,36 @@ fn parse_entry(
     // Detect resolution.
     let resolution = detect_resolution(&attrs, &name, stream_url);
 
+    // Prefer explicit tvg-chno over auto-increment counter.
+    let channel_number = attrs
+        .get("tvg-chno")
+        .and_then(|s| s.parse::<i32>().ok())
+        .unwrap_or(number);
+
+    // EPG time shift in hours.
+    let tvg_shift = attrs.get("tvg-shift").and_then(|s| s.parse::<f64>().ok());
+
+    // Language and country.
+    let tvg_language = attrs.get("tvg-language").cloned();
+    let tvg_country = attrs.get("tvg-country").cloned();
+
+    // Parental lock code.
+    let parent_code = attrs.get("parent-code").cloned();
+
+    // Radio flag — treat "true" and "1" as true.
+    let is_radio = attrs
+        .get("radio")
+        .map(|v| v == "true" || v == "1")
+        .unwrap_or(false);
+
+    // Recording URL template.
+    let tvg_rec = attrs.get("tvg-rec").cloned();
+
     Ok(Channel {
         id,
         name,
         stream_url: stream_url.to_string(),
-        number: Some(number),
+        number: Some(channel_number),
         channel_group: attrs.get("group-title").cloned(),
         logo_url: sanitize_image_url(attrs.get("tvg-logo").cloned()),
         tvg_id: attrs.get("tvg-id").cloned(),
@@ -210,6 +235,15 @@ fn parse_entry(
         added_at: None,
         updated_at: None,
         is_247: false,
+        tvg_shift,
+        tvg_language,
+        tvg_country,
+        parent_code,
+        is_radio,
+        tvg_rec,
+        is_adult: false,
+        custom_sid: None,
+        direct_source: None,
     })
 }
 
@@ -707,5 +741,180 @@ http://stream.example.com/ch3
         let json = r#"{"channels":[],"epg_url":null}"#;
         let result: M3uParseResult = serde_json::from_str(json).unwrap();
         assert!(result.errors.is_empty());
+    }
+
+    // ── Extended M3U attribute tests ─────────────────
+
+    #[test]
+    fn parse_tvg_chno_overrides_auto_number() {
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1 tvg-chno=\"42\",Channel With Number\n",
+            "http://s.test/numbered\n",
+        );
+
+        let result = parse_m3u(content);
+
+        assert_eq!(result.channels.len(), 1);
+        // tvg-chno=42 should override the auto-increment (1).
+        assert_eq!(result.channels[0].number, Some(42));
+    }
+
+    #[test]
+    fn parse_tvg_chno_fallback_to_auto() {
+        // No tvg-chno — falls back to auto-increment counter.
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1,No ChNo\n",
+            "http://s.test/nochno\n",
+        );
+
+        let result = parse_m3u(content);
+
+        assert_eq!(result.channels[0].number, Some(1));
+    }
+
+    #[test]
+    fn parse_tvg_shift() {
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1 tvg-shift=\"-3.5\",Shifted Channel\n",
+            "http://s.test/shifted\n",
+        );
+
+        let result = parse_m3u(content);
+
+        assert_eq!(result.channels.len(), 1);
+        assert!((result.channels[0].tvg_shift.unwrap() - (-3.5)).abs() < f64::EPSILON,);
+    }
+
+    #[test]
+    fn parse_tvg_language_and_country() {
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1 tvg-language=\"French\" tvg-country=\"FR\",France 24\n",
+            "http://s.test/fr24\n",
+        );
+
+        let result = parse_m3u(content);
+
+        assert_eq!(result.channels.len(), 1);
+        let ch = &result.channels[0];
+        assert_eq!(ch.tvg_language.as_deref(), Some("French"));
+        assert_eq!(ch.tvg_country.as_deref(), Some("FR"));
+    }
+
+    #[test]
+    fn parse_parent_code() {
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1 parent-code=\"1234\",Locked Channel\n",
+            "http://s.test/locked\n",
+        );
+
+        let result = parse_m3u(content);
+
+        assert_eq!(result.channels.len(), 1);
+        assert_eq!(result.channels[0].parent_code.as_deref(), Some("1234"),);
+    }
+
+    #[test]
+    fn parse_radio_flag_true() {
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1 radio=\"true\",Radio Station\n",
+            "http://s.test/radio\n",
+        );
+
+        let result = parse_m3u(content);
+
+        assert_eq!(result.channels.len(), 1);
+        assert!(result.channels[0].is_radio);
+    }
+
+    #[test]
+    fn parse_radio_flag_one() {
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1 radio=\"1\",Radio Station\n",
+            "http://s.test/radio1\n",
+        );
+
+        let result = parse_m3u(content);
+
+        assert_eq!(result.channels.len(), 1);
+        assert!(result.channels[0].is_radio);
+    }
+
+    #[test]
+    fn parse_radio_flag_absent_is_false() {
+        let content = concat!("#EXTM3U\n", "#EXTINF:-1,TV Channel\n", "http://s.test/tv\n",);
+
+        let result = parse_m3u(content);
+
+        assert_eq!(result.channels.len(), 1);
+        assert!(!result.channels[0].is_radio);
+    }
+
+    #[test]
+    fn parse_tvg_rec() {
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1 tvg-rec=\"http://rec/{start}/{end}\",Rec Channel\n",
+            "http://s.test/rec\n",
+        );
+
+        let result = parse_m3u(content);
+
+        assert_eq!(result.channels.len(), 1);
+        assert_eq!(
+            result.channels[0].tvg_rec.as_deref(),
+            Some("http://rec/{start}/{end}"),
+        );
+    }
+
+    #[test]
+    fn parse_all_extended_attributes_together() {
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1 ",
+            "tvg-id=\"abc.tv\" ",
+            "tvg-name=\"ABC\" ",
+            "tvg-logo=\"http://logo/abc.png\" ",
+            "tvg-chno=\"7\" ",
+            "tvg-shift=\"2\" ",
+            "tvg-language=\"English\" ",
+            "tvg-country=\"US\" ",
+            "tvg-rec=\"http://rec/{start}\" ",
+            "group-title=\"News\" ",
+            "parent-code=\"0000\" ",
+            "radio=\"false\" ",
+            "catchup=\"flussonic\" ",
+            "catchup-days=\"3\" ",
+            "catchup-source=\"http://c/{start}\",",
+            "ABC News\n",
+            "http://s.test/abc\n",
+        );
+
+        let result = parse_m3u(content);
+
+        assert_eq!(result.channels.len(), 1);
+        let ch = &result.channels[0];
+        assert_eq!(ch.name, "ABC News");
+        assert_eq!(ch.tvg_id.as_deref(), Some("abc.tv"));
+        assert_eq!(ch.tvg_name.as_deref(), Some("ABC"));
+        assert_eq!(ch.logo_url.as_deref(), Some("http://logo/abc.png"));
+        assert_eq!(ch.number, Some(7));
+        assert!((ch.tvg_shift.unwrap() - 2.0).abs() < f64::EPSILON);
+        assert_eq!(ch.tvg_language.as_deref(), Some("English"));
+        assert_eq!(ch.tvg_country.as_deref(), Some("US"));
+        assert_eq!(ch.tvg_rec.as_deref(), Some("http://rec/{start}"));
+        assert_eq!(ch.channel_group.as_deref(), Some("News"));
+        assert_eq!(ch.parent_code.as_deref(), Some("0000"));
+        assert!(!ch.is_radio); // "false" is not "true" or "1"
+        assert!(ch.has_catchup);
+        assert_eq!(ch.catchup_days, 3);
+        assert_eq!(ch.catchup_type.as_deref(), Some("flussonic"));
+        assert_eq!(ch.catchup_source.as_deref(), Some("http://c/{start}"));
     }
 }

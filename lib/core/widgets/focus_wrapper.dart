@@ -30,7 +30,7 @@ enum FocusIndicatorStyle {
 ///
 /// Matches `.ai/docs/project-specs/design_system.md §2.2`. Override via
 /// [FocusWrapper.focusBorderWidth] when a thicker ring is needed.
-const double kFocusBorderWidth = 2.0;
+const double kFocusBorderWidth = 3.0;
 
 /// Maximum absolute pixel expansion (dp) allowed when scaling on focus.
 ///

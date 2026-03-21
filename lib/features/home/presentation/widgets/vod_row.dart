@@ -13,6 +13,7 @@ import '../../../../core/widgets/context_menu_panel.dart';
 import '../../../../core/widgets/nav_arrow.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../../../player/presentation/providers/player_providers.dart';
+import '../../../vod/presentation/widgets/vod_tv_layout.dart';
 import '../../../vod/domain/entities/vod_item.dart';
 import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../../vod/presentation/widgets/vod_poster_card.dart';
@@ -108,6 +109,13 @@ class _VodRowState extends ConsumerState<VodRow> {
   }
 
   void _tap(BuildContext ctx, VodItem item, String tag) {
+    // On TV layout, intercept taps for the slide-over detail pane.
+    final tvScope = VodTvSelectionScope.maybeOf(ctx);
+    if (tvScope != null) {
+      tvScope.onItemSelected(item);
+      return;
+    }
+    // Phone/tablet: navigate directly.
     if (item.type == VodType.movie) {
       ctx.push(AppRoutes.vodDetails, extra: {'item': item, 'heroTag': tag});
     } else {

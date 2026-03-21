@@ -7,6 +7,7 @@ import '../../../config/settings_notifier.dart';
 import '../../../core/data/cache_service.dart';
 import '../../../core/data/crispy_backend.dart';
 import '../../../core/domain/entities/playlist_source.dart';
+import '../../favorites/data/stalker_favorites_service.dart';
 import '../../vod/presentation/providers/vod_providers.dart';
 import '../data/sync_report_codec.dart';
 import 'media_server_sync.dart';
@@ -215,6 +216,19 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       // 6. Fetch EPG after successful sync.
       await fetchEpg();
 
+      // 7. Sync Stalker server-side favorites to local DB.
+      if (!_ref.mounted) return totalChannels;
+      final hasStalker = staleSources.any(
+        (s) => s.type == PlaylistSourceType.stalkerPortal,
+      );
+      if (hasStalker) {
+        try {
+          await _ref.read(stalkerFavoritesServiceProvider).syncFromServer();
+        } catch (e) {
+          debugPrint('PlaylistSync: Stalker favorites sync error: $e');
+        }
+      }
+
       return totalChannels;
     } catch (e) {
       debugPrint('PlaylistSync error: $e');
@@ -319,6 +333,10 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       return _mediaServerSync.syncSource(source);
     }
 
+    // Read enrichVodOnSync setting for Xtream sources.
+    final enrichVod =
+        _ref.read(settingsNotifierProvider).value?.enrichVodOnSync ?? false;
+
     // IPTV sources sync via Rust.
     final json = switch (source.type) {
       PlaylistSourceType.m3u => await backend.syncM3uSource(
@@ -332,6 +350,7 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
         password: source.password ?? '',
         sourceId: source.id,
         acceptInvalidCerts: source.acceptSelfSigned,
+        enrichVodOnSync: enrichVod,
       ),
       PlaylistSourceType.stalkerPortal => await backend.syncStalkerSource(
         baseUrl: source.url,

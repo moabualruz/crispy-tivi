@@ -95,6 +95,8 @@ pub fn rank_stream_alternatives(
             &target,
             &all_channels,
             &health_scores,
+            &HashMap::new(),
+            None,
         ),
     )
 }

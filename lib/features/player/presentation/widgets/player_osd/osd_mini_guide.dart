@@ -6,8 +6,8 @@ import '../../../../../core/utils/date_format_utils.dart';
 import '../../../../../core/utils/duration_formatter.dart';
 import '../../../../../core/theme/crispy_radius.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
-import '../../../../epg/presentation/providers/epg_providers.dart';
 import '../../../../iptv/domain/entities/epg_entry.dart';
+import '../../../../iptv/presentation/providers/channel_epg_provider.dart';
 
 /// Compact EPG programme strip for the OSD bottom area.
 ///
@@ -47,11 +47,12 @@ class OsdMiniGuide extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (!isLive) return const SizedBox.shrink();
 
-    final epgState = ref.watch(epgProvider);
-    final current = epgState.getNowPlaying(channelEpgId);
+    // Use best-of-breed EPG: on-demand (fresher) with batch
+    // XMLTV fallback.
+    final current = bestNowPlayingById(ref, channelEpgId);
     if (current == null) return const SizedBox.shrink();
 
-    final next = epgState.getNextProgram(channelEpgId);
+    final next = bestNextProgramById(ref, channelEpgId);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: CrispySpacing.xs),

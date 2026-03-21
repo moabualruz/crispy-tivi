@@ -26,6 +26,7 @@ import '../../features/search/domain/entities/'
     'search_history_entry.dart';
 import '../../features/vod/domain/entities/vod_item.dart';
 import '../domain/entities/playlist_source.dart';
+import '../domain/entities/xtream_account_info.dart';
 import '../utils/date_format_utils.dart';
 import 'crispy_backend.dart';
 
@@ -176,6 +177,26 @@ class CacheService extends _CacheServiceBase
 
   /// Get per-source stats (channel count, VOD count).
   Future<String> getSourceStats() => _backend.getSourceStats();
+
+  /// Fetch Xtream account info for a source.
+  ///
+  /// Calls the Xtream `get_account_info` endpoint and
+  /// returns the parsed [XtreamAccountInfo] entity.
+  Future<XtreamAccountInfo> fetchXtreamAccountInfo({
+    required String baseUrl,
+    required String username,
+    required String password,
+    bool acceptInvalidCerts = false,
+  }) async {
+    final jsonStr = await _backend.fetchXtreamAccountInfo(
+      baseUrl: baseUrl,
+      username: username,
+      password: password,
+      acceptInvalidCerts: acceptInvalidCerts,
+    );
+    final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+    return XtreamAccountInfo.fromJson(map);
+  }
 
   // ── Buffer Tier ───────────────────────────────
 

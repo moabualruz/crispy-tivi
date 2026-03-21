@@ -14,6 +14,7 @@ class EpgEntry {
     this.description,
     this.category,
     this.iconUrl,
+    this.sourceId,
   });
 
   /// TVG ID linking this entry to a [Channel].
@@ -36,6 +37,9 @@ class EpgEntry {
 
   /// Optional programme icon/poster URL.
   final String? iconUrl;
+
+  /// Source this EPG entry came from.
+  final String? sourceId;
 
   /// Programme duration.
   Duration get duration => endTime.difference(startTime);

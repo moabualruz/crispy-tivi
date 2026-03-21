@@ -61,6 +61,7 @@ class MyFavoritesTab extends ConsumerWidget {
                       isLive: true,
                       channelName: channel.name,
                       channelLogoUrl: channel.logoUrl,
+                      sourceId: channel.sourceId,
                     );
               },
               onRemove: () {

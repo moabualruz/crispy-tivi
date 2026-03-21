@@ -325,9 +325,8 @@ flutter test integration_test/app_test.dart -d emulator-5558
 - Focus rings visible (`InputModeScope.showFocusIndicators`)
 - Side rail navigation at `large` width (1920dp)
 - Two-panel layouts: channel list (`ChannelTvLayout`) + EPG
-- Screens missing `largeBody`: Home, VOD, Series, Search, DVR, Settings
-  (fall back to phone layout — known gap)
-- No TV overscan padding (known gap for older TVs)
+- All screens provide `largeBody` via `ScreenTemplate` — TV layouts implemented
+- TV overscan padding applied automatically via `ResponsiveLayout.kTvOverscanPadding` (27dp)
 - Search without soft keyboard (voice/on-screen keyboard)
 
 ## UI Verification Protocol (MANDATORY)
@@ -367,6 +366,13 @@ flutter test integration_test/app_test.dart -d emulator-5558
 4. **Isolates & Zero-Copy**: Offload heavy Rust computations to Dart Isolates. Pass large object buffers using `flutter_rust_bridge` zero-copy capabilities.
 5. **Riverpod `autoDispose`**: Ensure Riverpod providers caching large objects use `autoDispose` to clear memory when leaving views.
 6. **`media_kit` Lifecycle**: Ensure `hwdec` is correctly configured. Dispose of `VideoPlayerController` instances when navigating away. Limit concurrent active players.
+
+## Video Player Rules (MANDATORY)
+
+- **GPU hardware decode is primary** — software rendering is allowed only as a graceful fallback for devices without GPU
+- **Never dispose/recreate Player objects during normal playback** — reuse via `stop()` + `open()`
+- **Channel switching uses dual-player swap with a drain queue** — see `.ai/docs/player-architecture.md`
+- **No debounce timers for channel switching** — use queue drain logic instead
 
 ## Pre-Commit Formatting (MANDATORY)
 

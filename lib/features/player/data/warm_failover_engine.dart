@@ -177,11 +177,12 @@ class WarmFailoverEngine {
 
     final bestUrl = await _findBestAlternativeUrl();
     // Re-check state after the async gap: onChannelChange() may
-    // have reset state to idle while we were awaiting. Without
+    // have reset state to idle while we were awaiting, or the
+    // engine may have been disposed during the await. Without
     // this guard, we'd create an orphaned Player that is never
     // disposed (leaking native decoder handles).
     if (bestUrl == null || _disposed || _state != WarmFailoverState.warming) {
-      if (_state == WarmFailoverState.warming) {
+      if (!_disposed && _state == WarmFailoverState.warming) {
         _state = WarmFailoverState.idle;
       }
       debugPrint('WarmFailover: no alternative available or state changed');
@@ -197,7 +198,23 @@ class WarmFailoverEngine {
     _warmPlayer = player;
 
     // Muted, audio-only (no video decode) to minimize resources.
-    await player.setVolume(0);
+    try {
+      await player.setVolume(0);
+    } catch (_) {
+      // Player may already be disposed if disposal raced.
+    }
+
+    // Re-check after async gap — disposal may have occurred.
+    if (_disposed || _state != WarmFailoverState.warming) {
+      try {
+        await player.dispose();
+      } catch (_) {
+        // Already disposed — safe to ignore.
+      }
+      _warmPlayer = null;
+      return;
+    }
+
     try {
       (player.platform as dynamic).setProperty('vid', 'no');
     } catch (_) {
@@ -206,14 +223,28 @@ class WarmFailoverEngine {
 
     // Listen for playing state → transition to ready.
     _playingSub = player.stream.playing.listen((playing) {
-      if (playing && _state == WarmFailoverState.warming) {
+      if (playing && _state == WarmFailoverState.warming && !_disposed) {
         _state = WarmFailoverState.ready;
         debugPrint('WarmFailover: warm player ready');
         _startReadyTimer();
       }
     });
 
-    await player.open(Media(bestUrl));
+    try {
+      await player.open(Media(bestUrl));
+    } catch (_) {
+      // Player may have been disposed during open — safe to ignore.
+    }
+
+    // Re-check after final async gap.
+    if (_disposed || _state == WarmFailoverState.idle) {
+      try {
+        _warmPlayer?.dispose();
+      } catch (_) {
+        // Already disposed — safe to ignore.
+      }
+      _warmPlayer = null;
+    }
   }
 
   /// Start a 10s timer to dispose the warm player if unused.
@@ -303,7 +334,9 @@ class WarmFailoverEngine {
           return ch['stream_url'] as String?;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[WarmFailoverEngine] failover attempt failed: $e');
+    }
     return null;
   }
 

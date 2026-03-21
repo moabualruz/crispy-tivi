@@ -110,10 +110,7 @@ mod tests {
             title: title.to_string(),
             start_time: dt(start),
             end_time: dt(end),
-            description: None,
-            category: None,
-            icon_url: None,
-            source_id: None,
+            ..EpgEntry::default()
         }
     }
 

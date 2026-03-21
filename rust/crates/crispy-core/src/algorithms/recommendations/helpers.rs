@@ -93,6 +93,15 @@ mod tests {
             added_at: None,
             updated_at: None,
             source_id: None,
+            cast: None,
+            director: None,
+            genre: None,
+            youtube_trailer: None,
+            tmdb_id: None,
+            rating_5based: None,
+            original_name: None,
+            is_adult: false,
+            content_rating: None,
         }
     }
 

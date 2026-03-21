@@ -131,4 +131,14 @@ void main() {
       expect(keyboardActivated, isTrue);
     });
   });
+
+  group('FocusWrapper constants (Sprint 2 regression)', () {
+    test('kFocusBorderWidth meets J-43 minimum of 3.0', () {
+      expect(kFocusBorderWidth, greaterThanOrEqualTo(3.0));
+    });
+
+    test('kFocusMaxScaleExpansion is 12dp', () {
+      expect(kFocusMaxScaleExpansion, 12.0);
+    });
+  });
 }

@@ -30,12 +30,28 @@ mixin _WsSyncMixin on _WsBackendBase {
     return data as bool;
   }
 
+  Future<String> fetchXtreamAccountInfo({
+    required String baseUrl,
+    required String username,
+    required String password,
+    bool acceptInvalidCerts = false,
+  }) async {
+    final data = await _send('fetchXtreamAccountInfo', {
+      'baseUrl': baseUrl,
+      'username': username,
+      'password': password,
+      'acceptInvalidCerts': acceptInvalidCerts,
+    });
+    return jsonEncode(data);
+  }
+
   Future<String> syncXtreamSource({
     required String baseUrl,
     required String username,
     required String password,
     required String sourceId,
     bool acceptInvalidCerts = false,
+    bool enrichVodOnSync = false,
   }) async {
     final data = await _send('syncXtreamSource', {
       'baseUrl': baseUrl,
@@ -43,6 +59,7 @@ mixin _WsSyncMixin on _WsBackendBase {
       'password': password,
       'sourceId': sourceId,
       'acceptInvalidCerts': acceptInvalidCerts,
+      'enrichVodOnSync': enrichVodOnSync,
     });
     return jsonEncode(data);
   }
@@ -101,6 +118,115 @@ mixin _WsSyncMixin on _WsBackendBase {
 
   // Web target: progress events are not streamed via WS yet.
   Stream<String> subscribeSyncProgress() => const Stream.empty();
+
+  // ── Stalker On-Demand ─────────────────────────────
+
+  Future<String> resolveStalkerStreamUrl({
+    required String baseUrl,
+    required String macAddress,
+    required String cmd,
+    required String streamType,
+    bool acceptInvalidCerts = false,
+  }) async {
+    final data = await _send('resolveStalkerStreamUrl', {
+      'baseUrl': baseUrl,
+      'macAddress': macAddress,
+      'cmd': cmd,
+      'streamType': streamType,
+      'acceptInvalidCerts': acceptInvalidCerts,
+    });
+    return data as String;
+  }
+
+  Future<String> fetchStalkerAccountInfo({
+    required String baseUrl,
+    required String macAddress,
+    bool acceptInvalidCerts = false,
+  }) async {
+    final data = await _send('fetchStalkerAccountInfo', {
+      'baseUrl': baseUrl,
+      'macAddress': macAddress,
+      'acceptInvalidCerts': acceptInvalidCerts,
+    });
+    return jsonEncode(data);
+  }
+
+  Future<void> stalkerKeepalive({
+    required String baseUrl,
+    required String macAddress,
+    required String curPlayType,
+    bool acceptInvalidCerts = false,
+  }) => _send('stalkerKeepalive', {
+    'baseUrl': baseUrl,
+    'macAddress': macAddress,
+    'curPlayType': curPlayType,
+    'acceptInvalidCerts': acceptInvalidCerts,
+  });
+
+  Future<String> fetchStalkerVodDetail({
+    required String baseUrl,
+    required String macAddress,
+    required String movieId,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) async {
+    final data = await _send('fetchStalkerVodDetail', {
+      'baseUrl': baseUrl,
+      'macAddress': macAddress,
+      'movieId': movieId,
+      'sourceId': sourceId,
+      'acceptInvalidCerts': acceptInvalidCerts,
+    });
+    return jsonEncode(data);
+  }
+
+  Future<String> fetchStalkerSeriesDetail({
+    required String baseUrl,
+    required String macAddress,
+    required String movieId,
+    required String sourceId,
+    bool acceptInvalidCerts = false,
+  }) async {
+    final data = await _send('fetchStalkerSeriesDetail', {
+      'baseUrl': baseUrl,
+      'macAddress': macAddress,
+      'movieId': movieId,
+      'sourceId': sourceId,
+      'acceptInvalidCerts': acceptInvalidCerts,
+    });
+    return jsonEncode(data);
+  }
+
+  Future<String> getStalkerFavorites({
+    required String baseUrl,
+    required String macAddress,
+    required String streamType,
+    bool acceptInvalidCerts = false,
+  }) async {
+    final data = await _send('getStalkerFavorites', {
+      'baseUrl': baseUrl,
+      'macAddress': macAddress,
+      'streamType': streamType,
+      'acceptInvalidCerts': acceptInvalidCerts,
+    });
+    return jsonEncode(data);
+  }
+
+  Future<void> setStalkerFavorite({
+    required String baseUrl,
+    required String macAddress,
+    required String favId,
+    required String streamType,
+    required bool remove,
+    bool acceptInvalidCerts = false,
+  }) => _send('setStalkerFavorite', {
+    'baseUrl': baseUrl,
+    'macAddress': macAddress,
+    'favId': favId,
+    'streamType': streamType,
+    'remove': remove,
+    'acceptInvalidCerts': acceptInvalidCerts,
+  });
 
   // ── Backup ───────────────────────────────────────
 

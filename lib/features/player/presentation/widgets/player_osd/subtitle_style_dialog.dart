@@ -146,7 +146,9 @@ class _SubtitleStyleSheetState extends ConsumerState<_SubtitleStyleSheet> {
     try {
       final player = ref.read(playerProvider);
       applySubtitleStyleToPlayer(player, defaults);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[SubtitleStyleDialog] reset subtitle style failed: $e');
+    }
   }
 
   @override

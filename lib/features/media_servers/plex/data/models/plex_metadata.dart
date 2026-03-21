@@ -28,6 +28,16 @@ class PlexMetadata with PlaybackProgressMixin {
     this.viewOffset,
     this.viewCount,
     this.contentRating,
+    this.genre = const [],
+    this.director = const [],
+    this.role = const [],
+    this.studio,
+    this.audienceRating,
+    this.rating,
+    this.parentIndex,
+    this.parentRatingKey,
+    this.grandparentRatingKey,
+    this.originalTitle,
   });
 
   factory PlexMetadata.fromJson(Map<String, dynamic> json) =>
@@ -64,6 +74,55 @@ class PlexMetadata with PlaybackProgressMixin {
 
   /// Content rating (e.g., "PG-13", "R").
   final String? contentRating;
+
+  /// Genre tags (e.g. [{"tag": "Action"}, {"tag": "Drama"}]).
+  @JsonKey(name: 'Genre')
+  final List<PlexTag> genre;
+
+  /// Director tags (e.g. [{"tag": "Christopher Nolan"}]).
+  @JsonKey(name: 'Director')
+  final List<PlexTag> director;
+
+  /// Cast/role tags (e.g. [{"tag": "Tom Hanks", "role": "Forrest"}]).
+  @JsonKey(name: 'Role')
+  final List<PlexTag> role;
+
+  /// Studio name (e.g. "Warner Bros.").
+  final String? studio;
+
+  /// Audience rating (e.g. 8.5 from Rotten Tomatoes audience score).
+  final double? audienceRating;
+
+  /// Critic rating (e.g. 9.0 from Rotten Tomatoes or IMDb).
+  @JsonKey(name: 'rating')
+  final double? rating;
+
+  /// Parent season index (1-based, for episodes).
+  final int? parentIndex;
+
+  /// Parent rating key (series ID for episodes, show ID for seasons).
+  final String? parentRatingKey;
+
+  /// Grandparent rating key (show ID for episodes).
+  final String? grandparentRatingKey;
+
+  /// Original title (e.g. foreign language original name).
+  final String? originalTitle;
+
+  /// Extract genre names as a flat list.
+  List<String> get genreNames => genre.map((g) => g.tag).toList();
+
+  /// Extract director names as a flat list.
+  List<String> get directorNames => director.map((d) => d.tag).toList();
+
+  /// First director name (convenience getter).
+  String? get directorName {
+    final dirs = directorNames;
+    return dirs.isNotEmpty ? dirs.join(', ') : null;
+  }
+
+  /// Extract cast member names as a flat list.
+  List<String> get castNames => role.map((r) => r.tag).toList();
 
   /// Whether the item has been completely watched.
   @override
@@ -138,4 +197,28 @@ class PlexPart {
   final int? size;
   final String? container;
   final String? videoProfile;
+}
+
+/// A generic tag object used by Plex for Genre, Director, Role, etc.
+///
+/// Plex returns these as `[{"tag": "Action"}, {"tag": "Drama"}]` for genres,
+/// `[{"tag": "Christopher Nolan"}]` for directors, and
+/// `[{"tag": "Tom Hanks", "role": "Forrest Gump"}]` for cast roles.
+@JsonSerializable()
+class PlexTag {
+  const PlexTag({required this.tag, this.role, this.thumb});
+
+  /// The display name (genre name, person name, etc.).
+  final String tag;
+
+  /// Character name for cast members (only present on Role tags).
+  final String? role;
+
+  /// Thumbnail URL for person photos (only present on Role tags).
+  final String? thumb;
+
+  factory PlexTag.fromJson(Map<String, dynamic> json) =>
+      _$PlexTagFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PlexTagToJson(this);
 }

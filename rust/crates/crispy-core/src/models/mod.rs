@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 /// Maps to the `channels` Drift table. Contains
 /// stream metadata, EPG identifiers, and catchup
 /// configuration.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Channel {
     /// Unique channel identifier.
     pub id: String,
@@ -76,6 +76,36 @@ pub struct Channel {
     /// Whether this is a 24/7 loop channel.
     #[serde(default)]
     pub is_247: bool,
+    /// EPG time shift in hours (from `tvg-shift`).
+    #[serde(default)]
+    pub tvg_shift: Option<f64>,
+    /// Stream language (from `tvg-language`).
+    #[serde(default)]
+    pub tvg_language: Option<String>,
+    /// Country code (from `tvg-country`).
+    #[serde(default)]
+    pub tvg_country: Option<String>,
+    /// Parental lock code (from `parent-code`).
+    #[serde(default)]
+    pub parent_code: Option<String>,
+    /// Whether this is a radio/audio-only stream (from `radio` attribute).
+    #[serde(default)]
+    pub is_radio: bool,
+    /// Recording URL template (from `tvg-rec`).
+    #[serde(default)]
+    pub tvg_rec: Option<String>,
+    /// Whether this channel is flagged as adult content
+    /// by the provider (Xtream `is_adult` field).
+    #[serde(default)]
+    pub is_adult: bool,
+    /// Provider-assigned custom SID (Xtream `custom_sid`).
+    /// Used for alternative EPG matching or stream identification.
+    #[serde(default)]
+    pub custom_sid: Option<String>,
+    /// Direct source URL provided by the Xtream API.
+    /// Can serve as a failover stream URL.
+    #[serde(default)]
+    pub direct_source: Option<String>,
 }
 
 // ── EpgMapping ────────────────────────────────────────
@@ -134,7 +164,7 @@ pub struct VodItem {
     /// Duration in minutes.
     #[serde(default)]
     pub duration: Option<i32>,
-    /// VOD category / genre.
+    /// Provider category ID (e.g. Xtream `category_id`).
     #[serde(default)]
     pub category: Option<String>,
     /// Parent series ID (for episodes).
@@ -161,6 +191,68 @@ pub struct VodItem {
     /// ID of the playlist/source this came from.
     #[serde(default)]
     pub source_id: Option<String>,
+    /// Comma-separated cast / actor names.
+    #[serde(default)]
+    pub cast: Option<String>,
+    /// Director name(s).
+    #[serde(default)]
+    pub director: Option<String>,
+    /// Comma-separated genre tags (e.g. "Action, Drama").
+    #[serde(default)]
+    pub genre: Option<String>,
+    /// YouTube trailer video ID.
+    #[serde(default)]
+    pub youtube_trailer: Option<String>,
+    /// TMDB movie or series ID.
+    #[serde(default)]
+    pub tmdb_id: Option<i64>,
+    /// Rating on a 5-star scale.
+    #[serde(default)]
+    pub rating_5based: Option<f64>,
+    /// Original/alternate title (e.g. foreign language title).
+    #[serde(default)]
+    pub original_name: Option<String>,
+    /// Whether this content is flagged as adult/NSFW.
+    #[serde(default)]
+    pub is_adult: bool,
+    /// Content/parental rating (e.g. "PG-13", "R", "TV-MA").
+    #[serde(default)]
+    pub content_rating: Option<String>,
+}
+
+impl Default for VodItem {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            name: String::new(),
+            stream_url: String::new(),
+            item_type: "movie".to_string(),
+            poster_url: None,
+            backdrop_url: None,
+            description: None,
+            rating: None,
+            year: None,
+            duration: None,
+            category: None,
+            series_id: None,
+            season_number: None,
+            episode_number: None,
+            ext: None,
+            is_favorite: false,
+            added_at: None,
+            updated_at: None,
+            source_id: None,
+            cast: None,
+            director: None,
+            genre: None,
+            youtube_trailer: None,
+            tmdb_id: None,
+            rating_5based: None,
+            original_name: None,
+            is_adult: false,
+            content_rating: None,
+        }
+    }
 }
 
 // ── Category ────────────────────────────────────────
@@ -251,7 +343,7 @@ pub struct Setting {
 
 /// An electronic programme guide entry.
 ///
-/// Maps to the `epg_entries` Drift table. Composite
+/// Maps to the `db_epg_entries` table. Composite
 /// primary key: (`channel_id`, `start_time`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EpgEntry {
@@ -266,7 +358,7 @@ pub struct EpgEntry {
     /// Programme description / synopsis.
     #[serde(default)]
     pub description: Option<String>,
-    /// Programme genre / category.
+    /// Programme genre / category (semicolon-separated when multiple).
     #[serde(default)]
     pub category: Option<String>,
     /// URL of the programme icon/thumbnail.
@@ -275,6 +367,93 @@ pub struct EpgEntry {
     /// Source this EPG entry came from.
     #[serde(default)]
     pub source_id: Option<String>,
+    /// Episode/sub-title (XMLTV `<sub-title>`).
+    #[serde(default)]
+    pub sub_title: Option<String>,
+    /// Season number parsed from `<episode-num system="xmltv_ns">`.
+    #[serde(default)]
+    pub season: Option<i32>,
+    /// Episode number parsed from `<episode-num system="xmltv_ns">`.
+    #[serde(default)]
+    pub episode: Option<i32>,
+    /// On-screen episode label (e.g. "S01E05").
+    #[serde(default)]
+    pub episode_label: Option<String>,
+    /// Original air date (XMLTV `<date>`, typically "YYYY" or "YYYYMMDD").
+    #[serde(default)]
+    pub air_date: Option<String>,
+    /// Content rating (e.g. "PG-13", from XMLTV `<rating><value>`).
+    #[serde(default)]
+    pub content_rating: Option<String>,
+    /// Star/review rating (e.g. "7.5/10", from XMLTV `<star-rating><value>`).
+    #[serde(default)]
+    pub star_rating: Option<String>,
+    /// Directors (semicolon-separated, from `<credits><director>`).
+    #[serde(default)]
+    pub directors: Option<String>,
+    /// Actors/cast (semicolon-separated, from `<credits><actor>`).
+    #[serde(default)]
+    pub cast: Option<String>,
+    /// Writers (semicolon-separated, from `<credits><writer>`).
+    #[serde(default)]
+    pub writers: Option<String>,
+    /// Presenters/hosts (semicolon-separated, from `<credits><presenter>`).
+    #[serde(default)]
+    pub presenters: Option<String>,
+    /// Programme language (XMLTV `<language>`).
+    #[serde(default)]
+    pub language: Option<String>,
+    /// Country of origin (XMLTV `<country>`).
+    #[serde(default)]
+    pub country: Option<String>,
+    /// Whether this is a rerun (`<previously-shown>` present).
+    #[serde(default)]
+    pub is_rerun: bool,
+    /// Whether this is a first-run (`<new/>` present).
+    #[serde(default)]
+    pub is_new: bool,
+    /// Whether this is a premiere (`<premiere>` present).
+    #[serde(default)]
+    pub is_premiere: bool,
+    /// Programme duration in minutes (from `<length>` element).
+    #[serde(default)]
+    pub length_minutes: Option<i32>,
+}
+
+impl Default for EpgEntry {
+    fn default() -> Self {
+        let epoch = NaiveDateTime::new(
+            chrono::NaiveDate::from_ymd_opt(1970, 1, 1).unwrap(),
+            chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap(),
+        );
+        Self {
+            channel_id: String::new(),
+            title: String::new(),
+            start_time: epoch,
+            end_time: epoch,
+            description: None,
+            category: None,
+            icon_url: None,
+            source_id: None,
+            sub_title: None,
+            season: None,
+            episode: None,
+            episode_label: None,
+            air_date: None,
+            content_rating: None,
+            star_rating: None,
+            directors: None,
+            cast: None,
+            writers: None,
+            presenters: None,
+            language: None,
+            country: None,
+            is_rerun: false,
+            is_new: false,
+            is_premiere: false,
+            length_minutes: None,
+        }
+    }
 }
 
 // ── WatchHistory ────────────────────────────────────
@@ -524,6 +703,75 @@ pub struct Source {
     /// on first load and sets this to `true`.
     #[serde(default)]
     pub credentials_encrypted: bool,
+}
+
+// ── XtreamAccountInfo ───────────────────────────────
+
+/// Parsed Xtream Codes account and server information.
+///
+/// Populated from the authentication response at
+/// `player_api.php?username=X&password=Y` (no action param
+/// or `action=get_account_info`). Contains subscription
+/// status, connection limits, and server configuration.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct XtreamAccountInfo {
+    // ── user_info fields ──────────────────────────────
+    /// Username on the Xtream server.
+    #[serde(default)]
+    pub username: Option<String>,
+    /// Server-provided status message.
+    #[serde(default)]
+    pub message: Option<String>,
+    /// Whether the user is authenticated (1 = yes).
+    #[serde(default)]
+    pub auth: i32,
+    /// Account status string (e.g. "Active", "Banned", "Disabled", "Expired").
+    #[serde(default)]
+    pub status: Option<String>,
+    /// Subscription expiration as a Unix timestamp string.
+    #[serde(default)]
+    pub exp_date: Option<String>,
+    /// Whether this is a trial account ("0" or "1").
+    #[serde(default)]
+    pub is_trial: Option<String>,
+    /// Number of currently active connections.
+    #[serde(default)]
+    pub active_cons: Option<String>,
+    /// Account creation Unix timestamp string.
+    #[serde(default)]
+    pub created_at: Option<String>,
+    /// Maximum simultaneous connections allowed.
+    #[serde(default)]
+    pub max_connections: Option<String>,
+    /// Allowed output stream formats (e.g. ["m3u8", "ts", "rtmp"]).
+    #[serde(default)]
+    pub allowed_output_formats: Vec<String>,
+
+    // ── server_info fields ────────────────────────────
+    /// Server hostname or IP.
+    #[serde(default)]
+    pub server_url: Option<String>,
+    /// HTTP port.
+    #[serde(default)]
+    pub server_port: Option<String>,
+    /// HTTPS port.
+    #[serde(default)]
+    pub server_https_port: Option<String>,
+    /// Server protocol ("http" or "https").
+    #[serde(default)]
+    pub server_protocol: Option<String>,
+    /// RTMP port.
+    #[serde(default)]
+    pub server_rtmp_port: Option<String>,
+    /// Server timezone (e.g. "Europe/London").
+    #[serde(default)]
+    pub server_timezone: Option<String>,
+    /// Server current Unix timestamp.
+    #[serde(default)]
+    pub server_timestamp_now: Option<i64>,
+    /// Server current time as readable string.
+    #[serde(default)]
+    pub server_time_now: Option<String>,
 }
 
 // ── SourceStats ─────────────────────────────────────
@@ -831,20 +1079,7 @@ mod tests {
             stream_url: "http://stream.example.com/bbc1".to_string(),
             number: Some(1),
             channel_group: Some("News".to_string()),
-            logo_url: None,
-            tvg_id: None,
-            tvg_name: None,
-            is_favorite: false,
-            user_agent: None,
-            has_catchup: false,
-            catchup_days: 0,
-            catchup_type: None,
-            catchup_source: None,
-            resolution: None,
-            source_id: None,
-            added_at: None,
-            updated_at: None,
-            is_247: false,
+            ..Default::default()
         };
         assert_eq!(ch.id, "ch1");
         assert_eq!(ch.name, "BBC One");
@@ -873,22 +1108,7 @@ mod tests {
             id: "ch1".to_string(),
             name: "Original".to_string(),
             stream_url: "u".to_string(),
-            number: None,
-            channel_group: None,
-            logo_url: None,
-            tvg_id: None,
-            tvg_name: None,
-            is_favorite: false,
-            user_agent: None,
-            has_catchup: false,
-            catchup_days: 0,
-            catchup_type: None,
-            catchup_source: None,
-            resolution: None,
-            source_id: None,
-            added_at: None,
-            updated_at: None,
-            is_247: false,
+            ..Default::default()
         };
         let mut cloned = ch.clone();
         cloned.name = "Clone".to_string();
@@ -1099,6 +1319,48 @@ mod tests {
         let m: EpgMapping = serde_json::from_str(json).unwrap();
         assert!(!m.locked);
         assert_eq!(m.confidence, 0.9);
+    }
+
+    // ── XtreamAccountInfo ────────────────────────────
+
+    #[test]
+    fn test_xtream_account_info_default_has_zero_auth() {
+        let info = XtreamAccountInfo::default();
+        assert_eq!(info.auth, 0);
+        assert!(info.username.is_none());
+        assert!(info.status.is_none());
+        assert!(info.exp_date.is_none());
+        assert!(info.server_url.is_none());
+        assert!(info.allowed_output_formats.is_empty());
+    }
+
+    #[test]
+    fn test_xtream_account_info_roundtrips_via_serde() {
+        let info = XtreamAccountInfo {
+            username: Some("testuser".to_string()),
+            auth: 1,
+            status: Some("Active".to_string()),
+            exp_date: Some("1735689600".to_string()),
+            is_trial: Some("0".to_string()),
+            max_connections: Some("2".to_string()),
+            allowed_output_formats: vec!["m3u8".to_string(), "ts".to_string()],
+            server_url: Some("server.example.com".to_string()),
+            server_port: Some("80".to_string()),
+            server_timezone: Some("Europe/London".to_string()),
+            server_timestamp_now: Some(1711000000),
+            ..Default::default()
+        };
+        let json = serde_json::to_string(&info).unwrap();
+        let back: XtreamAccountInfo = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.auth, 1);
+        assert_eq!(back.username.as_deref(), Some("testuser"));
+        assert_eq!(back.status.as_deref(), Some("Active"));
+        assert_eq!(back.exp_date.as_deref(), Some("1735689600"));
+        assert_eq!(back.max_connections.as_deref(), Some("2"));
+        assert_eq!(back.allowed_output_formats, vec!["m3u8", "ts"]);
+        assert_eq!(back.server_url.as_deref(), Some("server.example.com"));
+        assert_eq!(back.server_timezone.as_deref(), Some("Europe/London"));
+        assert_eq!(back.server_timestamp_now, Some(1711000000));
     }
 
     // ── SourceStats ─────────────────────────────────

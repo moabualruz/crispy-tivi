@@ -7,8 +7,8 @@ import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/date_format_utils.dart';
 import '../../../../core/utils/input_mode_notifier.dart';
-import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
+import '../../../iptv/presentation/providers/channel_epg_provider.dart';
 import '../providers/player_providers.dart';
 import 'player_osd/osd_shared.dart';
 
@@ -87,13 +87,14 @@ class _EpgStripContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final epgState = ref.watch(epgProvider);
     final textTheme = Theme.of(context).textTheme;
 
-    final current = epgState.getNowPlaying(channelEpgId);
+    // Use best-of-breed EPG: on-demand (fresher) with batch
+    // XMLTV fallback.
+    final current = bestNowPlayingById(ref, channelEpgId);
     if (current == null) return const SizedBox.shrink();
 
-    final next = epgState.getNextProgram(channelEpgId);
+    final next = bestNextProgramById(ref, channelEpgId);
     final timeRange =
         '${formatH12mm(current.startTime)}'
         ' – '
@@ -110,10 +111,7 @@ class _EpgStripContent extends ConsumerWidget {
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
-          colors: [
-            Color(0x99000000), // 60% black
-            Colors.transparent,
-          ],
+          colors: [CrispyColors.scrim60, Colors.transparent],
         ),
       ),
       child: Column(

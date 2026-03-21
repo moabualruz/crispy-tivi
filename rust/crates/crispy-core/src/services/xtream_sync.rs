@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 use crate::algorithms::categories;
 use crate::http_client::get_fast_client;
 use crate::http_resilience::{fetch_json_list, fetch_json_object};
-use crate::models::SyncReport;
+use crate::models::{SyncReport, XtreamAccountInfo};
 use crate::parsers::{vod, xtream};
 use crate::services::CrispyService;
 use crate::services::url_validator::validate_url;
@@ -53,6 +53,89 @@ pub async fn verify_xtream_credentials(
         .is_some_and(|a| a == 1))
 }
 
+/// Fetch and parse the full Xtream authentication response.
+///
+/// Calls `player_api.php?username=X&password=Y&action=get_account_info`
+/// and parses both `user_info` and `server_info` blocks into an
+/// `XtreamAccountInfo` struct.
+///
+/// Returns the populated struct on success, or an error on network
+/// or parse failure.
+pub async fn fetch_xtream_account_info(
+    base_url: &str,
+    username: &str,
+    password: &str,
+    accept_invalid_certs: bool,
+) -> Result<XtreamAccountInfo> {
+    validate_url(base_url).map_err(anyhow::Error::from)?;
+    let url =
+        xtream::build_xtream_action_url(base_url, username, password, "get_account_info", &[]);
+    let resp = get_fast_client(accept_invalid_certs)
+        .get(&url)
+        .send()
+        .await
+        .context("Failed to connect to Xtream server")?;
+
+    if !resp.status().is_success() {
+        anyhow::bail!("Xtream server returned HTTP {}", resp.status());
+    }
+
+    let data: serde_json::Value = resp
+        .json()
+        .await
+        .context("Failed to parse Xtream auth response")?;
+
+    Ok(parse_xtream_account_info(&data))
+}
+
+/// Parse an Xtream authentication JSON response into `XtreamAccountInfo`.
+///
+/// Handles both `user_info` and `server_info` top-level objects.
+/// Missing or malformed fields gracefully default to `None` / default values.
+fn parse_xtream_account_info(data: &serde_json::Value) -> XtreamAccountInfo {
+    let user = data.get("user_info").cloned().unwrap_or_default();
+    let server = data.get("server_info").cloned().unwrap_or_default();
+
+    let str_field = |obj: &serde_json::Value, key: &str| -> Option<String> {
+        obj.get(key).and_then(|v| match v {
+            serde_json::Value::String(s) => Some(s.clone()),
+            serde_json::Value::Number(n) => Some(n.to_string()),
+            _ => None,
+        })
+    };
+
+    let allowed_formats = user
+        .get("allowed_output_formats")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    XtreamAccountInfo {
+        username: str_field(&user, "username"),
+        message: str_field(&user, "message"),
+        auth: user.get("auth").and_then(|a| a.as_i64()).unwrap_or(0) as i32,
+        status: str_field(&user, "status"),
+        exp_date: str_field(&user, "exp_date"),
+        is_trial: str_field(&user, "is_trial"),
+        active_cons: str_field(&user, "active_cons"),
+        created_at: str_field(&user, "created_at"),
+        max_connections: str_field(&user, "max_connections"),
+        allowed_output_formats: allowed_formats,
+        server_url: str_field(&server, "url"),
+        server_port: str_field(&server, "port"),
+        server_https_port: str_field(&server, "https_port"),
+        server_protocol: str_field(&server, "server_protocol"),
+        server_rtmp_port: str_field(&server, "rtmp_port"),
+        server_timezone: str_field(&server, "timezone"),
+        server_timestamp_now: server.get("timestamp_now").and_then(|v| v.as_i64()),
+        server_time_now: str_field(&server, "time_now"),
+    }
+}
+
 /// Full Xtream source sync: categories, live streams, VOD, series.
 ///
 /// Fetches all data from the Xtream server, parses it, resolves
@@ -64,6 +147,7 @@ pub async fn sync_xtream_source(
     password: &str,
     source_id: &str,
     accept_invalid_certs: bool,
+    enrich_vod_on_sync: bool,
 ) -> Result<SyncReport> {
     validate_url(base_url).map_err(anyhow::Error::from)?;
     let base = xtream::normalize_base_url(base_url);
@@ -124,6 +208,43 @@ pub async fn sync_xtream_source(
     let mut vod_items =
         vod::parse_vod_streams(&vod_data, &base, username, password, Some(source_id));
     vod_items = categories::resolve_vod_categories(&vod_items, &vod_cat_map);
+
+    // 3b. Optionally enrich each VOD item with full metadata from
+    //     `get_vod_info`. Gated by the `enrich_vod_on_sync` setting
+    //     because it makes one HTTP request per movie (~4 min for 12K items).
+    if enrich_vod_on_sync && !vod_items.is_empty() {
+        let total_vod = vod_items.len();
+        for (idx, item) in vod_items.iter_mut().enumerate() {
+            if idx % 50 == 0 || idx + 1 == total_vod {
+                emit_progress(
+                    source_id,
+                    "vod_enrich",
+                    0.4 + 0.15 * (idx as f64 / total_vod.max(1) as f64),
+                    &format!("Enriching VOD {}/{}", idx + 1, total_vod),
+                );
+            }
+
+            // Stream IDs are stored as "vod_<num>"; strip prefix to
+            // get the numeric ID for the API call.
+            let vod_num_id = item.id.strip_prefix("vod_").unwrap_or(&item.id);
+
+            let info_url = xtream::build_xtream_action_url(
+                &base,
+                username,
+                password,
+                "get_vod_info",
+                &[("vod_id".to_string(), vod_num_id.to_string())],
+            );
+
+            match fetch_json_object(&info_url, accept_invalid_certs).await {
+                Ok(info) if !info.is_null() => {
+                    vod::enrich_vod_from_info(item, &info);
+                }
+                // Non-fatal: one item failure must not block the rest.
+                Ok(_) | Err(_) => continue,
+            }
+        }
+    }
 
     emit_progress(source_id, "series", 0.6, "Fetching series");
 
@@ -260,6 +381,110 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn fetch_xtream_account_info_full_response() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/player_api.php"))
+            .and(query_param("username", "testuser"))
+            .and(query_param("password", "testpass"))
+            .and(query_param("action", "get_account_info"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(
+                r#"{
+                    "user_info": {
+                        "username": "testuser",
+                        "password": "testpass",
+                        "message": "Welcome",
+                        "auth": 1,
+                        "status": "Active",
+                        "exp_date": "1735689600",
+                        "is_trial": "0",
+                        "active_cons": "1",
+                        "created_at": "1609459200",
+                        "max_connections": "2",
+                        "allowed_output_formats": ["m3u8", "ts", "rtmp"]
+                    },
+                    "server_info": {
+                        "url": "server.example.com",
+                        "port": "80",
+                        "https_port": "443",
+                        "server_protocol": "http",
+                        "rtmp_port": "8088",
+                        "timezone": "Europe/London",
+                        "timestamp_now": 1711000000,
+                        "time_now": "2024-03-21 12:00:00",
+                        "process": true
+                    }
+                }"#,
+            ))
+            .mount(&mock_server)
+            .await;
+
+        let info = fetch_xtream_account_info(&mock_server.uri(), "testuser", "testpass", false)
+            .await
+            .expect("should parse account info");
+
+        assert_eq!(info.auth, 1);
+        assert_eq!(info.username.as_deref(), Some("testuser"));
+        assert_eq!(info.message.as_deref(), Some("Welcome"));
+        assert_eq!(info.status.as_deref(), Some("Active"));
+        assert_eq!(info.exp_date.as_deref(), Some("1735689600"));
+        assert_eq!(info.is_trial.as_deref(), Some("0"));
+        assert_eq!(info.active_cons.as_deref(), Some("1"));
+        assert_eq!(info.created_at.as_deref(), Some("1609459200"));
+        assert_eq!(info.max_connections.as_deref(), Some("2"));
+        assert_eq!(info.allowed_output_formats, vec!["m3u8", "ts", "rtmp"]);
+        assert_eq!(info.server_url.as_deref(), Some("server.example.com"));
+        assert_eq!(info.server_port.as_deref(), Some("80"));
+        assert_eq!(info.server_https_port.as_deref(), Some("443"));
+        assert_eq!(info.server_protocol.as_deref(), Some("http"));
+        assert_eq!(info.server_rtmp_port.as_deref(), Some("8088"));
+        assert_eq!(info.server_timezone.as_deref(), Some("Europe/London"));
+        assert_eq!(info.server_timestamp_now, Some(1711000000));
+        assert_eq!(info.server_time_now.as_deref(), Some("2024-03-21 12:00:00"));
+    }
+
+    #[tokio::test]
+    async fn fetch_xtream_account_info_minimal_response() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/player_api.php"))
+            .and(query_param("username", "user"))
+            .and(query_param("password", "pass"))
+            .and(query_param("action", "get_account_info"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(r#"{"user_info":{"auth":1}}"#))
+            .mount(&mock_server)
+            .await;
+
+        let info = fetch_xtream_account_info(&mock_server.uri(), "user", "pass", false)
+            .await
+            .expect("should parse minimal response");
+
+        assert_eq!(info.auth, 1);
+        assert!(info.username.is_none());
+        assert!(info.status.is_none());
+        assert!(info.exp_date.is_none());
+        assert!(info.server_url.is_none());
+        assert!(info.allowed_output_formats.is_empty());
+    }
+
+    #[tokio::test]
+    async fn fetch_xtream_account_info_http_error() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/player_api.php"))
+            .respond_with(ResponseTemplate::new(403))
+            .mount(&mock_server)
+            .await;
+
+        let result = fetch_xtream_account_info(&mock_server.uri(), "user", "pass", false).await;
+
+        assert!(result.is_err(), "HTTP 403 should return error");
+    }
+
+    #[tokio::test]
     async fn sync_xtream_source_basic() {
         let mock_server = MockServer::start().await;
 
@@ -325,10 +550,17 @@ mod tests {
             .await;
 
         let service = make_service();
-        let report =
-            sync_xtream_source(&service, &mock_server.uri(), "test", "test", "src-1", false)
-                .await
-                .expect("sync should succeed");
+        let report = sync_xtream_source(
+            &service,
+            &mock_server.uri(),
+            "test",
+            "test",
+            "src-1",
+            false,
+            false,
+        )
+        .await
+        .expect("sync should succeed");
 
         assert_eq!(report.channels_count, 2, "expected 2 live channels");
         assert_eq!(report.vod_count, 1, "expected 1 VOD item");

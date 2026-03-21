@@ -8,6 +8,7 @@ import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../../core/domain/entities/playlist_source_type_ext.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
+import '../../data/stalker_account_info.dart';
 import 'settings_shared_widgets.dart';
 import 'tls_toggle_widget.dart';
 
@@ -496,6 +497,151 @@ class SourceTlsSettingsSection extends ConsumerWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Displays Stalker portal account/subscription info for each
+/// configured Stalker source.
+///
+/// Shows subscription status, expiry date, max connections, and
+/// trial status in an expansion tile per source.
+class StalkerAccountInfoSection extends ConsumerStatefulWidget {
+  /// Creates a Stalker account info section.
+  const StalkerAccountInfoSection({super.key, required this.sources});
+
+  /// All configured playlist sources (filtered to Stalker internally).
+  final List<PlaylistSource> sources;
+
+  @override
+  ConsumerState<StalkerAccountInfoSection> createState() =>
+      _StalkerAccountInfoSectionState();
+}
+
+class _StalkerAccountInfoSectionState
+    extends ConsumerState<StalkerAccountInfoSection> {
+  final Map<String, StalkerAccountInfo?> _infoCache = {};
+  final Set<String> _loading = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAll();
+  }
+
+  void _fetchAll() {
+    for (final source in _stalkerSources) {
+      if (_infoCache.containsKey(source.id)) continue;
+      _loading.add(source.id);
+      fetchStalkerAccountInfoFromRef(ref, source).then((info) {
+        if (mounted) {
+          setState(() {
+            _infoCache[source.id] = info;
+            _loading.remove(source.id);
+          });
+        }
+      });
+    }
+  }
+
+  List<PlaylistSource> get _stalkerSources =>
+      widget.sources
+          .where((s) => s.type == PlaylistSourceType.stalkerPortal)
+          .toList();
+
+  @override
+  Widget build(BuildContext context) {
+    final stalkerSources = _stalkerSources;
+    if (stalkerSources.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(
+          title: 'Stalker Account Info',
+          icon: Icons.account_circle,
+          colorTitle: true,
+        ),
+        const SizedBox(height: CrispySpacing.sm),
+        SettingsCard(
+          children: [
+            for (var i = 0; i < stalkerSources.length; i++) ...[
+              if (i > 0) const Divider(height: 1),
+              _StalkerAccountTile(
+                source: stalkerSources[i],
+                info: _infoCache[stalkerSources[i].id],
+                isLoading: _loading.contains(stalkerSources[i].id),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _StalkerAccountTile extends StatelessWidget {
+  const _StalkerAccountTile({
+    required this.source,
+    required this.info,
+    required this.isLoading,
+  });
+
+  final PlaylistSource source;
+  final StalkerAccountInfo? info;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (isLoading) {
+      return ListTile(
+        leading: const Icon(Icons.router),
+        title: Text(source.name),
+        subtitle: const Text('Loading account info...'),
+        trailing: const SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (info == null) {
+      return ListTile(
+        leading: const Icon(Icons.router),
+        title: Text(source.name),
+        subtitle: Text(
+          'Account info unavailable',
+          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+        ),
+      );
+    }
+
+    final details = <String>[];
+    if (info!.status != null) details.add('Status: ${info!.status}');
+    if (info!.expiryDate != null) details.add('Expires: ${info!.expiryDate}');
+    if (info!.maxConnections != null) {
+      details.add('Max connections: ${info!.maxConnections}');
+    }
+    if (info!.isTrial) details.add('Trial account');
+    if (info!.tariffPlan != null) details.add('Plan: ${info!.tariffPlan}');
+
+    final isExpired = info!.status?.toLowerCase().contains('expired') ?? false;
+
+    return ListTile(
+      leading: Icon(
+        Icons.router,
+        color: isExpired ? theme.colorScheme.error : null,
+      ),
+      title: Text(source.name),
+      subtitle: Text(
+        details.join(' \u2022 '),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: isExpired ? theme.colorScheme.error : null),
+      ),
     );
   }
 }

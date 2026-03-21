@@ -93,13 +93,9 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
 
             let entry = EpgEntry {
                 channel_id: channel.id.clone(),
-                title: String::new(),
                 start_time: start_dt,
                 end_time: end_dt,
-                description: None,
-                category: None,
-                icon_url: None,
-                source_id: None,
+                ..EpgEntry::default()
             };
 
             // Try M3U catchup first.
@@ -923,6 +919,8 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                 &target,
                 &all_channels,
                 &health_scores,
+                &HashMap::new(),
+                None,
             );
             let s = serde_json::to_string(&ranked)?;
             Ok(json!({"data": s}))

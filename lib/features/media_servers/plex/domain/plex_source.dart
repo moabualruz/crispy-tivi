@@ -212,33 +212,10 @@ class PlexSource implements MediaSource {
       final offset = (container['offset'] as int?) ?? startIndex;
 
       final items =
-          rawItems.cast<Map<String, dynamic>>().map((m) {
-            final thumbPath = m['thumb'] as String?;
-            final artPath = m['art'] as String?;
-            final thumbUrl =
-                thumbPath != null
-                    ? '$serverUrl$thumbPath?X-Plex-Token=$accessToken'
-                    : null;
-            final backdropUrl =
-                artPath != null
-                    ? '$serverUrl$artPath?X-Plex-Token=$accessToken'
-                    : null;
-            return MediaItem(
-              id: (m['ratingKey'] ?? '').toString(),
-              name: (m['title'] as String?) ?? 'Unknown',
-              type: _mapType(m['type'] as String?),
-              logoUrl: thumbUrl,
-              overview: m['summary'] as String?,
-              durationMs: m['duration'] as int?,
-              playbackPositionMs: m['viewOffset'] as int?,
-              isWatched: ((m['viewCount'] as int?) ?? 0) > 0,
-              rating: m['contentRating'] as String?,
-              metadata: {
-                if (backdropUrl != null) 'backdropUrl': backdropUrl,
-                if (m['year'] != null) 'year': m['year'],
-              },
-            );
-          }).toList();
+          rawItems
+              .cast<Map<String, dynamic>>()
+              .map((m) => _mapToMediaItem(PlexMetadata.fromJson(m)))
+              .toList();
 
       return PaginatedResult(
         items: items,
@@ -324,6 +301,17 @@ class PlexSource implements MediaSource {
       final thumbUrl = _buildImageUrl(item.thumb);
       final backdropUrl = _buildImageUrl(item.art);
 
+      // Extract video quality info from first Media object.
+      final firstMedia =
+          (item.media != null && item.media!.isNotEmpty)
+              ? item.media!.first
+              : null;
+
+      // Extract cast, director, genre data.
+      final castNames = item.castNames;
+      final directorName = item.directorName;
+      final genreNames = item.genreNames;
+
       return MediaItem(
         id: item.ratingKey ?? '',
         name: item.title ?? 'Unknown',
@@ -340,6 +328,34 @@ class PlexSource implements MediaSource {
         metadata: {
           if (backdropUrl != null) 'backdropUrl': backdropUrl,
           if (item.year != null) 'year': item.year,
+          // Cast, director, and genre data from Plex metadata.
+          if (castNames.isNotEmpty) 'cast': castNames,
+          if (directorName != null) 'director': directorName,
+          if (genreNames.isNotEmpty) 'genres': genreNames,
+          // Content rating for dedicated VodItem field.
+          if (item.contentRating != null) 'contentRating': item.contentRating,
+          // Studio name.
+          if (item.studio != null) 'studio': item.studio,
+          // Audience/critic ratings as numeric values.
+          if (item.audienceRating != null)
+            'audienceRating': item.audienceRating,
+          if (item.rating != null) 'criticRating': item.rating,
+          // Video quality metadata from Media object.
+          if (firstMedia?.width != null) 'videoWidth': firstMedia!.width,
+          if (firstMedia?.height != null) 'videoHeight': firstMedia!.height,
+          if (firstMedia?.videoResolution != null)
+            'videoResolution': firstMedia!.videoResolution,
+          if (firstMedia?.container != null) 'container': firstMedia!.container,
+          if (firstMedia?.videoCodec != null)
+            'videoCodec': firstMedia!.videoCodec,
+          // Episode/season metadata.
+          if (item.index != null) 'index': item.index,
+          if (item.parentIndex != null) 'parentIndex': item.parentIndex,
+          if (item.parentRatingKey != null) 'seriesId': item.parentRatingKey,
+          if (item.grandparentRatingKey != null)
+            'grandparentId': item.grandparentRatingKey,
+          // Original title for foreign-language items.
+          if (item.originalTitle != null) 'originalTitle': item.originalTitle,
         },
       );
     }

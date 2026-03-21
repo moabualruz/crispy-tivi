@@ -201,7 +201,9 @@ class ShaderService {
   Future<void> _clearShaders() async {
     try {
       await _mpvCommand(['change-list', 'glsl-shaders', 'clr', '']);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[ShaderService] shader compilation failed: $e');
+    }
   }
 
   Future<void> _mpvCommand(List<String> args) async {

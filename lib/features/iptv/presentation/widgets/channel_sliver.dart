@@ -1,19 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/theme/crispy_animation.dart';
-import '../../../../core/theme/crispy_spacing.dart';
-import '../../../../core/utils/date_format_utils.dart';
-import '../../../epg/presentation/providers/epg_providers.dart';
-import '../../../player/presentation/providers/player_providers.dart';
-import '../../application/duplicate_detection_service.dart';
 import '../../domain/entities/channel.dart';
 import '../providers/channel_providers.dart';
-import '../providers/smart_group_providers.dart';
-import 'channel_context_menu.dart';
-import 'channel_list_item.dart';
 import 'channel_reorderable_list.dart';
-import 'channel_swipe_actions.dart';
+import 'channel_sliver_item.dart';
 
 /// A sliver that renders the channel list in both mobile and TV
 /// layouts.
@@ -78,79 +69,18 @@ class ChannelSliver extends ConsumerWidget {
       return ChannelReorderableList(channels: channels, onReorder: onReorder!);
     }
 
-    // Select only entries to avoid rebuilding on unrelated EPG
-    // state changes.
-    ref.watch(epgProvider.select((s) => s.entries));
-    final epgState = ref.read(epgProvider);
-    final playingUrl = ref.watch(
-      playbackSessionProvider.select((s) => s.streamUrl),
-    );
-
     return SliverList(
       delegate: SliverChildBuilderDelegate((ctx, i) {
         final ch = channels[i];
-        final nowPlaying = epgState.getNowPlaying(ch.id);
-        final nextEntry = epgState.getNextProgram(ch.id);
-        final nextLabel =
-            nextEntry != null
-                ? 'Next: ${nextEntry.title} · '
-                    '${formatHHmmLocal(nextEntry.startTime)}'
-                : null;
-        final item = ClipRect(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: CrispySpacing.md,
-              vertical: CrispySpacing.xs,
-            ),
-            child: ChannelListItem(
-              channel: ch,
-              currentProgram: nowPlaying?.title,
-              programProgress:
-                  nowPlaying != null && nowPlaying.isLive
-                      ? nowPlaying.progress
-                      : null,
-              nextProgramLabel: nextLabel,
-              isPlaying: ch.streamUrl == playingUrl,
-              onTap: () => onTap(ch),
-              onDoubleTap: onDoubleTap != null ? () => onDoubleTap!(ch) : null,
-              onFocus: onFocus != null ? () => onFocus!(ch) : null,
-              onMiddleClick:
-                  onMiddleClick != null ? () => onMiddleClick!(ch) : null,
-              autofocus: i == 0,
-              isDuplicate: ref.watch(isChannelDuplicateProvider(ch.id)),
-              isInSmartGroup:
-                  ref
-                      .watch(smartGroupChannelIdsProvider)
-                      .value
-                      ?.contains(ch.id) ??
-                  false,
-              onLongPress:
-                  () => showChannelContextMenu(
-                    context: ctx,
-                    ref: ref,
-                    channel: ch,
-                  ),
-              onToggleFavorite:
-                  onToggleFavorite != null
-                      ? () => onToggleFavorite!(ch)
-                      : () => ref
-                          .read(channelListProvider.notifier)
-                          .toggleFavorite(ch.id),
-            ),
-          ),
-        );
-        // FE-TV-11: wrap with swipe actions on compact (mobile)
-        // layout. On tablet / TV the widget passes through unchanged.
-        return ChannelSwipeActions(
+        return ChannelSliverItem(
+          key: ValueKey(ch.id),
           channel: ch,
-          onHidden:
-              () => ScaffoldMessenger.of(ctx).showSnackBar(
-                SnackBar(
-                  content: Text('${ch.name} hidden'),
-                  duration: CrispyAnimation.snackBarDuration,
-                ),
-              ),
-          child: item,
+          onTap: onTap,
+          onDoubleTap: onDoubleTap,
+          onFocus: onFocus,
+          onMiddleClick: onMiddleClick,
+          onToggleFavorite: onToggleFavorite,
+          autofocus: i == 0,
         );
       }, childCount: channels.length),
     );

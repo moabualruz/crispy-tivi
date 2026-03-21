@@ -29,6 +29,12 @@ class MediaServerItem with PlaybackProgressMixin {
     this.width,
     this.height,
     this.videoRange,
+    this.genres = const [],
+    this.studios = const [],
+    this.people = const [],
+    this.seriesId,
+    this.seasonCount,
+    this.container,
   });
 
   @JsonKey(name: 'Id')
@@ -112,6 +118,37 @@ class MediaServerItem with PlaybackProgressMixin {
   @JsonKey(name: 'VideoRange')
   final String? videoRange;
 
+  /// Genre names for this item (e.g. ["Action", "Drama"]).
+  ///
+  /// Populated when the `Fields` query param includes `Genres`.
+  @JsonKey(name: 'Genres')
+  final List<String> genres;
+
+  /// Studio names for this item (e.g. ["Marvel Studios"]).
+  ///
+  /// Populated when the `Fields` query param includes `Studios`.
+  @JsonKey(name: 'Studios')
+  final List<String> studios;
+
+  /// People (cast, directors, writers) associated with this item.
+  ///
+  /// Populated when the `Fields` query param includes `People`.
+  /// Each entry is a JSON object with `Name`, `Role`, `Type`, etc.
+  @JsonKey(name: 'People')
+  final List<MediaServerPerson> people;
+
+  /// Parent series ID for episodes/seasons.
+  @JsonKey(name: 'SeriesId')
+  final String? seriesId;
+
+  /// Total number of seasons (for series items).
+  @JsonKey(name: 'ChildCount')
+  final int? seasonCount;
+
+  /// Container format (e.g. "mkv", "mp4") from the primary media stream.
+  @JsonKey(name: 'Container')
+  final String? container;
+
   factory MediaServerItem.fromJson(Map<String, dynamic> json) =>
       _$MediaServerItemFromJson(json);
 
@@ -137,4 +174,55 @@ class MediaServerItem with PlaybackProgressMixin {
   /// Playback position in milliseconds (for resume).
   @override
   int? get playbackPositionMs => userData?.playbackPositionMs;
+
+  /// Extract cast member names (people with Type == "Actor").
+  List<String> get castNames =>
+      people.where((p) => p.type == 'Actor').map((p) => p.name).toList();
+
+  /// Extract director names (people with Type == "Director").
+  List<String> get directorNames =>
+      people.where((p) => p.type == 'Director').map((p) => p.name).toList();
+
+  /// First director name (convenience getter).
+  String? get directorName {
+    final directors = directorNames;
+    return directors.isNotEmpty ? directors.join(', ') : null;
+  }
+}
+
+/// A person (actor, director, writer) associated with a media server item.
+@JsonSerializable()
+class MediaServerPerson {
+  const MediaServerPerson({
+    required this.name,
+    this.id,
+    this.role,
+    this.type,
+    this.primaryImageTag,
+  });
+
+  /// Person display name.
+  @JsonKey(name: 'Name')
+  final String name;
+
+  /// Person ID on the server.
+  @JsonKey(name: 'Id')
+  final String? id;
+
+  /// Role name for actors (e.g. "Tony Stark").
+  @JsonKey(name: 'Role')
+  final String? role;
+
+  /// Person type: "Actor", "Director", "Writer", "Producer", etc.
+  @JsonKey(name: 'Type')
+  final String? type;
+
+  /// Primary image tag for the person's photo.
+  @JsonKey(name: 'PrimaryImageTag')
+  final String? primaryImageTag;
+
+  factory MediaServerPerson.fromJson(Map<String, dynamic> json) =>
+      _$MediaServerPersonFromJson(json);
+
+  Map<String, dynamic> toJson() => _$MediaServerPersonToJson(this);
 }

@@ -4,6 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:crispy_tivi/core/utils/keyboard_utils.dart';
 
 void main() {
+  group('isTextFieldFocused', () {
+    test('returns false when no widget has focus', () {
+      expect(isTextFieldFocused(), isFalse);
+    });
+  });
+
   group('tryUnfocusTextFieldFirst', () {
     testWidgets('returns false when no text field is focused', (tester) async {
       await tester.pumpWidget(

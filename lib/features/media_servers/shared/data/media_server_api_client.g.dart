@@ -110,7 +110,7 @@ class _MediaServerApiClient implements MediaServerApiClient {
     String sortBy = 'SortName',
     String sortOrder = 'Ascending',
     String fields =
-        'Overview,Path,ParentId,DisplayPreferencesId,DateCreated,MediaStreams,SeasonUserData,DateLastMediaAdded',
+        'Overview,Path,ParentId,DisplayPreferencesId,DateCreated,MediaStreams,SeasonUserData,DateLastMediaAdded,People,Genres,Studios,ChildCount',
     String? excludeItemTypes,
     String? includeItemTypes,
     bool? recursive,

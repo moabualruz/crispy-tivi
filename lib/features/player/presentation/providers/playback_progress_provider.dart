@@ -36,6 +36,23 @@ final class ContentFinished extends CompletionEvent {
   const ContentFinished();
 }
 
+/// The user has auto-advanced [count] episodes without interaction.
+///
+/// Shown after [kStillWatchingThreshold] consecutive auto-advances
+/// per J-20. Pauses playback until user responds.
+final class StillWatchingPrompt extends CompletionEvent {
+  const StillWatchingPrompt(this.next, this.count);
+
+  /// The episode that would play next if user continues.
+  final VodItem next;
+
+  /// Number of consecutive auto-advances that triggered this prompt.
+  final int count;
+}
+
+/// Number of consecutive auto-advances before showing "Still Watching?".
+const int kStillWatchingThreshold = 3;
+
 // ─────────────────────────────────────────────────────────────
 //  State
 // ─────────────────────────────────────────────────────────────
@@ -100,6 +117,10 @@ class PlaybackProgressNotifier extends Notifier<PlaybackProgressState> {
   DateTime? _lastSaveTime;
   bool _completionFired = false;
 
+  /// Tracks consecutive auto-advances without user interaction.
+  /// Resets when the user manually plays, cancels, or presses a button.
+  int _consecutiveAutoAdvances = 0;
+
   @override
   PlaybackProgressState build() {
     ref.onDispose(_cancel);
@@ -131,6 +152,17 @@ class PlaybackProgressNotifier extends Notifier<PlaybackProgressState> {
   void clearCompletionEvent() {
     state = state.copyWith(clearCompletionEvent: true);
   }
+
+  /// Records an auto-advance (countdown expired without user cancel).
+  ///
+  /// When the count reaches [kStillWatchingThreshold], emits a
+  /// [StillWatchingPrompt] instead of the normal [NextEpisodeAvailable]
+  /// on the next completion.
+  void recordAutoAdvance() => _consecutiveAutoAdvances++;
+
+  /// Resets the auto-advance counter (user interacted — pressed
+  /// cancel, manually selected an episode, or confirmed "Still Watching").
+  void resetAutoAdvanceCounter() => _consecutiveAutoAdvances = 0;
 
   /// Saves the current high-watermark to [WatchHistoryService].
   ///
@@ -252,7 +284,18 @@ class PlaybackProgressNotifier extends Notifier<PlaybackProgressState> {
       if (session.mediaType == 'episode' && session.episodeList != null) {
         final next = findNextEpisode(session);
         if (next != null) {
-          state = state.copyWith(completionEvent: NextEpisodeAvailable(next));
+          // Check if "Still Watching?" prompt should appear instead
+          // of the normal next-episode countdown.
+          if (_consecutiveAutoAdvances >= kStillWatchingThreshold) {
+            state = state.copyWith(
+              completionEvent: StillWatchingPrompt(
+                next,
+                _consecutiveAutoAdvances,
+              ),
+            );
+          } else {
+            state = state.copyWith(completionEvent: NextEpisodeAvailable(next));
+          }
           return;
         }
       }
