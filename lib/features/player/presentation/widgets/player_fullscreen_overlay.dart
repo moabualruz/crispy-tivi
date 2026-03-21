@@ -966,7 +966,8 @@ class _PlayerFullscreenOverlayState
         ),
 
         // ── Channel zap overlay (outside GestureDetector for tap passthrough) ──
-        if (session.isLive &&
+        if (_showZapOverlay &&
+            session.isLive &&
             session.channelList != null &&
             session.channelList!.isNotEmpty &&
             !isInPip)
@@ -977,7 +978,7 @@ class _PlayerFullscreenOverlayState
                   session.channelIndex < session.channelList!.length
                       ? session.channelList![session.channelIndex].id
                       : '',
-              isVisible: _showZapOverlay,
+              isVisible: true,
               onDismiss: () {
                 setState(() => _showZapOverlay = false);
                 _restoreFocus();

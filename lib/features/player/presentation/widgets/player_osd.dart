@@ -101,6 +101,7 @@ class _PlayerOsdState extends ConsumerState<PlayerOsd> {
     ref.listen(
       playbackStateProvider.select((s) => s.value?.isPlaying ?? false),
       (prev, isPlaying) {
+        if (!mounted) return;
         ref.read(osdStateProvider.notifier).onPlaybackStateChanged(isPlaying);
       },
     );

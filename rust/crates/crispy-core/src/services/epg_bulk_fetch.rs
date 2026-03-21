@@ -16,18 +16,19 @@ use crate::models::{Channel, Source};
 use crate::services::epg_fetcher::ThrottledEpgFetcher;
 use crate::services::CrispyService;
 
-/// Channels per batch — keeps memory bounded and provides
-/// incremental progress. 50 channels × 5 concurrent = 10 HTTP
-/// requests at a time with singleflight dedup.
-const BATCH_SIZE: usize = 50;
+/// Channels per batch — small to avoid flooding the server.
+const BATCH_SIZE: usize = 10;
 
-/// Pause between batches (milliseconds) to let the device breathe.
-/// Prevents CPU/network saturation on low-end hardware.
-const BATCH_PAUSE_MS: u64 = 500;
+/// Pause between batches (milliseconds). 3 seconds lets the
+/// device and server recover between bursts.
+const BATCH_PAUSE_MS: u64 = 3_000;
+
+/// Initial delay before starting bulk fetch (milliseconds).
+/// Lets the UI settle after sync before adding EPG load.
+const STARTUP_DELAY_MS: u64 = 5_000;
 
 /// Maximum channels to fetch EPG for in one sync run.
-/// Prevents runaway fetches on sources with 10K+ channels.
-const MAX_CHANNELS_PER_SYNC: usize = 2_000;
+const MAX_CHANNELS_PER_SYNC: usize = 500;
 
 /// Spawn a background task that fetches EPG for all channels
 /// from the given source.
@@ -47,6 +48,9 @@ pub fn spawn_bulk_epg_fetch(
     let fetcher = ThrottledEpgFetcher::new();
 
     tokio::spawn(async move {
+        // Delay start to let UI settle after sync.
+        tokio::time::sleep(tokio::time::Duration::from_millis(STARTUP_DELAY_MS)).await;
+
         if let Err(e) = run_bulk_fetch(&service, &source, &channels, &fetcher).await {
             tracing::warn!("Bulk EPG fetch failed for source {}: {e}", source.id);
         }

@@ -51,6 +51,7 @@ mixin PlayerLifecycleMixin on ConsumerState<PlayerFullscreenOverlay> {
   }
 
   void handleAppLifecycleChange(AppLifecycleState state) {
+    if (!mounted) return;
     final playerService = ref.read(playerServiceProvider);
     final pipNotifier = ref.read(pipProvider.notifier);
     final pipState = ref.read(pipProvider);

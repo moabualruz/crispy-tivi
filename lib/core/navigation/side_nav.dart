@@ -182,48 +182,47 @@ class SideNav extends ConsumerWidget {
         message: extended ? '' : displayLabel,
         waitDuration: CrispyAnimation.normal,
         triggerMode: TooltipTriggerMode.longPress,
-        child: Container(
-          width: double.infinity,
-          height: _kNavItemHeight,
-          decoration:
-              isSelected
-                  ? BoxDecoration(
-                    color: colorScheme.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.zero,
-                  )
-                  : null,
-          padding: EdgeInsets.symmetric(
-            horizontal: extended ? CrispySpacing.md : 0,
-          ),
-          child: Row(
-            mainAxisAlignment:
-                extended ? MainAxisAlignment.start : MainAxisAlignment.center,
-            children: [
-              if (extended)
-                badgedIcon
-              else
-                ClipRect(child: badgedIcon),
-              if (extended) ...[
-                const SizedBox(width: CrispySpacing.sm),
-                Expanded(
-                  child: Text(
-                    displayLabel,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
-                      color:
-                          isSelected
-                              ? colorScheme.primary
-                              : colorScheme.onSurfaceVariant,
+        child: ClipRect(
+          child: Container(
+            width: double.infinity,
+            height: _kNavItemHeight,
+            decoration:
+                isSelected
+                    ? BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.zero,
+                    )
+                    : null,
+            padding: EdgeInsets.symmetric(
+              horizontal: extended ? CrispySpacing.md : 0,
+            ),
+            child: Row(
+              mainAxisAlignment:
+                  extended ? MainAxisAlignment.start : MainAxisAlignment.center,
+              children: [
+                if (extended) badgedIcon else ClipRect(child: badgedIcon),
+                if (extended) ...[
+                  const SizedBox(width: CrispySpacing.sm),
+                  Expanded(
+                    child: Text(
+                      displayLabel,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        color:
+                            isSelected
+                                ? colorScheme.primary
+                                : colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                // FE-AS-09: "NEW" freshness pill badge.
-                if (isNew && !isSelected) _NewPill(colorScheme: colorScheme),
+                  // FE-AS-09: "NEW" freshness pill badge.
+                  if (isNew && !isSelected) _NewPill(colorScheme: colorScheme),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
