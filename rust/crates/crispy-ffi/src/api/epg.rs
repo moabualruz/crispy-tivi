@@ -1,4 +1,4 @@
-use super::{from_json, into_anyhow, json_result, svc};
+use super::{epg, from_json, into_anyhow, json_result, svc};
 use anyhow::{Result, anyhow};
 use crispy_core::models::{Channel, EpgEntry};
 use std::collections::HashMap;
@@ -243,4 +243,49 @@ pub fn filter_upcoming_programs(
         window_minutes,
         limit,
     )
+}
+
+// ── EPG Facade (L1 hot cache + L2 SQLite + L3 network) ───
+
+/// Get EPG for a single channel via the 3-layer facade.
+///
+/// Resolution: L1 moka hot cache → L2 SQLite → L3 per-channel API fetch.
+/// Returns JSON array of EpgEntry.
+pub async fn get_channel_epg(channel_id: String, count: usize) -> Result<String> {
+    let facade = epg()?;
+    let entries = facade.get_epg_for_channel(&channel_id, count).await?;
+    json_result(entries)
+}
+
+/// Get EPG for multiple channels within a time window via the 3-layer facade.
+///
+/// Returns JSON `{channel_id: [entries]}`.
+pub async fn get_channels_epg(
+    channel_ids_json: String,
+    start_time: i64,
+    end_time: i64,
+) -> Result<String> {
+    let channel_ids: Vec<String> = from_json(&channel_ids_json)?;
+    let facade = epg()?;
+    let result = facade
+        .get_epg_for_channels(&channel_ids, start_time, end_time)
+        .await?;
+    json_result(result)
+}
+
+/// Invalidate the L1 hot cache for a specific channel.
+pub fn invalidate_epg_cache(channel_id: String) -> Result<()> {
+    epg()?.invalidate_channel(&channel_id);
+    Ok(())
+}
+
+/// Clear all EPG caches (L1 hot cache).
+pub fn clear_epg_caches() -> Result<()> {
+    epg()?.clear_all_caches();
+    Ok(())
+}
+
+/// Get the number of channels in the L1 hot cache.
+pub fn epg_hot_cache_size() -> Result<u64> {
+    Ok(epg()?.hot_cache_size())
 }

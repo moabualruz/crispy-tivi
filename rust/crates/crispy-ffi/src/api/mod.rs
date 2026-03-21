@@ -51,11 +51,16 @@ pub use watchlist::*;
 
 use anyhow::{Result, anyhow};
 use crispy_core::services::CrispyService;
+use crispy_core::services::epg_facade::EpgFacade;
 use std::sync::OnceLock;
 
 /// Global service singleton. CrispyService uses an internal r2d2 connection
 /// pool, making it completely thread-safe and cheaply cloneable.
 pub(super) static SERVICE: OnceLock<CrispyService> = OnceLock::new();
+
+/// Global EPG facade singleton. Provides L1 hot cache + L2 SQLite +
+/// L3 throttled network fetch with request dedup.
+pub(super) static EPG_FACADE: OnceLock<EpgFacade> = OnceLock::new();
 
 /// Get a clone of the service or error if not initialized.
 pub(super) fn svc() -> Result<CrispyService> {
@@ -63,6 +68,17 @@ pub(super) fn svc() -> Result<CrispyService> {
         .get()
         .cloned()
         .ok_or_else(|| anyhow!("Not initialized"))
+}
+
+/// Get the EPG facade, initializing it from the service if needed.
+pub(super) fn epg() -> Result<EpgFacade> {
+    if let Some(facade) = EPG_FACADE.get() {
+        return Ok(facade.clone());
+    }
+    let service = svc()?;
+    let facade = EpgFacade::new(service);
+    let _ = EPG_FACADE.set(facade.clone());
+    Ok(facade)
 }
 
 /// Serialize a value to a JSON string.
