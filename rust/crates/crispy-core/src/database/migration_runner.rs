@@ -62,10 +62,7 @@ static MIGRATIONS: &[(u32, &str)] = &[
     // 009 — Extended VOD fields: original_name, is_adult, content_rating
     (44, include_str!("migrations/009_vod_extended_fields.sql")),
     // 010 — Composite index for fast EPG time-range queries
-    (
-        45,
-        include_str!("migrations/010_epg_time_range_index.sql"),
-    ),
+    (45, include_str!("migrations/010_epg_time_range_index.sql")),
 ];
 
 /// Run all pending migrations against `conn`.
