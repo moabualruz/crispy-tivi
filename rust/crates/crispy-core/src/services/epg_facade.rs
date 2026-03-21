@@ -66,33 +66,32 @@ impl EpgFacade {
             }
         }
 
-        // L2 + L3: Resolve from SQLite or network.
-        let source = self.find_source_for_channel(channel_id)?;
-        let entries = match source {
-            Some(src) => {
-                epg_resolver::resolve_epg_for_channel(
-                    &self.service,
-                    &src,
-                    channel_id,
-                    count,
-                    &self.fetcher,
-                )
-                .await?
-            }
-            None => {
-                // No source found — try SQLite directly (M3U sources
-                // with XMLTV data stored under tvg_id).
-                self.get_from_sqlite_only(channel_id, count)?
-            }
-        };
-
-        // Write-through to L1.
-        if !entries.is_empty() {
+        // L2: Check SQLite.
+        let l2_entries = self.get_from_sqlite_only(channel_id, count)?;
+        if !l2_entries.is_empty() {
             self.hot_cache
-                .insert(channel_id.to_string(), entries.clone());
+                .insert(channel_id.to_string(), l2_entries.clone());
+            return Ok(l2_entries);
         }
 
-        Ok(entries)
+        // L3: Fire-and-forget background fetch for this channel.
+        // Return empty now — EpgUpdated event will trigger re-read.
+        if let Ok(Some(source)) = self.find_source_for_channel(channel_id) {
+            let facade = self.clone();
+            let ch_id = channel_id.to_string();
+            tokio::spawn(async move {
+                let _ = epg_resolver::resolve_epg_for_channel(
+                    &facade.service,
+                    &source,
+                    &ch_id,
+                    count,
+                    &facade.fetcher,
+                )
+                .await;
+            });
+        }
+
+        Ok(vec![])
     }
 
     /// Get EPG for multiple channels within a time window.
@@ -157,24 +156,28 @@ impl EpgFacade {
             return Ok(result);
         }
 
-        // L3: Fetch from network, grouped by source.
+        // L3: Fire-and-forget background fetch for missing channels.
+        // Return L1+L2 results immediately — don't block the UI.
+        // Fetched data is saved to SQLite (L2) and EpgUpdated events
+        // notify Flutter to re-read via the invalidation pipeline.
         let source_groups = self.group_channels_by_source(&l3_needed)?;
-        for (source, ch_ids) in source_groups {
-            let fetched = epg_resolver::resolve_epg_for_channels(
-                &self.service,
-                &source,
-                &ch_ids,
-                start_time,
-                end_time,
-                &self.fetcher,
-            )
-            .await?;
-            for (ch_id, entries) in fetched {
-                if !entries.is_empty() {
-                    self.hot_cache.insert(ch_id.clone(), entries.clone());
-                    result.insert(ch_id, entries);
+        if !source_groups.is_empty() {
+            let facade = self.clone();
+            tokio::spawn(async move {
+                for (source, ch_ids) in source_groups {
+                    let _ = epg_resolver::resolve_epg_for_channels(
+                        &facade.service,
+                        &source,
+                        &ch_ids,
+                        start_time,
+                        end_time,
+                        &facade.fetcher,
+                    )
+                    .await;
+                    // Results are already saved to L2 by the resolver.
+                    // Hot cache fill happens on next read.
                 }
-            }
+            });
         }
 
         Ok(result)
