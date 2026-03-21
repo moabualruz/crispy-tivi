@@ -27,7 +27,7 @@ class EpgState {
     this.selectedChannel,
     this.selectedEntry,
     this.selectedGroup,
-    this.showEpgOnly = true,
+    this.showEpgOnly = false,
     this.viewMode = EpgViewMode.day,
     this.isLoading = false,
     this.error,
