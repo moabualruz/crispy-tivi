@@ -306,19 +306,17 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
 
     listenForFetchResults();
 
-    final isEmpty =
-        state.channels.isEmpty ||
-        (state.showEpgOnly && state.filteredChannels.isEmpty);
+    final noData = state.channels.isEmpty;
 
-    if (state.isLoading && isEmpty) {
+    if (state.isLoading && noData) {
       return _buildLoading();
     }
 
-    if (state.error != null && isEmpty) {
+    if (state.error != null && noData) {
       return _buildError(state.error!, colorScheme);
     }
 
-    if (isEmpty) {
+    if (noData) {
       return _buildEmpty(colorScheme);
     }
 
