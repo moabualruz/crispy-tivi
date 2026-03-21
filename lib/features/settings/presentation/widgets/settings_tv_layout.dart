@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../config/settings_notifier.dart';
+import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../../core/widgets/tv_master_detail_layout.dart';
+import '../../../../core/widgets/glass_surface.dart';
 import '../screens/settings_screen.dart';
 import 'about_settings.dart';
 import 'accessibility_settings.dart';
@@ -29,45 +30,195 @@ import 'sync_settings.dart';
 import '../../../cloud_sync/presentation/widgets/cloud_sync_section.dart';
 import 'cloud_storage_settings.dart';
 
-/// TV-optimized settings layout using a master-detail split.
+/// TV-optimized settings layout using a side-by-side master-detail split.
 ///
-/// Left panel: scrollable list of category tiles. Right panel: the
-/// selected category's settings content.
+/// Left panel: scrollable list of category tiles with glass surface.
+/// Right panel: the selected category's settings content.
+///
+/// Both panels are always interactive — no scrim or overlay behavior.
 class SettingsTvLayout extends StatefulWidget {
   /// Creates a settings TV layout.
   const SettingsTvLayout({
-    required this.tabController,
     required this.settings,
-    required this.sectionKeys,
-    required this.onScrollToSection,
+    required this.initialSection,
+    required this.onSectionChanged,
     super.key,
   });
-
-  /// Tab controller for category navigation.
-  final TabController tabController;
 
   /// Current settings state.
   final SettingsState settings;
 
-  /// Section keys for scroll anchoring.
-  final Map<SettingsSection, GlobalKey> sectionKeys;
+  /// The currently selected section (persisted by parent).
+  final SettingsSection initialSection;
 
-  /// Callback to scroll to a specific section.
-  final void Function(SettingsSection) onScrollToSection;
+  /// Called when the user selects a different section.
+  final ValueChanged<SettingsSection> onSectionChanged;
 
   @override
   State<SettingsTvLayout> createState() => _SettingsTvLayoutState();
 }
 
 class _SettingsTvLayoutState extends State<SettingsTvLayout> {
-  SettingsSection _selectedSection = SettingsSection.profiles;
+  late SettingsSection _selectedSection;
+
+  /// All categories available in the TV master panel.
+  static const _categories = <
+    ({SettingsSection section, String label, IconData icon})
+  >[
+    (section: SettingsSection.profiles, label: 'Profiles', icon: Icons.people),
+    (
+      section: SettingsSection.appearance,
+      label: 'Appearance',
+      icon: Icons.palette_outlined,
+    ),
+    (
+      section: SettingsSection.language,
+      label: 'Language',
+      icon: Icons.language,
+    ),
+    (section: SettingsSection.liveTV, label: 'Live TV', icon: Icons.live_tv),
+    (
+      section: SettingsSection.device,
+      label: 'This Device',
+      icon: Icons.devices,
+    ),
+    (
+      section: SettingsSection.sources,
+      label: 'Sources',
+      icon: Icons.playlist_add,
+    ),
+    (
+      section: SettingsSection.epgUrls,
+      label: 'EPG URLs',
+      icon: Icons.event_note,
+    ),
+    (section: SettingsSection.userAgent, label: 'User Agent', icon: Icons.http),
+    (
+      section: SettingsSection.playback,
+      label: 'Playback',
+      icon: Icons.play_circle_outline,
+    ),
+    (
+      section: SettingsSection.bandwidth,
+      label: 'Data & Bandwidth',
+      icon: Icons.speed,
+    ),
+    (
+      section: SettingsSection.accessibility,
+      label: 'Accessibility',
+      icon: Icons.accessibility_new,
+    ),
+    (
+      section: SettingsSection.screensaver,
+      label: 'Screensaver',
+      icon: Icons.nightlight_round,
+    ),
+    (section: SettingsSection.sync, label: 'Sync', icon: Icons.sync),
+    (
+      section: SettingsSection.cloudSync,
+      label: 'Cloud Sync',
+      icon: Icons.cloud_sync,
+    ),
+    (
+      section: SettingsSection.cloudStorage,
+      label: 'Cloud Storage',
+      icon: Icons.cloud_outlined,
+    ),
+    (
+      section: SettingsSection.backup,
+      label: 'Backup & Restore',
+      icon: Icons.backup,
+    ),
+    (
+      section: SettingsSection.storage,
+      label: 'Storage & Cache',
+      icon: Icons.storage,
+    ),
+    (section: SettingsSection.history, label: 'History', icon: Icons.history),
+    (
+      section: SettingsSection.dvr,
+      label: 'DVR & Recordings',
+      icon: Icons.fiber_dvr,
+    ),
+    (
+      section: SettingsSection.remote,
+      label: 'Remote Control',
+      icon: Icons.settings_remote,
+    ),
+    (
+      section: SettingsSection.notifications,
+      label: 'Notifications',
+      icon: Icons.notifications_outlined,
+    ),
+    (
+      section: SettingsSection.contentFilter,
+      label: 'Content Filter',
+      icon: Icons.filter_list,
+    ),
+    (
+      section: SettingsSection.parental,
+      label: 'Parental Controls',
+      icon: Icons.child_care,
+    ),
+    (
+      section: SettingsSection.admin,
+      label: 'Admin',
+      icon: Icons.admin_panel_settings,
+    ),
+    (section: SettingsSection.network, label: 'Network', icon: Icons.wifi),
+    (
+      section: SettingsSection.experimental,
+      label: 'Experimental',
+      icon: Icons.science,
+    ),
+    (section: SettingsSection.about, label: 'About', icon: Icons.info_outline),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedSection = widget.initialSection;
+  }
+
+  @override
+  void didUpdateWidget(SettingsTvLayout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialSection != oldWidget.initialSection) {
+      _selectedSection = widget.initialSection;
+    }
+  }
+
+  void _onCategoryTap(SettingsSection section) {
+    setState(() => _selectedSection = section);
+    widget.onSectionChanged(section);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return TvMasterDetailLayout(
-      showDetail: true,
-      masterPanel: _buildCategoryList(context),
-      detailPanel: _buildDetailPane(context),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── Left panel: category list ──
+        SizedBox(
+          width: 280,
+          child: GlassSurface(
+            borderRadius: CrispyRadius.none,
+            child: _buildCategoryList(context),
+          ),
+        ),
+
+        // ── Vertical divider ──
+        VerticalDivider(
+          width: 1,
+          thickness: 1,
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+
+        // ── Right panel: detail content ──
+        Expanded(child: _buildDetailPane(context)),
+      ],
     );
   }
 
@@ -75,139 +226,36 @@ class _SettingsTvLayoutState extends State<SettingsTvLayout> {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    final categories = <
-      ({SettingsSection section, String label, IconData icon})
-    >[
-      (
-        section: SettingsSection.profiles,
-        label: 'Profiles',
-        icon: Icons.people,
-      ),
-      (
-        section: SettingsSection.appearance,
-        label: 'Appearance',
-        icon: Icons.palette_outlined,
-      ),
-      (
-        section: SettingsSection.language,
-        label: 'Language',
-        icon: Icons.language,
-      ),
-      (section: SettingsSection.liveTV, label: 'Live TV', icon: Icons.live_tv),
-      (
-        section: SettingsSection.device,
-        label: 'This Device',
-        icon: Icons.devices,
-      ),
-      (
-        section: SettingsSection.sources,
-        label: 'Sources',
-        icon: Icons.playlist_add,
-      ),
-      (
-        section: SettingsSection.playback,
-        label: 'Playback',
-        icon: Icons.play_circle_outline,
-      ),
-      (
-        section: SettingsSection.bandwidth,
-        label: 'Data & Bandwidth',
-        icon: Icons.speed,
-      ),
-      (
-        section: SettingsSection.accessibility,
-        label: 'Accessibility',
-        icon: Icons.accessibility_new,
-      ),
-      (
-        section: SettingsSection.screensaver,
-        label: 'Screensaver',
-        icon: Icons.nightlight_round,
-      ),
-      (section: SettingsSection.sync, label: 'Sync', icon: Icons.sync),
-      (
-        section: SettingsSection.cloudSync,
-        label: 'Cloud Sync',
-        icon: Icons.cloud_sync,
-      ),
-      (
-        section: SettingsSection.cloudStorage,
-        label: 'Cloud Storage',
-        icon: Icons.cloud_outlined,
-      ),
-      (
-        section: SettingsSection.backup,
-        label: 'Backup & Restore',
-        icon: Icons.backup,
-      ),
-      (
-        section: SettingsSection.storage,
-        label: 'Storage & Cache',
-        icon: Icons.storage,
-      ),
-      (section: SettingsSection.history, label: 'History', icon: Icons.history),
-      (
-        section: SettingsSection.dvr,
-        label: 'DVR & Recordings',
-        icon: Icons.fiber_dvr,
-      ),
-      (
-        section: SettingsSection.remote,
-        label: 'Remote Control',
-        icon: Icons.settings_remote,
-      ),
-      (
-        section: SettingsSection.notifications,
-        label: 'Notifications',
-        icon: Icons.notifications_outlined,
-      ),
-      (
-        section: SettingsSection.parental,
-        label: 'Parental Controls',
-        icon: Icons.child_care,
-      ),
-      (
-        section: SettingsSection.admin,
-        label: 'Admin',
-        icon: Icons.admin_panel_settings,
-      ),
-      (section: SettingsSection.network, label: 'Network', icon: Icons.wifi),
-      (
-        section: SettingsSection.experimental,
-        label: 'Experimental',
-        icon: Icons.science,
-      ),
-      (
-        section: SettingsSection.about,
-        label: 'About',
-        icon: Icons.info_outline,
-      ),
-    ];
+    return FocusTraversalGroup(
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: CrispySpacing.md),
+        itemCount: _categories.length,
+        itemBuilder: (context, index) {
+          final cat = _categories[index];
+          final isSelected = cat.section == _selectedSection;
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: CrispySpacing.md),
-      itemCount: categories.length,
-      itemBuilder: (context, index) {
-        final cat = categories[index];
-        final isSelected = cat.section == _selectedSection;
-
-        return ListTile(
-          leading: Icon(
-            cat.icon,
-            color: isSelected ? cs.primary : cs.onSurfaceVariant,
-          ),
-          title: Text(
-            cat.label,
-            style: tt.bodyMedium?.copyWith(
-              color: isSelected ? cs.primary : cs.onSurface,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          return ListTile(
+            autofocus: index == 0,
+            leading: Icon(
+              cat.icon,
+              color: isSelected ? cs.primary : cs.onSurfaceVariant,
             ),
-          ),
-          selected: isSelected,
-          selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
-          onTap: () => setState(() => _selectedSection = cat.section),
-        );
-      },
+            title: Text(
+              cat.label,
+              style: tt.bodyMedium?.copyWith(
+                color: isSelected ? cs.primary : cs.onSurface,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+            selected: isSelected,
+            selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(CrispyRadius.sm),
+            ),
+            onTap: () => _onCategoryTap(cat.section),
+          );
+        },
+      ),
     );
   }
 

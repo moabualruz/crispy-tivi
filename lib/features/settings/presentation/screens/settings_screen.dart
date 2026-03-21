@@ -11,6 +11,7 @@ import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../../core/widgets/error_boundary.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 import '../../../cloud_sync/presentation/widgets/cloud_sync_section.dart';
 import '../widgets/about_settings.dart';
 // FE-S-05
@@ -62,6 +63,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   static const _routePath = 'settings';
   late final TabController _tabController;
   bool _focusRestored = false;
+
+  /// Selected section for the TV/large layout. Persisted here so it
+  /// survives async rebuilds from settings data updates.
+  SettingsSection _tvSelectedSection = SettingsSection.profiles;
 
   /// Section keys for scroll-to anchoring.
   ///
@@ -222,6 +227,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   @override
   Widget build(BuildContext context) {
     final settingsAsync = ref.watch(settingsNotifierProvider);
+    final isLargeLayout = context.isLarge;
 
     return Scaffold(
       key: TestKeys.settingsScreen,
@@ -236,34 +242,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           ),
           const AppBarSearchButton(),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabAlignment: TabAlignment.start,
-          tabs: [
-            Tab(
-              icon: const Icon(Icons.palette_outlined),
-              text: context.l10n.settingsGeneral,
-            ),
-            Tab(
-              icon: const Icon(Icons.playlist_add),
-              text: context.l10n.settingsSources,
-            ),
-            Tab(
-              icon: const Icon(Icons.play_circle_outline),
-              text: context.l10n.settingsPlayback,
-            ),
-            Tab(icon: const Icon(Icons.sync), text: context.l10n.settingsData),
-            Tab(
-              icon: const Icon(Icons.tune),
-              text: context.l10n.settingsAdvanced,
-            ),
-            Tab(
-              icon: const Icon(Icons.info_outline),
-              text: context.l10n.settingsAbout,
-            ),
-          ],
-        ),
+        // Hide TabBar on large screens — the left category panel is
+        // the sole navigation control in the TV/desktop layout.
+        bottom:
+            isLargeLayout
+                ? null
+                : TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  tabs: [
+                    Tab(
+                      icon: const Icon(Icons.palette_outlined),
+                      text: context.l10n.settingsGeneral,
+                    ),
+                    Tab(
+                      icon: const Icon(Icons.playlist_add),
+                      text: context.l10n.settingsSources,
+                    ),
+                    Tab(
+                      icon: const Icon(Icons.play_circle_outline),
+                      text: context.l10n.settingsPlayback,
+                    ),
+                    Tab(
+                      icon: const Icon(Icons.sync),
+                      text: context.l10n.settingsData,
+                    ),
+                    Tab(
+                      icon: const Icon(Icons.tune),
+                      text: context.l10n.settingsAdvanced,
+                    ),
+                    Tab(
+                      icon: const Icon(Icons.info_outline),
+                      text: context.l10n.settingsAbout,
+                    ),
+                  ],
+                ),
       ),
       body: ScreenTemplate(
         focusRestorationKey: 'settings',
@@ -289,10 +303,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               ),
           data:
               (settings) => SettingsTvLayout(
-                tabController: _tabController,
                 settings: settings,
-                sectionKeys: _sectionKeys,
-                onScrollToSection: scrollToSection,
+                initialSection: _tvSelectedSection,
+                onSectionChanged: (section) {
+                  setState(() => _tvSelectedSection = section);
+                },
               ),
         ),
       ),
