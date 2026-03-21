@@ -47,7 +47,12 @@ class _SidebarFocusScopeState extends ConsumerState<SidebarFocusScope> {
 
   @override
   void dispose() {
-    _escalation.setSidebarNode(null);
+    // Defer provider modification to avoid "modified during build" error.
+    // The notifier call must happen outside the widget unmount phase.
+    final escalation = _escalation;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      escalation.setSidebarNode(null);
+    });
     _sidebarNode.dispose();
     super.dispose();
   }
