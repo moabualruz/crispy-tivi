@@ -916,6 +916,24 @@
   "@searchFilterMovies": {},
   "searchFilterSeries": "Series",
   "@searchFilterSeries": {},
+  "searchFilterPrograms": "Programs",
+  "@searchFilterPrograms": {},
+  "searchEmptyHint": "Search for channels, movies, series, or programs",
+  "@searchEmptyHint": {},
+  "searchRecentSearches": "Recent Searches",
+  "@searchRecentSearches": {},
+  "searchClearAll": "Clear All",
+  "@searchClearAll": {},
+  "searchRemoveFromHistory": "Remove from history",
+  "@searchRemoveFromHistory": {},
+  "searchResultCount": "{count, plural, one{{count} result} other{{count} results}}",
+  "@searchResultCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
 
   "homeWhatsOn": "What's On Now",
   "@homeWhatsOn": {},

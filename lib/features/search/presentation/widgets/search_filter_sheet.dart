@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
@@ -121,157 +122,177 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
       maxChildSize: _kSheetMaxSize,
       expand: false,
       builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(CrispyRadius.none),
-            ),
-          ),
-          child: Column(
-            children: [
-              // Handle
-              Container(
-                margin: const EdgeInsets.only(top: CrispySpacing.sm),
-                width: _kDragHandleWidth,
-                height: _kDragHandleHeight,
-                decoration: BoxDecoration(
-                  color: colorScheme.outline.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(CrispyRadius.none),
+        // S-013: Map Escape key to dismiss the sheet so TV remote Back
+        // button and keyboard Escape both close it without tapping.
+        return Shortcuts(
+          shortcuts: {
+            const SingleActivator(
+              LogicalKeyboardKey.escape,
+            ): VoidCallbackIntent(() => Navigator.of(context).pop()),
+          },
+          child: Actions(
+            actions: {
+              VoidCallbackIntent: CallbackAction<VoidCallbackIntent>(
+                onInvoke: (intent) => intent.callback(),
+              ),
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(CrispyRadius.none),
                 ),
               ),
-
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(CrispySpacing.md),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Advanced Filters',
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+              child: Column(
+                children: [
+                  // Handle
+                  Container(
+                    margin: const EdgeInsets.only(top: CrispySpacing.sm),
+                    width: _kDragHandleWidth,
+                    height: _kDragHandleHeight,
+                    decoration: BoxDecoration(
+                      color: colorScheme.outline.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(CrispyRadius.none),
                     ),
-                    TextButton(
-                      onPressed: _clear,
-                      child: const Text('Clear All'),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
 
-              const Divider(height: 1),
-
-              // Content
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(CrispySpacing.md),
-                  children: [
-                    // Category/Genre
-                    Text('Category / Genre', style: textTheme.labelLarge),
-                    const SizedBox(height: CrispySpacing.sm),
-                    CategoryDropdown(
-                      categories: widget.categories,
-                      selectedCategory: _category,
-                      label: 'All Categories',
-                      onCategorySelected: (cat) {
-                        setState(() => _category = cat);
-                      },
-                    ),
-
-                    const SizedBox(height: CrispySpacing.lg),
-
-                    // Year Range
-                    Text('Year Range', style: textTheme.labelLarge),
-                    const SizedBox(height: CrispySpacing.sm),
-                    Row(
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(CrispySpacing.md),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _yearMinController,
-                            decoration: InputDecoration(
-                              labelText: 'From',
-                              hintText: '1900',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                  CrispyRadius.none,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: CrispySpacing.md,
-                                vertical: CrispySpacing.sm,
-                              ),
-                            ),
-                            keyboardType: TextInputType.number,
-                            onChanged: (value) {
-                              setState(() {
-                                _yearMin = int.tryParse(value);
-                              });
-                            },
+                        Text(
+                          'Advanced Filters',
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: CrispySpacing.md),
-                        const Text('–'),
-                        const SizedBox(width: CrispySpacing.md),
-                        Expanded(
-                          child: TextField(
-                            controller: _yearMaxController,
-                            decoration: InputDecoration(
-                              labelText: 'To',
-                              hintText: '2026',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                  CrispyRadius.none,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: CrispySpacing.md,
-                                vertical: CrispySpacing.sm,
-                              ),
-                            ),
-                            keyboardType: TextInputType.number,
-                            onChanged: (value) {
-                              setState(() {
-                                _yearMax = int.tryParse(value);
-                              });
-                            },
-                          ),
+                        TextButton(
+                          onPressed: _clear,
+                          child: const Text('Clear All'),
                         ),
                       ],
                     ),
-
-                    const SizedBox(height: CrispySpacing.lg),
-
-                    // Search in descriptions
-                    SwitchListTile(
-                      title: const Text('Search in descriptions'),
-                      subtitle: const Text(
-                        'Include content descriptions in search',
-                      ),
-                      value: _searchInDescription,
-                      onChanged: (value) {
-                        setState(() => _searchInDescription = value);
-                      },
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ],
-                ),
-              ),
-
-              // Apply button
-              Padding(
-                padding: const EdgeInsets.all(CrispySpacing.md),
-                child: FilledButton(
-                  onPressed: _apply,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(_kApplyButtonMinHeight),
                   ),
-                  child: const Text('Apply Filters'),
-                ),
+
+                  const Divider(height: 1),
+
+                  // Content
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(CrispySpacing.md),
+                      children: [
+                        // Category/Genre
+                        Text('Category / Genre', style: textTheme.labelLarge),
+                        const SizedBox(height: CrispySpacing.sm),
+                        CategoryDropdown(
+                          categories: widget.categories,
+                          selectedCategory: _category,
+                          label: 'All Categories',
+                          onCategorySelected: (cat) {
+                            setState(() => _category = cat);
+                          },
+                        ),
+
+                        const SizedBox(height: CrispySpacing.lg),
+
+                        // Year Range
+                        Text('Year Range', style: textTheme.labelLarge),
+                        const SizedBox(height: CrispySpacing.sm),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _yearMinController,
+                                decoration: InputDecoration(
+                                  labelText: 'From',
+                                  hintText: '1900',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      CrispyRadius.none,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: CrispySpacing.md,
+                                    vertical: CrispySpacing.sm,
+                                  ),
+                                ),
+                                keyboardType: TextInputType.number,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _yearMin = int.tryParse(value);
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: CrispySpacing.md),
+                            const Text('–'),
+                            const SizedBox(width: CrispySpacing.md),
+                            Expanded(
+                              child: TextField(
+                                controller: _yearMaxController,
+                                decoration: InputDecoration(
+                                  labelText: 'To',
+                                  hintText: '2026',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      CrispyRadius.none,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: CrispySpacing.md,
+                                    vertical: CrispySpacing.sm,
+                                  ),
+                                ),
+                                keyboardType: TextInputType.number,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _yearMax = int.tryParse(value);
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: CrispySpacing.lg),
+
+                        // Search in descriptions
+                        SwitchListTile(
+                          title: const Text('Search in descriptions'),
+                          subtitle: const Text(
+                            'Include content descriptions in search',
+                          ),
+                          value: _searchInDescription,
+                          onChanged: (value) {
+                            setState(() => _searchInDescription = value);
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Apply button — autofocus: true so that when the sheet
+                  // opens on a TV remote, focus lands here immediately (S-013).
+                  Padding(
+                    padding: const EdgeInsets.all(CrispySpacing.md),
+                    child: FilledButton(
+                      autofocus: true,
+                      onPressed: _apply,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(
+                          _kApplyButtonMinHeight,
+                        ),
+                      ),
+                      child: const Text('Apply Filters'),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },

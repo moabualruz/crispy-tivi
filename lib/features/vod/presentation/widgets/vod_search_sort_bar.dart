@@ -115,6 +115,113 @@ class VodSearchSortBar extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    // S-021: use LayoutBuilder to switch to a two-row layout on narrow screens
+    // so the action buttons never overflow or cramp the search field.
+    const double narrowBreakpoint = 480.0;
+
+    final searchField = SizedBox(
+      height: _kSearchBarHeight,
+      child: TextField(
+        controller: searchController,
+        onChanged: onSearchChanged,
+        decoration: InputDecoration(
+          hintText: hintText,
+          labelText: 'Search',
+          prefixIcon: const Icon(Icons.search, size: _kSearchIconSize),
+          suffixIcon:
+              searchQuery.isNotEmpty
+                  ? IconButton(
+                    icon: const Icon(Icons.close, size: _kClearIconSize),
+                    tooltip: 'Clear search',
+                    onPressed: () {
+                      searchController?.clear();
+                      onSearchChanged('');
+                    },
+                  )
+                  : null,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: CrispySpacing.sm,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(CrispyRadius.tv),
+            borderSide: BorderSide(
+              color: colorScheme.outline.withValues(alpha: 0.3),
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(CrispyRadius.tv),
+            borderSide: BorderSide(
+              color: colorScheme.outline.withValues(alpha: 0.3),
+            ),
+          ),
+        ),
+        style: textTheme.bodyMedium,
+      ),
+    );
+
+    // Action buttons extracted so they can be placed in either Row or Wrap.
+    final actionButtons = <Widget>[
+      VoiceSearchButton(
+        iconSize: 20,
+        onResult: (text) {
+          searchController?.text = text;
+          onSearchChanged(text);
+        },
+        onPartialResult: (text) {
+          searchController?.text = text;
+        },
+      ),
+      // Grid density toggle — cycles compact → standard → large.
+      Tooltip(
+        message: 'Grid density: ${gridDensity.label}',
+        child: IconButton(
+          icon: Icon(gridDensity.icon, size: _kSearchIconSize),
+          onPressed:
+              onDensityChanged != null
+                  ? () => onDensityChanged!(gridDensity.next)
+                  : null,
+        ),
+      ),
+      // Shuffle / random play.
+      if (onShuffle != null)
+        Tooltip(
+          message: 'Play random item',
+          child: IconButton(
+            icon: const Icon(Icons.shuffle, size: _kSearchIconSize),
+            onPressed: onShuffle,
+          ),
+        ),
+      // Sort dropdown.
+      Container(
+        height: _kSearchBarHeight,
+        padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.sm),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(CrispyRadius.tv),
+          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
+        ),
+        child: DropdownButton<VodSortOption>(
+          value: sortOption,
+          underline: const SizedBox.shrink(),
+          icon: const Icon(Icons.sort, size: _kClearIconSize),
+          borderRadius: BorderRadius.circular(CrispyRadius.tv),
+          isDense: true,
+          items:
+              VodSortOption.values.map((opt) {
+                return DropdownMenuItem(
+                  value: opt,
+                  child: Text(opt.label, style: textTheme.bodySmall),
+                );
+              }).toList(),
+          onChanged: (value) {
+            if (value != null) {
+              onSortChanged(value);
+            }
+          },
+        ),
+      ),
+    ];
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         CrispySpacing.md,
@@ -122,119 +229,28 @@ class VodSearchSortBar extends StatelessWidget {
         CrispySpacing.md,
         0,
       ),
-      child: Row(
-        children: [
-          // Search field
-          Expanded(
-            child: SizedBox(
-              height: _kSearchBarHeight,
-              child: TextField(
-                controller: searchController,
-                onChanged: onSearchChanged,
-                decoration: InputDecoration(
-                  hintText: hintText,
-                  labelText: 'Search',
-                  prefixIcon: const Icon(Icons.search, size: _kSearchIconSize),
-                  suffixIcon:
-                      searchQuery.isNotEmpty
-                          ? IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              size: _kClearIconSize,
-                            ),
-                            tooltip: 'Clear search',
-                            onPressed: () {
-                              searchController?.clear();
-                              onSearchChanged('');
-                            },
-                          )
-                          : null,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: CrispySpacing.sm,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                    borderSide: BorderSide(
-                      color: colorScheme.outline.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                    borderSide: BorderSide(
-                      color: colorScheme.outline.withValues(alpha: 0.3),
-                    ),
-                  ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < narrowBreakpoint) {
+            // Narrow layout: search field on top, action buttons wrap below.
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                searchField,
+                const SizedBox(height: CrispySpacing.xs),
+                Wrap(
+                  spacing: CrispySpacing.xs,
+                  runSpacing: CrispySpacing.xs,
+                  children: actionButtons,
                 ),
-                style: textTheme.bodyMedium,
-              ),
-            ),
-          ),
-          VoiceSearchButton(
-            iconSize: 20,
-            onResult: (text) {
-              searchController?.text = text;
-              onSearchChanged(text);
-            },
-            onPartialResult: (text) {
-              searchController?.text = text;
-            },
-          ),
-          const SizedBox(width: CrispySpacing.sm),
-
-          // Grid density toggle — cycles compact → standard → large
-          Tooltip(
-            message: 'Grid density: ${gridDensity.label}',
-            child: IconButton(
-              icon: Icon(gridDensity.icon, size: _kSearchIconSize),
-              onPressed:
-                  onDensityChanged != null
-                      ? () => onDensityChanged!(gridDensity.next)
-                      : null,
-            ),
-          ),
-
-          // Shuffle / random play
-          if (onShuffle != null)
-            Tooltip(
-              message: 'Play random item',
-              child: IconButton(
-                icon: const Icon(Icons.shuffle, size: _kSearchIconSize),
-                onPressed: onShuffle,
-              ),
-            ),
-
-          // Sort dropdown
-          Container(
-            height: _kSearchBarHeight,
-            padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.sm),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(CrispyRadius.tv),
-              border: Border.all(
-                color: colorScheme.outline.withValues(alpha: 0.3),
-              ),
-            ),
-            child: DropdownButton<VodSortOption>(
-              value: sortOption,
-              underline: const SizedBox.shrink(),
-              icon: const Icon(Icons.sort, size: _kClearIconSize),
-              borderRadius: BorderRadius.circular(CrispyRadius.tv),
-              isDense: true,
-              items:
-                  VodSortOption.values.map((opt) {
-                    return DropdownMenuItem(
-                      value: opt,
-                      child: Text(opt.label, style: textTheme.bodySmall),
-                    );
-                  }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  onSortChanged(value);
-                }
-              },
-            ),
-          ),
-        ],
+              ],
+            );
+          }
+          // Wide layout: everything in a single Row.
+          return Row(
+            children: [Expanded(child: searchField), ...actionButtons],
+          );
+        },
       ),
     );
   }

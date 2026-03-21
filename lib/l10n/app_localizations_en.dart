@@ -1174,6 +1174,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchFilterSeries => 'Series';
 
   @override
+  String get searchFilterPrograms => 'Programs';
+
+  @override
+  String get searchEmptyHint =>
+      'Search for channels, movies, series, or programs';
+
+  @override
+  String get searchRecentSearches => 'Recent Searches';
+
+  @override
+  String get searchClearAll => 'Clear All';
+
+  @override
+  String get searchRemoveFromHistory => 'Remove from history';
+
+  @override
+  String searchResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count results',
+      one: '$count result',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get homeWhatsOn => 'What\'s On Now';
 
   @override

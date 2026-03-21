@@ -13,7 +13,11 @@ class AppBarSearchButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      icon: const Icon(Icons.search),
+      icon: Icon(
+        Icons.search,
+        color: Theme.of(context).colorScheme.onSurface,
+        semanticLabel: 'Search',
+      ),
       tooltip: 'Search',
       onPressed: () => context.go(AppRoutes.customSearch),
     );

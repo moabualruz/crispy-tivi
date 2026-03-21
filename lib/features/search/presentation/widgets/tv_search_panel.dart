@@ -139,6 +139,11 @@ class _TvSearchPanelState extends ConsumerState<TvSearchPanel> {
                 const SingleActivator(LogicalKeyboardKey.arrowRight): () {
                   if (_query.isNotEmpty) _moveToResults();
                 },
+                // Tab from keyboard panel moves focus to results panel
+                // (S-013: keyboard accessibility alongside D-pad).
+                const SingleActivator(LogicalKeyboardKey.tab): () {
+                  if (_query.isNotEmpty) _moveToResults();
+                },
               },
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,6 +182,10 @@ class _TvSearchPanelState extends ConsumerState<TvSearchPanel> {
                 const SingleActivator(LogicalKeyboardKey.arrowLeft): () {
                   _moveToKeyboard();
                 },
+                // Shift+Tab from results panel moves focus back to
+                // keyboard panel (S-013: reverse Tab traversal).
+                const SingleActivator(LogicalKeyboardKey.tab, shift: true):
+                    _moveToKeyboard,
               },
               child: _TvResultsPanel(
                 state: state,

@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/domain/entities/media_item.dart';
@@ -39,72 +40,77 @@ class GroupedResultsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        // Channels section
-        if (results.channels.isNotEmpty)
-          _ResultSection(
-            title: 'Channels',
-            icon: Icons.live_tv,
-            count: results.channels.length,
-            items: results.channels,
-            onItemTap: onItemTap,
-            onItemFavorite: onItemFavorite,
-            columns: columns,
-          ),
+    // S-013: FocusTraversalGroup scopes D-pad / arrow-key navigation to
+    // the results list so focus does not escape into sibling widgets.
+    return FocusTraversalGroup(
+      policy: ReadingOrderTraversalPolicy(),
+      child: CustomScrollView(
+        slivers: [
+          // Channels section
+          if (results.channels.isNotEmpty)
+            _ResultSection(
+              title: context.l10n.searchFilterChannels,
+              icon: Icons.live_tv,
+              count: results.channels.length,
+              items: results.channels,
+              onItemTap: onItemTap,
+              onItemFavorite: onItemFavorite,
+              columns: columns,
+            ),
 
-        // Movies section
-        if (results.movies.isNotEmpty)
-          _ResultSection(
-            title: 'Movies',
-            icon: Icons.movie,
-            count: results.movies.length,
-            items: results.movies,
-            onItemTap: onItemTap,
-            onItemFavorite: onItemFavorite,
-            onItemDetails: onItemDetails,
-            columns: columns,
-          ),
+          // Movies section
+          if (results.movies.isNotEmpty)
+            _ResultSection(
+              title: context.l10n.searchFilterMovies,
+              icon: Icons.movie,
+              count: results.movies.length,
+              items: results.movies,
+              onItemTap: onItemTap,
+              onItemFavorite: onItemFavorite,
+              onItemDetails: onItemDetails,
+              columns: columns,
+            ),
 
-        // Series section
-        if (results.series.isNotEmpty)
-          _ResultSection(
-            title: 'Series',
-            icon: Icons.tv,
-            count: results.series.length,
-            items: results.series,
-            onItemTap: onItemTap,
-            onItemFavorite: onItemFavorite,
-            onItemDetails: onItemDetails,
-            columns: columns,
-          ),
+          // Series section
+          if (results.series.isNotEmpty)
+            _ResultSection(
+              title: context.l10n.searchFilterSeries,
+              icon: Icons.tv,
+              count: results.series.length,
+              items: results.series,
+              onItemTap: onItemTap,
+              onItemFavorite: onItemFavorite,
+              onItemDetails: onItemDetails,
+              columns: columns,
+            ),
 
-        // EPG Programs section
-        if (results.epgPrograms.isNotEmpty)
-          _ResultSection(
-            title: 'Programs',
-            icon: Icons.schedule,
-            count: results.epgPrograms.length,
-            items: results.epgPrograms,
-            onItemTap: onItemTap,
-            columns: columns,
-          ),
+          // EPG Programs section
+          if (results.epgPrograms.isNotEmpty)
+            _ResultSection(
+              title: 'Programs',
+              icon: Icons.schedule,
+              count: results.epgPrograms.length,
+              items: results.epgPrograms,
+              onItemTap: onItemTap,
+              columns: columns,
+            ),
 
-        // Media Server section
-        if (results.mediaServerItems.isNotEmpty)
-          _ResultSection(
-            title: 'Media Library',
-            icon: Icons.video_library,
-            count: results.mediaServerItems.length,
-            items: results.mediaServerItems,
-            onItemTap: onItemTap,
-            onItemDetails: onItemDetails,
-            columns: columns,
-          ),
+          // Media Server section
+          if (results.mediaServerItems.isNotEmpty)
+            _ResultSection(
+              title: 'Media Library',
+              icon: Icons.video_library,
+              count: results.mediaServerItems.length,
+              items: results.mediaServerItems,
+              onItemTap: onItemTap,
+              onItemDetails: onItemDetails,
+              columns: columns,
+            ),
 
-        // Bottom padding
-        const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xl)),
-      ],
+          // Bottom padding
+          const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xl)),
+        ],
+      ),
     );
   }
 }

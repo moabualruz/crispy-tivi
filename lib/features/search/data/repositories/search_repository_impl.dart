@@ -142,6 +142,22 @@ class SearchRepositoryImpl implements SearchRepository {
 
   // ── Enriched result grouping ──────────────────
 
+  // NOTE: Intentionally separate from Rust `group_search_results()`
+  // (lib/src/rust/api/algorithms.dart).
+  //
+  // The Rust function returns a flat JSON struct with primitive fields
+  // (logo_url, stream_url, year, etc.) — useful for Rust-only pipelines.
+  // This Dart method does something Rust cannot: it embeds live typed Dart
+  // entity references (Channel, VodItem, EpgEntry) into each MediaItem's
+  // `metadata` map so that the UI can access the full domain objects without
+  // a second lookup.  Those typed Dart objects cannot cross the FFI boundary,
+  // so this materialisation step must remain on the Dart side.
+  //
+  // Do NOT replace this with a call to `groupSearchResults()` from Rust —
+  // you would lose the typed entity references and break every widget that
+  // reads `metadata['channel']`, `metadata['vodItem']`, or
+  // `metadata['epgEntry']`.
+
   /// Groups the flat enriched results from the
   /// Rust backend into [GroupedSearchResults],
   /// looking up original Dart entities for

@@ -13,6 +13,7 @@ import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/widgets/alpha_jump_bar.dart';
+import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../../../core/widgets/screen_template.dart';
@@ -183,6 +184,7 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
                 onPressed: () => context.push(AppRoutes.epg),
                 tooltip: context.l10n.iptvTvGuide,
               ),
+              const AppBarSearchButton(),
               _searchBtn(),
               IconButton(
                 key: TestKeys.channelListFavoriteButton,
@@ -267,6 +269,7 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
                 ),
                 actions: [
                   _viewModeBtn(viewMode),
+                  const AppBarSearchButton(),
                   _searchBtn(),
                   if (displayChannels.isNotEmpty)
                     ChannelSortMenu(
@@ -424,12 +427,34 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
     ref.read(epgProvider.notifier).fetchEpgWindow(start, end);
   }
 
+  /// Ensures a minimal EPG window is loaded for the current day so that
+  /// EPG-aware search (FE-TV-05) can return program-title matches immediately
+  /// when the user opens the search bar — even on first launch where EPG data
+  /// may not have been fetched yet.
+  ///
+  /// Safe to call multiple times — no-ops when entries are already present.
+  void _ensureMinimalEpg() {
+    if (!mounted) return;
+    final epgState = ref.read(epgProvider);
+    if (epgState.entries.isNotEmpty) return;
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day);
+    final end = start.add(const Duration(hours: 4));
+    ref.read(epgProvider.notifier).fetchEpgWindow(start, end);
+  }
+
   // -- Callbacks --
 
   void _toggleSearch() {
     setState(() {
       _showSearchBar = !_showSearchBar;
-      if (!_showSearchBar) {
+      if (_showSearchBar) {
+        // Ensure EPG data is available so EPG-aware search (FE-TV-05) can
+        // include program-title matches from the first keystroke. Channel name
+        // matches from filteredChannels are always immediate; EPG matches
+        // appear once the fetch completes and the provider rebuilds.
+        _ensureMinimalEpg();
+      } else {
         _searchDebouncer.cancel();
         _searchController.clear();
         ref.read(channelListProvider.notifier).search('');

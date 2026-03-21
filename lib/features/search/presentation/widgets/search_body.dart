@@ -1,3 +1,4 @@
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/domain/entities/media_item.dart';
@@ -70,8 +71,15 @@ class SearchBody extends StatelessWidget {
         if (state.filter.hasActiveFilters)
           SearchActiveFiltersBar(filter: state.filter, onClear: onClearFilters),
 
-        // Main content.
-        Expanded(child: _buildContent(context)),
+        // Main content — wrapped in a FocusTraversalGroup so that D-pad /
+        // arrow-key navigation is scoped to results and does not leak into
+        // the filter chips above (S-013).
+        Expanded(
+          child: FocusTraversalGroup(
+            policy: ReadingOrderTraversalPolicy(),
+            child: _buildContent(context),
+          ),
+        ),
       ],
     );
   }
@@ -139,13 +147,13 @@ class SearchBody extends StatelessWidget {
             ),
             const SizedBox(height: CrispySpacing.md),
             Text(
-              'No results found for "${state.query}"',
+              '${context.l10n.searchNoResults}: "${state.query}"',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             // FE-SR-04: "No results" count label.
             const SizedBox(height: CrispySpacing.xs),
             Text(
-              'No results',
+              context.l10n.searchNoResults,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),

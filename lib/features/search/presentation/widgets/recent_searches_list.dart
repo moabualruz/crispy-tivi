@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/relative_time_formatter.dart';
@@ -49,7 +51,7 @@ class RecentSearchesList extends StatelessWidget {
             Icon(Icons.search, size: 48, color: colorScheme.onSurfaceVariant),
             const SizedBox(height: CrispySpacing.md),
             Text(
-              'Search for channels, movies, series, or programs',
+              context.l10n.searchEmptyHint,
               style: textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -73,12 +75,15 @@ class RecentSearchesList extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Recent Searches',
+                context.l10n.searchRecentSearches,
                 style: textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              TextButton(onPressed: onClearAll, child: const Text('Clear All')),
+              TextButton(
+                onPressed: onClearAll,
+                child: Text(context.l10n.searchClearAll),
+              ),
             ],
           ),
         ),
@@ -134,7 +139,7 @@ class _HistoryItem extends StatelessWidget {
           if (entry.resultCount > 0) ...[
             const Text(' • '),
             Text(
-              '${entry.resultCount} results',
+              context.l10n.searchResultCount(entry.resultCount),
               style: textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -145,7 +150,7 @@ class _HistoryItem extends StatelessWidget {
       trailing: IconButton(
         icon: const Icon(Icons.close, size: 20),
         onPressed: onRemove,
-        tooltip: 'Remove from history',
+        tooltip: context.l10n.searchRemoveFromHistory,
       ),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: CrispySpacing.sm),

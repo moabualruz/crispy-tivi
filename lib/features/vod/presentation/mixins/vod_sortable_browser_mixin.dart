@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +7,9 @@ import '../../../../config/settings_notifier.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../domain/entities/vod_item.dart';
 import '../providers/vod_providers.dart';
+
+/// Debounce duration applied to the VOD search field (S-019).
+const Duration _kSearchDebounce = Duration(milliseconds: 500);
 
 /// Shared sort/search state for VOD browser screens (movies & series).
 ///
@@ -16,6 +21,8 @@ mixin VodSortableBrowserMixin<T extends ConsumerStatefulWidget>
   String? selectedCategory;
   String searchQuery = '';
   VodSortOption sortOption = VodSortOption.recentlyAdded;
+
+  Timer? _searchDebounceTimer;
 
   /// Cached sorted+filtered item list (async, from Rust backend).
   List<VodItem> sortedItems = const [];
@@ -49,6 +56,19 @@ mixin VodSortableBrowserMixin<T extends ConsumerStatefulWidget>
         setState(() => sortOption = match.first);
       }
     }
+  }
+
+  /// Called on every keystroke from [VodSearchSortBar.onSearchChanged].
+  ///
+  /// Cancels any in-flight debounce timer and starts a fresh [_kSearchDebounce]
+  /// countdown.  When the timer fires, [searchQuery] is updated and
+  /// [checkAndRefreshSort] will pick up the change on the next build.
+  void onSearchChangedDebounced(String query) {
+    _searchDebounceTimer?.cancel();
+    _searchDebounceTimer = Timer(_kSearchDebounce, () {
+      if (!mounted) return;
+      setState(() => searchQuery = query);
+    });
   }
 
   /// Call when the user changes the sort option.
@@ -99,8 +119,10 @@ mixin VodSortableBrowserMixin<T extends ConsumerStatefulWidget>
     }
   }
 
-  /// Dispose the search controller. Call before [super.dispose()].
+  /// Dispose the search controller and any pending debounce timer.
+  /// Call before [super.dispose()].
   void disposeSortable() {
+    _searchDebounceTimer?.cancel();
     searchController.dispose();
   }
 }

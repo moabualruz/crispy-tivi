@@ -128,9 +128,7 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
             child: VodSearchSortBar(
               searchQuery: searchQuery,
               searchController: searchController,
-              onSearchChanged: (q) {
-                setState(() => searchQuery = q);
-              },
+              onSearchChanged: onSearchChangedDebounced,
               sortOption: sortOption,
               onSortChanged: onSortOptionChanged,
               gridDensity: _density,

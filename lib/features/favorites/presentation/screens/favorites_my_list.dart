@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,21 +21,69 @@ import 'favorites_recently_watched.dart' show RecentlyWatchedItem;
 
 /// Tab showing the user's favorited channels and VOD items.
 ///
-/// Reads [favoritesControllerProvider] for favorite channels and
-/// [vodProvider] for favorite VOD items (movies + series).
-/// Each section appears only when it has content; an empty-state
-/// placeholder is shown when both sections are empty.
-class MyFavoritesTab extends ConsumerWidget {
+/// Renders an inline search field at the top that filters both
+/// channel and VOD sections by name as the user types (debounced
+/// 500 ms, case-insensitive). Reads [favoritesControllerProvider]
+/// for favorite channels and [vodProvider] for favorite VOD items
+/// (movies + series). Each section appears only when it has
+/// content after filtering; an empty-state placeholder is shown
+/// when both sections are empty.
+class MyFavoritesTab extends ConsumerStatefulWidget {
   const MyFavoritesTab({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyFavoritesTab> createState() => _MyFavoritesTabState();
+}
+
+class _MyFavoritesTabState extends ConsumerState<MyFavoritesTab> {
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounce;
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() => _searchQuery = value.trim().toLowerCase());
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final favChannelsAsync = ref.watch(favoritesControllerProvider);
     final vodState = ref.watch(vodProvider);
-    final favVods = vodState.items.where((v) => v.isFavorite).toList();
-    final favChannels = favChannelsAsync.asData?.value ?? [];
 
-    if (favChannels.isEmpty && favVods.isEmpty) {
+    final allFavChannels = favChannelsAsync.asData?.value ?? [];
+    final allFavVods = vodState.items.where((v) => v.isFavorite).toList();
+
+    // Apply filter when a query is active.
+    final favChannels =
+        _searchQuery.isEmpty
+            ? allFavChannels
+            : allFavChannels
+                .where((c) => c.name.toLowerCase().contains(_searchQuery))
+                .toList();
+
+    final favVods =
+        _searchQuery.isEmpty
+            ? allFavVods
+            : allFavVods
+                .where((v) => v.name.toLowerCase().contains(_searchQuery))
+                .toList();
+
+    final hasContent = allFavChannels.isNotEmpty || allFavVods.isNotEmpty;
+    final hasResults = favChannels.isNotEmpty || favVods.isNotEmpty;
+
+    if (!hasContent) {
       return EmptyStateWidget(
         icon: Icons.favorite_border,
         title: context.l10n.favoritesEmpty,
@@ -44,10 +94,66 @@ class MyFavoritesTab extends ConsumerWidget {
 
     return CustomScrollView(
       slivers: [
-        const SliverPadding(
-          padding: EdgeInsets.only(top: CrispySpacing.md),
-          sliver: SliverToBoxAdapter(child: SizedBox.shrink()),
+        // ── Search field ────────────────────────────────────────
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            CrispySpacing.md,
+            CrispySpacing.md,
+            CrispySpacing.md,
+            CrispySpacing.sm,
+          ),
+          sliver: SliverToBoxAdapter(
+            child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Filter favorites...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon:
+                    _searchController.text.isNotEmpty
+                        ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          tooltip: 'Clear filter',
+                          onPressed: () {
+                            _searchController.clear();
+                            _onSearchChanged('');
+                          },
+                        )
+                        : null,
+                filled: true,
+                fillColor: cs.surfaceContainerHigh,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(CrispyRadius.md),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: CrispySpacing.md,
+                  vertical: CrispySpacing.sm,
+                ),
+              ),
+            ),
+          ),
         ),
+
+        // ── No results after filtering ───────────────────────────
+        if (!hasResults)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(CrispySpacing.xl),
+                child: Text(
+                  'No favorites match "$_searchQuery".',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+
+        // ── Channels section ────────────────────────────────────
         if (favChannels.isNotEmpty) ...[
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),
@@ -90,6 +196,8 @@ class MyFavoritesTab extends ConsumerWidget {
           ),
           const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.md)),
         ],
+
+        // ── VOD section ─────────────────────────────────────────
         if (favVods.isNotEmpty) ...[
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),
@@ -109,6 +217,7 @@ class MyFavoritesTab extends ConsumerWidget {
             ),
           ),
         ],
+
         const SliverPadding(
           padding: EdgeInsets.only(bottom: CrispySpacing.md),
           sliver: SliverToBoxAdapter(child: SizedBox.shrink()),

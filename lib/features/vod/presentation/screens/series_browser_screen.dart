@@ -176,9 +176,7 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
               searchQuery: searchQuery,
               searchController: searchController,
               hintText: 'Search series...',
-              onSearchChanged: (q) {
-                setState(() => searchQuery = q);
-              },
+              onSearchChanged: onSearchChangedDebounced,
               sortOption: sortOption,
               onSortChanged: onSortOptionChanged,
             ),

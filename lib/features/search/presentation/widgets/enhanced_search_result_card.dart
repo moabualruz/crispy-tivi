@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:crispy_tivi/l10n/l10n_extension.dart';
+
 import '../../../../core/domain/entities/media_item.dart';
 import '../../../../core/domain/entities/media_type.dart';
 import '../../../../core/theme/crispy_animation.dart';
@@ -58,6 +60,9 @@ class EnhancedSearchResultCard extends StatelessWidget {
   /// option.
   final VoidCallback? onDetails;
 
+  // TODO(l10n): S-025 — source badge labels below are product/service names
+  // (IPTV, VOD, EPG, Jellyfin, Emby, Plex). Add l10n keys if translation is
+  // required; product acronyms are often kept untranslated by convention.
   String? get _source {
     final source = item.metadata['source'];
     if (source == null) return null;
@@ -298,7 +303,7 @@ class _PlayButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(left: CrispySpacing.xs),
       child: Tooltip(
-        message: 'Play',
+        message: context.l10n.commonPlay,
         child: InkWell(
           onTap: onPlay,
           borderRadius: BorderRadius.circular(CrispyRadius.full),
@@ -341,7 +346,7 @@ class _ActionsMenu extends StatelessWidget {
         color: colorScheme.onSurfaceVariant,
         size: 20,
       ),
-      tooltip: 'More actions',
+      tooltip: context.l10n.playerMoreOptions,
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(minWidth: 0),
       onSelected: (action) {
@@ -353,23 +358,23 @@ class _ActionsMenu extends StatelessWidget {
         }
       },
       itemBuilder:
-          (_) => [
+          (menuContext) => [
             if (onFavorite != null)
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: _Action.favorite,
                 child: ListTile(
-                  leading: Icon(Icons.favorite_border),
-                  title: Text('Add to Favorites'),
+                  leading: const Icon(Icons.favorite_border),
+                  title: Text(menuContext.l10n.contextMenuAddFavorite),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
             if (onDetails != null)
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: _Action.details,
                 child: ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('View Details'),
+                  leading: const Icon(Icons.info_outline),
+                  title: Text(menuContext.l10n.contextMenuViewDetails),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                 ),

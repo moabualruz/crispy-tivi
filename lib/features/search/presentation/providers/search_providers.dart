@@ -1,10 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/theme/crispy_animation.dart';
-
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/providers/source_filter_provider.dart';
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../iptv/presentation/providers/channel_providers.dart';
 import '../../../vod/presentation/providers/vod_providers.dart';
@@ -86,8 +87,8 @@ class SearchNotifier extends Notifier<SearchState> {
       final history =
           await ref.read(searchHistoryRepositoryProvider).getRecentSearches();
       state = state.copyWith(recentSearches: history);
-    } catch (_) {
-      // Ignore history load errors
+    } catch (e) {
+      debugPrint('SearchNotifier._loadHistory: $e');
     }
   }
 
@@ -112,8 +113,8 @@ class SearchNotifier extends Notifier<SearchState> {
         channelGroups,
       );
       state = state.copyWith(availableCategories: categories);
-    } catch (_) {
-      // Ignore category load errors
+    } catch (e) {
+      debugPrint('SearchNotifier._loadCategories: $e');
     }
   }
 
@@ -146,11 +147,34 @@ class SearchNotifier extends Notifier<SearchState> {
   /// [generation] is compared against [_searchGeneration] before writing
   /// state. If a newer search has started, this result is discarded (S-18).
   Future<void> _executeSearch(String query, int generation) async {
-    // Read local content state
+    // Read local content state, then apply source filter (S-001).
     const sources = <Never>[];
-    final vodItems = ref.read(vodProvider).items;
+    final effectiveSourceIds = ref.read(effectiveSourceIdsProvider);
+    final allVodItems = ref.read(vodProvider).items;
     final epgEntries = ref.read(epgProvider).entries;
-    final channels = ref.read(channelListProvider).channels;
+    final allChannels = ref.read(channelListProvider).channels;
+
+    // When effectiveSourceIds is non-empty, restrict content to those sources.
+    final vodItems =
+        effectiveSourceIds.isEmpty
+            ? allVodItems
+            : allVodItems
+                .where(
+                  (i) =>
+                      i.sourceId != null &&
+                      effectiveSourceIds.contains(i.sourceId),
+                )
+                .toList();
+    final channels =
+        effectiveSourceIds.isEmpty
+            ? allChannels
+            : allChannels
+                .where(
+                  (ch) =>
+                      ch.sourceId != null &&
+                      effectiveSourceIds.contains(ch.sourceId),
+                )
+                .toList();
 
     // Track whether we started with no local data — used below to
     // detect the race condition where data loaded while this search
@@ -181,8 +205,29 @@ class SearchNotifier extends Notifier<SearchState> {
       // 500 ms debounce window and the ref.listen re-trigger was
       // blocked because isLoading was already true.
       if (results.isEmpty && startedWithNoLocalData) {
-        final freshVod = ref.read(vodProvider).items;
-        final freshChannels = ref.read(channelListProvider).channels;
+        final freshEffective = ref.read(effectiveSourceIdsProvider);
+        final freshAllVod = ref.read(vodProvider).items;
+        final freshAllChannels = ref.read(channelListProvider).channels;
+        final freshVod =
+            freshEffective.isEmpty
+                ? freshAllVod
+                : freshAllVod
+                    .where(
+                      (i) =>
+                          i.sourceId != null &&
+                          freshEffective.contains(i.sourceId),
+                    )
+                    .toList();
+        final freshChannels =
+            freshEffective.isEmpty
+                ? freshAllChannels
+                : freshAllChannels
+                    .where(
+                      (ch) =>
+                          ch.sourceId != null &&
+                          freshEffective.contains(ch.sourceId),
+                    )
+                    .toList();
         if (freshVod.isNotEmpty || freshChannels.isNotEmpty) {
           // Data is now available — retry this generation once.
           // startedWithNoLocalData will be false on re-entry so
@@ -246,8 +291,8 @@ class SearchNotifier extends Notifier<SearchState> {
       final history =
           await ref.read(searchHistoryRepositoryProvider).getRecentSearches();
       state = state.copyWith(recentSearches: history);
-    } catch (_) {
-      // Ignore history save errors
+    } catch (e) {
+      debugPrint('SearchNotifier._saveToHistory: $e');
     }
   }
 
@@ -307,8 +352,8 @@ class SearchNotifier extends Notifier<SearchState> {
       final history =
           await ref.read(searchHistoryRepositoryProvider).getRecentSearches();
       state = state.copyWith(recentSearches: history);
-    } catch (_) {
-      // Ignore remove errors
+    } catch (e) {
+      debugPrint('SearchNotifier.removeFromHistory: $e');
     }
   }
 
@@ -317,9 +362,30 @@ class SearchNotifier extends Notifier<SearchState> {
     try {
       await ref.read(searchHistoryRepositoryProvider).clearAll();
       state = state.copyWith(recentSearches: []);
-    } catch (_) {
-      // Ignore clear errors
+    } catch (e) {
+      debugPrint('SearchNotifier.clearHistory: $e');
     }
+  }
+
+  /// Resets search to a clean slate for a new session (S-011).
+  ///
+  /// Clears query, results, loading flag, and error, but preserves
+  /// [SearchState.recentSearches] and [SearchState.availableCategories] so
+  /// the history list and category picker are immediately available when the
+  /// search screen re-opens.
+  ///
+  /// The search screen should call this in `initState` when it wants a fresh
+  /// session (e.g. the query from a previous session is considered stale).
+  void resetForNewSession() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    // S-18: bump generation so any in-flight search is invalidated.
+    _searchGeneration++;
+    state = state.copyWith(
+      query: '',
+      results: GroupedSearchResults.empty,
+      isLoading: false,
+      clearError: true,
+    );
   }
 
   /// Clears the current search query and results.

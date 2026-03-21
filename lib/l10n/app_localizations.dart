@@ -2308,6 +2308,42 @@ abstract class AppLocalizations {
   /// **'Series'**
   String get searchFilterSeries;
 
+  /// No description provided for @searchFilterPrograms.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs'**
+  String get searchFilterPrograms;
+
+  /// No description provided for @searchEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for channels, movies, series, or programs'**
+  String get searchEmptyHint;
+
+  /// No description provided for @searchRecentSearches.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Searches'**
+  String get searchRecentSearches;
+
+  /// No description provided for @searchClearAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All'**
+  String get searchClearAll;
+
+  /// No description provided for @searchRemoveFromHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from history'**
+  String get searchRemoveFromHistory;
+
+  /// No description provided for @searchResultCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} result} other{{count} results}}'**
+  String searchResultCount(int count);
+
   /// No description provided for @homeWhatsOn.
   ///
   /// In en, this message translates to:

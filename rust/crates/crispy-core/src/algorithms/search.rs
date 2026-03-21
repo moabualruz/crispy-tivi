@@ -385,12 +385,14 @@ pub fn normalize_for_search(s: &str) -> String {
     // Step 1: NFD decompose so combining marks become separate chars.
     let nfd: String = s.nfd().collect();
 
-    // Step 2: Strip combining diacritical marks (Unicode category Mn)
+    // Step 2: Strip combining diacritical marks (Latin/Arabic only)
     //         and map Arabic letters to ASCII equivalents.
+    //         CJK combining marks (Hangul Jamo, Katakana dakuten/handakuten)
+    //         are preserved so CJK text survives normalization intact.
     let mut out = String::with_capacity(nfd.len());
     for ch in nfd.chars() {
-        // Skip combining diacritics (category Mn: non-spacing marks).
-        if unicode_normalization::char::is_combining_mark(ch) {
+        // Skip only Latin/Arabic combining diacritics, not CJK marks.
+        if unicode_normalization::char::is_combining_mark(ch) && is_latin_or_arabic_combining(ch) {
             continue;
         }
         // Arabic-to-Latin transliteration.
@@ -403,7 +405,11 @@ pub fn normalize_for_search(s: &str) -> String {
             }
         }
     }
-    out
+    // Step 3: NFC recompose so that Hangul Jamo and Katakana
+    //         base+dakuten recombine into their composed forms.
+    //         Latin chars remain stripped of diacritics since we
+    //         removed those combining marks before recomposition.
+    out.nfc().collect()
 }
 
 /// Map a single Arabic Unicode character to its approximate Latin equivalent.
@@ -454,6 +460,29 @@ fn arabic_to_latin(ch: char) -> Option<&'static str> {
         '\u{0640}' => Some(""),
         _ => None,
     }
+}
+
+/// Returns `true` for combining marks used in Latin/Arabic scripts
+/// (diacritics we want to strip). Returns `false` for CJK combining
+/// marks (Hangul Jamo, Katakana dakuten/handakuten) that must be
+/// preserved for correct CJK search.
+fn is_latin_or_arabic_combining(ch: char) -> bool {
+    let cp = ch as u32;
+    // Combining Diacritical Marks (Latin): U+0300–U+036F
+    // Combining Diacritical Marks Extended: U+1AB0–U+1AFF
+    // Combining Diacritical Marks Supplement: U+1DC0–U+1DFF
+    // Combining Half Marks: U+FE20–U+FE2F
+    // Arabic combining marks (fathah, dammah, kasrah, etc.): U+0610–U+061A, U+064B–U+065F, U+0670
+    matches!(
+        cp,
+        0x0300..=0x036F
+            | 0x1AB0..=0x1AFF
+            | 0x1DC0..=0x1DFF
+            | 0xFE20..=0xFE2F
+            | 0x0610..=0x061A
+            | 0x064B..=0x065F
+            | 0x0670
+    )
 }
 
 fn search_channels(q: &str, channels: &[Channel]) -> Vec<Channel> {
@@ -1360,5 +1389,84 @@ mod tests {
         let channels = vec![make_channel("2", "Télévision Française")];
         let results = search_channels(&q, &channels);
         assert_eq!(results.len(), 1, "diacritic-folded match should succeed");
+    }
+
+    // ── CJK (Chinese/Japanese/Korean) search tests ──────────
+
+    #[test]
+    fn search_cjk_chinese() {
+        // Chinese channel name — substring match works
+        let normalized = normalize_for_search("CCTV新闻频道");
+        assert!(
+            normalized.contains("新闻"),
+            "Chinese substring match failed: normalized='{normalized}'"
+        );
+    }
+
+    #[test]
+    fn search_cjk_japanese() {
+        let normalized = normalize_for_search("NHK総合テレビ");
+        assert!(
+            normalized.contains("総合"),
+            "Japanese substring match failed: normalized='{normalized}'"
+        );
+    }
+
+    #[test]
+    fn search_cjk_korean() {
+        let normalized = normalize_for_search("KBS 뉴스");
+        assert!(
+            normalized.contains("뉴스"),
+            "Korean substring match failed: normalized='{normalized}'"
+        );
+    }
+
+    #[test]
+    fn search_cjk_mixed_with_latin() {
+        // CJK mixed with ASCII — both parts preserved
+        let normalized = normalize_for_search("CCTV新闻频道");
+        assert!(
+            normalized.contains("cctv"),
+            "Latin part should be lowercased"
+        );
+        assert!(normalized.contains("新闻"), "CJK part should be preserved");
+    }
+
+    #[test]
+    fn search_cjk_katakana_substring() {
+        let normalized = normalize_for_search("フジテレビ");
+        assert!(
+            normalized.contains("テレビ"),
+            "Katakana substring match failed: normalized='{normalized}'"
+        );
+    }
+
+    #[test]
+    fn search_cjk_channel_filter() {
+        // End-to-end: searching channels with CJK query
+        let q = normalize_for_search("新闻");
+        let channels = vec![
+            make_channel("1", "CCTV新闻频道"),
+            make_channel("2", "BBC World"),
+        ];
+        let results = search_channels(&q, &channels);
+        assert_eq!(results.len(), 1, "should match exactly the Chinese channel");
+        assert_eq!(results[0].id, "1");
+    }
+
+    #[test]
+    fn search_cjk_hangul_channel_filter() {
+        let q = normalize_for_search("뉴스");
+        let channels = vec![
+            make_channel("1", "KBS 뉴스"),
+            make_channel("2", "MBC 드라마"),
+        ];
+        let results = search_channels(&q, &channels);
+        assert_eq!(
+            results.len(),
+            1,
+            "should match exactly the Korean news channel"
+        );
+        assert_eq!(results[0].id, "1");
     }
 }

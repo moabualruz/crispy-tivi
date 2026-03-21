@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -52,10 +53,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void initState() {
     super.initState();
     // Sync text field with state on initialization.
+    // S-010: also pre-populate from the deep-link ?q= query parameter.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final state = ref.read(searchControllerProvider);
-      if (state.query.isNotEmpty) {
-        _searchController.text = state.query;
+      if (!mounted) return;
+      final deepLinkQuery =
+          GoRouterState.of(context).uri.queryParameters['q'] ?? '';
+      final stateQuery = ref.read(searchControllerProvider).query;
+      final initial = deepLinkQuery.isNotEmpty ? deepLinkQuery : stateQuery;
+      if (initial.isNotEmpty) {
+        _searchController.text = initial;
+        ref.read(searchControllerProvider.notifier).search(initial);
       }
     });
   }
@@ -71,6 +78,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     // S-18: cancellation is handled inside SearchNotifier.search()
     // via Timer debounce — a new call cancels the pending timer.
     ref.read(searchControllerProvider.notifier).search(query);
+  }
+
+  /// S-012: Enter key submits immediately, bypassing the debounce timer.
+  void _onSearchSubmitted(String query) {
+    ref.read(searchControllerProvider.notifier).search(query);
+  }
+
+  /// S-012: Escape clears the field when it has content, otherwise pops.
+  void _onEscape() {
+    if (_searchController.text.isNotEmpty) {
+      _clearSearch();
+    } else {
+      Navigator.maybePop(context);
+    }
   }
 
   void _clearSearch() {
@@ -180,108 +201,131 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Scaffold(
-      key: TestKeys.searchScreen,
-      appBar: AppBar(
-        title: TextField(
-          controller: _searchController,
-          focusNode: _focusNode,
-          autofocus: true,
-          style: textTheme.titleMedium,
-          decoration: InputDecoration(
-            hintText: context.l10n.searchHint,
-            labelText: context.l10n.searchTitle,
-            border: InputBorder.none,
-            hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-            suffixIcon:
-                state.query.isNotEmpty
-                    ? IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: _clearSearch,
-                      tooltip: 'Clear search',
-                    )
-                    : null,
-          ),
-          onChanged: _onSearchChanged,
-        ),
-        actions: [
-          // Voice search button.
-          VoiceSearchButton(
-            onResult: _onVoiceResult,
-            onPartialResult: _onVoicePartialResult,
-          ),
-          // Filter button with badge if filters are active.
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.tune),
-                onPressed: _showFilterSheet,
-                tooltip: 'Advanced filters',
-              ),
-              if (state.filter.hasActiveFilters)
-                Positioned(
-                  right: _kFilterDotInset,
-                  top: _kFilterDotInset,
-                  child: Container(
-                    width: _kFilterDotSize,
-                    height: _kFilterDotSize,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-      // S-07: body content extracted to SearchBody
-      body: ScreenTemplate(
-        focusRestorationKey: 'search',
-        colorButtonMap: {
-          TvColorButton.red: ColorButtonAction(
-            label: 'Clear',
-            onPressed: _clearSearch,
-          ),
-          TvColorButton.yellow: ColorButtonAction(
-            label: 'Filter',
-            onPressed: _showFilterSheet,
+    // S-012: Escape key shortcut — handled at the scaffold level so it fires
+    // regardless of which child widget holds focus.
+    return Shortcuts(
+      shortcuts: {
+        LogicalKeySet(LogicalKeyboardKey.escape): const DismissIntent(),
+      },
+      child: Actions(
+        actions: {
+          DismissIntent: CallbackAction<DismissIntent>(
+            onInvoke: (_) {
+              _onEscape();
+              return null;
+            },
           ),
         },
-        compactBody: SearchBody(
-          state: state,
-          isContentLoaded:
-              ref.watch(
-                channelListProvider.select((s) => s.channels.isNotEmpty),
-              ) ||
-              ref.watch(vodProvider.select((s) => s.items.isNotEmpty)),
-          onToggleContentType: (type) {
-            ref.read(searchControllerProvider.notifier).toggleContentType(type);
-          },
-          onClearFilters: () {
-            ref.read(searchControllerProvider.notifier).clearFilters();
-          },
-          onSelectRecent: (entry) {
-            _searchController.text = entry.query;
-            ref
-                .read(searchControllerProvider.notifier)
-                .selectRecentSearch(entry);
-          },
-          onRemoveRecent: (id) {
-            ref.read(searchControllerProvider.notifier).removeFromHistory(id);
-          },
-          onClearHistory: () {
-            ref.read(searchControllerProvider.notifier).clearHistory();
-          },
-          onItemTap: _onItemTap,
-          onItemFavorite: _onItemFavorite,
-          onItemDetails: _onItemDetails,
-        ),
-        // FE-SR-08: TV two-panel keyboard + results layout.
-        largeBody: TvSearchPanel(
-          onItemTap: _onItemTap,
-          onItemFavorite: _onItemFavorite,
-          onItemDetails: _onItemDetails,
+        child: Scaffold(
+          key: TestKeys.searchScreen,
+          appBar: AppBar(
+            title: TextField(
+              controller: _searchController,
+              focusNode: _focusNode,
+              autofocus: true,
+              style: textTheme.titleMedium,
+              decoration: InputDecoration(
+                // S-009: labelText removed — hintText alone guides the user.
+                hintText: context.l10n.searchHint,
+                border: InputBorder.none,
+                hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+                suffixIcon:
+                    state.query.isNotEmpty
+                        ? IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: _clearSearch,
+                          tooltip: 'Clear search',
+                        )
+                        : null,
+              ),
+              onChanged: _onSearchChanged,
+              // S-012: Enter key triggers an immediate search.
+              onSubmitted: _onSearchSubmitted,
+            ),
+            actions: [
+              // Voice search button.
+              VoiceSearchButton(
+                onResult: _onVoiceResult,
+                onPartialResult: _onVoicePartialResult,
+              ),
+              // Filter button with badge if filters are active.
+              Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.tune),
+                    onPressed: _showFilterSheet,
+                    tooltip: 'Advanced filters',
+                  ),
+                  if (state.filter.hasActiveFilters)
+                    Positioned(
+                      right: _kFilterDotInset,
+                      top: _kFilterDotInset,
+                      child: Container(
+                        width: _kFilterDotSize,
+                        height: _kFilterDotSize,
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          // S-07: body content extracted to SearchBody
+          body: ScreenTemplate(
+            focusRestorationKey: 'search',
+            colorButtonMap: {
+              TvColorButton.red: ColorButtonAction(
+                label: 'Clear',
+                onPressed: _clearSearch,
+              ),
+              TvColorButton.yellow: ColorButtonAction(
+                label: 'Filter',
+                onPressed: _showFilterSheet,
+              ),
+            },
+            compactBody: SearchBody(
+              state: state,
+              isContentLoaded:
+                  ref.watch(
+                    channelListProvider.select((s) => s.channels.isNotEmpty),
+                  ) ||
+                  ref.watch(vodProvider.select((s) => s.items.isNotEmpty)),
+              onToggleContentType: (type) {
+                ref
+                    .read(searchControllerProvider.notifier)
+                    .toggleContentType(type);
+              },
+              onClearFilters: () {
+                ref.read(searchControllerProvider.notifier).clearFilters();
+              },
+              onSelectRecent: (entry) {
+                _searchController.text = entry.query;
+                ref
+                    .read(searchControllerProvider.notifier)
+                    .selectRecentSearch(entry);
+              },
+              onRemoveRecent: (id) {
+                ref
+                    .read(searchControllerProvider.notifier)
+                    .removeFromHistory(id);
+              },
+              onClearHistory: () {
+                ref.read(searchControllerProvider.notifier).clearHistory();
+              },
+              onItemTap: _onItemTap,
+              onItemFavorite: _onItemFavorite,
+              onItemDetails: _onItemDetails,
+            ),
+            // FE-SR-08: TV two-panel keyboard + results layout.
+            largeBody: TvSearchPanel(
+              onItemTap: _onItemTap,
+              onItemFavorite: _onItemFavorite,
+              onItemDetails: _onItemDetails,
+            ),
+          ),
         ),
       ),
     );
