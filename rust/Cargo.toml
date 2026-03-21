@@ -55,3 +55,5 @@ mockall = "0.13"
 insta = { version = "1", features = ["json", "yaml"] }
 fake = { version = "5", features = ["derive"] }
 proptest = "1"
+moka = { version = "0.12", features = ["future", "sync"] }
+singleflight-async = "0.2"

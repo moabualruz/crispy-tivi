@@ -24,7 +24,7 @@ use super::DbError;
 ///
 /// When adding a new migration file, update this constant to match the
 /// new `PRAGMA user_version` value set by that file.
-pub const LATEST_VERSION: u32 = 44;
+pub const LATEST_VERSION: u32 = 45;
 
 /// Ordered list of `(target_user_version, sql)` pairs.
 ///
@@ -61,6 +61,11 @@ static MIGRATIONS: &[(u32, &str)] = &[
     (43, include_str!("migrations/008_epg_extended_fields.sql")),
     // 009 — Extended VOD fields: original_name, is_adult, content_rating
     (44, include_str!("migrations/009_vod_extended_fields.sql")),
+    // 010 — Composite index for fast EPG time-range queries
+    (
+        45,
+        include_str!("migrations/010_epg_time_range_index.sql"),
+    ),
 ];
 
 /// Run all pending migrations against `conn`.

@@ -41,6 +41,8 @@ fluent.workspace = true
 fluent-bundle.workspace = true
 fluent-syntax.workspace = true
 unic-langid.workspace = true
+moka.workspace = true
+singleflight-async.workspace = true
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.58", features = [
