@@ -199,7 +199,10 @@ class SideNav extends ConsumerWidget {
             mainAxisAlignment:
                 extended ? MainAxisAlignment.start : MainAxisAlignment.center,
             children: [
-              badgedIcon,
+              if (extended)
+                badgedIcon
+              else
+                ClipRect(child: badgedIcon),
               if (extended) ...[
                 const SizedBox(width: CrispySpacing.sm),
                 Expanded(

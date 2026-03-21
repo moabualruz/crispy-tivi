@@ -122,7 +122,11 @@ class SmartImage extends StatelessWidget {
       try {
         final String base64String;
         if (cleanUrl.startsWith('data:image/')) {
-          base64String = cleanUrl.split(',').last;
+          final commaIdx = cleanUrl.indexOf(',');
+          if (commaIdx < 0 || commaIdx >= cleanUrl.length - 1) {
+            return _buildPlaceholder(); // Truncated data URI
+          }
+          base64String = cleanUrl.substring(commaIdx + 1);
         } else {
           // It's an s:1:/images/... URL-Safe base64 unpadded payload
           final raw = cleanUrl.replaceFirst('s:1:/images/', '');
