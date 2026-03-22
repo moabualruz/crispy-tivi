@@ -234,10 +234,12 @@ mixin _FfiParsersMixin on _FfiBackendBase {
   );
 
   Future<String> enrichSearchResults(
+    String query,
     String resultsJson,
     String channelsJson,
     String vodItemsJson,
   ) => rust_api.enrichSearchResults(
+    query: query,
     resultsJson: resultsJson,
     channelsJson: channelsJson,
     vodItemsJson: vodItemsJson,

@@ -102,9 +102,9 @@ void main() {
       expect(result.length, 5);
     });
 
-    test('uses default limit of 10', () async {
+    test('uses default limit of 20', () async {
       final entries = List.generate(
-        20,
+        30,
         (i) => makeEntry(
           id: 's_$i',
           query: 'q$i',
@@ -118,7 +118,7 @@ void main() {
 
       final result = await repo.getRecentSearches();
 
-      expect(result.length, 10);
+      expect(result.length, 20);
     });
 
     test('returns all entries when fewer than limit', () async {

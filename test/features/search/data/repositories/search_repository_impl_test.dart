@@ -61,7 +61,7 @@ void main() {
     ).thenAnswer((_) async => '[]');
 
     when(
-      () => mockBackend.enrichSearchResults(any(), any(), any()),
+      () => mockBackend.enrichSearchResults(any(), any(), any(), any()),
     ).thenAnswer((_) async => '[]');
   }
 
@@ -91,7 +91,7 @@ void main() {
             .toList();
 
     when(
-      () => mockBackend.enrichSearchResults(any(), any(), any()),
+      () => mockBackend.enrichSearchResults(any(), any(), any(), any()),
     ).thenAnswer((_) async => jsonEncode(enriched));
   }
 
@@ -129,7 +129,7 @@ void main() {
             .toList();
 
     when(
-      () => mockBackend.enrichSearchResults(any(), any(), any()),
+      () => mockBackend.enrichSearchResults(any(), any(), any(), any()),
     ).thenAnswer((_) async => jsonEncode(enriched));
   }
 
@@ -497,7 +497,7 @@ void main() {
       ).thenAnswer((_) async => '[]');
 
       when(
-        () => mockBackend.enrichSearchResults(any(), any(), any()),
+        () => mockBackend.enrichSearchResults(any(), any(), any(), any()),
       ).thenThrow(Exception('Enrich failed'));
 
       expect(
@@ -518,7 +518,7 @@ void main() {
       ).thenAnswer((_) async => '[]');
 
       when(
-        () => mockBackend.enrichSearchResults(any(), any(), any()),
+        () => mockBackend.enrichSearchResults(any(), any(), any(), any()),
       ).thenAnswer((_) async => 'not valid json');
 
       expect(

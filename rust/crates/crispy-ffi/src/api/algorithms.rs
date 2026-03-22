@@ -158,6 +158,7 @@ pub fn search_content(
 /// Enrich search results with channel/VOD metadata.
 /// Returns JSON array of EnrichedSearchResult.
 pub fn enrich_search_results(
+    query: String,
     results_json: String,
     channels_json: String,
     vod_items_json: String,
@@ -165,8 +166,9 @@ pub fn enrich_search_results(
     let results: crispy_core::algorithms::search::SearchResults = from_json(&results_json)?;
     let channels: Vec<Channel> = from_json(&channels_json)?;
     let vod_items: Vec<VodItem> = from_json(&vod_items_json)?;
-    let enriched =
-        crispy_core::algorithms::search::enrich_search_results(&results, &channels, &vod_items);
+    let enriched = crispy_core::algorithms::search::enrich_search_results(
+        &query, &results, &channels, &vod_items,
+    );
     json_result(enriched)
 }
 

@@ -348,6 +348,7 @@ abstract class RustLibApi extends BaseApi {
   });
 
   Future<String> crateApiAlgorithmsEnrichSearchResults({
+    required String query,
     required String resultsJson,
     required String channelsJson,
     required String vodItemsJson,
@@ -3313,6 +3314,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @override
   Future<String> crateApiAlgorithmsEnrichSearchResults({
+    required String query,
     required String resultsJson,
     required String channelsJson,
     required String vodItemsJson,
@@ -3321,6 +3323,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(query, serializer);
           sse_encode_String(resultsJson, serializer);
           sse_encode_String(channelsJson, serializer);
           sse_encode_String(vodItemsJson, serializer);
@@ -3336,7 +3339,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_AnyhowException,
         ),
         constMeta: kCrateApiAlgorithmsEnrichSearchResultsConstMeta,
-        argValues: [resultsJson, channelsJson, vodItemsJson],
+        argValues: [query, resultsJson, channelsJson, vodItemsJson],
         apiImpl: this,
       ),
     );
@@ -3345,7 +3348,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiAlgorithmsEnrichSearchResultsConstMeta =>
       const TaskConstMeta(
         debugName: "enrich_search_results",
-        argNames: ["resultsJson", "channelsJson", "vodItemsJson"],
+        argNames: ["query", "resultsJson", "channelsJson", "vodItemsJson"],
       );
 
   @override

@@ -136,10 +136,12 @@ Future<String> searchContent({
 /// Enrich search results with channel/VOD metadata.
 /// Returns JSON array of EnrichedSearchResult.
 Future<String> enrichSearchResults({
+  required String query,
   required String resultsJson,
   required String channelsJson,
   required String vodItemsJson,
 }) => RustLib.instance.api.crateApiAlgorithmsEnrichSearchResults(
+  query: query,
   resultsJson: resultsJson,
   channelsJson: channelsJson,
   vodItemsJson: vodItemsJson,

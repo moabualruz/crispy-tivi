@@ -53,6 +53,7 @@ class SearchRepositoryImpl implements SearchRepository {
 
     // ── Enrich results via Rust ───────────────
     final enrichedJson = await _backend.enrichSearchResults(
+      q,
       resultJson,
       chJson,
       vdJson,

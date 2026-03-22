@@ -113,6 +113,7 @@ mixin _MemoryParsersMixin on _MemoryStorage {
   // ── Search Enrichment ──────────────────────────
 
   Future<String> enrichSearchResults(
+    String query,
     String resultsJson,
     String channelsJson,
     String vodItemsJson,

@@ -497,6 +497,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             Ok(json!({"data": s}))
         })(),
         "enrichSearchResults" => (|| {
+            let query = get_str(args, "query").unwrap_or_default();
             let results_json = get_str(args, "resultsJson")?;
             let ch_json = get_str(args, "channelsJson")?;
             let vod_json = get_str(args, "vodItemsJson")?;
@@ -507,7 +508,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let vod_items: Vec<VodItem> =
                 serde_json::from_str(&vod_json).context("Invalid VOD items JSON")?;
             let enriched = crispy_core::algorithms::search::enrich_search_results(
-                &results, &channels, &vod_items,
+                &query, &results, &channels, &vod_items,
             );
             let s = serde_json::to_string(&enriched)?;
             Ok(json!({"data": s}))

@@ -77,11 +77,13 @@ mixin _WsAlgorithmsMixin on _WsBackendBase {
   }
 
   Future<String> enrichSearchResults(
+    String query,
     String resultsJson,
     String channelsJson,
     String vodItemsJson,
   ) async {
     final data = await _send('enrichSearchResults', {
+      'query': query,
       'resultsJson': resultsJson,
       'channelsJson': channelsJson,
       'vodItemsJson': vodItemsJson,

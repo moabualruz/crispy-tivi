@@ -130,22 +130,23 @@ pub struct EnrichedSearchResult {
 /// Combines `SearchResults` with source data into a flat
 /// list of `EnrichedSearchResult` for direct UI
 /// consumption. Each result includes a `metadata` object
-/// with all entity fields.
+/// with all entity fields. Scores are computed by
+/// `relevance_score` — see that function for tier details.
 pub fn enrich_search_results(
+    query: &str,
     results: &SearchResults,
     channels: &[Channel],
     vod_items: &[VodItem],
 ) -> Vec<EnrichedSearchResult> {
+    let q = normalize_for_search(query.trim());
     let ch_map: HashMap<&str, &Channel> = channels.iter().map(|c| (c.id.as_str(), c)).collect();
     let vod_map: HashMap<&str, &VodItem> = vod_items.iter().map(|v| (v.id.as_str(), v)).collect();
 
     let mut enriched = Vec::new();
 
-    // Channels: score by position (higher rank = higher
-    // score).
-    let ch_count = results.channels.len();
-    for (i, ch) in results.channels.iter().enumerate() {
-        let score = position_score(i, ch_count);
+    // Channels.
+    for ch in &results.channels {
+        let score = relevance_score(&q, &ch.name, None);
         let meta = if let Some(full) = ch_map.get(ch.id.as_str()) {
             serde_json::to_value(full).unwrap_or(serde_json::Value::Null)
         } else {
@@ -161,9 +162,8 @@ pub fn enrich_search_results(
     }
 
     // Movies.
-    let mv_count = results.movies.len();
-    for (i, mv) in results.movies.iter().enumerate() {
-        let score = position_score(i, mv_count);
+    for mv in &results.movies {
+        let score = relevance_score(&q, &mv.name, mv.description.as_deref());
         let meta = if let Some(full) = vod_map.get(mv.id.as_str()) {
             serde_json::to_value(full).unwrap_or(serde_json::Value::Null)
         } else {
@@ -179,9 +179,8 @@ pub fn enrich_search_results(
     }
 
     // Series.
-    let sr_count = results.series.len();
-    for (i, sr) in results.series.iter().enumerate() {
-        let score = position_score(i, sr_count);
+    for sr in &results.series {
+        let score = relevance_score(&q, &sr.name, sr.description.as_deref());
         let meta = if let Some(full) = vod_map.get(sr.id.as_str()) {
             serde_json::to_value(full).unwrap_or(serde_json::Value::Null)
         } else {
@@ -197,9 +196,8 @@ pub fn enrich_search_results(
     }
 
     // EPG programs.
-    let ep_count = results.epg_programs.len();
-    for (i, ep) in results.epg_programs.iter().enumerate() {
-        let score = position_score(i, ep_count);
+    for ep in &results.epg_programs {
+        let score = relevance_score(&q, &ep.entry.title, ep.entry.description.as_deref());
         let meta = serde_json::to_value(ep).unwrap_or(serde_json::Value::Null);
         enriched.push(EnrichedSearchResult {
             id: ep.channel_id.clone(),
@@ -352,13 +350,55 @@ pub fn merge_epg_matched_channels(
 
 // ── internal helpers ───────────────────────────────────
 
-/// Score based on position: first item = 1.0, last = 0.0.
-fn position_score(index: usize, total: usize) -> f64 {
-    if total > 1 {
-        1.0 - (index as f64 / (total - 1) as f64)
-    } else {
-        1.0
+/// Compute a relevance score (0.0–1.0) for a search hit.
+///
+/// Scoring tiers (highest wins):
+/// - **1.0** — `query` is a prefix of the normalised `name`.
+/// - **0.8** — `query` matches at a word boundary inside `name`
+///   (preceded by a space or the start of the string).
+/// - **0.6** — `query` is a substring anywhere in `name`.
+/// - **0.3** — `query` found only in `description`, not `name`.
+/// - **0.0** — no match (caller should have already filtered
+///   these out, but 0.0 is returned safely).
+///
+/// Both `query` and `name` / `description` must already be
+/// normalised via [`normalize_for_search`] before calling
+/// this function.
+fn relevance_score(query: &str, name: &str, description: Option<&str>) -> f64 {
+    if query.is_empty() {
+        return 0.0;
     }
+
+    let norm_name = normalize_for_search(name);
+
+    // Tier 1 — prefix match.
+    if norm_name.starts_with(query) {
+        return 1.0;
+    }
+
+    // Tier 2 — word-boundary match: query appears right after a space.
+    let word_boundary_match = norm_name.starts_with(query)
+        || norm_name
+            .match_indices(query)
+            .any(|(pos, _)| pos == 0 || norm_name.as_bytes().get(pos - 1) == Some(&b' '));
+
+    if word_boundary_match {
+        return 0.8;
+    }
+
+    // Tier 3 — substring match anywhere in name.
+    if norm_name.contains(query) {
+        return 0.6;
+    }
+
+    // Tier 4 — description-only match.
+    if let Some(desc) = description
+        && normalize_for_search(desc).contains(query)
+    {
+        return 0.3;
+    }
+
+    0.0
 }
 
 // ── Cross-language search normalisation ──────────────────────────────────────
@@ -861,6 +901,8 @@ mod tests {
 
     #[test]
     fn enrich_channel_results() {
+        // "bbc" is a prefix of "BBC One" and "BBC Two" → both
+        // get score 1.0 (prefix match).
         let channels = vec![make_channel("c1", "BBC One"), make_channel("c2", "BBC Two")];
         let results = SearchResults {
             channels: channels.clone(),
@@ -869,12 +911,12 @@ mod tests {
             epg_programs: Vec::new(),
         };
 
-        let enriched = enrich_search_results(&results, &channels, &[]);
+        let enriched = enrich_search_results("bbc", &results, &channels, &[]);
         assert_eq!(enriched.len(), 2);
         assert_eq!(enriched[0].media_type, "channel");
         assert_eq!(enriched[0].id, "c1");
         assert!((enriched[0].score - 1.0).abs() < 0.01);
-        assert!((enriched[1].score - 0.0).abs() < 0.01);
+        assert!((enriched[1].score - 1.0).abs() < 0.01);
     }
 
     #[test]
@@ -890,7 +932,7 @@ mod tests {
             epg_programs: Vec::new(),
         };
 
-        let enriched = enrich_search_results(&results, &[], &vod);
+        let enriched = enrich_search_results("hero", &results, &[], &vod);
         assert_eq!(enriched.len(), 2);
         assert_eq!(enriched[0].media_type, "movie");
         assert_eq!(enriched[0].name, "Action Hero");
@@ -910,7 +952,7 @@ mod tests {
             epg_programs: Vec::new(),
         };
 
-        let enriched = enrich_search_results(&results, &[], &[]);
+        let enriched = enrich_search_results("unknown", &results, &[], &[]);
         assert_eq!(enriched.len(), 1);
         assert_eq!(enriched[0].id, "c99");
         assert_eq!(enriched[0].name, "Unknown Channel",);
@@ -1078,7 +1120,7 @@ mod tests {
             epg_programs: Vec::new(),
         };
 
-        let enriched = enrich_search_results(&results, &channels, &[]);
+        let enriched = enrich_search_results("bbc", &results, &channels, &[]);
         assert_eq!(enriched.len(), 1);
         assert_eq!(enriched[0].media_type, "channel");
         assert_eq!(enriched[0].id, "c1");
@@ -1109,7 +1151,7 @@ mod tests {
             epg_programs: Vec::new(),
         };
 
-        let enriched = enrich_search_results(&results, &[], &vod);
+        let enriched = enrich_search_results("action", &results, &[], &vod);
         assert_eq!(enriched.len(), 1);
         assert_eq!(enriched[0].media_type, "movie");
         assert_eq!(enriched[0].name, "Action Hero");
@@ -1140,7 +1182,7 @@ mod tests {
         };
 
         // Source arrays are empty — IDs won't match.
-        let enriched = enrich_search_results(&results, &[], &[]);
+        let enriched = enrich_search_results("orphan", &results, &[], &[]);
         assert_eq!(enriched.len(), 2);
         assert_eq!(enriched[0].id, "c_orphan");
         assert_eq!(enriched[0].name, "Orphan Channel");
@@ -1187,7 +1229,7 @@ mod tests {
         assert!(!r.epg_programs.is_empty());
 
         // Enrichment on large result set also fine.
-        let enriched = enrich_search_results(&r, &channels, &vod);
+        let enriched = enrich_search_results("100", &r, &channels, &vod);
         assert!(!enriched.is_empty());
     }
 
@@ -1468,5 +1510,63 @@ mod tests {
             "should match exactly the Korean news channel"
         );
         assert_eq!(results[0].id, "1");
+    }
+
+    // ── relevance_score ──────────────────────────────────
+
+    #[test]
+    fn relevance_prefix_scores_highest() {
+        // "bbc" is a prefix of "bbc news" → 1.0.
+        let score = relevance_score("bbc", "BBC News", None);
+        assert!(
+            (score - 1.0).abs() < f64::EPSILON,
+            "expected 1.0 for prefix match, got {score}"
+        );
+    }
+
+    #[test]
+    fn relevance_word_boundary_scores_high() {
+        // "news" starts the second word in "bbc news" → 0.8.
+        let score = relevance_score("news", "BBC News", None);
+        assert!(
+            (score - 0.8).abs() < f64::EPSILON,
+            "expected 0.8 for word-boundary match, got {score}"
+        );
+    }
+
+    #[test]
+    fn relevance_substring_scores_medium() {
+        // "one" is a substring of "channel one hd" but not at a
+        // word boundary preceded by 'l' (position > 0, previous
+        // byte is 'l', not space).  → 0.6.
+        let score = relevance_score("one", "Channel One HD", None);
+        // "one" starts a word ("channel|space|one") → 0.8 expected.
+        // Adjust: use a mid-word substring instead.
+        let score_mid = relevance_score("han", "Channel One HD", None);
+        assert!(
+            (score_mid - 0.6).abs() < f64::EPSILON,
+            "expected 0.6 for mid-word substring match, got {score_mid}"
+        );
+        // Verify "one" itself is at least a word boundary hit.
+        assert!(score >= 0.6, "word match should be ≥ 0.6, got {score}");
+    }
+
+    #[test]
+    fn relevance_description_only_scores_low() {
+        // Query not in name, but present in description → 0.3.
+        let score = relevance_score("thriller", "Untitled Film", Some("A thrilling thriller"));
+        assert!(
+            (score - 0.3).abs() < f64::EPSILON,
+            "expected 0.3 for description-only match, got {score}"
+        );
+    }
+
+    #[test]
+    fn relevance_no_match_scores_zero() {
+        let score = relevance_score("xyz", "BBC News", None);
+        assert!(
+            score.abs() < f64::EPSILON,
+            "expected 0.0 for no match, got {score}"
+        );
     }
 }

@@ -3,7 +3,7 @@ import '../entities/search_history_entry.dart';
 /// Contract for search history persistence.
 abstract class SearchHistoryRepository {
   /// Gets recent search entries, ordered by most recent first.
-  Future<List<SearchHistoryEntry>> getRecentSearches({int limit = 10});
+  Future<List<SearchHistoryEntry>> getRecentSearches({int limit = 20});
 
   /// Saves a search entry (upserts by query text).
   Future<void> saveSearch(SearchHistoryEntry entry);

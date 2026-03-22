@@ -12,7 +12,7 @@ class SearchHistoryRepositoryImpl implements SearchHistoryRepository {
   final CacheService _cache;
 
   @override
-  Future<List<SearchHistoryEntry>> getRecentSearches({int limit = 10}) async {
+  Future<List<SearchHistoryEntry>> getRecentSearches({int limit = 20}) async {
     final all = await _cache.loadSearchHistory();
     // Sort by searchedAt descending.
     all.sort((a, b) => b.searchedAt.compareTo(a.searchedAt));

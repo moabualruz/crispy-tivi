@@ -218,6 +218,7 @@ abstract class _BackendAlgorithmMethods {
   /// Enrich search results with channel/VOD metadata.
   /// Returns JSON array of EnrichedSearchResult.
   Future<String> enrichSearchResults(
+    String query,
     String resultsJson,
     String channelsJson,
     String vodItemsJson,
