@@ -248,38 +248,24 @@ impl CrispyService {
 
         // Build reverse index: epg_key → Vec<internal_channel_id>.
         //
-        // tvg_id is only used when it maps to exactly ONE channel
-        // GLOBALLY (across the entire db_channels table, not just
-        // this request batch). Shared tvg_ids produce wrong EPG
-        // assignments — e.g. 5 SPORTSNET channels all sharing
-        // tvg_id "397424" would all get the same wrong programme.
-        //
-        // Global count query is cheap (single indexed scan).
-        let global_tvg_counts: HashMap<String, i64> = {
-            let mut stmt = conn.prepare(
-                "SELECT tvg_id, COUNT(*) FROM db_channels
-                 WHERE tvg_id IS NOT NULL AND tvg_id != ''
-                 GROUP BY tvg_id HAVING COUNT(*) > 1",
-            )?;
-            stmt.query_map([], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
-            })?
-            .filter_map(|r| r.ok())
-            .collect()
-        };
-
-        let mut rows_vec: Vec<(String, Option<String>)> = Vec::new();
-        for row in tvg_rows {
-            rows_vec.push(row?);
-        }
-
+        // Matching rule (from EPG architecture plan):
+        // - Xtream (xc_) / Stalker (stk_): internal channel ID ONLY.
+        //   Per-channel API stores EPG under the internal ID.
+        //   tvg_id is NEVER used — providers reuse epg_channel_id
+        //   across unrelated channels.
+        // - M3U (all other IDs): tvg_id → XMLTV channel ID.
+        //   Provider controls both M3U and XMLTV files so IDs match.
         let mut key_to_channels: HashMap<String, Vec<String>> = HashMap::new();
         let mut lookup_keys: HashSet<String> = HashSet::new();
-        for (ch_id, tvg_id) in &rows_vec {
-            // Only use tvg_id when it's globally unique (1 channel in entire DB).
-            if let Some(tvg) = tvg_id
+        for row in tvg_rows {
+            let (ch_id, tvg_id) = row?;
+            let is_api_sourced =
+                ch_id.starts_with("xc_") || ch_id.starts_with("stk_");
+
+            // M3U channels: use tvg_id for XMLTV matching.
+            if !is_api_sourced
+                && let Some(ref tvg) = tvg_id
                 && !tvg.is_empty()
-                && !global_tvg_counts.contains_key(tvg.as_str())
             {
                 lookup_keys.insert(tvg.clone());
                 key_to_channels
@@ -287,7 +273,8 @@ impl CrispyService {
                     .or_default()
                     .push(ch_id.clone());
             }
-            // Always map internal_id → channel.
+
+            // All channels: always map by internal ID.
             lookup_keys.insert(ch_id.clone());
             key_to_channels
                 .entry(ch_id.clone())
