@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 
@@ -263,6 +264,9 @@ class WebMediaKitPlayer implements CrispyPlayer {
 
   @override
   bool get supportsBackgroundAudio => false;
+
+  @override
+  Future<Uint8List?> screenshotRawBytes() async => null;
 
   @override
   String get engineName => 'web_video';

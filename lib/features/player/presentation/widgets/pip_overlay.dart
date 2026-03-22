@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/screenshot_service.dart';
 import '../../../../core/theme/crispy_animation.dart';
+import '../../data/watch_history_service.dart';
 import '../providers/pip_provider.dart';
 import '../providers/player_providers.dart';
 
@@ -53,7 +55,22 @@ class _PipOverlayState extends ConsumerState<PipOverlay> {
   }
 
   Future<void> _onClose() async {
+    final session = ref.read(playbackSessionProvider);
     final playerService = ref.read(playerServiceProvider);
+
+    // Capture last frame before stopping — serves as
+    // fallback poster for continue-watching / channels.
+    if (session.streamUrl.isNotEmpty && session.mediaType != null) {
+      final contentId = WatchHistoryService.deriveId(session.streamUrl);
+      await ref
+          .read(screenshotServiceProvider)
+          .captureLastFrame(
+            player: playerService.player,
+            contentType: session.mediaType!,
+            contentId: contentId,
+          );
+    }
+
     await playerService.stop();
     await ref.read(pipProvider.notifier).exitPip();
   }

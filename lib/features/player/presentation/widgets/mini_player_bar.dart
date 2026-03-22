@@ -2,6 +2,7 @@ import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/screenshot_service.dart';
 import '../../../../core/navigation/shell_providers.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_colors.dart';
@@ -10,6 +11,7 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/glass_surface.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../../core/widgets/watch_progress_bar.dart';
+import '../../data/watch_history_service.dart';
 import '../../domain/entities/playback_state.dart';
 import '../../domain/player_lifecycle_coordinator.dart';
 import '../providers/player_providers.dart';
@@ -82,8 +84,24 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar>
     ref.read(playerServiceProvider).forceStateEmit();
   }
 
-  void _dismiss() {
-    ref.read(playerServiceProvider).stop();
+  Future<void> _dismiss() async {
+    final session = ref.read(playbackSessionProvider);
+    final playerService = ref.read(playerServiceProvider);
+
+    // Capture last frame before stopping — serves as
+    // fallback poster for continue-watching / channels.
+    if (session.streamUrl.isNotEmpty && session.mediaType != null) {
+      final contentId = WatchHistoryService.deriveId(session.streamUrl);
+      await ref
+          .read(screenshotServiceProvider)
+          .captureLastFrame(
+            player: playerService.player,
+            contentType: session.mediaType!,
+            contentId: contentId,
+          );
+    }
+
+    await playerService.stop();
     ref.read(playerModeProvider.notifier).setIdle();
   }
 

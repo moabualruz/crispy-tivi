@@ -227,6 +227,9 @@ class IosPipPlayer implements CrispyPlayer {
   bool get supportsBackgroundAudio => true;
 
   @override
+  Future<Uint8List?> screenshotRawBytes() async => null;
+
+  @override
   String get engineName => 'avplayer';
 
   @override

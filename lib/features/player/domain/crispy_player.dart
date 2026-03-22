@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 
@@ -134,6 +135,14 @@ abstract class CrispyPlayer {
 
   /// Stream of track list changes (fires on media load).
   Stream<CrispyTrackList> get tracksStream;
+
+  // ── Screenshot ──────────────────────────────────────
+
+  /// Capture the current video frame as raw JPEG bytes.
+  ///
+  /// Returns `null` if no media is loaded, the engine does
+  /// not support frame capture, or an error occurs.
+  Future<Uint8List?> screenshotRawBytes() async => null;
 
   // ── Video Widget ─────────────────────────────────────
 

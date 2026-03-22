@@ -267,6 +267,19 @@ class MediaKitPlayer implements CrispyPlayer {
     ),
   );
 
+  // ── Screenshot ──────────────────────────────────────
+
+  @override
+  Future<Uint8List?> screenshotRawBytes() async {
+    if (_currentUrl == null) return null;
+    try {
+      return await _player.screenshot(format: 'image/jpeg');
+    } catch (e) {
+      debugPrint('MediaKitPlayer: screenshot failed: $e');
+      return null;
+    }
+  }
+
   // ── Video Widget ────────────────────────────────────
 
   @override

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/features/player/domain/crispy_player.dart';
@@ -108,6 +110,9 @@ class _BenchPlayer implements CrispyPlayer {
   bool get supportsBackgroundAudio => false;
   @override
   String get engineName => 'bench';
+
+  @override
+  Future<Uint8List?> screenshotRawBytes() async => null;
 
   @override
   List<CrispyAudioDevice> get audioDevices => const [];

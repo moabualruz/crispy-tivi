@@ -224,6 +224,9 @@ class AndroidHdrPlayer implements CrispyPlayer {
   bool get supportsBackgroundAudio => false;
 
   @override
+  Future<Uint8List?> screenshotRawBytes() async => null;
+
+  @override
   String get engineName => 'media3';
 
   @override

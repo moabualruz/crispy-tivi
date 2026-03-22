@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/screenshot_service.dart';
 import '../../../vod/domain/entities/vod_item.dart';
+import '../../data/watch_history_service.dart';
 import '../providers/playback_progress_provider.dart';
 import '../providers/playback_session_provider.dart';
 import 'player_fullscreen_overlay.dart';
@@ -69,6 +71,8 @@ mixin PlayerHistoryMixin on ConsumerState<PlayerFullscreenOverlay> {
           setState(() => nextEpisodeToShow = event.next);
         } else if (event is ContentFinished) {
           setState(() => showMovieCompletion = true);
+          // Delete cached screenshot — content is fully watched.
+          _deleteScreenshotForCurrentSession();
         }
       },
     );
@@ -138,5 +142,18 @@ mixin PlayerHistoryMixin on ConsumerState<PlayerFullscreenOverlay> {
     ref.read(playbackProgressProvider.notifier)
       ..resetAutoAdvanceCounter()
       ..clearCompletionEvent();
+  }
+
+  /// Removes the cached screenshot for the active session.
+  ///
+  /// Called when content is marked as finished — the
+  /// continue-watching screenshot is no longer needed.
+  void _deleteScreenshotForCurrentSession() {
+    final session = ref.read(playbackSessionProvider);
+    if (session.streamUrl.isEmpty || session.mediaType == null) return;
+    final contentId = WatchHistoryService.deriveId(session.streamUrl);
+    ref
+        .read(screenshotServiceProvider)
+        .deleteScreenshot(session.mediaType!, contentId);
   }
 }
