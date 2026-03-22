@@ -1,6 +1,15 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/crispy-iptv-types",
+    "crates/crispy-m3u",
+    "crates/crispy-xmltv",
+    "crates/crispy-xtream",
+    "crates/crispy-stalker",
+    "crates/crispy-stream-checker",
+    "crates/crispy-iptv-tools",
+    "crates/crispy-catchup",
+    "crates/crispy-media-probe",
     "crates/crispy-core",
     "crates/crispy-ffi",
     "crates/crispy-server",
@@ -58,3 +67,10 @@ proptest = "1"
 moka = { version = "0.12", features = ["future", "sync"] }
 quick-xml = "0.37"
 singleflight-async = "0.2"
+unicode-normalization = "0.1"
+tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
+compact_str = { version = "0.8", features = ["serde"] }
+smallvec = { version = "1", features = ["serde"] }
+flate2 = "1"
+xz2 = "0.1"
+md-5 = "0.10"
