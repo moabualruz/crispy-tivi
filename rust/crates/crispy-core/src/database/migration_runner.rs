@@ -24,7 +24,7 @@ use super::DbError;
 ///
 /// When adding a new migration file, update this constant to match the
 /// new `PRAGMA user_version` value set by that file.
-pub const LATEST_VERSION: u32 = 45;
+pub const LATEST_VERSION: u32 = 36;
 
 /// Ordered list of `(target_user_version, sql)` pairs.
 ///
@@ -33,36 +33,14 @@ pub const LATEST_VERSION: u32 = 45;
 /// current DB `user_version` is already ≥ that target.
 ///
 /// SQL is embedded at compile time via `include_str!`.
+///
+/// All former migrations (002-010) have been absorbed into the
+/// consolidated 001 schema.  Data is disposable — sources re-sync
+/// on startup, so no incremental migration path is needed.
 static MIGRATIONS: &[(u32, &str)] = &[
-    // 001 — full initial schema (all tables + indexes, user_version = 36)
+    // 001 — consolidated schema: all tables, FK CASCADE, CHECK
+    //        constraints, indexes.  Absorbs former 001-010.
     (36, include_str!("migrations/001_initial_schema.sql")),
-    // 002 — extend retry_queue: add status, max_attempts, last_error columns;
-    //        replace single-column index with composite (status, next_retry_at)
-    (37, include_str!("migrations/002_retry_queue.sql")),
-    // 003 — merge_decisions table: persist user manual merge/split decisions
-    (38, include_str!("migrations/003_merge_decisions.sql")),
-    // 004 — credential encryption marker: adds `credentials_encrypted` column
-    //        to db_sources so the service layer can detect and re-encrypt
-    //        any pre-existing plaintext rows on first run (spec C-008)
-    (39, include_str!("migrations/004_encrypt_credentials.sql")),
-    // 005 — extended M3U channel attributes: tvg_shift, tvg_language,
-    //        tvg_country, parent_code, is_radio, tvg_rec
-    (
-        40,
-        include_str!("migrations/005_channel_extended_attrs.sql"),
-    ),
-    // 006 — add VOD metadata fields: cast, director, genre, youtube_trailer,
-    //        tmdb_id, rating_5based to db_vod_items
-    (41, include_str!("migrations/006_vod_metadata_fields.sql")),
-    // 007 — Xtream-specific channel fields: is_adult, custom_sid, direct_source
-    (42, include_str!("migrations/007_channel_xtream_fields.sql")),
-    // 008 — Extended XMLTV EPG fields: sub-title, episode numbering, credits,
-    //        ratings, broadcast flags, language, country, and duration
-    (43, include_str!("migrations/008_epg_extended_fields.sql")),
-    // 009 — Extended VOD fields: original_name, is_adult, content_rating
-    (44, include_str!("migrations/009_vod_extended_fields.sql")),
-    // 010 — Composite index for fast EPG time-range queries
-    (45, include_str!("migrations/010_epg_time_range_index.sql")),
 ];
 
 /// Run all pending migrations against `conn`.
@@ -199,10 +177,15 @@ mod tests {
             "db_bookmarks",
             "db_buffer_tiers",
             "db_categories",
+            "db_channel_categories",
             "db_channel_order",
             "db_channels",
+            "db_epg_channels",
             "db_epg_entries",
             "db_epg_mappings",
+            "db_episodes",
+            "db_favorite_categories",
+            "db_movies",
             "db_profile_source_access",
             "db_profiles",
             "db_recordings",
@@ -210,17 +193,20 @@ mod tests {
             "db_retry_queue",
             "db_saved_layouts",
             "db_search_history",
+            "db_seasons",
+            "db_series",
             "db_settings",
             "db_smart_group_members",
             "db_smart_groups",
             "db_sources",
             "db_storage_backends",
             "db_stream_health",
+            "db_stream_urls",
             "db_sync_meta",
             "db_transfer_tasks",
             "db_user_favorites",
+            "db_vod_categories",
             "db_vod_favorites",
-            "db_vod_items",
             "db_watch_history",
             "db_watchlist",
             "merge_decisions",
@@ -234,26 +220,12 @@ mod tests {
         }
     }
 
-    /// Migration 004: `credentials_encrypted` column must exist on db_sources.
+    /// Consolidated schema: `credentials_encrypted` column must exist on db_sources.
     #[test]
-    fn test_migration_004_adds_credentials_encrypted_column() {
+    fn test_credentials_encrypted_column_exists() {
         let conn = open_memory();
         run_migrations(&conn).expect("run_migrations");
 
-        // Query the column — must default to 0.
-        let val: i64 = conn
-            .query_row(
-                "SELECT credentials_encrypted \
-                 FROM db_sources \
-                 LIMIT 1",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap_or(0); // table empty — default is 0, which is acceptable
-
-        assert_eq!(val, 0, "credentials_encrypted default must be 0 (false)");
-
-        // Verify column exists via PRAGMA.
         let mut stmt = conn
             .prepare("PRAGMA table_info(db_sources)")
             .expect("prepare pragma");
@@ -266,6 +238,145 @@ mod tests {
         assert!(
             columns.contains(&"credentials_encrypted".to_string()),
             "credentials_encrypted column must exist on db_sources"
+        );
+    }
+
+    /// EPG entries must have xmltv_id and is_placeholder columns.
+    #[test]
+    fn test_epg_new_columns_exist() {
+        let conn = open_memory();
+        run_migrations(&conn).expect("run_migrations");
+
+        let mut stmt = conn
+            .prepare("PRAGMA table_info(db_epg_entries)")
+            .expect("prepare pragma");
+        let columns: Vec<String> = stmt
+            .query_map([], |row| row.get(1))
+            .expect("query")
+            .filter_map(|r| r.ok())
+            .collect();
+
+        assert!(
+            columns.contains(&"xmltv_id".to_string()),
+            "xmltv_id must exist"
+        );
+        assert!(
+            columns.contains(&"is_placeholder".to_string()),
+            "is_placeholder must exist"
+        );
+    }
+
+    /// Categories UNIQUE constraint must include source_id.
+    #[test]
+    fn test_categories_pk_includes_source_id() {
+        let conn = open_memory();
+        run_migrations(&conn).expect("run_migrations");
+
+        // Inserting same (type, name) with different source_id must succeed.
+        conn.execute(
+            "INSERT INTO db_sources (id, name, source_type, url) VALUES ('s1', 'S1', 'm3u', 'http://a')",
+            [],
+        )
+        .expect("insert source s1");
+        conn.execute(
+            "INSERT INTO db_sources (id, name, source_type, url) VALUES ('s2', 'S2', 'm3u', 'http://b')",
+            [],
+        )
+        .expect("insert source s2");
+
+        conn.execute(
+            "INSERT INTO db_categories (id, category_type, name, source_id) VALUES ('cat1', 'live', 'Sports', 's1')",
+            [],
+        )
+        .expect("insert cat s1");
+        conn.execute(
+            "INSERT INTO db_categories (id, category_type, name, source_id) VALUES ('cat2', 'live', 'Sports', 's2')",
+            [],
+        )
+        .expect("insert cat s2 — must not conflict");
+    }
+
+    /// FK CASCADE: deleting a source must cascade-delete its channels.
+    #[test]
+    fn test_fk_cascade_source_delete() {
+        let conn = open_memory();
+        run_migrations(&conn).expect("run_migrations");
+
+        conn.execute(
+            "INSERT INTO db_sources (id, name, source_type, url) VALUES ('s1', 'S1', 'm3u', 'http://a')",
+            [],
+        )
+        .expect("insert source");
+        conn.execute(
+            "INSERT INTO db_channels (id, native_id, name, stream_url, source_id) VALUES ('ch1', 'n1', 'Ch1', 'http://s', 's1')",
+            [],
+        )
+        .expect("insert channel");
+
+        conn.execute("DELETE FROM db_sources WHERE id = 's1'", [])
+            .expect("delete source");
+
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM db_channels WHERE source_id = 's1'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("count channels");
+        assert_eq!(count, 0, "channels must be cascade-deleted with source");
+    }
+
+    /// CHECK constraint: EPG confidence must be in [0.0, 1.0].
+    #[test]
+    fn test_epg_mapping_confidence_check() {
+        let conn = open_memory();
+        run_migrations(&conn).expect("run_migrations");
+
+        let result = conn.execute(
+            "INSERT INTO db_epg_mappings (channel_id, epg_channel_id, confidence, match_method, created_at) \
+             VALUES ('ch1', 'epg1', 1.5, 'auto', 0)",
+            [],
+        );
+        assert!(result.is_err(), "confidence > 1.0 must be rejected");
+    }
+
+    /// smart_group_members.source_id must default to NULL, not empty string.
+    #[test]
+    fn test_smart_group_members_source_id_nullable() {
+        let conn = open_memory();
+        run_migrations(&conn).expect("run_migrations");
+
+        conn.execute(
+            "INSERT INTO db_sources (id, name, source_type, url) VALUES ('s1', 'S1', 'm3u', 'http://a')",
+            [],
+        )
+        .expect("insert source");
+        conn.execute(
+            "INSERT INTO db_channels (id, native_id, name, stream_url, source_id) VALUES ('ch1', 'n1', 'Ch1', 'http://s', 's1')",
+            [],
+        )
+        .expect("insert channel");
+        conn.execute(
+            "INSERT INTO db_smart_groups (id, name, created_at) VALUES ('g1', 'G1', 0)",
+            [],
+        )
+        .expect("insert group");
+        conn.execute(
+            "INSERT INTO db_smart_group_members (group_id, channel_id) VALUES ('g1', 'ch1')",
+            [],
+        )
+        .expect("insert member without source_id");
+
+        let val: Option<String> = conn
+            .query_row(
+                "SELECT source_id FROM db_smart_group_members WHERE group_id = 'g1'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("query source_id");
+        assert!(
+            val.is_none(),
+            "source_id must default to NULL, not empty string"
         );
     }
 
@@ -292,20 +403,40 @@ mod tests {
         let required = [
             "idx_bookmarks_content",
             "idx_categories_source",
+            "idx_categories_type_source",
+            "idx_channel_categories_cat",
             "idx_channel_order_profile",
+            "idx_channels_epg_channel",
+            "idx_channels_native",
             "idx_channels_source",
             "idx_channels_tvg",
             "idx_epg_channel",
+            "idx_epg_channel_time",
+            "idx_epg_channels_source",
+            "idx_epg_real_coverage",
             "idx_epg_source",
+            "idx_epg_xmltv_time",
+            "idx_episodes_season",
+            "idx_episodes_source",
+            "idx_merge_decisions_source",
+            "idx_merge_decisions_type",
+            "idx_movies_name",
+            "idx_movies_native",
+            "idx_movies_source",
             "idx_reminders_notify",
             "idx_retry_queue_status_next",
+            "idx_seasons_series",
+            "idx_series_name",
+            "idx_series_native",
+            "idx_series_source",
             "idx_source_access",
-            "idx_vod_items_series",
-            "idx_vod_source",
+            "idx_stream_urls_channel",
+            "idx_vod_categories_cat",
+            "idx_vod_categories_content",
+            "idx_watch_history_content",
             "idx_watch_history_profile",
+            "idx_watch_history_profile_source",
             "idx_watch_history_source",
-            "idx_merge_decisions_type",
-            "idx_merge_decisions_source",
         ];
 
         for name in &required {

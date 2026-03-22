@@ -11,8 +11,8 @@
 //! - Channels with coverage for the next 24h are skipped entirely
 
 use crate::models::{Channel, Source};
-use crate::services::epg_fetcher::ThrottledEpgFetcher;
 use crate::services::CrispyService;
+use crate::services::epg_fetcher::ThrottledEpgFetcher;
 
 /// Channels per batch.
 const BATCH_SIZE: usize = 10;

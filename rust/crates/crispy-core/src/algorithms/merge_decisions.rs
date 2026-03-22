@@ -419,9 +419,9 @@ mod tests {
     fn open_memory() -> Connection {
         let conn = Connection::open_in_memory().expect("open :memory:");
         conn.execute_batch(include_str!(
-            "../database/migrations/003_merge_decisions.sql"
+            "../database/migrations/001_initial_schema.sql"
         ))
-        .expect("apply migration 003");
+        .expect("apply schema");
         conn
     }
 

@@ -10,26 +10,29 @@ mod tests {
     use super::*;
     use crate::services::test_helpers::{make_profile, make_service, make_source, make_vod_item};
 
-    /// Ensure a profile, source, and VOD item exist so
-    /// all FK constraints in `db_watchlist` are satisfied.
-    fn setup_vod(svc: &CrispyService, vod_id: &str) {
-        // Profile FK on watchlist.profile_id.
-        let profile = make_profile("prof1", "Tester");
-        svc.save_profile(&profile).unwrap();
+    /// Create a service with profile and source pre-seeded.
+    /// Call `seed_vod` to add individual VOD items.
+    fn make_watchlist_service() -> CrispyService {
+        let svc = make_service();
+        svc.save_profile(&make_profile("prof1", "Tester")).unwrap();
+        svc.save_source(&make_source("src1", "TestSrc", "m3u"))
+            .unwrap();
+        svc
+    }
 
-        let src = make_source("src1", "TestSrc", "m3u");
-        svc.save_source(&src).unwrap();
-        let mut vod = make_vod_item(vod_id, &format!("Movie {vod_id}"));
-        vod.source_id = Some("src1".to_string());
-        svc.save_vod_items(&[vod]).unwrap();
+    /// Insert a single movie referencing the pre-seeded source.
+    fn seed_vod(svc: &CrispyService, vod_id: &str) {
+        let mut movie = make_vod_item(vod_id, &format!("Movie {vod_id}"));
+        movie.source_id = Some("src1".to_string());
+        svc.save_vod_items(&[movie]).unwrap();
     }
 
     // ── Basic CRUD ────────────────────────────────────
 
     #[test]
     fn add_and_retrieve_watchlist_item() {
-        let svc = make_service();
-        setup_vod(&svc, "v1");
+        let svc = make_watchlist_service();
+        seed_vod(&svc, "v1");
 
         svc.add_watchlist_item("prof1", "v1").unwrap();
 
@@ -40,9 +43,9 @@ mod tests {
 
     #[test]
     fn remove_watchlist_item() {
-        let svc = make_service();
-        setup_vod(&svc, "v1");
-        setup_vod(&svc, "v2");
+        let svc = make_watchlist_service();
+        seed_vod(&svc, "v1");
+        seed_vod(&svc, "v2");
 
         svc.add_watchlist_item("prof1", "v1").unwrap();
         svc.add_watchlist_item("prof1", "v2").unwrap();
@@ -67,8 +70,8 @@ mod tests {
     fn add_duplicate_item_is_idempotent() {
         // INSERT OR REPLACE: adding the same vod_id twice
         // should not create a duplicate entry.
-        let svc = make_service();
-        setup_vod(&svc, "v1");
+        let svc = make_watchlist_service();
+        seed_vod(&svc, "v1");
 
         svc.add_watchlist_item("prof1", "v1").unwrap();
         svc.add_watchlist_item("prof1", "v1").unwrap();
@@ -89,8 +92,8 @@ mod tests {
     #[test]
     fn watchlist_is_profile_scoped() {
         // Items added to prof1 must not appear for prof2.
-        let svc = make_service();
-        setup_vod(&svc, "v1");
+        let svc = make_watchlist_service();
+        seed_vod(&svc, "v1");
 
         svc.add_watchlist_item("prof1", "v1").unwrap();
 
@@ -105,10 +108,10 @@ mod tests {
 
     #[test]
     fn multiple_items_ordered_by_added_at_asc() {
-        let svc = make_service();
-        setup_vod(&svc, "v1");
-        setup_vod(&svc, "v2");
-        setup_vod(&svc, "v3");
+        let svc = make_watchlist_service();
+        seed_vod(&svc, "v1");
+        seed_vod(&svc, "v2");
+        seed_vod(&svc, "v3");
 
         svc.add_watchlist_item("prof1", "v1").unwrap();
         // Small sleep between inserts to ensure distinct
@@ -135,8 +138,8 @@ impl CrispyService {
         let conn = self.db.get()?;
         let mut stmt = conn.prepare(&format!(
             "SELECT {VOD_COLUMNS_V}
-             FROM db_vod_items v
-             INNER JOIN db_watchlist w ON v.id = w.vod_item_id
+             FROM db_movies v
+             INNER JOIN db_watchlist w ON v.id = w.content_id
              WHERE w.profile_id = ?1
              ORDER BY w.added_at ASC",
         ))?;
@@ -150,8 +153,8 @@ impl CrispyService {
         let now = chrono::Utc::now().timestamp();
         conn.execute(
             "INSERT OR REPLACE INTO db_watchlist
-             (profile_id, vod_item_id, added_at)
-             VALUES (?1, ?2, ?3)",
+             (profile_id, content_id, content_type, added_at)
+             VALUES (?1, ?2, 'movie', ?3)",
             params![profile_id, vod_item_id, now],
         )?;
         self.emit(DataChangeEvent::WatchlistUpdated {
@@ -169,7 +172,7 @@ impl CrispyService {
         let conn = self.db.get()?;
         conn.execute(
             "DELETE FROM db_watchlist
-             WHERE profile_id = ?1 AND vod_item_id = ?2",
+             WHERE profile_id = ?1 AND content_id = ?2",
             params![profile_id, vod_item_id],
         )?;
         self.emit(DataChangeEvent::WatchlistUpdated {

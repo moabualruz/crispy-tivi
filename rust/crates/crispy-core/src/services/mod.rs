@@ -82,7 +82,7 @@ mod vod;
 mod watchlist;
 
 #[cfg(test)]
-mod test_helpers;
+pub(crate) mod test_helpers;
 
 // ── DateTime helpers ────────────────────────────────
 

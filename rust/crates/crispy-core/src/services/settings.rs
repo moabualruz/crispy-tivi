@@ -105,7 +105,7 @@ mod tests {
 
     #[test]
     fn sync_meta_set_and_get() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         let dt = parse_dt("2025-01-15 12:00:00");
 
         svc.set_last_sync_time("src1", dt).unwrap();

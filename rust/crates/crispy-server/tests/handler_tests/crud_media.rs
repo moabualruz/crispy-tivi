@@ -3,18 +3,20 @@
 
 use serde_json::json;
 
-use super::{make_svc, send};
+use super::{make_svc, seed_source, send};
 
 // ── CRUD: VOD Items ────────────────────────────────
 
 #[test]
 fn save_and_load_vod_items() {
     let svc = make_svc();
+    seed_source(&svc, "src1");
     let item = json!({
         "id": "v1",
         "name": "Movie One",
         "stream_url": "http://x/movie1",
         "type": "movie",
+        "source_id": "src1",
     });
     let resp = send(
         &svc,
@@ -36,6 +38,7 @@ fn save_and_load_vod_items() {
 #[test]
 fn delete_removed_vod_items() {
     let svc = make_svc();
+    seed_source(&svc, "src1");
     let items = json!([
         {"id": "v1", "name": "M1",
          "stream_url": "http://x/1",
@@ -73,6 +76,7 @@ fn delete_removed_vod_items() {
 #[test]
 fn add_and_get_vod_favorites() {
     let svc = make_svc();
+    seed_source(&svc, "src1");
     // FK: profile + VOD item must exist.
     send(
         &svc,
@@ -94,6 +98,7 @@ fn add_and_get_vod_favorites() {
                 "name": "Movie",
                 "stream_url": "http://x/1",
                 "type": "movie",
+                "source_id": "src1",
             }]},
         }),
     );
@@ -155,6 +160,7 @@ fn remove_vod_favorite() {
 #[test]
 fn save_and_load_categories() {
     let svc = make_svc();
+    seed_source(&svc, "src1");
     let cats = json!({
         "live": ["News", "Sports"],
         "vod": ["Action"],
@@ -164,7 +170,7 @@ fn save_and_load_categories() {
         &json!({
             "cmd": "saveCategories",
             "id": "r1",
-            "args": {"categories": cats},
+            "args": {"sourceId": "src1", "categories": cats},
         }),
     );
     assert_eq!(resp["ok"], true);
@@ -254,6 +260,7 @@ fn remove_favorite_category() {
 #[test]
 fn grant_and_get_source_access() {
     let svc = make_svc();
+    seed_source(&svc, "s1");
     // FK: profile must exist.
     send(
         &svc,
@@ -322,6 +329,8 @@ fn revoke_source_access() {
 #[test]
 fn set_source_access() {
     let svc = make_svc();
+    seed_source(&svc, "s1");
+    seed_source(&svc, "s2");
     // FK: profile must exist.
     send(
         &svc,
@@ -353,6 +362,31 @@ fn set_source_access() {
 #[test]
 fn save_and_load_channel_order() {
     let svc = make_svc();
+    // Seed FK dependencies: source → channels, profile.
+    seed_source(&svc, "src1");
+    send(
+        &svc,
+        &json!({
+            "cmd": "saveProfile",
+            "id": "sp",
+            "args": {"profile": {"id": "p1", "name": "User"}},
+        }),
+    );
+    send(
+        &svc,
+        &json!({
+            "cmd": "saveChannels",
+            "id": "sc",
+            "args": {"channels": [
+                {"id": "c1", "name": "C1", "stream_url": "http://x/1",
+                 "native_id": "n1", "source_id": "src1"},
+                {"id": "c2", "name": "C2", "stream_url": "http://x/2",
+                 "native_id": "n2", "source_id": "src1"},
+                {"id": "c3", "name": "C3", "stream_url": "http://x/3",
+                 "native_id": "n3", "source_id": "src1"},
+            ]},
+        }),
+    );
     let resp = send(
         &svc,
         &json!({

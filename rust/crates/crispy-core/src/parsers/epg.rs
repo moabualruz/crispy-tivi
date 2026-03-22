@@ -220,6 +220,7 @@ fn parse_programme_element(
     let mut cast: Option<String> = None;
     let mut writers: Option<String> = None;
     let mut presenters: Option<String> = None;
+    // These will be merged into credits_json at the end.
     let mut season: Option<i32> = None;
     let mut episode: Option<i32> = None;
     let mut episode_label: Option<String> = None;
@@ -407,6 +408,7 @@ fn parse_programme_element(
 
     Some(EpgEntry {
         channel_id,
+        xmltv_id: None,
         title,
         start_time,
         end_time,
@@ -414,6 +416,7 @@ fn parse_programme_element(
         category,
         icon_url,
         source_id: None,
+        is_placeholder: false,
         sub_title,
         season,
         episode,
@@ -421,10 +424,7 @@ fn parse_programme_element(
         air_date,
         content_rating,
         star_rating,
-        directors,
-        cast,
-        writers,
-        presenters,
+        credits_json: build_credits_json(&directors, &cast, &writers, &presenters),
         language,
         country,
         is_rerun,
@@ -509,6 +509,39 @@ fn parse_credits(
     if !prsnts.is_empty() {
         *presenters = Some(prsnts.join("; "));
     }
+}
+
+/// Build a JSON string from the four credit fields.
+/// Returns `None` if all fields are empty.
+fn build_credits_json(
+    directors: &Option<String>,
+    cast: &Option<String>,
+    writers: &Option<String>,
+    presenters: &Option<String>,
+) -> Option<String> {
+    if directors.is_none() && cast.is_none() && writers.is_none() && presenters.is_none() {
+        return None;
+    }
+    let mut obj = serde_json::Map::new();
+    if let Some(d) = directors {
+        obj.insert(
+            "directors".to_string(),
+            serde_json::Value::String(d.clone()),
+        );
+    }
+    if let Some(c) = cast {
+        obj.insert("cast".to_string(), serde_json::Value::String(c.clone()));
+    }
+    if let Some(w) = writers {
+        obj.insert("writers".to_string(), serde_json::Value::String(w.clone()));
+    }
+    if let Some(p) = presenters {
+        obj.insert(
+            "presenters".to_string(),
+            serde_json::Value::String(p.clone()),
+        );
+    }
+    Some(serde_json::Value::Object(obj).to_string())
 }
 
 /// Read the `<value>` child from elements like `<rating>` or `<star-rating>`.
@@ -609,6 +642,58 @@ fn parse_xmltv_ns(value: &str) -> (Option<u32>, Option<u32>) {
         .and_then(|s| s.trim().parse::<u32>().ok())
         .map(|n| n + 1);
     (season, episode)
+}
+
+// ── Adapter: crispy_xmltv crate ──────────────────
+
+/// Parse XMLTV content using the `crispy_xmltv` crate and convert
+/// programmes to [`EpgEntry`] via `From<EpgProgramme>`.
+///
+/// Falls back to [`parse_epg`] on parse error.
+pub fn parse_epg_via_crate(content: &str) -> Vec<EpgEntry> {
+    if content.trim().is_empty() {
+        return Vec::new();
+    }
+
+    let doc = match crispy_xmltv::parse(content) {
+        Ok(d) => d,
+        Err(_) => {
+            // Fall back to the battle-tested internal parser.
+            return parse_epg(content);
+        }
+    };
+
+    doc.programmes
+        .into_iter()
+        .map(EpgEntry::from)
+        .filter(|e| !e.title.is_empty())
+        .collect()
+}
+
+/// Extract XMLTV `<channel>` display names using the `crispy_xmltv` crate.
+///
+/// Returns a map of channel ID to display name.
+/// Falls back to [`extract_channel_names`] on parse error.
+pub fn extract_channel_names_via_crate(content: &str) -> HashMap<String, String> {
+    if content.trim().is_empty() {
+        return HashMap::new();
+    }
+
+    let doc = match crispy_xmltv::parse(content) {
+        Ok(d) => d,
+        Err(_) => return extract_channel_names(content),
+    };
+
+    doc.channels
+        .into_iter()
+        .filter_map(|ch| {
+            let name = ch.display_name.first().map(|n| n.value.clone())?;
+            if name.is_empty() {
+                return None;
+            }
+            Some((ch.id, name))
+        })
+        .collect()
 }
 
 // ── Tests ────────────────────────────────────────

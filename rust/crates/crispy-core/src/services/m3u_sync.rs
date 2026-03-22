@@ -57,8 +57,8 @@ pub async fn sync_m3u_source(
 
     emit_progress(source_id, "parsing", 0.3, "Parsing M3U content");
 
-    // 2. Parse M3U into channels + optional EPG URL.
-    let result = m3u::parse_m3u(&content);
+    // 2. Parse M3U into channels + optional EPG URL (via crispy-m3u crate).
+    let result = m3u::parse_m3u_via_crate(&content);
     let mut channels = result.channels;
 
     // Set source_id on all channels — the M3U parser leaves it None.
@@ -113,7 +113,7 @@ mod tests {
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     use super::*;
-    use crate::services::test_helpers::make_service;
+    use crate::services::test_helpers::{make_service, make_source};
 
     #[tokio::test]
     async fn sync_m3u_source_basic() {
@@ -133,6 +133,9 @@ mod tests {
 
         let url = format!("{}/playlist.m3u", mock_server.uri());
         let service = make_service();
+        service
+            .save_source(&make_source("src-1", "M3U Source", "m3u"))
+            .unwrap();
         let report = sync_m3u_source(&service, &url, "src-1", false)
             .await
             .expect("sync should succeed");
@@ -160,6 +163,9 @@ mod tests {
 
         let url = format!("{}/empty.m3u", mock_server.uri());
         let service = make_service();
+        service
+            .save_source(&make_source("src-empty", "Empty Source", "m3u"))
+            .unwrap();
         let report = sync_m3u_source(&service, &url, "src-empty", false)
             .await
             .expect("sync should succeed");
@@ -189,6 +195,9 @@ mod tests {
 
         let url = format!("{}/epg_playlist.m3u", mock_server.uri());
         let service = make_service();
+        service
+            .save_source(&make_source("src-epg", "EPG Source", "m3u"))
+            .unwrap();
         let report = sync_m3u_source(&service, &url, "src-epg", false)
             .await
             .expect("sync should succeed");

@@ -391,15 +391,12 @@ pub async fn sync_stalker_source(
         &session,
         "?type=itv&action=get_ordered_list&genre=*",
         stalker::parse_stalker_channels_result,
-        move |items| stalker::parse_stalker_live_streams(items, &source_id_owned, &base_clone),
+        move |items| stalker::channels_from_stalker_json(items, &source_id_owned, &base_clone),
         accept_invalid_certs,
     )
     .await;
 
     channels = categories::resolve_channel_categories(&channels, &live_cat_map);
-    for ch in &mut channels {
-        ch.source_id = Some(source_id.to_string());
-    }
 
     emit_progress(source_id, "vod", 0.4, "Fetching VOD items");
 
@@ -418,7 +415,7 @@ pub async fn sync_stalker_source(
         &session,
         "?type=vod&action=get_ordered_list&category=*",
         stalker::parse_stalker_vod_result,
-        move |items| stalker::parse_stalker_vod_items(items, &base_for_vod, "movie", &sid_for_vod),
+        move |items| stalker::vod_from_stalker_json(items, &sid_for_vod, &base_for_vod),
         accept_invalid_certs,
     )
     .await;
@@ -429,15 +426,12 @@ pub async fn sync_stalker_source(
 
     // ── 6. Series (paginated) ────────────────────────
     // Series use the same VOD category map.
-    let base_for_series = base.clone();
     let sid_for_series = source_id.to_string();
     let mut series_items = fetch_all_pages(
         &session,
         "?type=series&action=get_ordered_list&category=*",
         stalker::parse_stalker_vod_result,
-        move |items| {
-            stalker::parse_stalker_vod_items(items, &base_for_series, "series", &sid_for_series)
-        },
+        move |items| stalker::series_from_stalker_json(items, &sid_for_series),
         accept_invalid_certs,
     )
     .await;

@@ -6,6 +6,7 @@
 //! interop and diagnostics.
 
 pub mod content_rating;
+pub mod conversions;
 pub mod stream_quality;
 pub use content_rating::ContentRating;
 
@@ -23,6 +24,9 @@ use serde::{Deserialize, Serialize};
 pub struct Channel {
     /// Unique channel identifier.
     pub id: String,
+    /// Source-native ID (stream_id for Xtream, portal id for Stalker, url-hash for M3U).
+    #[serde(default)]
+    pub native_id: String,
     /// Display name.
     pub name: String,
     /// Direct stream URL.
@@ -36,9 +40,12 @@ pub struct Channel {
     /// URL of the channel logo image.
     #[serde(default)]
     pub logo_url: Option<String>,
-    /// EPG `tvg-id` for guide matching.
+    /// EPG `tvg-id` for guide matching (M3U compatibility).
     #[serde(default)]
     pub tvg_id: Option<String>,
+    /// Unified EPG matching field.
+    #[serde(default)]
+    pub epg_channel_id: Option<String>,
     /// EPG `tvg-name` for guide matching.
     #[serde(default)]
     pub tvg_name: Option<String>,
@@ -106,6 +113,15 @@ pub struct Channel {
     /// Can serve as a failover stream URL.
     #[serde(default)]
     pub direct_source: Option<String>,
+    /// Raw Stalker cmd for re-resolution.
+    #[serde(default)]
+    pub stalker_cmd: Option<String>,
+    /// Resolved URL from cmd.
+    #[serde(default)]
+    pub resolved_url: Option<String>,
+    /// Epoch when resolved.
+    #[serde(default)]
+    pub resolved_at: Option<i64>,
 }
 
 // ── EpgMapping ────────────────────────────────────────
@@ -120,7 +136,10 @@ pub struct EpgMapping {
     /// Confidence score (0.0 - 1.0).
     pub confidence: f64,
     /// Matching strategy that produced this mapping.
-    pub source: String,
+    pub match_method: String,
+    /// Source of the EPG data.
+    #[serde(default)]
+    pub epg_source_id: Option<String>,
     /// Whether the user has locked this mapping.
     #[serde(default)]
     pub locked: bool,
@@ -128,13 +147,251 @@ pub struct EpgMapping {
     pub created_at: i64,
 }
 
-// ── VodItem ─────────────────────────────────────────
+// ── Movie ───────────────────────────────────────────
 
-/// A video-on-demand item (movie, series, or episode).
+/// A movie from a VOD source.
 ///
-/// Maps to the `vod_items` Drift table. Covers all
-/// VOD content types with optional series/episode
-/// metadata for hierarchical browsing.
+/// Maps to the `db_movies` table.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Movie {
+    /// Unique movie identifier.
+    pub id: String,
+    /// Source this movie belongs to.
+    pub source_id: String,
+    /// Source-native ID (stream_id for Xtream, portal id for Stalker).
+    pub native_id: String,
+    /// Display name / title.
+    pub name: String,
+    /// Original/alternate title.
+    #[serde(default)]
+    pub original_name: Option<String>,
+    /// URL of the poster image.
+    #[serde(default)]
+    pub poster_url: Option<String>,
+    /// URL of the backdrop / fanart image.
+    #[serde(default)]
+    pub backdrop_url: Option<String>,
+    /// Synopsis / plot description.
+    #[serde(default)]
+    pub description: Option<String>,
+    /// Direct stream URL.
+    #[serde(default)]
+    pub stream_url: Option<String>,
+    /// Container extension (e.g. "mkv", "mp4").
+    #[serde(default)]
+    pub container_ext: Option<String>,
+    /// Raw Stalker cmd for re-resolution.
+    #[serde(default)]
+    pub stalker_cmd: Option<String>,
+    /// Resolved URL from cmd.
+    #[serde(default)]
+    pub resolved_url: Option<String>,
+    /// Epoch when resolved.
+    #[serde(default)]
+    pub resolved_at: Option<i64>,
+    /// Release year.
+    #[serde(default)]
+    pub year: Option<i32>,
+    /// Duration in minutes.
+    #[serde(default)]
+    pub duration_minutes: Option<i32>,
+    /// Rating string (e.g. "7.5").
+    #[serde(default)]
+    pub rating: Option<String>,
+    /// Rating on a 5-star scale.
+    #[serde(default)]
+    pub rating_5based: Option<f64>,
+    /// Content/parental rating (e.g. "PG-13", "R").
+    #[serde(default)]
+    pub content_rating: Option<String>,
+    /// Comma-separated genre tags.
+    #[serde(default)]
+    pub genre: Option<String>,
+    /// YouTube trailer video ID.
+    #[serde(default)]
+    pub youtube_trailer: Option<String>,
+    /// TMDB movie ID.
+    #[serde(default)]
+    pub tmdb_id: Option<i64>,
+    /// Comma-separated cast / actor names.
+    #[serde(default)]
+    pub cast_names: Option<String>,
+    /// Director name(s).
+    #[serde(default)]
+    pub director: Option<String>,
+    /// Whether this content is flagged as adult/NSFW.
+    #[serde(default)]
+    pub is_adult: bool,
+    /// When the movie was first imported.
+    #[serde(default)]
+    pub added_at: Option<NaiveDateTime>,
+    /// When the movie was last refreshed.
+    #[serde(default)]
+    pub updated_at: Option<NaiveDateTime>,
+}
+
+// ── Series ──────────────────────────────────────────
+
+/// A TV series from a VOD source.
+///
+/// Maps to the `db_series` table.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Series {
+    /// Unique series identifier.
+    pub id: String,
+    /// Source this series belongs to.
+    pub source_id: String,
+    /// Source-native ID.
+    pub native_id: String,
+    /// Display name / title.
+    pub name: String,
+    /// Original/alternate title.
+    #[serde(default)]
+    pub original_name: Option<String>,
+    /// URL of the poster image.
+    #[serde(default)]
+    pub poster_url: Option<String>,
+    /// URL of the backdrop / fanart image.
+    #[serde(default)]
+    pub backdrop_url: Option<String>,
+    /// Synopsis / plot description.
+    #[serde(default)]
+    pub description: Option<String>,
+    /// Release year.
+    #[serde(default)]
+    pub year: Option<i32>,
+    /// Comma-separated genre tags.
+    #[serde(default)]
+    pub genre: Option<String>,
+    /// Content/parental rating (e.g. "PG-13").
+    #[serde(default)]
+    pub content_rating: Option<String>,
+    /// Rating string.
+    #[serde(default)]
+    pub rating: Option<String>,
+    /// Rating on a 5-star scale.
+    #[serde(default)]
+    pub rating_5based: Option<f64>,
+    /// YouTube trailer video ID.
+    #[serde(default)]
+    pub youtube_trailer: Option<String>,
+    /// TMDB series ID.
+    #[serde(default)]
+    pub tmdb_id: Option<i64>,
+    /// Comma-separated cast / actor names.
+    #[serde(default)]
+    pub cast_names: Option<String>,
+    /// Director name(s).
+    #[serde(default)]
+    pub director: Option<String>,
+    /// Whether this content is flagged as adult/NSFW.
+    #[serde(default)]
+    pub is_adult: bool,
+    /// When the series was first imported.
+    #[serde(default)]
+    pub added_at: Option<NaiveDateTime>,
+    /// When the series was last refreshed.
+    #[serde(default)]
+    pub updated_at: Option<NaiveDateTime>,
+}
+
+// ── Season ──────────────────────────────────────────
+
+/// A season within a TV series.
+///
+/// Maps to the `db_seasons` table.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Season {
+    /// Unique season identifier.
+    pub id: String,
+    /// Parent series ID.
+    pub series_id: String,
+    /// Season number.
+    pub season_number: i32,
+    /// Season name/title.
+    #[serde(default)]
+    pub name: Option<String>,
+    /// URL of the season poster image.
+    #[serde(default)]
+    pub poster_url: Option<String>,
+    /// Number of episodes in this season.
+    #[serde(default)]
+    pub episode_count: Option<i32>,
+    /// Air date (e.g. "2024-01-15").
+    #[serde(default)]
+    pub air_date: Option<String>,
+}
+
+// ── Episode ─────────────────────────────────────────
+
+/// An episode within a season.
+///
+/// Maps to the `db_episodes` table.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Episode {
+    /// Unique episode identifier.
+    pub id: String,
+    /// Parent season ID.
+    pub season_id: String,
+    /// Source this episode belongs to.
+    pub source_id: String,
+    /// Source-native ID.
+    pub native_id: String,
+    /// Episode number within the season.
+    pub episode_number: i32,
+    /// Episode name/title.
+    #[serde(default)]
+    pub name: Option<String>,
+    /// Synopsis / plot description.
+    #[serde(default)]
+    pub description: Option<String>,
+    /// URL of the episode poster/thumbnail.
+    #[serde(default)]
+    pub poster_url: Option<String>,
+    /// Direct stream URL.
+    #[serde(default)]
+    pub stream_url: Option<String>,
+    /// Container extension.
+    #[serde(default)]
+    pub container_ext: Option<String>,
+    /// Raw Stalker cmd for re-resolution.
+    #[serde(default)]
+    pub stalker_cmd: Option<String>,
+    /// Resolved URL from cmd.
+    #[serde(default)]
+    pub resolved_url: Option<String>,
+    /// Epoch when resolved.
+    #[serde(default)]
+    pub resolved_at: Option<i64>,
+    /// Duration in minutes.
+    #[serde(default)]
+    pub duration_minutes: Option<i32>,
+    /// Air date (e.g. "2024-01-15").
+    #[serde(default)]
+    pub air_date: Option<String>,
+    /// Rating string.
+    #[serde(default)]
+    pub rating: Option<String>,
+    /// Content/parental rating.
+    #[serde(default)]
+    pub content_rating: Option<String>,
+    /// TMDB episode ID.
+    #[serde(default)]
+    pub tmdb_id: Option<i64>,
+    /// When the episode was first imported.
+    #[serde(default)]
+    pub added_at: Option<NaiveDateTime>,
+    /// When the episode was last refreshed.
+    #[serde(default)]
+    pub updated_at: Option<NaiveDateTime>,
+}
+
+// ── VodItem (backward compatibility) ────────────────
+
+/// Legacy VOD item wrapper for backward compatibility.
+///
+/// Used by parsers and algorithms that haven't been migrated
+/// to the new Movie/Series/Episode types yet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VodItem {
     /// Unique VOD item identifier.
@@ -255,6 +512,120 @@ impl Default for VodItem {
     }
 }
 
+impl VodItem {
+    /// Convert a legacy VodItem to a Movie (for items with type "movie").
+    pub fn to_movie(&self) -> Movie {
+        Movie {
+            id: self.id.clone(),
+            source_id: self.source_id.clone().unwrap_or_default(),
+            native_id: self.id.clone(),
+            name: self.name.clone(),
+            original_name: self.original_name.clone(),
+            poster_url: self.poster_url.clone(),
+            backdrop_url: self.backdrop_url.clone(),
+            description: self.description.clone(),
+            stream_url: if self.stream_url.is_empty() {
+                None
+            } else {
+                Some(self.stream_url.clone())
+            },
+            container_ext: self.ext.clone(),
+            year: self.year,
+            duration_minutes: self.duration,
+            rating: self.rating.clone(),
+            rating_5based: self.rating_5based,
+            content_rating: self.content_rating.clone(),
+            genre: self.genre.clone(),
+            youtube_trailer: self.youtube_trailer.clone(),
+            tmdb_id: self.tmdb_id,
+            cast_names: self.cast.clone(),
+            director: self.director.clone(),
+            is_adult: self.is_adult,
+            added_at: self.added_at,
+            updated_at: self.updated_at,
+            ..Movie::default()
+        }
+    }
+}
+
+impl From<Movie> for VodItem {
+    fn from(m: Movie) -> Self {
+        VodItem {
+            id: m.id,
+            name: m.name,
+            stream_url: m.stream_url.unwrap_or_default(),
+            item_type: "movie".to_string(),
+            poster_url: m.poster_url,
+            backdrop_url: m.backdrop_url,
+            description: m.description,
+            rating: m.rating,
+            year: m.year,
+            duration: m.duration_minutes,
+            category: None,
+            series_id: None,
+            season_number: None,
+            episode_number: None,
+            ext: m.container_ext,
+            is_favorite: false,
+            added_at: m.added_at,
+            updated_at: m.updated_at,
+            source_id: if m.source_id.is_empty() {
+                None
+            } else {
+                Some(m.source_id)
+            },
+            cast: m.cast_names,
+            director: m.director,
+            genre: m.genre,
+            youtube_trailer: m.youtube_trailer,
+            tmdb_id: m.tmdb_id,
+            rating_5based: m.rating_5based,
+            original_name: m.original_name,
+            is_adult: m.is_adult,
+            content_rating: m.content_rating,
+        }
+    }
+}
+
+impl From<Series> for VodItem {
+    fn from(s: Series) -> Self {
+        VodItem {
+            id: s.id,
+            name: s.name,
+            stream_url: String::new(),
+            item_type: "series".to_string(),
+            poster_url: s.poster_url,
+            backdrop_url: s.backdrop_url,
+            description: s.description,
+            rating: s.rating,
+            year: s.year,
+            duration: None,
+            category: None,
+            series_id: None,
+            season_number: None,
+            episode_number: None,
+            ext: None,
+            is_favorite: false,
+            added_at: s.added_at,
+            updated_at: s.updated_at,
+            source_id: if s.source_id.is_empty() {
+                None
+            } else {
+                Some(s.source_id)
+            },
+            cast: s.cast_names,
+            director: s.director,
+            genre: s.genre,
+            youtube_trailer: s.youtube_trailer,
+            tmdb_id: s.tmdb_id,
+            rating_5based: s.rating_5based,
+            original_name: s.original_name,
+            is_adult: s.is_adult,
+            content_rating: s.content_rating,
+        }
+    }
+}
+
 // ── Category ────────────────────────────────────────
 
 /// A content category for live, VOD, or series.
@@ -344,11 +715,15 @@ pub struct Setting {
 /// An electronic programme guide entry.
 ///
 /// Maps to the `db_epg_entries` table. Composite
-/// primary key: (`channel_id`, `start_time`).
+/// primary key: (`source_id`, `epg_channel_id`, `start_time`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EpgEntry {
-    /// Channel this programme airs on.
+    /// EPG channel ID (XMLTV channel ID or Xtream stream_id).
+    /// In the DB this is `epg_channel_id`.
     pub channel_id: String,
+    /// XMLTV channel ID (maps to tvg_id in M3U).
+    #[serde(default)]
+    pub xmltv_id: Option<String>,
     /// Programme title.
     pub title: String,
     /// Scheduled start time.
@@ -367,6 +742,9 @@ pub struct EpgEntry {
     /// Source this EPG entry came from.
     #[serde(default)]
     pub source_id: Option<String>,
+    /// Whether this is an auto-generated placeholder entry.
+    #[serde(default)]
+    pub is_placeholder: bool,
     /// Episode/sub-title (XMLTV `<sub-title>`).
     #[serde(default)]
     pub sub_title: Option<String>,
@@ -388,18 +766,9 @@ pub struct EpgEntry {
     /// Star/review rating (e.g. "7.5/10", from XMLTV `<star-rating><value>`).
     #[serde(default)]
     pub star_rating: Option<String>,
-    /// Directors (semicolon-separated, from `<credits><director>`).
+    /// JSON-encoded credits (directors, cast, writers, presenters).
     #[serde(default)]
-    pub directors: Option<String>,
-    /// Actors/cast (semicolon-separated, from `<credits><actor>`).
-    #[serde(default)]
-    pub cast: Option<String>,
-    /// Writers (semicolon-separated, from `<credits><writer>`).
-    #[serde(default)]
-    pub writers: Option<String>,
-    /// Presenters/hosts (semicolon-separated, from `<credits><presenter>`).
-    #[serde(default)]
-    pub presenters: Option<String>,
+    pub credits_json: Option<String>,
     /// Programme language (XMLTV `<language>`).
     #[serde(default)]
     pub language: Option<String>,
@@ -428,6 +797,7 @@ impl Default for EpgEntry {
         );
         Self {
             channel_id: String::new(),
+            xmltv_id: None,
             title: String::new(),
             start_time: epoch,
             end_time: epoch,
@@ -435,6 +805,7 @@ impl Default for EpgEntry {
             category: None,
             icon_url: None,
             source_id: None,
+            is_placeholder: false,
             sub_title: None,
             season: None,
             episode: None,
@@ -442,10 +813,7 @@ impl Default for EpgEntry {
             air_date: None,
             content_rating: None,
             star_rating: None,
-            directors: None,
-            cast: None,
-            writers: None,
-            presenters: None,
+            credits_json: None,
             language: None,
             country: None,
             is_rerun: false,
@@ -581,14 +949,16 @@ pub struct UserFavorite {
 
 /// A per-profile VOD favourite.
 ///
-/// Maps to the `vod_favorites` Drift table. Composite
-/// primary key: (`profile_id`, `vod_item_id`).
+/// Maps to the `db_vod_favorites` table. Composite
+/// primary key: (`profile_id`, `content_id`, `content_type`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VodFavorite {
     /// Profile that owns this favourite.
     pub profile_id: String,
-    /// Favourited VOD item ID.
-    pub vod_item_id: String,
+    /// Favourited content ID (movie or series).
+    pub content_id: String,
+    /// Content type: "movie" or "series".
+    pub content_type: String,
     /// When the favourite was added.
     pub added_at: NaiveDateTime,
 }
@@ -1315,10 +1685,11 @@ mod tests {
 
     #[test]
     fn test_epg_mapping_locked_defaults_false() {
-        let json = r#"{"channel_id":"c1","epg_channel_id":"e1","confidence":0.9,"source":"tvg-id","created_at":0}"#;
+        let json = r#"{"channel_id":"c1","epg_channel_id":"e1","confidence":0.9,"match_method":"tvg-id","created_at":0}"#;
         let m: EpgMapping = serde_json::from_str(json).unwrap();
         assert!(!m.locked);
         assert_eq!(m.confidence, 0.9);
+        assert!(m.epg_source_id.is_none());
     }
 
     // ── XtreamAccountInfo ────────────────────────────

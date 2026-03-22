@@ -32,8 +32,11 @@ use r2d2_sqlite::SqliteConnectionManager;
 /// SQLite table name for live channels.
 pub const TABLE_CHANNELS: &str = "db_channels";
 
-/// SQLite table name for VOD items.
-pub const TABLE_VOD_ITEMS: &str = "db_vod_items";
+/// SQLite table name for movies.
+pub const TABLE_MOVIES: &str = "db_movies";
+
+/// SQLite table name for series.
+pub const TABLE_SERIES: &str = "db_series";
 
 /// SQLite table name for content sources.
 pub const TABLE_SOURCES: &str = "db_sources";
@@ -172,34 +175,46 @@ mod tests {
             "db_bookmarks",
             "db_buffer_tiers",
             "db_categories",
+            "db_channel_categories",
             "db_channel_order",
             "db_channels",
+            "db_epg_channels",
             "db_epg_entries",
             "db_epg_mappings",
-            "db_profiles",
+            "db_episodes",
+            "db_favorite_categories",
+            "db_movies",
             "db_profile_source_access",
+            "db_profiles",
             "db_recordings",
             "db_reminders",
             "db_retry_queue",
             "db_saved_layouts",
             "db_search_history",
+            "db_seasons",
+            "db_series",
             "db_settings",
             "db_smart_group_members",
             "db_smart_groups",
             "db_sources",
             "db_storage_backends",
             "db_stream_health",
+            "db_stream_urls",
             "db_sync_meta",
             "db_transfer_tasks",
             "db_user_favorites",
+            "db_vod_categories",
             "db_vod_favorites",
-            "db_vod_items",
             "db_watch_history",
             "db_watchlist",
             "merge_decisions",
         ];
 
-        assert_eq!(tables.len(), 30, "expected 30 tables");
+        assert_eq!(
+            tables.len(),
+            37,
+            "expected 37 tables (36 user + sqlite_sequence)"
+        );
         for name in &expected {
             assert!(tables.contains(&name.to_string()), "missing table: {name}",);
         }
@@ -227,24 +242,43 @@ mod tests {
         let expected = vec![
             "idx_bookmarks_content",
             "idx_categories_source",
+            "idx_categories_type_source",
+            "idx_channel_categories_cat",
             "idx_channel_order_profile",
+            "idx_channels_epg_channel",
+            "idx_channels_native",
             "idx_channels_source",
             "idx_channels_tvg",
             "idx_epg_channel",
+            "idx_epg_channel_time",
+            "idx_epg_channels_source",
+            "idx_epg_real_coverage",
             "idx_epg_source",
+            "idx_epg_xmltv_time",
+            "idx_episodes_season",
+            "idx_episodes_source",
             "idx_merge_decisions_source",
             "idx_merge_decisions_type",
+            "idx_movies_name",
+            "idx_movies_native",
+            "idx_movies_source",
             "idx_reminders_notify",
             "idx_retry_queue_status_next",
+            "idx_seasons_series",
+            "idx_series_name",
+            "idx_series_native",
+            "idx_series_source",
             "idx_source_access",
-            "idx_vod_items_series",
-            "idx_vod_source",
+            "idx_stream_urls_channel",
+            "idx_vod_categories_cat",
+            "idx_vod_categories_content",
+            "idx_watch_history_content",
             "idx_watch_history_profile",
+            "idx_watch_history_profile_source",
             "idx_watch_history_source",
-            "idx_epg_channel_time",
         ];
 
-        assert_eq!(indexes.len(), 17, "expected 17 indexes",);
+        assert_eq!(indexes.len(), expected.len(), "index count mismatch");
         for name in &expected {
             assert!(indexes.contains(&name.to_string()), "missing index: {name}",);
         }

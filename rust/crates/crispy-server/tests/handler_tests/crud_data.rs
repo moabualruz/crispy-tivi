@@ -3,7 +3,7 @@
 
 use serde_json::json;
 
-use super::{make_svc, send};
+use super::{make_svc, seed_source, send};
 
 // ── CRUD: EPG ─────────────────────────────────────
 
@@ -245,6 +245,37 @@ fn delete_storage_backend() {
 #[test]
 fn save_and_load_transfer_tasks() {
     let svc = make_svc();
+    // Seed FK chain: source → (recording needs channel_id nullable,
+    // but recording_id FK requires a recording to exist).
+    // Seed a recording and storage backend first.
+    send(
+        &svc,
+        &json!({
+            "cmd": "saveRecording",
+            "id": "srec",
+            "args": {"recording": {
+                "id": "rec1",
+                "channel_name": "ESPN",
+                "program_name": "Game",
+                "start_time": "2024-06-01T20:00:00",
+                "end_time": "2024-06-01T22:00:00",
+                "status": "completed",
+            }},
+        }),
+    );
+    send(
+        &svc,
+        &json!({
+            "cmd": "saveStorageBackend",
+            "id": "ssb",
+            "args": {"backend": {
+                "id": "sb1",
+                "name": "My S3",
+                "backend_type": "s3",
+                "config": "{}",
+            }},
+        }),
+    );
     let task = json!({
         "id": "tt1",
         "recording_id": "rec1",

@@ -189,11 +189,9 @@ pub async fn sync_xtream_source(
     .await
     .unwrap_or_default();
 
-    let mut channels = xtream::parse_xtream_live_streams(&live_data, &base, username, password);
+    let mut channels =
+        xtream::channels_from_xtream_json(&live_data, &base, username, password, Some(source_id));
     channels = categories::resolve_channel_categories(&channels, &live_cat_map);
-    for ch in &mut channels {
-        ch.source_id = Some(source_id.to_owned());
-    }
 
     emit_progress(source_id, "vod", 0.4, "Fetching VOD streams");
 
@@ -206,7 +204,7 @@ pub async fn sync_xtream_source(
     .unwrap_or_default();
 
     let mut vod_items =
-        vod::parse_vod_streams(&vod_data, &base, username, password, Some(source_id));
+        xtream::vod_from_xtream_json(&vod_data, &base, username, password, Some(source_id));
     vod_items = categories::resolve_vod_categories(&vod_items, &vod_cat_map);
 
     // 3b. Optionally enrich each VOD item with full metadata from
@@ -256,7 +254,7 @@ pub async fn sync_xtream_source(
     .await
     .unwrap_or_default();
 
-    let mut series_items = vod::parse_series(&series_data, Some(source_id));
+    let mut series_items = xtream::series_from_xtream_json(&series_data, Some(source_id));
     series_items = categories::resolve_vod_categories(&series_items, &series_cat_map);
 
     // 4b. Fetch episodes for each series (Xtream requires a per-series info call).
@@ -345,7 +343,7 @@ mod tests {
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     use super::*;
-    use crate::services::test_helpers::make_service;
+    use crate::services::test_helpers::{make_service, make_source};
 
     #[tokio::test]
     async fn verify_xtream_credentials_success() {
@@ -557,6 +555,9 @@ mod tests {
             .await;
 
         let service = make_service();
+        service
+            .save_source(&make_source("src-1", "Xtream Source", "xtream"))
+            .unwrap();
         let report = sync_xtream_source(
             &service,
             &mock_server.uri(),

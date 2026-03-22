@@ -9,23 +9,29 @@ use crate::events::DataChangeEvent;
 impl CrispyService {
     // ── Categories ──────────────────────────────────
 
-    /// Save categories as type -> [names].
-    /// Transactional replace: deletes all existing,
-    /// then inserts new.
+    /// Save categories for a specific source as type -> [names].
+    /// Transactional replace: deletes existing categories for the
+    /// source, then inserts new ones.
     pub fn save_categories(
         &self,
+        source_id: &str,
         categories: &HashMap<String, Vec<String>>,
     ) -> Result<(), DbError> {
         let conn = self.db.get()?;
         let tx = conn.unchecked_transaction()?;
-        tx.execute("DELETE FROM db_categories", [])?;
+        tx.execute(
+            "DELETE FROM db_categories WHERE source_id = ?1",
+            params![source_id],
+        )?;
         for (cat_type, names) in categories {
             for name in names {
+                // Deterministic ID from (type, name, source_id).
+                let id = format!("{cat_type}:{name}:{source_id}");
                 tx.execute(
                     "INSERT INTO db_categories
-                     (category_type, name)
-                     VALUES (?1, ?2)",
-                    params![cat_type, name],
+                     (id, category_type, name, source_id)
+                     VALUES (?1, ?2, ?3, ?4)",
+                    params![id, cat_type, name, source_id],
                 )?;
             }
         }
@@ -163,13 +169,16 @@ mod tests {
     #[test]
     fn categories_crud() {
         let svc = make_service();
+        let src = make_source("s1", "S1", "m3u");
+        svc.save_source(&src).unwrap();
+
         let mut cats = HashMap::new();
         cats.insert(
             "live".to_string(),
             vec!["News".to_string(), "Sports".to_string()],
         );
         cats.insert("vod".to_string(), vec!["Action".to_string()]);
-        svc.save_categories(&cats).unwrap();
+        svc.save_categories("s1", &cats).unwrap();
 
         let loaded = svc.load_categories().unwrap();
         assert_eq!(loaded["live"].len(), 2);

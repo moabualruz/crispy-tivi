@@ -2,7 +2,7 @@ use rusqlite::params;
 
 use super::{CrispyService, bool_to_int, dt_to_ts, int_to_bool, opt_dt_to_ts, opt_ts_to_dt};
 use crate::algorithms::crypto::{decrypt_field, encrypt_field, get_or_create_encryption_key};
-use crate::database::{DbError, TABLE_CHANNELS, TABLE_EPG_ENTRIES, TABLE_SOURCES, TABLE_VOD_ITEMS};
+use crate::database::{DbError, TABLE_CHANNELS, TABLE_MOVIES, TABLE_SOURCES};
 use crate::errors::CrispyError;
 use crate::events::DataChangeEvent;
 use crate::models::{Source, SourceStats};
@@ -234,39 +234,14 @@ impl CrispyService {
         Ok(())
     }
 
-    /// Delete a source and cascade-delete all associated data.
-    ///
-    /// Deletes: channels, VOD, EPG, categories, sync_meta,
-    /// profile_source_access for this source_id.
+    /// Delete a source. FK CASCADE handles all child table cleanup
+    /// (channels, VOD, EPG, categories, sync_meta, profile_source_access).
     pub fn delete_source(&self, id: &str) -> Result<(), DbError> {
-        let mut conn = self.db.get()?;
-        let tx = conn.transaction()?;
-        tx.execute(
-            &format!("DELETE FROM {TABLE_CHANNELS} WHERE source_id = ?1"),
-            params![id],
-        )?;
-        tx.execute(
-            &format!("DELETE FROM {TABLE_VOD_ITEMS} WHERE source_id = ?1"),
-            params![id],
-        )?;
-        tx.execute(
-            &format!("DELETE FROM {TABLE_EPG_ENTRIES} WHERE source_id = ?1"),
-            params![id],
-        )?;
-        tx.execute(
-            "DELETE FROM db_categories WHERE source_id = ?1",
-            params![id],
-        )?;
-        tx.execute("DELETE FROM db_sync_meta WHERE source_id = ?1", params![id])?;
-        tx.execute(
-            "DELETE FROM db_profile_source_access WHERE source_id = ?1",
-            params![id],
-        )?;
-        tx.execute(
+        let conn = self.db.get()?;
+        conn.execute(
             &format!("DELETE FROM {TABLE_SOURCES} WHERE id = ?1"),
             params![id],
         )?;
-        tx.commit()?;
         self.emit(DataChangeEvent::SourceDeleted {
             source_id: id.to_string(),
         });
@@ -314,7 +289,7 @@ impl CrispyService {
         // VOD counts per source.
         let mut vod_stmt = conn.prepare(&format!(
             "SELECT source_id, COUNT(*) AS cnt
-             FROM {TABLE_VOD_ITEMS}
+             FROM {TABLE_MOVIES}
              WHERE source_id IS NOT NULL
              GROUP BY source_id"
         ))?;

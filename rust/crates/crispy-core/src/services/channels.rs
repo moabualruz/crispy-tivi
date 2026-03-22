@@ -8,58 +8,59 @@ use crate::database::{DbError, TABLE_CHANNELS};
 use crate::events::DataChangeEvent;
 use crate::models::Channel;
 
-/// SELECT column list for `db_channels` (27 columns, positional order).
+/// SELECT column list for `db_channels` (32 columns, positional order).
 ///
 /// Use with `format!("SELECT {CHANNEL_COLUMNS} FROM db_channels ...")`.
 /// Column order matches `channel_from_row` index bindings.
-pub(crate) const CHANNEL_COLUMNS: &str = "id, name, stream_url, number, \
-     channel_group, logo_url, tvg_id, \
+pub(crate) const CHANNEL_COLUMNS: &str = "id, native_id, name, stream_url, number, \
+     channel_group, logo_url, tvg_id, epg_channel_id, \
      tvg_name, is_favorite, user_agent, \
      has_catchup, catchup_days, \
      catchup_type, catchup_source, \
      source_id, added_at, updated_at, is_247, \
      tvg_shift, tvg_language, tvg_country, \
      parent_code, is_radio, tvg_rec, \
-     is_adult, custom_sid, direct_source";
+     is_adult, custom_sid, direct_source, \
+     stalker_cmd, resolved_url, resolved_at";
 
 /// Map a single SQLite row to a `Channel`.
 ///
-/// Column order must match `CHANNEL_COLUMNS`:
-/// `id, name, stream_url, number, channel_group, logo_url, tvg_id,
-///  tvg_name, is_favorite, user_agent, has_catchup, catchup_days,
-///  catchup_type, catchup_source, source_id, added_at, updated_at, is_247,
-///  tvg_shift, tvg_language, tvg_country, parent_code, is_radio, tvg_rec,
-///  is_adult, custom_sid, direct_source`
+/// Column order must match `CHANNEL_COLUMNS`.
 fn channel_from_row(row: &Row) -> rusqlite::Result<Channel> {
     Ok(Channel {
         id: row.get(0)?,
-        name: row.get(1)?,
-        stream_url: row.get(2)?,
-        number: row.get(3)?,
-        channel_group: row.get(4)?,
-        logo_url: row.get(5)?,
-        tvg_id: row.get(6)?,
-        tvg_name: row.get(7)?,
-        is_favorite: int_to_bool(row.get(8)?),
-        user_agent: row.get(9)?,
-        has_catchup: int_to_bool(row.get(10)?),
-        catchup_days: row.get(11)?,
-        catchup_type: row.get(12)?,
-        catchup_source: row.get(13)?,
+        native_id: row.get(1)?,
+        name: row.get(2)?,
+        stream_url: row.get(3)?,
+        number: row.get(4)?,
+        channel_group: row.get(5)?,
+        logo_url: row.get(6)?,
+        tvg_id: row.get(7)?,
+        epg_channel_id: row.get(8)?,
+        tvg_name: row.get(9)?,
+        is_favorite: int_to_bool(row.get(10)?),
+        user_agent: row.get(11)?,
+        has_catchup: int_to_bool(row.get(12)?),
+        catchup_days: row.get(13)?,
+        catchup_type: row.get(14)?,
+        catchup_source: row.get(15)?,
         resolution: None,
-        source_id: row.get(14)?,
-        added_at: opt_ts_to_dt(row.get(15)?),
-        updated_at: opt_ts_to_dt(row.get(16)?),
-        is_247: int_to_bool(row.get(17)?),
-        tvg_shift: row.get(18)?,
-        tvg_language: row.get(19)?,
-        tvg_country: row.get(20)?,
-        parent_code: row.get(21)?,
-        is_radio: int_to_bool(row.get(22)?),
-        tvg_rec: row.get(23)?,
-        is_adult: int_to_bool(row.get(24)?),
-        custom_sid: row.get(25)?,
-        direct_source: row.get(26)?,
+        source_id: row.get(16)?,
+        added_at: opt_ts_to_dt(row.get(17)?),
+        updated_at: opt_ts_to_dt(row.get(18)?),
+        is_247: int_to_bool(row.get(19)?),
+        tvg_shift: row.get(20)?,
+        tvg_language: row.get(21)?,
+        tvg_country: row.get(22)?,
+        parent_code: row.get(23)?,
+        is_radio: int_to_bool(row.get(24)?),
+        tvg_rec: row.get(25)?,
+        is_adult: int_to_bool(row.get(26)?),
+        custom_sid: row.get(27)?,
+        direct_source: row.get(28)?,
+        stalker_cmd: row.get(29)?,
+        resolved_url: row.get(30)?,
+        resolved_at: row.get(31)?,
     })
 }
 
@@ -74,29 +75,33 @@ impl CrispyService {
         for ch in channels {
             tx.execute(
                 "INSERT OR REPLACE INTO db_channels (
-                    id, name, stream_url, number,
-                    channel_group, logo_url, tvg_id,
+                    id, native_id, name, stream_url, number,
+                    channel_group, logo_url, tvg_id, epg_channel_id,
                     tvg_name, is_favorite, user_agent,
                     has_catchup, catchup_days,
                     catchup_type, catchup_source,
                     source_id, added_at, updated_at, is_247,
                     tvg_shift, tvg_language, tvg_country,
                     parent_code, is_radio, tvg_rec,
-                    is_adult, custom_sid, direct_source
+                    is_adult, custom_sid, direct_source,
+                    stalker_cmd, resolved_url, resolved_at
                 ) VALUES (
-                    ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
-                    ?9, ?10, ?11, ?12, ?13, ?14, ?15,
-                    ?16, ?17, ?18, ?19, ?20, ?21,
-                    ?22, ?23, ?24, ?25, ?26, ?27
+                    ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9,
+                    ?10, ?11, ?12, ?13, ?14, ?15, ?16,
+                    ?17, ?18, ?19, ?20, ?21, ?22, ?23,
+                    ?24, ?25, ?26, ?27, ?28, ?29,
+                    ?30, ?31, ?32
                 )",
                 params![
                     ch.id,
+                    ch.native_id,
                     ch.name,
                     ch.stream_url,
                     ch.number,
                     ch.channel_group,
                     ch.logo_url,
                     ch.tvg_id,
+                    ch.epg_channel_id,
                     ch.tvg_name,
                     bool_to_int(ch.is_favorite),
                     ch.user_agent,
@@ -117,6 +122,9 @@ impl CrispyService {
                     bool_to_int(ch.is_adult),
                     ch.custom_sid,
                     ch.direct_source,
+                    ch.stalker_cmd,
+                    ch.resolved_url,
+                    ch.resolved_at,
                 ],
             )?;
             count += 1;
@@ -265,7 +273,7 @@ mod tests {
 
     #[test]
     fn test_get_channels_by_sources_empty_returns_all() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         let mut ch1 = make_channel("ch1", "Channel 1");
         ch1.source_id = Some("src_a".to_string());
         let mut ch2 = make_channel("ch2", "Channel 2");
@@ -279,7 +287,7 @@ mod tests {
 
     #[test]
     fn test_get_channels_by_sources_filters() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         let mut ch1 = make_channel("ch1", "Channel 1");
         ch1.source_id = Some("src_a".to_string());
         let mut ch2 = make_channel("ch2", "Channel 2");
@@ -317,13 +325,14 @@ mod tests {
 
     #[test]
     fn delete_removed_channels() {
-        let svc = make_service();
-        let channels = vec![
-            make_channel("ch1", "Channel 1"),
-            make_channel("ch2", "Channel 2"),
-            make_channel("ch3", "Channel 3"),
-        ];
-        svc.save_channels(&channels).unwrap();
+        let svc = make_service_with_fixtures();
+        let mut ch1 = make_channel("ch1", "Channel 1");
+        ch1.source_id = Some("src1".to_string());
+        let mut ch2 = make_channel("ch2", "Channel 2");
+        ch2.source_id = Some("src1".to_string());
+        let mut ch3 = make_channel("ch3", "Channel 3");
+        ch3.source_id = Some("src1".to_string());
+        svc.save_channels(&[ch1, ch2, ch3]).unwrap();
 
         let deleted = svc
             .delete_removed_channels("src1", &["ch1".to_string()])
@@ -431,7 +440,7 @@ mod tests {
         use crate::events::serialize_event;
         use std::collections::HashSet;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
         svc.set_event_callback(Arc::new(move |e| {

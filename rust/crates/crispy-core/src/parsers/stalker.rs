@@ -299,6 +299,7 @@ pub fn parse_stalker_live_streams(data: &[Value], source_id: &str, base_url: &st
                 is_adult,
                 custom_sid: None,
                 direct_source: None,
+                ..Default::default()
             })
         })
         .collect()
@@ -974,6 +975,300 @@ pub fn parse_stalker_favorites(json: &str) -> Vec<String> {
     }
 
     Vec::new()
+}
+
+// ── Adapter: crispy_stalker crate types ──────────
+
+/// Convert a vec of [`StalkerChannel`] (from `crispy_stalker`) into
+/// [`Channel`] models using `From<StalkerChannel>`.
+///
+/// The `base_url` is used to resolve `cmd` values into stream URLs.
+pub fn channels_from_stalker(
+    channels: Vec<crispy_stalker::types::StalkerChannel>,
+    source_id: &str,
+    base_url: &str,
+) -> Vec<Channel> {
+    channels
+        .into_iter()
+        .map(|sc| {
+            // Resolve the cmd to a stream URL before converting.
+            let stream_url = build_stalker_stream_url(&sc.cmd, base_url);
+            let mut ch: Channel = sc.into();
+            ch.stream_url = stream_url;
+            ch.source_id = Some(source_id.to_string());
+            ch
+        })
+        .collect()
+}
+
+/// Convert a vec of [`StalkerVodItem`] (from `crispy_stalker`) into
+/// [`Movie`] models.
+pub fn movies_from_stalker(
+    items: Vec<crispy_stalker::types::StalkerVodItem>,
+    source_id: &str,
+    base_url: &str,
+) -> Vec<crate::models::Movie> {
+    items
+        .into_iter()
+        .map(|vi| {
+            let resolved = build_stalker_stream_url(&vi.cmd, base_url);
+            let mut movie: crate::models::Movie = vi.into();
+            movie.source_id = source_id.to_string();
+            movie.resolved_url = Some(resolved);
+            movie
+        })
+        .collect()
+}
+
+/// Convert a vec of [`StalkerSeriesItem`] (from `crispy_stalker`) into
+/// [`Series`] models.
+pub fn series_from_stalker(
+    items: Vec<crispy_stalker::types::StalkerSeriesItem>,
+    source_id: &str,
+) -> Vec<crate::models::Series> {
+    items
+        .into_iter()
+        .map(|si| {
+            let mut series: crate::models::Series = si.into();
+            series.source_id = source_id.to_string();
+            series
+        })
+        .collect()
+}
+
+// ── Bridge adapters: raw JSON → crate types → domain models ──
+
+/// Parse raw portal JSON items into [`StalkerChannel`] crate types.
+///
+/// Mirrors the field extraction from `crispy_stalker::client::parse_channel`,
+/// which maps portal-native field names (e.g. `tv_archive`, `censored`) to
+/// the crate type's semantic names (e.g. `has_archive`, `is_censored`).
+fn parse_value_to_stalker_channel(v: &Value) -> crispy_stalker::types::StalkerChannel {
+    crispy_stalker::types::StalkerChannel {
+        id: v
+            .get("id")
+            .map(|id| {
+                id.as_str()
+                    .map(String::from)
+                    .unwrap_or_else(|| id.to_string())
+            })
+            .unwrap_or_default(),
+        name: non_empty_str(v.get("name").unwrap_or(&Value::Null))
+            .unwrap_or("Unknown")
+            .to_string(),
+        number: v.get("number").and_then(value_as_i32).map(|n| n as u32),
+        cmd: non_empty_str(v.get("cmd").unwrap_or(&Value::Null))
+            .unwrap_or("")
+            .to_string(),
+        tv_genre_id: v.get("tv_genre_id").map(|g| {
+            g.as_str()
+                .map(String::from)
+                .unwrap_or_else(|| g.to_string())
+        }),
+        logo: v
+            .get("logo")
+            .and_then(|l| l.as_str())
+            .filter(|s| !s.is_empty())
+            .map(String::from),
+        epg_channel_id: v
+            .get("xmltv_id")
+            .and_then(|x| x.as_str())
+            .filter(|s| !s.is_empty())
+            .or_else(|| {
+                v.get("epg_id")
+                    .and_then(|x| x.as_str())
+                    .filter(|s| !s.is_empty())
+            })
+            .map(String::from),
+        has_archive: value_as_i64(v.get("tv_archive").unwrap_or(&Value::Null)).unwrap_or(0) == 1,
+        archive_days: v
+            .get("tv_archive_duration")
+            .and_then(value_as_i32)
+            .unwrap_or(0) as u32,
+        is_censored: value_as_i64(v.get("censored").unwrap_or(&Value::Null)).unwrap_or(0) == 1,
+    }
+}
+
+/// Parse raw portal JSON items into [`StalkerVodItem`] crate types.
+///
+/// Mirrors the field extraction from `crispy_stalker::client::parse_vod_item`.
+fn parse_value_to_stalker_vod(v: &Value) -> crispy_stalker::types::StalkerVodItem {
+    crispy_stalker::types::StalkerVodItem {
+        id: v
+            .get("id")
+            .map(|id| {
+                id.as_str()
+                    .map(String::from)
+                    .unwrap_or_else(|| id.to_string())
+            })
+            .unwrap_or_default(),
+        name: non_empty_str(v.get("name").unwrap_or(&Value::Null))
+            .unwrap_or("Unknown")
+            .to_string(),
+        cmd: non_empty_str(v.get("cmd").unwrap_or(&Value::Null))
+            .unwrap_or("")
+            .to_string(),
+        category_id: v.get("category_id").and_then(|c| {
+            c.as_str()
+                .filter(|s| !s.is_empty())
+                .map(String::from)
+                .or_else(|| Some(c.to_string()))
+        }),
+        logo: v
+            .get("screenshot_uri")
+            .and_then(|l| l.as_str())
+            .filter(|s| !s.is_empty())
+            .or_else(|| {
+                v.get("logo")
+                    .and_then(|l| l.as_str())
+                    .filter(|s| !s.is_empty())
+            })
+            .map(String::from),
+        description: v
+            .get("description")
+            .and_then(|d| d.as_str())
+            .filter(|s| !s.is_empty())
+            .map(String::from),
+        year: v
+            .get("year")
+            .and_then(|y| y.as_str())
+            .filter(|s| !s.is_empty())
+            .map(String::from),
+        genre: v
+            .get("genre_str")
+            .or_else(|| v.get("genres_str"))
+            .and_then(|g| g.as_str())
+            .filter(|s| !s.is_empty())
+            .map(String::from),
+        rating: v
+            .get("rating_imdb")
+            .or_else(|| v.get("rating_kinopoisk"))
+            .and_then(|r| r.as_str())
+            .filter(|s| !s.is_empty() && s != &"0")
+            .map(String::from),
+        director: v
+            .get("director")
+            .and_then(|d| d.as_str())
+            .filter(|s| !s.is_empty())
+            .map(String::from),
+        cast: v
+            .get("actors")
+            .and_then(|a| a.as_str())
+            .filter(|s| !s.is_empty())
+            .map(String::from),
+        duration: v
+            .get("time")
+            .or_else(|| v.get("length"))
+            .and_then(|t| t.as_str())
+            .filter(|s| !s.is_empty())
+            .map(String::from),
+        tmdb_id: v.get("tmdb_id").and_then(value_as_i64),
+    }
+}
+
+/// Parse raw portal JSON items into [`StalkerSeriesItem`] crate types.
+fn parse_value_to_stalker_series(v: &Value) -> crispy_stalker::types::StalkerSeriesItem {
+    crispy_stalker::types::StalkerSeriesItem {
+        id: v
+            .get("id")
+            .map(|id| {
+                id.as_str()
+                    .map(String::from)
+                    .unwrap_or_else(|| id.to_string())
+            })
+            .unwrap_or_default(),
+        name: non_empty_str(v.get("name").unwrap_or(&Value::Null))
+            .unwrap_or("Unknown")
+            .to_string(),
+        category_id: v.get("category_id").and_then(|c| {
+            c.as_str()
+                .filter(|s| !s.is_empty())
+                .map(String::from)
+                .or_else(|| Some(c.to_string()))
+        }),
+        logo: v
+            .get("screenshot_uri")
+            .and_then(|l| l.as_str())
+            .filter(|s| !s.is_empty())
+            .or_else(|| {
+                v.get("logo")
+                    .and_then(|l| l.as_str())
+                    .filter(|s| !s.is_empty())
+            })
+            .map(String::from),
+        description: v
+            .get("description")
+            .and_then(|d| d.as_str())
+            .filter(|s| !s.is_empty())
+            .map(String::from),
+        year: v
+            .get("year")
+            .and_then(|y| y.as_str())
+            .filter(|s| !s.is_empty())
+            .map(String::from),
+        genre: v
+            .get("genre_str")
+            .or_else(|| v.get("genres_str"))
+            .and_then(|g| g.as_str())
+            .filter(|s| !s.is_empty())
+            .map(String::from),
+        rating: v
+            .get("rating_imdb")
+            .or_else(|| v.get("rating_kinopoisk"))
+            .and_then(|r| r.as_str())
+            .filter(|s| !s.is_empty() && s != &"0")
+            .map(String::from),
+        director: v
+            .get("director")
+            .and_then(|d| d.as_str())
+            .filter(|s| !s.is_empty())
+            .map(String::from),
+        cast: v
+            .get("actors")
+            .and_then(|a| a.as_str())
+            .filter(|s| !s.is_empty())
+            .map(String::from),
+    }
+}
+
+/// Parse raw Stalker portal channel JSON via crate types into [`Channel`] models.
+///
+/// Bridges the raw portal JSON items through [`StalkerChannel`] crate types,
+/// then delegates to [`channels_from_stalker`] for the final domain conversion.
+pub fn channels_from_stalker_json(data: &[Value], source_id: &str, base_url: &str) -> Vec<Channel> {
+    let typed: Vec<crispy_stalker::types::StalkerChannel> =
+        data.iter().map(parse_value_to_stalker_channel).collect();
+    channels_from_stalker(typed, source_id, base_url)
+}
+
+/// Parse raw Stalker portal VOD JSON via crate types into [`VodItem`] models.
+///
+/// Bridges raw portal JSON through [`StalkerVodItem`] crate types into
+/// [`Movie`] models, then converts to [`VodItem`] for DB compatibility.
+pub fn vod_from_stalker_json(
+    data: &[Value],
+    source_id: &str,
+    base_url: &str,
+) -> Vec<crate::models::VodItem> {
+    let typed: Vec<crispy_stalker::types::StalkerVodItem> =
+        data.iter().map(parse_value_to_stalker_vod).collect();
+    movies_from_stalker(typed, source_id, base_url)
+        .into_iter()
+        .map(crate::models::VodItem::from)
+        .collect()
+}
+
+/// Parse raw Stalker portal series JSON via crate types into [`VodItem`] models.
+///
+/// Bridges raw portal JSON through [`StalkerSeriesItem`] crate types into
+/// [`Series`] models, then converts to [`VodItem`] for DB compatibility.
+pub fn series_from_stalker_json(data: &[Value], source_id: &str) -> Vec<crate::models::VodItem> {
+    let typed: Vec<crispy_stalker::types::StalkerSeriesItem> =
+        data.iter().map(parse_value_to_stalker_series).collect();
+    series_from_stalker(typed, source_id)
+        .into_iter()
+        .map(crate::models::VodItem::from)
+        .collect()
 }
 
 // ── Tests ─────────────────────────────────────────

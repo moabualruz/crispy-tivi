@@ -8409,12 +8409,14 @@ fn wire__crate__api__channels__save_categories_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_source_id = <String>::sse_decode(&mut deserializer);
             let api_json = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || {
-                        let output_ok = crate::api::channels::save_categories(api_json)?;
+                        let output_ok =
+                            crate::api::channels::save_categories(api_source_id, api_json)?;
                         Ok(output_ok)
                     })(),
                 )

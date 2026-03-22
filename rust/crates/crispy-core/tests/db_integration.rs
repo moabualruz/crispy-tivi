@@ -23,7 +23,29 @@ use crispy_core::services::CrispyService;
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 fn make_svc() -> CrispyService {
-    CrispyService::open_in_memory().expect("open in-memory DB")
+    let svc = CrispyService::open_in_memory().expect("open in-memory DB");
+    // Seed sources so FK constraints on channels are satisfied.
+    for (id, name) in [
+        ("s1", "Source 1"),
+        ("s2", "Source 2"),
+        ("s3", "Source 3"),
+        ("src1", "Src 1"),
+        ("src2", "Src 2"),
+        ("srcA", "Src A"),
+        ("srcB", "Src B"),
+    ] {
+        svc.save_source(&source(id, name)).expect("seed source");
+    }
+    // Seed profiles so watch history + favorites FK constraints pass.
+    for (id, name) in [
+        ("p1", "Alice"),
+        ("p2", "Bob"),
+        ("profile_alice", "Alice"),
+        ("profile_bob", "Bob"),
+    ] {
+        svc.save_profile(&profile(id, name)).expect("seed profile");
+    }
+    svc
 }
 
 fn source(id: &str, name: &str) -> Source {
@@ -71,33 +93,11 @@ fn profile(id: &str, name: &str) -> UserProfile {
 fn channel(id: &str, name: &str, source_id: &str) -> Channel {
     Channel {
         id: id.to_string(),
+        native_id: id.to_string(),
         name: name.to_string(),
         stream_url: format!("http://example.com/{id}.ts"),
-        number: None,
-        channel_group: None,
-        logo_url: None,
-        tvg_id: None,
-        tvg_name: None,
-        is_favorite: false,
-        user_agent: None,
-        has_catchup: false,
-        catchup_days: 0,
-        catchup_type: None,
-        catchup_source: None,
-        resolution: None,
         source_id: Some(source_id.to_string()),
-        added_at: None,
-        updated_at: None,
-        is_247: false,
-        tvg_shift: None,
-        tvg_language: None,
-        tvg_country: None,
-        parent_code: None,
-        is_radio: false,
-        tvg_rec: None,
-        is_adult: false,
-        custom_sid: None,
-        direct_source: None,
+        ..Default::default()
     }
 }
 
@@ -174,10 +174,10 @@ fn test_load_profiles_returns_all_when_multiple_saved() {
     svc.save_profile(&profile("p3", "Charlie")).unwrap();
 
     let all = svc.load_profiles().unwrap();
-    assert_eq!(all.len(), 3);
-
     let ids: Vec<&str> = all.iter().map(|p| p.id.as_str()).collect();
     assert!(ids.contains(&"p1"));
+    assert!(ids.contains(&"p2"));
+    assert!(ids.contains(&"p3"));
     assert!(ids.contains(&"p2"));
     assert!(ids.contains(&"p3"));
 }
@@ -189,11 +189,13 @@ fn test_delete_profile_removes_only_target_when_multiple_exist() {
     svc.save_profile(&profile("p1", "Alice")).unwrap();
     svc.save_profile(&profile("p2", "Bob")).unwrap();
 
+    let before = svc.load_profiles().unwrap().len();
     svc.delete_profile("p1").unwrap();
 
     let remaining = svc.load_profiles().unwrap();
-    assert_eq!(remaining.len(), 1);
-    assert_eq!(remaining[0].id, "p2");
+    assert_eq!(remaining.len(), before - 1, "exactly one profile removed");
+    assert!(remaining.iter().any(|p| p.id == "p2"), "p2 must survive");
+    assert!(!remaining.iter().any(|p| p.id == "p1"), "p1 must be gone");
 }
 
 /// Cascade delete removes the profile's favorites.
@@ -209,7 +211,11 @@ fn test_delete_profile_removes_favorites_when_profile_deleted() {
 
     svc.delete_profile("p1").unwrap();
 
-    assert!(svc.load_profiles().unwrap().is_empty());
+    let remaining = svc.load_profiles().unwrap();
+    assert!(
+        !remaining.iter().any(|p| p.id == "p1"),
+        "deleted profile must not appear in list"
+    );
     assert!(
         svc.get_favorites("p1").unwrap().is_empty(),
         "favorites must be removed when their profile is deleted"
@@ -360,20 +366,22 @@ fn test_remove_favorite_only_removes_from_target_profile_when_both_have_same_cha
 #[test]
 fn test_save_source_upserts_when_same_id_saved_twice() {
     let svc = make_svc();
-    svc.save_source(&source("src1", "Original")).unwrap();
+    let before = svc.get_sources().unwrap().len();
+    svc.save_source(&source("upsert_test", "Original")).unwrap();
 
-    let mut s2 = source("src1", "Renamed");
+    let mut s2 = source("upsert_test", "Renamed");
     s2.source_type = "xtream".to_string();
     svc.save_source(&s2).unwrap();
 
     let all = svc.get_sources().unwrap();
     assert_eq!(
         all.len(),
-        1,
-        "must have exactly one source after two saves with same id"
+        before + 1,
+        "must have exactly one new source after two saves with same id"
     );
-    assert_eq!(all[0].name, "Renamed");
-    assert_eq!(all[0].source_type, "xtream");
+    let loaded = svc.get_source("upsert_test").unwrap().unwrap();
+    assert_eq!(loaded.name, "Renamed");
+    assert_eq!(loaded.source_type, "xtream");
 }
 
 /// Deleting a source removes only its channels; channels from other sources survive.

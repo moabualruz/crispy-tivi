@@ -43,3 +43,25 @@ pub fn send_raw(svc: &CrispyService, text: &str) -> Value {
     let resp = handle_message(svc, text);
     serde_json::from_str(&resp).expect("Response is valid JSON")
 }
+
+/// Seed a source so FK constraints on channels/VOD/categories/etc. pass.
+pub fn seed_source(svc: &CrispyService, id: &str) {
+    use serde_json::json;
+    let resp = send(
+        svc,
+        &json!({
+            "cmd": "saveSource",
+            "id": "seed",
+            "args": {
+                "id": id,
+                "name": format!("Test Source {id}"),
+                "source_type": "m3u",
+                "url": format!("http://example.com/{id}.m3u"),
+            },
+        }),
+    );
+    assert!(
+        resp.get("error").is_none(),
+        "seed_source({id}) failed: {resp}",
+    );
+}

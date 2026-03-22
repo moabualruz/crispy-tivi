@@ -10,13 +10,14 @@ impl CrispyService {
         let conn = self.db.get()?;
         conn.execute(
             "INSERT OR REPLACE INTO db_epg_mappings \
-             (channel_id, epg_channel_id, confidence, source, locked, created_at) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+             (channel_id, epg_channel_id, confidence, match_method, epg_source_id, locked, created_at) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
                 mapping.channel_id,
                 mapping.epg_channel_id,
                 mapping.confidence,
-                mapping.source,
+                mapping.match_method,
+                mapping.epg_source_id,
                 bool_to_int(mapping.locked),
                 mapping.created_at,
             ],
@@ -28,7 +29,7 @@ impl CrispyService {
     pub fn get_epg_mappings(&self) -> Result<Vec<EpgMapping>, DbError> {
         let conn = self.db.get()?;
         let mut stmt = conn.prepare(
-            "SELECT channel_id, epg_channel_id, confidence, source, locked, created_at \
+            "SELECT channel_id, epg_channel_id, confidence, match_method, epg_source_id, locked, created_at \
              FROM db_epg_mappings ORDER BY confidence DESC",
         )?;
         let rows = stmt
@@ -37,9 +38,10 @@ impl CrispyService {
                     channel_id: row.get(0)?,
                     epg_channel_id: row.get(1)?,
                     confidence: row.get(2)?,
-                    source: row.get(3)?,
-                    locked: int_to_bool(row.get(4)?),
-                    created_at: row.get(5)?,
+                    match_method: row.get(3)?,
+                    epg_source_id: row.get(4)?,
+                    locked: int_to_bool(row.get(5)?),
+                    created_at: row.get(6)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -70,7 +72,7 @@ impl CrispyService {
     pub fn get_pending_epg_suggestions(&self) -> Result<Vec<EpgMapping>, DbError> {
         let conn = self.db.get()?;
         let mut stmt = conn.prepare(
-            "SELECT channel_id, epg_channel_id, confidence, source, locked, created_at \
+            "SELECT channel_id, epg_channel_id, confidence, match_method, epg_source_id, locked, created_at \
              FROM db_epg_mappings \
              WHERE confidence >= 0.40 AND confidence < 0.70 AND locked = 0 \
              ORDER BY confidence DESC",
@@ -81,9 +83,10 @@ impl CrispyService {
                     channel_id: row.get(0)?,
                     epg_channel_id: row.get(1)?,
                     confidence: row.get(2)?,
-                    source: row.get(3)?,
-                    locked: int_to_bool(row.get(4)?),
-                    created_at: row.get(5)?,
+                    match_method: row.get(3)?,
+                    epg_source_id: row.get(4)?,
+                    locked: int_to_bool(row.get(5)?),
+                    created_at: row.get(6)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -113,7 +116,8 @@ mod tests {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),
             confidence: 0.85,
-            source: "tvg_id_exact".to_string(),
+            match_method: "tvg_id_exact".to_string(),
+            epg_source_id: None,
             locked: false,
             created_at: 1000,
         };
@@ -134,7 +138,8 @@ mod tests {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),
             confidence: 0.90,
-            source: "tvg_id_exact".to_string(),
+            match_method: "tvg_id_exact".to_string(),
+            epg_source_id: None,
             locked: false,
             created_at: 1000,
         })
@@ -153,7 +158,8 @@ mod tests {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),
             confidence: 0.90,
-            source: "tvg_id_exact".to_string(),
+            match_method: "tvg_id_exact".to_string(),
+            epg_source_id: None,
             locked: false,
             created_at: 1000,
         })
@@ -173,7 +179,8 @@ mod tests {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),
             confidence: 0.85,
-            source: "tvg_id_exact".to_string(),
+            match_method: "tvg_id_exact".to_string(),
+            epg_source_id: None,
             locked: false,
             created_at: 1000,
         })
@@ -183,7 +190,8 @@ mod tests {
             channel_id: "ch2".to_string(),
             epg_channel_id: "epg2".to_string(),
             confidence: 0.55,
-            source: "fuzzy".to_string(),
+            match_method: "fuzzy".to_string(),
+            epg_source_id: None,
             locked: false,
             created_at: 1000,
         })
@@ -193,7 +201,8 @@ mod tests {
             channel_id: "ch3".to_string(),
             epg_channel_id: "epg3".to_string(),
             confidence: 0.30,
-            source: "fuzzy".to_string(),
+            match_method: "fuzzy".to_string(),
+            epg_source_id: None,
             locked: false,
             created_at: 1000,
         })
@@ -203,7 +212,8 @@ mod tests {
             channel_id: "ch4".to_string(),
             epg_channel_id: "epg4".to_string(),
             confidence: 0.50,
-            source: "fuzzy".to_string(),
+            match_method: "fuzzy".to_string(),
+            epg_source_id: None,
             locked: true,
             created_at: 1000,
         })
@@ -217,36 +227,7 @@ mod tests {
     #[test]
     fn set_channel_247_flag() {
         let svc = make_service();
-        let ch = crate::models::Channel {
-            id: "ch1".to_string(),
-            name: "Movies 24/7".to_string(),
-            stream_url: "http://example.com/ch1".to_string(),
-            number: None,
-            channel_group: None,
-            logo_url: None,
-            tvg_id: None,
-            tvg_name: None,
-            is_favorite: false,
-            user_agent: None,
-            has_catchup: false,
-            catchup_days: 0,
-            catchup_type: None,
-            catchup_source: None,
-            resolution: None,
-            source_id: None,
-            added_at: None,
-            updated_at: None,
-            is_247: false,
-            tvg_shift: None,
-            tvg_language: None,
-            tvg_country: None,
-            parent_code: None,
-            is_radio: false,
-            tvg_rec: None,
-            is_adult: false,
-            custom_sid: None,
-            direct_source: None,
-        };
+        let ch = make_channel("ch1", "Movies 24/7");
         svc.save_channels(&[ch]).unwrap();
 
         svc.set_channel_247("ch1", true).unwrap();
@@ -262,7 +243,8 @@ mod tests {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),
             confidence: 0.50,
-            source: "fuzzy".to_string(),
+            match_method: "fuzzy".to_string(),
+            epg_source_id: None,
             locked: false,
             created_at: 1000,
         })
@@ -273,7 +255,8 @@ mod tests {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg2".to_string(),
             confidence: 0.90,
-            source: "tvg_id_exact".to_string(),
+            match_method: "tvg_id_exact".to_string(),
+            epg_source_id: None,
             locked: false,
             created_at: 2000,
         })

@@ -13,18 +13,19 @@ impl CrispyService {
         let conn = self.db.get()?;
         conn.execute(
             "INSERT OR REPLACE INTO db_watch_history (
-                id, media_type, name, stream_url,
+                id, content_id, media_type, name, stream_url,
                 poster_url, position_ms, duration_ms,
                 last_watched, series_id,
                 season_number, episode_number,
                 device_id, device_name, series_poster_url,
                 profile_id, source_id
             ) VALUES (
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
-                ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9,
+                ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17
             )",
             params![
                 entry.id,
+                entry.id, // content_id = id for backward compat
                 entry.media_type,
                 entry.name,
                 entry.stream_url,
@@ -352,7 +353,7 @@ mod tests {
 
     #[test]
     fn save_and_load_watch_history_with_source_id() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         let mut entry = make_watch_entry("w1", "Movie With Source");
         entry.source_id = Some("src_a".to_string());
         svc.save_watch_history(&entry).unwrap();

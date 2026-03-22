@@ -313,7 +313,7 @@ mod tests {
 
     #[test]
     fn source_access_crud() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         svc.save_profile(&make_profile("p1", "Alice")).unwrap();
 
         svc.grant_source_access("p1", "src1").unwrap();
@@ -329,7 +329,9 @@ mod tests {
 
     #[test]
     fn set_source_access_replaces_all() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
+        svc.save_source(&make_source("src4", "Test Source 4", "m3u"))
+            .unwrap();
         svc.save_profile(&make_profile("p1", "Alice")).unwrap();
         svc.grant_source_access("p1", "src1").unwrap();
         svc.grant_source_access("p1", "src2").unwrap();
@@ -346,6 +348,12 @@ mod tests {
     fn channel_order_save_load_reset() {
         let svc = make_service();
         svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        svc.save_channels(&[
+            make_channel("ch1", "Ch1"),
+            make_channel("ch2", "Ch2"),
+            make_channel("ch3", "Ch3"),
+        ])
+        .unwrap();
 
         let order = vec!["ch3".to_string(), "ch1".to_string(), "ch2".to_string()];
         svc.save_channel_order("p1", "News", &order).unwrap();

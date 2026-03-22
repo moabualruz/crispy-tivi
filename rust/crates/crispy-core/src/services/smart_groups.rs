@@ -389,7 +389,9 @@ mod tests {
 
     #[test]
     fn smart_group_crud() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
+        svc.save_channels(&[make_channel("ch1", "Ch1"), make_channel("ch2", "Ch2")])
+            .unwrap();
 
         // Create a group.
         let gid = svc.create_smart_group("ESPN").unwrap();
@@ -427,7 +429,13 @@ mod tests {
 
     #[test]
     fn smart_group_member_priority_ordering() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
+        svc.save_channels(&[
+            make_channel("ch_a", "ChA"),
+            make_channel("ch_b", "ChB"),
+            make_channel("ch_c", "ChC"),
+        ])
+        .unwrap();
         let gid = svc.create_smart_group("Fox News").unwrap();
 
         svc.add_smart_group_member(&gid, "ch_a", "s1", 2).unwrap();
@@ -444,7 +452,13 @@ mod tests {
 
     #[test]
     fn smart_group_reorder() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
+        svc.save_channels(&[
+            make_channel("ch1", "Ch1"),
+            make_channel("ch2", "Ch2"),
+            make_channel("ch3", "Ch3"),
+        ])
+        .unwrap();
         let gid = svc.create_smart_group("CNN").unwrap();
 
         svc.add_smart_group_member(&gid, "ch1", "s1", 0).unwrap();
@@ -465,7 +479,9 @@ mod tests {
 
     #[test]
     fn get_smart_group_for_channel() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
+        svc.save_channels(&[make_channel("ch1", "Ch1"), make_channel("ch2", "Ch2")])
+            .unwrap();
         let gid = svc.create_smart_group("BBC").unwrap();
         svc.add_smart_group_member(&gid, "ch1", "s1", 0).unwrap();
         svc.add_smart_group_member(&gid, "ch2", "s2", 1).unwrap();
@@ -484,7 +500,14 @@ mod tests {
 
     #[test]
     fn get_smart_group_alternatives_excludes_same_source() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
+        svc.save_channels(&[
+            make_channel("ch1", "Ch1"),
+            make_channel("ch2", "Ch2"),
+            make_channel("ch3", "Ch3"),
+            make_channel("ch4", "Ch4"),
+        ])
+        .unwrap();
         let gid = svc.create_smart_group("ESPN").unwrap();
         svc.add_smart_group_member(&gid, "ch1", "src_a", 0).unwrap();
         svc.add_smart_group_member(&gid, "ch2", "src_b", 1).unwrap();
@@ -502,14 +525,14 @@ mod tests {
 
     #[test]
     fn get_alternatives_for_ungrouped_channel() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         let json = svc.get_smart_group_alternatives("ch_nowhere").unwrap();
         assert_eq!(json, "[]");
     }
 
     #[test]
     fn detect_candidates_finds_same_name_across_sources() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         // Insert channels with same normalized name across sources.
         insert_channel(&svc, "ch1", "ESPN HD", "http://a.m3u8", "src1");
         insert_channel(&svc, "ch2", "US: ESPN", "http://b.m3u8", "src2");
@@ -527,7 +550,7 @@ mod tests {
 
     #[test]
     fn detect_candidates_excludes_already_grouped() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         insert_channel(&svc, "ch1", "ESPN HD", "http://a.m3u8", "src1");
         insert_channel(&svc, "ch2", "ESPN", "http://b.m3u8", "src2");
 
@@ -544,7 +567,7 @@ mod tests {
 
     #[test]
     fn detect_candidates_ignores_same_source_duplicates() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         insert_channel(&svc, "ch1", "ESPN", "http://a.m3u8", "src1");
         insert_channel(&svc, "ch2", "ESPN", "http://b.m3u8", "src1"); // same source
 
@@ -557,7 +580,9 @@ mod tests {
 
     #[test]
     fn delete_group_cascades_members() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
+        svc.save_channels(&[make_channel("ch1", "Ch1"), make_channel("ch2", "Ch2")])
+            .unwrap();
         let gid = svc.create_smart_group("Test").unwrap();
         svc.add_smart_group_member(&gid, "ch1", "s1", 0).unwrap();
         svc.add_smart_group_member(&gid, "ch2", "s2", 1).unwrap();
@@ -579,8 +604,8 @@ mod tests {
     ) {
         let conn = svc.db.get().unwrap();
         conn.execute(
-            "INSERT OR REPLACE INTO db_channels (id, name, stream_url, source_id)
-             VALUES (?1, ?2, ?3, ?4)",
+            "INSERT OR REPLACE INTO db_channels (id, native_id, name, stream_url, source_id)
+             VALUES (?1, ?1, ?2, ?3, ?4)",
             rusqlite::params![id, name, url, source_id],
         )
         .unwrap();

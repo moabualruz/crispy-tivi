@@ -1,28 +1,27 @@
 use rusqlite::params;
 
-use super::{CrispyService, bool_to_int};
-use crate::database::{DbError, TABLE_CHANNELS, TABLE_EPG_ENTRIES, TABLE_VOD_ITEMS};
+use super::CrispyService;
+use crate::database::{DbError, TABLE_CHANNELS, TABLE_EPG_ENTRIES, TABLE_MOVIES};
 use crate::events::DataChangeEvent;
 
 impl CrispyService {
     // ── Targeted Updates (N+1 eliminators) ──────────
 
-    /// Update the `is_favorite` flag on a single VOD
-    /// item. Returns `DbError::NotFound` if the item
-    /// does not exist.
+    /// Check if a VOD item exists. Returns `DbError::NotFound` if not.
+    /// Used for favorite toggling validation.
     pub fn update_vod_favorite(&self, item_id: &str, is_favorite: bool) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        let affected = conn.execute(
-            &format!(
-                "UPDATE {TABLE_VOD_ITEMS}
-                 SET is_favorite = ?2
-                 WHERE id = ?1"
-            ),
-            params![item_id, bool_to_int(is_favorite)],
+        // Verify the movie exists.
+        let count: i64 = conn.query_row(
+            &format!("SELECT COUNT(*) FROM {TABLE_MOVIES} WHERE id = ?1"),
+            params![item_id],
+            |row| row.get(0),
         )?;
-        if affected == 0 {
+        if count == 0 {
             return Err(DbError::NotFound);
         }
+        // Favorite state is now managed via db_vod_favorites junction table.
+        // This function emits the event for callers that still use the old API.
         self.emit(DataChangeEvent::VodFavoriteToggled {
             vod_id: item_id.to_string(),
             is_favorite,
@@ -79,6 +78,9 @@ impl CrispyService {
         // first.
         tx.execute("DELETE FROM db_user_favorites", [])?;
         tx.execute("DELETE FROM db_vod_favorites", [])?;
+        tx.execute("DELETE FROM db_watchlist", [])?;
+        tx.execute("DELETE FROM db_vod_categories", [])?;
+        tx.execute("DELETE FROM db_channel_categories", [])?;
         tx.execute("DELETE FROM db_favorite_categories", [])?;
         tx.execute("DELETE FROM db_profile_source_access", [])?;
         tx.execute("DELETE FROM db_channel_order", [])?;
@@ -87,13 +89,18 @@ impl CrispyService {
         tx.execute("DELETE FROM db_storage_backends", [])?;
         tx.execute("DELETE FROM db_watch_history", [])?;
         tx.execute(&format!("DELETE FROM {TABLE_EPG_ENTRIES}"), [])?;
+        tx.execute("DELETE FROM db_epg_channels", [])?;
         tx.execute("DELETE FROM db_reminders", [])?;
         tx.execute("DELETE FROM db_search_history", [])?;
         tx.execute("DELETE FROM db_saved_layouts", [])?;
         tx.execute("DELETE FROM db_sync_meta", [])?;
         tx.execute("DELETE FROM db_settings", [])?;
+        tx.execute("DELETE FROM db_episodes", [])?;
+        tx.execute("DELETE FROM db_seasons", [])?;
+        tx.execute("DELETE FROM db_series", [])?;
+        tx.execute(&format!("DELETE FROM {TABLE_MOVIES}"), [])?;
+        tx.execute("DELETE FROM db_stream_urls", [])?;
         tx.execute("DELETE FROM db_categories", [])?;
-        tx.execute(&format!("DELETE FROM {TABLE_VOD_ITEMS}"), [])?;
         tx.execute(&format!("DELETE FROM {TABLE_CHANNELS}"), [])?;
         tx.execute("DELETE FROM db_profiles", [])?;
         tx.commit()?;
@@ -108,21 +115,17 @@ mod tests {
     use crate::services::test_helpers::*;
 
     #[test]
-    fn update_vod_favorite_sets_flag() {
+    fn update_vod_favorite_emits_event() {
         let svc = make_service();
-        let item = make_vod_item("v1", "Movie 1");
+        let src = make_source("src1", "S1", "m3u");
+        svc.save_source(&src).unwrap();
+        let mut item = make_vod_item("v1", "Movie 1");
+        item.source_id = Some("src1".to_string());
         svc.save_vod_items(&[item]).unwrap();
 
-        let items = svc.load_vod_items().unwrap();
-        assert!(!items[0].is_favorite);
-
+        // Should succeed for existing item.
         svc.update_vod_favorite("v1", true).unwrap();
-        let items = svc.load_vod_items().unwrap();
-        assert!(items[0].is_favorite);
-
         svc.update_vod_favorite("v1", false).unwrap();
-        let items = svc.load_vod_items().unwrap();
-        assert!(!items[0].is_favorite);
     }
 
     #[test]

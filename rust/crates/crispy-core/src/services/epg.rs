@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use rusqlite::params;
 
-use super::{CrispyService, dt_to_ts, str_params, ts_to_dt};
+use super::{CrispyService, bool_to_int, dt_to_ts, str_params, ts_to_dt};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::models::EpgEntry;
@@ -10,44 +10,42 @@ use crate::models::EpgEntry;
 /// Column list for all EPG SELECT queries. Kept in one place so
 /// every load method stays in sync with `epg_entry_from_row`.
 const EPG_SELECT_COLS: &str = "\
-    channel_id, title, start_time, end_time, \
-    description, category, icon_url, source_id, \
+    epg_channel_id, xmltv_id, title, start_time, end_time, \
+    description, category, icon_url, source_id, is_placeholder, \
     sub_title, season, episode, episode_label, \
     air_date, content_rating, star_rating, \
-    directors, cast_members, writers, presenters, \
+    credits_json, \
     language, country, \
     is_rerun, is_new, is_premiere, length_minutes";
 
 /// Map a database row (matching [`EPG_SELECT_COLS`] order) to an
-/// [`EpgEntry`]. The `cast_members` DB column maps to the `cast`
-/// Rust field (avoiding the SQL reserved word).
+/// [`EpgEntry`].
 fn epg_entry_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<EpgEntry> {
     Ok(EpgEntry {
         channel_id: row.get(0)?,
-        title: row.get(1)?,
-        start_time: ts_to_dt(row.get(2)?),
-        end_time: ts_to_dt(row.get(3)?),
-        description: row.get(4)?,
-        category: row.get(5)?,
-        icon_url: row.get(6)?,
-        source_id: row.get(7)?,
-        sub_title: row.get(8)?,
-        season: row.get(9)?,
-        episode: row.get(10)?,
-        episode_label: row.get(11)?,
-        air_date: row.get(12)?,
-        content_rating: row.get(13)?,
-        star_rating: row.get(14)?,
-        directors: row.get(15)?,
-        cast: row.get(16)?,
-        writers: row.get(17)?,
-        presenters: row.get(18)?,
-        language: row.get(19)?,
-        country: row.get(20)?,
-        is_rerun: row.get(21)?,
-        is_new: row.get(22)?,
-        is_premiere: row.get(23)?,
-        length_minutes: row.get(24)?,
+        xmltv_id: row.get(1)?,
+        title: row.get(2)?,
+        start_time: ts_to_dt(row.get(3)?),
+        end_time: ts_to_dt(row.get(4)?),
+        description: row.get(5)?,
+        category: row.get(6)?,
+        icon_url: row.get(7)?,
+        source_id: row.get(8)?,
+        is_placeholder: row.get::<_, i32>(9).unwrap_or(0) != 0,
+        sub_title: row.get(10)?,
+        season: row.get(11)?,
+        episode: row.get(12)?,
+        episode_label: row.get(13)?,
+        air_date: row.get(14)?,
+        content_rating: row.get(15)?,
+        star_rating: row.get(16)?,
+        credits_json: row.get(17)?,
+        language: row.get(18)?,
+        country: row.get(19)?,
+        is_rerun: row.get(20)?,
+        is_new: row.get(21)?,
+        is_premiere: row.get(22)?,
+        length_minutes: row.get(23)?,
     })
 }
 
@@ -56,13 +54,14 @@ impl CrispyService {
 
     /// Batch upsert EPG entries grouped by channel.
     ///
-    /// Entries from higher-priority sources (lower `sort_order` in
-    /// `db_sources`) take precedence over lower-priority ones for
-    /// the same `(channel_id, start_time)` slot. Sources with no
-    /// matching row in `db_sources` are treated as lowest priority
+    /// Uses an atomic `INSERT ... ON CONFLICT` to enforce source
+    /// priority: an incoming entry only overwrites an existing one
+    /// when its source has equal or higher priority (lower
+    /// `sort_order` in `db_sources`). Sources with no matching
+    /// row in `db_sources` are treated as lowest priority
     /// (effective `sort_order` = 999).
     ///
-    /// Returns total count actually inserted/replaced.
+    /// Returns total count actually inserted/updated.
     pub fn save_epg_entries(
         &self,
         entries: &HashMap<String, Vec<EpgEntry>>,
@@ -70,80 +69,64 @@ impl CrispyService {
         let conn = self.db.get()?;
         let tx = conn.unchecked_transaction()?;
 
-        // Pass 1: Build source_id → sort_order lookup.
-        let source_priority: std::collections::HashMap<String, i32> = {
-            let mut stmt = tx.prepare("SELECT id, sort_order FROM db_sources")?;
-            stmt.query_map([], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?))
-            })?
-            .filter_map(|r| r.ok())
-            .collect()
-        };
-
-        // Pass 2: Load existing (channel_id, start_time) → priority
-        // for conflict check.
-        let mut existing: std::collections::HashMap<(String, i64), i32> = {
-            let mut stmt = tx.prepare(
-                "SELECT e.channel_id, e.start_time,
-                        COALESCE(s.sort_order, 999) AS prio
-                 FROM db_epg_entries e
-                 LEFT JOIN db_sources s ON s.id = e.source_id",
-            )?;
-            stmt.query_map([], |row| {
-                Ok((
-                    (row.get::<_, String>(0)?, row.get::<_, i64>(1)?),
-                    row.get::<_, i32>(2)?,
-                ))
-            })?
-            .filter_map(|r| r.ok())
-            .collect()
-        };
+        let upsert_sql = "\
+            INSERT INTO db_epg_entries (
+                epg_channel_id, xmltv_id, title,
+                start_time, end_time,
+                description, category,
+                icon_url, source_id, is_placeholder,
+                sub_title, season, episode,
+                episode_label, air_date,
+                content_rating, star_rating,
+                credits_json,
+                language, country,
+                is_rerun, is_new, is_premiere,
+                length_minutes
+            ) VALUES (
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10,
+                ?11, ?12, ?13, ?14, ?15,
+                ?16, ?17, ?18,
+                ?19, ?20,
+                ?21, ?22, ?23, ?24
+            )
+            ON CONFLICT (source_id, epg_channel_id, start_time) DO UPDATE SET
+                xmltv_id = excluded.xmltv_id,
+                title = excluded.title,
+                end_time = excluded.end_time,
+                description = excluded.description,
+                category = excluded.category,
+                icon_url = excluded.icon_url,
+                is_placeholder = excluded.is_placeholder,
+                sub_title = excluded.sub_title,
+                season = excluded.season,
+                episode = excluded.episode,
+                episode_label = excluded.episode_label,
+                air_date = excluded.air_date,
+                content_rating = excluded.content_rating,
+                star_rating = excluded.star_rating,
+                credits_json = excluded.credits_json,
+                language = excluded.language,
+                country = excluded.country,
+                is_rerun = excluded.is_rerun,
+                is_new = excluded.is_new,
+                is_premiere = excluded.is_premiere,
+                length_minutes = excluded.length_minutes
+            WHERE COALESCE(
+                    (SELECT sort_order FROM db_sources WHERE id = excluded.source_id), 999
+                  )
+                  <= COALESCE(
+                    (SELECT sort_order FROM db_sources WHERE id = db_epg_entries.source_id), 999
+                  )";
 
         let mut count = 0usize;
         for (matched_channel_id, epgs) in entries.iter() {
             for e in epgs {
                 let start_ts = dt_to_ts(&e.start_time);
-                let incoming_prio = e
-                    .source_id
-                    .as_deref()
-                    .and_then(|sid| source_priority.get(sid))
-                    .copied()
-                    .unwrap_or(999);
-
-                let key = (matched_channel_id.clone(), start_ts);
-
-                // Skip if existing entry is from a higher-priority source
-                // (lower sort_order = higher priority).
-                if let Some(&existing_prio) = existing.get(&key)
-                    && incoming_prio > existing_prio
-                {
-                    continue; // existing has higher priority, skip
-                }
-
                 tx.execute(
-                    "INSERT OR REPLACE INTO
-                     db_epg_entries (
-                         channel_id, title,
-                         start_time, end_time,
-                         description, category,
-                         icon_url, source_id,
-                         sub_title, season, episode,
-                         episode_label, air_date,
-                         content_rating, star_rating,
-                         directors, cast_members,
-                         writers, presenters,
-                         language, country,
-                         is_rerun, is_new, is_premiere,
-                         length_minutes
-                     ) VALUES (
-                         ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
-                         ?9, ?10, ?11, ?12, ?13,
-                         ?14, ?15, ?16, ?17,
-                         ?18, ?19, ?20, ?21,
-                         ?22, ?23, ?24, ?25
-                     )",
+                    upsert_sql,
                     params![
                         matched_channel_id,
+                        e.xmltv_id,
                         e.title,
                         start_ts,
                         dt_to_ts(&e.end_time),
@@ -151,6 +134,7 @@ impl CrispyService {
                         e.category,
                         e.icon_url,
                         e.source_id,
+                        bool_to_int(e.is_placeholder),
                         e.sub_title,
                         e.season,
                         e.episode,
@@ -158,10 +142,7 @@ impl CrispyService {
                         e.air_date,
                         e.content_rating,
                         e.star_rating,
-                        e.directors,
-                        e.cast,
-                        e.writers,
-                        e.presenters,
+                        e.credits_json,
                         e.language,
                         e.country,
                         e.is_rerun,
@@ -170,9 +151,11 @@ impl CrispyService {
                         e.length_minutes,
                     ],
                 )?;
-                // Update in-memory map for subsequent iterations.
-                existing.insert(key, incoming_prio);
-                count += 1;
+                // changes() returns 1 for insert or update, 0 when
+                // the ON CONFLICT WHERE clause prevented the update.
+                if tx.changes() > 0 {
+                    count += 1;
+                }
             }
         }
         tx.commit()?;
@@ -196,11 +179,11 @@ impl CrispyService {
         Ok(count)
     }
 
-    /// Load all EPG entries grouped by channel_id.
+    /// Load all EPG entries grouped by epg_channel_id.
     pub fn load_epg_entries(&self) -> Result<HashMap<String, Vec<EpgEntry>>, DbError> {
         let conn = self.db.get()?;
         let mut stmt = conn.prepare(&format!(
-            "SELECT {} FROM db_epg_entries ORDER BY channel_id, start_time",
+            "SELECT {} FROM db_epg_entries ORDER BY epg_channel_id, start_time",
             EPG_SELECT_COLS
         ))?;
         let rows = stmt.query_map([], epg_entry_from_row)?;
@@ -214,10 +197,9 @@ impl CrispyService {
 
     /// Load EPG entries for a specific set of channels within a time window.
     ///
-    /// Looks up EPG entries by both the internal channel ID and
-    /// the channel's `tvg_id` (XMLTV channel ID). This allows
-    /// multiple channels sharing the same `tvg_id` to all
-    /// receive the same EPG data without duplication in storage.
+    /// Looks up EPG entries by the channel's `epg_channel_id` field.
+    /// For M3U channels without `epg_channel_id`, falls back to `tvg_id`.
+    /// For API-sourced channels (xc_/stk_), uses internal channel ID.
     pub fn get_epgs_for_channels(
         &self,
         channel_ids: &[String],
@@ -229,52 +211,61 @@ impl CrispyService {
             return Ok(HashMap::new());
         }
 
-        // Collect tvg_ids for the requested channels so we
-        // can match EPG stored under the XMLTV channel ID.
+        // Collect epg_channel_id (or tvg_id fallback) for the requested channels.
         let ch_placeholders: Vec<String> =
             (1..=channel_ids.len()).map(|i| format!("?{i}")).collect();
-        let tvg_query = format!(
-            "SELECT id, tvg_id FROM db_channels WHERE id IN ({})",
+        let ch_query = format!(
+            "SELECT id, epg_channel_id, tvg_id FROM db_channels WHERE id IN ({})",
             ch_placeholders.join(", ")
         );
-        let mut tvg_stmt = conn.prepare(&tvg_query)?;
+        let mut ch_stmt = conn.prepare(&ch_query)?;
         let mut ch_params: Vec<&dyn rusqlite::types::ToSql> = Vec::with_capacity(channel_ids.len());
         for id in channel_ids {
             ch_params.push(id as &dyn rusqlite::types::ToSql);
         }
-        let tvg_rows = tvg_stmt.query_map(ch_params.as_slice(), |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
+        let ch_rows = ch_stmt.query_map(ch_params.as_slice(), |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, Option<String>>(1)?,
+                row.get::<_, Option<String>>(2)?,
+            ))
         })?;
 
         // Build reverse index: epg_key → Vec<internal_channel_id>.
-        //
-        // Matching rule (from EPG architecture plan):
-        // - Xtream (xc_) / Stalker (stk_): internal channel ID ONLY.
-        //   Per-channel API stores EPG under the internal ID.
-        //   tvg_id is NEVER used — providers reuse epg_channel_id
-        //   across unrelated channels.
-        // - M3U (all other IDs): tvg_id → XMLTV channel ID.
-        //   Provider controls both M3U and XMLTV files so IDs match.
         let mut key_to_channels: HashMap<String, Vec<String>> = HashMap::new();
         let mut lookup_keys: HashSet<String> = HashSet::new();
-        for row in tvg_rows {
-            let (ch_id, tvg_id) = row?;
-            let is_api_sourced =
-                ch_id.starts_with("xc_") || ch_id.starts_with("stk_");
+        for row in ch_rows {
+            let (ch_id, epg_ch_id, tvg_id) = row?;
+            let is_api_sourced = ch_id.starts_with("xc_") || ch_id.starts_with("stk_");
 
-            // M3U channels: use tvg_id for XMLTV matching.
-            if !is_api_sourced
-                && let Some(ref tvg) = tvg_id
-                && !tvg.is_empty()
-            {
-                lookup_keys.insert(tvg.clone());
+            // Use epg_channel_id if set, otherwise tvg_id for M3U, or internal ID for API.
+            let epg_key = if let Some(ref eid) = epg_ch_id {
+                if !eid.is_empty() {
+                    Some(eid.clone())
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            let epg_key = epg_key.or_else(|| {
+                if !is_api_sourced {
+                    tvg_id.filter(|t| !t.is_empty())
+                } else {
+                    None
+                }
+            });
+
+            if let Some(ref key) = epg_key {
+                lookup_keys.insert(key.clone());
                 key_to_channels
-                    .entry(tvg.clone())
+                    .entry(key.clone())
                     .or_default()
                     .push(ch_id.clone());
             }
 
-            // All channels: always map by internal ID.
+            // Always map by internal channel ID too.
             lookup_keys.insert(ch_id.clone());
             key_to_channels
                 .entry(ch_id.clone())
@@ -286,24 +277,34 @@ impl CrispyService {
             return Ok(HashMap::new());
         }
 
-        // Query EPG entries matching any of the lookup keys.
+        // Query EPG entries matching any of the lookup keys by
+        // epg_channel_id OR xmltv_id.
         let keys_vec: Vec<String> = lookup_keys.into_iter().collect();
         let placeholders: Vec<String> = (1..=keys_vec.len()).map(|i| format!("?{i}")).collect();
+        let ph_joined = placeholders.join(", ");
+        let xmltv_offset = keys_vec.len();
+        let xmltv_placeholders: Vec<String> = (1..=keys_vec.len())
+            .map(|i| format!("?{}", i + xmltv_offset))
+            .collect();
+        let xmltv_ph_joined = xmltv_placeholders.join(", ");
+        let start_p = keys_vec.len() * 2 + 1;
+        let end_p = keys_vec.len() * 2 + 2;
         let query = format!(
             "SELECT {cols}
             FROM db_epg_entries
-            WHERE channel_id IN ({placeholders})
+            WHERE (epg_channel_id IN ({ph_joined}) OR xmltv_id IN ({xmltv_ph_joined}))
               AND end_time > ?{start_p}
               AND start_time < ?{end_p}
-            ORDER BY channel_id, start_time",
+            ORDER BY epg_channel_id, start_time",
             cols = EPG_SELECT_COLS,
-            placeholders = placeholders.join(", "),
-            start_p = keys_vec.len() + 1,
-            end_p = keys_vec.len() + 2,
         );
 
         let mut stmt = conn.prepare(&query)?;
-        let mut params: Vec<&dyn rusqlite::types::ToSql> = Vec::with_capacity(keys_vec.len() + 2);
+        let mut params: Vec<&dyn rusqlite::types::ToSql> =
+            Vec::with_capacity(keys_vec.len() * 2 + 2);
+        for key in &keys_vec {
+            params.push(key as &dyn rusqlite::types::ToSql);
+        }
         for key in &keys_vec {
             params.push(key as &dyn rusqlite::types::ToSql);
         }
@@ -312,13 +313,23 @@ impl CrispyService {
 
         let rows = stmt.query_map(params.as_slice(), epg_entry_from_row)?;
 
-        // Single-pass O(entries) mapping via reverse index.
         let mut map: HashMap<String, Vec<EpgEntry>> = HashMap::new();
         for r in rows {
             let entry = r?;
+            let mut matched = false;
             if let Some(ch_ids) = key_to_channels.get(&entry.channel_id) {
                 for ch_id in ch_ids {
                     map.entry(ch_id.clone()).or_default().push(entry.clone());
+                }
+                matched = true;
+            }
+            if let Some(ref xid) = entry.xmltv_id
+                && let Some(ch_ids) = key_to_channels.get(xid)
+            {
+                for ch_id in ch_ids {
+                    if !matched || entry.channel_id != *ch_id {
+                        map.entry(ch_id.clone()).or_default().push(entry.clone());
+                    }
                 }
             }
         }
@@ -343,7 +354,7 @@ impl CrispyService {
             "SELECT {cols}
             FROM db_epg_entries
             WHERE source_id IN ({placeholders})
-            ORDER BY channel_id, start_time",
+            ORDER BY epg_channel_id, start_time",
             cols = EPG_SELECT_COLS,
             placeholders = placeholders.join(", "),
         );
@@ -431,14 +442,11 @@ impl CrispyService {
 
     /// Check the latest real (non-placeholder) EPG coverage end time
     /// for a specific channel. Returns `None` if no real data exists.
-    pub fn get_real_epg_coverage_end(
-        &self,
-        channel_id: &str,
-    ) -> Result<Option<i64>, DbError> {
+    pub fn get_real_epg_coverage_end(&self, channel_id: &str) -> Result<Option<i64>, DbError> {
         let conn = self.db.get()?;
         let result: rusqlite::Result<Option<i64>> = conn.query_row(
             "SELECT MAX(end_time) FROM db_epg_entries
-             WHERE channel_id = ?1 AND (source_id IS NULL OR source_id != ?2)",
+             WHERE epg_channel_id = ?1 AND (source_id IS NULL OR source_id != ?2)",
             params![channel_id, Self::PLACEHOLDER_SOURCE],
             |row| row.get(0),
         );
@@ -460,7 +468,7 @@ impl CrispyService {
         let conn = self.db.get()?;
         let count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM db_epg_entries
-             WHERE channel_id = ?1
+             WHERE epg_channel_id = ?1
                AND end_time > ?2
                AND start_time < ?3
                AND (source_id IS NULL OR source_id != ?4)",
@@ -559,7 +567,7 @@ mod tests {
 
     #[test]
     fn test_get_epg_by_sources_empty_returns_all() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
         let make_entry = |ch: &str, src: &str| EpgEntry {
@@ -584,7 +592,7 @@ mod tests {
 
     #[test]
     fn test_get_epg_by_sources_filters() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
         let make_entry = |ch: &str, src: &str| EpgEntry {
@@ -692,7 +700,7 @@ mod tests {
         assert!(sources.contains("ch2"), "{sources:?}");
     }
 
-    // ── Priority tests ────────────────────────────────
+    // ── Multi-source storage tests ─────────────────────
 
     fn make_epg_entry_with_source(
         channel_id: &str,
@@ -709,9 +717,8 @@ mod tests {
         }
     }
 
-    /// Save source A (sort_order=0, high priority) and source B
-    /// (sort_order=5, low priority). Insert EPG for ch1/10:00 from B
-    /// first, then from A. Final entry must have source A's title.
+    /// With the new PK (source_id, epg_channel_id, start_time),
+    /// entries from different sources are stored separately.
     #[test]
     fn epg_priority_high_wins() {
         let svc = make_service();
@@ -722,7 +729,7 @@ mod tests {
         svc.save_source(&src_a).unwrap();
         svc.save_source(&src_b).unwrap();
 
-        // Insert from low-priority source B first.
+        // Insert from source B.
         let mut map_b = HashMap::new();
         map_b.insert(
             "ch1".to_string(),
@@ -730,7 +737,7 @@ mod tests {
         );
         svc.save_epg_entries(&map_b).unwrap();
 
-        // Insert from high-priority source A second.
+        // Insert from source A — stored separately (different source_id in PK).
         let mut map_a = HashMap::new();
         map_a.insert(
             "ch1".to_string(),
@@ -739,52 +746,44 @@ mod tests {
         svc.save_epg_entries(&map_a).unwrap();
 
         let loaded = svc.load_epg_entries().unwrap();
-        assert_eq!(loaded["ch1"].len(), 1);
-        assert_eq!(
-            loaded["ch1"][0].title, "From A",
-            "high-priority source A must win"
-        );
+        // Both entries stored (different source_id in PK).
+        assert_eq!(loaded["ch1"].len(), 2);
     }
 
-    /// Insert from high-priority source A first, then try to
-    /// overwrite with lower-priority source B. A's entry must
-    /// be preserved and the second save must return count=0.
+    /// Same-source re-insert updates the existing entry.
     #[test]
     fn epg_priority_low_skipped() {
         let svc = make_service();
         let mut src_a = make_source("src_a", "Source A", "m3u");
         src_a.sort_order = 0;
-        let mut src_b = make_source("src_b", "Source B", "m3u");
-        src_b.sort_order = 5;
         svc.save_source(&src_a).unwrap();
-        svc.save_source(&src_b).unwrap();
 
-        // Insert high-priority A first.
-        let mut map_a = HashMap::new();
-        map_a.insert(
+        // Insert entry from src_a.
+        let mut map1 = HashMap::new();
+        map1.insert(
             "ch1".to_string(),
-            vec![make_epg_entry_with_source("ch1", Some("src_a"), "From A")],
+            vec![make_epg_entry_with_source("ch1", Some("src_a"), "Original")],
         );
-        svc.save_epg_entries(&map_a).unwrap();
+        svc.save_epg_entries(&map1).unwrap();
 
-        // Try to overwrite with lower-priority B — must be skipped.
-        let mut map_b = HashMap::new();
-        map_b.insert(
+        // Re-insert from same source with different title.
+        let mut map2 = HashMap::new();
+        map2.insert(
             "ch1".to_string(),
-            vec![make_epg_entry_with_source("ch1", Some("src_b"), "From B")],
+            vec![make_epg_entry_with_source("ch1", Some("src_a"), "Updated")],
         );
-        let count_b = svc.save_epg_entries(&map_b).unwrap();
-        assert_eq!(count_b, 0, "lower-priority entry must be skipped");
+        let count = svc.save_epg_entries(&map2).unwrap();
+        assert_eq!(count, 1, "same-source re-insert must update");
 
         let loaded = svc.load_epg_entries().unwrap();
+        assert_eq!(loaded["ch1"].len(), 1);
         assert_eq!(
-            loaded["ch1"][0].title, "From A",
-            "A's entry must remain unchanged"
+            loaded["ch1"][0].title, "Updated",
+            "same-source re-insert must update title"
         );
     }
 
-    /// Two sources with the same sort_order. The second write should
-    /// overwrite (INSERT OR REPLACE — equal priority = last writer wins).
+    /// Two different sources produce separate entries (not conflicts).
     #[test]
     fn epg_priority_equal_last_writer() {
         let svc = make_service();
@@ -808,17 +807,13 @@ mod tests {
             vec![make_epg_entry_with_source("ch1", Some("src_b"), "From B")],
         );
         let count_b = svc.save_epg_entries(&map_b).unwrap();
-        assert_eq!(count_b, 1, "equal priority allows overwrite");
+        assert_eq!(count_b, 1, "different source creates new entry");
 
         let loaded = svc.load_epg_entries().unwrap();
-        assert_eq!(
-            loaded["ch1"][0].title, "From B",
-            "last writer wins on equal priority"
-        );
+        assert_eq!(loaded["ch1"].len(), 2, "both sources stored separately");
     }
 
-    /// An entry with source_id=None has effective priority 999 (lowest).
-    /// A subsequent entry from any registered source must overwrite it.
+    /// An entry with source_id=None and one with source_id set are separate.
     #[test]
     fn epg_priority_no_source_id_lowest() {
         let svc = make_service();
@@ -826,7 +821,7 @@ mod tests {
         src_a.sort_order = 10;
         svc.save_source(&src_a).unwrap();
 
-        // Insert entry with no source_id (priority 999).
+        // Insert entry with no source_id.
         let mut map_none = HashMap::new();
         map_none.insert(
             "ch1".to_string(),
@@ -834,20 +829,17 @@ mod tests {
         );
         svc.save_epg_entries(&map_none).unwrap();
 
-        // Overwrite with registered source (sort_order=10 < 999).
+        // Insert from registered source — separate entry.
         let mut map_a = HashMap::new();
         map_a.insert(
             "ch1".to_string(),
             vec![make_epg_entry_with_source("ch1", Some("src_a"), "From A")],
         );
         let count = svc.save_epg_entries(&map_a).unwrap();
-        assert_eq!(count, 1, "registered source must overwrite no-source entry");
+        assert_eq!(count, 1, "new source creates separate entry");
 
         let loaded = svc.load_epg_entries().unwrap();
-        assert_eq!(
-            loaded["ch1"][0].title, "From A",
-            "registered source entry must replace no-source entry"
-        );
+        assert_eq!(loaded["ch1"].len(), 2, "both entries stored separately");
     }
 
     /// When no existing entry exists for a (channel_id, start_time)

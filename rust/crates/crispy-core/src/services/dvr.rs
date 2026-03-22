@@ -251,8 +251,17 @@ mod tests {
     use super::*;
     use crate::services::test_helpers::*;
 
+    /// Create a service with fixtures and seed channel "ch1" for recording FK.
+    fn make_dvr_service() -> crate::services::CrispyService {
+        let svc = make_service_with_fixtures();
+        svc.save_channels(&[make_channel("ch1", "Channel 1")])
+            .unwrap();
+        svc
+    }
+
     fn make_recording(id: &str) -> Recording {
         let dt = parse_dt("2025-01-15 12:00:00");
+        let dt_end = parse_dt("2025-01-15 13:00:00");
         Recording {
             id: id.to_string(),
             channel_id: Some("ch1".to_string()),
@@ -261,7 +270,7 @@ mod tests {
             program_name: "Show".to_string(),
             stream_url: Some("http://stream".to_string()),
             start_time: dt,
-            end_time: dt,
+            end_time: dt_end,
             status: "scheduled".to_string(),
             file_path: None,
             file_size_bytes: None,
@@ -301,7 +310,7 @@ mod tests {
 
     #[test]
     fn recordings_crud() {
-        let svc = make_service();
+        let svc = make_dvr_service();
 
         svc.save_recording(&make_recording("rec1")).unwrap();
         svc.save_recording(&make_recording("rec2")).unwrap();
@@ -317,7 +326,7 @@ mod tests {
 
     #[test]
     fn recording_upsert_via_update() {
-        let svc = make_service();
+        let svc = make_dvr_service();
         let mut rec = make_recording("rec1");
         svc.save_recording(&rec).unwrap();
 
@@ -331,7 +340,7 @@ mod tests {
 
     #[test]
     fn storage_backends_crud() {
-        let svc = make_service();
+        let svc = make_dvr_service();
 
         svc.save_storage_backend(&make_storage_backend("b1"))
             .unwrap();
@@ -349,7 +358,10 @@ mod tests {
 
     #[test]
     fn transfer_tasks_crud() {
-        let svc = make_service();
+        let svc = make_dvr_service();
+        svc.save_recording(&make_recording("rec1")).unwrap();
+        svc.save_storage_backend(&make_storage_backend("b1"))
+            .unwrap();
 
         svc.save_transfer_task(&make_transfer_task("t1", "rec1"))
             .unwrap();
@@ -367,7 +379,10 @@ mod tests {
 
     #[test]
     fn transfer_task_upsert_via_update() {
-        let svc = make_service();
+        let svc = make_dvr_service();
+        svc.save_recording(&make_recording("rec1")).unwrap();
+        svc.save_storage_backend(&make_storage_backend("b1"))
+            .unwrap();
         let mut task = make_transfer_task("t1", "rec1");
         svc.save_transfer_task(&task).unwrap();
 
@@ -383,7 +398,7 @@ mod tests {
     fn emit_recording_changed_on_save() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let svc = make_dvr_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
         svc.set_event_callback(Arc::new(move |e| {
@@ -455,7 +470,10 @@ mod tests {
     fn emit_transfer_task_changed_on_save() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let svc = make_dvr_service();
+        svc.save_recording(&make_recording("rec1")).unwrap();
+        svc.save_storage_backend(&make_storage_backend("b1"))
+            .unwrap();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
         svc.set_event_callback(Arc::new(move |e| {

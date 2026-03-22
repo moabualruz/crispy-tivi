@@ -707,6 +707,41 @@ pub fn enrich_series_from_info(item: &mut VodItem, json: &Value) {
     }
 }
 
+// ── Adapter: crispy_xtream crate VOD types ───────
+
+/// Convert [`XtreamMovieListing`] vec into [`Movie`] models
+/// via `From<XtreamMovieListing>`.
+///
+/// Sets `source_id` and builds stream URLs from credentials.
+pub fn movies_from_xtream_listings(
+    listings: Vec<crispy_xtream::types::XtreamMovieListing>,
+    base_url: &str,
+    username: &str,
+    password: &str,
+    source_id: Option<&str>,
+) -> Vec<crate::models::Movie> {
+    let enc_user = encode_credential(username);
+    let enc_pass = encode_credential(password);
+
+    listings
+        .into_iter()
+        .map(|ml| {
+            let ext = ml.container_extension.as_deref().unwrap_or("mp4");
+            let stream_url = format!(
+                "{}/movie/{}/{}/{}.{}",
+                base_url, enc_user, enc_pass, ml.stream_id, ext,
+            );
+
+            let mut movie: crate::models::Movie = ml.into();
+            movie.stream_url = Some(stream_url);
+            if let Some(sid) = source_id {
+                movie.source_id = sid.to_string();
+            }
+            movie
+        })
+        .collect()
+}
+
 // ── Tests ────────────────────────────────────────
 
 #[cfg(test)]

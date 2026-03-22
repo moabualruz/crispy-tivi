@@ -331,6 +331,7 @@ pub fn parse_xtream_live_streams(
             is_adult,
             custom_sid,
             direct_source,
+            ..Default::default()
         });
     }
 
@@ -357,6 +358,139 @@ pub fn parse_xtream_categories(data: &[Value]) -> Vec<String> {
     let mut sorted: Vec<String> = names.into_iter().collect();
     sorted.sort();
     sorted
+}
+
+// ── Adapter: crispy_xtream crate types ───────────
+
+/// Convert a slice of [`XtreamChannel`] (from `crispy_xtream`) into
+/// [`Channel`] models using `From<XtreamChannel>`.
+///
+/// This is a thin adapter for callers that already have typed
+/// Xtream channel data. The stream URL must be pre-populated on
+/// each `XtreamChannel.url` before calling.
+pub fn channels_from_xtream(
+    channels: Vec<crispy_xtream::types::XtreamChannel>,
+    source_id: Option<&str>,
+) -> Vec<Channel> {
+    channels
+        .into_iter()
+        .map(|xc| {
+            let mut ch: Channel = xc.into();
+            if let Some(sid) = source_id {
+                ch.source_id = Some(sid.to_string());
+            }
+            ch
+        })
+        .collect()
+}
+
+/// Convert a slice of [`XtreamMovieListing`] (from `crispy_xtream`)
+/// into [`Movie`] models.
+pub fn movies_from_xtream(
+    listings: Vec<crispy_xtream::types::XtreamMovieListing>,
+    source_id: &str,
+) -> Vec<crate::models::Movie> {
+    listings
+        .into_iter()
+        .map(|ml| {
+            let mut movie: crate::models::Movie = ml.into();
+            movie.source_id = source_id.to_string();
+            movie
+        })
+        .collect()
+}
+
+/// Convert a slice of [`XtreamShowListing`] (from `crispy_xtream`)
+/// into [`Series`] models.
+pub fn series_from_xtream(
+    listings: Vec<crispy_xtream::types::XtreamShowListing>,
+    source_id: &str,
+) -> Vec<crate::models::Series> {
+    listings
+        .into_iter()
+        .map(|sl| {
+            let mut series: crate::models::Series = sl.into();
+            series.source_id = source_id.to_string();
+            series
+        })
+        .collect()
+}
+
+// ── Bridge adapters: raw JSON → crate types → domain models ──
+
+/// Parse Xtream `get_live_streams` JSON via the `crispy_xtream` crate types.
+///
+/// Deserializes each `Value` into [`XtreamChannel`], populates the stream
+/// URL from the provided credentials, then delegates to [`channels_from_xtream`].
+/// Items that fail deserialization are silently skipped (non-fatal).
+pub fn channels_from_xtream_json(
+    data: &[Value],
+    base_url: &str,
+    username: &str,
+    password: &str,
+    source_id: Option<&str>,
+) -> Vec<Channel> {
+    let typed: Vec<crispy_xtream::types::XtreamChannel> = data
+        .iter()
+        .filter_map(|v| {
+            let mut ch: crispy_xtream::types::XtreamChannel =
+                serde_json::from_value(v.clone()).ok()?;
+            ch.url = Some(build_xtream_stream_url(
+                base_url,
+                username,
+                password,
+                ch.stream_id,
+                "live",
+                "",
+            ));
+            Some(ch)
+        })
+        .collect();
+
+    channels_from_xtream(typed, source_id)
+}
+
+/// Parse Xtream `get_vod_streams` JSON via the `crispy_xtream` crate types.
+///
+/// Deserializes each `Value` into [`XtreamMovieListing`], then delegates to
+/// [`movies_from_xtream`]. Returns [`VodItem`] for backward compatibility
+/// with the current DB layer.
+pub fn vod_from_xtream_json(
+    data: &[Value],
+    base_url: &str,
+    username: &str,
+    password: &str,
+    source_id: Option<&str>,
+) -> Vec<crate::models::VodItem> {
+    let typed: Vec<crispy_xtream::types::XtreamMovieListing> = data
+        .iter()
+        .filter_map(|v| serde_json::from_value(v.clone()).ok())
+        .collect();
+
+    crate::parsers::vod::movies_from_xtream_listings(typed, base_url, username, password, source_id)
+        .into_iter()
+        .map(crate::models::VodItem::from)
+        .collect()
+}
+
+/// Parse Xtream `get_series` JSON via the `crispy_xtream` crate types.
+///
+/// Deserializes each `Value` into [`XtreamShowListing`], then delegates to
+/// [`series_from_xtream`]. Returns [`VodItem`] for backward compatibility.
+pub fn series_from_xtream_json(
+    data: &[Value],
+    source_id: Option<&str>,
+) -> Vec<crate::models::VodItem> {
+    let typed: Vec<crispy_xtream::types::XtreamShowListing> = data
+        .iter()
+        .filter_map(|v| serde_json::from_value(v.clone()).ok())
+        .collect();
+
+    let sid = source_id.unwrap_or("");
+    series_from_xtream(typed, sid)
+        .into_iter()
+        .map(crate::models::VodItem::from)
+        .collect()
 }
 
 // ── Tests ────────────────────────────────────────

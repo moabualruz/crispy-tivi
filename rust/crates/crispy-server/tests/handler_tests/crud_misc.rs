@@ -3,7 +3,7 @@
 
 use serde_json::json;
 
-use super::{make_svc, send};
+use super::{make_svc, seed_source, send};
 
 // ── CRUD: Saved Layouts ──────────────────────────
 
@@ -291,6 +291,7 @@ fn mark_reminder_fired_and_clear() {
 #[test]
 fn set_and_get_last_sync_time() {
     let svc = make_svc();
+    seed_source(&svc, "src1");
     let resp = send(
         &svc,
         &json!({
@@ -350,6 +351,7 @@ fn clear_all() {
 #[test]
 fn update_vod_favorite_flag() {
     let svc = make_svc();
+    seed_source(&svc, "src1");
     // Save a VOD item first.
     send(
         &svc,
@@ -361,6 +363,7 @@ fn update_vod_favorite_flag() {
                 "name": "Movie",
                 "stream_url": "http://x/m1",
                 "type": "movie",
+                "source_id": "src1",
             }]},
         }),
     );
@@ -381,6 +384,7 @@ fn update_vod_favorite_flag() {
 #[test]
 fn get_profiles_for_source() {
     let svc = make_svc();
+    seed_source(&svc, "s1");
     send(
         &svc,
         &json!({

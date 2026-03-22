@@ -67,10 +67,10 @@ pub fn load_categories() -> Result<String> {
     json_result(svc()?.load_categories()?)
 }
 
-/// Save categories from JSON object {type: [names]}.
-pub fn save_categories(json: String) -> Result<()> {
+/// Save categories from JSON object {source_id: str, categories: {type: [names]}}.
+pub fn save_categories(source_id: String, json: String) -> Result<()> {
     let cats: HashMap<String, Vec<String>> = from_json(&json)?;
-    Ok(svc()?.save_categories(&cats)?)
+    Ok(svc()?.save_categories(&source_id, &cats)?)
 }
 
 // ── Favorite Categories ──────────────────────────────

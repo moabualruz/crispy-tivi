@@ -244,6 +244,7 @@ fn parse_entry(
         is_adult: false,
         custom_sid: None,
         direct_source: None,
+        ..Default::default()
     })
 }
 
@@ -322,6 +323,75 @@ fn has_hd(s: &str) -> bool {
 
 fn has_sd(s: &str) -> bool {
     RE_SD.is_match(s)
+}
+
+// ── Adapter: crispy_m3u crate ────────────────────
+
+/// Parse M3U content using the `crispy_m3u` crate and convert
+/// entries to [`Channel`] via `From<M3uEntry>`.
+///
+/// This adapter delegates low-level parsing to `crispy_m3u::parse`
+/// but applies the same resolution detection and channel numbering
+/// that [`parse_m3u`] does. Use this when you want the new crate's
+/// parser with crispy-core's model output.
+///
+/// Falls back to [`parse_m3u`] on parse error.
+pub fn parse_m3u_via_crate(content: &str) -> M3uParseResult {
+    if content.trim().is_empty() {
+        return M3uParseResult {
+            channels: Vec::new(),
+            epg_url: None,
+            errors: Vec::new(),
+        };
+    }
+
+    let playlist = match crispy_m3u::parse(content) {
+        Ok(p) => p,
+        Err(_) => {
+            // Fall back to the battle-tested internal parser.
+            return parse_m3u(content);
+        }
+    };
+
+    let epg_url = playlist.header.epg_url.clone();
+
+    let mut channels = Vec::with_capacity(playlist.entries.len());
+    let mut errors = Vec::new();
+
+    for (i, entry) in playlist.entries.into_iter().enumerate() {
+        if !entry.has_url() {
+            continue;
+        }
+
+        let name = match &entry.name {
+            Some(n) if !n.is_empty() => n.clone(),
+            _ => {
+                errors.push(format!("Entry {} has no name", i + 1,));
+                continue;
+            }
+        };
+
+        let url = entry.url.clone().unwrap_or_default();
+
+        let mut ch: Channel = entry.into();
+
+        // Apply resolution detection (not done by the From impl).
+        let empty = HashMap::new();
+        ch.resolution = detect_resolution(&empty, &name, &url);
+
+        // Set channel number if not already set from tvg-chno.
+        if ch.number.is_none() {
+            ch.number = Some((i + 1) as i32);
+        }
+
+        channels.push(ch);
+    }
+
+    M3uParseResult {
+        channels,
+        epg_url,
+        errors,
+    }
 }
 
 // ── Tests ────────────────────────────────────────

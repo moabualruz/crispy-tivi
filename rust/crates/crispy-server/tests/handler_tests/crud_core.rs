@@ -2,7 +2,7 @@
 
 use serde_json::json;
 
-use super::{make_svc, send};
+use super::{make_svc, seed_source, send};
 
 // ── CRUD: Channels ─────────────────────────────────
 
@@ -89,12 +89,15 @@ fn get_channels_by_ids() {
 #[test]
 fn delete_removed_channels() {
     let svc = make_svc();
+    seed_source(&svc, "src1");
     let channels = json!([
         {"id": "c1", "name": "C1",
          "stream_url": "http://x/1",
+         "native_id": "n1",
          "source_id": "src1"},
         {"id": "c2", "name": "C2",
          "stream_url": "http://x/2",
+         "native_id": "n2",
          "source_id": "src1"},
     ]);
     send(

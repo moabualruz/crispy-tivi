@@ -198,6 +198,7 @@ mod tests {
             is_adult: false,
             custom_sid: None,
             direct_source: None,
+            ..Default::default()
         }
     }
 

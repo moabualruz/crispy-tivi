@@ -136,6 +136,18 @@ mod tests {
         Database::open_in_memory().expect("open_in_memory")
     }
 
+    /// Seed a source row so FK constraints on db_sync_meta / db_epg_entries are satisfied.
+    fn seed_source(db: &Database, id: &str) {
+        db.get()
+            .unwrap()
+            .execute(
+                "INSERT OR IGNORE INTO db_sources (id, name, source_type, url) \
+                 VALUES (?1, ?1, 'm3u', 'http://test')",
+                rusqlite::params![id],
+            )
+            .unwrap();
+    }
+
     #[test]
     fn test_get_staleness_info_returns_empty_when_no_data() {
         let db = fresh_db();
@@ -153,6 +165,7 @@ mod tests {
     fn test_get_staleness_info_fresh_when_recent_sync() {
         let db = fresh_db();
         let now = chrono::Utc::now().timestamp();
+        seed_source(&db, "src-fresh");
         // Insert a recent sync record.
         db.get()
             .unwrap()
@@ -171,6 +184,7 @@ mod tests {
         let db = fresh_db();
         // 30 hours ago
         let old_ts = chrono::Utc::now().timestamp() - (30 * 3600);
+        seed_source(&db, "src-old");
         db.get()
             .unwrap()
             .execute(
@@ -187,6 +201,7 @@ mod tests {
     fn test_is_stale_false_when_fresh() {
         let db = fresh_db();
         let now = chrono::Utc::now().timestamp();
+        seed_source(&db, "src-now");
         db.get()
             .unwrap()
             .execute(
@@ -209,12 +224,13 @@ mod tests {
     fn test_days_cached_returns_correct_span() {
         let db = fresh_db();
         let now = chrono::Utc::now().timestamp();
+        seed_source(&db, "src-days");
         let conn = db.get().unwrap();
 
         // Insert entries spanning ~3 days.
         conn.execute(
             "INSERT INTO db_epg_entries \
-             (channel_id, title, start_time, end_time, source_id) \
+             (epg_channel_id, title, start_time, end_time, source_id) \
              VALUES ('ch1', 'Show A', ?1, ?2, 'src-days')",
             rusqlite::params![now - 3 * 86_400, now],
         )
@@ -229,12 +245,13 @@ mod tests {
     fn test_prune_old_entries_removes_stale_rows() {
         let db = fresh_db();
         let now = chrono::Utc::now().timestamp();
+        seed_source(&db, "src-prune");
         let conn = db.get().unwrap();
 
         // Old entry (20 days ago).
         conn.execute(
             "INSERT INTO db_epg_entries \
-             (channel_id, title, start_time, end_time, source_id) \
+             (epg_channel_id, title, start_time, end_time, source_id) \
              VALUES ('ch1', 'Old Show', ?1, ?2, 'src-prune')",
             rusqlite::params![now - 25 * 86_400, now - 20 * 86_400],
         )
@@ -243,7 +260,7 @@ mod tests {
         // Recent entry.
         conn.execute(
             "INSERT INTO db_epg_entries \
-             (channel_id, title, start_time, end_time, source_id) \
+             (epg_channel_id, title, start_time, end_time, source_id) \
              VALUES ('ch2', 'New Show', ?1, ?2, 'src-prune')",
             rusqlite::params![now - 86_400, now + 86_400],
         )

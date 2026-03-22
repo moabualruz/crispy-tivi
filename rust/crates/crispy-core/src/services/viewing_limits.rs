@@ -215,12 +215,10 @@ impl ViewingTracker {
 mod tests {
     use super::*;
 
+    /// Create limits with the same quota for weekday and weekend
+    /// so tests pass regardless of what day they run on.
     fn weekday_limits(secs: u64) -> ViewingLimits {
-        ViewingLimits::new(
-            Duration::from_secs(secs),
-            Duration::from_secs(secs * 2),
-            None,
-        )
+        ViewingLimits::new(Duration::from_secs(secs), Duration::from_secs(secs), None)
     }
 
     #[test]

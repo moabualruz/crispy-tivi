@@ -4,54 +4,46 @@ use super::{
     CrispyService, bool_to_int, build_in_placeholders, int_to_bool, opt_dt_to_ts, opt_ts_to_dt,
     str_params,
 };
-use crate::database::{DbError, TABLE_VOD_ITEMS};
+use crate::database::{DbError, TABLE_MOVIES};
 use crate::events::DataChangeEvent;
 use crate::models::VodItem;
 
-/// SELECT column list for `db_vod_items` (28 columns, positional order).
+/// SELECT column list for `db_movies` mapped to VodItem fields (26 columns).
 ///
-/// Use with `format!("SELECT {VOD_COLUMNS} FROM db_vod_items ...")`.
-/// Column order matches `vod_item_from_row` index bindings.
-///
-/// NOTE: `cast` is a SQL reserved keyword and must be quoted in queries.
-pub(crate) const VOD_COLUMNS: &str = "id, name, stream_url, type, \
+/// This provides backward compatibility: the old VodItem-based API
+/// reads from the new `db_movies` table. Fields that don't exist in
+/// db_movies (series_id, season_number, episode_number) are returned as NULL.
+pub(crate) const VOD_COLUMNS: &str = "id, name, stream_url, \
+     'movie' AS type, \
      poster_url, backdrop_url, \
      description, rating, year, \
-     duration, category, series_id, \
-     season_number, episode_number, \
-     ext, is_favorite, added_at, \
+     duration_minutes, genre, NULL AS series_id, \
+     NULL AS season_number, NULL AS episode_number, \
+     container_ext, 0 AS is_favorite, added_at, \
      updated_at, source_id, \
-     \"cast\", director, genre, \
+     cast_names, director, genre, \
      youtube_trailer, tmdb_id, rating_5based, \
      original_name, is_adult, content_rating";
 
 /// Same as `VOD_COLUMNS` but qualified with table alias `v.` for JOIN queries.
-///
-/// Use with `format!("SELECT {VOD_COLUMNS_V} FROM db_vod_items v ...")`.
-pub(crate) const VOD_COLUMNS_V: &str = "v.id, v.name, v.stream_url, v.type, \
+pub(crate) const VOD_COLUMNS_V: &str = "v.id, v.name, v.stream_url, \
+     'movie' AS type, \
      v.poster_url, v.backdrop_url, \
      v.description, v.rating, v.year, \
-     v.duration, v.category, v.series_id, \
-     v.season_number, v.episode_number, \
-     v.ext, v.is_favorite, v.added_at, \
+     v.duration_minutes, v.genre, NULL AS series_id, \
+     NULL AS season_number, NULL AS episode_number, \
+     v.container_ext, 0 AS is_favorite, v.added_at, \
      v.updated_at, v.source_id, \
-     v.\"cast\", v.director, v.genre, \
+     v.cast_names, v.director, v.genre, \
      v.youtube_trailer, v.tmdb_id, v.rating_5based, \
      v.original_name, v.is_adult, v.content_rating";
 
-/// Map a single SQLite row to a `VodItem`.
-///
-/// Column order must match `VOD_COLUMNS`:
-/// `id, name, stream_url, type, poster_url, backdrop_url,
-///  description, rating, year, duration, category, series_id,
-///  season_number, episode_number, ext, is_favorite,
-///  added_at, updated_at, source_id, cast, director, genre,
-///  youtube_trailer, tmdb_id, rating_5based`
+/// Map a single SQLite row to a `VodItem` (backward compat).
 pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
     Ok(VodItem {
         id: row.get(0)?,
         name: row.get(1)?,
-        stream_url: row.get(2)?,
+        stream_url: row.get::<_, Option<String>>(2)?.unwrap_or_default(),
         item_type: row.get(3)?,
         poster_url: row.get(4)?,
         backdrop_url: row.get(5)?,
@@ -81,68 +73,83 @@ pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
 }
 
 impl CrispyService {
-    // ── VOD Items ───────────────────────────────────
+    // ── VOD Items (backward compat — writes to db_movies) ──
 
-    /// Batch upsert VOD items. Returns count inserted.
+    /// Batch upsert VOD items into db_movies. Returns count inserted.
+    ///
+    /// This is a backward-compatibility shim: parsers still produce
+    /// VodItem structs which are mapped to db_movies rows.
     pub fn save_vod_items(&self, items: &[VodItem]) -> Result<usize, DbError> {
         let conn = self.db.get()?;
         let tx = conn.unchecked_transaction()?;
         let mut count = 0usize;
         for v in items {
+            let source_id = v.source_id.clone().unwrap_or_default();
             tx.execute(
-                "INSERT OR REPLACE INTO db_vod_items (
-                    id, name, stream_url, type,
-                    poster_url, backdrop_url,
-                    description, rating, year,
-                    duration, category, series_id,
-                    season_number, episode_number,
-                    ext, is_favorite, added_at,
-                    updated_at, source_id,
-                    \"cast\", director, genre,
-                    youtube_trailer, tmdb_id, rating_5based,
-                    original_name, is_adult, content_rating
+                "INSERT INTO db_movies (
+                    id, source_id, native_id, name,
+                    original_name, poster_url, backdrop_url,
+                    description, stream_url, container_ext,
+                    year, duration_minutes,
+                    rating, rating_5based, content_rating,
+                    genre, youtube_trailer, tmdb_id,
+                    cast_names, director,
+                    is_adult, added_at, updated_at
                 ) VALUES (
                     ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
                     ?9, ?10, ?11, ?12, ?13, ?14, ?15,
-                    ?16, ?17, ?18, ?19, ?20, ?21, ?22,
-                    ?23, ?24, ?25, ?26, ?27, ?28
-                )",
+                    ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23
+                )
+                ON CONFLICT (source_id, native_id) DO UPDATE SET
+                    id = excluded.id,
+                    name = excluded.name,
+                    original_name = excluded.original_name,
+                    poster_url = excluded.poster_url,
+                    backdrop_url = excluded.backdrop_url,
+                    description = excluded.description,
+                    stream_url = excluded.stream_url,
+                    container_ext = excluded.container_ext,
+                    year = excluded.year,
+                    duration_minutes = excluded.duration_minutes,
+                    rating = excluded.rating,
+                    rating_5based = excluded.rating_5based,
+                    content_rating = excluded.content_rating,
+                    genre = excluded.genre,
+                    youtube_trailer = excluded.youtube_trailer,
+                    tmdb_id = excluded.tmdb_id,
+                    cast_names = excluded.cast_names,
+                    director = excluded.director,
+                    is_adult = excluded.is_adult,
+                    updated_at = excluded.updated_at",
                 params![
                     v.id,
+                    source_id,
+                    v.id, // native_id = id for legacy items
                     v.name,
-                    v.stream_url,
-                    v.item_type,
+                    v.original_name,
                     v.poster_url,
                     v.backdrop_url,
                     v.description,
-                    v.rating,
+                    v.stream_url,
+                    v.ext,
                     v.year,
                     v.duration,
-                    v.category,
-                    v.series_id,
-                    v.season_number,
-                    v.episode_number,
-                    v.ext,
-                    bool_to_int(v.is_favorite),
-                    opt_dt_to_ts(&v.added_at),
-                    opt_dt_to_ts(&v.updated_at),
-                    v.source_id,
-                    v.cast,
-                    v.director,
+                    v.rating,
+                    v.rating_5based,
+                    v.content_rating,
                     v.genre,
                     v.youtube_trailer,
                     v.tmdb_id,
-                    v.rating_5based,
-                    v.original_name,
+                    v.cast,
+                    v.director,
                     bool_to_int(v.is_adult),
-                    v.content_rating,
+                    opt_dt_to_ts(&v.added_at),
+                    opt_dt_to_ts(&v.updated_at),
                 ],
             )?;
             count += 1;
         }
         tx.commit()?;
-        // Emit one event per distinct source_id so each
-        // source's subscribers are notified independently.
         self.emit_per_source(
             items,
             |v| v.source_id.as_deref(),
@@ -153,26 +160,22 @@ impl CrispyService {
         Ok(count)
     }
 
-    /// Load all VOD items.
+    /// Load all VOD items (from db_movies).
     pub fn load_vod_items(&self) -> Result<Vec<VodItem>, DbError> {
         let conn = self.db.get()?;
-        let mut stmt = conn.prepare(&format!("SELECT {VOD_COLUMNS} FROM db_vod_items",))?;
+        let mut stmt = conn.prepare(&format!("SELECT {VOD_COLUMNS} FROM db_movies",))?;
         let rows = stmt.query_map([], vod_item_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
     /// Load VOD items filtered by source IDs.
-    ///
-    /// If `source_ids` is empty, all VOD items are returned
-    /// (same behaviour as `load_vod_items()`). Otherwise only
-    /// items whose `source_id` is in the list are returned.
     pub fn get_vod_by_sources(&self, source_ids: &[String]) -> Result<Vec<VodItem>, DbError> {
         if source_ids.is_empty() {
             return self.load_vod_items();
         }
         let conn = self.db.get()?;
         let sql = format!(
-            "SELECT {VOD_COLUMNS} FROM db_vod_items WHERE source_id IN ({})",
+            "SELECT {VOD_COLUMNS} FROM db_movies WHERE source_id IN ({})",
             build_in_placeholders(source_ids.len())
         );
         let mut stmt = conn.prepare(&sql)?;
@@ -191,16 +194,13 @@ impl CrispyService {
         sort_by: &str,
     ) -> Result<Vec<VodItem>, DbError> {
         let conn = self.db.get()?;
-        let mut sql = format!("SELECT {VOD_COLUMNS} FROM db_vod_items WHERE 1=1",);
+        let mut sql = format!("SELECT {VOD_COLUMNS} FROM db_movies WHERE 1=1",);
 
         let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
         let mut param_idx = 1;
 
-        if let Some(t) = item_type {
-            sql.push_str(&format!(" AND type = ?{}", param_idx));
-            params.push(Box::new(t.to_string()));
-            param_idx += 1;
-        }
+        // item_type filter is ignored for db_movies (all are movies).
+        let _ = item_type;
 
         if !source_ids.is_empty() {
             let placeholders = build_in_placeholders(source_ids.len());
@@ -212,7 +212,7 @@ impl CrispyService {
         }
 
         if let Some(cat) = category {
-            sql.push_str(&format!(" AND category = ?{}", param_idx));
+            sql.push_str(&format!(" AND genre = ?{}", param_idx));
             params.push(Box::new(cat.to_string()));
             param_idx += 1;
         }
@@ -226,6 +226,7 @@ impl CrispyService {
             // param_idx += 1;
         }
 
+        let _ = param_idx;
         let mut stmt = conn.prepare(&sql)?;
         let refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
         let rows = stmt.query_map(refs.as_slice(), vod_item_from_row)?;
@@ -236,10 +237,6 @@ impl CrispyService {
     }
 
     /// Find VOD items from other sources with the same title and year.
-    ///
-    /// Uses case-insensitive exact name match (LOWER + TRIM) to avoid
-    /// false positives. Results are ordered by source priority
-    /// (lower `sort_order` = higher priority).
     pub fn find_vod_alternatives(
         &self,
         name: &str,
@@ -251,7 +248,7 @@ impl CrispyService {
         let name_lower = name.to_lowercase().trim().to_string();
         let mut stmt = conn.prepare(&format!(
             "SELECT {VOD_COLUMNS_V}
-             FROM db_vod_items v
+             FROM db_movies v
              LEFT JOIN db_sources s ON s.id = v.source_id
              WHERE LOWER(TRIM(v.name)) = ?1
                AND (?2 IS NULL OR v.year = ?2)
@@ -266,8 +263,7 @@ impl CrispyService {
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
-    /// Delete VOD items from `source_id` not in
-    /// `keep_ids`. Returns count deleted.
+    /// Delete VOD items from `source_id` not in `keep_ids`. Returns count deleted.
     pub fn delete_removed_vod_items(
         &self,
         source_id: &str,
@@ -275,7 +271,7 @@ impl CrispyService {
     ) -> Result<usize, DbError> {
         let conn = self.db.get()?;
         let tx = conn.unchecked_transaction()?;
-        let deleted = super::delete_removed_by_source(&tx, TABLE_VOD_ITEMS, source_id, keep_ids)?;
+        let deleted = super::delete_removed_by_source(&tx, TABLE_MOVIES, source_id, keep_ids)?;
         tx.commit()?;
         self.emit(DataChangeEvent::VodUpdated {
             source_id: source_id.to_string(),
@@ -285,11 +281,11 @@ impl CrispyService {
 
     // ── VOD Favorites ───────────────────────────────
 
-    /// Get favourite VOD item IDs for a profile.
+    /// Get favourite VOD content IDs for a profile.
     pub fn get_vod_favorites(&self, profile_id: &str) -> Result<Vec<String>, DbError> {
         let conn = self.db.get()?;
         let mut stmt = conn.prepare(
-            "SELECT vod_item_id
+            "SELECT content_id
              FROM db_vod_favorites
              WHERE profile_id = ?1",
         )?;
@@ -303,8 +299,8 @@ impl CrispyService {
         let now = chrono::Utc::now().timestamp();
         conn.execute(
             "INSERT OR REPLACE INTO db_vod_favorites
-             (profile_id, vod_item_id, added_at)
-             VALUES (?1, ?2, ?3)",
+             (profile_id, content_id, content_type, added_at)
+             VALUES (?1, ?2, 'movie', ?3)",
             params![profile_id, vod_item_id, now],
         )?;
         self.emit(DataChangeEvent::VodFavoriteToggled {
@@ -320,7 +316,7 @@ impl CrispyService {
         conn.execute(
             "DELETE FROM db_vod_favorites
              WHERE profile_id = ?1
-             AND vod_item_id = ?2",
+             AND content_id = ?2",
             params![profile_id, vod_item_id],
         )?;
         self.emit(DataChangeEvent::VodFavoriteToggled {
@@ -338,11 +334,13 @@ mod tests {
     #[test]
     fn save_and_load_vod_items() {
         let svc = make_service();
-        let items = vec![
-            make_vod_item("v1", "Movie 1"),
-            make_vod_item("v2", "Movie 2"),
-        ];
-        let count = svc.save_vod_items(&items).unwrap();
+        let src = make_source("src1", "S1", "m3u");
+        svc.save_source(&src).unwrap();
+        let mut v1 = make_vod_item("v1", "Movie 1");
+        v1.source_id = Some("src1".to_string());
+        let mut v2 = make_vod_item("v2", "Movie 2");
+        v2.source_id = Some("src1".to_string());
+        let count = svc.save_vod_items(&[v1, v2]).unwrap();
         assert_eq!(count, 2);
 
         let loaded = svc.load_vod_items().unwrap();
@@ -353,7 +351,7 @@ mod tests {
 
     #[test]
     fn test_get_vod_by_sources_empty_returns_all() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         let mut v1 = make_vod_item("v1", "Movie 1");
         v1.source_id = Some("src_a".to_string());
         let mut v2 = make_vod_item("v2", "Movie 2");
@@ -367,7 +365,7 @@ mod tests {
 
     #[test]
     fn test_get_vod_by_sources_filters() {
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         let mut v1 = make_vod_item("v1", "Movie 1");
         v1.source_id = Some("src_a".to_string());
         let mut v2 = make_vod_item("v2", "Movie 2");
@@ -387,7 +385,10 @@ mod tests {
     #[test]
     fn vod_upsert_overwrites() {
         let svc = make_service();
+        let src = make_source("src1", "S1", "m3u");
+        svc.save_source(&src).unwrap();
         let mut v = make_vod_item("v1", "Original");
+        v.source_id = Some("src1".to_string());
         svc.save_vod_items(&[v.clone()]).unwrap();
 
         v.name = "Updated".to_string();
@@ -400,13 +401,14 @@ mod tests {
 
     #[test]
     fn delete_removed_vod_items() {
-        let svc = make_service();
-        let items = vec![
-            make_vod_item("v1", "Movie 1"),
-            make_vod_item("v2", "Movie 2"),
-            make_vod_item("v3", "Movie 3"),
-        ];
-        svc.save_vod_items(&items).unwrap();
+        let svc = make_service_with_fixtures();
+        let mut v1 = make_vod_item("v1", "Movie 1");
+        v1.source_id = Some("src1".to_string());
+        let mut v2 = make_vod_item("v2", "Movie 2");
+        v2.source_id = Some("src1".to_string());
+        let mut v3 = make_vod_item("v3", "Movie 3");
+        v3.source_id = Some("src1".to_string());
+        svc.save_vod_items(&[v1, v2, v3]).unwrap();
 
         let deleted = svc
             .delete_removed_vod_items("src1", &["v1".to_string()])
@@ -422,7 +424,11 @@ mod tests {
     fn vod_favorites_crud() {
         let svc = make_service();
         svc.save_profile(&make_profile("p1", "Alice")).unwrap();
-        svc.save_vod_items(&[make_vod_item("v1", "Movie")]).unwrap();
+        let src = make_source("src1", "S1", "m3u");
+        svc.save_source(&src).unwrap();
+        let mut v = make_vod_item("v1", "Movie");
+        v.source_id = Some("src1".to_string());
+        svc.save_vod_items(&[v]).unwrap();
 
         svc.add_vod_favorite("p1", "v1").unwrap();
         let favs = svc.get_vod_favorites("p1").unwrap();
@@ -444,7 +450,11 @@ mod tests {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
         svc.save_profile(&make_profile("p1", "Alice")).unwrap();
-        svc.save_vod_items(&[make_vod_item("v1", "Movie")]).unwrap();
+        let src = make_source("src1", "S1", "m3u");
+        svc.save_source(&src).unwrap();
+        let mut v = make_vod_item("v1", "Movie");
+        v.source_id = Some("src1".to_string());
+        svc.save_vod_items(&[v]).unwrap();
         svc.add_vod_favorite("p1", "v1").unwrap();
         let recorded = log.lock().unwrap();
         let last = recorded.last().unwrap();
@@ -512,7 +522,6 @@ mod tests {
         v2.source_id = Some("src_b".to_string());
         svc.save_vod_items(&[v1, v2]).unwrap();
 
-        // Filtering by 2021 should not include the 2024 item.
         let result = svc
             .find_vod_alternatives("Dune", Some(2021), "v1", 10)
             .unwrap();
@@ -575,8 +584,6 @@ mod tests {
         v3.source_id = Some("src_c".to_string());
         svc.save_vod_items(&[v1, v2, v3]).unwrap();
 
-        // Exclude v1 (sort_order=5). Remaining: v2 (sort_order=0), v3 (sort_order=10).
-        // Expected order: v2 first (sort_order=0), v3 last (sort_order=10).
         let result = svc
             .find_vod_alternatives("Inception", Some(2010), "v1", 10)
             .unwrap();
@@ -590,7 +597,7 @@ mod tests {
         use crate::events::serialize_event;
         use std::collections::HashSet;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let svc = make_service_with_fixtures();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
         svc.set_event_callback(Arc::new(move |e| {

@@ -122,13 +122,15 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         // ── Categories ─────────────────────────
         "loadCategories" => svc_data!(svc, load_categories),
         "saveCategories" => (|| {
+            let source_id = get_str(args, "sourceId")?;
             let cats: HashMap<String, Vec<String>> = serde_json::from_value(
                 args.get("categories")
                     .cloned()
                     .ok_or_else(|| anyhow!("Missing categories"))?,
             )
             .context("Invalid categories")?;
-            svc.save_categories(&cats).map_err(|e| anyhow!("{e}"))?;
+            svc.save_categories(&source_id, &cats)
+                .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true}))
         })(),
 
