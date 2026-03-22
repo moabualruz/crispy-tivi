@@ -365,6 +365,118 @@ impl CrispyService {
         Ok(map)
     }
 
+    /// Reserved source_id for placeholder EPG entries.
+    /// Placeholders are auto-generated for channels without real EPG.
+    pub const PLACEHOLDER_SOURCE: &'static str = "_placeholder";
+
+    /// Generate 7-day placeholder EPG entries for channels that have
+    /// no real EPG data. Each placeholder is a 24-hour block with the
+    /// channel name as the programme title.
+    ///
+    /// Placeholders use `source_id = "_placeholder"` with effective
+    /// `sort_order = 999`, so any real EPG data replaces them via
+    /// the priority upsert in `save_epg_entries`.
+    ///
+    /// Returns the number of placeholder entries inserted.
+    pub fn generate_placeholders_for_channels(
+        &self,
+        channels: &[crate::models::Channel],
+    ) -> Result<usize, DbError> {
+        let now = chrono::Utc::now();
+        let today_start = now
+            .date_naive()
+            .and_hms_opt(0, 0, 0)
+            .unwrap_or(now.naive_utc());
+
+        // Find channels that already have ANY entries (real or placeholder)
+        // in the next 24 hours. Single batch query.
+        let channel_ids: Vec<String> = channels.iter().map(|ch| ch.id.clone()).collect();
+        let start_ts = today_start.and_utc().timestamp();
+        let end_ts = start_ts + 7 * 86_400;
+
+        let existing = self.get_epgs_for_channels(&channel_ids, start_ts, end_ts)?;
+        let has_data: HashSet<&str> = existing
+            .iter()
+            .filter(|(_, entries)| !entries.is_empty())
+            .map(|(id, _)| id.as_str())
+            .collect();
+
+        // Generate placeholders for channels with no coverage.
+        let mut placeholder_map: HashMap<String, Vec<EpgEntry>> = HashMap::new();
+        for ch in channels {
+            if has_data.contains(ch.id.as_str()) {
+                continue;
+            }
+            let mut entries = Vec::with_capacity(7);
+            for day in 0..7 {
+                let day_start = today_start + chrono::Duration::days(day);
+                let day_end = day_start + chrono::Duration::days(1);
+                entries.push(EpgEntry {
+                    channel_id: ch.id.clone(),
+                    title: ch.name.clone(),
+                    start_time: day_start,
+                    end_time: day_end,
+                    source_id: Some(Self::PLACEHOLDER_SOURCE.to_string()),
+                    ..EpgEntry::default()
+                });
+            }
+            placeholder_map.insert(ch.id.clone(), entries);
+        }
+
+        if placeholder_map.is_empty() {
+            return Ok(0);
+        }
+
+        let count = self.save_epg_entries(&placeholder_map)?;
+        tracing::info!(
+            "Generated {} placeholder EPG entries for {} channels",
+            count,
+            placeholder_map.len(),
+        );
+        Ok(count)
+    }
+
+    /// Check the latest real (non-placeholder) EPG coverage end time
+    /// for a specific channel. Returns `None` if no real data exists.
+    pub fn get_real_epg_coverage_end(
+        &self,
+        channel_id: &str,
+    ) -> Result<Option<i64>, DbError> {
+        let conn = self.db.get()?;
+        let result: rusqlite::Result<Option<i64>> = conn.query_row(
+            "SELECT MAX(end_time) FROM db_epg_entries
+             WHERE channel_id = ?1 AND (source_id IS NULL OR source_id != ?2)",
+            params![channel_id, Self::PLACEHOLDER_SOURCE],
+            |row| row.get(0),
+        );
+        match result {
+            Ok(ts) => Ok(ts),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(DbError::Sqlite(e)),
+        }
+    }
+
+    /// Check if a channel has real (non-placeholder) EPG data
+    /// covering the given time range.
+    pub fn has_real_epg_coverage(
+        &self,
+        channel_id: &str,
+        start_time: i64,
+        end_time: i64,
+    ) -> Result<bool, DbError> {
+        let conn = self.db.get()?;
+        let count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM db_epg_entries
+             WHERE channel_id = ?1
+               AND end_time > ?2
+               AND start_time < ?3
+               AND (source_id IS NULL OR source_id != ?4)",
+            params![channel_id, start_time, end_time, Self::PLACEHOLDER_SOURCE],
+            |row| row.get(0),
+        )?;
+        Ok(count > 0)
+    }
+
     /// Delete EPG entries older than `days` days.
     /// Returns count deleted.
     pub fn evict_stale_epg(&self, days: i64) -> Result<usize, DbError> {

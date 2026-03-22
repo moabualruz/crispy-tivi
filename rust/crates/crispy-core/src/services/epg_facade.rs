@@ -10,7 +10,6 @@
 //! The UI never needs to know the source type.
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 
@@ -20,10 +19,9 @@ use super::epg_resolver;
 use crate::models::{EpgEntry, Source};
 use crate::services::CrispyService;
 
-/// Cooldown for L3 fetch attempts per channel (seconds).
-/// Prevents the same channel from being re-fetched within this window
-/// even if the UI keeps requesting it.
-const L3_COOLDOWN_SECS: i64 = 600; // 10 minutes
+/// Minimum gap (seconds) before we bother fetching real EPG — 1 hour.
+/// If real (non-placeholder) data covers at least the next hour, skip.
+const MIN_REAL_COVERAGE_SECS: i64 = 3600;
 
 // ── EpgFacade ──────────────────────────────────────────
 
@@ -36,9 +34,6 @@ pub struct EpgFacade {
     service: CrispyService,
     hot_cache: EpgHotCache,
     fetcher: ThrottledEpgFetcher,
-    /// Tracks recently-attempted L3 fetches: channel_id → timestamp.
-    /// Prevents repeated background fetches for the same channel.
-    l3_cooldowns: Arc<Mutex<HashMap<String, i64>>>,
 }
 
 impl EpgFacade {
@@ -48,30 +43,17 @@ impl EpgFacade {
             service,
             hot_cache: EpgHotCache::new(),
             fetcher: ThrottledEpgFetcher::new(),
-            l3_cooldowns: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
-    /// Check if a channel is on L3 cooldown (fetched recently).
-    fn is_on_cooldown(&self, channel_id: &str) -> bool {
+    /// Check if a channel has real (non-placeholder) EPG coverage
+    /// for at least the next hour. If so, no L3 fetch needed.
+    fn has_sufficient_real_coverage(&self, channel_id: &str) -> bool {
         let now = chrono::Utc::now().timestamp();
-        let cooldowns = self.l3_cooldowns.lock().unwrap_or_else(|e| e.into_inner());
-        cooldowns
-            .get(channel_id)
-            .is_some_and(|&ts| now - ts < L3_COOLDOWN_SECS)
-    }
-
-    /// Mark channels as recently fetched (on cooldown).
-    fn mark_cooldown(&self, channel_ids: &[String]) {
-        let now = chrono::Utc::now().timestamp();
-        let mut cooldowns = self.l3_cooldowns.lock().unwrap_or_else(|e| e.into_inner());
-        for id in channel_ids {
-            cooldowns.insert(id.clone(), now);
-        }
-        // Prune old entries to prevent unbounded growth.
-        if cooldowns.len() > 5000 {
-            cooldowns.retain(|_, ts| now - *ts < L3_COOLDOWN_SECS);
-        }
+        let check_end = now + MIN_REAL_COVERAGE_SECS;
+        self.service
+            .has_real_epg_coverage(channel_id, now, check_end)
+            .unwrap_or(false)
     }
 
     /// Get EPG for a single channel (up to `count` upcoming entries).
@@ -106,11 +88,11 @@ impl EpgFacade {
             return Ok(l2_entries);
         }
 
-        // L3: Fire-and-forget background fetch — only if not on cooldown.
-        if !self.is_on_cooldown(channel_id)
+        // L3: Fire-and-forget background fetch — only if no real
+        // (non-placeholder) coverage for the next hour.
+        if !self.has_sufficient_real_coverage(channel_id)
             && let Ok(Some(source)) = self.find_source_for_channel(channel_id)
         {
-            self.mark_cooldown(&[channel_id.to_string()]);
             let facade = self.clone();
             let ch_id = channel_id.to_string();
             tokio::spawn(async move {
@@ -190,14 +172,13 @@ impl EpgFacade {
             return Ok(result);
         }
 
-        // L3: Fire-and-forget background fetch — skip channels on cooldown.
+        // L3: Fire-and-forget — skip channels with real coverage in next hour.
         let l3_filtered: Vec<String> = l3_needed
             .into_iter()
-            .filter(|id| !self.is_on_cooldown(id))
+            .filter(|id| !self.has_sufficient_real_coverage(id))
             .collect();
 
         if !l3_filtered.is_empty() {
-            self.mark_cooldown(&l3_filtered);
             let source_groups = self.group_channels_by_source(&l3_filtered)?;
             if !source_groups.is_empty() {
                 let facade = self.clone();

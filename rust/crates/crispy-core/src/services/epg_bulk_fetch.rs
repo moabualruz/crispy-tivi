@@ -10,8 +10,6 @@
 //! - Never fetch more than 7 days ahead
 //! - Channels with coverage for the next 24h are skipped entirely
 
-use std::collections::HashSet;
-
 use crate::models::{Channel, Source};
 use crate::services::epg_fetcher::ThrottledEpgFetcher;
 use crate::services::CrispyService;
@@ -65,41 +63,34 @@ async fn run_bulk_fetch(
         return Ok(());
     }
 
-    // Single batch query: get ALL channels that have EPG data
-    // covering now → now+4h. This is ONE SQL query, not 13K.
-    let all_ids: Vec<String> = api_channels.iter().map(|ch| ch.id.clone()).collect();
-    let covered = service
-        .get_epgs_for_channels(&all_ids, now, coverage_end)
-        .unwrap_or_default();
-
-    let covered_ids: HashSet<&str> = covered
-        .iter()
-        .filter(|(_, entries)| !entries.is_empty())
-        .map(|(id, _)| id.as_str())
-        .collect();
-
-    // Channels that need fetching: no coverage for next 4 hours.
+    // Check which channels have REAL (non-placeholder) EPG coverage
+    // for the next 4 hours. Only fetch for channels without real data.
     let need_fetch: Vec<&Channel> = api_channels
         .into_iter()
-        .filter(|ch| !covered_ids.contains(ch.id.as_str()))
+        .filter(|ch| {
+            !service
+                .has_real_epg_coverage(&ch.id, now, coverage_end)
+                .unwrap_or(true)
+        })
         .take(MAX_CHANNELS_PER_SYNC)
         .collect();
 
+    let covered_count = channels.len() - need_fetch.len();
+
     if need_fetch.is_empty() {
         tracing::info!(
-            "Bulk EPG: {}/{} channels already covered for next {}h, skipping",
-            covered_ids.len(),
-            channels.len(),
+            "Bulk EPG: all {} channels have real coverage for next {}h",
+            covered_count,
             MIN_COVERAGE_SECS / 3600,
         );
         return Ok(());
     }
 
     tracing::info!(
-        "Bulk EPG: fetching for {}/{} channels ({} already covered)",
+        "Bulk EPG: fetching for {}/{} channels ({} already covered with real data)",
         need_fetch.len(),
         channels.len(),
-        covered_ids.len(),
+        covered_count,
     );
 
     let mut fetched_total = 0usize;

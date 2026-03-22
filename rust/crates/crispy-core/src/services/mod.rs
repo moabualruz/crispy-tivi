@@ -304,6 +304,10 @@ impl CrispyService {
             svc.delete_removed_channels(source_id, channel_ids)?;
             svc.save_vod_items(vod_items)?;
             svc.delete_removed_vod_items(source_id, vod_ids)?;
+            // Generate placeholder EPG entries for channels without
+            // real EPG data. Placeholders ensure every channel has DB
+            // coverage, preventing repeated L3 fetch attempts.
+            let _ = svc.generate_placeholders_for_channels(channels);
             Ok(())
         })
     }
