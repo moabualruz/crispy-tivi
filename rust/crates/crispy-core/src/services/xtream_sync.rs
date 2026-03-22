@@ -327,11 +327,7 @@ pub async fn sync_xtream_source(
     // Fetches per-channel short EPG for channels missing cached data,
     // in batches of 50 with Semaphore(5) concurrency control.
     if let Ok(Some(src)) = service.get_source(source_id) {
-        crate::services::epg_bulk_fetch::spawn_bulk_epg_fetch(
-            service.clone(),
-            src,
-            channels,
-        );
+        crate::services::epg_bulk_fetch::spawn_bulk_epg_fetch(service.clone(), src, channels);
     }
 
     Ok(SyncReport {
