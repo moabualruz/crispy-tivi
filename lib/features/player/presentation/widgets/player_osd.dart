@@ -11,7 +11,6 @@ import '../widgets/subtitle_position_manager.dart';
 import 'player_osd/osd_shared.dart';
 import 'player_osd/subtitle_style_dialog.dart';
 import 'screenshot_indicator.dart';
-import 'live_epg_strip.dart';
 import 'player_osd/osd_audio_picker.dart';
 import 'player_osd/osd_bottom_bar.dart';
 import 'player_osd/osd_center_controls.dart';
@@ -281,14 +280,8 @@ class _PlayerOsdState extends ConsumerState<PlayerOsd> {
             ),
           ),
 
-          // ── Live EPG programme strip ──
-          // Shown above the bottom bar gradient for live
-          // streams when channelEpgId is available.
-          if (widget.channelEpgId != null)
-            LiveEpgStrip(
-              channelEpgId: widget.channelEpgId!,
-              isLive: isTrulyLive,
-            ),
+          // Live EPG strip removed — programme info is already
+          // shown in the top bar (OsdTopBar) via channelEpgId.
 
           // ── Bottom gradient + controls ──
           Positioned(

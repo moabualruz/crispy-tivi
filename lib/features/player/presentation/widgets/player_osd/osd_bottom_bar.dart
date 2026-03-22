@@ -15,7 +15,6 @@ import '../../../../../core/data/cache_service.dart';
 import '../../../data/shader_service.dart';
 import '../../../domain/entities/stream_profile.dart';
 import '../../providers/player_providers.dart';
-import 'osd_mini_guide.dart';
 import 'osd_audio_device_picker.dart';
 import 'osd_overflow_menu.dart';
 import 'osd_shader_picker.dart';
@@ -116,13 +115,7 @@ class OsdBottomBar extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // -- FE-EPG-07: Mini EPG guide (live TV only) --
-          if (isTrulyLive && channelEpgId != null)
-            OsdMiniGuide(
-              channelEpgId: channelEpgId!,
-              isLive: true,
-              textTheme: textTheme,
-            ),
+          // Mini EPG guide removed — programme info shown in OsdTopBar.
 
           // -- Progress bar (full width) --
           if (!isTrulyLive) ...[
