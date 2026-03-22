@@ -7,9 +7,9 @@ import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
+import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/device_form_factor.dart';
-import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../../core/widgets/content_badge.dart';
 import '../../../../core/widgets/genre_pill_row.dart';
 import '../../../../core/widgets/screen_template.dart';
@@ -120,7 +120,18 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
               icon: const Icon(Icons.playlist_add_check_rounded),
               onPressed: () => context.go(AppRoutes.favorites),
             ),
-            const AppBarSearchButton(),
+            IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: context.l10n.searchTitle,
+              onPressed: () {
+                // Scroll to top where the local VodSearchSortBar lives.
+                _scrollController.animateTo(
+                  0,
+                  duration: CrispyAnimation.normal,
+                  curve: CrispyAnimation.scrollCurve,
+                );
+              },
+            ),
           ],
         ),
         // T09: add Semantics label for screen reader accessibility.

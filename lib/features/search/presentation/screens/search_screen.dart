@@ -24,7 +24,7 @@ import '../../domain/constants/search_source_key.dart';
 import '../providers/search_providers.dart';
 import '../widgets/search_body.dart';
 import '../widgets/search_filter_sheet.dart';
-import '../widgets/tv_search_panel.dart';
+// TvSearchPanel removed — desktop/TV uses same SearchBody as compact.
 
 // ── UI dimension constants ────────────────────────────────────────────────────
 
@@ -321,8 +321,39 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               onItemFavorite: _onItemFavorite,
               onItemDetails: _onItemDetails,
             ),
-            // FE-SR-08: TV two-panel keyboard + results layout.
-            largeBody: TvSearchPanel(
+            // Desktop/TV: same layout as compact — physical keyboards
+            // exist on desktops, and TVs use OS-level on-screen keyboard.
+            // The on-screen QWERTY panel was redundant and hid the
+            // content type/source filter chips.
+            largeBody: SearchBody(
+              state: state,
+              isContentLoaded:
+                  ref.watch(
+                    channelListProvider.select((s) => s.channels.isNotEmpty),
+                  ) ||
+                  ref.watch(vodProvider.select((s) => s.items.isNotEmpty)),
+              onToggleContentType: (type) {
+                ref
+                    .read(searchControllerProvider.notifier)
+                    .toggleContentType(type);
+              },
+              onClearFilters: () {
+                ref.read(searchControllerProvider.notifier).clearFilters();
+              },
+              onSelectRecent: (entry) {
+                _searchController.text = entry.query;
+                ref
+                    .read(searchControllerProvider.notifier)
+                    .selectRecentSearch(entry);
+              },
+              onRemoveRecent: (id) {
+                ref
+                    .read(searchControllerProvider.notifier)
+                    .removeFromHistory(id);
+              },
+              onClearHistory: () {
+                ref.read(searchControllerProvider.notifier).clearHistory();
+              },
               onItemTap: _onItemTap,
               onItemFavorite: _onItemFavorite,
               onItemDetails: _onItemDetails,

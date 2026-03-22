@@ -6,7 +6,6 @@ import 'package:crispy_tivi/l10n/l10n_extension.dart';
 
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
-import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../../core/widgets/screen_template.dart';
 import '../providers/vod_providers.dart';
 import '../widgets/vod_browser_shell.dart';
@@ -57,7 +56,8 @@ class VodBrowserScreen extends ConsumerWidget {
               icon: const Icon(Icons.playlist_add_check_rounded),
               onPressed: () => context.go(AppRoutes.favorites),
             ),
-            const AppBarSearchButton(),
+            // Local search is in VodSearchSortBar within the tab body.
+            // No global search button — users type directly in the inline bar.
           ],
         ),
         body: ScreenTemplate(
