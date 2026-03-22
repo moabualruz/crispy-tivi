@@ -247,33 +247,39 @@ impl CrispyService {
         })?;
 
         // Build reverse index: epg_key → Vec<internal_channel_id>.
-        // This allows O(1) lookup per entry instead of O(channels).
         //
-        // Two-pass approach for tvg_id:
-        // Pass 1: Collect all (ch_id, tvg_id) pairs and count tvg_id usage.
-        // Pass 2: Only use tvg_id when it maps to a SINGLE requested channel.
-        //         Shared tvg_ids (e.g. 46 channels all with ID "397424")
-        //         produce wrong EPG assignments and are skipped.
+        // tvg_id is only used when it maps to exactly ONE channel
+        // GLOBALLY (across the entire db_channels table, not just
+        // this request batch). Shared tvg_ids produce wrong EPG
+        // assignments — e.g. 5 SPORTSNET channels all sharing
+        // tvg_id "397424" would all get the same wrong programme.
+        //
+        // Global count query is cheap (single indexed scan).
+        let global_tvg_counts: HashMap<String, i64> = {
+            let mut stmt = conn.prepare(
+                "SELECT tvg_id, COUNT(*) FROM db_channels
+                 WHERE tvg_id IS NOT NULL AND tvg_id != ''
+                 GROUP BY tvg_id HAVING COUNT(*) > 1",
+            )?;
+            stmt.query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            })?
+            .filter_map(|r| r.ok())
+            .collect()
+        };
+
         let mut rows_vec: Vec<(String, Option<String>)> = Vec::new();
-        let mut tvg_usage: HashMap<String, usize> = HashMap::new();
         for row in tvg_rows {
-            let (ch_id, tvg_id) = row?;
-            if let Some(ref tvg) = tvg_id
-                && !tvg.is_empty()
-            {
-                *tvg_usage.entry(tvg.clone()).or_default() += 1;
-            }
-            rows_vec.push((ch_id, tvg_id));
+            rows_vec.push(row?);
         }
 
         let mut key_to_channels: HashMap<String, Vec<String>> = HashMap::new();
         let mut lookup_keys: HashSet<String> = HashSet::new();
         for (ch_id, tvg_id) in &rows_vec {
-            // Only use tvg_id when it uniquely maps to one channel
-            // in this request batch — avoids wrong EPG from shared IDs.
+            // Only use tvg_id when it's globally unique (1 channel in entire DB).
             if let Some(tvg) = tvg_id
                 && !tvg.is_empty()
-                && tvg_usage.get(tvg.as_str()).copied().unwrap_or(0) == 1
+                && !global_tvg_counts.contains_key(tvg.as_str())
             {
                 lookup_keys.insert(tvg.clone());
                 key_to_channels
