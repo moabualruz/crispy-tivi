@@ -48,4 +48,24 @@ pub enum ProbeError {
     /// HLS playlist loop detected.
     #[error("HLS playlist loop detected at {0}")]
     HlsLoop(String),
+
+    /// libmpv is not available on this system.
+    #[cfg(feature = "libmpv-backend")]
+    #[error("libmpv not available: {0}")]
+    MpvUnavailable(String),
+
+    /// libmpv handle initialization failed.
+    #[cfg(feature = "libmpv-backend")]
+    #[error("libmpv initialization failed: {0}")]
+    MpvInitFailed(String),
+
+    /// An mpv command or property access failed.
+    #[cfg(feature = "libmpv-backend")]
+    #[error("mpv command '{command}' failed: {detail}")]
+    MpvCommandFailed {
+        /// The command that was attempted.
+        command: String,
+        /// Error details from mpv.
+        detail: String,
+    },
 }
