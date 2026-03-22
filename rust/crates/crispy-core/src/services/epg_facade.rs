@@ -10,6 +10,7 @@
 //! The UI never needs to know the source type.
 
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 
@@ -18,6 +19,11 @@ use super::epg_hot_cache::EpgHotCache;
 use super::epg_resolver;
 use crate::models::{EpgEntry, Source};
 use crate::services::CrispyService;
+
+/// Cooldown for L3 fetch attempts per channel (seconds).
+/// Prevents the same channel from being re-fetched within this window
+/// even if the UI keeps requesting it.
+const L3_COOLDOWN_SECS: i64 = 600; // 10 minutes
 
 // ── EpgFacade ──────────────────────────────────────────
 
@@ -30,6 +36,9 @@ pub struct EpgFacade {
     service: CrispyService,
     hot_cache: EpgHotCache,
     fetcher: ThrottledEpgFetcher,
+    /// Tracks recently-attempted L3 fetches: channel_id → timestamp.
+    /// Prevents repeated background fetches for the same channel.
+    l3_cooldowns: Arc<Mutex<HashMap<String, i64>>>,
 }
 
 impl EpgFacade {
@@ -39,6 +48,29 @@ impl EpgFacade {
             service,
             hot_cache: EpgHotCache::new(),
             fetcher: ThrottledEpgFetcher::new(),
+            l3_cooldowns: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    /// Check if a channel is on L3 cooldown (fetched recently).
+    fn is_on_cooldown(&self, channel_id: &str) -> bool {
+        let now = chrono::Utc::now().timestamp();
+        let cooldowns = self.l3_cooldowns.lock().unwrap_or_else(|e| e.into_inner());
+        cooldowns
+            .get(channel_id)
+            .is_some_and(|&ts| now - ts < L3_COOLDOWN_SECS)
+    }
+
+    /// Mark channels as recently fetched (on cooldown).
+    fn mark_cooldown(&self, channel_ids: &[String]) {
+        let now = chrono::Utc::now().timestamp();
+        let mut cooldowns = self.l3_cooldowns.lock().unwrap_or_else(|e| e.into_inner());
+        for id in channel_ids {
+            cooldowns.insert(id.clone(), now);
+        }
+        // Prune old entries to prevent unbounded growth.
+        if cooldowns.len() > 5000 {
+            cooldowns.retain(|_, ts| now - *ts < L3_COOLDOWN_SECS);
         }
     }
 
@@ -74,9 +106,11 @@ impl EpgFacade {
             return Ok(l2_entries);
         }
 
-        // L3: Fire-and-forget background fetch for this channel.
-        // Return empty now — EpgUpdated event will trigger re-read.
-        if let Ok(Some(source)) = self.find_source_for_channel(channel_id) {
+        // L3: Fire-and-forget background fetch — only if not on cooldown.
+        if !self.is_on_cooldown(channel_id)
+            && let Ok(Some(source)) = self.find_source_for_channel(channel_id)
+        {
+            self.mark_cooldown(&[channel_id.to_string()]);
             let facade = self.clone();
             let ch_id = channel_id.to_string();
             tokio::spawn(async move {
@@ -156,28 +190,31 @@ impl EpgFacade {
             return Ok(result);
         }
 
-        // L3: Fire-and-forget background fetch for missing channels.
-        // Return L1+L2 results immediately — don't block the UI.
-        // Fetched data is saved to SQLite (L2) and EpgUpdated events
-        // notify Flutter to re-read via the invalidation pipeline.
-        let source_groups = self.group_channels_by_source(&l3_needed)?;
-        if !source_groups.is_empty() {
-            let facade = self.clone();
-            tokio::spawn(async move {
-                for (source, ch_ids) in source_groups {
-                    let _ = epg_resolver::resolve_epg_for_channels(
-                        &facade.service,
-                        &source,
-                        &ch_ids,
-                        start_time,
-                        end_time,
-                        &facade.fetcher,
-                    )
-                    .await;
-                    // Results are already saved to L2 by the resolver.
-                    // Hot cache fill happens on next read.
-                }
-            });
+        // L3: Fire-and-forget background fetch — skip channels on cooldown.
+        let l3_filtered: Vec<String> = l3_needed
+            .into_iter()
+            .filter(|id| !self.is_on_cooldown(id))
+            .collect();
+
+        if !l3_filtered.is_empty() {
+            self.mark_cooldown(&l3_filtered);
+            let source_groups = self.group_channels_by_source(&l3_filtered)?;
+            if !source_groups.is_empty() {
+                let facade = self.clone();
+                tokio::spawn(async move {
+                    for (source, ch_ids) in source_groups {
+                        let _ = epg_resolver::resolve_epg_for_channels(
+                            &facade.service,
+                            &source,
+                            &ch_ids,
+                            start_time,
+                            end_time,
+                            &facade.fetcher,
+                        )
+                        .await;
+                    }
+                });
+            }
         }
 
         Ok(result)
