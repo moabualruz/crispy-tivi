@@ -644,58 +644,6 @@ fn parse_xmltv_ns(value: &str) -> (Option<u32>, Option<u32>) {
     (season, episode)
 }
 
-// ── Adapter: crispy_xmltv crate ──────────────────
-
-/// Parse XMLTV content using the `crispy_xmltv` crate and convert
-/// programmes to [`EpgEntry`] via `From<EpgProgramme>`.
-///
-/// Falls back to [`parse_epg`] on parse error.
-pub fn parse_epg_via_crate(content: &str) -> Vec<EpgEntry> {
-    if content.trim().is_empty() {
-        return Vec::new();
-    }
-
-    let doc = match crispy_xmltv::parse(content) {
-        Ok(d) => d,
-        Err(_) => {
-            // Fall back to the battle-tested internal parser.
-            return parse_epg(content);
-        }
-    };
-
-    doc.programmes
-        .into_iter()
-        .map(EpgEntry::from)
-        .filter(|e| !e.title.is_empty())
-        .collect()
-}
-
-/// Extract XMLTV `<channel>` display names using the `crispy_xmltv` crate.
-///
-/// Returns a map of channel ID to display name.
-/// Falls back to [`extract_channel_names`] on parse error.
-pub fn extract_channel_names_via_crate(content: &str) -> HashMap<String, String> {
-    if content.trim().is_empty() {
-        return HashMap::new();
-    }
-
-    let doc = match crispy_xmltv::parse(content) {
-        Ok(d) => d,
-        Err(_) => return extract_channel_names(content),
-    };
-
-    doc.channels
-        .into_iter()
-        .filter_map(|ch| {
-            let name = ch.display_name.first().map(|n| n.value.clone())?;
-            if name.is_empty() {
-                return None;
-            }
-            Some((ch.id, name))
-        })
-        .collect()
-}
-
 // ── Tests ────────────────────────────────────────
 
 #[cfg(test)]

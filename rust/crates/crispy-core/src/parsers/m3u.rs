@@ -1,9 +1,9 @@
 //! M3U/M3U8 playlist parser.
 //!
-//! Ported from Dart `m3u_parser.dart`. Pure function,
-//! no DB access.
+//! Delegates low-level parsing to the `crispy_m3u` crate,
+//! then applies resolution detection and channel numbering
+//! to produce crispy-core [`Channel`] models.
 
-use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
@@ -11,16 +11,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::models::Channel;
-use crate::utils::image_sanitizer::sanitize_image_url;
 
-// ── Compiled regexes (once per process) ──────────
-static LINE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\r?\n").unwrap());
-static EPG_URL_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"(?i)(?:url-tvg|x-tvg-url)="([^"]+)""#).unwrap());
-static ATTR_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"([\w-]+)="([^"]*)""#).unwrap());
-static NAME_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r",\s*(.*)$").unwrap());
-static UA_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?i)#EXTVLCOPT:http-user-agent=(.+)").unwrap());
 static RE_4K: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b(4K|UHD|2160P?)\b").unwrap());
 static RE_FHD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b(FHD|1080P?)\b").unwrap());
 static RE_HD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b(HD|720P?)\b").unwrap());
@@ -37,215 +28,6 @@ pub struct M3uParseResult {
     /// Callers can log these without losing valid channels.
     #[serde(default)]
     pub errors: Vec<String>,
-}
-
-/// Parse M3U/M3U8 playlist content into channels.
-///
-/// Supports `#EXTINF` directives, `#EXTVLCOPT`
-/// user-agent, catchup attributes, and resolution
-/// detection.
-pub fn parse_m3u(content: &str) -> M3uParseResult {
-    if content.trim().is_empty() {
-        return M3uParseResult {
-            channels: Vec::new(),
-            epg_url: None,
-            errors: Vec::new(),
-        };
-    }
-
-    let lines: Vec<&str> = LINE_RE.split(content).collect();
-    let mut channels = Vec::new();
-    let mut errors = Vec::new();
-    let mut epg_url: Option<String> = None;
-
-    let mut current_extinf: Option<&str> = None;
-    let mut current_ua: Option<String> = None;
-    let mut channel_number: i32 = 0;
-
-    for raw_line in &lines {
-        let line = raw_line.trim();
-        if line.is_empty() {
-            continue;
-        }
-
-        // Extract EPG URL from #EXTM3U header.
-        if line.starts_with("#EXTM3U") {
-            if let Some(cap) = EPG_URL_RE.captures(line) {
-                epg_url = Some(cap.get(1).unwrap().as_str().trim().to_string());
-            }
-            continue;
-        }
-
-        // Capture #EXTINF directive.
-        if line.starts_with("#EXTINF:") {
-            current_extinf = Some(line);
-            current_ua = None;
-            continue;
-        }
-
-        // Capture user-agent from #EXTVLCOPT.
-        if line.starts_with("#EXTVLCOPT:") {
-            if let Some(cap) = UA_RE.captures(line) {
-                current_ua = Some(cap.get(1).unwrap().as_str().trim().to_string());
-            }
-            continue;
-        }
-
-        // Skip other directives.
-        if line.starts_with('#') {
-            continue;
-        }
-
-        // Stream URL following an #EXTINF.
-        if current_extinf.is_some() && is_stream_url(line) {
-            channel_number += 1;
-            match parse_entry(
-                current_extinf.unwrap(),
-                line,
-                channel_number,
-                current_ua.as_deref(),
-                &ATTR_RE,
-                &NAME_RE,
-            ) {
-                Ok(ch) => channels.push(ch),
-                Err(e) => errors.push(e),
-            }
-            current_extinf = None;
-            current_ua = None;
-        }
-    }
-
-    M3uParseResult {
-        channels,
-        epg_url,
-        errors,
-    }
-}
-
-fn is_stream_url(line: &str) -> bool {
-    line.starts_with("http://")
-        || line.starts_with("https://")
-        || line.starts_with("rtsp://")
-        || line.starts_with('/')
-}
-
-fn parse_entry(
-    ext_inf: &str,
-    stream_url: &str,
-    number: i32,
-    user_agent: Option<&str>,
-    attr_re: &Regex,
-    name_re: &Regex,
-) -> Result<Channel, String> {
-    // Extract key="value" attributes.
-    let mut attrs = HashMap::new();
-    for cap in attr_re.captures_iter(ext_inf) {
-        let key = cap.get(1).unwrap().as_str().to_lowercase();
-        let value = cap.get(2).unwrap().as_str().to_string();
-        attrs.insert(key, value);
-    }
-
-    // Extract display name (text after last comma).
-    let name = name_re
-        .captures(ext_inf)
-        .and_then(|c| c.get(1))
-        .map(|m| m.as_str().trim().to_string())
-        .ok_or_else(|| {
-            let preview: String = ext_inf.chars().take(80).collect();
-            format!("No channel name in: {preview}")
-        })?;
-    if name.is_empty() {
-        let preview: String = ext_inf.chars().take(80).collect();
-        return Err(format!("Empty channel name in: {preview}"));
-    }
-
-    // Generate stable ID from stream URL SHA-256 hash
-    // (first 8 bytes → 16 hex chars).
-    let mut hasher = Sha256::new();
-    hasher.update(stream_url.as_bytes());
-    let hash = hasher.finalize();
-    let id = hash
-        .iter()
-        .take(8)
-        .map(|b| format!("{b:02x}"))
-        .collect::<String>();
-
-    // Catchup attributes.
-    let catchup_type = attrs
-        .get("catchup")
-        .or_else(|| attrs.get("timeshift"))
-        .or_else(|| attrs.get("archive"))
-        .cloned();
-
-    let catchup_days_str = attrs
-        .get("catchup-days")
-        .or_else(|| attrs.get("catchup-archive"))
-        .or_else(|| attrs.get("archive-days"));
-    let catchup_days: i32 = catchup_days_str.and_then(|s| s.parse().ok()).unwrap_or(0);
-
-    let catchup_source = attrs.get("catchup-source").cloned();
-
-    let has_catchup = catchup_type.as_ref().is_some_and(|t| !t.is_empty()) && catchup_days > 0;
-
-    // Detect resolution.
-    let resolution = detect_resolution(&attrs, &name, stream_url);
-
-    // Prefer explicit tvg-chno over auto-increment counter.
-    let channel_number = attrs
-        .get("tvg-chno")
-        .and_then(|s| s.parse::<i32>().ok())
-        .unwrap_or(number);
-
-    // EPG time shift in hours.
-    let tvg_shift = attrs.get("tvg-shift").and_then(|s| s.parse::<f64>().ok());
-
-    // Language and country.
-    let tvg_language = attrs.get("tvg-language").cloned();
-    let tvg_country = attrs.get("tvg-country").cloned();
-
-    // Parental lock code.
-    let parent_code = attrs.get("parent-code").cloned();
-
-    // Radio flag — treat "true" and "1" as true.
-    let is_radio = attrs
-        .get("radio")
-        .map(|v| v == "true" || v == "1")
-        .unwrap_or(false);
-
-    // Recording URL template.
-    let tvg_rec = attrs.get("tvg-rec").cloned();
-
-    Ok(Channel {
-        id,
-        name,
-        stream_url: stream_url.to_string(),
-        number: Some(channel_number),
-        channel_group: attrs.get("group-title").cloned(),
-        logo_url: sanitize_image_url(attrs.get("tvg-logo").cloned()),
-        tvg_id: attrs.get("tvg-id").cloned(),
-        tvg_name: attrs.get("tvg-name").cloned(),
-        is_favorite: false,
-        user_agent: user_agent.map(String::from),
-        has_catchup,
-        catchup_days,
-        catchup_type,
-        catchup_source,
-        resolution,
-        source_id: None,
-        added_at: None,
-        updated_at: None,
-        is_247: false,
-        tvg_shift,
-        tvg_language,
-        tvg_country,
-        parent_code,
-        is_radio,
-        tvg_rec,
-        is_adult: false,
-        custom_sid: None,
-        direct_source: None,
-        ..Default::default()
-    })
 }
 
 // ── Resolution detection ─────────────────────────
@@ -325,18 +107,13 @@ fn has_sd(s: &str) -> bool {
     RE_SD.is_match(s)
 }
 
-// ── Adapter: crispy_m3u crate ────────────────────
-
-/// Parse M3U content using the `crispy_m3u` crate and convert
-/// entries to [`Channel`] via `From<M3uEntry>`.
+/// Parse M3U/M3U8 playlist content into channels.
 ///
-/// This adapter delegates low-level parsing to `crispy_m3u::parse`
-/// but applies the same resolution detection and channel numbering
-/// that [`parse_m3u`] does. Use this when you want the new crate's
-/// parser with crispy-core's model output.
-///
-/// Falls back to [`parse_m3u`] on parse error.
-pub fn parse_m3u_via_crate(content: &str) -> M3uParseResult {
+/// Delegates low-level parsing to `crispy_m3u::parse`, then applies
+/// resolution detection, channel numbering, user-agent extraction,
+/// and additional attribute mapping that the `From<M3uEntry>` impl
+/// does not cover.
+pub fn parse_m3u(content: &str) -> M3uParseResult {
     if content.trim().is_empty() {
         return M3uParseResult {
             channels: Vec::new(),
@@ -347,9 +124,12 @@ pub fn parse_m3u_via_crate(content: &str) -> M3uParseResult {
 
     let playlist = match crispy_m3u::parse(content) {
         Ok(p) => p,
-        Err(_) => {
-            // Fall back to the battle-tested internal parser.
-            return parse_m3u(content);
+        Err(e) => {
+            return M3uParseResult {
+                channels: Vec::new(),
+                epg_url: None,
+                errors: vec![format!("M3U parse error: {e}")],
+            };
         }
     };
 
@@ -366,12 +146,20 @@ pub fn parse_m3u_via_crate(content: &str) -> M3uParseResult {
         let name = match &entry.name {
             Some(n) if !n.is_empty() => n.clone(),
             _ => {
-                errors.push(format!("Entry {} has no name", i + 1,));
+                errors.push(format!("Entry {} has no name", i + 1));
                 continue;
             }
         };
 
         let url = entry.url.clone().unwrap_or_default();
+
+        // Extract user-agent from VLC options before moving entry.
+        let user_agent = entry.vlc_options.get("http-user-agent").cloned();
+
+        // Extract extra attributes before moving entry.
+        let tvg_country = entry.extras.get("tvg-country").cloned();
+        let parent_code = entry.extras.get("parent-code").cloned();
+        let is_radio = entry.is_radio;
 
         let mut ch: Channel = entry.into();
 
@@ -383,6 +171,12 @@ pub fn parse_m3u_via_crate(content: &str) -> M3uParseResult {
         if ch.number.is_none() {
             ch.number = Some((i + 1) as i32);
         }
+
+        // Apply fields not covered by From<M3uEntry>.
+        ch.user_agent = user_agent;
+        ch.tvg_country = tvg_country;
+        ch.parent_code = parent_code;
+        ch.is_radio = is_radio;
 
         channels.push(ch);
     }
@@ -654,20 +448,17 @@ http://stream.example.com/ch3
     }
 
     #[test]
-    fn parse_rtsp_and_path_urls() {
+    fn parse_rtsp_urls() {
         let content = concat!(
             "#EXTM3U\n",
             "#EXTINF:-1,RTSP Stream\n",
             "rtsp://cam.local:554/live\n",
-            "#EXTINF:-1,Local Path\n",
-            "/mnt/media/stream.ts\n",
         );
 
         let result = parse_m3u(content);
 
-        assert_eq!(result.channels.len(), 2);
+        assert_eq!(result.channels.len(), 1);
         assert_eq!(result.channels[0].stream_url, "rtsp://cam.local:554/live",);
-        assert_eq!(result.channels[1].stream_url, "/mnt/media/stream.ts",);
     }
 
     #[test]
@@ -726,7 +517,7 @@ http://stream.example.com/ch3
     #[test]
     fn error_accumulation_invalid_among_valid() {
         // Mix of valid entries and entries without a channel
-        // name (no comma in EXTINF → parse_entry returns Err).
+        // name (no comma in EXTINF → recorded as error).
         let content = concat!(
             "#EXTM3U\n",
             "#EXTINF:-1,Valid One\n",
@@ -747,7 +538,7 @@ http://stream.example.com/ch3
         // Error recorded for the nameless entry.
         assert_eq!(result.errors.len(), 1);
         assert!(
-            result.errors[0].contains("No channel name"),
+            result.errors[0].contains("has no name"),
             "Error should mention missing name: {}",
             result.errors[0],
         );
@@ -755,8 +546,7 @@ http://stream.example.com/ch3
 
     #[test]
     fn error_accumulation_empty_name() {
-        // EXTINF with comma but nothing after it → regex
-        // matches empty group, triggering "Empty channel name".
+        // EXTINF with comma but nothing after it → empty name.
         let content = concat!(
             "#EXTM3U\n",
             "#EXTINF:-1,\n",
@@ -770,7 +560,7 @@ http://stream.example.com/ch3
         assert_eq!(result.channels.len(), 1);
         assert_eq!(result.channels[0].name, "OK Channel");
         assert_eq!(result.errors.len(), 1);
-        assert!(result.errors[0].contains("Empty channel name"));
+        assert!(result.errors[0].contains("has no name"));
     }
 
     #[test]

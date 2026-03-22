@@ -495,7 +495,7 @@ fn set_entry_attribute(entry: &mut M3uEntry, key: &str, value: String) {
                 "catchup_days" => entry.catchup_days = Some(value),
                 "catchup_source" => entry.catchup_source = Some(value),
                 "radio" => {
-                    entry.is_radio = value.eq_ignore_ascii_case("true");
+                    entry.is_radio = value.eq_ignore_ascii_case("true") || value == "1";
                 }
                 "media" => {
                     entry.is_media = value.eq_ignore_ascii_case("true");

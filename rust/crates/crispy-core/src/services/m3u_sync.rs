@@ -58,7 +58,7 @@ pub async fn sync_m3u_source(
     emit_progress(source_id, "parsing", 0.3, "Parsing M3U content");
 
     // 2. Parse M3U into channels + optional EPG URL (via crispy-m3u crate).
-    let result = m3u::parse_m3u_via_crate(&content);
+    let result = m3u::parse_m3u(&content);
     let mut channels = result.channels;
 
     // Set source_id on all channels — the M3U parser leaves it None.

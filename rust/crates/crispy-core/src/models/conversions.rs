@@ -72,8 +72,8 @@ impl From<crispy_m3u::M3uEntry> for Channel {
         // Channel number from tvg-chno.
         let number = e.tvg_chno.as_deref().and_then(|s| s.parse::<i32>().ok());
 
-        // Timeshift.
-        let tvg_shift = e.timeshift.as_deref().and_then(|s| s.parse::<f64>().ok());
+        // EPG time offset from tvg-shift attribute.
+        let tvg_shift = e.tvg_shift;
 
         Channel {
             id: native_id.clone(),
