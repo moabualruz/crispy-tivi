@@ -6,7 +6,12 @@ mixin _FfiParsersMixin on _FfiBackendBase {
 
   Future<Map<String, dynamic>> parseM3u(String content) async {
     final json = await rust_api.parseM3U(content: content);
-    return jsonDecode(json) as Map<String, dynamic>;
+    try {
+      return jsonDecode(json) as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('FFI JSON decode error in parseM3u: $e');
+      return {};
+    }
   }
 
   Future<List<Map<String, dynamic>>> parseVodStreams(
@@ -37,7 +42,12 @@ mixin _FfiParsersMixin on _FfiBackendBase {
     String? sourceId,
   }) async {
     final result = await rust_api.parseSeries(json: json, sourceId: sourceId);
-    return (jsonDecode(result) as List).cast<Map<String, dynamic>>();
+    try {
+      return (jsonDecode(result) as List).cast<Map<String, dynamic>>();
+    } catch (e) {
+      debugPrint('FFI JSON decode error in parseSeries: $e');
+      return [];
+    }
   }
 
   Future<List<Map<String, dynamic>>> parseEpisodes(
@@ -54,7 +64,12 @@ mixin _FfiParsersMixin on _FfiBackendBase {
       password: password,
       seriesId: seriesId,
     );
-    return (jsonDecode(result) as List).cast<Map<String, dynamic>>();
+    try {
+      return (jsonDecode(result) as List).cast<Map<String, dynamic>>();
+    } catch (e) {
+      debugPrint('FFI JSON decode error in parseEpisodes: $e');
+      return [];
+    }
   }
 
   Future<List<Map<String, dynamic>>> parseM3uVod(
@@ -62,7 +77,12 @@ mixin _FfiParsersMixin on _FfiBackendBase {
     String? sourceId,
   }) async {
     final result = await rust_api.parseM3UVod(json: json, sourceId: sourceId);
-    return (jsonDecode(result) as List).cast<Map<String, dynamic>>();
+    try {
+      return (jsonDecode(result) as List).cast<Map<String, dynamic>>();
+    } catch (e) {
+      debugPrint('FFI JSON decode error in parseM3uVod: $e');
+      return [];
+    }
   }
 
   Future<Map<String, dynamic>?> parseVttThumbnails(
@@ -74,7 +94,12 @@ mixin _FfiParsersMixin on _FfiBackendBase {
       baseUrl: baseUrl,
     );
     if (json == null) return null;
-    return jsonDecode(json) as Map<String, dynamic>;
+    try {
+      return jsonDecode(json) as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('FFI JSON decode error in parseVttThumbnails: $e');
+      return null;
+    }
   }
 
   Future<String> parseBifIndex(List<int> data) =>

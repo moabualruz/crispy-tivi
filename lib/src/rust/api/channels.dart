@@ -72,9 +72,12 @@ Future<String> getCategoriesBySources({required String sourceIdsJson}) =>
 Future<String> loadCategories() =>
     RustLib.instance.api.crateApiChannelsLoadCategories();
 
-/// Save categories from JSON object {type: [names]}.
-Future<void> saveCategories({required String json}) =>
-    RustLib.instance.api.crateApiChannelsSaveCategories(json: json);
+/// Save categories from JSON object {source_id: str, categories: {type: [names]}}.
+Future<void> saveCategories({required String sourceId, required String json}) =>
+    RustLib.instance.api.crateApiChannelsSaveCategories(
+      sourceId: sourceId,
+      json: json,
+    );
 
 /// Get favourite category names for profile + type.
 Future<List<String>> getFavoriteCategories({

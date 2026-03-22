@@ -52,19 +52,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    // Clear stale search state from previous session, cancel dangling
-    // timers, and bump generation to discard any in-flight results.
-    ref.read(searchControllerProvider.notifier).resetForNewSession();
-
-    // Sync text field with state on initialization.
-    // S-010: also pre-populate from the deep-link ?q= query parameter.
+    // Defer provider modifications to avoid "modified during build" errors.
+    // Clearing stale state and populating deep-link queries both happen
+    // in a single post-frame callback after the widget tree is built.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final deepLinkQuery =
-          GoRouterState.of(context).uri.queryParameters['q'] ?? '';
-      if (deepLinkQuery.isNotEmpty) {
-        _searchController.text = deepLinkQuery;
-        ref.read(searchControllerProvider.notifier).search(deepLinkQuery);
+      // Clear stale search state from previous session, cancel dangling
+      // timers, and bump generation to discard any in-flight results.
+      ref.read(searchControllerProvider.notifier).resetForNewSession();
+
+      // S-010: pre-populate from the deep-link ?q= query parameter.
+      // GoRouterState.of throws when no GoRouter is in the tree (e.g. tests
+      // using plain MaterialApp). Guard with try-catch to stay resilient.
+      try {
+        final deepLinkQuery =
+            GoRouterState.of(context).uri.queryParameters['q'] ?? '';
+        if (deepLinkQuery.isNotEmpty) {
+          _searchController.text = deepLinkQuery;
+          ref.read(searchControllerProvider.notifier).search(deepLinkQuery);
+        }
+      } on Object catch (_) {
+        // No GoRouter ancestor — deep-link query unavailable.
       }
     });
   }

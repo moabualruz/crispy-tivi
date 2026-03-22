@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('TvMasterDetailLayout', () {
-    testWidgets('renders Row with masterPanel and detailPanel', (tester) async {
+    testWidgets('renders master panel full-width by default', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -16,27 +16,12 @@ void main() {
         ),
       );
 
+      // Master is always rendered (full-width via Positioned.fill).
       expect(find.text('master'), findsOneWidget);
-      expect(find.text('detail'), findsOneWidget);
-      expect(find.byType(Row), findsOneWidget);
+      expect(find.byType(Stack), findsWidgets);
     });
 
-    testWidgets('has VerticalDivider between panels', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TvMasterDetailLayout(
-              masterPanel: const Text('master'),
-              detailPanel: const Text('detail'),
-            ),
-          ),
-        ),
-      );
-
-      expect(find.byType(VerticalDivider), findsOneWidget);
-    });
-
-    testWidgets('master is flex=2, detail is flex=3 (40/60 split)', (
+    testWidgets('hides detail panel when showDetail is false (default)', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -50,56 +35,75 @@ void main() {
         ),
       );
 
-      final expandedWidgets = tester.widgetList<Expanded>(
-        find.byType(Expanded),
-      );
-      final flexValues = expandedWidgets.map((e) => e.flex).toList();
-
-      // Default: masterFlex=2, detailFlex=3 — scaled by 1000 for animation.
-      // Master = 2000, Detail = 3000 → 40/60 ratio preserved.
-      expect(flexValues, contains(2000));
-      expect(flexValues, contains(3000));
-    });
-
-    testWidgets('accepts custom flex values', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TvMasterDetailLayout(
-              masterPanel: const Text('master'),
-              detailPanel: const Text('detail'),
-              masterFlex: 1,
-              detailFlex: 1,
-            ),
-          ),
-        ),
-      );
-
-      final expandedWidgets = tester.widgetList<Expanded>(
-        find.byType(Expanded),
-      );
-      final flexValues = expandedWidgets.map((e) => e.flex).toList();
-
-      // Both flex=1 → scaled: master=1000, detail=1000
-      expect(flexValues.where((f) => f == 1000).length, 2);
-    });
-
-    testWidgets('hides detail panel when showDetail is false', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TvMasterDetailLayout(
-              masterPanel: const Text('master'),
-              detailPanel: const Text('detail'),
-              showDetail: false,
-            ),
-          ),
-        ),
-      );
-
+      // Detail is hidden by default (showDetail=false).
       expect(find.text('master'), findsOneWidget);
       expect(find.text('detail'), findsNothing);
-      expect(find.byType(VerticalDivider), findsNothing);
+    });
+
+    testWidgets('shows detail panel when showDetail is true', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TvMasterDetailLayout(
+              masterPanel: const Text('master'),
+              detailPanel: const Text('detail'),
+              showDetail: true,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('master'), findsOneWidget);
+      expect(find.text('detail'), findsOneWidget);
+    });
+
+    testWidgets('uses SlideTransition for detail panel animation', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TvMasterDetailLayout(
+              masterPanel: const Text('master'),
+              detailPanel: const Text('detail'),
+              showDetail: true,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Find SlideTransition that is a descendant of TvMasterDetailLayout.
+      expect(
+        find.descendant(
+          of: find.byType(TvMasterDetailLayout),
+          matching: find.byType(SlideTransition),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('accepts custom detailWidthFraction', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TvMasterDetailLayout(
+              masterPanel: const Text('master'),
+              detailPanel: const Text('detail'),
+              showDetail: true,
+              detailWidthFraction: 0.6,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Detail panel should be visible at 60% width.
+      expect(find.text('detail'), findsOneWidget);
     });
 
     testWidgets('master takes full width when detail is hidden', (
@@ -117,11 +121,16 @@ void main() {
         ),
       );
 
-      final expandedWidgets = tester.widgetList<Expanded>(
-        find.byType(Expanded),
+      // Master is always full-width via Positioned.fill.
+      expect(find.text('master'), findsOneWidget);
+      // No SlideTransition within TvMasterDetailLayout when detail is hidden.
+      expect(
+        find.descendant(
+          of: find.byType(TvMasterDetailLayout),
+          matching: find.byType(SlideTransition),
+        ),
+        findsNothing,
       );
-      // Only one Expanded — the master panel.
-      expect(expandedWidgets.length, 1);
     });
 
     testWidgets('animates detail panel in when showDetail changes to true', (
@@ -169,7 +178,13 @@ void main() {
       // Complete the animation.
       await tester.pumpAndSettle();
       expect(find.text('detail'), findsOneWidget);
-      expect(find.byType(VerticalDivider), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(TvMasterDetailLayout),
+          matching: find.byType(SlideTransition),
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

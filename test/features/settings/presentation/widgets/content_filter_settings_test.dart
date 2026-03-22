@@ -85,7 +85,7 @@ Future<_FakeSettingsNotifier> _pump(
 }) async {
   final backend = MemoryBackend();
   if (categoryMap.isNotEmpty) {
-    await backend.saveCategories(categoryMap);
+    await backend.saveCategories('src1', categoryMap);
   }
   final cache = CacheService(backend);
   final settings = SettingsState(

@@ -64,7 +64,10 @@ mixin _MemoryChannelsMixin on _MemoryStorage {
   Future<Map<String, List<String>>> loadCategories() async =>
       Map.from(categories);
 
-  Future<void> saveCategories(Map<String, List<String>> cats) async {
+  Future<void> saveCategories(
+    String sourceId,
+    Map<String, List<String>> cats,
+  ) async {
     categories
       ..clear()
       ..addAll(cats);

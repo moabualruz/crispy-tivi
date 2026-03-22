@@ -39,7 +39,7 @@ void main() {
       expect(s.selectedChannel, isNull);
       expect(s.selectedEntry, isNull);
       expect(s.selectedGroup, isNull);
-      expect(s.showEpgOnly, isTrue);
+      expect(s.showEpgOnly, isFalse);
       expect(s.viewMode, EpgViewMode.day);
       expect(s.isLoading, isFalse);
       expect(s.error, isNull);

@@ -11,9 +11,14 @@ mixin _FfiSettingsMixin on _FfiBackendBase {
 
   Future<Map<String, dynamic>?> getSource(String id) async {
     final json = await rust_api.getSource(id: id);
-    final decoded = jsonDecode(json);
-    if (decoded == null) return null;
-    return decoded as Map<String, dynamic>;
+    try {
+      final decoded = jsonDecode(json);
+      if (decoded == null) return null;
+      return decoded as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('FFI JSON decode error in getSource: $e');
+      return null;
+    }
   }
 
   Future<void> saveSource(Map<String, dynamic> source) =>
@@ -65,9 +70,14 @@ mixin _FfiSettingsMixin on _FfiBackendBase {
 
   Future<Map<String, dynamic>?> getSavedLayoutById(String id) async {
     final json = await rust_api.getSavedLayoutById(id: id);
-    final decoded = jsonDecode(json);
-    if (decoded == null) return null;
-    return decoded as Map<String, dynamic>;
+    try {
+      final decoded = jsonDecode(json);
+      if (decoded == null) return null;
+      return decoded as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('FFI JSON decode error in getSavedLayoutById: $e');
+      return null;
+    }
   }
 
   // ── Search History ───────────────────────────────

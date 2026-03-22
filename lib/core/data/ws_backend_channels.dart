@@ -58,8 +58,11 @@ mixin _WsChannelsMixin on _WsBackendBase {
     return raw.map((k, v) => MapEntry(k, (v as List).cast<String>()));
   }
 
-  Future<void> saveCategories(Map<String, List<String>> categories) =>
-      _send('saveCategories', {'categories': categories});
+  Future<void> saveCategories(
+    String sourceId,
+    Map<String, List<String>> categories,
+  ) =>
+      _send('saveCategories', {'sourceId': sourceId, 'categories': categories});
 
   Future<Map<String, List<String>>> getCategoriesBySources(
     List<String> sourceIds,

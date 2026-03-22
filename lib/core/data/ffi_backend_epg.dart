@@ -11,7 +11,13 @@ mixin _FfiEpgMixin on _FfiBackendBase {
 
   Future<Map<String, String>> extractEpgChannelNames(String content) async {
     final json = await rust_api.extractEpgChannelNames(content: content);
-    final decoded = jsonDecode(json) as Map<String, dynamic>;
+    Map<String, dynamic> decoded;
+    try {
+      decoded = jsonDecode(json) as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('FFI JSON decode error in extractEpgChannelNames: $e');
+      return {};
+    }
     return decoded.map((k, v) => MapEntry(k, v as String));
   }
 
@@ -36,11 +42,7 @@ mixin _FfiEpgMixin on _FfiBackendBase {
       startTime: PlatformInt64Util.from(start.millisecondsSinceEpoch ~/ 1000),
       endTime: PlatformInt64Util.from(end.millisecondsSinceEpoch ~/ 1000),
     );
-    final decoded = jsonDecode(json) as Map<String, dynamic>;
-    return decoded.map(
-      (key, value) =>
-          MapEntry(key, (value as List).cast<Map<String, dynamic>>()),
-    );
+    return _decodeEpgMap(json, 'getEpgsForChannels');
   }
 
   Future<Map<String, List<Map<String, dynamic>>>> getEpgBySources(
@@ -49,20 +51,12 @@ mixin _FfiEpgMixin on _FfiBackendBase {
     final json = await rust_api.getEpgBySources(
       sourceIdsJson: jsonEncode(sourceIds),
     );
-    final decoded = jsonDecode(json) as Map<String, dynamic>;
-    return decoded.map(
-      (key, value) =>
-          MapEntry(key, (value as List).cast<Map<String, dynamic>>()),
-    );
+    return _decodeEpgMap(json, 'getEpgBySources');
   }
 
   Future<Map<String, List<Map<String, dynamic>>>> loadEpgEntries() async {
     final json = await rust_api.loadEpgEntries();
-    final decoded = jsonDecode(json) as Map<String, dynamic>;
-    return decoded.map(
-      (key, value) =>
-          MapEntry(key, (value as List).cast<Map<String, dynamic>>()),
-    );
+    return _decodeEpgMap(json, 'loadEpgEntries');
   }
 
   Future<int> saveEpgEntries(
@@ -123,8 +117,13 @@ mixin _FfiEpgMixin on _FfiBackendBase {
       channelId: channelId,
       count: BigInt.from(count),
     );
-    final list = jsonDecode(json) as List;
-    return {channelId: list.cast<Map<String, dynamic>>()};
+    try {
+      final list = jsonDecode(json) as List;
+      return {channelId: list.cast<Map<String, dynamic>>()};
+    } catch (e) {
+      debugPrint('FFI JSON decode error in getChannelEpg: $e');
+      return {channelId: []};
+    }
   }
 
   /// Fetch EPG for multiple channels via the 3-layer facade.
@@ -138,11 +137,7 @@ mixin _FfiEpgMixin on _FfiBackendBase {
       startTime: PlatformInt64Util.from(start.millisecondsSinceEpoch ~/ 1000),
       endTime: PlatformInt64Util.from(end.millisecondsSinceEpoch ~/ 1000),
     );
-    final decoded = jsonDecode(json) as Map<String, dynamic>;
-    return decoded.map(
-      (key, value) =>
-          MapEntry(key, (value as List).cast<Map<String, dynamic>>()),
-    );
+    return _decodeEpgMap(json, 'getChannelsEpg');
   }
 
   Future<void> invalidateEpgCache(String channelId) =>
@@ -329,4 +324,22 @@ mixin _FfiEpgMixin on _FfiBackendBase {
         epochMs: PlatformInt64Util.from(epochMs),
         tzName: tzName,
       );
+
+  /// Decode JSON into an EPG channel-keyed map, returning
+  /// an empty map on malformed JSON.
+  Map<String, List<Map<String, dynamic>>> _decodeEpgMap(
+    String json,
+    String functionName,
+  ) {
+    try {
+      final decoded = jsonDecode(json) as Map<String, dynamic>;
+      return decoded.map(
+        (key, value) =>
+            MapEntry(key, (value as List).cast<Map<String, dynamic>>()),
+      );
+    } catch (e) {
+      debugPrint('FFI JSON decode error in $functionName: $e');
+      return {};
+    }
+  }
 }

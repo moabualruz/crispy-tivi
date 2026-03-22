@@ -401,6 +401,51 @@ dart format lib/ test/
    `dart format --set-exit-if-changed lib/ test/` to
    confirm zero changes remain.
 
+## Flutter–Rust Bridge (MANDATORY)
+
+> **CRITICAL**: When ANY Rust FFI function signature changes (in
+> `rust/crates/crispy-ffi/src/api/*.rs`), you MUST regenerate the
+> bridge. NEVER manually edit generated files.
+
+### Generated Files (DO NOT EDIT MANUALLY)
+
+```
+rust/crates/crispy-ffi/src/frb_generated.rs    — Rust bridge glue
+lib/src/rust/frb_generated.dart                — Dart bridge glue
+lib/src/rust/frb_generated.io.dart             — IO platform impl
+lib/src/rust/frb_generated.web.dart            — Web platform impl
+lib/src/rust/api/*.dart                        — Dart API wrappers
+```
+
+### Workflow
+
+1. **Edit ONLY** `rust/crates/crispy-ffi/src/api/*.rs` (the source of truth)
+2. **Run codegen**: `flutter_rust_bridge_codegen generate`
+3. **Verify**: `flutter analyze` — zero issues
+4. **Never** hand-edit `frb_generated.rs`, `frb_generated.dart`, or
+   `lib/src/rust/api/*.dart` — they are overwritten on next codegen
+
+### Config
+
+Bridge config is in `flutter_rust_bridge.yaml`:
+```yaml
+rust_input: crate::api
+rust_root: rust/crates/crispy-ffi/
+dart_output: lib/src/rust
+```
+
+### Rules
+
+1. **Changing an FFI function signature** (adding/removing params,
+   changing types) → run `flutter_rust_bridge_codegen generate`
+2. **Adding a new FFI function** → run codegen
+3. **Removing an FFI function** → run codegen
+4. **No changes to FFI** → no codegen needed
+5. **After codegen**: run `dart format lib/src/rust/` to normalize
+6. **Write FFI functions to be codegen-friendly**: use primitive types
+   (String, i64, bool) and JSON strings for complex structs — avoid
+   custom Rust types in FFI signatures (they require extra FRB config)
+
 ## Before Starting Any Task
 
 1. **Read `.ai/docs/project-specs/ui_ux_spec.md`** — Verify feature exists in matrix, check status.

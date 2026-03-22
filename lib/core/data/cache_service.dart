@@ -60,14 +60,17 @@ class CacheService extends _CacheServiceBase
 
   // ── Categories ────────────────────────────────
 
-  /// Save category map (type -> list of names).
-  Future<void> saveCategories(Map<String, List<String>> cats) async {
+  /// Save category map for a source (type -> list of names).
+  Future<void> saveCategories(
+    String sourceId,
+    Map<String, List<String>> cats,
+  ) async {
     final sw = Stopwatch()..start();
     final totalCats = cats.values.fold<int>(
       0,
       (sum, list) => sum + list.length,
     );
-    await _backend.saveCategories(cats);
+    await _backend.saveCategories(sourceId, cats);
     debugPrint(
       'CacheService: saved $totalCats categories '
       '(${cats.keys.join(', ')}) '

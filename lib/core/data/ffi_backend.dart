@@ -20,9 +20,16 @@ part 'ffi_backend_stream_health.dart';
 /// Decode a JSON string into a list of string-keyed maps.
 ///
 /// Used throughout FFI backend parts to avoid repeating
-/// the inline cast pattern.
-List<Map<String, dynamic>> _decodeJsonList(String json) =>
-    (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+/// the inline cast pattern. Returns an empty list on
+/// malformed JSON to prevent crashes from corrupt FFI data.
+List<Map<String, dynamic>> _decodeJsonList(String json) {
+  try {
+    return (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+  } catch (e) {
+    debugPrint('FFI JSON decode error in _decodeJsonList: $e');
+    return [];
+  }
+}
 
 /// Base class that exposes the Rust FFI API import to
 /// all mixins.

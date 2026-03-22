@@ -360,7 +360,7 @@ void main() {
   // ── Categories ─────────────────────────────────────────
   group('Categories', () {
     test('saveCategories + loadCategories round-trips', () async {
-      await backend.saveCategories({
+      await backend.saveCategories('src1', {
         'News': ['ch-1', 'ch-2'],
         'Sports': ['ch-3'],
       });

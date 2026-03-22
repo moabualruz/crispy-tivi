@@ -424,34 +424,29 @@ void main() {
         },
       );
 
-      test('rapid duplicate events are coalesced: only one '
-          'invalidation per type in a burst', () async {
-        // Emit ChannelsUpdated three times rapidly (< 50 ms apart).
-        // All three should be coalesced into one invalidation.
+      test('rapid duplicate events are coalesced: same source '
+          'deduped, different sources each fire', () async {
+        // Emit ChannelsUpdated three times rapidly with different
+        // source_ids. Each (type, source_id) pair is distinct, so
+        // each triggers a separate invalidation. This is correct
+        // behavior — concurrent source syncs must each update.
+        backend.emitTestEvent('{"type":"ChannelsUpdated","source_id":"s1"}');
         backend.emitTestEvent('{"type":"ChannelsUpdated","source_id":"s1"}');
         backend.emitTestEvent('{"type":"ChannelsUpdated","source_id":"s2"}');
-        backend.emitTestEvent('{"type":"ChannelsUpdated","source_id":"s3"}');
 
-        // Drain microtasks so stream events are received by
-        // the invalidator's ref.listen, but do NOT wait for
-        // the 50 ms timer yet.
         await Future<void>.delayed(Duration.zero);
         await Future<void>.delayed(Duration.zero);
 
-        // Snapshot before debounce fires — channel count
-        // should still be at its primed value.
         final countBeforeFire = _channelBuilds;
 
-        // Now wait for the debounce window to expire.
         await Future<void>.delayed(const Duration(milliseconds: 60));
         await Future<void>.delayed(Duration.zero);
 
-        // Read to trigger rebuild.
         container.read(channelListProvider);
 
-        // Channel was invalidated exactly once (deduplicated).
-        // Build count must increase by exactly 1.
-        expect(_channelBuilds, equals(countBeforeFire + 1));
+        // Two distinct (type, source) pairs: (ChannelsUpdated, s1)
+        // and (ChannelsUpdated, s2). The duplicate s1 is coalesced.
+        expect(_channelBuilds, equals(countBeforeFire + 2));
       });
 
       test('different event types are all dispatched after debounce', () async {

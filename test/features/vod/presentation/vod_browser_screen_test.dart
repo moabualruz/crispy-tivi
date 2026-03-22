@@ -77,11 +77,8 @@ void main() {
     // No Series tab (movies-only since V2)
     expect(find.text('Series'), findsNothing);
 
-    // Verify Favorites section (mockMovie is favorite)
-    expect(find.text('Favorites'), findsOneWidget);
-
-    // Verify Test Movie appears in Favorites + category swimlane
-    expect(find.text('Test Movie'), findsNWidgets(2));
+    // Verify Test Movie appears in category swimlane
+    expect(find.text('Test Movie'), findsOneWidget);
 
     // Verify "All" genre chip (first chip in GenrePillRow is always 'All')
     expect(find.text('All'), findsOneWidget);

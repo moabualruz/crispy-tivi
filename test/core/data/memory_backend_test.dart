@@ -156,7 +156,7 @@ void main() {
 
     test('saveCategories then loadCategories '
         'round-trips', () async {
-      await backend.saveCategories({
+      await backend.saveCategories('src1', {
         'live': ['Sports', 'News'],
         'vod': ['Action', 'Comedy'],
       });
@@ -167,10 +167,10 @@ void main() {
     });
 
     test('saveCategories replaces previous data', () async {
-      await backend.saveCategories({
+      await backend.saveCategories('src1', {
         'live': ['Sports'],
       });
-      await backend.saveCategories({
+      await backend.saveCategories('src1', {
         'vod': ['Drama'],
       });
 

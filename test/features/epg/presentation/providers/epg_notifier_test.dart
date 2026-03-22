@@ -170,16 +170,16 @@ void main() {
   // ── toggleEpgOnly ───────────────────────────────
 
   group('toggleEpgOnly', () {
-    test('toggles from true to false', () {
-      expect(state().showEpgOnly, isTrue);
-      notifier().toggleEpgOnly();
+    test('toggles from false to true', () {
       expect(state().showEpgOnly, isFalse);
+      notifier().toggleEpgOnly();
+      expect(state().showEpgOnly, isTrue);
     });
 
-    test('toggles from false to true', () {
-      notifier().toggleEpgOnly(); // true → false
+    test('toggles from true to false', () {
       notifier().toggleEpgOnly(); // false → true
-      expect(state().showEpgOnly, isTrue);
+      notifier().toggleEpgOnly(); // true → false
+      expect(state().showEpgOnly, isFalse);
     });
   });
 }

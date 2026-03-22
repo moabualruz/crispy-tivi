@@ -267,7 +267,7 @@ class MediaServerSyncService {
       final existing = await cache.loadCategories();
       final vodCats = existing['vod'] ?? [];
       final merged = {...vodCats, ...allCategories}.toList();
-      await cache.saveCategories({'vod': merged});
+      await cache.saveCategories(source.id, {'vod': merged});
     }
 
     debugPrint(

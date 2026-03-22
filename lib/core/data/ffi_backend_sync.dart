@@ -204,7 +204,12 @@ mixin _FfiSyncMixin on _FfiBackendBase {
 
   Future<Map<String, dynamic>> importBackup(String json) async {
     final result = await rust_api.importBackup(json: json);
-    return jsonDecode(result) as Map<String, dynamic>;
+    try {
+      return jsonDecode(result) as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('FFI JSON decode error in importBackup: $e');
+      return {};
+    }
   }
 
   // ── S3 Crypto ────────────────────────────────────

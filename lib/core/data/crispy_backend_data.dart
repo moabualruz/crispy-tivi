@@ -106,8 +106,11 @@ abstract class _BackendDataMethods {
   /// Load categories as {type: [names]}.
   Future<Map<String, List<String>>> loadCategories();
 
-  /// Save categories from {type: [names]}.
-  Future<void> saveCategories(Map<String, List<String>> categories);
+  /// Save categories for a source from {type: [names]}.
+  Future<void> saveCategories(
+    String sourceId,
+    Map<String, List<String>> categories,
+  );
 
   /// Load categories filtered by source IDs.
   /// Empty [sourceIds] returns all categories.

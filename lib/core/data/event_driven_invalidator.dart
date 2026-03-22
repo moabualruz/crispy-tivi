@@ -59,19 +59,42 @@ final eventDrivenInvalidatorProvider = Provider<void>((ref) {
   });
 });
 
-/// Process buffered events, deduplicating by type to
-/// avoid redundant invalidations.
+/// Process buffered events, deduplicating by (type, sourceId)
+/// to avoid redundant invalidations while preserving events
+/// from concurrent source syncs.
 void _processPendingEvents(Ref ref, List<DataChangeEvent> events) {
-  // Deduplicate: keep last event per runtimeType.
-  final seen = <Type, DataChangeEvent>{};
+  // Deduplicate: keep last event per (runtimeType, sourceId) tuple.
+  // Events without a sourceId use '' as the secondary key.
+  final seen = <(Type, String), DataChangeEvent>{};
   for (final e in events) {
-    seen[e.runtimeType] = e;
+    seen[(e.runtimeType, _eventSourceId(e))] = e;
   }
   events.clear();
 
   for (final event in seen.values) {
     _handleEvent(ref, event);
   }
+}
+
+/// Extract the source-specific identifier from an event for
+/// deduplication. Returns '' for events without a source key.
+String _eventSourceId(DataChangeEvent event) {
+  return switch (event) {
+    ChannelsUpdated(:final sourceId) => sourceId,
+    CategoriesUpdated(:final sourceId) => sourceId,
+    EpgUpdated(:final sourceId) => sourceId,
+    VodUpdated(:final sourceId) => sourceId,
+    WatchHistoryUpdated(:final channelId) => channelId,
+    FavoriteToggled(:final itemId) => itemId,
+    FavoriteCategoryToggled(:final categoryType, :final categoryName) =>
+      '$categoryType/$categoryName',
+    VodFavoriteToggled(:final vodId) => vodId,
+    VodWatchProgressUpdated(:final vodId) => vodId,
+    RecordingChanged(:final recordingId) => recordingId,
+    ProfileChanged(:final profileId) => profileId,
+    SettingsUpdated(:final key) => key,
+    _ => '',
+  };
 }
 
 void _handleEvent(Ref ref, DataChangeEvent event) {

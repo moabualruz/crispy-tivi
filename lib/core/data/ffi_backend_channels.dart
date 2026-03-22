@@ -54,14 +54,23 @@ mixin _FfiChannelsMixin on _FfiBackendBase {
 
   Future<Map<String, List<String>>> loadCategories() async {
     final json = await rust_api.loadCategories();
-    final decoded = jsonDecode(json) as Map<String, dynamic>;
+    Map<String, dynamic> decoded;
+    try {
+      decoded = jsonDecode(json) as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('FFI JSON decode error in loadCategories: $e');
+      return {};
+    }
     return decoded.map(
       (key, value) => MapEntry(key, (value as List).cast<String>()),
     );
   }
 
-  Future<void> saveCategories(Map<String, List<String>> categories) =>
-      rust_api.saveCategories(json: jsonEncode(categories));
+  Future<void> saveCategories(
+    String sourceId,
+    Map<String, List<String>> categories,
+  ) =>
+      rust_api.saveCategories(sourceId: sourceId, json: jsonEncode(categories));
 
   Future<Map<String, List<String>>> getCategoriesBySources(
     List<String> sourceIds,
@@ -69,7 +78,13 @@ mixin _FfiChannelsMixin on _FfiBackendBase {
     final json = await rust_api.getCategoriesBySources(
       sourceIdsJson: jsonEncode(sourceIds),
     );
-    final decoded = jsonDecode(json) as Map<String, dynamic>;
+    Map<String, dynamic> decoded;
+    try {
+      decoded = jsonDecode(json) as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('FFI JSON decode error in getCategoriesBySources: $e');
+      return {};
+    }
     return decoded.map(
       (key, value) => MapEntry(key, (value as List).cast<String>()),
     );
@@ -126,7 +141,13 @@ mixin _FfiChannelsMixin on _FfiBackendBase {
       groupName: groupName,
     );
     if (json == null) return null;
-    final decoded = jsonDecode(json) as Map<String, dynamic>;
+    Map<String, dynamic> decoded;
+    try {
+      decoded = jsonDecode(json) as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('FFI JSON decode error in loadChannelOrder: $e');
+      return null;
+    }
     // Use (v as num).toInt() to safely handle both int and BigInt
     // values that FRB may return for integer fields.
     return decoded.map((key, value) => MapEntry(key, (value as num).toInt()));
@@ -192,7 +213,12 @@ mixin _FfiChannelsMixin on _FfiBackendBase {
       channelsJson: channelsJson,
       displayNamesJson: displayNamesJson,
     );
-    return jsonDecode(json) as Map<String, dynamic>;
+    try {
+      return jsonDecode(json) as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('FFI JSON decode error in matchEpgToChannels: $e');
+      return {};
+    }
   }
 
   Future<String> matchEpgWithConfidence({

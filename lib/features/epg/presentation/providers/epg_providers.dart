@@ -102,8 +102,7 @@ class EpgState {
             if (channelEntries == null || channelEntries.isEmpty) return false;
             // Exclude channels with ONLY placeholder entries.
             // Placeholders have sourceId == '_placeholder'.
-            return channelEntries
-                .any((e) => e.sourceId != '_placeholder');
+            return channelEntries.any((e) => e.sourceId != '_placeholder');
           }).toList();
     }
     return result;

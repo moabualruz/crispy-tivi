@@ -1011,7 +1011,10 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiBookmarksSaveBookmark({required String json});
 
-  Future<void> crateApiChannelsSaveCategories({required String json});
+  Future<void> crateApiChannelsSaveCategories({
+    required String sourceId,
+    required String json,
+  });
 
   Future<void> crateApiChannelsSaveChannelOrder({
     required String profileId,
@@ -8715,11 +8718,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "save_bookmark", argNames: ["json"]);
 
   @override
-  Future<void> crateApiChannelsSaveCategories({required String json}) {
+  Future<void> crateApiChannelsSaveCategories({
+    required String sourceId,
+    required String json,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(sourceId, serializer);
           sse_encode_String(json, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
@@ -8733,14 +8740,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_AnyhowException,
         ),
         constMeta: kCrateApiChannelsSaveCategoriesConstMeta,
-        argValues: [json],
+        argValues: [sourceId, json],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta get kCrateApiChannelsSaveCategoriesConstMeta =>
-      const TaskConstMeta(debugName: "save_categories", argNames: ["json"]);
+      const TaskConstMeta(
+        debugName: "save_categories",
+        argNames: ["sourceId", "json"],
+      );
 
   @override
   Future<void> crateApiChannelsSaveChannelOrder({
