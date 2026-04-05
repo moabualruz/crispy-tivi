@@ -44,12 +44,12 @@ const VACUUM_THRESHOLD: usize = 1000;
 /// warning and continues — a cleanup failure must never block app startup.
 pub fn run_startup_cleanup(service: &CrispyService) -> Result<()> {
     let now = chrono::Utc::now().timestamp();
+    let conn = service.db.get()?; // ONE connection for all cleanup
     let mut total_deleted: usize = 0;
 
     // ── 1. Expired soft-deleted sources (30-day retention) ──────────────
     {
         let cutoff = now - SOURCE_SOFT_DELETE_TTL_SECS;
-        let conn = service.db.get()?;
         let deleted = conn.execute(
             "DELETE FROM db_sources
              WHERE deleted_at IS NOT NULL
@@ -58,7 +58,7 @@ pub fn run_startup_cleanup(service: &CrispyService) -> Result<()> {
         )?;
         if deleted > 0 {
             eprintln!(
-                "[cleanup] hard-deleted {deleted} expired soft-deleted source(s) (cutoff={cutoff})"
+                "[cleanup] hard-deleted {deleted} expired soft-deleted source(s)"
             );
         }
         total_deleted += deleted;
@@ -67,14 +67,13 @@ pub fn run_startup_cleanup(service: &CrispyService) -> Result<()> {
     // ── 2. Expired bookmarks (90-day TTL) ────────────────────────────────
     {
         let cutoff = now - BOOKMARK_TTL_SECS;
-        let conn = service.db.get()?;
         let deleted = conn.execute(
             "DELETE FROM db_bookmarks
              WHERE created_at < ?1",
             rusqlite::params![cutoff],
         )?;
         if deleted > 0 {
-            eprintln!("[cleanup] deleted {deleted} expired bookmark(s) (cutoff={cutoff})");
+            eprintln!("[cleanup] deleted {deleted} expired bookmark(s)");
         }
         total_deleted += deleted;
     }
@@ -82,16 +81,13 @@ pub fn run_startup_cleanup(service: &CrispyService) -> Result<()> {
     // ── 3. Stale stream health entries (7-day TTL) ───────────────────────
     {
         let cutoff = now - STREAM_HEALTH_TTL_SECS;
-        let conn = service.db.get()?;
         let deleted = conn.execute(
             "DELETE FROM db_stream_health
              WHERE last_seen < ?1",
             rusqlite::params![cutoff],
         )?;
         if deleted > 0 {
-            eprintln!(
-                "[cleanup] deleted {deleted} stale stream_health entry/entries (cutoff={cutoff})"
-            );
+            eprintln!("[cleanup] deleted {deleted} stale stream_health entry/entries");
         }
         total_deleted += deleted;
     }
@@ -99,23 +95,25 @@ pub fn run_startup_cleanup(service: &CrispyService) -> Result<()> {
     // ── 4. Past EPG entries (>24 h in the past) ──────────────────────────
     {
         let cutoff = now - EPG_PAST_TTL_SECS;
-        let conn = service.db.get()?;
         let deleted = conn.execute(
             "DELETE FROM db_epg_entries
              WHERE end_time < ?1",
             rusqlite::params![cutoff],
         )?;
         if deleted > 0 {
-            eprintln!("[cleanup] deleted {deleted} stale EPG entry/entries (cutoff={cutoff})");
+            eprintln!("[cleanup] deleted {deleted} stale EPG entry/entries");
         }
         total_deleted += deleted;
     }
 
+    // Drop the main connection before VACUUM (VACUUM needs exclusive access)
+    drop(conn);
+
     // ── 5. VACUUM if significant rows were removed ────────────────────────
     if total_deleted >= VACUUM_THRESHOLD {
         eprintln!("[cleanup] {total_deleted} rows deleted — running VACUUM to compact DB");
-        let conn = service.db.get()?;
-        conn.execute_batch("VACUUM")?;
+        let vconn = service.db.get()?;
+        vconn.execute_batch("VACUUM")?;
     }
 
     Ok(())

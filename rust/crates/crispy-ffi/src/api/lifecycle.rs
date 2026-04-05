@@ -35,15 +35,22 @@ pub fn init_backend(db_path: String) -> Result<()> {
 
     let service = CrispyService::open(&db_path)?;
 
-    // Run startup cleanup (expired soft-deletes, TTL bookmarks/stream_health/EPG).
-    // Non-blocking: log a warning on failure but do not prevent app startup.
-    if let Err(e) = crispy_core::services::cleanup::run_startup_cleanup(&service) {
-        eprintln!("[lifecycle] startup cleanup warning (non-fatal): {e}");
-    }
-
     SERVICE
         .set(service)
-        .map_err(|_| anyhow!("Already initialized"))
+        .map_err(|_| anyhow!("Already initialized"))?;
+
+    // Run startup cleanup on a background thread so it never blocks app startup.
+    // Uses super::svc() to get a reference to the already-initialized SERVICE.
+    std::thread::spawn(|| {
+        if let Err(e) = super::svc()
+            .map_err(anyhow::Error::from)
+            .and_then(|s| crispy_core::services::cleanup::run_startup_cleanup(&s))
+        {
+            eprintln!("[lifecycle] startup cleanup warning (non-fatal): {e}");
+        }
+    });
+
+    Ok(())
 }
 
 /// Subscribe to data-change events from the Rust
