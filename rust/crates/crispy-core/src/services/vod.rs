@@ -83,11 +83,8 @@ impl CrispyService {
         conn: &rusqlite::Connection,
         items: &[VodItem],
     ) -> Result<usize, DbError> {
-        let mut count = 0usize;
-        for v in items {
-            let source_id = v.source_id.clone().unwrap_or_default();
-            conn.execute(
-                "INSERT INTO db_movies (
+        let mut stmt = conn.prepare(
+            "INSERT INTO db_movies (
                     id, source_id, native_id, name,
                     original_name, poster_url, backdrop_url,
                     description, stream_url, container_ext,
@@ -123,6 +120,11 @@ impl CrispyService {
                     director = excluded.director,
                     is_adult = excluded.is_adult,
                     updated_at = strftime('%s','now')",
+        )?;
+        let mut count = 0usize;
+        for v in items {
+            let source_id = v.source_id.clone().unwrap_or_default();
+            stmt.execute(
                 params![
                     v.id,
                     source_id,

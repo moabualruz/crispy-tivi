@@ -84,10 +84,8 @@ impl CrispyService {
         conn: &rusqlite::Connection,
         channels: &[Channel],
     ) -> Result<usize, DbError> {
-        let mut count = 0usize;
-        for ch in channels {
-            conn.execute(
-                "INSERT INTO db_channels (
+        let mut stmt = conn.prepare(
+            "INSERT INTO db_channels (
                     id, native_id, name, stream_url, number,
                     channel_group, logo_url, tvg_id, xtream_stream_id, epg_channel_id,
                     tvg_name, is_favorite, user_agent,
@@ -147,6 +145,10 @@ impl CrispyService {
                     timeshift = excluded.timeshift,
                     stream_type = excluded.stream_type,
                     thumbnail_url = excluded.thumbnail_url",
+        )?;
+        let mut count = 0usize;
+        for ch in channels {
+            stmt.execute(
                 params![
                     ch.id,
                     ch.native_id,
