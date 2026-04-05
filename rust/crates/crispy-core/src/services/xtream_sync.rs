@@ -21,12 +21,11 @@ use crate::algorithms::normalize::normalize_url;
 use crate::http_client::get_fast_client;
 use crate::http_resilience::{fetch_json_list, fetch_json_object};
 use crate::models::{Channel, SyncReport, XtreamAccountInfo};
-use crate::parsers::{m3u, vod, xtream};
+use crate::parsers::{vod, xtream};
 use crate::services::CrispyService;
 use crate::services::url_validator::validate_url;
 use crate::sync_progress::emit_progress;
 use anyhow::{Context, Result};
-use rusqlite::params;
 
 /// Verifies Xtream credentials by calling the player API.
 ///
@@ -159,7 +158,7 @@ fn parse_xtream_account_info(data: &serde_json::Value) -> XtreamAccountInfo {
 /// Returns an empty map on any failure — the caller treats that as
 /// "proceed with Xtream-API-only sync; tvg_id left unset for now".
 async fn build_tvg_id_map(
-    service: &CrispyService,
+    _service: &CrispyService,
     base: &str,
     username: &str,
     password: &str,
@@ -212,85 +211,47 @@ async fn build_tvg_id_map(
         return HashMap::new();
     }
 
-    let channels = m3u::parse_m3u(&content).channels;
-    if channels.is_empty() {
-        return HashMap::new();
-    }
+    // Extract ONLY url→tvg_id pairs from M3U text without building full Channel structs.
+    // Full Channel parsing allocates 30+ fields per entry — for a 50MB M3U with 10K+
+    // channels that causes multi-GB memory usage. We only need 2 fields.
+    let mut map = HashMap::new();
+    let mut current_tvg_id: Option<String> = None;
 
-    // Populate a TEMP TABLE on a single connection, then read it back as a HashMap.
-    // Using a temp table (rather than a plain HashMap built directly) keeps memory
-    // pressure low for large playlists and mirrors the spec's intended design.
-    let conn = match service.db.get() {
-        Ok(c) => c,
-        Err(e) => {
-            tracing::warn!(source_id, error = %e, "DB connection unavailable; tvg_id mapping skipped");
-            return HashMap::new();
-        }
-    };
-
-    let setup = conn.execute_batch(
-        "CREATE TEMP TABLE IF NOT EXISTS tmp_m3u_tvg_map (
-             stream_url_normalized TEXT PRIMARY KEY,
-             tvg_id TEXT NOT NULL
-         );
-         DELETE FROM tmp_m3u_tvg_map;",
-    );
-    if let Err(e) = setup {
-        tracing::warn!(source_id, error = %e, "Failed to create temp table; tvg_id mapping skipped");
-        return HashMap::new();
-    }
-
-    let insert_sql =
-        "INSERT OR IGNORE INTO tmp_m3u_tvg_map (stream_url_normalized, tvg_id) VALUES (?1, ?2)";
-    let mut inserted = 0usize;
-    for ch in &channels {
-        if let Some(tvg_id) = &ch.tvg_id {
-            if tvg_id.is_empty() {
-                continue;
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("#EXTINF") {
+            // Extract tvg-id="..." from the #EXTINF line
+            current_tvg_id = extract_attr(trimmed, "tvg-id");
+        } else if !trimmed.is_empty() && !trimmed.starts_with('#') {
+            // This is a URL line — pair it with the previous tvg_id
+            if let Some(tvg) = current_tvg_id.take() {
+                if !tvg.is_empty() {
+                    let norm = normalize_url(trimmed);
+                    if !norm.is_empty() {
+                        map.insert(norm, tvg);
+                    }
+                }
             }
-            let norm = normalize_url(&ch.stream_url);
-            if norm.is_empty() {
-                continue;
-            }
-            if let Err(e) = conn.execute(insert_sql, params![norm, tvg_id]) {
-                tracing::debug!(source_id, error = %e, "temp table insert skipped for one entry");
-            } else {
-                inserted += 1;
-            }
+            current_tvg_id = None;
         }
     }
-    tracing::debug!(
-        source_id,
-        inserted,
-        "M3U tvg_id entries loaded into temp table"
-    );
 
-    // Read back into a HashMap so the connection (and temp table) can be released.
-    let mut map = HashMap::with_capacity(inserted);
-    let read_result = (|| -> rusqlite::Result<()> {
-        let mut stmt = conn.prepare("SELECT stream_url_normalized, tvg_id FROM tmp_m3u_tvg_map")?;
-        let rows = stmt.query_map([], |row| {
-            let url: String = row.get(0)?;
-            let tvg: String = row.get(1)?;
-            Ok((url, tvg))
-        })?;
-        for row in rows {
-            let (url, tvg) = row?;
-            map.insert(url, tvg);
-        }
-        Ok(())
-    })();
+    // Drop the raw M3U content immediately — we only keep the small HashMap
+    drop(content);
 
-    if let Err(e) = read_result {
-        tracing::warn!(source_id, error = %e, "Failed to read temp table; tvg_id mapping skipped");
-        return HashMap::new();
-    }
-
-    if let Err(e) = conn.execute_batch("DROP TABLE IF EXISTS tmp_m3u_tvg_map") {
-        tracing::debug!(source_id, error = %e, "DROP temp table failed (non-fatal)");
-    }
-
+    tracing::debug!(source_id, count = map.len(), "M3U tvg_id map built");
     map
+}
+
+/// Extract a named attribute value from an #EXTINF line.
+/// e.g. `tvg-id="BBC.One"` → `Some("BBC.One")`
+fn extract_attr(line: &str, attr_name: &str) -> Option<String> {
+    let needle = format!("{attr_name}=\"");
+    let start = line.find(&needle)? + needle.len();
+    let rest = &line[start..];
+    let end = rest.find('"')?;
+    let val = rest[..end].trim().to_string();
+    if val.is_empty() { None } else { Some(val) }
 }
 
 /// Apply tvg_id values from the M3U map to Xtream channels.
