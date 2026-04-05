@@ -92,7 +92,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
                 .naive_utc();
 
             let entry = EpgEntry {
-                channel_id: channel.id.clone(),
+                epg_channel_id: channel.id.clone(),
                 start_time: start_dt,
                 end_time: end_dt,
                 ..EpgEntry::default()

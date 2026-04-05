@@ -243,13 +243,22 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         })(),
         "syncStalkerEpg" => (|| {
             let base_url = get_str(args, "baseUrl")?;
+            let mac = args
+                .get("mac")
+                .and_then(|value| value.as_str())
+                .map(str::to_owned);
             let channels_json = get_str(args, "channelsJson")?;
             let channels: Vec<crispy_core::models::Channel> =
                 serde_json::from_str(&channels_json).context("Invalid channels JSON")?;
 
             let count = tokio::runtime::Handle::current()
                 .block_on(crispy_core::services::epg_sync::fetch_and_save_stalker_epg(
-                    svc, &base_url, None, &channels, false,
+                    svc,
+                    &base_url,
+                    mac.as_deref(),
+                    None,
+                    &channels,
+                    false,
                 ))
                 .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true, "count": count}))

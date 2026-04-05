@@ -86,7 +86,7 @@ pub async fn sync_xtream_epg(
 /// Cooldown is applied to the base URL.
 pub async fn sync_stalker_epg(
     base_url: String,
-    _mac: String,
+    mac: String,
     source_id: String,
     channels_json: String,
     force: bool,
@@ -97,6 +97,7 @@ pub async fn sync_stalker_epg(
         crispy_core::services::epg_sync::fetch_and_save_stalker_epg(
             &service,
             &base_url,
+            Some(mac.as_str()),
             Some(source_id),
             &channels,
             force,
@@ -147,7 +148,7 @@ pub fn build_catchup_url(
         .naive_utc();
 
     let entry = EpgEntry {
-        channel_id: channel.id.clone(),
+        epg_channel_id: channel.id.clone(),
         start_time: start_dt,
         end_time: end_dt,
         ..EpgEntry::default()
