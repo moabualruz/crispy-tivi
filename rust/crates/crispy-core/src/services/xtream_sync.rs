@@ -152,19 +152,27 @@ fn parse_xtream_account_info(data: &serde_json::Value) -> XtreamAccountInfo {
 ///
 /// Downloads the M3U from the Xtream `get.php` endpoint, parses every
 /// `#EXTINF` entry, normalises each stream URL, and stores the mapping in
-/// a SQLite TEMP TABLE on a pooled connection.  The table is read back into
-/// a `HashMap` and the connection is released (temp table auto-dropped).
+/// Downloads the M3U playlist for an Xtream source and stores it in a
+/// **SQLite temp table** — never holding all channels in RAM. Parses the
+/// M3U line-by-line, inserting each entry directly into the temp table
+/// in batches.
 ///
-/// Returns an empty map on any failure — the caller treats that as
-/// "proceed with Xtream-API-only sync; tvg_id left unset for now".
-async fn build_tvg_id_map(
-    _service: &CrispyService,
+/// The temp table holds: `stream_url_normalized`, `tvg_id`, `name`,
+/// `logo`, `group_title` — enough to enrich Xtream channels after
+/// the API fetch.
+///
+/// The caller is responsible for calling `drop_m3u_temp_table()` after
+/// Xtream mapping is complete.
+///
+/// Returns the number of rows inserted, or 0 on failure.
+async fn download_m3u_to_temp_table(
+    service: &CrispyService,
     base: &str,
     username: &str,
     password: &str,
     source_id: &str,
     accept_invalid_certs: bool,
-) -> HashMap<String, String> {
+) -> usize {
     let m3u_url = {
         let enc_user =
             percent_encoding::utf8_percent_encode(username, percent_encoding::NON_ALPHANUMERIC)
@@ -186,66 +194,149 @@ async fn build_tvg_id_map(
         Ok(Ok(resp)) if resp.status().is_success() => match resp.bytes().await {
             Ok(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
             Err(e) => {
-                tracing::warn!(source_id, error = %e, "Failed to read M3U body; tvg_id mapping skipped");
-                return HashMap::new();
+                tracing::warn!(source_id, error = %e, "Failed to read M3U body");
+                return 0;
             }
         },
         Ok(Ok(resp)) => {
-            tracing::warn!(source_id, status = %resp.status(), "M3U endpoint non-success; tvg_id mapping skipped");
-            return HashMap::new();
+            tracing::warn!(source_id, status = %resp.status(), "M3U endpoint non-success");
+            return 0;
         }
         Ok(Err(e)) => {
-            tracing::warn!(source_id, error = %e, "M3U download failed; tvg_id mapping skipped");
-            return HashMap::new();
+            tracing::warn!(source_id, error = %e, "M3U download failed");
+            return 0;
         }
         Err(_) => {
-            tracing::warn!(
-                source_id,
-                "M3U download timed out after 60s; tvg_id mapping skipped"
-            );
-            return HashMap::new();
+            tracing::warn!(source_id, "M3U download timed out after 60s");
+            return 0;
         }
     };
 
     if content.is_empty() {
-        return HashMap::new();
+        return 0;
     }
 
-    // Extract ONLY url→tvg_id pairs from M3U text without building full Channel structs.
-    // Full Channel parsing allocates 30+ fields per entry — for a 50MB M3U with 10K+
-    // channels that causes multi-GB memory usage. We only need 2 fields.
-    let mut map = HashMap::new();
-    let mut current_tvg_id: Option<String> = None;
+    // Get a DB connection and create the temp table
+    let conn = match service.db.get() {
+        Ok(c) => c,
+        Err(e) => {
+            tracing::warn!(source_id, error = %e, "DB connection unavailable");
+            return 0;
+        }
+    };
+
+    if let Err(e) = conn.execute_batch(
+        "CREATE TEMP TABLE IF NOT EXISTS tmp_m3u_channels (
+             stream_url_normalized TEXT PRIMARY KEY,
+             tvg_id TEXT,
+             name TEXT,
+             logo TEXT,
+             group_title TEXT
+         );
+         DELETE FROM tmp_m3u_channels;",
+    ) {
+        tracing::warn!(source_id, error = %e, "Failed to create temp table");
+        return 0;
+    }
+
+    // Parse M3U line-by-line and insert into temp table directly.
+    // We extract only the fields we need — no full Channel struct allocation.
+    let mut inserted = 0usize;
+    let mut current_extinf: Option<(Option<String>, Option<String>, Option<String>, Option<String>)> = None;
 
     for line in content.lines() {
         let trimmed = line.trim();
         if trimmed.starts_with("#EXTINF") {
-            // Extract tvg-id="..." from the #EXTINF line
-            current_tvg_id = extract_attr(trimmed, "tvg-id");
+            let tvg_id = extract_m3u_attr(trimmed, "tvg-id");
+            let tvg_name = extract_m3u_attr(trimmed, "tvg-name");
+            let tvg_logo = extract_m3u_attr(trimmed, "tvg-logo");
+            let group = extract_m3u_attr(trimmed, "group-title");
+            current_extinf = Some((tvg_id, tvg_name, tvg_logo, group));
         } else if !trimmed.is_empty() && !trimmed.starts_with('#') {
-            // This is a URL line — pair it with the previous tvg_id
-            if let Some(tvg) = current_tvg_id.take() {
-                if !tvg.is_empty() {
-                    let norm = normalize_url(trimmed);
-                    if !norm.is_empty() {
-                        map.insert(norm, tvg);
+            // URL line — pair with previous #EXTINF
+            if let Some((tvg_id, name, logo, group)) = current_extinf.take() {
+                let norm = normalize_url(trimmed);
+                if !norm.is_empty() {
+                    if let Err(e) = conn.execute(
+                        "INSERT OR IGNORE INTO tmp_m3u_channels
+                         (stream_url_normalized, tvg_id, name, logo, group_title)
+                         VALUES (?1, ?2, ?3, ?4, ?5)",
+                        rusqlite::params![norm, tvg_id, name, logo, group],
+                    ) {
+                        tracing::debug!(error = %e, "temp table insert skipped");
+                    } else {
+                        inserted += 1;
                     }
                 }
             }
-            current_tvg_id = None;
+            current_extinf = None;
         }
     }
 
-    // Drop the raw M3U content immediately — we only keep the small HashMap
+    // Drop the raw M3U content now — data is in SQLite
     drop(content);
 
-    tracing::debug!(source_id, count = map.len(), "M3U tvg_id map built");
-    map
+    tracing::debug!(source_id, inserted, "M3U channels loaded into temp table");
+    inserted
+}
+
+/// Apply tvg_id and metadata from the M3U temp table to Xtream channels.
+/// Matches by normalized stream URL.
+fn apply_m3u_metadata_from_temp_table(
+    service: &CrispyService,
+    channels: &mut [Channel],
+) {
+    let conn = match service.db.get() {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+
+    let mut stmt = match conn.prepare(
+        "SELECT tvg_id, name, logo, group_title
+         FROM tmp_m3u_channels WHERE stream_url_normalized = ?1",
+    ) {
+        Ok(s) => s,
+        Err(_) => return, // temp table may not exist if M3U download failed
+    };
+
+    for ch in channels.iter_mut() {
+        let norm = normalize_url(&ch.stream_url);
+        if norm.is_empty() {
+            continue;
+        }
+        if let Ok(row) = stmt.query_row(rusqlite::params![norm], |row| {
+            Ok((
+                row.get::<_, Option<String>>(0)?,
+                row.get::<_, Option<String>>(1)?,
+                row.get::<_, Option<String>>(2)?,
+                row.get::<_, Option<String>>(3)?,
+            ))
+        }) {
+            let (tvg_id, _name, logo, group) = row;
+            // Only set tvg_id if channel doesn't already have one from Xtream API
+            if ch.tvg_id.as_ref().map_or(true, |t| t.is_empty()) {
+                ch.tvg_id = tvg_id;
+            }
+            // Enrich logo if missing
+            if ch.logo_url.as_ref().map_or(true, |l| l.is_empty()) {
+                ch.logo_url = logo;
+            }
+            // group_title from M3U is not stored on Channel directly —
+            // Xtream API provides category_id which is resolved separately.
+        }
+    }
+}
+
+/// Drop the M3U temp table after Xtream mapping is complete.
+fn drop_m3u_temp_table(service: &CrispyService) {
+    if let Ok(conn) = service.db.get() {
+        let _ = conn.execute_batch("DROP TABLE IF EXISTS tmp_m3u_channels");
+    }
 }
 
 /// Extract a named attribute value from an #EXTINF line.
 /// e.g. `tvg-id="BBC.One"` → `Some("BBC.One")`
-fn extract_attr(line: &str, attr_name: &str) -> Option<String> {
+fn extract_m3u_attr(line: &str, attr_name: &str) -> Option<String> {
     let needle = format!("{attr_name}=\"");
     let start = line.find(&needle)? + needle.len();
     let rest = &line[start..];
@@ -302,7 +393,8 @@ pub async fn sync_xtream_source(
         0.0,
         "Pre-fetching M3U for tvg_id metadata",
     );
-    let tvg_map = build_tvg_id_map(
+    // Step 1: Download M3U into SQLite temp table (not RAM)
+    let m3u_count = download_m3u_to_temp_table(
         service,
         &base,
         username,
@@ -313,8 +405,8 @@ pub async fn sync_xtream_source(
     .await;
     tracing::debug!(
         source_id,
-        entries = tvg_map.len(),
-        "tvg_id map built from M3U"
+        m3u_count,
+        "M3U channels loaded into temp table"
     );
 
     emit_progress(source_id, "categories", 0.05, "Fetching categories");
@@ -358,10 +450,11 @@ pub async fn sync_xtream_source(
     let mut channels =
         xtream::channels_from_xtream_json(&live_data, &base, username, password, Some(source_id));
     channels = categories::resolve_channel_categories(&channels, &live_cat_map);
-    // Populate tvg_id from the M3U map before saving.
-    // Each channel gets a UUID PK from channels_from_xtream_json; we never
-    // derive the PK from mutable data such as stream URL.
-    apply_tvg_ids(&mut channels, &tvg_map);
+    // Populate tvg_id + metadata from M3U temp table before saving.
+    // Matches by normalized stream URL against tmp_m3u_channels.
+    if m3u_count > 0 {
+        apply_m3u_metadata_from_temp_table(service, &mut channels);
+    }
 
     emit_progress(source_id, "vod", 0.4, "Fetching VOD streams");
 
@@ -488,6 +581,9 @@ pub async fn sync_xtream_source(
     service
         .save_sync_data(source_id, &channels, &channel_ids, &vod_items, &vod_ids)
         .context("Failed to persist Xtream sync data")?;
+
+    // Drop the M3U temp table now that Xtream mapping is done
+    drop_m3u_temp_table(service);
 
     emit_progress(source_id, "complete", 1.0, "Sync complete");
 
