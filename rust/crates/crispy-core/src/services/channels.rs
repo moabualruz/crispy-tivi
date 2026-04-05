@@ -127,7 +127,6 @@ impl CrispyService {
                     catchup_days = excluded.catchup_days,
                     catchup_type = excluded.catchup_type,
                     catchup_source = excluded.catchup_source,
-                    added_at = excluded.added_at,
                     updated_at = strftime('%s','now'),
                     is_247 = excluded.is_247,
                     tvg_shift = excluded.tvg_shift,
