@@ -10,6 +10,7 @@ class Channel {
     required this.id,
     required this.name,
     required this.streamUrl,
+    this.nativeId,
     this.number,
     this.group,
     this.logoUrl,
@@ -27,10 +28,20 @@ class Channel {
     this.updatedAt,
     this.is247 = false,
     this.isSport = false,
+    this.tvgUrl,
+    this.streamPropertiesJson,
+    this.vlcOptionsJson,
+    this.timeshift,
+    this.streamType,
+    this.thumbnailUrl,
   });
 
   /// Unique identifier (hash of streamUrl or Xtream stream ID).
   final String id;
+
+  /// Source-native ID (stream_id for Xtream, portal id for Stalker,
+  /// url-hash for M3U). Matches the Rust `Channel.native_id` field.
+  final String? nativeId;
 
   /// Display name from `#EXTINF` directive.
   final String name;
@@ -92,9 +103,28 @@ class Channel {
   /// Flag to identify if a channel primarily broadcasts sports content.
   final bool isSport;
 
+  /// Per-channel EPG URL (`tvg-url` M3U attribute).
+  final String? tvgUrl;
+
+  /// Kodi stream properties (KODIPROP) serialised as JSON.
+  final String? streamPropertiesJson;
+
+  /// VLC options (EXTVLCOPT) serialised as JSON.
+  final String? vlcOptionsJson;
+
+  /// Timeshift duration hint (`timeshift` M3U attribute).
+  final String? timeshift;
+
+  /// Xtream stream type (e.g. `"live"`).
+  final String? streamType;
+
+  /// Xtream channel thumbnail URL.
+  final String? thumbnailUrl;
+
   /// Creates a copy with updated fields.
   Channel copyWith({
     String? id,
+    String? nativeId,
     String? name,
     String? streamUrl,
     int? number,
@@ -114,9 +144,16 @@ class Channel {
     DateTime? updatedAt,
     bool? is247,
     bool? isSport,
+    String? tvgUrl,
+    String? streamPropertiesJson,
+    String? vlcOptionsJson,
+    String? timeshift,
+    String? streamType,
+    String? thumbnailUrl,
   }) {
     return Channel(
       id: id ?? this.id,
+      nativeId: nativeId ?? this.nativeId,
       name: name ?? this.name,
       streamUrl: streamUrl ?? this.streamUrl,
       number: number ?? this.number,
@@ -136,6 +173,12 @@ class Channel {
       updatedAt: updatedAt ?? this.updatedAt,
       is247: is247 ?? this.is247,
       isSport: isSport ?? this.isSport,
+      tvgUrl: tvgUrl ?? this.tvgUrl,
+      streamPropertiesJson: streamPropertiesJson ?? this.streamPropertiesJson,
+      vlcOptionsJson: vlcOptionsJson ?? this.vlcOptionsJson,
+      timeshift: timeshift ?? this.timeshift,
+      streamType: streamType ?? this.streamType,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
     );
   }
 

@@ -353,6 +353,7 @@ bool _guessIsSport(String? group) {
 Channel mapToChannel(Map<String, dynamic> m) {
   return Channel(
     id: m['id'] as String,
+    nativeId: m['native_id'] as String?,
     name: m['name'] as String,
     streamUrl: m['stream_url'] as String,
     number: m['number'] as int?,
@@ -373,6 +374,12 @@ Channel mapToChannel(Map<String, dynamic> m) {
     is247: m['is_247'] as bool? ?? false,
     isSport:
         m['is_sport'] as bool? ?? _guessIsSport(m['channel_group'] as String?),
+    tvgUrl: m['tvg_url'] as String?,
+    streamPropertiesJson: m['stream_properties_json'] as String?,
+    vlcOptionsJson: m['vlc_options_json'] as String?,
+    timeshift: m['timeshift'] as String?,
+    streamType: m['stream_type'] as String?,
+    thumbnailUrl: m['thumbnail_url'] as String?,
   );
 }
 
@@ -380,6 +387,7 @@ Channel mapToChannel(Map<String, dynamic> m) {
 Map<String, dynamic> channelToMap(Channel c) {
   return {
     'id': c.id,
+    'native_id': c.nativeId,
     'name': c.name,
     'stream_url': c.streamUrl,
     'number': c.number,
@@ -399,23 +407,55 @@ Map<String, dynamic> channelToMap(Channel c) {
     'updated_at': c.updatedAt != null ? _toNaiveDateTime(c.updatedAt!) : null,
     'is_247': c.is247,
     'is_sport': c.isSport,
+    'tvg_url': c.tvgUrl,
+    'stream_properties_json': c.streamPropertiesJson,
+    'vlc_options_json': c.vlcOptionsJson,
+    'timeshift': c.timeshift,
+    'stream_type': c.streamType,
+    'thumbnail_url': c.thumbnailUrl,
   };
 }
 
 // ── EPG converters (top-level) ────────────────────
 
 /// Converts a backend map to an [EpgEntry] entity.
+///
+/// Handles two serialization formats emitted by the Rust layer:
+/// 1. SQLite row map — `channel_id`, `start_time` / `end_time` as NaiveDateTime strings.
+/// 2. Rust `EpgEntry` serde JSON — `epg_channel_id`, `start_time` / `end_time` as
+///    NaiveDateTime strings (snake_case, no rename_all).
 EpgEntry mapToEpgEntry(Map<String, dynamic> m) {
+  // Field name: Rust serializes EpgEntry.epg_channel_id; SQLite rows use channel_id.
+  final channelId =
+      (m['epg_channel_id'] ?? m['channel_id']) as String? ?? '';
+
+  // Timestamps arrive as NaiveDateTime strings ("2024-01-01T12:00:00") from both
+  // SQLite rows and the Rust serde path. Fall back to epoch on null.
+  final startTime = _parseTimestamp(m['start_time']);
+  final endTime = _parseTimestamp(m['end_time']);
+
   return EpgEntry(
-    channelId: m['channel_id'] as String,
-    title: m['title'] as String,
-    startTime: _parseNaiveUtc(m['start_time'] as String),
-    endTime: _parseNaiveUtc(m['end_time'] as String),
+    channelId: channelId,
+    title: m['title'] as String? ?? '',
+    startTime: startTime,
+    endTime: endTime,
     description: m['description'] as String?,
     category: m['category'] as String?,
     iconUrl: m['icon_url'] as String?,
     sourceId: m['source_id'] as String?,
   );
+}
+
+/// Parses a timestamp value from a backend map.
+///
+/// Accepts:
+/// - `String` — NaiveDateTime ("2024-01-01T12:00:00") parsed as UTC.
+/// - `int` — epoch seconds (used by some Rust paths).
+DateTime _parseTimestamp(dynamic value) {
+  if (value == null) return DateTime.utc(1970);
+  if (value is int) return DateTime.fromMillisecondsSinceEpoch(value * 1000, isUtc: true);
+  if (value is String) return _parseNaiveUtc(value);
+  return DateTime.utc(1970);
 }
 
 /// Converts an [EpgEntry] entity to a backend map.

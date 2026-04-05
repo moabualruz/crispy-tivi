@@ -220,6 +220,7 @@ VodItem mapToVodItem(Map<String, dynamic> m) {
 
   return VodItem(
     id: m['id'] as String,
+    nativeId: m['native_id'] as String?,
     name: m['name'] as String,
     streamUrl: m['stream_url'] as String,
     type: VodType.values.byName(m['type'] as String),
@@ -248,6 +249,7 @@ VodItem mapToVodItem(Map<String, dynamic> m) {
 Map<String, dynamic> vodItemToMap(VodItem v) {
   return {
     'id': v.id,
+    'native_id': v.nativeId,
     'name': v.name,
     'stream_url': v.streamUrl,
     'type': v.type.name,

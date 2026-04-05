@@ -10,6 +10,7 @@ class VodItem {
     required this.name,
     required this.streamUrl,
     required this.type,
+    this.nativeId,
     this.posterUrl,
     this.backdropUrl,
     this.description,
@@ -32,6 +33,10 @@ class VodItem {
 
   /// Unique identifier.
   final String id;
+
+  /// Source-native ID (stream_id for Xtream, portal id for Stalker).
+  /// Matches the Rust `VodItem.native_id` field.
+  final String? nativeId;
 
   /// Display name / title.
   final String name;
@@ -101,6 +106,7 @@ class VodItem {
   /// Creates a copy with optional field overrides.
   VodItem copyWith({
     String? id,
+    String? nativeId,
     String? name,
     String? streamUrl,
     VodType? type,
@@ -125,6 +131,7 @@ class VodItem {
   }) {
     return VodItem(
       id: id ?? this.id,
+      nativeId: nativeId ?? this.nativeId,
       name: name ?? this.name,
       streamUrl: streamUrl ?? this.streamUrl,
       type: type ?? this.type,
