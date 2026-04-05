@@ -5,21 +5,13 @@
 //! connection setup.  Schema versioning is driven by
 //! `PRAGMA user_version` through the migration runner.
 //!
-//! ## PRAGMA per-connection note
+//! ## PRAGMA per-connection enforcement
 //!
 //! PRAGMAs (WAL, synchronous, foreign_keys, cache_size) are
-//! applied via `configure()` which checks out one connection
-//! from the r2d2 pool. With `r2d2_sqlite` v0.x and a file
-//! database, each new physical connection starts with SQLite
-//! defaults. Only the single connection obtained during
-//! `open()` is guaranteed to have these pragmas set.
-//!
-//! **Mitigation**: The pool is capped at 20 connections but
-//! for short-lived CLI/server workloads this is acceptable.
-//! A proper fix would use `SqliteConnectionManager::with_init()`
-//! to apply PRAGMAs on every new connection, but that requires
-//! refactoring the pool construction and is deferred to a
-//! future hardening sprint.
+//! applied via `SqliteConnectionManager::with_init()` so that
+//! every physical connection opened by the r2d2 pool receives
+//! the full pragma set. This guarantees `foreign_keys = ON`
+//! on all 20 pool slots, not just the first one.
 
 pub mod migration_runner;
 pub mod retry_queue;
@@ -76,28 +68,28 @@ impl Database {
     /// Enables WAL mode, sets performance pragmas,
     /// and creates/migrates the schema as needed.
     pub fn open(path: &str) -> Result<Self, DbError> {
-        let manager = SqliteConnectionManager::file(path);
+        let manager =
+            SqliteConnectionManager::file(path).with_init(|conn| conn.execute_batch(PRAGMAS));
         let pool = Pool::builder()
             .max_size(20)
             .build(manager)
             .map_err(|e| DbError::Migration(format!("Pool creation failed: {}", e)))?;
 
         let db = Self { pool };
-        db.configure()?;
         db.ensure_schema()?;
         Ok(db)
     }
 
     /// Open an in-memory database (for testing).
     pub fn open_in_memory() -> Result<Self, DbError> {
-        let manager = SqliteConnectionManager::memory();
+        let manager =
+            SqliteConnectionManager::memory().with_init(|conn| conn.execute_batch(PRAGMAS));
         let pool = Pool::builder()
             .max_size(1) // In-memory DBs require exactly 1 connection to persist state properly
             .build(manager)
             .map_err(|e| DbError::Migration(format!("Pool creation failed: {}", e)))?;
 
         let db = Self { pool };
-        db.configure()?;
         db.ensure_schema()?;
         Ok(db)
     }
@@ -110,12 +102,6 @@ impl Database {
     }
 
     // ── Private helpers ──────────────────────────────────
-
-    /// Set connection pragmas.
-    fn configure(&self) -> Result<(), DbError> {
-        self.get()?.execute_batch(PRAGMAS)?;
-        Ok(())
-    }
 
     /// Apply pending migrations (create schema on fresh DB, run deltas
     /// on existing ones).  Delegates entirely to `migration_runner`.
@@ -200,20 +186,18 @@ mod tests {
             "db_storage_backends",
             "db_stream_health",
             "db_stream_urls",
-            "db_sync_meta",
             "db_transfer_tasks",
             "db_user_favorites",
             "db_vod_categories",
             "db_vod_favorites",
             "db_watch_history",
             "db_watchlist",
-            "merge_decisions",
         ];
 
         assert_eq!(
             tables.len(),
-            37,
-            "expected 37 tables (36 user + sqlite_sequence)"
+            35,
+            "expected 35 tables (34 user + sqlite_sequence)"
         );
         for name in &expected {
             assert!(tables.contains(&name.to_string()), "missing table: {name}",);
@@ -257,8 +241,6 @@ mod tests {
             "idx_epg_xmltv_time",
             "idx_episodes_season",
             "idx_episodes_source",
-            "idx_merge_decisions_source",
-            "idx_merge_decisions_type",
             "idx_movies_name",
             "idx_movies_native",
             "idx_movies_source",
@@ -269,6 +251,10 @@ mod tests {
             "idx_series_native",
             "idx_series_source",
             "idx_source_access",
+            "idx_sources_m3u_unique",
+            "idx_sources_stalker_unique",
+            "idx_sources_xmltv_unique",
+            "idx_sources_xtream_unique",
             "idx_stream_urls_channel",
             "idx_vod_categories_cat",
             "idx_vod_categories_content",
