@@ -1,123 +1,21 @@
-//! Background bulk EPG fetcher for Xtream/Stalker sources.
+//! Legacy bulk EPG hook.
 //!
-//! After channel sync, fetches per-channel EPG for channels that
-//! have NO cached data or whose cached data has a gap. Uses a
-//! single batch SQL query to determine which channels need data,
-//! not per-channel queries.
-//!
-//! Smart time-window logic:
-//! - If last sync was N hours ago, only fetch the gap (N hours of new data)
-//! - Never fetch more than 7 days ahead
-//! - Channels with coverage for the next 24h are skipped entirely
+//! Bulk per-channel `get_short_epg` fetches are intentionally disabled.
+//! Full-background EPG refreshes should come from XMLTV sync; on-demand
+//! `get_short_epg` remains available through the facade/resolver L3 path.
 
 use crate::models::{Channel, Source};
 use crate::services::CrispyService;
-use crate::services::epg_fetcher::ThrottledEpgFetcher;
 
-/// Channels per batch.
-const BATCH_SIZE: usize = 10;
-
-/// Pause between batches (milliseconds).
-const BATCH_PAUSE_MS: u64 = 3_000;
-
-/// Initial delay before starting bulk fetch (milliseconds).
-const STARTUP_DELAY_MS: u64 = 5_000;
-
-/// Maximum channels to fetch EPG for in one sync run.
-const MAX_CHANNELS_PER_SYNC: usize = 500;
-
-/// Minimum gap (seconds) before we bother fetching — 4 hours.
-/// If the DB covers at least the next 4 hours, skip the channel.
-const MIN_COVERAGE_SECS: i64 = 4 * 3600;
-
-/// Spawn a background task that fetches EPG for channels missing
-/// cached data. Returns immediately.
-pub fn spawn_bulk_epg_fetch(service: CrispyService, source: Source, channels: Vec<Channel>) {
-    let fetcher = ThrottledEpgFetcher::new();
-
-    tokio::spawn(async move {
-        tokio::time::sleep(tokio::time::Duration::from_millis(STARTUP_DELAY_MS)).await;
-
-        if let Err(e) = run_bulk_fetch(&service, &source, &channels, &fetcher).await {
-            tracing::warn!("Bulk EPG fetch failed for source {}: {e}", source.id);
-        }
-    });
-}
-
-async fn run_bulk_fetch(
-    service: &CrispyService,
-    source: &Source,
-    channels: &[Channel],
-    fetcher: &ThrottledEpgFetcher,
-) -> anyhow::Result<()> {
-    let now = chrono::Utc::now().timestamp();
-    let coverage_end = now + MIN_COVERAGE_SECS;
-
-    // Collect API-sourced channel IDs.
-    let api_channels: Vec<&Channel> = channels
-        .iter()
-        .filter(|ch| ch.id.starts_with("xc_") || ch.id.starts_with("stk_"))
-        .collect();
-
-    if api_channels.is_empty() {
-        return Ok(());
-    }
-
-    // Check which channels have REAL (non-placeholder) EPG coverage
-    // for the next 4 hours. Only fetch for channels without real data.
-    let need_fetch: Vec<&Channel> = api_channels
-        .into_iter()
-        .filter(|ch| {
-            !service
-                .has_real_epg_coverage(&ch.id, now, coverage_end)
-                .unwrap_or(true)
-        })
-        .take(MAX_CHANNELS_PER_SYNC)
-        .collect();
-
-    let covered_count = channels.len() - need_fetch.len();
-
-    if need_fetch.is_empty() {
-        tracing::info!(
-            "Bulk EPG: all {} channels have real coverage for next {}h",
-            covered_count,
-            MIN_COVERAGE_SECS / 3600,
-        );
-        return Ok(());
-    }
-
-    tracing::info!(
-        "Bulk EPG: fetching for {}/{} channels ({} already covered with real data)",
-        need_fetch.len(),
+/// Legacy entrypoint retained for call-site compatibility.
+///
+/// Tier 2 disables bulk background `get_short_epg` fetches so channel sync
+/// does not fan out into per-channel Xtream/Stalker requests.
+pub fn spawn_bulk_epg_fetch(_service: CrispyService, source: Source, channels: Vec<Channel>) {
+    tracing::debug!(
+        "Bulk get_short_epg disabled for source {} (type {}, {} channels)",
+        source.id,
+        source.source_type,
         channels.len(),
-        covered_count,
     );
-
-    let mut fetched_total = 0usize;
-
-    for (batch_num, batch) in need_fetch.chunks(BATCH_SIZE).enumerate() {
-        let channel_ids: Vec<String> = batch.iter().map(|ch| ch.id.clone()).collect();
-        let results = fetcher.fetch_batch(source, &channel_ids).await;
-
-        if !results.is_empty() {
-            let count = results.values().map(|v| v.len()).sum::<usize>();
-            let _ = service.save_epg_entries(&results);
-            fetched_total += count;
-
-            tracing::info!(
-                "Bulk EPG batch {}: {} entries for {}/{} channels",
-                batch_num + 1,
-                count,
-                results.len(),
-                batch.len(),
-            );
-        }
-
-        if batch.len() == BATCH_SIZE {
-            tokio::time::sleep(tokio::time::Duration::from_millis(BATCH_PAUSE_MS)).await;
-        }
-    }
-
-    tracing::info!("Bulk EPG complete: {} total entries", fetched_total);
-    Ok(())
 }

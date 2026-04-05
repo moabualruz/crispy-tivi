@@ -14,7 +14,7 @@ use serde_json::Value;
 use chrono::DateTime;
 
 use crate::algorithms::normalize::{parse_epg_timestamp, try_base64_decode};
-use crate::models::{Channel, EpgEntry};
+use crate::models::{Channel, EpgEntry, new_entity_id};
 use crate::utils::image_sanitizer::sanitize_image_url;
 
 /// Percent-encode a credential value for safe URL
@@ -64,7 +64,7 @@ pub fn parse_short_epg(listings: &[Value], channel_id: &str) -> Vec<EpgEntry> {
             .map(try_base64_decode);
 
         entries.push(EpgEntry {
-            channel_id: channel_id.to_string(),
+            epg_channel_id: channel_id.to_string(),
             title,
             start_time,
             end_time,
@@ -298,8 +298,15 @@ pub fn parse_xtream_live_streams(
             .and_then(|ts| DateTime::from_timestamp(ts, 0))
             .map(|dt| dt.naive_utc());
 
+        let epg_channel_id = obj
+            .get("epg_channel_id")
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+            .map(String::from);
+
         channels.push(Channel {
-            id: format!("xc_{stream_id}"),
+            id: new_entity_id(),
+            native_id: stream_id.to_string(),
             name: name.clone(),
             stream_url,
             number,
@@ -310,6 +317,8 @@ pub fn parse_xtream_live_streams(
             },
             logo_url: stream_icon,
             tvg_id: Some(tvg_id),
+            xtream_stream_id: Some(stream_id.to_string()),
+            epg_channel_id,
             tvg_name: Some(name),
             is_favorite: false,
             user_agent: None,
@@ -502,6 +511,11 @@ mod tests {
     use chrono::NaiveDateTime;
     use serde_json::json;
 
+    fn assert_uuid_v7(id: &str) {
+        let parsed = uuid::Uuid::parse_str(id).expect("valid UUID");
+        assert_eq!(parsed.get_version_num(), 7);
+    }
+
     fn make_listing(title: &str, start: &str, end: &str, desc: Option<&str>) -> Value {
         let mut obj = json!({
             "title": title,
@@ -651,7 +665,7 @@ mod tests {
             None,
         )];
         let entries = parse_short_epg(&listings, "my_channel");
-        assert_eq!(entries[0].channel_id, "my_channel",);
+        assert_eq!(entries[0].epg_channel_id, "my_channel",);
     }
 
     // ── URL Builder Tests ────────────────────────
@@ -761,7 +775,7 @@ mod tests {
         let channels = parse_xtream_live_streams(&data, "http://tv.example.com:8080", "u", "p");
         assert_eq!(channels.len(), 1);
         let ch = &channels[0];
-        assert_eq!(ch.id, "xc_100");
+        assert_uuid_v7(&ch.id);
         assert_eq!(ch.name, "BBC One");
         assert_eq!(ch.tvg_id.as_deref(), Some("bbc1"),);
         assert_eq!(ch.logo_url.as_deref(), Some("http://icon.png"),);
@@ -1031,7 +1045,7 @@ mod tests {
         let channels = parse_xtream_live_streams(&[item], "http://tv.example.com", "u", "p");
         assert_eq!(channels.len(), 1);
         let ch = &channels[0];
-        assert_eq!(ch.id, "xc_999");
+        assert_uuid_v7(&ch.id);
         assert_eq!(ch.name, "Full Channel");
         assert_eq!(ch.tvg_id.as_deref(), Some("full_epg"));
         assert_eq!(

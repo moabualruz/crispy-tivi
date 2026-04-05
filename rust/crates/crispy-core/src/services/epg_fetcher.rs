@@ -22,6 +22,12 @@ const MAX_CONCURRENT_FETCHES: usize = 5;
 /// Per-channel EPG request timeout (seconds).
 const PER_CHANNEL_TIMEOUT_SECS: u64 = 10;
 
+#[derive(Clone, Debug)]
+pub struct ChannelEpgRequest {
+    pub channel_id: String,
+    pub provider_channel_id: Option<String>,
+}
+
 // ── ThrottledEpgFetcher ──────────────────────────────
 
 /// Throttled fetcher for per-channel EPG API calls.
@@ -44,10 +50,17 @@ impl ThrottledEpgFetcher {
     ///
     /// Concurrent identical requests are coalesced via singleflight.
     /// Returns empty vec on network errors (logged, not propagated).
-    pub async fn fetch_xtream_channel(&self, source: &Source, channel_id: &str) -> Vec<EpgEntry> {
-        let key = format!("xtream:{}:{}", source.id, channel_id);
+    pub async fn fetch_xtream_channel(
+        &self,
+        source: &Source,
+        channel_id: &str,
+        xtream_stream_id: Option<&str>,
+    ) -> Vec<EpgEntry> {
+        let dedup_id = xtream_stream_id.unwrap_or(channel_id);
+        let key = format!("xtream:{}:{}", source.id, dedup_id);
         let source_clone = source.clone();
         let ch_id = channel_id.to_string();
+        let stream_id = xtream_stream_id.map(str::to_string);
         let sem = self.semaphore.clone();
 
         self.dedup
@@ -55,7 +68,7 @@ impl ThrottledEpgFetcher {
                 let Ok(_permit) = sem.acquire().await else {
                     return vec![];
                 };
-                fetch_xtream_short_epg(&source_clone, &ch_id)
+                fetch_xtream_short_epg(&source_clone, &ch_id, stream_id.as_deref())
                     .await
                     .unwrap_or_else(|e| {
                         tracing::warn!("Xtream EPG fetch failed for {ch_id}: {e}");
@@ -66,10 +79,17 @@ impl ThrottledEpgFetcher {
     }
 
     /// Fetch EPG for a single Stalker channel via `get_short_epg`.
-    pub async fn fetch_stalker_channel(&self, source: &Source, channel_id: &str) -> Vec<EpgEntry> {
-        let key = format!("stalker:{}:{}", source.id, channel_id);
+    pub async fn fetch_stalker_channel(
+        &self,
+        source: &Source,
+        channel_id: &str,
+        stalker_channel_id: Option<&str>,
+    ) -> Vec<EpgEntry> {
+        let dedup_id = stalker_channel_id.unwrap_or(channel_id);
+        let key = format!("stalker:{}:{}", source.id, dedup_id);
         let source_clone = source.clone();
         let ch_id = channel_id.to_string();
+        let provider_id = stalker_channel_id.map(str::to_string);
         let sem = self.semaphore.clone();
 
         self.dedup
@@ -77,7 +97,7 @@ impl ThrottledEpgFetcher {
                 let Ok(_permit) = sem.acquire().await else {
                     return vec![];
                 };
-                fetch_stalker_short_epg(&source_clone, &ch_id)
+                fetch_stalker_short_epg(&source_clone, &ch_id, provider_id.as_deref())
                     .await
                     .unwrap_or_else(|e| {
                         tracing::warn!("Stalker EPG fetch failed for {ch_id}: {e}");
@@ -94,20 +114,29 @@ impl ThrottledEpgFetcher {
     pub async fn fetch_batch(
         &self,
         source: &Source,
-        channel_ids: &[String],
+        channels: &[ChannelEpgRequest],
     ) -> HashMap<String, Vec<EpgEntry>> {
         let mut results = HashMap::new();
-        let mut handles = Vec::with_capacity(channel_ids.len());
+        let mut handles = Vec::with_capacity(channels.len());
 
-        for ch_id in channel_ids {
+        for channel in channels {
             let fetcher = self.clone();
             let src = source.clone();
-            let cid = ch_id.clone();
+            let cid = channel.channel_id.clone();
+            let provider_id = channel.provider_channel_id.clone();
 
             let handle = tokio::spawn(async move {
                 let entries = match src.source_type.as_str() {
-                    "xtream" => fetcher.fetch_xtream_channel(&src, &cid).await,
-                    "stalker" => fetcher.fetch_stalker_channel(&src, &cid).await,
+                    "xtream" => {
+                        fetcher
+                            .fetch_xtream_channel(&src, &cid, provider_id.as_deref())
+                            .await
+                    }
+                    "stalker" => {
+                        fetcher
+                            .fetch_stalker_channel(&src, &cid, provider_id.as_deref())
+                            .await
+                    }
                     _ => vec![],
                 };
                 (cid, entries)
@@ -139,10 +168,11 @@ impl Default for ThrottledEpgFetcher {
 async fn fetch_xtream_short_epg(
     source: &Source,
     channel_id: &str,
+    xtream_stream_id: Option<&str>,
 ) -> anyhow::Result<Vec<EpgEntry>> {
-    let stream_id = channel_id
-        .strip_prefix("xc_")
-        .ok_or_else(|| anyhow::anyhow!("channel ID missing xc_ prefix: {channel_id}"))?;
+    let stream_id = xtream_stream_id
+        .map(str::to_string)
+        .ok_or_else(|| anyhow::anyhow!("missing Xtream stream ID for channel: {channel_id}"))?;
 
     let username = source.username.as_deref().unwrap_or("");
     let password = source.password.as_deref().unwrap_or("");
@@ -153,7 +183,7 @@ async fn fetch_xtream_short_epg(
         username,
         password,
         "get_short_epg",
-        &[("stream_id".to_string(), stream_id.to_string())],
+        &[("stream_id".to_string(), stream_id)],
     );
 
     let client = shared_client();
@@ -179,10 +209,10 @@ async fn fetch_xtream_short_epg(
 async fn fetch_stalker_short_epg(
     source: &Source,
     channel_id: &str,
+    stalker_channel_id: Option<&str>,
 ) -> anyhow::Result<Vec<EpgEntry>> {
-    let stalker_id = channel_id
-        .strip_prefix("stk_")
-        .ok_or_else(|| anyhow::anyhow!("channel ID missing stk_ prefix: {channel_id}"))?;
+    let stalker_id = stalker_channel_id
+        .ok_or_else(|| anyhow::anyhow!("missing Stalker channel ID for channel: {channel_id}"))?;
 
     let url = format!(
         "{}/server/load.php?type=itv&action=get_short_epg&ch_id={}",

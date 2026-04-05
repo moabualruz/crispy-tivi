@@ -81,21 +81,21 @@ impl EpgCache {
 
     /// Classify the staleness of the EPG cache for `source_id`.
     ///
-    /// Uses `db_sync_meta.last_sync_time` to determine when the
+    /// Uses `db_sources.last_sync_time` to determine when the
     /// EPG for this source was last refreshed. Falls back to
     /// checking whether any entries exist at all.
     pub fn get_staleness_info(db: &Database, source_id: &str) -> Result<CacheStatus, DbError> {
         let conn = db.get()?;
 
-        // Try sync_meta first (more reliable than entry timestamps).
-        let sync_result: rusqlite::Result<i64> = conn.query_row(
-            "SELECT last_sync_time FROM db_sync_meta WHERE source_id = ?1",
+        // Read last_sync_time from db_sources (db_sync_meta removed, D-5 cleanup).
+        let sync_result: rusqlite::Result<Option<i64>> = conn.query_row(
+            "SELECT last_sync_time FROM db_sources WHERE id = ?1",
             rusqlite::params![source_id],
             |row| row.get(0),
         );
 
         match sync_result {
-            Ok(last_sync_ts) => {
+            Ok(Some(last_sync_ts)) => {
                 let now = chrono::Utc::now().timestamp();
                 let hours_old = (now - last_sync_ts) / 3600;
                 if hours_old < STALE_THRESHOLD_HOURS {
@@ -104,8 +104,9 @@ impl EpgCache {
                     Ok(CacheStatus::Stale { hours_old })
                 }
             }
-            Err(rusqlite::Error::QueryReturnedNoRows) => {
-                // No sync record — check whether entries exist.
+            // Source row exists but last_sync_time is NULL, or source row not found —
+            // fall back to checking whether EPG entries exist.
+            Ok(None) | Err(rusqlite::Error::QueryReturnedNoRows) => {
                 let count: i64 = conn.query_row(
                     "SELECT COUNT(*) FROM db_epg_entries WHERE source_id = ?1",
                     rusqlite::params![source_id],
@@ -114,7 +115,7 @@ impl EpgCache {
                 if count == 0 {
                     Ok(CacheStatus::Empty)
                 } else {
-                    // Entries exist but no sync record → treat as stale.
+                    // Entries exist but no sync timestamp → treat as stale.
                     Ok(CacheStatus::Stale {
                         hours_old: STALE_THRESHOLD_HOURS,
                     })
@@ -136,7 +137,7 @@ mod tests {
         Database::open_in_memory().expect("open_in_memory")
     }
 
-    /// Seed a source row so FK constraints on db_sync_meta / db_epg_entries are satisfied.
+    /// Seed a source row so FK constraints on db_epg_entries are satisfied.
     fn seed_source(db: &Database, id: &str) {
         db.get()
             .unwrap()
@@ -166,12 +167,11 @@ mod tests {
         let db = fresh_db();
         let now = chrono::Utc::now().timestamp();
         seed_source(&db, "src-fresh");
-        // Insert a recent sync record.
         db.get()
             .unwrap()
             .execute(
-                "INSERT INTO db_sync_meta (source_id, last_sync_time) VALUES (?1, ?2)",
-                rusqlite::params!["src-fresh", now],
+                "UPDATE db_sources SET last_sync_time = ?1 WHERE id = ?2",
+                rusqlite::params![now, "src-fresh"],
             )
             .unwrap();
 
@@ -188,8 +188,8 @@ mod tests {
         db.get()
             .unwrap()
             .execute(
-                "INSERT INTO db_sync_meta (source_id, last_sync_time) VALUES (?1, ?2)",
-                rusqlite::params!["src-old", old_ts],
+                "UPDATE db_sources SET last_sync_time = ?1 WHERE id = ?2",
+                rusqlite::params![old_ts, "src-old"],
             )
             .unwrap();
 
@@ -205,8 +205,8 @@ mod tests {
         db.get()
             .unwrap()
             .execute(
-                "INSERT INTO db_sync_meta (source_id, last_sync_time) VALUES (?1, ?2)",
-                rusqlite::params!["src-now", now],
+                "UPDATE db_sources SET last_sync_time = ?1 WHERE id = ?2",
+                rusqlite::params![now, "src-now"],
             )
             .unwrap();
 

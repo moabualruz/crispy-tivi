@@ -202,7 +202,7 @@ pub async fn fetch_with_retry(
 
         // Exponential backoff: 500ms, 1000ms, 2000ms.
         let delay = Duration::from_millis(BASE_DELAY_MS * 2u64.pow(attempt));
-        std::thread::sleep(delay);
+        tokio::time::sleep(delay).await;
     }
 
     Err(last_err.unwrap_or_else(|| anyhow::anyhow!("fetch failed after retries")))

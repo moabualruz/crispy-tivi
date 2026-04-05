@@ -7,7 +7,7 @@ use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::models::{Channel, EpgEntry, VodItem};
+use crate::models::{Channel, EpgEntry, VodItem, new_entity_id};
 
 // ── Public types ──────────────────────────────────
 
@@ -271,7 +271,8 @@ pub fn parse_stalker_live_streams(data: &[Value], source_id: &str, base_url: &st
                 .map(|dt| dt.naive_utc());
 
             Some(Channel {
-                id: format!("stk_{}", id),
+                id: new_entity_id(),
+                native_id: id,
                 name: name.to_string(),
                 stream_url,
                 number,
@@ -396,7 +397,7 @@ fn parse_single_epg_entry(item: &Value, channel_id: &str) -> Option<EpgEntry> {
         .map(String::from);
 
     Some(EpgEntry {
-        channel_id: channel_id.to_string(),
+        epg_channel_id: channel_id.to_string(),
         title: title.to_string(),
         start_time,
         end_time,
@@ -528,7 +529,7 @@ pub fn parse_stalker_vod_items(
                 .map(|dt| dt.naive_utc());
 
             Some(VodItem {
-                id: format!("stk_vod_{}", id),
+                id: new_entity_id(),
                 name: name.to_string(),
                 stream_url,
                 item_type: vod_type.to_string(),
@@ -907,7 +908,7 @@ fn parse_single_episode(ep: &Value, base_url: &str, source_id: &str) -> Option<V
         .or_else(|| map.get("time").and_then(value_as_i32));
 
     Some(VodItem {
-        id: format!("stk_ep_{}", id),
+        id: new_entity_id(),
         name: name.to_string(),
         stream_url,
         item_type: "episode".to_string(),
@@ -1278,6 +1279,11 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    fn assert_uuid_v7(id: &str) {
+        let parsed = uuid::Uuid::parse_str(id).expect("valid UUID");
+        assert_eq!(parsed.get_version_num(), 7);
+    }
+
     // ── build_stalker_stream_url ──────────────
 
     #[test]
@@ -1428,7 +1434,8 @@ mod tests {
 
         assert_eq!(channels.len(), 1);
         let ch = &channels[0];
-        assert_eq!(ch.id, "stk_42");
+        assert_uuid_v7(&ch.id);
+        assert_eq!(ch.native_id, "42");
         assert_eq!(ch.name, "Channel One");
         assert_eq!(ch.stream_url, "http://cdn.tv/ch1.m3u8",);
         assert_eq!(ch.channel_group.as_deref(), Some("5"),);
@@ -1493,7 +1500,7 @@ mod tests {
         assert_eq!(entries.len(), 1);
 
         let e = &entries[0];
-        assert_eq!(e.channel_id, "ch_1");
+        assert_eq!(e.epg_channel_id, "ch_1");
         assert_eq!(e.title, "News Hour");
         assert_eq!(e.description.as_deref(), Some("Top stories"),);
         assert_eq!(e.category.as_deref(), Some("News"),);
@@ -1720,7 +1727,7 @@ mod tests {
 
         assert_eq!(items.len(), 1);
         let v = &items[0];
-        assert_eq!(v.id, "stk_vod_101");
+        assert_uuid_v7(&v.id);
         assert_eq!(v.name, "Inception");
         assert_eq!(v.stream_url, "http://vod/101.mp4",);
         assert_eq!(v.item_type, "movie");
@@ -2020,7 +2027,7 @@ mod tests {
         let v = &items[0];
 
         // Basic fields
-        assert_eq!(v.id, "stk_vod_201");
+        assert_uuid_v7(&v.id);
         assert_eq!(v.name, "The Matrix");
         assert_eq!(v.stream_url, "http://vod/201.mp4");
         assert_eq!(v.item_type, "movie");
@@ -2287,7 +2294,7 @@ mod tests {
         let item = parse_stalker_vod_detail(&json, "http://portal.com", "src_1");
         assert!(item.is_some());
         let v = item.unwrap();
-        assert_eq!(v.id, "stk_vod_501");
+        assert_uuid_v7(&v.id);
         assert_eq!(v.name, "Test Movie");
         assert_eq!(v.description.as_deref(), Some("A test movie"));
     }

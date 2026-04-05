@@ -660,8 +660,7 @@ pub async fn fetch_stalker_series_detail(
         .await
         .context("Stalker get_series_info request failed")?;
 
-    let series_id = format!("stk_vod_{}", movie_id);
-    let episodes = stalker::parse_stalker_series_detail(&text, &base, &series_id, source_id);
+    let episodes = stalker::parse_stalker_series_detail(&text, &base, movie_id, source_id);
 
     Ok(episodes)
 }
@@ -953,7 +952,7 @@ mod tests {
         assert_eq!(episodes.len(), 1);
         assert_eq!(episodes[0].name, "Pilot");
         assert_eq!(episodes[0].season_number, Some(1));
-        assert_eq!(episodes[0].series_id.as_deref(), Some("stk_vod_300"));
+        assert_eq!(episodes[0].series_id.as_deref(), Some("300"));
     }
 
     #[tokio::test]

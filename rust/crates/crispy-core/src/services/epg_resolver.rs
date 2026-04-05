@@ -10,7 +10,7 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 
-use super::epg_fetcher::ThrottledEpgFetcher;
+use super::epg_fetcher::{ChannelEpgRequest, ThrottledEpgFetcher};
 use crate::models::{EpgEntry, Source};
 use crate::services::CrispyService;
 
@@ -42,7 +42,10 @@ pub async fn resolve_epg_for_channels(
 
     // Step 2: Fetch missing channels via per-channel API.
     let fetched = match source.source_type.as_str() {
-        "xtream" | "stalker" => fetcher.fetch_batch(source, &missing).await,
+        "xtream" | "stalker" => {
+            let requests = build_epg_requests(service, source, &missing)?;
+            fetcher.fetch_batch(source, &requests).await
+        }
         _ => HashMap::new(),
     };
 
@@ -60,11 +63,41 @@ pub async fn resolve_epg_for_channels(
     Ok(result)
 }
 
+fn build_epg_requests(
+    service: &CrispyService,
+    source: &Source,
+    channel_ids: &[String],
+) -> Result<Vec<ChannelEpgRequest>> {
+    let channels = service.get_channels_by_ids(channel_ids)?;
+    let mut by_id: HashMap<String, crate::models::Channel> = channels
+        .into_iter()
+        .map(|channel| (channel.id.clone(), channel))
+        .collect();
+
+    Ok(channel_ids
+        .iter()
+        .map(|channel_id| {
+            let provider_channel_id = match source.source_type.as_str() {
+                "xtream" => by_id
+                    .remove(channel_id)
+                    .and_then(|channel| channel.xtream_stream_id),
+                "stalker" => by_id.remove(channel_id).map(|channel| channel.native_id),
+                _ => None,
+            };
+
+            ChannelEpgRequest {
+                channel_id: channel_id.clone(),
+                provider_channel_id,
+            }
+        })
+        .collect())
+}
+
 /// Resolve EPG for a single channel, returning up to `count` entries.
 pub async fn resolve_epg_for_channel(
     service: &CrispyService,
     source: &Source,
-    channel_id: &str,
+    epg_channel_id: &str,
     count: usize,
     fetcher: &ThrottledEpgFetcher,
 ) -> Result<Vec<EpgEntry>> {
@@ -75,14 +108,14 @@ pub async fn resolve_epg_for_channel(
     let result = resolve_epg_for_channels(
         service,
         source,
-        &[channel_id.to_string()],
+        &[epg_channel_id.to_string()],
         now,
         end,
         fetcher,
     )
     .await?;
 
-    let mut entries = result.get(channel_id).cloned().unwrap_or_default();
+    let mut entries = result.get(epg_channel_id).cloned().unwrap_or_default();
 
     // Sort by start time and truncate.
     entries.sort_by_key(|e| e.start_time);
@@ -99,20 +132,21 @@ mod tests {
     #[test]
     fn resolve_returns_cached_data() {
         let svc = make_service();
-        let ch = make_channel("ch1", "Test Channel");
+        let mut ch = make_channel("ch1", "Test Channel");
+        ch.tvg_id = Some("tvg_ch1".to_string());
         svc.save_channels(&[ch]).unwrap();
 
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
         let entry = EpgEntry {
-            channel_id: "ch1".to_string(),
+            epg_channel_id: "tvg_ch1".to_string(),
             title: "Cached Show".to_string(),
             start_time: dt,
             end_time: dt_end,
             ..EpgEntry::default()
         };
         let mut map = HashMap::new();
-        map.insert("ch1".to_string(), vec![entry]);
+        map.insert("tvg_ch1".to_string(), vec![entry]);
         svc.save_epg_entries(&map).unwrap();
 
         // The resolver should find the cached data without fetching.

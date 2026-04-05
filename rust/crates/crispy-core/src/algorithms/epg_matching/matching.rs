@@ -79,7 +79,7 @@ pub fn match_epg_to_channels(
     let mut stats = EpgMatchStats::default();
 
     for entry in entries {
-        let xmltv_id_original = &entry.channel_id;
+        let xmltv_id_original = &entry.epg_channel_id;
         let xmltv_id = xmltv_id_original.trim();
 
         // Try strategies 1-6 in priority order.

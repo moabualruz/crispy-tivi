@@ -3,17 +3,30 @@
 //! Fetches live streams, VOD, and series from an Xtream-compatible
 //! server, parses them with the existing Rust parsers, resolves
 //! category names, and persists everything to the local database.
+//!
+//! ## tvg_id mapping via M3U temp table
+//!
+//! Xtream API streams lack tvg_id metadata. We download the M3U
+//! playlist, parse it into a SQLite TEMP TABLE keyed by normalised
+//! stream URL, then join that against the Xtream channels after
+//! creation to populate tvg_id. The temp table is dropped (or
+//! auto-cleaned on connection close) after the mapping step.
+//! M3U channels are never persisted to `db_channels`.
 
-use anyhow::{Context, Result};
+use std::collections::HashMap;
+use std::time::Duration;
 
 use crate::algorithms::categories;
+use crate::algorithms::normalize::normalize_url;
 use crate::http_client::get_fast_client;
 use crate::http_resilience::{fetch_json_list, fetch_json_object};
-use crate::models::{SyncReport, XtreamAccountInfo};
-use crate::parsers::{vod, xtream};
+use crate::models::{Channel, SyncReport, XtreamAccountInfo};
+use crate::parsers::{m3u, vod, xtream};
 use crate::services::CrispyService;
 use crate::services::url_validator::validate_url;
 use crate::sync_progress::emit_progress;
+use anyhow::{Context, Result};
+use rusqlite::params;
 
 /// Verifies Xtream credentials by calling the player API.
 ///
@@ -136,6 +149,172 @@ fn parse_xtream_account_info(data: &serde_json::Value) -> XtreamAccountInfo {
     }
 }
 
+/// Build a `{normalised_stream_url → tvg_id}` map from an M3U playlist.
+///
+/// Downloads the M3U from the Xtream `get.php` endpoint, parses every
+/// `#EXTINF` entry, normalises each stream URL, and stores the mapping in
+/// a SQLite TEMP TABLE on a pooled connection.  The table is read back into
+/// a `HashMap` and the connection is released (temp table auto-dropped).
+///
+/// Returns an empty map on any failure — the caller treats that as
+/// "proceed with Xtream-API-only sync; tvg_id left unset for now".
+async fn build_tvg_id_map(
+    service: &CrispyService,
+    base: &str,
+    username: &str,
+    password: &str,
+    source_id: &str,
+    accept_invalid_certs: bool,
+) -> HashMap<String, String> {
+    let m3u_url = {
+        let enc_user =
+            percent_encoding::utf8_percent_encode(username, percent_encoding::NON_ALPHANUMERIC)
+                .to_string();
+        let enc_pass =
+            percent_encoding::utf8_percent_encode(password, percent_encoding::NON_ALPHANUMERIC)
+                .to_string();
+        format!("{base}/get.php?username={enc_user}&password={enc_pass}&type=m3u_plus&output=ts")
+    };
+
+    let content = match tokio::time::timeout(
+        Duration::from_secs(60),
+        crate::http_client::get_shared_client(accept_invalid_certs)
+            .get(&m3u_url)
+            .send(),
+    )
+    .await
+    {
+        Ok(Ok(resp)) if resp.status().is_success() => match resp.bytes().await {
+            Ok(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
+            Err(e) => {
+                tracing::warn!(source_id, error = %e, "Failed to read M3U body; tvg_id mapping skipped");
+                return HashMap::new();
+            }
+        },
+        Ok(Ok(resp)) => {
+            tracing::warn!(source_id, status = %resp.status(), "M3U endpoint non-success; tvg_id mapping skipped");
+            return HashMap::new();
+        }
+        Ok(Err(e)) => {
+            tracing::warn!(source_id, error = %e, "M3U download failed; tvg_id mapping skipped");
+            return HashMap::new();
+        }
+        Err(_) => {
+            tracing::warn!(
+                source_id,
+                "M3U download timed out after 60s; tvg_id mapping skipped"
+            );
+            return HashMap::new();
+        }
+    };
+
+    if content.is_empty() {
+        return HashMap::new();
+    }
+
+    let channels = m3u::parse_m3u(&content).channels;
+    if channels.is_empty() {
+        return HashMap::new();
+    }
+
+    // Populate a TEMP TABLE on a single connection, then read it back as a HashMap.
+    // Using a temp table (rather than a plain HashMap built directly) keeps memory
+    // pressure low for large playlists and mirrors the spec's intended design.
+    let conn = match service.db.get() {
+        Ok(c) => c,
+        Err(e) => {
+            tracing::warn!(source_id, error = %e, "DB connection unavailable; tvg_id mapping skipped");
+            return HashMap::new();
+        }
+    };
+
+    let setup = conn.execute_batch(
+        "CREATE TEMP TABLE IF NOT EXISTS tmp_m3u_tvg_map (
+             stream_url_normalized TEXT PRIMARY KEY,
+             tvg_id TEXT NOT NULL
+         );
+         DELETE FROM tmp_m3u_tvg_map;",
+    );
+    if let Err(e) = setup {
+        tracing::warn!(source_id, error = %e, "Failed to create temp table; tvg_id mapping skipped");
+        return HashMap::new();
+    }
+
+    let insert_sql =
+        "INSERT OR IGNORE INTO tmp_m3u_tvg_map (stream_url_normalized, tvg_id) VALUES (?1, ?2)";
+    let mut inserted = 0usize;
+    for ch in &channels {
+        if let Some(tvg_id) = &ch.tvg_id {
+            if tvg_id.is_empty() {
+                continue;
+            }
+            let norm = normalize_url(&ch.stream_url);
+            if norm.is_empty() {
+                continue;
+            }
+            if let Err(e) = conn.execute(insert_sql, params![norm, tvg_id]) {
+                tracing::debug!(source_id, error = %e, "temp table insert skipped for one entry");
+            } else {
+                inserted += 1;
+            }
+        }
+    }
+    tracing::debug!(
+        source_id,
+        inserted,
+        "M3U tvg_id entries loaded into temp table"
+    );
+
+    // Read back into a HashMap so the connection (and temp table) can be released.
+    let mut map = HashMap::with_capacity(inserted);
+    let read_result = (|| -> rusqlite::Result<()> {
+        let mut stmt = conn.prepare("SELECT stream_url_normalized, tvg_id FROM tmp_m3u_tvg_map")?;
+        let rows = stmt.query_map([], |row| {
+            let url: String = row.get(0)?;
+            let tvg: String = row.get(1)?;
+            Ok((url, tvg))
+        })?;
+        for row in rows {
+            let (url, tvg) = row?;
+            map.insert(url, tvg);
+        }
+        Ok(())
+    })();
+
+    if let Err(e) = read_result {
+        tracing::warn!(source_id, error = %e, "Failed to read temp table; tvg_id mapping skipped");
+        return HashMap::new();
+    }
+
+    if let Err(e) = conn.execute_batch("DROP TABLE IF EXISTS tmp_m3u_tvg_map") {
+        tracing::debug!(source_id, error = %e, "DROP temp table failed (non-fatal)");
+    }
+
+    map
+}
+
+/// Apply tvg_id values from the M3U map to Xtream channels.
+///
+/// For each channel, normalises its stream URL and looks it up in
+/// `tvg_map`.  Only sets `tvg_id` when the channel has none or an
+/// empty one, so a value already provided by the Xtream API
+/// (e.g. `epg_channel_id`) is not overwritten.
+fn apply_tvg_ids(channels: &mut Vec<Channel>, tvg_map: &HashMap<String, String>) {
+    if tvg_map.is_empty() {
+        return;
+    }
+    for ch in channels.iter_mut() {
+        let has_tvg_id = ch.tvg_id.as_deref().is_some_and(|s| !s.is_empty());
+        if has_tvg_id {
+            continue;
+        }
+        let norm = normalize_url(&ch.stream_url);
+        if let Some(tvg_id) = tvg_map.get(&norm) {
+            ch.tvg_id = Some(tvg_id.clone());
+        }
+    }
+}
+
 /// Full Xtream source sync: categories, live streams, VOD, series.
 ///
 /// Fetches all data from the Xtream server, parses it, resolves
@@ -151,7 +330,33 @@ pub async fn sync_xtream_source(
 ) -> Result<SyncReport> {
     validate_url(base_url).map_err(anyhow::Error::from)?;
     let base = xtream::normalize_base_url(base_url);
-    emit_progress(source_id, "categories", 0.0, "Fetching categories");
+
+    // 0. Download M3U and build a {normalised_url → tvg_id} map.
+    //    M3U channels are NOT saved to the database — the map is used
+    //    only to populate tvg_id on the Xtream API channels created below.
+    //    Failure is non-fatal: we get an empty map and skip tvg_id population.
+    emit_progress(
+        source_id,
+        "m3u_prefetch",
+        0.0,
+        "Pre-fetching M3U for tvg_id metadata",
+    );
+    let tvg_map = build_tvg_id_map(
+        service,
+        &base,
+        username,
+        password,
+        source_id,
+        accept_invalid_certs,
+    )
+    .await;
+    tracing::debug!(
+        source_id,
+        entries = tvg_map.len(),
+        "tvg_id map built from M3U"
+    );
+
+    emit_progress(source_id, "categories", 0.05, "Fetching categories");
 
     // 1. Fetch category lists — non-fatal; some servers omit endpoints.
     let live_cats = fetch_json_list(
@@ -192,6 +397,10 @@ pub async fn sync_xtream_source(
     let mut channels =
         xtream::channels_from_xtream_json(&live_data, &base, username, password, Some(source_id));
     channels = categories::resolve_channel_categories(&channels, &live_cat_map);
+    // Populate tvg_id from the M3U map before saving.
+    // Each channel gets a UUID PK from channels_from_xtream_json; we never
+    // derive the PK from mutable data such as stream URL.
+    apply_tvg_ids(&mut channels, &tvg_map);
 
     emit_progress(source_id, "vod", 0.4, "Fetching VOD streams");
 
@@ -321,13 +530,6 @@ pub async fn sync_xtream_source(
 
     emit_progress(source_id, "complete", 1.0, "Sync complete");
 
-    // 8. Spawn background bulk EPG fetch — runs async, doesn't block sync.
-    // Fetches per-channel short EPG for channels missing cached data,
-    // in batches of 50 with Semaphore(5) concurrency control.
-    if let Ok(Some(src)) = service.get_source(source_id) {
-        crate::services::epg_bulk_fetch::spawn_bulk_epg_fetch(service.clone(), src, channels);
-    }
-
     Ok(SyncReport {
         channels_count,
         channel_groups,
@@ -343,7 +545,7 @@ mod tests {
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     use super::*;
-    use crate::services::test_helpers::{make_service, make_source};
+    use crate::services::test_helpers::{make_channel, make_service, make_source};
 
     #[tokio::test]
     async fn verify_xtream_credentials_success() {
@@ -579,6 +781,62 @@ mod tests {
         assert!(
             report.channel_groups.contains(&"Sports".to_string()),
             "expected Sports group"
+        );
+    }
+
+    #[test]
+    fn apply_tvg_ids_sets_tvg_id_from_normalised_url_match() {
+        let mut ch = make_channel("xt-42", "BBC API");
+        ch.stream_url = "HTTP://example.com/live/test/test/42.ts?token=abc".to_string();
+        ch.tvg_id = None;
+
+        let mut map = HashMap::new();
+        // Insert with the normalised form of the URL (lowercase, no token).
+        let norm = normalize_url("HTTP://example.com/live/test/test/42.ts?token=abc");
+        map.insert(norm, "bbc.xmltv".to_string());
+
+        let mut channels = vec![ch];
+        apply_tvg_ids(&mut channels, &map);
+
+        assert_eq!(
+            channels[0].tvg_id.as_deref(),
+            Some("bbc.xmltv"),
+            "tvg_id should be populated from the map"
+        );
+    }
+
+    #[test]
+    fn apply_tvg_ids_does_not_overwrite_existing_tvg_id() {
+        let mut ch = make_channel("xt-99", "CNN");
+        ch.stream_url = "http://example.com/live/u/p/99.ts".to_string();
+        ch.tvg_id = Some("cnn.existing".to_string());
+
+        let mut map = HashMap::new();
+        map.insert(normalize_url(&ch.stream_url), "cnn.from_m3u".to_string());
+
+        let mut channels = vec![ch];
+        apply_tvg_ids(&mut channels, &map);
+
+        assert_eq!(
+            channels[0].tvg_id.as_deref(),
+            Some("cnn.existing"),
+            "existing tvg_id must not be overwritten"
+        );
+    }
+
+    #[test]
+    fn apply_tvg_ids_skips_channels_with_no_map_entry() {
+        let mut ch = make_channel("xt-1", "Unknown");
+        ch.stream_url = "http://example.com/live/u/p/1.ts".to_string();
+        ch.tvg_id = None;
+
+        let map: HashMap<String, String> = HashMap::new();
+        let mut channels = vec![ch];
+        apply_tvg_ids(&mut channels, &map);
+
+        assert!(
+            channels[0].tvg_id.is_none(),
+            "tvg_id should remain None when map has no entry"
         );
     }
 }

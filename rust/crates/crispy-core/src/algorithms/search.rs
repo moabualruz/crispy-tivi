@@ -727,7 +727,7 @@ mod tests {
         let start = NaiveDateTime::parse_from_str("2024-02-16 15:00:00", EPG_FORMAT).unwrap();
         let end = NaiveDateTime::parse_from_str("2024-02-16 16:00:00", EPG_FORMAT).unwrap();
         EpgEntry {
-            channel_id: channel_id.to_string(),
+            epg_channel_id: channel_id.to_string(),
             title: title.to_string(),
             start_time: start,
             end_time: end,

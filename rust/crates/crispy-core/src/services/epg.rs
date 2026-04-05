@@ -22,7 +22,7 @@ const EPG_SELECT_COLS: &str = "\
 /// [`EpgEntry`].
 fn epg_entry_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<EpgEntry> {
     Ok(EpgEntry {
-        channel_id: row.get(0)?,
+        epg_channel_id: row.get(0)?,
         xmltv_id: row.get(1)?,
         title: row.get(2)?,
         start_time: ts_to_dt(row.get(3)?),
@@ -190,16 +190,21 @@ impl CrispyService {
         let mut map: HashMap<String, Vec<EpgEntry>> = HashMap::new();
         for r in rows {
             let entry = r?;
-            map.entry(entry.channel_id.clone()).or_default().push(entry);
+            map.entry(entry.epg_channel_id.clone())
+                .or_default()
+                .push(entry);
         }
         Ok(map)
     }
 
     /// Load EPG entries for a specific set of channels within a time window.
     ///
-    /// Looks up EPG entries by the channel's `epg_channel_id` field.
-    /// For M3U channels without `epg_channel_id`, falls back to `tvg_id`.
-    /// For API-sourced channels (xc_/stk_), uses internal channel ID.
+    /// Single join path: `channel.tvg_id = epg_entry.epg_channel_id`.
+    /// `tvg_id` is the sole EPG bridge — populated at sync time by M3U metadata,
+    /// Xtream API, or the sync-time matching algorithm.
+    ///
+    /// Source priority: when multiple sources provide EPG for the same channel,
+    /// the source with the lowest `sort_order` wins (higher-quality sources first).
     pub fn get_epgs_for_channels(
         &self,
         channel_ids: &[String],
@@ -211,11 +216,12 @@ impl CrispyService {
             return Ok(HashMap::new());
         }
 
-        // Collect epg_channel_id (or tvg_id fallback) for the requested channels.
+        // Step 1: collect tvg_id for each requested channel.
+        // tvg_id is the single EPG bridge — channels without a tvg_id have no EPG.
         let ch_placeholders: Vec<String> =
             (1..=channel_ids.len()).map(|i| format!("?{i}")).collect();
         let ch_query = format!(
-            "SELECT id, epg_channel_id, tvg_id FROM db_channels WHERE id IN ({})",
+            "SELECT id, tvg_id FROM db_channels WHERE id IN ({}) AND tvg_id IS NOT NULL AND tvg_id != ''",
             ch_placeholders.join(", ")
         );
         let mut ch_stmt = conn.prepare(&ch_query)?;
@@ -224,90 +230,42 @@ impl CrispyService {
             ch_params.push(id as &dyn rusqlite::types::ToSql);
         }
         let ch_rows = ch_stmt.query_map(ch_params.as_slice(), |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, Option<String>>(1)?,
-                row.get::<_, Option<String>>(2)?,
-            ))
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
         })?;
 
-        // Build reverse index: epg_key → Vec<internal_channel_id>.
-        let mut key_to_channels: HashMap<String, Vec<String>> = HashMap::new();
-        let mut lookup_keys: HashSet<String> = HashSet::new();
+        // Build reverse index: tvg_id → Vec<internal_channel_id>.
+        // Multiple channels can share the same tvg_id (e.g. SD + HD variants).
+        let mut tvg_to_channels: HashMap<String, Vec<String>> = HashMap::new();
         for row in ch_rows {
-            let (ch_id, epg_ch_id, tvg_id) = row?;
-            let is_api_sourced = ch_id.starts_with("xc_") || ch_id.starts_with("stk_");
-
-            // Use epg_channel_id if set, otherwise tvg_id for M3U, or internal ID for API.
-            let epg_key = if let Some(ref eid) = epg_ch_id {
-                if !eid.is_empty() {
-                    Some(eid.clone())
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
-
-            let epg_key = epg_key.or_else(|| {
-                if !is_api_sourced {
-                    tvg_id.filter(|t| !t.is_empty())
-                } else {
-                    None
-                }
-            });
-
-            if let Some(ref key) = epg_key {
-                lookup_keys.insert(key.clone());
-                key_to_channels
-                    .entry(key.clone())
-                    .or_default()
-                    .push(ch_id.clone());
-            }
-
-            // Always map by internal channel ID too.
-            lookup_keys.insert(ch_id.clone());
-            key_to_channels
-                .entry(ch_id.clone())
-                .or_default()
-                .push(ch_id.clone());
+            let (ch_id, tvg_id) = row?;
+            tvg_to_channels.entry(tvg_id).or_default().push(ch_id);
         }
 
-        if lookup_keys.is_empty() {
+        if tvg_to_channels.is_empty() {
             return Ok(HashMap::new());
         }
 
-        // Query EPG entries matching any of the lookup keys by
-        // epg_channel_id OR xmltv_id. Order by source priority
-        // (sort_order ASC) so that higher-quality sources come first.
-        let keys_vec: Vec<String> = lookup_keys.into_iter().collect();
-        let placeholders: Vec<String> = (1..=keys_vec.len()).map(|i| format!("?{i}")).collect();
-        let ph_joined = placeholders.join(", ");
-        let xmltv_offset = keys_vec.len();
-        let xmltv_placeholders: Vec<String> = (1..=keys_vec.len())
-            .map(|i| format!("?{}", i + xmltv_offset))
-            .collect();
-        let xmltv_ph_joined = xmltv_placeholders.join(", ");
-        let start_p = keys_vec.len() * 2 + 1;
-        let end_p = keys_vec.len() * 2 + 2;
+        // Step 2: query EPG entries where epg_channel_id IN (tvg_ids).
+        // Order by source priority so higher-quality sources come first.
+        let tvg_ids: Vec<String> = tvg_to_channels.keys().cloned().collect();
+        let placeholders: Vec<String> = (1..=tvg_ids.len()).map(|i| format!("?{i}")).collect();
+        let start_p = tvg_ids.len() + 1;
+        let end_p = tvg_ids.len() + 2;
         let query = format!(
             "SELECT {cols}
             FROM db_epg_entries
             LEFT JOIN db_sources ON db_epg_entries.source_id = db_sources.id
-            WHERE (epg_channel_id IN ({ph_joined}) OR xmltv_id IN ({xmltv_ph_joined}))
+            WHERE epg_channel_id IN ({ph})
               AND end_time > ?{start_p}
               AND start_time < ?{end_p}
             ORDER BY epg_channel_id, start_time, COALESCE(db_sources.sort_order, 999) ASC",
             cols = EPG_SELECT_COLS,
+            ph = placeholders.join(", "),
         );
 
         let mut stmt = conn.prepare(&query)?;
-        let mut params: Vec<&dyn rusqlite::types::ToSql> =
-            Vec::with_capacity(keys_vec.len() * 2 + 2);
-        for key in &keys_vec {
-            params.push(key as &dyn rusqlite::types::ToSql);
-        }
-        for key in &keys_vec {
+        let mut params: Vec<&dyn rusqlite::types::ToSql> = Vec::with_capacity(tvg_ids.len() + 2);
+        for key in &tvg_ids {
             params.push(key as &dyn rusqlite::types::ToSql);
         }
         params.push(&start_time as &dyn rusqlite::types::ToSql);
@@ -315,23 +273,13 @@ impl CrispyService {
 
         let rows = stmt.query_map(params.as_slice(), epg_entry_from_row)?;
 
+        // Step 3: fan out each EPG entry to all channels sharing that tvg_id.
         let mut map: HashMap<String, Vec<EpgEntry>> = HashMap::new();
         for r in rows {
             let entry = r?;
-            let mut matched = false;
-            if let Some(ch_ids) = key_to_channels.get(&entry.channel_id) {
+            if let Some(ch_ids) = tvg_to_channels.get(&entry.epg_channel_id) {
                 for ch_id in ch_ids {
                     map.entry(ch_id.clone()).or_default().push(entry.clone());
-                }
-                matched = true;
-            }
-            if let Some(ref xid) = entry.xmltv_id
-                && let Some(ch_ids) = key_to_channels.get(xid)
-            {
-                for ch_id in ch_ids {
-                    if !matched || entry.channel_id != *ch_id {
-                        map.entry(ch_id.clone()).or_default().push(entry.clone());
-                    }
                 }
             }
         }
@@ -366,7 +314,9 @@ impl CrispyService {
         let mut map: HashMap<String, Vec<EpgEntry>> = HashMap::new();
         for r in rows {
             let entry = r?;
-            map.entry(entry.channel_id.clone()).or_default().push(entry);
+            map.entry(entry.epg_channel_id.clone())
+                .or_default()
+                .push(entry);
         }
         Ok(map)
     }
@@ -418,7 +368,7 @@ impl CrispyService {
                 let day_start = today_start + chrono::Duration::days(day);
                 let day_end = day_start + chrono::Duration::days(1);
                 entries.push(EpgEntry {
-                    channel_id: ch.id.clone(),
+                    epg_channel_id: ch.id.clone(),
                     title: ch.name.clone(),
                     start_time: day_start,
                     end_time: day_end,
@@ -513,7 +463,7 @@ mod tests {
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
         let entry = EpgEntry {
-            channel_id: "ch1".to_string(),
+            epg_channel_id: "ch1".to_string(),
             title: "News".to_string(),
             start_time: dt,
             end_time: dt_end,
@@ -532,22 +482,23 @@ mod tests {
     #[test]
     fn get_epgs_for_channels_filters_by_window() {
         let svc = make_service();
-        // Create a channel in db so the tvg_id lookup works.
-        let ch = make_channel("ch1", "Test Channel");
+        // Create a channel with tvg_id — the EPG bridge used by get_epgs_for_channels.
+        let mut ch = make_channel("ch1", "Test Channel");
+        ch.tvg_id = Some("tvg_ch1".to_string());
         svc.save_channels(&[ch]).unwrap();
 
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
-        // Store EPG under the channel's internal ID (legacy path).
+        // Store EPG keyed on the channel's tvg_id so the join resolves correctly.
         let entry = EpgEntry {
-            channel_id: "ch1".to_string(),
+            epg_channel_id: "tvg_ch1".to_string(),
             title: "News".to_string(),
             start_time: dt,
             end_time: dt_end,
             ..EpgEntry::default()
         };
         let mut map = HashMap::new();
-        map.insert("ch1".to_string(), vec![entry]);
+        map.insert("tvg_ch1".to_string(), vec![entry]);
         svc.save_epg_entries(&map).unwrap();
 
         // Window that includes the entry.
@@ -573,7 +524,7 @@ mod tests {
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
         let make_entry = |ch: &str, src: &str| EpgEntry {
-            channel_id: ch.to_string(),
+            epg_channel_id: ch.to_string(),
             title: "Show".to_string(),
             start_time: dt,
             end_time: dt_end,
@@ -598,7 +549,7 @@ mod tests {
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
         let make_entry = |ch: &str, src: &str| EpgEntry {
-            channel_id: ch.to_string(),
+            epg_channel_id: ch.to_string(),
             title: "Show".to_string(),
             start_time: dt,
             end_time: dt_end,
@@ -624,7 +575,7 @@ mod tests {
         let old_dt = parse_dt("2020-01-01 00:00:00");
         let old_end = parse_dt("2020-01-01 01:00:00");
         let entry = EpgEntry {
-            channel_id: "ch1".to_string(),
+            epg_channel_id: "ch1".to_string(),
             title: "Old Show".to_string(),
             start_time: old_dt,
             end_time: old_end,
@@ -648,7 +599,7 @@ mod tests {
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
         let entry = EpgEntry {
-            channel_id: "ch1".to_string(),
+            epg_channel_id: "ch1".to_string(),
             title: "News".to_string(),
             start_time: dt,
             end_time: dt_end,
@@ -677,7 +628,7 @@ mod tests {
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
         let make_entry = |channel_id: &str| EpgEntry {
-            channel_id: channel_id.to_string(),
+            epg_channel_id: channel_id.to_string(),
             title: "Show".to_string(),
             start_time: dt,
             end_time: dt_end,
@@ -710,7 +661,7 @@ mod tests {
         title: &str,
     ) -> EpgEntry {
         EpgEntry {
-            channel_id: channel_id.to_string(),
+            epg_channel_id: channel_id.to_string(),
             title: title.to_string(),
             start_time: parse_dt("2025-06-01 10:00:00"),
             end_time: parse_dt("2025-06-01 11:00:00"),

@@ -93,7 +93,7 @@ impl CrispyService {
         tx.execute("DELETE FROM db_reminders", [])?;
         tx.execute("DELETE FROM db_search_history", [])?;
         tx.execute("DELETE FROM db_saved_layouts", [])?;
-        tx.execute("DELETE FROM db_sync_meta", [])?;
+
         tx.execute("DELETE FROM db_settings", [])?;
         tx.execute("DELETE FROM db_episodes", [])?;
         tx.execute("DELETE FROM db_seasons", [])?;

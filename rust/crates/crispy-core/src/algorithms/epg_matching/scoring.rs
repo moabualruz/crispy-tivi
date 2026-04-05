@@ -76,10 +76,10 @@ pub fn match_epg_with_confidence(
     let mut xmltv_info: HashMap<String, (String, String)> = HashMap::new();
     let mut cjk_counts: HashMap<String, (u32, u32)> = HashMap::new();
     for entry in entries {
-        let trimmed = entry.channel_id.trim().to_string();
+        let trimmed = entry.epg_channel_id.trim().to_string();
         xmltv_info
             .entry(trimmed.clone())
-            .or_insert_with(|| (entry.channel_id.clone(), entry.title.clone()));
+            .or_insert_with(|| (entry.epg_channel_id.clone(), entry.title.clone()));
         let counter = cjk_counts.entry(trimmed).or_insert((0, 0));
         counter.1 += 1;
         if super::types::contains_cjk(&entry.title) {

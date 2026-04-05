@@ -48,11 +48,11 @@ impl EpgFacade {
 
     /// Check if a channel has real (non-placeholder) EPG coverage
     /// for at least the next hour. If so, no L3 fetch needed.
-    fn has_sufficient_real_coverage(&self, channel_id: &str) -> bool {
+    fn has_sufficient_real_coverage(&self, epg_channel_id: &str) -> bool {
         let now = chrono::Utc::now().timestamp();
         let check_end = now + MIN_REAL_COVERAGE_SECS;
         self.service
-            .has_real_epg_coverage(channel_id, now, check_end)
+            .has_real_epg_coverage(epg_channel_id, now, check_end)
             .unwrap_or(false)
     }
 
@@ -62,11 +62,11 @@ impl EpgFacade {
     /// Results are written through to both caches.
     pub async fn get_epg_for_channel(
         &self,
-        channel_id: &str,
+        epg_channel_id: &str,
         count: usize,
     ) -> Result<Vec<EpgEntry>> {
         // L1: Check hot cache.
-        if let Some(cached) = self.hot_cache.get(channel_id) {
+        if let Some(cached) = self.hot_cache.get(epg_channel_id) {
             let now = chrono::Utc::now().naive_utc();
             let mut upcoming: Vec<EpgEntry> = cached
                 .iter()
@@ -81,20 +81,20 @@ impl EpgFacade {
         }
 
         // L2: Check SQLite.
-        let l2_entries = self.get_from_sqlite_only(channel_id, count)?;
+        let l2_entries = self.get_from_sqlite_only(epg_channel_id, count)?;
         if !l2_entries.is_empty() {
             self.hot_cache
-                .insert(channel_id.to_string(), l2_entries.clone());
+                .insert(epg_channel_id.to_string(), l2_entries.clone());
             return Ok(l2_entries);
         }
 
         // L3: Fire-and-forget background fetch — only if no real
         // (non-placeholder) coverage for the next hour.
-        if !self.has_sufficient_real_coverage(channel_id)
-            && let Ok(Some(source)) = self.find_source_for_channel(channel_id)
+        if !self.has_sufficient_real_coverage(epg_channel_id)
+            && let Ok(Some(source)) = self.find_source_for_channel(epg_channel_id)
         {
             let facade = self.clone();
-            let ch_id = channel_id.to_string();
+            let ch_id = epg_channel_id.to_string();
             tokio::spawn(async move {
                 let _ = epg_resolver::resolve_epg_for_channel(
                     &facade.service,
@@ -115,7 +115,7 @@ impl EpgFacade {
     /// Used by the EPG grid/timeline view.
     pub async fn get_epg_for_channels(
         &self,
-        channel_ids: &[String],
+        epg_channel_ids: &[String],
         start_time: i64,
         end_time: i64,
     ) -> Result<HashMap<String, Vec<EpgEntry>>> {
@@ -130,7 +130,7 @@ impl EpgFacade {
             .unwrap_or_default()
             .naive_utc();
 
-        for ch_id in channel_ids {
+        for ch_id in epg_channel_ids {
             if let Some(cached) = self.hot_cache.get(ch_id) {
                 let windowed: Vec<EpgEntry> = cached
                     .iter()
@@ -202,8 +202,8 @@ impl EpgFacade {
     }
 
     /// Invalidate the hot cache for a channel (e.g. after manual EPG refresh).
-    pub fn invalidate_channel(&self, channel_id: &str) {
-        self.hot_cache.invalidate(channel_id);
+    pub fn invalidate_channel(&self, epg_channel_id: &str) {
+        self.hot_cache.invalidate(epg_channel_id);
     }
 
     /// Clear all caches.
@@ -224,12 +224,12 @@ impl EpgFacade {
     // ── Internal helpers ─────────────────────────────
 
     /// Find the source that owns a channel.
-    fn find_source_for_channel(&self, channel_id: &str) -> Result<Option<Source>> {
+    fn find_source_for_channel(&self, epg_channel_id: &str) -> Result<Option<Source>> {
         let conn = self.service.db.get()?;
         let source_id: Option<String> = conn
             .query_row(
                 "SELECT source_id FROM db_channels WHERE id = ?1",
-                rusqlite::params![channel_id],
+                rusqlite::params![epg_channel_id],
                 |row| row.get(0),
             )
             .ok();
@@ -245,11 +245,11 @@ impl EpgFacade {
     /// Group channel IDs by their owning source.
     fn group_channels_by_source(
         &self,
-        channel_ids: &[String],
+        epg_channel_ids: &[String],
     ) -> Result<Vec<(Source, Vec<String>)>> {
         let mut source_map: HashMap<String, (Source, Vec<String>)> = HashMap::new();
 
-        for ch_id in channel_ids {
+        for ch_id in epg_channel_ids {
             if let Ok(Some(source)) = self.find_source_for_channel(ch_id) {
                 source_map
                     .entry(source.id.clone())
@@ -264,13 +264,13 @@ impl EpgFacade {
 
     /// Fallback: query SQLite directly for channels without a
     /// recognizable source (e.g. M3U with XMLTV EPG stored by tvg_id).
-    fn get_from_sqlite_only(&self, channel_id: &str, count: usize) -> Result<Vec<EpgEntry>> {
+    fn get_from_sqlite_only(&self, epg_channel_id: &str, count: usize) -> Result<Vec<EpgEntry>> {
         let now = chrono::Utc::now().timestamp();
         let end = now + 86_400;
         let result = self
             .service
-            .get_epgs_for_channels(&[channel_id.to_string()], now, end)?;
-        let mut entries = result.get(channel_id).cloned().unwrap_or_default();
+            .get_epgs_for_channels(&[epg_channel_id.to_string()], now, end)?;
+        let mut entries = result.get(epg_channel_id).cloned().unwrap_or_default();
         entries.sort_by_key(|e| e.start_time);
         entries.truncate(count);
         Ok(entries)
@@ -309,12 +309,13 @@ mod tests {
     #[tokio::test]
     async fn facade_returns_cached_sqlite_data() {
         let svc = make_service();
-        let ch = make_channel("ch1", "Test");
+        let mut ch = make_channel("ch1", "Test");
+        ch.tvg_id = Some("tvg_ch1".to_string());
         svc.save_channels(&[ch]).unwrap();
 
         let now = chrono::Utc::now().timestamp();
         let entry = EpgEntry {
-            channel_id: "ch1".to_string(),
+            epg_channel_id: "tvg_ch1".to_string(),
             title: "Current Show".to_string(),
             start_time: chrono::DateTime::from_timestamp(now - 1800, 0)
                 .unwrap()
@@ -325,7 +326,7 @@ mod tests {
             ..EpgEntry::default()
         };
         let mut map = HashMap::new();
-        map.insert("ch1".to_string(), vec![entry]);
+        map.insert("tvg_ch1".to_string(), vec![entry]);
         svc.save_epg_entries(&map).unwrap();
 
         let facade = EpgFacade::new(svc);
@@ -340,13 +341,15 @@ mod tests {
     #[tokio::test]
     async fn facade_multi_channel_query() {
         let svc = make_service();
-        let ch1 = make_channel("ch1", "One");
-        let ch2 = make_channel("ch2", "Two");
+        let mut ch1 = make_channel("ch1", "One");
+        ch1.tvg_id = Some("tvg_ch1".to_string());
+        let mut ch2 = make_channel("ch2", "Two");
+        ch2.tvg_id = Some("tvg_ch2".to_string());
         svc.save_channels(&[ch1, ch2]).unwrap();
 
         let now = chrono::Utc::now().timestamp();
-        let make_entry = |ch: &str, title: &str| EpgEntry {
-            channel_id: ch.to_string(),
+        let make_entry = |tvg_id: &str, title: &str| EpgEntry {
+            epg_channel_id: tvg_id.to_string(),
             title: title.to_string(),
             start_time: chrono::DateTime::from_timestamp(now - 1800, 0)
                 .unwrap()
@@ -357,8 +360,8 @@ mod tests {
             ..EpgEntry::default()
         };
         let mut map = HashMap::new();
-        map.insert("ch1".to_string(), vec![make_entry("ch1", "Show A")]);
-        map.insert("ch2".to_string(), vec![make_entry("ch2", "Show B")]);
+        map.insert("tvg_ch1".to_string(), vec![make_entry("tvg_ch1", "Show A")]);
+        map.insert("tvg_ch2".to_string(), vec![make_entry("tvg_ch2", "Show B")]);
         svc.save_epg_entries(&map).unwrap();
 
         let facade = EpgFacade::new(svc);

@@ -437,7 +437,7 @@ fn parse_programme_element(
     };
 
     Some(EpgEntry {
-        channel_id,
+        epg_channel_id: channel_id,
         xmltv_id: None,
         title,
         start_time,
@@ -691,7 +691,7 @@ mod tests {
         assert_eq!(entries.len(), 2);
 
         let e0 = &entries[0];
-        assert_eq!(e0.channel_id, "bbc1");
+        assert_eq!(e0.epg_channel_id, "bbc1");
         assert_eq!(e0.title, "Breakfast News");
         assert_eq!(e0.description.as_deref(), Some("Morning news & weather"),);
         assert_eq!(e0.category.as_deref(), Some("News"),);
@@ -714,7 +714,7 @@ mod tests {
     fn parse_epg_with_timezone_offset() {
         let entries = parse_epg(SAMPLE_XMLTV);
         let e1 = &entries[1];
-        assert_eq!(e1.channel_id, "itv1");
+        assert_eq!(e1.epg_channel_id, "itv1");
         assert_eq!(e1.title, "Good Morning");
         assert!(e1.description.is_none());
 
@@ -768,7 +768,7 @@ mod tests {
         assert_eq!(entries.len(), 1);
 
         let e = &entries[0];
-        assert_eq!(e.channel_id, "hbo");
+        assert_eq!(e.epg_channel_id, "hbo");
         assert_eq!(e.title, "Movie Night");
         assert_eq!(e.description.as_deref(), Some("A thrilling adventure film"),);
         assert_eq!(e.category.as_deref(), Some("Film"));
@@ -813,18 +813,18 @@ mod tests {
         let entries = parse_epg(xml);
         assert_eq!(entries.len(), 4);
 
-        assert_eq!(entries[0].channel_id, "ch1");
+        assert_eq!(entries[0].epg_channel_id, "ch1");
         assert_eq!(entries[0].title, "Morning Show");
-        assert_eq!(entries[1].channel_id, "ch2");
+        assert_eq!(entries[1].epg_channel_id, "ch2");
         assert_eq!(entries[1].title, "News Hour");
         assert_eq!(
             entries[1].description.as_deref(),
             Some("Daily news roundup"),
         );
-        assert_eq!(entries[2].channel_id, "ch3");
+        assert_eq!(entries[2].epg_channel_id, "ch3");
         assert_eq!(entries[2].title, "Cooking Time");
         assert_eq!(entries[2].category.as_deref(), Some("Food"),);
-        assert_eq!(entries[3].channel_id, "ch1");
+        assert_eq!(entries[3].epg_channel_id, "ch1");
         assert_eq!(entries[3].title, "Late Morning");
     }
 
@@ -839,7 +839,7 @@ mod tests {
         assert_eq!(entries.len(), 1);
 
         let e = &entries[0];
-        assert_eq!(e.channel_id, "sky1");
+        assert_eq!(e.epg_channel_id, "sky1");
         assert_eq!(e.title, "Minimal Programme");
         assert!(e.description.is_none());
         assert!(e.category.is_none());
@@ -936,16 +936,15 @@ mod tests {
     #[test]
     fn programme_with_empty_title_tag() {
         // <title></title> yields an empty string after trim.
-        // The parser does not reject empty titles — it stores
-        // them as-is.
+        // The parser requires a non-empty title — programmes
+        // with only empty <title> tags are skipped entirely.
         let xml = r#"<tv>
   <programme start="20240101120000 +0000" stop="20240101130000 +0000" channel="ch1">
     <title></title>
   </programme>
 </tv>"#;
         let entries = parse_epg(xml);
-        assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].title, "");
+        assert_eq!(entries.len(), 0);
     }
 
     #[test]
@@ -1071,7 +1070,7 @@ mod tests {
 </tv>"#;
         let entries = parse_epg(xml);
         assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].channel_id, "future");
+        assert_eq!(entries[0].epg_channel_id, "future");
         assert_eq!(
             entries[0].start_time,
             NaiveDateTime::new(
@@ -1251,7 +1250,7 @@ mod tests {
 </tv>"#;
         let entries = parse_epg(xml);
         assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].channel_id, "ts1");
+        assert_eq!(entries[0].epg_channel_id, "ts1");
         assert_eq!(entries[0].title, "Timestamp Show");
         // 1705305600 = 2024-01-15 08:00:00 UTC
         assert_eq!(

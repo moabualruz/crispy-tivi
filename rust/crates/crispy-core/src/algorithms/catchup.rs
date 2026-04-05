@@ -30,8 +30,8 @@ pub struct CatchupInfo {
 /// `{base}/timeshift/{user}/{pass}/{dur}/{start}/{sid}.ts`
 ///
 /// Returns `None` if the channel has no catch-up, the
-/// programme is not in the past, or the stream ID cannot
-/// be extracted from `channel.id`.
+/// programme is not in the past, or the Xtream stream ID
+/// is unavailable on the channel.
 pub fn build_xtream_catchup(
     channel: &Channel,
     entry: &EpgEntry,
@@ -41,8 +41,7 @@ pub fn build_xtream_catchup(
 ) -> Option<CatchupInfo> {
     validate_catchup(channel, entry)?;
 
-    // Extract numeric stream_id from "xc_123" format.
-    let stream_id: i64 = channel.id.strip_prefix("xc_")?.parse().ok()?;
+    let stream_id: i64 = channel.xtream_stream_id.as_deref()?.parse().ok()?;
 
     let start_utc = entry.start_time.and_utc().timestamp();
     let duration_minutes = (entry.end_time - entry.start_time).num_minutes();
@@ -204,7 +203,7 @@ mod tests {
         let start = now - TimeDelta::minutes(minutes_ago);
         let end = start + TimeDelta::minutes(duration_min);
         EpgEntry {
-            channel_id: "epg_ch1".to_string(),
+            epg_channel_id: "epg_ch1".to_string(),
             title: "Test Program".to_string(),
             start_time: start,
             end_time: end,
@@ -217,7 +216,7 @@ mod tests {
         let start = now + TimeDelta::hours(1);
         let end = start + TimeDelta::hours(1);
         EpgEntry {
-            channel_id: "epg_ch1".to_string(),
+            epg_channel_id: "epg_ch1".to_string(),
             title: "Future Show".to_string(),
             start_time: start,
             end_time: end,
@@ -227,13 +226,15 @@ mod tests {
 
     fn xtream_channel() -> Channel {
         Channel {
-            id: "xc_42".to_string(),
+            id: "ch-42".to_string(),
+            native_id: "42".to_string(),
             name: "Test Channel".to_string(),
             stream_url: "http://example.com/live/u/p/42.ts".to_string(),
             number: None,
             channel_group: None,
             logo_url: None,
             tvg_id: None,
+            xtream_stream_id: Some("42".to_string()),
             tvg_name: None,
             is_favorite: false,
             user_agent: None,
@@ -261,7 +262,8 @@ mod tests {
 
     fn stalker_channel() -> Channel {
         Channel {
-            id: "stk_1".to_string(),
+            id: "ch-1".to_string(),
+            native_id: "1".to_string(),
             name: "Stalker Ch".to_string(),
             stream_url: "http://portal.com/play/ch1".to_string(),
             number: None,
@@ -364,7 +366,8 @@ mod tests {
     #[test]
     fn xtream_returns_none_for_bad_id() {
         let mut ch = xtream_channel();
-        ch.id = "not_xtream_123".to_string();
+        // No xtream_stream_id means there is no numeric stream ID to build a URL from.
+        ch.xtream_stream_id = None;
         let entry = past_entry(30, 60);
         let info = build_xtream_catchup(&ch, &entry, "http://example.com", "user", "pass");
 
