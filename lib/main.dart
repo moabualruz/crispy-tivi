@@ -57,22 +57,41 @@ const String _kWinMax = 'win_max';
 /// Only applies on desktop and Android TV — phones and tablets use
 /// native DPI scaling and should never be auto-scaled.
 ///
+/// On **Linux** (both Wayland and X11), Flutter reports
+/// `devicePixelRatio = 1.0` unless the user explicitly sets
+/// `GDK_SCALE` or compositor fractional scaling. This makes the
+/// formula produce wildly incorrect values (e.g. 3.56× on a 3287px
+/// display). Auto-scale is therefore **disabled on Linux when
+/// DPR ≤ 1.0** — the OS is not requesting HiDPI and the app should
+/// not second-guess it. When the user HAS configured fractional
+/// scaling (DPR > 1.0), the standard formula applies.
+///
 /// Below 1440px physical height: 1.0 (no scaling).
 /// 1440–2160px: linear interpolation from 1.0 to 2.0.
 /// Above 2160px: continues scaling linearly (e.g. 8K will be ~4.75).
 double computeUiAutoScale(double logicalHeight, double devicePixelRatio) {
   if (!DeviceFormFactorService.current.supportsAutoScale) return 1.0;
 
-  final physicalHeight = logicalHeight * devicePixelRatio;
-
-  if (physicalHeight < 1440) {
+  // Use logicalHeight directly — it is already DPR-normalized
+  // (physical pixels / devicePixelRatio), making this formula
+  // platform-agnostic with no OS-specific guards.
+  //
+  // Below 1440 logical: no scaling — the layout fits naturally.
+  // At 1440 and above: lock the effective layout to 1440 logical
+  // pixels of content. This preserves the same visual density
+  // regardless of display resolution or compositor DPR.
+  //
+  // Examples:
+  // - 655 logical (small window)   → 1.0  (no scale)
+  // - 1080 logical (4K@DPR=2)     → 1.0  (threshold, no scale)
+  // - 1440 logical (1440p@DPR=1)  → 1.33 (locked to 1080 effective)
+  // - 1830 logical (ultrawide@2)  → 1.69 (locked to 1080 effective)
+  // - 2160 logical (4K@DPR=1)     → 2.0  (locked to 1080 effective)
+  if (logicalHeight <= 1080) {
     return 1.0;
   }
 
-  // Linear scaling: 1.0 at 1440p, 2.0 at 2160p (4K).
-  // (2.0 - 1.0) / (2160 - 1440) = 1.0 / 720
-  final scale = 1.0 + (physicalHeight - 1440) * (1.0 / 720);
-  return scale;
+  return logicalHeight / 1080;
 }
 
 /// Returns true when this is the first app instance on desktop.
