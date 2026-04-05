@@ -355,6 +355,12 @@ impl CrispyService {
             );
         });
 
+        // Checkpoint WAL to reclaim disk space and reduce memory.
+        // TRUNCATE mode resets the WAL file to zero bytes.
+        if let Ok(conn) = self.db.get() {
+            let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
+        }
+
         Ok(())
     }
 

@@ -141,9 +141,9 @@ CacheConfig _$CacheConfigFromJson(Map<String, dynamic> json) => CacheConfig(
   channelListRefreshIntervalMinutes:
       (json['channelListRefreshIntervalMinutes'] as num).toInt(),
   maxCachedEpgDays: (json['maxCachedEpgDays'] as num).toInt(),
-  maxImageCacheMb: (json['maxImageCacheMb'] as num?)?.toInt() ?? 50,
+  maxImageCacheMb: (json['maxImageCacheMb'] as num?)?.toInt() ?? 20,
   maxImageMemCacheObjects:
-      (json['maxImageMemCacheObjects'] as num?)?.toInt() ?? 50,
+      (json['maxImageMemCacheObjects'] as num?)?.toInt() ?? 200,
   maxImageDiskCacheObjects:
       (json['maxImageDiskCacheObjects'] as num?)?.toInt() ?? 2000,
   imageDiskCacheRetentionDays:
