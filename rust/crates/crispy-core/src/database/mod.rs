@@ -71,7 +71,7 @@ impl Database {
         let manager =
             SqliteConnectionManager::file(path).with_init(|conn| conn.execute_batch(PRAGMAS));
         let pool = Pool::builder()
-            .max_size(20)
+            .max_size(4)
             .build(manager)
             .map_err(|e| DbError::Migration(format!("Pool creation failed: {}", e)))?;
 
@@ -116,7 +116,7 @@ impl Database {
 const PRAGMAS: &str = "\
     PRAGMA journal_mode = WAL;\
     PRAGMA synchronous = NORMAL;\
-    PRAGMA cache_size = 10000;\
+    PRAGMA cache_size = 2000;\
     PRAGMA foreign_keys = ON;\
 ";
 

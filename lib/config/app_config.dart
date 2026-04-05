@@ -275,8 +275,8 @@ class CacheConfig {
     required this.epgRefreshIntervalMinutes,
     required this.channelListRefreshIntervalMinutes,
     required this.maxCachedEpgDays,
-    this.maxImageCacheMb = 50,
-    this.maxImageMemCacheObjects = 50,
+    this.maxImageCacheMb = 20,
+    this.maxImageMemCacheObjects = 200,
     this.maxImageDiskCacheObjects = 2000,
     this.imageDiskCacheRetentionDays = 30,
   });

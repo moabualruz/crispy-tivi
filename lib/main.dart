@@ -136,6 +136,7 @@ Future<void> main() async {
 
   // ── Image cache limits ──────────────────────────────────
   // Cap in-memory decoded-image cache to limit RAM growth.
+  // maxImageCacheMb default is 20 MB; maxImageMemCacheObjects caps the count.
   PaintingBinding.instance.imageCache
     ..maximumSizeBytes = config.cache.maxImageCacheMb * 1024 * 1024
     ..maximumSize = config.cache.maxImageMemCacheObjects;

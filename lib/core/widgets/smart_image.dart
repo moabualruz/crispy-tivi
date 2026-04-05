@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -258,20 +259,14 @@ class _NetworkImageWithTimeoutState extends State<_NetworkImageWithTimeout> {
 
   @override
   Widget build(BuildContext context) {
-    return Image.network(
-      widget.url,
-      fit: widget.fit,
-      cacheWidth: widget.memCacheWidth,
-      cacheHeight: widget.memCacheHeight,
-      errorBuilder: (_, _, _) => widget.onBuildPlaceholder(),
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) {
-          _loadingTimeout?.cancel();
-          return child;
-        }
-        if (_timedOut) return widget.onBuildPlaceholder();
+    if (_timedOut) return widget.onBuildPlaceholder();
 
-        // Show BlurHash placeholder while loading if available.
+    return CachedNetworkImage(
+      imageUrl: widget.url,
+      fit: widget.fit,
+      memCacheWidth: widget.memCacheWidth,
+      memCacheHeight: widget.memCacheHeight,
+      placeholder: (context, url) {
         if (widget.blurHashBytes != null) {
           return Image.memory(
             widget.blurHashBytes!,
@@ -279,9 +274,13 @@ class _NetworkImageWithTimeoutState extends State<_NetworkImageWithTimeout> {
             errorBuilder: (_, _, _) => widget.onBuildSkeleton(),
           );
         }
-
         return widget.onBuildSkeleton();
       },
+      imageBuilder: (context, imageProvider) {
+        _loadingTimeout?.cancel();
+        return Image(image: imageProvider, fit: widget.fit);
+      },
+      errorWidget: (context, url, error) => widget.onBuildPlaceholder(),
     );
   }
 }

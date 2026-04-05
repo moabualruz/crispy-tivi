@@ -16,6 +16,63 @@ use crate::models::EpgEntry;
 
 const DEFAULT_PREFERRED_LANG: &str = "en";
 
+/// A single XMLTV `<channel>` element parsed from the guide.
+#[derive(Debug, Clone, Default)]
+pub struct EpgChannel {
+    /// The XMLTV channel ID (the `id` attribute).
+    pub xmltv_id: String,
+    /// First `<display-name>` text found (preferred language).
+    pub display_name: String,
+    /// Optional channel icon URL from `<icon src="…"/>`.
+    pub icon_url: Option<String>,
+}
+
+/// Combined result of a full XMLTV parse — both programme entries
+/// and channel definitions.
+#[derive(Debug, Default)]
+pub struct ParsedEpg {
+    /// All `<programme>` entries found in the guide.
+    pub entries: Vec<EpgEntry>,
+    /// All `<channel>` definitions found in the guide.
+    pub channels: Vec<EpgChannel>,
+}
+
+/// Parse XMLTV content into EPG entries **and** channel definitions.
+///
+/// Single-pass over the XML: collects both `<channel>` and
+/// `<programme>` elements.  Use this instead of the separate
+/// `parse_epg` / `extract_channel_names` helpers when you need both.
+pub fn parse_epg_full(content: &str) -> ParsedEpg {
+    if content.trim().is_empty() {
+        return ParsedEpg::default();
+    }
+
+    let mut reader = Reader::from_str(content);
+    reader.config_mut().trim_text(true);
+
+    let mut result = ParsedEpg::default();
+
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == b"channel" => {
+                if let Some(channel) = parse_channel_element(e, &mut reader) {
+                    result.channels.push(channel);
+                }
+            }
+            Ok(Event::Start(ref e)) if e.name().as_ref() == b"programme" => {
+                if let Some(entry) = parse_programme_element(e, &mut reader) {
+                    result.entries.push(entry);
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(_) => break,
+            _ => {}
+        }
+    }
+
+    result
+}
+
 /// Parse XMLTV content into EPG entries.
 ///
 /// Extracts `<programme>` blocks and maps them to
@@ -130,6 +187,51 @@ fn pick_preferred_lang(
     }
 
     values.first().map(|(_, text)| text.clone())
+}
+
+/// Parse a `<channel>` element into an [`EpgChannel`].
+///
+/// Collects the first `<display-name>` and the first `<icon src="…"/>`.
+/// Returns `None` if the element has no `id` attribute.
+fn parse_channel_element(
+    start: &quick_xml::events::BytesStart<'_>,
+    reader: &mut Reader<&[u8]>,
+) -> Option<EpgChannel> {
+    let xmltv_id = get_attr(start, b"id")?;
+    let mut display_name = String::new();
+    let mut icon_url: Option<String> = None;
+
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == b"display-name" => {
+                if display_name.is_empty() {
+                    let text = read_element_text(reader, e.name())
+                        .map(|t| t.trim().to_string())
+                        .unwrap_or_default();
+                    if !text.is_empty() {
+                        display_name = text;
+                    }
+                } else {
+                    let _ = reader.read_to_end(e.name());
+                }
+            }
+            Ok(Event::Empty(ref e)) if e.name().as_ref() == b"icon" => {
+                if icon_url.is_none() {
+                    icon_url = get_attr(e, b"src").filter(|s| !s.is_empty());
+                }
+            }
+            Ok(Event::End(ref e)) if e.name().as_ref() == b"channel" => break,
+            Ok(Event::Eof) => break,
+            Err(_) => break,
+            _ => {}
+        }
+    }
+
+    Some(EpgChannel {
+        xmltv_id,
+        display_name,
+        icon_url,
+    })
 }
 
 /// Result from scanning a `<channel>` for its display name.

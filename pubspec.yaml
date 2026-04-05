@@ -41,6 +41,7 @@ dependencies:
   flutter_animate: ^4.5.2
   flutter_svg: ^2.0.17
   google_fonts: ^8.0.1
+  cached_network_image: ^3.4.1
 
   # Config & Serialization
   json_annotation: ^4.9.0

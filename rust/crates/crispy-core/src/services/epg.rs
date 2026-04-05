@@ -199,12 +199,22 @@ impl CrispyService {
 
     /// Load EPG entries for a specific set of channels within a time window.
     ///
-    /// Single join path: `channel.tvg_id = epg_entry.epg_channel_id`.
-    /// `tvg_id` is the sole EPG bridge — populated at sync time by M3U metadata,
-    /// Xtream API, or the sync-time matching algorithm.
+    /// Multi-step lookup to maximise EPG coverage:
     ///
-    /// Source priority: when multiple sources provide EPG for the same channel,
-    /// the source with the lowest `sort_order` wins (higher-quality sources first).
+    /// 1. Collect all candidate XMLTV IDs for each channel:
+    ///    - `epg_channel_id` (pre-resolved at sync time by E4)
+    ///    - `tvg_id` (M3U/Xtream tvg-id attribute)
+    ///    - `xtream_stream_id` (Xtream numeric stream id)
+    ///    - Any `db_epg_channels.xmltv_id` whose `display_name` matches
+    ///      `channel.name` or `channel.tvg_name` (name-based fallback)
+    ///
+    /// 2. Query `db_epg_entries` for entries matching any of those IDs.
+    ///
+    /// 3. Fan out each entry to all internal channel IDs that mapped to
+    ///    the same XMLTV ID.
+    ///
+    /// Source priority: when multiple sources provide EPG for the same
+    /// channel the source with the lowest `sort_order` wins.
     pub fn get_epgs_for_channels(
         &self,
         channel_ids: &[String],
@@ -216,41 +226,143 @@ impl CrispyService {
             return Ok(HashMap::new());
         }
 
-        // Step 1: collect tvg_id for each requested channel.
-        // tvg_id is the single EPG bridge — channels without a tvg_id have no EPG.
+        // ── Step 1: load channel fields needed for lookup ─────────────
         let ch_placeholders: Vec<String> =
             (1..=channel_ids.len()).map(|i| format!("?{i}")).collect();
         let ch_query = format!(
-            "SELECT id, tvg_id FROM db_channels WHERE id IN ({}) AND tvg_id IS NOT NULL AND tvg_id != ''",
+            "SELECT id, epg_channel_id, tvg_id, xtream_stream_id, name, tvg_name \
+             FROM db_channels WHERE id IN ({})",
             ch_placeholders.join(", ")
         );
         let mut ch_stmt = conn.prepare(&ch_query)?;
-        let mut ch_params: Vec<&dyn rusqlite::types::ToSql> = Vec::with_capacity(channel_ids.len());
+        let mut ch_params: Vec<&dyn rusqlite::types::ToSql> =
+            Vec::with_capacity(channel_ids.len());
         for id in channel_ids {
             ch_params.push(id as &dyn rusqlite::types::ToSql);
         }
-        let ch_rows = ch_stmt.query_map(ch_params.as_slice(), |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        })?;
 
-        // Build reverse index: tvg_id → Vec<internal_channel_id>.
-        // Multiple channels can share the same tvg_id (e.g. SD + HD variants).
-        let mut tvg_to_channels: HashMap<String, Vec<String>> = HashMap::new();
-        for row in ch_rows {
-            let (ch_id, tvg_id) = row?;
-            tvg_to_channels.entry(tvg_id).or_default().push(ch_id);
+        struct ChannelRow {
+            id: String,
+            epg_channel_id: Option<String>,
+            tvg_id: Option<String>,
+            xtream_stream_id: Option<String>,
+            name: String,
+            tvg_name: Option<String>,
         }
 
-        if tvg_to_channels.is_empty() {
+        let ch_rows: Vec<ChannelRow> = ch_stmt
+            .query_map(ch_params.as_slice(), |row| {
+                Ok(ChannelRow {
+                    id: row.get(0)?,
+                    epg_channel_id: row.get(1)?,
+                    tvg_id: row.get(2)?,
+                    xtream_stream_id: row.get(3)?,
+                    name: row.get(4)?,
+                    tvg_name: row.get(5)?,
+                })
+            })?
+            .collect::<rusqlite::Result<_>>()?;
+
+        if ch_rows.is_empty() {
             return Ok(HashMap::new());
         }
 
-        // Step 2: query EPG entries where epg_channel_id IN (tvg_ids).
-        // Order by source priority so higher-quality sources come first.
-        let tvg_ids: Vec<String> = tvg_to_channels.keys().cloned().collect();
-        let placeholders: Vec<String> = (1..=tvg_ids.len()).map(|i| format!("?{i}")).collect();
-        let start_p = tvg_ids.len() + 1;
-        let end_p = tvg_ids.len() + 2;
+        // ── Step 2: name-based lookup via db_epg_channels ─────────────
+        // Collect all (name, tvg_name) pairs so we can do a single batch query.
+        let mut lookup_names: Vec<String> = Vec::new();
+        for ch in &ch_rows {
+            lookup_names.push(ch.name.clone());
+            if let Some(ref tvg) = ch.tvg_name {
+                if !tvg.is_empty() {
+                    lookup_names.push(tvg.clone());
+                }
+            }
+        }
+        lookup_names.sort();
+        lookup_names.dedup();
+
+        // display_name → xmltv_id
+        let mut display_name_to_xmltv: HashMap<String, String> = HashMap::new();
+        if !lookup_names.is_empty() {
+            let name_phs: Vec<String> =
+                (1..=lookup_names.len()).map(|i| format!("?{i}")).collect();
+            let name_query = format!(
+                "SELECT display_name, xmltv_id FROM db_epg_channels \
+                 WHERE display_name IN ({}) GROUP BY display_name",
+                name_phs.join(", ")
+            );
+            let mut name_stmt = conn.prepare(&name_query)?;
+            let mut name_params: Vec<&dyn rusqlite::types::ToSql> =
+                Vec::with_capacity(lookup_names.len());
+            for n in &lookup_names {
+                name_params.push(n as &dyn rusqlite::types::ToSql);
+            }
+            let name_rows = name_stmt.query_map(name_params.as_slice(), |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?;
+            for r in name_rows {
+                let (display, xmltv) = r?;
+                display_name_to_xmltv.entry(display).or_insert(xmltv);
+            }
+        }
+
+        // ── Step 3: build xmltv_id → Vec<channel_id> reverse index ───
+        let mut xmltv_to_channels: HashMap<String, Vec<String>> = HashMap::new();
+
+        let non_empty = |s: &str| !s.trim().is_empty();
+
+        for ch in &ch_rows {
+            let mut keys: Vec<String> = Vec::new();
+
+            // Highest priority: pre-resolved epg_channel_id (E4)
+            if let Some(ref eid) = ch.epg_channel_id {
+                if non_empty(eid) {
+                    keys.push(eid.clone());
+                }
+            }
+            // tvg_id from M3U/Xtream metadata
+            if let Some(ref tvg) = ch.tvg_id {
+                if non_empty(tvg) {
+                    keys.push(tvg.clone());
+                }
+            }
+            // Xtream numeric stream id
+            if let Some(ref xid) = ch.xtream_stream_id {
+                if non_empty(xid) {
+                    keys.push(xid.clone());
+                }
+            }
+            // Name-based fallback via db_epg_channels
+            if let Some(xmltv_id) = display_name_to_xmltv.get(&ch.name) {
+                keys.push(xmltv_id.clone());
+            }
+            if let Some(ref tvg_name) = ch.tvg_name {
+                if let Some(xmltv_id) = display_name_to_xmltv.get(tvg_name) {
+                    keys.push(xmltv_id.clone());
+                }
+            }
+
+            keys.sort();
+            keys.dedup();
+
+            for key in keys {
+                xmltv_to_channels
+                    .entry(key)
+                    .or_default()
+                    .push(ch.id.clone());
+            }
+        }
+
+        if xmltv_to_channels.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        // ── Step 4: query EPG entries for all resolved XMLTV IDs ─────
+        let xmltv_ids: Vec<String> = xmltv_to_channels.keys().cloned().collect();
+        let placeholders: Vec<String> =
+            (1..=xmltv_ids.len()).map(|i| format!("?{i}")).collect();
+        let start_p = xmltv_ids.len() + 1;
+        let end_p = xmltv_ids.len() + 2;
         let query = format!(
             "SELECT {cols}
             FROM db_epg_entries
@@ -264,8 +376,9 @@ impl CrispyService {
         );
 
         let mut stmt = conn.prepare(&query)?;
-        let mut params: Vec<&dyn rusqlite::types::ToSql> = Vec::with_capacity(tvg_ids.len() + 2);
-        for key in &tvg_ids {
+        let mut params: Vec<&dyn rusqlite::types::ToSql> =
+            Vec::with_capacity(xmltv_ids.len() + 2);
+        for key in &xmltv_ids {
             params.push(key as &dyn rusqlite::types::ToSql);
         }
         params.push(&start_time as &dyn rusqlite::types::ToSql);
@@ -273,11 +386,11 @@ impl CrispyService {
 
         let rows = stmt.query_map(params.as_slice(), epg_entry_from_row)?;
 
-        // Step 3: fan out each EPG entry to all channels sharing that tvg_id.
+        // ── Step 5: fan out entries to all channels that share the key ─
         let mut map: HashMap<String, Vec<EpgEntry>> = HashMap::new();
         for r in rows {
             let entry = r?;
-            if let Some(ch_ids) = tvg_to_channels.get(&entry.epg_channel_id) {
+            if let Some(ch_ids) = xmltv_to_channels.get(&entry.epg_channel_id) {
                 for ch_id in ch_ids {
                     map.entry(ch_id.clone()).or_default().push(entry.clone());
                 }

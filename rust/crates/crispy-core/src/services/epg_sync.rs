@@ -23,6 +23,7 @@ use tokio::sync::Semaphore;
 use crate::events::DataChangeEvent;
 use crate::http_client::shared_client;
 use crate::models::{Channel, EpgEntry};
+use crate::parsers::epg::{EpgChannel, ParsedEpg};
 use crate::services::{CrispyService, build_in_placeholders, str_params};
 
 /// Minimum interval between EPG refreshes for the same URL (4 hours).
@@ -63,34 +64,40 @@ pub async fn fetch_and_save_xmltv_epg(
     })
     .await?;
 
-    let (entries, validators) = match download {
+    let (parsed, validators) = match download {
         XmltvDownloadResult::NotModified(validators) => {
             persist_xmltv_validators(service, url, &validators, true)
                 .context("Failed to persist XMLTV cache validators")?;
             mark_refreshed(service, url);
             return Ok(0);
         }
-        XmltvDownloadResult::Parsed {
-            entries,
-            validators,
-        } => (entries, validators),
+        XmltvDownloadResult::Parsed { parsed, validators } => (parsed, validators),
     };
 
     persist_xmltv_validators(service, url, &validators, false)
         .context("Failed to persist XMLTV cache validators")?;
 
-    if entries.is_empty() {
+    if parsed.entries.is_empty() && parsed.channels.is_empty() {
         mark_refreshed(service, url);
         return Ok(0);
     }
 
-    // 2. Parse EPG entries — keyed by XMLTV channel ID.
-    // 3. Store EPG entries keyed by XMLTV channel ID (as-is
-    //    from the parser). Multiple internal channels with the
-    //    same tvg_id all share this EPG data — the join happens
-    //    at query time via db_channels.tvg_id.
+    // E2: Save XMLTV <channel> definitions to db_epg_channels.
+    if !parsed.channels.is_empty() {
+        save_epg_channels(service, &parsed.channels, source_id.as_deref())
+            .context("Failed to save XMLTV channel definitions")?;
+
+        // E4: Resolve epg_channel_id for db_channels that are still unmapped,
+        // using display-name matching against the just-saved db_epg_channels rows.
+        resolve_epg_channel_ids(service, source_id.as_deref())
+            .context("Failed to resolve EPG channel IDs")?;
+    }
+
+    // Group programme entries by XMLTV channel ID for bulk insert.
+    // Multiple internal channels sharing the same tvg_id all share
+    // this EPG data — the join happens at query time.
     let mut grouped: HashMap<String, Vec<EpgEntry>> = HashMap::new();
-    for mut entry in entries {
+    for mut entry in parsed.entries {
         entry.source_id = source_id.clone();
         grouped
             .entry(entry.epg_channel_id.clone())
@@ -98,10 +105,8 @@ pub async fn fetch_and_save_xmltv_epg(
             .push(entry);
     }
 
-    // 5. Save directly to the database
     let count = service.save_epg_entries(&grouped)?;
 
-    // 7. Mark cooldown timestamp on success.
     mark_refreshed(service, url);
     emit_epg_progress(service, source_id.as_deref(), url);
 
@@ -318,11 +323,11 @@ async fn download_and_parse_xmltv_epg(
         }
     }
 
-    let entries = parser_handle
+    let parsed = parser_handle
         .await
         .context("XMLTV parser task panicked")??;
     Ok(XmltvDownloadResult::Parsed {
-        entries,
+        parsed,
         validators: response_validators,
     })
 }
@@ -372,15 +377,13 @@ fn build_stalker_cookie(mac: &str) -> String {
     format!("mac={}; stb_lang=en; timezone=UTC", mac.replace(':', "%3A"))
 }
 
-fn parse_xmltv_stream(receiver: Receiver<StreamChunk>) -> Result<Vec<EpgEntry>> {
-    let reader = BufReader::new(StreamChunkReader::new(receiver));
-    let document = crispy_xmltv::parser::parse_reader(reader)
-        .map_err(|err| anyhow!("Failed to parse XMLTV payload: {err}"))?;
-    Ok(document
-        .programmes
-        .into_iter()
-        .map(EpgEntry::from)
-        .collect())
+fn parse_xmltv_stream(receiver: Receiver<StreamChunk>) -> Result<ParsedEpg> {
+    let mut raw = Vec::new();
+    BufReader::new(StreamChunkReader::new(receiver))
+        .read_to_end(&mut raw)
+        .map_err(|err| anyhow!("Failed to read XMLTV stream: {err}"))?;
+    let content = String::from_utf8_lossy(&raw);
+    Ok(crate::parsers::epg::parse_epg_full(&content))
 }
 
 enum StreamChunk {
@@ -422,7 +425,7 @@ impl XmltvValidators {
 enum XmltvDownloadResult {
     NotModified(XmltvValidators),
     Parsed {
-        entries: Vec<EpgEntry>,
+        parsed: ParsedEpg,
         validators: XmltvValidators,
     },
 }
@@ -460,6 +463,78 @@ impl Read for StreamChunkReader {
             }
         }
     }
+}
+
+// ── EPG Channel Helpers ───────────────────────────
+
+/// Persist XMLTV `<channel>` definitions to `db_epg_channels`.
+///
+/// Uses `INSERT OR REPLACE` keyed on `(xmltv_id, source_id)` so
+/// re-running a sync always reflects the latest channel metadata
+/// from the XMLTV feed.
+fn save_epg_channels(
+    service: &CrispyService,
+    channels: &[EpgChannel],
+    source_id: Option<&str>,
+) -> Result<()> {
+    if channels.is_empty() {
+        return Ok(());
+    }
+    let sid = source_id.unwrap_or("");
+    let conn = service.db.get()?;
+    let tx = conn.unchecked_transaction()?;
+    for ch in channels {
+        tx.execute(
+            "INSERT OR REPLACE INTO db_epg_channels \
+             (xmltv_id, source_id, display_name, icon_url) \
+             VALUES (?1, ?2, ?3, ?4)",
+            params![ch.xmltv_id, sid, ch.display_name, ch.icon_url],
+        )?;
+    }
+    tx.commit()?;
+    tracing::debug!(
+        "[epg_sync] saved {} XMLTV channel definitions (source={})",
+        channels.len(),
+        sid,
+    );
+    Ok(())
+}
+
+/// Resolve `db_channels.epg_channel_id` for channels that have no
+/// mapping yet, by matching `db_epg_channels.display_name` against
+/// `db_channels.name` or `db_channels.tvg_name`.
+///
+/// Only channels with a NULL or empty `epg_channel_id` are updated,
+/// so manually-assigned mappings are never overwritten.
+fn resolve_epg_channel_ids(service: &CrispyService, source_id: Option<&str>) -> Result<()> {
+    let conn = service.db.get()?;
+    let sid = source_id.unwrap_or("");
+    let updated = conn.execute(
+        "UPDATE db_channels
+         SET epg_channel_id = (
+             SELECT ec.xmltv_id
+             FROM db_epg_channels ec
+             WHERE ec.source_id = ?1
+               AND (ec.display_name = db_channels.name
+                    OR ec.display_name = db_channels.tvg_name)
+             LIMIT 1
+         )
+         WHERE (epg_channel_id IS NULL OR epg_channel_id = '')
+           AND EXISTS (
+               SELECT 1 FROM db_epg_channels ec2
+               WHERE ec2.source_id = ?1
+                 AND (ec2.display_name = db_channels.name
+                      OR ec2.display_name = db_channels.tvg_name)
+           )",
+        params![sid],
+    )?;
+    if updated > 0 {
+        tracing::info!(
+            "[epg_sync] resolved epg_channel_id for {} channels via display-name match",
+            updated,
+        );
+    }
+    Ok(())
 }
 
 // ── Cooldown Helpers ──────────────────────────────
