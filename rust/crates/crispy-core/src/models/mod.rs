@@ -129,6 +129,26 @@ pub struct Channel {
     /// Epoch when resolved.
     #[serde(default)]
     pub resolved_at: Option<i64>,
+    /// Per-channel EPG URL (`tvg-url` M3U attribute).
+    #[serde(default)]
+    pub tvg_url: Option<String>,
+    /// Kodi stream properties (KODIPROP) serialised as JSON.
+    /// Carries DRM licence keys and adaptive-streaming config.
+    #[serde(default)]
+    pub stream_properties_json: Option<String>,
+    /// VLC options (EXTVLCOPT) serialised as JSON.
+    /// Carries HTTP headers, reconnect hints, and caching settings.
+    #[serde(default)]
+    pub vlc_options_json: Option<String>,
+    /// Timeshift duration hint (`timeshift` M3U attribute).
+    #[serde(default)]
+    pub timeshift: Option<String>,
+    /// Xtream stream type (e.g. `"live"`).
+    #[serde(default)]
+    pub stream_type: Option<String>,
+    /// Xtream channel thumbnail URL.
+    #[serde(default)]
+    pub thumbnail_url: Option<String>,
 }
 
 // ── EpgMapping ────────────────────────────────────────

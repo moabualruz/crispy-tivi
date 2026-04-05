@@ -75,6 +75,29 @@ impl From<crispy_m3u::M3uEntry> for Channel {
         // EPG time offset from tvg-shift attribute.
         let tvg_shift = e.tvg_shift;
 
+        // NOTE (multi-URL): `e.urls` holds additional stream URLs beyond the
+        // primary `e.url`. These cannot be stored here because `From` has no
+        // DB access. The caller (M3U save path) must insert any `e.urls[1..]`
+        // entries into the `db_stream_urls` junction table after persisting
+        // the channel.
+        //
+        // NOTE (multi-group): `e.groups` holds all group memberships. The
+        // primary group (`e.group_title`) is stored in `channel_group` below.
+        // The caller must insert any `e.groups[1..]` entries into the
+        // `db_channel_categories` junction table after persisting the channel.
+
+        // Serialise HashMap fields to JSON; store None when empty.
+        let stream_properties_json = if e.stream_properties.is_empty() {
+            None
+        } else {
+            serde_json::to_string(&e.stream_properties).ok()
+        };
+        let vlc_options_json = if e.vlc_options.is_empty() {
+            None
+        } else {
+            serde_json::to_string(&e.vlc_options).ok()
+        };
+
         Channel {
             id: new_entity_id(),
             native_id,
@@ -101,7 +124,7 @@ impl From<crispy_m3u::M3uEntry> for Channel {
             tvg_language: e.tvg_language,
             tvg_country: None,
             parent_code: None,
-            is_radio: false,
+            is_radio: e.is_radio,
             tvg_rec: e.tvg_rec,
             is_adult: false,
             custom_sid: None,
@@ -110,6 +133,12 @@ impl From<crispy_m3u::M3uEntry> for Channel {
             stalker_cmd: None,
             resolved_url: None,
             resolved_at: None,
+            tvg_url: e.tvg_url.clone(),
+            stream_properties_json,
+            vlc_options_json,
+            timeshift: e.timeshift.clone(),
+            stream_type: None,
+            thumbnail_url: None,
         }
     }
 }
@@ -170,12 +199,18 @@ impl From<crispy_xtream::types::XtreamChannel> for Channel {
             parent_code: None,
             is_radio: false,
             tvg_rec: None,
-            is_adult: false,
+            is_adult: xc.is_adult,
             custom_sid: xc.custom_sid.filter(|s| !s.is_empty()),
             direct_source: xc.direct_source.filter(|s| !s.is_empty()),
             stalker_cmd: None,
             resolved_url: None,
             resolved_at: None,
+            tvg_url: None,
+            stream_properties_json: None,
+            vlc_options_json: None,
+            timeshift: None,
+            stream_type: xc.stream_type.filter(|s| !s.is_empty()),
+            thumbnail_url: xc.thumbnail.filter(|s| !s.is_empty()),
         }
     }
 }
@@ -191,7 +226,7 @@ impl From<crispy_stalker::types::StalkerChannel> for Channel {
         Channel {
             id: new_entity_id(),
             native_id,
-            name: sc.name,
+            name: sc.name.clone(),
             // The cmd is stored as stalker_cmd for later resolution;
             // stream_url is left empty until resolved.
             stream_url: String::new(),
@@ -200,7 +235,7 @@ impl From<crispy_stalker::types::StalkerChannel> for Channel {
             logo_url: sanitize_image_url(sc.logo),
             tvg_id: None,
             xtream_stream_id: None,
-            tvg_name: None,
+            tvg_name: Some(sc.name),
             epg_channel_id: sc.epg_channel_id,
             is_favorite: false,
             user_agent: None,
@@ -225,6 +260,12 @@ impl From<crispy_stalker::types::StalkerChannel> for Channel {
             stalker_cmd: Some(sc.cmd),
             resolved_url: None,
             resolved_at: None,
+            tvg_url: None,
+            stream_properties_json: None,
+            vlc_options_json: None,
+            timeshift: None,
+            stream_type: None,
+            thumbnail_url: None,
         }
     }
 }
@@ -334,6 +375,22 @@ impl From<crispy_stalker::types::StalkerVodItem> for Movie {
 
         let year = v.year.as_deref().and_then(|s| s.parse::<i32>().ok());
 
+        // Parse duration from a "HH:MM:SS" or "MM:SS" or plain-seconds string.
+        let duration_minutes = v.duration.as_deref().and_then(|s| {
+            let parts: Vec<&str> = s.split(':').collect();
+            match parts.as_slice() {
+                [h, m, _s] => {
+                    let hours = h.trim().parse::<i32>().ok()?;
+                    let mins = m.trim().parse::<i32>().ok()?;
+                    Some(hours * 60 + mins)
+                }
+                [m, _s] => m.trim().parse::<i32>().ok(),
+                [total] => total.trim().parse::<i32>().ok().map(|secs| secs / 60),
+                _ => None,
+            }
+            .filter(|&n| n > 0)
+        });
+
         Movie {
             id: new_entity_id(),
             source_id: String::new(),
@@ -349,7 +406,7 @@ impl From<crispy_stalker::types::StalkerVodItem> for Movie {
             resolved_url: None,
             resolved_at: None,
             year,
-            duration_minutes: None,
+            duration_minutes,
             rating: v.rating,
             rating_5based: None,
             content_rating: None,
@@ -595,6 +652,7 @@ mod tests {
             category_ids: Vec::new(),
             custom_sid: None,
             direct_source: None,
+            is_adult: false,
         };
 
         let ch: Channel = xc.into();

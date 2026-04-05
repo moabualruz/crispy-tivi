@@ -86,6 +86,12 @@ CREATE TABLE IF NOT EXISTS db_channels (
     stalker_cmd TEXT,
     resolved_url TEXT,
     resolved_at INTEGER,
+    tvg_url TEXT,
+    stream_properties_json TEXT,
+    vlc_options_json TEXT,
+    timeshift TEXT,
+    stream_type TEXT,
+    thumbnail_url TEXT,
     UNIQUE (source_id, native_id)
 );
 

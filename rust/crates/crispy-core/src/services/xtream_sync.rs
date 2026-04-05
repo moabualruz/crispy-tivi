@@ -231,7 +231,14 @@ async fn download_m3u_to_temp_table(
              tvg_id TEXT,
              name TEXT,
              logo TEXT,
-             group_title TEXT
+             group_title TEXT,
+             catchup_type TEXT,
+             catchup_source TEXT,
+             catchup_days INTEGER,
+             tvg_name TEXT,
+             tvg_language TEXT,
+             tvg_shift TEXT,
+             is_radio INTEGER
          );
          DELETE FROM tmp_m3u_channels;",
     ) {
@@ -242,26 +249,67 @@ async fn download_m3u_to_temp_table(
     // Parse M3U line-by-line and insert into temp table directly.
     // We extract only the fields we need — no full Channel struct allocation.
     let mut inserted = 0usize;
-    let mut current_extinf: Option<(Option<String>, Option<String>, Option<String>, Option<String>)> = None;
+
+    #[allow(clippy::type_complexity)]
+    let mut current_extinf: Option<(
+        Option<String>, // tvg_id
+        Option<String>, // name (tvg-name used as display name fallback)
+        Option<String>, // logo
+        Option<String>, // group_title
+        Option<String>, // catchup_type
+        Option<String>, // catchup_source
+        Option<i64>,    // catchup_days
+        Option<String>, // tvg_name
+        Option<String>, // tvg_language
+        Option<String>, // tvg_shift
+        i64,            // is_radio (0/1)
+    )> = None;
 
     for line in content.lines() {
         let trimmed = line.trim();
         if trimmed.starts_with("#EXTINF") {
             let tvg_id = extract_m3u_attr(trimmed, "tvg-id");
-            let tvg_name = extract_m3u_attr(trimmed, "tvg-name");
+            let tvg_name_attr = extract_m3u_attr(trimmed, "tvg-name");
             let tvg_logo = extract_m3u_attr(trimmed, "tvg-logo");
             let group = extract_m3u_attr(trimmed, "group-title");
-            current_extinf = Some((tvg_id, tvg_name, tvg_logo, group));
+            let catchup_type = extract_m3u_attr(trimmed, "catchup");
+            let catchup_source = extract_m3u_attr(trimmed, "catchup-source");
+            let catchup_days = extract_m3u_attr(trimmed, "catchup-days")
+                .and_then(|s| s.parse::<i64>().ok());
+            let tvg_language = extract_m3u_attr(trimmed, "tvg-language");
+            let tvg_shift = extract_m3u_attr(trimmed, "tvg-shift");
+            let is_radio = extract_m3u_attr(trimmed, "radio")
+                .map(|v| if v.eq_ignore_ascii_case("true") || v == "1" { 1i64 } else { 0i64 })
+                .unwrap_or(0i64);
+            current_extinf = Some((
+                tvg_id,
+                tvg_name_attr.clone(),
+                tvg_logo,
+                group,
+                catchup_type,
+                catchup_source,
+                catchup_days,
+                tvg_name_attr,
+                tvg_language,
+                tvg_shift,
+                is_radio,
+            ));
         } else if !trimmed.is_empty() && !trimmed.starts_with('#') {
             // URL line — pair with previous #EXTINF
-            if let Some((tvg_id, name, logo, group)) = current_extinf.take() {
+            if let Some((tvg_id, name, logo, group, catchup_type, catchup_source, catchup_days, tvg_name, tvg_language, tvg_shift, is_radio)) = current_extinf.take() {
                 let norm = normalize_url(trimmed);
                 if !norm.is_empty() {
                     if let Err(e) = conn.execute(
                         "INSERT OR IGNORE INTO tmp_m3u_channels
-                         (stream_url_normalized, tvg_id, name, logo, group_title)
-                         VALUES (?1, ?2, ?3, ?4, ?5)",
-                        rusqlite::params![norm, tvg_id, name, logo, group],
+                         (stream_url_normalized, tvg_id, name, logo, group_title,
+                          catchup_type, catchup_source, catchup_days,
+                          tvg_name, tvg_language, tvg_shift, is_radio)
+                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+                        rusqlite::params![
+                            norm, tvg_id, name, logo, group,
+                            catchup_type, catchup_source, catchup_days,
+                            tvg_name, tvg_language, tvg_shift, is_radio
+                        ],
                     ) {
                         tracing::debug!(error = %e, "temp table insert skipped");
                     } else {
@@ -292,7 +340,9 @@ fn apply_m3u_metadata_from_temp_table(
     };
 
     let mut stmt = match conn.prepare(
-        "SELECT tvg_id, name, logo, group_title
+        "SELECT tvg_id, name, logo, group_title,
+                catchup_type, catchup_source, catchup_days,
+                tvg_name, tvg_language, tvg_shift, is_radio
          FROM tmp_m3u_channels WHERE stream_url_normalized = ?1",
     ) {
         Ok(s) => s,
@@ -306,23 +356,76 @@ fn apply_m3u_metadata_from_temp_table(
         }
         if let Ok(row) = stmt.query_row(rusqlite::params![norm], |row| {
             Ok((
-                row.get::<_, Option<String>>(0)?,
-                row.get::<_, Option<String>>(1)?,
-                row.get::<_, Option<String>>(2)?,
-                row.get::<_, Option<String>>(3)?,
+                row.get::<_, Option<String>>(0)?,  // tvg_id
+                row.get::<_, Option<String>>(1)?,  // name
+                row.get::<_, Option<String>>(2)?,  // logo
+                row.get::<_, Option<String>>(3)?,  // group_title
+                row.get::<_, Option<String>>(4)?,  // catchup_type
+                row.get::<_, Option<String>>(5)?,  // catchup_source
+                row.get::<_, Option<i32>>(6)?,     // catchup_days
+                row.get::<_, Option<String>>(7)?,  // tvg_name
+                row.get::<_, Option<String>>(8)?,  // tvg_language
+                row.get::<_, Option<String>>(9)?,  // tvg_shift
+                row.get::<_, Option<i64>>(10)?,    // is_radio
             ))
         }) {
-            let (tvg_id, _name, logo, group) = row;
-            // Only set tvg_id if channel doesn't already have one from Xtream API
+            let (tvg_id, _name, logo, _group,
+                 catchup_type, catchup_source, catchup_days,
+                 tvg_name, tvg_language, tvg_shift, is_radio) = row;
+
+            // Only set tvg_id if channel doesn't already have one from Xtream API.
             if ch.tvg_id.as_ref().map_or(true, |t| t.is_empty()) {
                 ch.tvg_id = tvg_id;
             }
-            // Enrich logo if missing
+            // Enrich logo if missing.
             if ch.logo_url.as_ref().map_or(true, |l| l.is_empty()) {
                 ch.logo_url = logo;
             }
             // group_title from M3U is not stored on Channel directly —
             // Xtream API provides category_id which is resolved separately.
+
+            // Enrich catchup fields if not already provided by Xtream API.
+            if !ch.has_catchup {
+                if let Some(ct) = catchup_type {
+                    if !ct.is_empty() {
+                        ch.catchup_type = Some(ct);
+                        if let Some(days) = catchup_days {
+                            if days > 0 {
+                                ch.catchup_days = days;
+                                ch.has_catchup = true;
+                            }
+                        }
+                    }
+                }
+            }
+            if ch.catchup_source.as_ref().map_or(true, |s| s.is_empty()) {
+                ch.catchup_source = catchup_source;
+            }
+            if ch.catchup_days == 0 {
+                if let Some(days) = catchup_days {
+                    if days > 0 {
+                        ch.catchup_days = days;
+                    }
+                }
+            }
+            // Enrich tvg_name if missing.
+            if ch.tvg_name.as_ref().map_or(true, |s| s.is_empty()) {
+                ch.tvg_name = tvg_name;
+            }
+            // Enrich tvg_language if missing.
+            if ch.tvg_language.as_ref().map_or(true, |s| s.is_empty()) {
+                ch.tvg_language = tvg_language;
+            }
+            // Enrich tvg_shift if missing.
+            if ch.tvg_shift.is_none() {
+                ch.tvg_shift = tvg_shift.and_then(|s| s.parse::<f64>().ok());
+            }
+            // Always apply is_radio from M3U (Xtream API doesn't provide this).
+            if let Some(flag) = is_radio {
+                if flag != 0 {
+                    ch.is_radio = true;
+                }
+            }
         }
     }
 }

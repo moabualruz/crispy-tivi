@@ -8,7 +8,7 @@ use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::models::Channel;
 
-/// SELECT column list for `db_channels` (33 columns, positional order).
+/// SELECT column list for `db_channels` (39 columns, positional order).
 ///
 /// Use with `format!("SELECT {CHANNEL_COLUMNS} FROM db_channels ...")`.
 /// Column order matches `channel_from_row` index bindings.
@@ -21,7 +21,9 @@ pub(crate) const CHANNEL_COLUMNS: &str = "id, native_id, name, stream_url, numbe
      tvg_shift, tvg_language, tvg_country, \
      parent_code, is_radio, tvg_rec, \
      is_adult, custom_sid, direct_source, \
-     stalker_cmd, resolved_url, resolved_at";
+     stalker_cmd, resolved_url, resolved_at, \
+     tvg_url, stream_properties_json, vlc_options_json, \
+     timeshift, stream_type, thumbnail_url";
 
 /// Map a single SQLite row to a `Channel`.
 ///
@@ -62,6 +64,12 @@ fn channel_from_row(row: &Row) -> rusqlite::Result<Channel> {
         stalker_cmd: row.get(30)?,
         resolved_url: row.get(31)?,
         resolved_at: row.get(32)?,
+        tvg_url: row.get(33)?,
+        stream_properties_json: row.get(34)?,
+        vlc_options_json: row.get(35)?,
+        timeshift: row.get(36)?,
+        stream_type: row.get(37)?,
+        thumbnail_url: row.get(38)?,
     })
 }
 
@@ -89,13 +97,16 @@ impl CrispyService {
                     tvg_shift, tvg_language, tvg_country,
                     parent_code, is_radio, tvg_rec,
                     is_adult, custom_sid, direct_source,
-                    stalker_cmd, resolved_url, resolved_at
+                    stalker_cmd, resolved_url, resolved_at,
+                    tvg_url, stream_properties_json, vlc_options_json,
+                    timeshift, stream_type, thumbnail_url
                 ) VALUES (
                     ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9,
                     ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
                     ?18, ?19, ?20, ?21, ?22, ?23, ?24,
                     ?25, ?26, ?27, ?28, ?29, ?30,
-                    ?31, ?32, ?33
+                    ?31, ?32, ?33,
+                    ?34, ?35, ?36, ?37, ?38, ?39
                 )
                 ON CONFLICT (source_id, native_id) DO UPDATE SET
                     name = excluded.name,
@@ -127,7 +138,13 @@ impl CrispyService {
                     direct_source = excluded.direct_source,
                     stalker_cmd = excluded.stalker_cmd,
                     resolved_url = excluded.resolved_url,
-                    resolved_at = excluded.resolved_at",
+                    resolved_at = excluded.resolved_at,
+                    tvg_url = excluded.tvg_url,
+                    stream_properties_json = excluded.stream_properties_json,
+                    vlc_options_json = excluded.vlc_options_json,
+                    timeshift = excluded.timeshift,
+                    stream_type = excluded.stream_type,
+                    thumbnail_url = excluded.thumbnail_url",
                 params![
                     ch.id,
                     ch.native_id,
@@ -162,6 +179,12 @@ impl CrispyService {
                     ch.stalker_cmd,
                     ch.resolved_url,
                     ch.resolved_at,
+                    ch.tvg_url,
+                    ch.stream_properties_json,
+                    ch.vlc_options_json,
+                    ch.timeshift,
+                    ch.stream_type,
+                    ch.thumbnail_url,
                 ],
             )?;
             count += 1;

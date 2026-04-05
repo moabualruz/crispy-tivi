@@ -71,6 +71,12 @@ pub fn make_channel(id: &str, name: &str) -> Channel {
         stalker_cmd: None,
         resolved_url: None,
         resolved_at: None,
+        tvg_url: None,
+        stream_properties_json: None,
+        vlc_options_json: None,
+        timeshift: None,
+        stream_type: None,
+        thumbnail_url: None,
     }
 }
 

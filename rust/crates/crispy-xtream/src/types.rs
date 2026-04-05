@@ -193,6 +193,10 @@ pub struct XtreamChannel {
     #[serde(default)]
     pub tv_archive_duration: Option<i64>,
 
+    /// Whether this channel is flagged as adult content by the provider.
+    #[serde(default)]
+    pub is_adult: bool,
+
     /// Generated stream URL (populated by the client).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
