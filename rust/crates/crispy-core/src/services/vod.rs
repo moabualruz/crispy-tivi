@@ -99,7 +99,9 @@ impl CrispyService {
                 ) VALUES (
                     ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
                     ?9, ?10, ?11, ?12, ?13, ?14, ?15,
-                    ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23
+                    ?16, ?17, ?18, ?19, ?20, ?21,
+                    COALESCE(?22, strftime('%s','now')),
+                    COALESCE(?23, strftime('%s','now'))
                 )
                 ON CONFLICT (source_id, native_id) DO UPDATE SET
                     name = excluded.name,
