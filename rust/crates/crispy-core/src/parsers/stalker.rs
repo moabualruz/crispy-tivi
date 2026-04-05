@@ -528,8 +528,13 @@ pub fn parse_stalker_vod_items(
                 .and_then(|ts| DateTime::from_timestamp(ts, 0))
                 .map(|dt| dt.naive_utc());
 
+            let stalker_native_id = map
+                .get("id")
+                .and_then(|v| v.as_str().map(String::from).or_else(|| Some(v.to_string())))
+                .unwrap_or_default();
             Some(VodItem {
                 id: new_entity_id(),
+                native_id: stalker_native_id,
                 name: name.to_string(),
                 stream_url,
                 item_type: vod_type.to_string(),

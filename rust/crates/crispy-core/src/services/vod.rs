@@ -8,11 +8,38 @@ use crate::database::{DbError, TABLE_MOVIES};
 use crate::events::DataChangeEvent;
 use crate::models::VodItem;
 
-/// SELECT column list for `db_movies` mapped to VodItem fields (26 columns).
+/// SELECT column list for `db_movies` mapped to VodItem fields.
 ///
-/// This provides backward compatibility: the old VodItem-based API
-/// reads from the new `db_movies` table. Fields that don't exist in
-/// db_movies (series_id, season_number, episode_number) are returned as NULL.
+/// Column order (0-based):
+///   0  id
+///   1  name
+///   2  stream_url
+///   3  type        (literal 'movie')
+///   4  poster_url
+///   5  backdrop_url
+///   6  description
+///   7  rating
+///   8  year
+///   9  duration_minutes
+///  10  genre
+///  11  series_id   (NULL)
+///  12  season_number (NULL)
+///  13  episode_number (NULL)
+///  14  container_ext
+///  15  is_favorite (0)
+///  16  added_at
+///  17  updated_at
+///  18  source_id
+///  19  cast_names
+///  20  director
+///  21  genre       (duplicate for backward compat)
+///  22  youtube_trailer
+///  23  tmdb_id
+///  24  rating_5based
+///  25  original_name
+///  26  is_adult
+///  27  content_rating
+///  28  native_id
 pub(crate) const VOD_COLUMNS: &str = "id, name, stream_url, \
      'movie' AS type, \
      poster_url, backdrop_url, \
@@ -23,7 +50,8 @@ pub(crate) const VOD_COLUMNS: &str = "id, name, stream_url, \
      updated_at, source_id, \
      cast_names, director, genre, \
      youtube_trailer, tmdb_id, rating_5based, \
-     original_name, is_adult, content_rating";
+     original_name, is_adult, content_rating, \
+     native_id";
 
 /// Same as `VOD_COLUMNS` but qualified with table alias `v.` for JOIN queries.
 pub(crate) const VOD_COLUMNS_V: &str = "v.id, v.name, v.stream_url, \
@@ -36,7 +64,8 @@ pub(crate) const VOD_COLUMNS_V: &str = "v.id, v.name, v.stream_url, \
      v.updated_at, v.source_id, \
      v.cast_names, v.director, v.genre, \
      v.youtube_trailer, v.tmdb_id, v.rating_5based, \
-     v.original_name, v.is_adult, v.content_rating";
+     v.original_name, v.is_adult, v.content_rating, \
+     v.native_id";
 
 /// Map a single SQLite row to a `VodItem` (backward compat).
 pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
@@ -69,6 +98,7 @@ pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
         original_name: row.get(25)?,
         is_adult: int_to_bool(row.get(26)?),
         content_rating: row.get(27)?,
+        native_id: row.get::<_, Option<String>>(28)?.unwrap_or_default(),
     })
 }
 
@@ -128,7 +158,7 @@ impl CrispyService {
                 params![
                     v.id,
                     source_id,
-                    v.id, // native_id = id for legacy items
+                    v.native_id,
                     v.name,
                     v.original_name,
                     v.poster_url,

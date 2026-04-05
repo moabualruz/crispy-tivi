@@ -693,6 +693,7 @@ mod tests {
     ) -> VodItem {
         VodItem {
             id: id.to_string(),
+            native_id: id.to_string(),
             name: name.to_string(),
             stream_url: format!("http://example.com/vod/{id}"),
             item_type: item_type.to_string(),

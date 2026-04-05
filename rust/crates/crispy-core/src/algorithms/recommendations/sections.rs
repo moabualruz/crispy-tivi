@@ -413,6 +413,7 @@ mod tests {
         use chrono::Duration;
         VodItem {
             id: id.to_string(),
+            native_id: id.to_string(),
             name: format!("Film {id}"),
             stream_url: "http://stream".to_string(),
             item_type: item_type.to_string(),

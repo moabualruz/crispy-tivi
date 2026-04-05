@@ -421,8 +421,12 @@ pub struct Episode {
 /// to the new Movie/Series/Episode types yet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VodItem {
-    /// Unique VOD item identifier.
+    /// Unique VOD item identifier (UUID v7).
     pub id: String,
+    /// Provider's stable ID for this item (e.g. Xtream stream_id).
+    /// Used with source_id for upsert conflict resolution.
+    #[serde(default)]
+    pub native_id: String,
     /// Display name / title.
     pub name: String,
     /// Direct stream URL.
@@ -508,6 +512,7 @@ impl Default for VodItem {
     fn default() -> Self {
         Self {
             id: String::new(),
+            native_id: String::new(),
             name: String::new(),
             stream_url: String::new(),
             item_type: "movie".to_string(),
@@ -579,6 +584,7 @@ impl From<Movie> for VodItem {
     fn from(m: Movie) -> Self {
         VodItem {
             id: m.id,
+            native_id: m.native_id,
             name: m.name,
             stream_url: m.stream_url.unwrap_or_default(),
             item_type: "movie".to_string(),
@@ -618,6 +624,7 @@ impl From<Series> for VodItem {
     fn from(s: Series) -> Self {
         VodItem {
             id: s.id,
+            native_id: s.native_id,
             name: s.name,
             stream_url: String::new(),
             item_type: "series".to_string(),

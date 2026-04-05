@@ -71,8 +71,13 @@ pub fn parse_vod_streams(
 
             let backdrop_url = parse_backdrop(map.get("backdrop_path"));
 
+            let native_id_str = stream_id
+                .as_str()
+                .map(String::from)
+                .unwrap_or_else(|| stream_id.to_string());
             Some(VodItem {
                 id: format!("vod_{}", stream_id),
+                native_id: native_id_str,
                 name: name.to_string(),
                 stream_url,
                 item_type: "movie".to_string(),
@@ -184,8 +189,13 @@ pub fn parse_series(data: &[Value], source_id: Option<&str>) -> Vec<VodItem> {
                     .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
             });
 
+            let native_id_str = series_id
+                .as_str()
+                .map(String::from)
+                .unwrap_or_else(|| series_id.to_string());
             Some(VodItem {
                 id: format!("series_{}", series_id),
+                native_id: native_id_str,
                 name: name.to_string(),
                 stream_url: String::new(),
                 item_type: "series".to_string(),
@@ -373,6 +383,7 @@ pub fn parse_episodes(
 
             episodes.push(VodItem {
                 id: format!("ep_{}_{}", series_id, ep_id,),
+                native_id: ep_id.clone(),
                 name: title.to_string(),
                 stream_url,
                 item_type: "episode".to_string(),
@@ -460,7 +471,8 @@ pub fn parse_m3u_vod(channels: &[Value], source_id: Option<&str>) -> Vec<VodItem
             let id = format!("mvod_{:x}", simple_hash(url),);
 
             Some(VodItem {
-                id,
+                id: id.clone(),
+                native_id: id,
                 name: name.to_string(),
                 stream_url: url.to_string(),
                 item_type: "movie".to_string(),

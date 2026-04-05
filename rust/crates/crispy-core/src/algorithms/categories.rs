@@ -461,6 +461,7 @@ mod tests {
     fn make_vod(id: &str, cat: Option<&str>) -> VodItem {
         VodItem {
             id: id.to_string(),
+            native_id: id.to_string(),
             name: format!("Vod {id}"),
             stream_url: String::new(),
             item_type: "movie".to_string(),
@@ -679,6 +680,7 @@ mod tests {
     fn make_typed_vod(id: &str, cat: Option<&str>, vod_type: &str) -> VodItem {
         VodItem {
             id: id.to_string(),
+            native_id: id.to_string(),
             name: format!("Item {id}"),
             stream_url: String::new(),
             item_type: vod_type.to_string(),

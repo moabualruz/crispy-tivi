@@ -109,6 +109,7 @@ pub fn make_profile(id: &str, name: &str) -> UserProfile {
 pub fn make_vod_item(id: &str, name: &str) -> VodItem {
     VodItem {
         id: id.to_string(),
+        native_id: id.to_string(),
         name: name.to_string(),
         stream_url: format!("http://example.com/vod/{id}"),
         item_type: "movie".to_string(),
