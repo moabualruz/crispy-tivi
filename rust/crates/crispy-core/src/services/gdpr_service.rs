@@ -271,6 +271,9 @@ mod tests {
             created_at: None,
             updated_at: None,
             credentials_encrypted: false,
+            deleted_at: None,
+            epg_etag: None,
+            epg_last_modified: None,
         };
         svc.save_source(&src).unwrap();
         svc.grant_source_access("p1", "src1").unwrap();

@@ -19,6 +19,7 @@ pub mod app_update;
 pub mod audio_output;
 pub mod backup_service;
 pub mod cast_service;
+pub mod cleanup;
 pub mod content_filter;
 pub mod crash_recovery;
 pub mod deep_link_router;
@@ -143,6 +144,14 @@ pub struct CrispyService {
     pub(super) db: Database,
     pub(super) event_cb: Arc<Mutex<Option<EventCallback>>>,
     pub(super) batching: Arc<Mutex<bool>>,
+    /// Mutex that serialises concurrent `save_sync_data` calls.
+    ///
+    /// A sync for source A must not interleave with a sync for source B
+    /// inside the same process: both operate on the same connection pool
+    /// and the outer transaction in `save_sync_data` must be the only
+    /// writer at the time. Holding this lock for the duration of the
+    /// outer transaction provides that guarantee.
+    pub(super) sync_mutex: Arc<Mutex<()>>,
     /// Optional OS keyring used for credential encryption/decryption (spec 7.5).
     ///
     /// `None` in test builds (no keyring available). When `Some`, credentials
@@ -176,29 +185,30 @@ pub(crate) fn str_params(ids: &[String]) -> Vec<&dyn rusqlite::types::ToSql> {
 }
 
 /// Delete rows from `table` belonging to `source_id` whose `id`
-/// is not in `keep_ids`. Runs inside the provided transaction.
+/// is not in `keep_ids`. Accepts any `rusqlite::Connection`-like
+/// handle (including a `Transaction` which derefs to `Connection`).
 /// Returns the number of rows deleted.
-pub(super) fn delete_removed_by_source(
-    tx: &rusqlite::Transaction,
+pub(super) fn delete_removed_by_source_conn(
+    conn: &rusqlite::Connection,
     table: &str,
     source_id: &str,
     keep_ids: &[String],
 ) -> Result<usize, DbError> {
     let temp = format!("_keep_{table}");
-    tx.execute(
+    conn.execute(
         &format!("CREATE TEMP TABLE IF NOT EXISTS {temp} (id TEXT PRIMARY KEY)"),
         [],
     )?;
-    tx.execute(&format!("DELETE FROM {temp}"), [])?;
+    conn.execute(&format!("DELETE FROM {temp}"), [])?;
     let insert_sql = format!("INSERT OR IGNORE INTO {temp} (id) VALUES (?1)");
     for id in keep_ids {
-        tx.execute(&insert_sql, params![id])?;
+        conn.execute(&insert_sql, params![id])?;
     }
-    let deleted = tx.execute(
+    let deleted = conn.execute(
         &format!("DELETE FROM {table} WHERE source_id = ?1 AND id NOT IN (SELECT id FROM {temp})"),
         params![source_id],
     )?;
-    tx.execute(&format!("DROP TABLE IF EXISTS {temp}"), [])?;
+    conn.execute(&format!("DROP TABLE IF EXISTS {temp}"), [])?;
     Ok(deleted)
 }
 
@@ -209,6 +219,7 @@ impl CrispyService {
             db,
             event_cb: Arc::new(Mutex::new(None)),
             batching: Arc::new(Mutex::new(false)),
+            sync_mutex: Arc::new(Mutex::new(())),
             keyring: None,
         }
     }
@@ -222,6 +233,7 @@ impl CrispyService {
             db,
             event_cb: Arc::new(Mutex::new(None)),
             batching: Arc::new(Mutex::new(false)),
+            sync_mutex: Arc::new(Mutex::new(())),
             keyring: Some(Arc::new(keyring)),
         }
     }
@@ -285,12 +297,19 @@ impl CrispyService {
         }
     }
 
-    /// Persist a full sync batch (channels + VOD) inside a single
-    /// `batch_events` scope so Flutter receives one `BulkDataRefresh`.
+    /// Persist a full sync batch (channels + VOD) atomically.
     ///
-    /// Called by every sync backend (M3U, Xtream, Stalker) after
-    /// fetching and parsing content. Saves channels, prunes removed
-    /// channels, saves VOD items, and prunes removed VOD items.
+    /// All four write operations — upsert channels, prune stale channels,
+    /// upsert VOD items, prune stale VOD items — run inside a **single**
+    /// `unchecked_transaction`. A crash or error between sub-operations
+    /// rolls back the entire batch, leaving the database in its previous
+    /// consistent state.
+    ///
+    /// A `sync_mutex` guard serialises concurrent calls so that two syncs
+    /// for different sources cannot interleave writes on the same connection.
+    ///
+    /// Events are emitted only **after** a successful commit so that
+    /// Flutter subscribers never observe a partially-written state.
     pub fn save_sync_data(
         &self,
         source_id: &str,
@@ -299,17 +318,44 @@ impl CrispyService {
         vod_items: &[crate::models::VodItem],
         vod_ids: &[String],
     ) -> Result<(), crate::database::DbError> {
+        // Serialise concurrent syncs for the duration of the transaction.
+        let _sync_guard = self.sync_mutex.lock().unwrap_or_else(|e| e.into_inner());
+
+        {
+            let conn = self.db.get()?;
+            let tx = conn.unchecked_transaction()?;
+
+            Self::save_channels_inner(&tx, channels)?;
+            Self::delete_removed_channels_inner(&tx, source_id, channel_ids)?;
+            Self::save_vod_items_inner(&tx, vod_items)?;
+            Self::delete_removed_vod_items_inner(&tx, source_id, vod_ids)?;
+
+            tx.commit()?;
+        }
+        // sync_guard released here — commit is done.
+        drop(_sync_guard);
+
+        // Emit events only after a successful commit. batch_events suppresses
+        // individual emissions and emits a single BulkDataRefresh at the end.
         self.batch_events(|svc| {
-            svc.save_channels(channels)?;
-            svc.delete_removed_channels(source_id, channel_ids)?;
-            svc.save_vod_items(vod_items)?;
-            svc.delete_removed_vod_items(source_id, vod_ids)?;
             // Generate placeholder EPG entries for channels without
             // real EPG data. Placeholders ensure every channel has DB
             // coverage, preventing repeated L3 fetch attempts.
             let _ = svc.generate_placeholders_for_channels(channels);
-            Ok(())
-        })
+
+            svc.emit_per_source(
+                channels,
+                |ch| ch.source_id.as_deref(),
+                |sid| DataChangeEvent::ChannelsUpdated { source_id: sid },
+            );
+            svc.emit_per_source(
+                vod_items,
+                |v| v.source_id.as_deref(),
+                |sid| DataChangeEvent::VodUpdated { source_id: sid },
+            );
+        });
+
+        Ok(())
     }
 
     /// Suppresses individual event emission during the

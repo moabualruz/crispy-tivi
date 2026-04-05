@@ -9,7 +9,7 @@ serde_json.workspace = true
 rusqlite.workspace = true
 thiserror.workspace = true
 chrono.workspace = true
-uuid.workspace = true
+uuid = { version = "1", features = ["v7"] }
 regex.workspace = true
 base64.workspace = true
 hmac.workspace = true
@@ -48,6 +48,7 @@ quick-xml.workspace = true
 # Crispy IPTV crates
 crispy-iptv-types = { path = "../crispy-iptv-types" }
 crispy-m3u = { path = "../crispy-m3u" }
+crispy-xmltv = { path = "../crispy-xmltv" }
 crispy-xtream = { path = "../crispy-xtream" }
 crispy-stalker = { path = "../crispy-stalker" }
 crispy-stream-checker = { path = "../crispy-stream-checker" }

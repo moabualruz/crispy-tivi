@@ -6,7 +6,7 @@
 
 use sha2::{Digest, Sha256};
 
-use crate::models::{Channel, EpgEntry, Movie, Series};
+use crate::models::{Channel, EpgEntry, Movie, Series, new_entity_id};
 use crate::utils::image_sanitizer::sanitize_image_url;
 
 // ── Helpers ─────────────────────────────────────────
@@ -76,7 +76,7 @@ impl From<crispy_m3u::M3uEntry> for Channel {
         let tvg_shift = e.tvg_shift;
 
         Channel {
-            id: native_id.clone(),
+            id: new_entity_id(),
             native_id,
             name,
             stream_url: url,
@@ -84,6 +84,7 @@ impl From<crispy_m3u::M3uEntry> for Channel {
             channel_group: e.group_title,
             logo_url: sanitize_image_url(e.tvg_logo),
             tvg_id: e.tvg_id,
+            xtream_stream_id: None,
             tvg_name: e.tvg_name,
             is_favorite: false,
             user_agent: None,
@@ -118,7 +119,6 @@ impl From<crispy_m3u::M3uEntry> for Channel {
 impl From<crispy_xtream::types::XtreamChannel> for Channel {
     fn from(xc: crispy_xtream::types::XtreamChannel) -> Self {
         let native_id = xc.stream_id.to_string();
-        let id = format!("xc_{}", xc.stream_id);
 
         let tv_archive = xc.tv_archive.unwrap_or(0);
         let archive_dur = xc.tv_archive_duration.unwrap_or(0) as i32;
@@ -142,7 +142,7 @@ impl From<crispy_xtream::types::XtreamChannel> for Channel {
             .map(|dt| dt.naive_utc());
 
         Channel {
-            id,
+            id: new_entity_id(),
             native_id,
             name: xc.name.clone(),
             stream_url: xc.url.unwrap_or_default(),
@@ -150,6 +150,7 @@ impl From<crispy_xtream::types::XtreamChannel> for Channel {
             channel_group: xc.category_id.clone(),
             logo_url: sanitize_image_url(xc.stream_icon),
             tvg_id: Some(tvg_id),
+            xtream_stream_id: Some(xc.stream_id.to_string()),
             tvg_name: Some(xc.name),
             epg_channel_id,
             is_favorite: false,
@@ -184,12 +185,11 @@ impl From<crispy_xtream::types::XtreamChannel> for Channel {
 impl From<crispy_stalker::types::StalkerChannel> for Channel {
     fn from(sc: crispy_stalker::types::StalkerChannel) -> Self {
         let native_id = sc.id.clone();
-        let id = format!("stk_{}", sc.id);
 
         let has_catchup = sc.has_archive && sc.archive_days > 0;
 
         Channel {
-            id,
+            id: new_entity_id(),
             native_id,
             name: sc.name,
             // The cmd is stored as stalker_cmd for later resolution;
@@ -199,6 +199,7 @@ impl From<crispy_stalker::types::StalkerChannel> for Channel {
             channel_group: sc.tv_genre_id,
             logo_url: sanitize_image_url(sc.logo),
             tvg_id: None,
+            xtream_stream_id: None,
             tvg_name: None,
             epg_channel_id: sc.epg_channel_id,
             is_favorite: false,
@@ -233,7 +234,6 @@ impl From<crispy_stalker::types::StalkerChannel> for Channel {
 impl From<crispy_xtream::types::XtreamMovieListing> for Movie {
     fn from(m: crispy_xtream::types::XtreamMovieListing) -> Self {
         let native_id = m.stream_id.to_string();
-        let id = format!("vod_{}", m.stream_id);
 
         let year = m.year.as_deref().and_then(|s| s.parse::<i32>().ok());
 
@@ -253,7 +253,7 @@ impl From<crispy_xtream::types::XtreamMovieListing> for Movie {
             .map(|dt| dt.naive_utc());
 
         Movie {
-            id,
+            id: new_entity_id(),
             source_id: String::new(),
             native_id,
             name: m.name,
@@ -288,7 +288,6 @@ impl From<crispy_xtream::types::XtreamMovieListing> for Movie {
 impl From<crispy_xtream::types::XtreamShowListing> for Series {
     fn from(s: crispy_xtream::types::XtreamShowListing) -> Self {
         let native_id = s.series_id.to_string();
-        let id = format!("series_{}", s.series_id);
 
         let year = s.year.as_deref().and_then(|y| y.parse::<i32>().ok());
 
@@ -303,7 +302,7 @@ impl From<crispy_xtream::types::XtreamShowListing> for Series {
             .map(String::from);
 
         Series {
-            id,
+            id: new_entity_id(),
             source_id: String::new(),
             native_id,
             name: s.name,
@@ -332,12 +331,11 @@ impl From<crispy_xtream::types::XtreamShowListing> for Series {
 impl From<crispy_stalker::types::StalkerVodItem> for Movie {
     fn from(v: crispy_stalker::types::StalkerVodItem) -> Self {
         let native_id = v.id.clone();
-        let id = format!("stk_vod_{}", v.id);
 
         let year = v.year.as_deref().and_then(|s| s.parse::<i32>().ok());
 
         Movie {
-            id,
+            id: new_entity_id(),
             source_id: String::new(),
             native_id,
             name: v.name,
@@ -372,12 +370,11 @@ impl From<crispy_stalker::types::StalkerVodItem> for Movie {
 impl From<crispy_stalker::types::StalkerSeriesItem> for Series {
     fn from(s: crispy_stalker::types::StalkerSeriesItem) -> Self {
         let native_id = s.id.clone();
-        let id = format!("stk_series_{}", s.id);
 
         let year = s.year.as_deref().and_then(|y| y.parse::<i32>().ok());
 
         Series {
-            id,
+            id: new_entity_id(),
             source_id: String::new(),
             native_id,
             name: s.name,
@@ -468,7 +465,7 @@ impl From<crispy_iptv_types::epg::EpgProgramme> for EpgEntry {
             .unwrap_or(start_time);
 
         EpgEntry {
-            channel_id: p.channel,
+            epg_channel_id: p.channel,
             xmltv_id: None,
             title,
             start_time,
@@ -542,6 +539,11 @@ mod tests {
     use super::*;
     use crispy_iptv_types::epg::{EpgEpisodeNumber, EpgIcon, EpgProgramme, EpgRating};
 
+    fn assert_uuid_v7(id: &str) {
+        let parsed = uuid::Uuid::parse_str(id).expect("valid UUID");
+        assert_eq!(parsed.get_version_num(), 7);
+    }
+
     #[test]
     fn m3u_entry_to_channel_basic() {
         let entry = crispy_m3u::M3uEntry {
@@ -558,6 +560,7 @@ mod tests {
         assert_eq!(ch.tvg_id.as_deref(), Some("ch1"));
         assert_eq!(ch.channel_group.as_deref(), Some("News"));
         assert!(!ch.native_id.is_empty());
+        assert_uuid_v7(&ch.id);
         assert_eq!(ch.stream_url, "http://example.com/stream");
     }
 
@@ -570,7 +573,8 @@ mod tests {
         };
         let ch: Channel = entry.into();
         assert_eq!(ch.native_id.len(), 16); // 8 bytes = 16 hex chars
-        assert_eq!(ch.id, ch.native_id);
+        assert_uuid_v7(&ch.id);
+        assert_ne!(ch.id, ch.native_id);
     }
 
     #[test]
@@ -594,7 +598,7 @@ mod tests {
         };
 
         let ch: Channel = xc.into();
-        assert_eq!(ch.id, "xc_42");
+        assert_uuid_v7(&ch.id);
         assert_eq!(ch.native_id, "42");
         assert_eq!(ch.name, "BBC One");
         assert_eq!(ch.epg_channel_id.as_deref(), Some("bbc1.uk"));
@@ -620,7 +624,7 @@ mod tests {
         };
 
         let ch: Channel = sc.into();
-        assert_eq!(ch.id, "stk_100");
+        assert_uuid_v7(&ch.id);
         assert_eq!(ch.native_id, "100");
         assert_eq!(
             ch.stalker_cmd.as_deref(),
@@ -661,7 +665,7 @@ mod tests {
         };
 
         let movie: Movie = ml.into();
-        assert_eq!(movie.id, "vod_99");
+        assert_uuid_v7(&movie.id);
         assert_eq!(movie.native_id, "99");
         assert_eq!(movie.name, "Test Movie");
         assert_eq!(movie.year, Some(2024));
@@ -695,7 +699,7 @@ mod tests {
         };
 
         let series: Series = sl.into();
-        assert_eq!(series.id, "series_55");
+        assert_uuid_v7(&series.id);
         assert_eq!(series.native_id, "55");
         assert_eq!(series.name, "Test Series");
         assert_eq!(series.year, Some(2023));
@@ -720,7 +724,7 @@ mod tests {
         };
 
         let movie: Movie = vi.into();
-        assert_eq!(movie.id, "stk_vod_200");
+        assert_uuid_v7(&movie.id);
         assert_eq!(movie.native_id, "200");
         assert_eq!(
             movie.stalker_cmd.as_deref(),
@@ -746,7 +750,7 @@ mod tests {
         };
 
         let series: Series = si.into();
-        assert_eq!(series.id, "stk_series_300");
+        assert_uuid_v7(&series.id);
         assert_eq!(series.native_id, "300");
         assert_eq!(series.year, Some(2021));
     }
@@ -790,7 +794,7 @@ mod tests {
         });
 
         let entry: EpgEntry = prog.into();
-        assert_eq!(entry.channel_id, "ch1");
+        assert_eq!(entry.epg_channel_id, "ch1");
         assert_eq!(entry.title, "Morning Show");
         assert_eq!(entry.description.as_deref(), Some("Daily news"));
         assert_eq!(entry.sub_title.as_deref(), Some("Episode 5"));

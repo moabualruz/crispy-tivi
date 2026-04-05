@@ -13,6 +13,10 @@ pub use content_rating::ContentRating;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
+pub fn new_entity_id() -> String {
+    uuid::Uuid::now_v7().to_string()
+}
+
 // ── Channel ─────────────────────────────────────────
 
 /// A live TV channel from an IPTV source.
@@ -43,6 +47,9 @@ pub struct Channel {
     /// EPG `tvg-id` for guide matching (M3U compatibility).
     #[serde(default)]
     pub tvg_id: Option<String>,
+    /// Xtream `stream_id` used for on-demand `get_short_epg` lookups.
+    #[serde(default)]
+    pub xtream_stream_id: Option<String>,
     /// Unified EPG matching field.
     #[serde(default)]
     pub epg_channel_id: Option<String>,
@@ -718,9 +725,9 @@ pub struct Setting {
 /// primary key: (`source_id`, `epg_channel_id`, `start_time`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EpgEntry {
-    /// EPG channel ID (XMLTV channel ID or Xtream stream_id).
-    /// In the DB this is `epg_channel_id`.
-    pub channel_id: String,
+    /// XMLTV channel ID — the EPG bridge key.
+    /// Joins to `db_channels.tvg_id`. Stored as `epg_channel_id` in the DB.
+    pub epg_channel_id: String,
     /// XMLTV channel ID (maps to tvg_id in M3U).
     #[serde(default)]
     pub xmltv_id: Option<String>,
@@ -796,7 +803,7 @@ impl Default for EpgEntry {
             chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap(),
         );
         Self {
-            channel_id: String::new(),
+            epg_channel_id: String::new(),
             xmltv_id: None,
             title: String::new(),
             start_time: epoch,
@@ -1073,6 +1080,15 @@ pub struct Source {
     /// on first load and sets this to `true`.
     #[serde(default)]
     pub credentials_encrypted: bool,
+    /// Soft-delete timestamp (Unix seconds). NULL = active; set = soft-deleted.
+    #[serde(default)]
+    pub deleted_at: Option<i64>,
+    /// ETag header from the last EPG fetch for conditional HTTP requests.
+    #[serde(default)]
+    pub epg_etag: Option<String>,
+    /// Last-Modified header from the last EPG fetch for conditional HTTP requests.
+    #[serde(default)]
+    pub epg_last_modified: Option<String>,
 }
 
 // ── XtreamAccountInfo ───────────────────────────────

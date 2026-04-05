@@ -562,6 +562,7 @@ dependencies = [
  "crispy-m3u",
  "crispy-stalker",
  "crispy-stream-checker",
+ "crispy-xmltv",
  "crispy-xtream",
  "dirs",
  "fake",

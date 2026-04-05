@@ -24,7 +24,7 @@ use super::DbError;
 ///
 /// When adding a new migration file, update this constant to match the
 /// new `PRAGMA user_version` value set by that file.
-pub const LATEST_VERSION: u32 = 36;
+pub const LATEST_VERSION: u32 = 38;
 
 /// Ordered list of `(target_user_version, sql)` pairs.
 ///
@@ -41,6 +41,7 @@ static MIGRATIONS: &[(u32, &str)] = &[
     // 001 — consolidated schema: all tables, FK CASCADE, CHECK
     //        constraints, indexes.  Absorbs former 001-010.
     (36, include_str!("migrations/001_initial_schema.sql")),
+    (37, include_str!("migrations/002_add_xtream_stream_id.sql")),
 ];
 
 /// Run all pending migrations against `conn`.
@@ -54,7 +55,7 @@ static MIGRATIONS: &[(u32, &str)] = &[
 /// Safe to call on every startup — already-applied migrations are
 /// skipped in O(1) without touching the database.
 pub fn run_migrations(conn: &Connection) -> Result<(), DbError> {
-    let current: u32 = conn.pragma_query_value(None, "user_version", |row| row.get(0))?;
+    let mut current: u32 = conn.pragma_query_value(None, "user_version", |row| row.get(0))?;
 
     for (target, sql) in MIGRATIONS {
         if *target <= current {
@@ -68,6 +69,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), DbError> {
             Ok(()) => {
                 // The SQL file sets PRAGMA user_version itself; commit.
                 conn.execute_batch("COMMIT;")?;
+                current = conn.pragma_query_value(None, "user_version", |row| row.get(0))?;
                 tracing::info!(version = target, "db migration applied");
             }
             Err(e) => {
@@ -202,14 +204,12 @@ mod tests {
             "db_storage_backends",
             "db_stream_health",
             "db_stream_urls",
-            "db_sync_meta",
             "db_transfer_tasks",
             "db_user_favorites",
             "db_vod_categories",
             "db_vod_favorites",
             "db_watch_history",
             "db_watchlist",
-            "merge_decisions",
         ];
 
         for name in &required {
@@ -238,6 +238,26 @@ mod tests {
         assert!(
             columns.contains(&"credentials_encrypted".to_string()),
             "credentials_encrypted column must exist on db_sources"
+        );
+    }
+
+    #[test]
+    fn test_channels_xtream_stream_id_column_exists() {
+        let conn = open_memory();
+        run_migrations(&conn).expect("run_migrations");
+
+        let mut stmt = conn
+            .prepare("PRAGMA table_info(db_channels)")
+            .expect("prepare pragma");
+        let columns: Vec<String> = stmt
+            .query_map([], |row| row.get(1))
+            .expect("query")
+            .filter_map(|r| r.ok())
+            .collect();
+
+        assert!(
+            columns.contains(&"xtream_stream_id".to_string()),
+            "xtream_stream_id column must exist on db_channels"
         );
     }
 
@@ -418,8 +438,6 @@ mod tests {
             "idx_epg_xmltv_time",
             "idx_episodes_season",
             "idx_episodes_source",
-            "idx_merge_decisions_source",
-            "idx_merge_decisions_type",
             "idx_movies_name",
             "idx_movies_native",
             "idx_movies_source",

@@ -75,17 +75,18 @@ pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
 impl CrispyService {
     // ── VOD Items (backward compat — writes to db_movies) ──
 
-    /// Batch upsert VOD items into db_movies. Returns count inserted.
+    /// Batch upsert VOD items using a caller-supplied connection.
     ///
-    /// This is a backward-compatibility shim: parsers still produce
-    /// VodItem structs which are mapped to db_movies rows.
-    pub fn save_vod_items(&self, items: &[VodItem]) -> Result<usize, DbError> {
-        let conn = self.db.get()?;
-        let tx = conn.unchecked_transaction()?;
+    /// Intended for use inside a shared outer transaction (e.g. `save_sync_data`).
+    /// The caller owns the transaction boundary; this method does not commit.
+    pub(super) fn save_vod_items_inner(
+        conn: &rusqlite::Connection,
+        items: &[VodItem],
+    ) -> Result<usize, DbError> {
         let mut count = 0usize;
         for v in items {
             let source_id = v.source_id.clone().unwrap_or_default();
-            tx.execute(
+            conn.execute(
                 "INSERT INTO db_movies (
                     id, source_id, native_id, name,
                     original_name, poster_url, backdrop_url,
@@ -101,7 +102,6 @@ impl CrispyService {
                     ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23
                 )
                 ON CONFLICT (source_id, native_id) DO UPDATE SET
-                    id = excluded.id,
                     name = excluded.name,
                     original_name = excluded.original_name,
                     poster_url = excluded.poster_url,
@@ -149,14 +149,36 @@ impl CrispyService {
             )?;
             count += 1;
         }
+        #[cfg(debug_assertions)]
+        eprintln!("[debug] Inserted {} VOD items", count);
+        Ok(count)
+    }
+
+    /// Delete VOD items not in `keep_ids` using a caller-supplied connection.
+    ///
+    /// Intended for use inside a shared outer transaction. Does not commit.
+    pub(super) fn delete_removed_vod_items_inner(
+        conn: &rusqlite::Connection,
+        source_id: &str,
+        keep_ids: &[String],
+    ) -> Result<usize, DbError> {
+        super::delete_removed_by_source_conn(conn, TABLE_MOVIES, source_id, keep_ids)
+    }
+
+    /// Batch upsert VOD items into db_movies. Returns count inserted.
+    ///
+    /// This is a backward-compatibility shim: parsers still produce
+    /// VodItem structs which are mapped to db_movies rows.
+    pub fn save_vod_items(&self, items: &[VodItem]) -> Result<usize, DbError> {
+        let conn = self.db.get()?;
+        let tx = conn.unchecked_transaction()?;
+        let count = Self::save_vod_items_inner(&tx, items)?;
         tx.commit()?;
         self.emit_per_source(
             items,
             |v| v.source_id.as_deref(),
             |sid| DataChangeEvent::VodUpdated { source_id: sid },
         );
-        #[cfg(debug_assertions)]
-        eprintln!("[debug] Inserted {} VOD items", count);
         Ok(count)
     }
 
@@ -271,7 +293,7 @@ impl CrispyService {
     ) -> Result<usize, DbError> {
         let conn = self.db.get()?;
         let tx = conn.unchecked_transaction()?;
-        let deleted = super::delete_removed_by_source(&tx, TABLE_MOVIES, source_id, keep_ids)?;
+        let deleted = Self::delete_removed_vod_items_inner(&tx, source_id, keep_ids)?;
         tx.commit()?;
         self.emit(DataChangeEvent::VodUpdated {
             source_id: source_id.to_string(),

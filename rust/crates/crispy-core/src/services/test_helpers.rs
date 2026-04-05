@@ -45,6 +45,7 @@ pub fn make_channel(id: &str, name: &str) -> Channel {
         channel_group: Some("News".to_string()),
         logo_url: None,
         tvg_id: None,
+        xtream_stream_id: None,
         epg_channel_id: None,
         tvg_name: None,
         is_favorite: false,
@@ -156,6 +157,9 @@ pub fn make_source(id: &str, name: &str, source_type: &str) -> Source {
         created_at: None,
         updated_at: None,
         credentials_encrypted: false,
+        deleted_at: None,
+        epg_etag: None,
+        epg_last_modified: None,
     }
 }
 

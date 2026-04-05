@@ -49,15 +49,14 @@ impl CrispyService {
     }
 
     // ── Sync Meta ───────────────────────────────────
+    // last_sync_time is stored directly on db_sources (db_sync_meta removed, D-5 cleanup).
 
     /// Set the last sync time for a source.
     pub fn set_last_sync_time(&self, source_id: &str, time: NaiveDateTime) -> Result<(), DbError> {
         let conn = self.db.get()?;
         conn.execute(
-            "INSERT OR REPLACE INTO db_sync_meta
-             (source_id, last_sync_time)
-             VALUES (?1, ?2)",
-            params![source_id, dt_to_ts(&time)],
+            "UPDATE db_sources SET last_sync_time = ?1 WHERE id = ?2",
+            params![dt_to_ts(&time), source_id],
         )?;
         Ok(())
     }
@@ -66,13 +65,13 @@ impl CrispyService {
     pub fn get_last_sync_time(&self, source_id: &str) -> Result<Option<NaiveDateTime>, DbError> {
         let conn = self.db.get()?;
         let result = conn.query_row(
-            "SELECT last_sync_time FROM db_sync_meta
-             WHERE source_id = ?1",
+            "SELECT last_sync_time FROM db_sources WHERE id = ?1",
             params![source_id],
-            |row| row.get::<_, i64>(0),
+            |row| row.get::<_, Option<i64>>(0),
         );
         match result {
-            Ok(ts) => Ok(Some(ts_to_dt(ts))),
+            Ok(Some(ts)) => Ok(Some(ts_to_dt(ts))),
+            Ok(None) => Ok(None),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(DbError::Sqlite(e)),
         }

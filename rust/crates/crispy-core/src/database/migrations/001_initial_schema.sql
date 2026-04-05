@@ -1,7 +1,10 @@
--- Migration 001: Consolidated initial schema (v36)
--- All tables, indexes, FK constraints, and CHECK constraints.
+-- Migration 001: Consolidated initial schema (v38)
+-- All tables, indexes, FK constraints, CHECK constraints, and orphan-cleanup triggers.
 -- Absorbs former migrations 001-010 into a single clean schema.
 -- Data is disposable (IPTV sources re-sync on startup).
+-- v37→v38: removed db_sync_meta (last_sync_time lives on db_sources) and
+--          merge_decisions (D-3 uniqueness constraints prevent duplicates);
+--          added polymorphic-content DELETE triggers.
 
 PRAGMA foreign_keys = ON;
 
@@ -28,7 +31,10 @@ CREATE TABLE IF NOT EXISTS db_sources (
     last_sync_error TEXT,
     created_at INTEGER,
     updated_at INTEGER,
-    credentials_encrypted INTEGER NOT NULL DEFAULT 0
+    credentials_encrypted INTEGER NOT NULL DEFAULT 0,
+    deleted_at INTEGER,
+    epg_etag TEXT,
+    epg_last_modified TEXT
 );
 
 -- ── User profiles ───────────────────────────────────────────
@@ -55,6 +61,7 @@ CREATE TABLE IF NOT EXISTS db_channels (
     channel_group TEXT,
     logo_url TEXT,
     tvg_id TEXT,
+    xtream_stream_id TEXT,
     epg_channel_id TEXT,
     tvg_name TEXT,
     is_favorite INTEGER NOT NULL DEFAULT 0,
@@ -120,11 +127,7 @@ CREATE TABLE IF NOT EXISTS db_epg_channels (
     PRIMARY KEY (xmltv_id, source_id)
 );
 
--- ── Sync metadata ───────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS db_sync_meta (
-    source_id TEXT PRIMARY KEY NOT NULL REFERENCES db_sources(id) ON DELETE CASCADE,
-    last_sync_time INTEGER NOT NULL
-);
+-- db_sync_meta removed: last_sync_time is a column on db_sources (D-5 cleanup).
 
 -- ── App settings ────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS db_settings (
@@ -480,21 +483,21 @@ CREATE TABLE IF NOT EXISTS db_retry_queue (
     status TEXT NOT NULL DEFAULT 'pending'
 );
 
--- ── Merge decisions ─────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS merge_decisions (
-    id TEXT PRIMARY KEY,
-    decision_type TEXT NOT NULL CHECK (decision_type IN ('merge', 'split')),
-    content_type TEXT NOT NULL CHECK (content_type IN ('movie', 'series', 'channel')),
-    source_ids TEXT NOT NULL,
-    canonical_id TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    profile_id TEXT,
-    reason TEXT
-);
+-- merge_decisions removed: D-3 source uniqueness constraints prevent duplicates at root.
 
 -- ═══════════════════════════════════════════════════════════
 -- INDEXES
 -- ═══════════════════════════════════════════════════════════
+
+-- Sources — uniqueness per provider type (soft-delete aware)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sources_m3u_unique
+    ON db_sources(url) WHERE source_type = 'm3u' AND deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sources_xtream_unique
+    ON db_sources(url, username) WHERE source_type = 'xtream' AND deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sources_stalker_unique
+    ON db_sources(url, mac_address) WHERE source_type = 'stalker' AND deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sources_xmltv_unique
+    ON db_sources(url) WHERE source_type = 'xmltv' AND deleted_at IS NULL;
 
 -- Channels
 CREATE INDEX IF NOT EXISTS idx_channels_source ON db_channels (source_id);
@@ -564,8 +567,58 @@ CREATE INDEX IF NOT EXISTS idx_bookmarks_content ON db_bookmarks (content_id);
 -- Retry queue
 CREATE INDEX IF NOT EXISTS idx_retry_queue_status_next ON db_retry_queue (status, next_retry_at);
 
--- Merge decisions
-CREATE INDEX IF NOT EXISTS idx_merge_decisions_type ON merge_decisions (content_type, decision_type);
-CREATE INDEX IF NOT EXISTS idx_merge_decisions_source ON merge_decisions (source_ids);
+-- ═══════════════════════════════════════════════════════════
+-- DELETE TRIGGERS — polymorphic content_id orphan cleanup
+-- These fire on source-table deletes to clean up tables that
+-- cannot use FK constraints due to polymorphic content_id.
+-- ═══════════════════════════════════════════════════════════
 
-PRAGMA user_version = 36;
+-- Movies → vod_categories, vod_favorites, watchlist, watch_history
+CREATE TRIGGER IF NOT EXISTS trg_cleanup_movie_vod_cats
+AFTER DELETE ON db_movies BEGIN
+    DELETE FROM db_vod_categories WHERE content_id = OLD.id AND content_type = 'movie';
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_cleanup_movie_vod_favs
+AFTER DELETE ON db_movies BEGIN
+    DELETE FROM db_vod_favorites WHERE content_id = OLD.id AND content_type = 'movie';
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_cleanup_movie_watchlist
+AFTER DELETE ON db_movies BEGIN
+    DELETE FROM db_watchlist WHERE content_id = OLD.id AND content_type = 'movie';
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_cleanup_movie_watch_history
+AFTER DELETE ON db_movies BEGIN
+    DELETE FROM db_watch_history WHERE content_id = OLD.id AND media_type = 'movie';
+END;
+
+-- Series → vod_categories, vod_favorites, watchlist, watch_history
+CREATE TRIGGER IF NOT EXISTS trg_cleanup_series_vod_cats
+AFTER DELETE ON db_series BEGIN
+    DELETE FROM db_vod_categories WHERE content_id = OLD.id AND content_type = 'series';
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_cleanup_series_vod_favs
+AFTER DELETE ON db_series BEGIN
+    DELETE FROM db_vod_favorites WHERE content_id = OLD.id AND content_type = 'series';
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_cleanup_series_watchlist
+AFTER DELETE ON db_series BEGIN
+    DELETE FROM db_watchlist WHERE content_id = OLD.id AND content_type = 'series';
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_cleanup_series_watch_history
+AFTER DELETE ON db_series BEGIN
+    DELETE FROM db_watch_history WHERE content_id = OLD.id AND media_type = 'episode';
+END;
+
+-- Channels → watch_history
+CREATE TRIGGER IF NOT EXISTS trg_cleanup_channel_history
+AFTER DELETE ON db_channels BEGIN
+    DELETE FROM db_watch_history WHERE content_id = OLD.id AND media_type = 'channel';
+END;
+
+PRAGMA user_version = 38;

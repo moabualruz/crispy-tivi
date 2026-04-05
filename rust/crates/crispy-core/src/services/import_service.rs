@@ -299,6 +299,9 @@ fn make_source(
         created_at: None,
         updated_at: None,
         credentials_encrypted: false,
+        deleted_at: None,
+        epg_etag: None,
+        epg_last_modified: None,
     }
 }
 

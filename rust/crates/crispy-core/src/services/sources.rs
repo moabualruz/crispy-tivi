@@ -46,7 +46,8 @@ fn decrypt_opt(value: &Option<String>, key: &[u8; 32]) -> Result<Option<String>,
 /// access_token, device_id, user_id, mac_address, epg_url, user_agent,
 /// refresh_interval_minutes, accept_self_signed, enabled, sort_order,
 /// last_sync_time, last_sync_status, last_sync_error, created_at,
-/// updated_at, credentials_encrypted.
+/// updated_at, credentials_encrypted, deleted_at, epg_etag,
+/// epg_last_modified.
 fn row_to_source(row: &rusqlite::Row<'_>) -> rusqlite::Result<Source> {
     Ok(Source {
         id: row.get(0)?,
@@ -71,6 +72,9 @@ fn row_to_source(row: &rusqlite::Row<'_>) -> rusqlite::Result<Source> {
         created_at: opt_ts_to_dt(row.get(19)?),
         updated_at: opt_ts_to_dt(row.get(20)?),
         credentials_encrypted: int_to_bool(row.get::<_, i32>(21).unwrap_or(0)),
+        deleted_at: row.get(22)?,
+        epg_etag: row.get(23)?,
+        epg_last_modified: row.get(24)?,
     })
 }
 
@@ -121,8 +125,9 @@ impl CrispyService {
                     epg_url, user_agent, refresh_interval_minutes,
                     accept_self_signed, enabled, sort_order,
                     last_sync_time, last_sync_status, last_sync_error,
-                    created_at, updated_at, credentials_encrypted
-             FROM {TABLE_SOURCES} ORDER BY sort_order, name"
+                    created_at, updated_at, credentials_encrypted,
+                    deleted_at, epg_etag, epg_last_modified
+             FROM {TABLE_SOURCES} WHERE deleted_at IS NULL ORDER BY sort_order, name"
         ))?;
         let rows = stmt.query_map([], row_to_source)?;
         let sources: Vec<Source> = rows
@@ -146,8 +151,9 @@ impl CrispyService {
                         epg_url, user_agent, refresh_interval_minutes,
                         accept_self_signed, enabled, sort_order,
                         last_sync_time, last_sync_status, last_sync_error,
-                        created_at, updated_at, credentials_encrypted
-                 FROM {TABLE_SOURCES} WHERE id = ?1"
+                        created_at, updated_at, credentials_encrypted,
+                        deleted_at, epg_etag, epg_last_modified
+                 FROM {TABLE_SOURCES} WHERE id = ?1 AND deleted_at IS NULL"
             ),
             params![id],
             row_to_source,
@@ -199,9 +205,11 @@ impl CrispyService {
                   epg_url, user_agent, refresh_interval_minutes,
                   accept_self_signed, enabled, sort_order,
                   last_sync_time, last_sync_status, last_sync_error,
-                  created_at, updated_at, credentials_encrypted)
+                  created_at, updated_at, credentials_encrypted,
+                  deleted_at, epg_etag, epg_last_modified)
                  VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,
-                         ?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22)"
+                         ?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,
+                         ?23,?24,?25)"
             ),
             params![
                 source.id,
@@ -226,6 +234,9 @@ impl CrispyService {
                 opt_dt_to_ts(&source.created_at),
                 opt_dt_to_ts(&source.updated_at),
                 bool_to_int(source.credentials_encrypted),
+                source.deleted_at,
+                source.epg_etag,
+                source.epg_last_modified,
             ],
         )?;
         self.emit(DataChangeEvent::SourceChanged {
