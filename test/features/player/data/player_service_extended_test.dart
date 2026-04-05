@@ -601,6 +601,35 @@ void main() {
         bufferingController.close();
       });
     });
+
+    test('playing=false during buffering keeps buffering state', () {
+      fakeAsync((async) {
+        final playingController = StreamController<bool>.broadcast();
+        final bufferingController = StreamController<bool>.broadcast();
+        final s = _setup(
+          playing: playingController.stream,
+          buffering: bufferingController.stream,
+        );
+
+        final svc = PlayerService(
+          player: s.player,
+          mediaSession: _noOpMediaSession,
+        );
+
+        bufferingController.add(true);
+        async.flushMicrotasks();
+        async.elapse(const Duration(milliseconds: 200));
+        expect(svc.state.status, app.PlaybackStatus.buffering);
+
+        playingController.add(false);
+        async.flushMicrotasks();
+        expect(svc.state.status, app.PlaybackStatus.buffering);
+
+        svc.dispose();
+        playingController.close();
+        bufferingController.close();
+      });
+    });
   });
 
   // ── Play / Pause / Stop Lifecycle ───────────────

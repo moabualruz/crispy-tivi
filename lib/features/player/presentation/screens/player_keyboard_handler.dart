@@ -145,6 +145,7 @@ void handlePlayerKeyEvent({
     case RemoteAction.playPause:
       onPlayPause();
       osd.show();
+      return;
     case RemoteAction.channelUp:
       if (canZap) {
         onZapChannel(-1);
@@ -152,6 +153,7 @@ void handlePlayerKeyEvent({
         service.setVolume(service.state.volume + 0.1);
       }
       osd.show();
+      return;
     case RemoteAction.channelDown:
       if (canZap) {
         onZapChannel(1);
@@ -159,55 +161,71 @@ void handlePlayerKeyEvent({
         service.setVolume(service.state.volume - 0.1);
       }
       osd.show();
+      return;
     case RemoteAction.volumeUp:
       service.setVolume(service.state.volume + 0.1);
       osd.show();
+      return;
     case RemoteAction.volumeDown:
       service.setVolume(service.state.volume - 0.1);
       osd.show();
+      return;
     case RemoteAction.seekForward:
       if (!isLive) {
         _progressiveSeek(event, service, ref, LogicalKeyboardKey.arrowRight);
         onSeekForward();
       }
       osd.show();
+      return;
     case RemoteAction.seekBack:
       if (!isLive) {
         _progressiveSeek(event, service, ref, LogicalKeyboardKey.arrowLeft);
         onSeekBack();
       }
       osd.show();
+      return;
     case RemoteAction.mute:
       service.toggleMute();
       osd.show();
+      return;
     case RemoteAction.fullscreen:
       onToggleFullscreen();
       osd.show();
+      return;
     case RemoteAction.toggleZap:
       if (canZap) onToggleZap();
       osd.show();
+      return;
     case RemoteAction.showOsd:
       osd.show();
+      return;
     case RemoteAction.toggleCaptions:
       onToggleCaptions?.call();
       osd.show();
+      return;
     case RemoteAction.back:
       if (showZapOverlay) {
         onToggleZap();
       } else {
         onBack();
       }
+      return;
     case RemoteAction.openGuide:
       onOpenGuide?.call();
+      return;
     case RemoteAction.openSettings:
       onOpenSettings?.call();
+      return;
     case RemoteAction.startRecording:
       onStartRecording?.call();
+      return;
     case RemoteAction.openSearch:
       onOpenSearch?.call();
+      return;
     case RemoteAction.showDebug:
       onShowDebug?.call();
       osd.show();
+      return;
     case null:
       osd.show();
   }

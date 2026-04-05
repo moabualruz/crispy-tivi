@@ -29,6 +29,12 @@ mixin PlayerSubscriptionsMixin on PlayerServiceBase {
           _bufferingDebounce = null;
           _updateState(status: app.PlaybackStatus.playing);
         } else {
+          // media_kit reports playing=false during reconnect/open churn.
+          // Keep the UI in buffering instead of flipping to paused.
+          if (_state.status == app.PlaybackStatus.buffering ||
+              (_retryTimer?.isActive ?? false)) {
+            return;
+          }
           _updateState(status: app.PlaybackStatus.paused);
         }
         // Sync play/pause state to OS media controls.

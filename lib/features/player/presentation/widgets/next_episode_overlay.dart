@@ -18,6 +18,7 @@ class NextEpisodeOverlay extends StatefulWidget {
     required this.nextEpisode,
     required this.onPlayNext,
     required this.onCancel,
+    this.autoplayEnabled = true,
     this.countdownSeconds = 10,
     super.key,
   });
@@ -25,6 +26,7 @@ class NextEpisodeOverlay extends StatefulWidget {
   final VodItem nextEpisode;
   final VoidCallback onPlayNext;
   final VoidCallback onCancel;
+  final bool autoplayEnabled;
   final int countdownSeconds;
 
   @override
@@ -34,36 +36,39 @@ class NextEpisodeOverlay extends StatefulWidget {
 class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
     with SingleTickerProviderStateMixin {
   late int _secondsRemaining;
-  late final AnimationController _progressController;
+  AnimationController? _progressController;
 
   @override
   void initState() {
     super.initState();
     _secondsRemaining = widget.countdownSeconds;
-    _progressController = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: widget.countdownSeconds),
-    )..addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        widget.onPlayNext();
-      }
-    });
+    if (widget.autoplayEnabled) {
+      final controller = AnimationController(
+        vsync: this,
+        duration: Duration(seconds: widget.countdownSeconds),
+      )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          widget.onPlayNext();
+        }
+      });
 
-    // Tick display counter every second.
-    _progressController.addListener(() {
-      final remaining =
-          (widget.countdownSeconds * (1.0 - _progressController.value)).ceil();
-      if (remaining != _secondsRemaining) {
-        setState(() => _secondsRemaining = remaining);
-      }
-    });
+      // Tick display counter every second.
+      controller.addListener(() {
+        final remaining =
+            (widget.countdownSeconds * (1.0 - controller.value)).ceil();
+        if (remaining != _secondsRemaining) {
+          setState(() => _secondsRemaining = remaining);
+        }
+      });
 
-    _progressController.forward();
+      controller.forward();
+      _progressController = controller;
+    }
   }
 
   @override
   void dispose() {
-    _progressController.dispose();
+    _progressController?.dispose();
     super.dispose();
   }
 
@@ -99,33 +104,37 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
                   Icon(Icons.skip_next, color: colorScheme.primary, size: 20),
                   const SizedBox(width: CrispySpacing.sm),
                   Text(
-                    context.l10n.playerNextUpIn(_secondsRemaining),
+                    widget.autoplayEnabled
+                        ? context.l10n.playerNextUpIn(_secondsRemaining)
+                        : 'Up Next',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: CrispySpacing.sm),
+              if (widget.autoplayEnabled) ...[
+                const SizedBox(height: CrispySpacing.sm),
 
-              // Animated countdown progress bar
-              AnimatedBuilder(
-                animation: _progressController,
-                builder:
-                    (context, _) => ClipRRect(
-                      borderRadius: BorderRadius.circular(
-                        CrispyRadius.progressBar,
-                      ),
-                      child: LinearProgressIndicator(
-                        value: 1.0 - _progressController.value,
-                        minHeight: 3,
-                        backgroundColor: colorScheme.onSurface.withValues(
-                          alpha: 0.2,
+                // Animated countdown progress bar
+                AnimatedBuilder(
+                  animation: _progressController!,
+                  builder:
+                      (context, _) => ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          CrispyRadius.progressBar,
                         ),
-                        color: colorScheme.primary,
+                        child: LinearProgressIndicator(
+                          value: 1.0 - _progressController!.value,
+                          minHeight: 3,
+                          backgroundColor: colorScheme.onSurface.withValues(
+                            alpha: 0.2,
+                          ),
+                          color: colorScheme.primary,
+                        ),
                       ),
-                    ),
-              ),
+                ),
+              ],
               const SizedBox(height: CrispySpacing.sm),
 
               // Thumbnail + episode info row

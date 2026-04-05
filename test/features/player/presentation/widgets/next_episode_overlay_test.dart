@@ -31,6 +31,7 @@ Widget _wrap({
   required VodItem episode,
   VoidCallback? onPlayNext,
   VoidCallback? onCancel,
+  bool autoplayEnabled = true,
   int countdownSeconds = 10,
 }) {
   return MaterialApp(
@@ -43,6 +44,7 @@ Widget _wrap({
             nextEpisode: episode,
             onPlayNext: onPlayNext ?? () {},
             onCancel: onCancel ?? () {},
+            autoplayEnabled: autoplayEnabled,
             countdownSeconds: countdownSeconds,
           ),
         ],
@@ -102,6 +104,34 @@ void main() {
 
       await tester.tap(find.text('Cancel'));
       expect(fired, isTrue);
+    });
+
+    testWidgets('autoplay disabled hides countdown progress', (tester) async {
+      await tester.pumpWidget(
+        _wrap(episode: _episode(), autoplayEnabled: false),
+      );
+      await tester.pump();
+
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      expect(find.text('Up Next'), findsOneWidget);
+    });
+
+    testWidgets('autoplay disabled does not auto-fire onPlayNext', (
+      tester,
+    ) async {
+      var fired = false;
+      await tester.pumpWidget(
+        _wrap(
+          episode: _episode(),
+          autoplayEnabled: false,
+          countdownSeconds: 1,
+          onPlayNext: () => fired = true,
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(fired, isFalse);
     });
 
     testWidgets('does not show episode label when season/episode are null', (

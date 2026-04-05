@@ -88,9 +88,12 @@ class _Callbacks {
   int toggleCaptionsCalls = 0;
   int toggleLockCalls = 0;
   int openGuideCalls = 0;
+  int openSettingsCalls = 0;
   int showDebugCalls = 0;
   int seekForwardCalls = 0;
   int seekBackCalls = 0;
+  int screenshotCalls = 0;
+  int cleanScreenshotCalls = 0;
 
   // Direction arg for zapChannel: positive = next, negative = prev.
   final List<int> zapDirections = [];
@@ -104,9 +107,12 @@ class _Callbacks {
     toggleCaptionsCalls = 0;
     toggleLockCalls = 0;
     openGuideCalls = 0;
+    openSettingsCalls = 0;
     showDebugCalls = 0;
     seekForwardCalls = 0;
     seekBackCalls = 0;
+    screenshotCalls = 0;
+    cleanScreenshotCalls = 0;
     zapDirections.clear();
   }
 }
@@ -162,7 +168,10 @@ class _KeyboardHarnessState extends ConsumerState<_KeyboardHarness> {
       onToggleCaptions: () => cb.toggleCaptionsCalls++,
       onToggleLock: () => cb.toggleLockCalls++,
       onOpenGuide: () => cb.openGuideCalls++,
+      onOpenSettings: () => cb.openSettingsCalls++,
       onShowDebug: () => cb.showDebugCalls++,
+      onScreenshot: () => cb.screenshotCalls++,
+      onCleanScreenshot: () => cb.cleanScreenshotCalls++,
     );
   }
 
@@ -362,6 +371,28 @@ void main() {
       expect(cb.toggleLockCalls, 1);
     });
 
+    testWidgets('BrowserBack → back callback fires', (tester) async {
+      await tester.pumpWidget(_buildHarness(service, player, cb, isLive: true));
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.browserBack);
+      await tester.pump();
+
+      expect(cb.backCalls, 1);
+    });
+
+    testWidgets('ChannelUp → zapChannel(-1) called', (tester) async {
+      await tester.pumpWidget(
+        _buildHarness(service, player, cb, isLive: true, canZap: true),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.channelUp);
+      await tester.pump();
+
+      expect(cb.zapDirections, contains(-1));
+    });
+
     testWidgets(
       'G at >=1200dp → openGuide callback fires (guide split toggled)',
       (tester) async {
@@ -499,6 +530,34 @@ void main() {
       final captured = verify(() => service.setSpeed(captureAny())).captured;
       expect(captured, isNotEmpty);
       expect((captured.last as double) > 1.0, isTrue);
+    });
+
+    testWidgets('L toggles lock without firing seekForward', (tester) async {
+      await tester.pumpWidget(
+        _buildHarness(service, player, cb, isLive: false, canZap: false),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyL);
+      await tester.pump();
+
+      expect(cb.toggleLockCalls, 1);
+      expect(cb.seekForwardCalls, 0);
+    });
+
+    testWidgets('S triggers screenshot without opening settings', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildHarness(service, player, cb, isLive: false, canZap: false),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+      await tester.pump();
+
+      expect(cb.screenshotCalls, 1);
+      expect(cb.openSettingsCalls, 0);
     });
   });
 

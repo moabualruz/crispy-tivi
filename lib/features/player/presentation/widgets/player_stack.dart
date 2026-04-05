@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../config/settings_notifier.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../vod/domain/entities/vod_item.dart';
 import '../providers/player_providers.dart';
@@ -121,6 +122,11 @@ class PlayerStack extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLocked = ref.watch(playerLockedProvider);
+    final autoplayNextEpisode = ref.watch(
+      settingsNotifierProvider.select(
+        (s) => s.value?.autoplayNextEpisode ?? true,
+      ),
+    );
 
     return Stack(
       fit: StackFit.expand,
@@ -167,6 +173,7 @@ class PlayerStack extends ConsumerWidget {
         if (nextEpisode != null && !isInPip)
           NextEpisodeOverlay(
             nextEpisode: nextEpisode!,
+            autoplayEnabled: autoplayNextEpisode,
             onPlayNext: onPlayNext ?? () {},
             onCancel: onCancelNext ?? () {},
           ),

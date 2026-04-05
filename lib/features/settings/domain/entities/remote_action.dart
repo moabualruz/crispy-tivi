@@ -80,16 +80,17 @@ final Map<int, RemoteAction> defaultRemoteKeyMap = Map.unmodifiable({
   LogicalKeyboardKey.keyZ.keyId: RemoteAction.toggleZap,
   LogicalKeyboardKey.escape.keyId: RemoteAction.back,
   LogicalKeyboardKey.goBack.keyId: RemoteAction.back,
+  LogicalKeyboardKey.browserBack.keyId: RemoteAction.back,
+  LogicalKeyboardKey.channelUp.keyId: RemoteAction.channelUp,
+  LogicalKeyboardKey.channelDown.keyId: RemoteAction.channelDown,
 
   LogicalKeyboardKey.keyK.keyId: RemoteAction.playPause,
   LogicalKeyboardKey.keyJ.keyId: RemoteAction.seekBack,
-  LogicalKeyboardKey.keyL.keyId: RemoteAction.seekForward,
   LogicalKeyboardKey.keyC.keyId: RemoteAction.toggleCaptions,
 
   // ── Quick-access shortcuts ─────────────────────────
   LogicalKeyboardKey.keyR.keyId: RemoteAction.startRecording,
   LogicalKeyboardKey.keyG.keyId: RemoteAction.openGuide,
-  LogicalKeyboardKey.keyS.keyId: RemoteAction.openSettings,
   LogicalKeyboardKey.keyD.keyId: RemoteAction.showDebug,
   LogicalKeyboardKey.slash.keyId: RemoteAction.openSearch,
 

@@ -88,6 +88,18 @@ void main() {
         defaultRemoteKeyMap[LogicalKeyboardKey.escape.keyId],
         RemoteAction.back,
       );
+      expect(
+        defaultRemoteKeyMap[LogicalKeyboardKey.browserBack.keyId],
+        RemoteAction.back,
+      );
+      expect(
+        defaultRemoteKeyMap[LogicalKeyboardKey.channelUp.keyId],
+        RemoteAction.channelUp,
+      );
+      expect(
+        defaultRemoteKeyMap[LogicalKeyboardKey.channelDown.keyId],
+        RemoteAction.channelDown,
+      );
     });
 
     test('contains gamepad buttons', () {
@@ -115,6 +127,17 @@ void main() {
         keys.toSet().length,
         keys.length,
         reason: 'key map should have unique key IDs',
+      );
+    });
+
+    test('does not shadow direct screenshot or lock shortcuts', () {
+      expect(
+        defaultRemoteKeyMap.containsKey(LogicalKeyboardKey.keyS.keyId),
+        isFalse,
+      );
+      expect(
+        defaultRemoteKeyMap.containsKey(LogicalKeyboardKey.keyL.keyId),
+        isFalse,
       );
     });
   });
