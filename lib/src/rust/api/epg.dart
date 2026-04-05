@@ -42,8 +42,15 @@ Future<BigInt> evictStaleEpg({required PlatformInt64 days}) =>
 ///
 /// Skips if the same URL was refreshed within the 4-hour
 /// cooldown window.
-Future<BigInt> syncXmltvEpg({required String url}) =>
-    RustLib.instance.api.crateApiEpgSyncXmltvEpg(url: url);
+Future<BigInt> syncXmltvEpg({
+  required String url,
+  required String sourceId,
+  required bool force,
+}) => RustLib.instance.api.crateApiEpgSyncXmltvEpg(
+  url: url,
+  sourceId: sourceId,
+  force: force,
+);
 
 /// Download, parse, match, and save Xtream short EPG batches asynchronously.
 ///
@@ -52,12 +59,16 @@ Future<BigInt> syncXtreamEpg({
   required String baseUrl,
   required String username,
   required String password,
+  required String sourceId,
   required String channelsJson,
+  required bool force,
 }) => RustLib.instance.api.crateApiEpgSyncXtreamEpg(
   baseUrl: baseUrl,
   username: username,
   password: password,
+  sourceId: sourceId,
   channelsJson: channelsJson,
+  force: force,
 );
 
 /// Download, parse, match, and save Stalker short EPG batches asynchronously.
@@ -65,10 +76,16 @@ Future<BigInt> syncXtreamEpg({
 /// Cooldown is applied to the base URL.
 Future<BigInt> syncStalkerEpg({
   required String baseUrl,
+  required String mac,
+  required String sourceId,
   required String channelsJson,
+  required bool force,
 }) => RustLib.instance.api.crateApiEpgSyncStalkerEpg(
   baseUrl: baseUrl,
+  mac: mac,
+  sourceId: sourceId,
   channelsJson: channelsJson,
+  force: force,
 );
 
 /// Delete all EPG entries.

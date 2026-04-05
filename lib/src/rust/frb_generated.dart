@@ -1166,7 +1166,10 @@ abstract class RustLibApi extends BaseApi {
 
   Future<BigInt> crateApiEpgSyncStalkerEpg({
     required String baseUrl,
+    required String mac,
+    required String sourceId,
     required String channelsJson,
+    required bool force,
   });
 
   Future<String> crateApiSyncSyncStalkerSource({
@@ -1176,13 +1179,19 @@ abstract class RustLibApi extends BaseApi {
     required bool acceptInvalidCerts,
   });
 
-  Future<BigInt> crateApiEpgSyncXmltvEpg({required String url});
+  Future<BigInt> crateApiEpgSyncXmltvEpg({
+    required String url,
+    required String sourceId,
+    required bool force,
+  });
 
   Future<BigInt> crateApiEpgSyncXtreamEpg({
     required String baseUrl,
     required String username,
     required String password,
+    required String sourceId,
     required String channelsJson,
+    required bool force,
   });
 
   Future<String> crateApiSyncSyncXtreamSource({
@@ -9966,14 +9975,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @override
   Future<BigInt> crateApiEpgSyncStalkerEpg({
     required String baseUrl,
+    required String mac,
+    required String sourceId,
     required String channelsJson,
+    required bool force,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(baseUrl, serializer);
+          sse_encode_String(mac, serializer);
+          sse_encode_String(sourceId, serializer);
           sse_encode_String(channelsJson, serializer);
+          sse_encode_bool(force, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -9986,7 +10001,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_AnyhowException,
         ),
         constMeta: kCrateApiEpgSyncStalkerEpgConstMeta,
-        argValues: [baseUrl, channelsJson],
+        argValues: [baseUrl, mac, sourceId, channelsJson, force],
         apiImpl: this,
       ),
     );
@@ -9994,7 +10009,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiEpgSyncStalkerEpgConstMeta => const TaskConstMeta(
     debugName: "sync_stalker_epg",
-    argNames: ["baseUrl", "channelsJson"],
+    argNames: ["baseUrl", "mac", "sourceId", "channelsJson", "force"],
   );
 
   @override
@@ -10037,12 +10052,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<BigInt> crateApiEpgSyncXmltvEpg({required String url}) {
+  Future<BigInt> crateApiEpgSyncXmltvEpg({
+    required String url,
+    required String sourceId,
+    required bool force,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(url, serializer);
+          sse_encode_String(sourceId, serializer);
+          sse_encode_bool(force, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -10055,21 +10076,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_AnyhowException,
         ),
         constMeta: kCrateApiEpgSyncXmltvEpgConstMeta,
-        argValues: [url],
+        argValues: [url, sourceId, force],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiEpgSyncXmltvEpgConstMeta =>
-      const TaskConstMeta(debugName: "sync_xmltv_epg", argNames: ["url"]);
+  TaskConstMeta get kCrateApiEpgSyncXmltvEpgConstMeta => const TaskConstMeta(
+    debugName: "sync_xmltv_epg",
+    argNames: ["url", "sourceId", "force"],
+  );
 
   @override
   Future<BigInt> crateApiEpgSyncXtreamEpg({
     required String baseUrl,
     required String username,
     required String password,
+    required String sourceId,
     required String channelsJson,
+    required bool force,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -10078,7 +10103,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(baseUrl, serializer);
           sse_encode_String(username, serializer);
           sse_encode_String(password, serializer);
+          sse_encode_String(sourceId, serializer);
           sse_encode_String(channelsJson, serializer);
+          sse_encode_bool(force, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -10091,7 +10118,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_AnyhowException,
         ),
         constMeta: kCrateApiEpgSyncXtreamEpgConstMeta,
-        argValues: [baseUrl, username, password, channelsJson],
+        argValues: [baseUrl, username, password, sourceId, channelsJson, force],
         apiImpl: this,
       ),
     );
@@ -10099,7 +10126,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiEpgSyncXtreamEpgConstMeta => const TaskConstMeta(
     debugName: "sync_xtream_epg",
-    argNames: ["baseUrl", "username", "password", "channelsJson"],
+    argNames: [
+      "baseUrl",
+      "username",
+      "password",
+      "sourceId",
+      "channelsJson",
+      "force",
+    ],
   );
 
   @override

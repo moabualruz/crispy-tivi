@@ -88,8 +88,16 @@ mixin _WsEpgMixin on _WsBackendBase {
     return _countFromResult(res);
   }
 
-  Future<int> syncXmltvEpg({required String url}) async {
-    final res = await _send('syncXmltvEpg', {'url': url});
+  Future<int> syncXmltvEpg({
+    required String url,
+    required String sourceId,
+    bool force = false,
+  }) async {
+    final res = await _send('syncXmltvEpg', {
+      'url': url,
+      'sourceId': sourceId,
+      'force': force,
+    });
     return _countFromResult(res);
   }
 
@@ -97,24 +105,34 @@ mixin _WsEpgMixin on _WsBackendBase {
     required String baseUrl,
     required String username,
     required String password,
+    required String sourceId,
     required String channelsJson,
+    bool force = false,
   }) async {
     final res = await _send('syncXtreamEpg', {
       'baseUrl': baseUrl,
       'username': username,
       'password': password,
+      'sourceId': sourceId,
       'channelsJson': channelsJson,
+      'force': force,
     });
     return _countFromResult(res);
   }
 
   Future<int> syncStalkerEpg({
     required String baseUrl,
+    required String mac,
+    required String sourceId,
     required String channelsJson,
+    bool force = false,
   }) async {
     final res = await _send('syncStalkerEpg', {
       'baseUrl': baseUrl,
+      'mac': mac,
+      'sourceId': sourceId,
       'channelsJson': channelsJson,
+      'force': force,
     });
     return _countFromResult(res);
   }

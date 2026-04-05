@@ -221,7 +221,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             // with the current runtime handle directly (no block_in_place).
             let count = tokio::runtime::Handle::current()
                 .block_on(crispy_core::services::epg_sync::fetch_and_save_xmltv_epg(
-                    svc, &url, false,
+                    svc, &url, None, false,
                 ))
                 .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true, "count": count}))
@@ -236,7 +236,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
 
             let count = tokio::runtime::Handle::current()
                 .block_on(crispy_core::services::epg_sync::fetch_and_save_xtream_epg(
-                    svc, &base_url, &username, &password, &channels, false,
+                    svc, &base_url, &username, &password, None, &channels, false,
                 ))
                 .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true, "count": count}))
@@ -249,7 +249,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
 
             let count = tokio::runtime::Handle::current()
                 .block_on(crispy_core::services::epg_sync::fetch_and_save_stalker_epg(
-                    svc, &base_url, &channels, false,
+                    svc, &base_url, None, &channels, false,
                 ))
                 .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true, "count": count}))

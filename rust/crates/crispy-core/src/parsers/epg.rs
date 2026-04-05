@@ -14,6 +14,8 @@ use quick_xml::events::Event;
 
 use crate::models::EpgEntry;
 
+const DEFAULT_PREFERRED_LANG: &str = "en";
+
 /// Parse XMLTV content into EPG entries.
 ///
 /// Extracts `<programme>` blocks and maps them to
@@ -98,6 +100,36 @@ fn get_attr(e: &quick_xml::events::BytesStart<'_>, key: &[u8]) -> Option<String>
         }
     }
     None
+}
+
+fn get_lang_attr(e: &quick_xml::events::BytesStart<'_>) -> Option<String> {
+    get_attr(e, b"xml:lang").or_else(|| get_attr(e, b"lang"))
+}
+
+fn pick_preferred_lang(
+    values: &[(Option<String>, String)],
+    preferred_lang: &str,
+) -> Option<String> {
+    let preferred_lang = preferred_lang.trim();
+    if preferred_lang.is_empty() {
+        return values.first().map(|(_, text)| text.clone());
+    }
+
+    if let Some((_, text)) = values.iter().find(|(lang, _)| {
+        lang.as_deref()
+            .is_some_and(|lang| lang.eq_ignore_ascii_case(preferred_lang))
+    }) {
+        return Some(text.clone());
+    }
+
+    if let Some((_, text)) = values.iter().find(|(lang, _)| {
+        lang.as_deref()
+            .is_some_and(|lang| lang.eq_ignore_ascii_case(DEFAULT_PREFERRED_LANG))
+    }) {
+        return Some(text.clone());
+    }
+
+    values.first().map(|(_, text)| text.clone())
 }
 
 /// Result from scanning a `<channel>` for its display name.
@@ -208,8 +240,8 @@ fn parse_programme_element(
     };
 
     // Parse child elements within <programme>.
-    let mut title: Option<String> = None;
-    let mut description: Option<String> = None;
+    let mut titles: Vec<(Option<String>, String)> = Vec::new();
+    let mut descriptions: Vec<(Option<String>, String)> = Vec::new();
     let mut categories: Vec<String> = Vec::new();
     let mut icon_url: Option<String> = None;
     let mut sub_title: Option<String> = None;
@@ -236,37 +268,35 @@ fn parse_programme_element(
             Ok(Event::Start(ref e)) => {
                 match e.name().as_ref() {
                     b"title" => {
-                        if title.is_none() {
-                            if let Some(text) = read_element_text(reader, e.name()) {
-                                let decoded = decode_maybe_base64(text.trim());
-                                title = Some(decoded);
+                        if let Some(text) = read_element_text(reader, e.name()) {
+                            let t = text.trim().to_string();
+                            if !t.is_empty() {
+                                titles.push((get_lang_attr(e), t));
                             }
-                        } else {
-                            let _ = reader.read_to_end(e.name());
                         }
                     }
                     b"sub-title" => {
-                        if sub_title.is_none() {
-                            if let Some(text) = read_element_text(reader, e.name()) {
-                                let t = text.trim().to_string();
-                                if !t.is_empty() {
-                                    sub_title = Some(decode_maybe_base64(&t));
+                        let lang = get_attr(e, b"lang");
+                        if let Some(text) = read_element_text(reader, e.name()) {
+                            let t = text.trim().to_string();
+                            if !t.is_empty() {
+                                let is_better = match (&sub_title, &lang) {
+                                    (None, _) => true,
+                                    (Some(_), Some(l)) if l == "en" => true,
+                                    _ => false,
+                                };
+                                if is_better {
+                                    sub_title = Some(t);
                                 }
                             }
-                        } else {
-                            let _ = reader.read_to_end(e.name());
                         }
                     }
                     b"desc" => {
-                        if description.is_none() {
-                            if let Some(text) = read_element_text(reader, e.name()) {
-                                let trimmed = text.trim().to_string();
-                                if !trimmed.is_empty() {
-                                    description = Some(decode_maybe_base64(&trimmed));
-                                }
+                        if let Some(text) = read_element_text(reader, e.name()) {
+                            let t = text.trim().to_string();
+                            if !t.is_empty() {
+                                descriptions.push((get_lang_attr(e), t));
                             }
-                        } else {
-                            let _ = reader.read_to_end(e.name());
                         }
                     }
                     b"category" => {
@@ -398,8 +428,8 @@ fn parse_programme_element(
         }
     }
 
-    // Title is required.
-    let title = title?;
+    let title = pick_preferred_lang(&titles, DEFAULT_PREFERRED_LANG)?;
+    let description = pick_preferred_lang(&descriptions, DEFAULT_PREFERRED_LANG);
     let category = if categories.is_empty() {
         None
     } else {
@@ -610,20 +640,6 @@ fn parse_xmltv_datetime(raw: &str) -> Option<NaiveDateTime> {
     }
 
     Some(dt)
-}
-
-/// Try base64-decoding `value`. If the decoded bytes
-/// are valid UTF-8, return the decoded string; otherwise
-/// return the original.
-fn decode_maybe_base64(value: &str) -> String {
-    use base64::{Engine as _, engine::general_purpose::STANDARD};
-    if value.is_empty() {
-        return String::new();
-    }
-    match STANDARD.decode(value) {
-        Ok(bytes) => String::from_utf8(bytes).unwrap_or_else(|_| value.to_string()),
-        Err(_) => value.to_string(),
-    }
 }
 
 /// Parse XMLTV episode numbering in `xmltv_ns` format.
@@ -972,19 +988,78 @@ mod tests {
     }
 
     #[test]
-    fn multiple_title_elements_picks_first() {
+    fn multiple_title_elements_prefers_en() {
         // XMLTV allows multiple <title lang="xx">. Our
-        // parser captures the first match only.
+        // parser captures "en" if available, else first.
         let xml = r#"<tv>
   <programme start="20240101120000 +0000" stop="20240101130000 +0000" channel="ch1">
-    <title lang="en">English Title</title>
     <title lang="fr">Titre Français</title>
+    <title lang="en">English Title</title>
     <title lang="de">Deutscher Titel</title>
   </programme>
 </tv>"#;
         let entries = parse_epg(xml);
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].title, "English Title");
+    }
+
+    #[test]
+    fn helper_prefers_exact_locale_then_en_then_first() {
+        let multilingual = vec![
+            (Some("fr".to_string()), "Titre".to_string()),
+            (Some("en".to_string()), "English".to_string()),
+            (Some("en-US".to_string()), "American English".to_string()),
+        ];
+        assert_eq!(
+            pick_preferred_lang(&multilingual, "en-US").as_deref(),
+            Some("American English"),
+        );
+        assert_eq!(
+            pick_preferred_lang(&multilingual, "de").as_deref(),
+            Some("English"),
+        );
+
+        let no_english = vec![
+            (Some("fr".to_string()), "Titre".to_string()),
+            (Some("de".to_string()), "Titel".to_string()),
+        ];
+        assert_eq!(
+            pick_preferred_lang(&no_english, "es").as_deref(),
+            Some("Titre"),
+        );
+    }
+
+    #[test]
+    fn xml_lang_is_honored_for_title_and_description() {
+        let xml = r#"<tv>
+  <programme start="20240101120000 +0000" stop="20240101130000 +0000" channel="ch1">
+    <title xml:lang="fr">Titre Français</title>
+    <title xml:lang="en">English Title</title>
+    <desc xml:lang="fr">Résumé Français</desc>
+    <desc xml:lang="en">English Description</desc>
+  </programme>
+</tv>"#;
+        let entries = parse_epg(xml);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].title, "English Title");
+        assert_eq!(
+            entries[0].description.as_deref(),
+            Some("English Description"),
+        );
+    }
+
+    #[test]
+    fn common_words_not_corrupted() {
+        // "Show" and "Film" used to be corrupted by base64 decoding.
+        let xml = r#"<tv>
+  <programme start="20240101120000 +0000" stop="20240101130000 +0000" channel="ch1">
+    <title>Show</title>
+    <desc>Film</desc>
+  </programme>
+</tv>"#;
+        let entries = parse_epg(xml);
+        assert_eq!(entries[0].title, "Show");
+        assert_eq!(entries[0].description.as_deref(), Some("Film"));
     }
 
     #[test]

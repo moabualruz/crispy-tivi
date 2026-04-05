@@ -61,7 +61,7 @@ pub fn normalize_url(url: &str) -> String {
 /// valid base64.
 pub fn try_base64_decode(value: &str) -> String {
     // Skip values that look like XML or contain spaces.
-    if value.contains(' ') || value.contains('<') {
+    if value.contains(' ') || value.contains('<') || value.len() < 8 || value.len() % 4 != 0 {
         return value.to_string();
     }
 
@@ -245,6 +245,16 @@ mod tests {
     #[test]
     fn base64_returns_original_on_invalid() {
         assert_eq!(try_base64_decode("!!!invalid!!!"), "!!!invalid!!!",);
+    }
+
+    #[test]
+    fn base64_returns_original_when_too_short() {
+        assert_eq!(try_base64_decode("Show"), "Show");
+    }
+
+    #[test]
+    fn base64_returns_original_when_length_is_not_multiple_of_four() {
+        assert_eq!(try_base64_decode("abcdefghijk"), "abcdefghijk");
     }
 
     // ── parse_epg_timestamp ────────────────────────────

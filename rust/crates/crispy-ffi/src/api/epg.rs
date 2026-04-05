@@ -41,10 +41,16 @@ pub fn evict_stale_epg(days: i64) -> Result<usize> {
 ///
 /// Skips if the same URL was refreshed within the 4-hour
 /// cooldown window.
-pub async fn sync_xmltv_epg(url: String) -> Result<usize> {
+pub async fn sync_xmltv_epg(url: String, source_id: String, force: bool) -> Result<usize> {
     let service = svc()?;
     into_anyhow(
-        crispy_core::services::epg_sync::fetch_and_save_xmltv_epg(&service, &url, false).await,
+        crispy_core::services::epg_sync::fetch_and_save_xmltv_epg(
+            &service,
+            &url,
+            Some(source_id),
+            force,
+        )
+        .await,
     )
 }
 
@@ -55,13 +61,21 @@ pub async fn sync_xtream_epg(
     base_url: String,
     username: String,
     password: String,
+    source_id: String,
     channels_json: String,
+    force: bool,
 ) -> Result<usize> {
     let service = svc()?;
     let channels: Vec<Channel> = from_json(&channels_json)?;
     into_anyhow(
         crispy_core::services::epg_sync::fetch_and_save_xtream_epg(
-            &service, &base_url, &username, &password, &channels, false,
+            &service,
+            &base_url,
+            &username,
+            &password,
+            Some(source_id),
+            &channels,
+            force,
         )
         .await,
     )
@@ -70,12 +84,22 @@ pub async fn sync_xtream_epg(
 /// Download, parse, match, and save Stalker short EPG batches asynchronously.
 ///
 /// Cooldown is applied to the base URL.
-pub async fn sync_stalker_epg(base_url: String, channels_json: String) -> Result<usize> {
+pub async fn sync_stalker_epg(
+    base_url: String,
+    _mac: String,
+    source_id: String,
+    channels_json: String,
+    force: bool,
+) -> Result<usize> {
     let service = svc()?;
     let channels: Vec<Channel> = from_json(&channels_json)?;
     into_anyhow(
         crispy_core::services::epg_sync::fetch_and_save_stalker_epg(
-            &service, &base_url, &channels, false,
+            &service,
+            &base_url,
+            Some(source_id),
+            &channels,
+            force,
         )
         .await,
     )

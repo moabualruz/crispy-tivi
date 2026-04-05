@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../config/settings_notifier.dart';
 import '../../../core/data/cache_service.dart';
-import '../../epg/presentation/providers/epg_providers.dart';
 import '../../../core/domain/entities/playlist_source.dart';
+import '../../epg/presentation/providers/epg_providers.dart';
+import '../domain/entities/channel.dart';
 import 'playlist_sync_service.dart';
 
 /// EPG fetch and matching helpers for
@@ -21,17 +22,18 @@ mixin PlaylistEpgHelper {
   ///
   /// Rust performs downloading, parsing, mapping, and
   /// directly persisting right into the SQLite database.
-  Future<void> fetchEpg() async {
+  Future<void> fetchEpg({bool force = false}) async {
     try {
       final settings = ref.read(settingsNotifierProvider).value;
       if (settings == null) return;
 
-      // Collect all EPG URLs from sources.
-      final epgUrls = <String>{};
+      // Collect all EPG URLs and their primary source IDs.
+      final epgSourceMap = <String, String>{};
       for (final source in settings.sources) {
         final url = source.epgUrl;
         if (url != null && url.isNotEmpty) {
-          epgUrls.add(url);
+          // Use the first source ID that references this URL.
+          epgSourceMap.putIfAbsent(url, () => source.id);
         }
       }
 
@@ -41,7 +43,7 @@ mixin PlaylistEpgHelper {
             s.type == PlaylistSourceType.stalkerPortal,
       );
 
-      if (epgUrls.isEmpty && !hasXtreamOrStalker) {
+      if (epgSourceMap.isEmpty && !hasXtreamOrStalker) {
         debugPrint(
           'PlaylistSync: no EPG URLs or compatible sources configured',
         );
@@ -57,29 +59,34 @@ mixin PlaylistEpgHelper {
       final backend = ref.read(crispyBackendProvider);
       final cache = ref.read(cacheServiceProvider);
       final channels = await cache.loadChannels();
-      final channelsJson = encodeChannelsJson(channels);
 
       // Pass 1: XMLTV EPG Sync (Full async backend operation)
-      for (final url in epgUrls) {
+      for (final entry in epgSourceMap.entries) {
         try {
-          debugPrint('PlaylistSync: syncing XMLTV from $url via Rust backend');
-          final inserted = await backend.syncXmltvEpg(url: url);
+          debugPrint(
+            'PlaylistSync: syncing XMLTV from ${entry.key} for source ${entry.value}',
+          );
+          final inserted = await backend.syncXmltvEpg(
+            url: entry.key,
+            sourceId: entry.value,
+            force: force,
+          );
           debugPrint('PlaylistSync: Rust synced $inserted XMLTV combinations');
         } catch (e) {
-          debugPrint('PlaylistSync: XMLTV EPG sync failed for $url: $e');
+          debugPrint(
+            'PlaylistSync: XMLTV EPG sync failed for ${entry.key}: $e',
+          );
         }
       }
 
       // Pass 2: Xtream short EPG for unfilled.
-      await _fetchShortEpgForMissing(
-        sources: settings.sources,
-        channelsJson: channelsJson,
-      );
+      await _fetchAllXtreamEpg(sources: settings.sources, force: force);
 
       // Pass 3: Stalker short EPG for unfilled.
-      await _fetchShortEpgForStalkerMissing(
+      await _fetchAllStalkerEpg(
         sources: settings.sources,
-        channelsJson: channelsJson,
+        allChannels: channels,
+        force: force,
       );
 
       // Rust has persisted everything to DB. Refresh
@@ -110,65 +117,72 @@ mixin PlaylistEpgHelper {
     }
   }
 
-  /// Delegates to Rust to fetch Xtream short EPGs for Live Channels.
-  Future<void> _fetchShortEpgForMissing({
+  /// Delegates to Rust to fetch Xtream full EPGs (via xmltv.php).
+  Future<void> _fetchAllXtreamEpg({
     required List<PlaylistSource> sources,
-    required String channelsJson,
+    required bool force,
   }) async {
-    try {
-      PlaylistSource? xtreamSource;
-      for (final source in sources) {
-        if (source.username != null && source.password != null) {
-          xtreamSource = source;
-          break;
+    final xtreamSources = sources.where(
+      (s) => s.type == PlaylistSourceType.xtream,
+    );
+    if (xtreamSources.isEmpty) return;
+
+    final backend = ref.read(crispyBackendProvider);
+    for (final src in xtreamSources) {
+      if (src.username != null && src.password != null) {
+        try {
+          debugPrint('PlaylistSync: syncing Xtream EPG for source ${src.id}');
+          final inserted = await backend.syncXtreamEpg(
+            baseUrl: src.url,
+            username: src.username!,
+            password: src.password!,
+            sourceId: src.id,
+            channelsJson: '[]', // Unused in Rust backend for Xtream.
+            force: force,
+          );
+          debugPrint('PlaylistSync: Xtream sync inserted $inserted entries.');
+        } catch (e) {
+          debugPrint('PlaylistSync: Xtream EPG sync error for ${src.id}: $e');
         }
       }
-      if (xtreamSource == null) return;
-
-      debugPrint('PlaylistSync: Triggering Xtream short EPG fetch via Rust');
-      final backend = ref.read(crispyBackendProvider);
-
-      final inserted = await backend.syncXtreamEpg(
-        baseUrl: xtreamSource.url,
-        username: xtreamSource.username!,
-        password: xtreamSource.password!,
-        channelsJson: channelsJson,
-      );
-      debugPrint('PlaylistSync: Xtream short EPG inserted $inserted mappings.');
-    } catch (e) {
-      debugPrint('PlaylistSync: short EPG batch error: $e');
     }
   }
 
   /// Delegates to Rust to fetch Stalker short EPGs for Live Channels.
-  Future<void> _fetchShortEpgForStalkerMissing({
+  Future<void> _fetchAllStalkerEpg({
     required List<PlaylistSource> sources,
-    required String channelsJson,
+    required List<Channel> allChannels,
+    required bool force,
   }) async {
-    try {
-      PlaylistSource? stalkerSource;
-      for (final source in sources) {
-        if (source.type == PlaylistSourceType.stalkerPortal &&
-            source.macAddress != null &&
-            source.macAddress!.isNotEmpty) {
-          stalkerSource = source;
-          break;
+    final stalkerSources = sources.where(
+      (s) => s.type == PlaylistSourceType.stalkerPortal,
+    );
+    if (stalkerSources.isEmpty) return;
+
+    final backend = ref.read(crispyBackendProvider);
+    for (final src in stalkerSources) {
+      if (src.macAddress != null && src.macAddress!.isNotEmpty) {
+        try {
+          debugPrint('PlaylistSync: syncing Stalker EPG for source ${src.id}');
+          // Only pass channels belonging to THIS source.
+          final sourceChannels =
+              allChannels
+                  .where((c) => c.sourceId != null && c.sourceId == src.id)
+                  .toList();
+          if (sourceChannels.isEmpty) continue;
+
+          final inserted = await backend.syncStalkerEpg(
+            baseUrl: src.url,
+            mac: src.macAddress!,
+            sourceId: src.id,
+            channelsJson: encodeChannelsJson(sourceChannels),
+            force: force,
+          );
+          debugPrint('PlaylistSync: Stalker sync inserted $inserted entries.');
+        } catch (e) {
+          debugPrint('PlaylistSync: Stalker EPG sync error for ${src.id}: $e');
         }
       }
-      if (stalkerSource == null) return;
-
-      debugPrint('PlaylistSync: Triggering Stalker short EPG fetch via Rust');
-      final backend = ref.read(crispyBackendProvider);
-
-      final inserted = await backend.syncStalkerEpg(
-        baseUrl: stalkerSource.url,
-        channelsJson: channelsJson,
-      );
-      debugPrint(
-        'PlaylistSync: Stalker short EPG inserted $inserted mappings.',
-      );
-    } catch (e) {
-      debugPrint('PlaylistSync: stalker short EPG batch error: $e');
     }
   }
 }

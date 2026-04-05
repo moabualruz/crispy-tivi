@@ -278,7 +278,8 @@ impl CrispyService {
         }
 
         // Query EPG entries matching any of the lookup keys by
-        // epg_channel_id OR xmltv_id.
+        // epg_channel_id OR xmltv_id. Order by source priority
+        // (sort_order ASC) so that higher-quality sources come first.
         let keys_vec: Vec<String> = lookup_keys.into_iter().collect();
         let placeholders: Vec<String> = (1..=keys_vec.len()).map(|i| format!("?{i}")).collect();
         let ph_joined = placeholders.join(", ");
@@ -292,10 +293,11 @@ impl CrispyService {
         let query = format!(
             "SELECT {cols}
             FROM db_epg_entries
+            LEFT JOIN db_sources ON db_epg_entries.source_id = db_sources.id
             WHERE (epg_channel_id IN ({ph_joined}) OR xmltv_id IN ({xmltv_ph_joined}))
               AND end_time > ?{start_p}
               AND start_time < ?{end_p}
-            ORDER BY epg_channel_id, start_time",
+            ORDER BY epg_channel_id, start_time, COALESCE(db_sources.sort_order, 999) ASC",
             cols = EPG_SELECT_COLS,
         );
 

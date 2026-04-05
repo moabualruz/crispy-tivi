@@ -79,18 +79,27 @@ mixin _MemoryEpgMixin on _MemoryStorage {
     return removed;
   }
 
-  Future<int> syncXmltvEpg({required String url}) async => 0;
+  Future<int> syncXmltvEpg({
+    required String url,
+    required String sourceId,
+    bool force = false,
+  }) async => 0;
 
   Future<int> syncXtreamEpg({
     required String baseUrl,
     required String username,
     required String password,
+    required String sourceId,
     required String channelsJson,
+    bool force = false,
   }) async => 0;
 
   Future<int> syncStalkerEpg({
     required String baseUrl,
+    required String mac,
+    required String sourceId,
     required String channelsJson,
+    bool force = false,
   }) async => 0;
 
   Future<void> clearEpgEntries() async => epg.clear();

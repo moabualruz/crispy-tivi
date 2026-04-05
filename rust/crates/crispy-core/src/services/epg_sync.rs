@@ -27,6 +27,7 @@ const EPG_COOLDOWN_SECS: i64 = 14_400;
 pub async fn fetch_and_save_xmltv_epg(
     service: &CrispyService,
     url: &str,
+    source_id: Option<String>,
     force: bool,
 ) -> Result<usize> {
     // Check cooldown — skip if refreshed recently.
@@ -57,7 +58,8 @@ pub async fn fetch_and_save_xmltv_epg(
     //    same tvg_id all share this EPG data — the join happens
     //    at query time via db_channels.tvg_id.
     let mut grouped: HashMap<String, Vec<EpgEntry>> = HashMap::new();
-    for entry in entries {
+    for mut entry in entries {
+        entry.source_id = source_id.clone();
         grouped
             .entry(entry.channel_id.clone())
             .or_default()
@@ -80,6 +82,7 @@ pub async fn fetch_and_save_xtream_epg(
     base_url: &str,
     username: &str,
     password: &str,
+    source_id: Option<String>,
     _channels: &[Channel],
     force: bool,
 ) -> Result<usize> {
@@ -93,7 +96,7 @@ pub async fn fetch_and_save_xtream_epg(
     );
 
     // Delegate entirely to the robust XMLTV processing pipeline
-    fetch_and_save_xmltv_epg(service, &xmltv_url, force).await
+    fetch_and_save_xmltv_epg(service, &xmltv_url, source_id, force).await
 }
 
 /// Downloads and processes Stalker short EPG batches sequentially.
@@ -102,6 +105,7 @@ pub async fn fetch_and_save_xtream_epg(
 pub async fn fetch_and_save_stalker_epg(
     service: &CrispyService,
     base_url: &str,
+    source_id: Option<String>,
     channels: &[Channel],
     force: bool,
 ) -> Result<usize> {
@@ -136,7 +140,11 @@ pub async fn fetch_and_save_stalker_epg(
                     // substituting an empty string.
                     let list_str = serde_json::to_string(listings)
                         .context("Failed to re-serialize Stalker EPG listings")?;
-                    let parsed = crate::parsers::stalker::parse_stalker_epg(&list_str, &channel.id);
+                    let mut parsed =
+                        crate::parsers::stalker::parse_stalker_epg(&list_str, &channel.id);
+                    for entry in &mut parsed {
+                        entry.source_id = source_id.clone();
+                    }
                     all_entries.insert(channel.id.clone(), parsed);
                 }
             }

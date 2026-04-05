@@ -222,20 +222,29 @@ abstract class _BackendDataMethods {
   Future<void> clearEpgEntries();
 
   /// Trigger asynchronous XMLTV download and mapping on Rust backend.
-  Future<int> syncXmltvEpg({required String url});
+  Future<int> syncXmltvEpg({
+    required String url,
+    required String sourceId,
+    bool force = false,
+  });
 
   /// Trigger asynchronous Xtream short EPG fetch and mapping on Rust backend.
   Future<int> syncXtreamEpg({
     required String baseUrl,
     required String username,
     required String password,
+    required String sourceId,
     required String channelsJson,
+    bool force = false,
   });
 
   /// Trigger asynchronous Stalker short EPG fetch and mapping on Rust backend.
   Future<int> syncStalkerEpg({
     required String baseUrl,
+    required String mac,
+    required String sourceId,
     required String channelsJson,
+    bool force = false,
   });
 
   // ── EPG Mappings ────────────────────────────────────

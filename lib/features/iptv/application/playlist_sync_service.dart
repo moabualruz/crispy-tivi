@@ -284,7 +284,7 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
   }
 
   /// Public method to manually refresh EPG data.
-  Future<void> refreshEpg() => fetchEpg();
+  Future<void> refreshEpg() => fetchEpg(force: true);
 
   /// Syncs a single source and records its completion
   /// metadata (EPG auto-save + last-sync timestamp).

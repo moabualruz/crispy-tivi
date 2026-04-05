@@ -9773,14 +9773,22 @@ fn wire__crate__api__epg__sync_stalker_epg_impl(
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_base_url = <String>::sse_decode(&mut deserializer);
+            let api_mac = <String>::sse_decode(&mut deserializer);
+            let api_source_id = <String>::sse_decode(&mut deserializer);
             let api_channels_json = <String>::sse_decode(&mut deserializer);
+            let api_force = <bool>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok =
-                            crate::api::epg::sync_stalker_epg(api_base_url, api_channels_json)
-                                .await?;
+                        let output_ok = crate::api::epg::sync_stalker_epg(
+                            api_base_url,
+                            api_mac,
+                            api_source_id,
+                            api_channels_json,
+                            api_force,
+                        )
+                        .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -9857,11 +9865,15 @@ fn wire__crate__api__epg__sync_xmltv_epg_impl(
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_url = <String>::sse_decode(&mut deserializer);
+            let api_source_id = <String>::sse_decode(&mut deserializer);
+            let api_force = <bool>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::epg::sync_xmltv_epg(api_url).await?;
+                        let output_ok =
+                            crate::api::epg::sync_xmltv_epg(api_url, api_source_id, api_force)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -9895,7 +9907,9 @@ fn wire__crate__api__epg__sync_xtream_epg_impl(
             let api_base_url = <String>::sse_decode(&mut deserializer);
             let api_username = <String>::sse_decode(&mut deserializer);
             let api_password = <String>::sse_decode(&mut deserializer);
+            let api_source_id = <String>::sse_decode(&mut deserializer);
             let api_channels_json = <String>::sse_decode(&mut deserializer);
+            let api_force = <bool>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
@@ -9904,7 +9918,9 @@ fn wire__crate__api__epg__sync_xtream_epg_impl(
                             api_base_url,
                             api_username,
                             api_password,
+                            api_source_id,
                             api_channels_json,
+                            api_force,
                         )
                         .await?;
                         Ok(output_ok)

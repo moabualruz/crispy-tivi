@@ -73,8 +73,16 @@ mixin _FfiEpgMixin on _FfiBackendBase {
     return result.toInt();
   }
 
-  Future<int> syncXmltvEpg({required String url}) async {
-    final count = await rust_api.syncXmltvEpg(url: url);
+  Future<int> syncXmltvEpg({
+    required String url,
+    required String sourceId,
+    bool force = false,
+  }) async {
+    final count = await rust_api.syncXmltvEpg(
+      url: url,
+      sourceId: sourceId,
+      force: force,
+    );
     return count.toInt();
   }
 
@@ -82,24 +90,34 @@ mixin _FfiEpgMixin on _FfiBackendBase {
     required String baseUrl,
     required String username,
     required String password,
+    required String sourceId,
     required String channelsJson,
+    bool force = false,
   }) async {
     final count = await rust_api.syncXtreamEpg(
       baseUrl: baseUrl,
       username: username,
       password: password,
+      sourceId: sourceId,
       channelsJson: channelsJson,
+      force: force,
     );
     return count.toInt();
   }
 
   Future<int> syncStalkerEpg({
     required String baseUrl,
+    required String mac,
+    required String sourceId,
     required String channelsJson,
+    bool force = false,
   }) async {
     final count = await rust_api.syncStalkerEpg(
       baseUrl: baseUrl,
+      mac: mac,
+      sourceId: sourceId,
       channelsJson: channelsJson,
+      force: force,
     );
     return count.toInt();
   }
