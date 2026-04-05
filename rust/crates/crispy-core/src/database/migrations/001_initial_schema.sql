@@ -29,8 +29,8 @@ CREATE TABLE IF NOT EXISTS db_sources (
     last_sync_time INTEGER,
     last_sync_status TEXT,
     last_sync_error TEXT,
-    created_at INTEGER,
-    updated_at INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
     credentials_encrypted INTEGER NOT NULL DEFAULT 0,
     deleted_at INTEGER,
     epg_etag TEXT,
@@ -71,8 +71,8 @@ CREATE TABLE IF NOT EXISTS db_channels (
     catchup_type TEXT,
     catchup_source TEXT,
     source_id TEXT REFERENCES db_sources(id) ON DELETE CASCADE,
-    added_at INTEGER,
-    updated_at INTEGER,
+    added_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
     is_247 INTEGER NOT NULL DEFAULT 0,
     tvg_shift REAL,
     tvg_language TEXT,
@@ -199,8 +199,8 @@ CREATE TABLE IF NOT EXISTS db_movies (
     cast_names TEXT,
     director TEXT,
     is_adult INTEGER NOT NULL DEFAULT 0,
-    added_at INTEGER,
-    updated_at INTEGER,
+    added_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
     UNIQUE (source_id, native_id)
 );
 
@@ -224,8 +224,8 @@ CREATE TABLE IF NOT EXISTS db_series (
     cast_names TEXT,
     director TEXT,
     is_adult INTEGER NOT NULL DEFAULT 0,
-    added_at INTEGER,
-    updated_at INTEGER,
+    added_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
     UNIQUE (source_id, native_id)
 );
 
@@ -261,8 +261,8 @@ CREATE TABLE IF NOT EXISTS db_episodes (
     rating TEXT,
     content_rating TEXT,
     tmdb_id INTEGER,
-    added_at INTEGER,
-    updated_at INTEGER,
+    added_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
     UNIQUE (season_id, episode_number)
 );
 

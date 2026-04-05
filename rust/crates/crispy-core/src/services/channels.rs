@@ -125,7 +125,7 @@ impl CrispyService {
                     catchup_type = excluded.catchup_type,
                     catchup_source = excluded.catchup_source,
                     added_at = excluded.added_at,
-                    updated_at = excluded.updated_at,
+                    updated_at = strftime('%s','now'),
                     is_247 = excluded.is_247,
                     tvg_shift = excluded.tvg_shift,
                     tvg_language = excluded.tvg_language,
@@ -194,22 +194,6 @@ impl CrispyService {
         Ok(count)
     }
 
-    /// Delete channels not in `keep_ids` using a caller-supplied connection.
-    ///
-    /// Intended for use inside a shared outer transaction. Does not commit.
-    pub(super) fn delete_removed_channels_inner(
-        conn: &rusqlite::Connection,
-        source_id: &str,
-        keep_ids: &[String],
-    ) -> Result<usize, DbError> {
-        super::delete_removed_by_source_conn(
-            conn,
-            crate::database::TABLE_CHANNELS,
-            source_id,
-            keep_ids,
-        )
-    }
-
     /// Batch upsert channels. Returns count inserted.
     pub fn save_channels(&self, channels: &[Channel]) -> Result<usize, DbError> {
         let conn = self.db.get()?;
@@ -270,8 +254,10 @@ impl CrispyService {
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
-    /// Delete channels from `source_id` not in
-    /// `keep_ids`. Returns count deleted.
+    /// Delete channels from `source_id` whose `id` is not in `keep_ids`.
+    ///
+    /// Used by external callers (Flutter / server) that track IDs explicitly.
+    /// Returns count deleted.
     pub fn delete_removed_channels(
         &self,
         source_id: &str,
@@ -279,7 +265,12 @@ impl CrispyService {
     ) -> Result<usize, DbError> {
         let conn = self.db.get()?;
         let tx = conn.unchecked_transaction()?;
-        let deleted = Self::delete_removed_channels_inner(&tx, source_id, keep_ids)?;
+        let deleted = super::delete_removed_by_source_conn(
+            &tx,
+            crate::database::TABLE_CHANNELS,
+            source_id,
+            keep_ids,
+        )?;
         tx.commit()?;
         self.emit(DataChangeEvent::ChannelsUpdated {
             source_id: source_id.to_string(),

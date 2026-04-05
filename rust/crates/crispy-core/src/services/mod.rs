@@ -184,9 +184,8 @@ pub(crate) fn str_params(ids: &[String]) -> Vec<&dyn rusqlite::types::ToSql> {
         .collect()
 }
 
-/// Delete rows from `table` belonging to `source_id` whose `id`
-/// is not in `keep_ids`. Accepts any `rusqlite::Connection`-like
-/// handle (including a `Transaction` which derefs to `Connection`).
+/// Delete rows from `table` belonging to `source_id` whose `id` is not in
+/// `keep_ids`. Used by standalone delete operations (not the sync path).
 /// Returns the number of rows deleted.
 pub(super) fn delete_removed_by_source_conn(
     conn: &rusqlite::Connection,
@@ -194,21 +193,50 @@ pub(super) fn delete_removed_by_source_conn(
     source_id: &str,
     keep_ids: &[String],
 ) -> Result<usize, DbError> {
-    let temp = format!("_keep_{table}");
-    conn.execute(
-        &format!("CREATE TEMP TABLE IF NOT EXISTS {temp} (id TEXT PRIMARY KEY)"),
-        [],
-    )?;
-    conn.execute(&format!("DELETE FROM {temp}"), [])?;
-    let insert_sql = format!("INSERT OR IGNORE INTO {temp} (id) VALUES (?1)");
-    for id in keep_ids {
-        conn.execute(&insert_sql, params![id])?;
+    if keep_ids.is_empty() {
+        let deleted = conn.execute(
+            &format!("DELETE FROM {table} WHERE source_id = ?1"),
+            params![source_id],
+        )?;
+        return Ok(deleted);
     }
+    let placeholders = keep_ids
+        .iter()
+        .enumerate()
+        .map(|(i, _)| format!("?{}", i + 2))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let sql = format!(
+        "DELETE FROM {table} WHERE source_id = ?1 AND id NOT IN ({placeholders})"
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let mut params_vec: Vec<&dyn rusqlite::types::ToSql> = vec![&source_id];
+    for id in keep_ids {
+        params_vec.push(id);
+    }
+    let deleted = stmt.execute(params_vec.as_slice())?;
+    Ok(deleted)
+}
+
+/// Delete rows from `table` that were NOT updated during this sync round.
+///
+/// Any row whose `updated_at` is older than `sync_started_at` was not
+/// touched by the current sync — meaning the provider no longer has it.
+/// This is simpler and more correct than ID-list comparison because
+/// UUIDs are generated fresh each sync while timestamps are set during
+/// the upsert's DO UPDATE clause.
+pub(super) fn delete_stale_by_source_conn(
+    conn: &rusqlite::Connection,
+    table: &str,
+    source_id: &str,
+    sync_started_at: i64,
+) -> Result<usize, DbError> {
     let deleted = conn.execute(
-        &format!("DELETE FROM {table} WHERE source_id = ?1 AND id NOT IN (SELECT id FROM {temp})"),
-        params![source_id],
+        &format!(
+            "DELETE FROM {table} WHERE source_id = ?1 AND (updated_at IS NULL OR updated_at < ?2)"
+        ),
+        params![source_id, sync_started_at],
     )?;
-    conn.execute(&format!("DROP TABLE IF EXISTS {temp}"), [])?;
     Ok(deleted)
 }
 
@@ -314,9 +342,8 @@ impl CrispyService {
         &self,
         source_id: &str,
         channels: &[crate::models::Channel],
-        channel_ids: &[String],
         vod_items: &[crate::models::VodItem],
-        vod_ids: &[String],
+        sync_started_at: i64,
     ) -> Result<(), crate::database::DbError> {
         // Serialise concurrent syncs for the duration of the transaction.
         let _sync_guard = self.sync_mutex.lock().unwrap_or_else(|e| e.into_inner());
@@ -326,9 +353,19 @@ impl CrispyService {
             let tx = conn.unchecked_transaction()?;
 
             Self::save_channels_inner(&tx, channels)?;
-            Self::delete_removed_channels_inner(&tx, source_id, channel_ids)?;
+            delete_stale_by_source_conn(
+                &tx,
+                crate::database::TABLE_CHANNELS,
+                source_id,
+                sync_started_at,
+            )?;
             Self::save_vod_items_inner(&tx, vod_items)?;
-            Self::delete_removed_vod_items_inner(&tx, source_id, vod_ids)?;
+            delete_stale_by_source_conn(
+                &tx,
+                crate::database::TABLE_MOVIES,
+                source_id,
+                sync_started_at,
+            )?;
 
             tx.commit()?;
         }

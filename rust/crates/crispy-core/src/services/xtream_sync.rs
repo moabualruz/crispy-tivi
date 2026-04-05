@@ -672,17 +672,16 @@ pub async fn sync_xtream_source(
     let channel_groups = categories::extract_sorted_groups(&channels);
     let vod_categories_list = categories::extract_sorted_vod_categories(&vod_items);
 
-    // 6. Collect IDs for stale-row deletion.
+    // 6. Snapshot counts before persisting.
     let channels_count = channels.len();
     let vod_count = vod_items.len();
-    let channel_ids: Vec<String> = channels.iter().map(|c| c.id.clone()).collect();
-    let vod_ids: Vec<String> = vod_items.iter().map(|v| v.id.clone()).collect();
+    let sync_started_at = chrono::Utc::now().timestamp();
 
     emit_progress(source_id, "saving", 0.9, "Saving to database");
 
     // 7. Save to DB — single batch so the UI gets one BulkDataRefresh.
     service
-        .save_sync_data(source_id, &channels, &channel_ids, &vod_items, &vod_ids)
+        .save_sync_data(source_id, &channels, &vod_items, sync_started_at)
         .context("Failed to persist Xtream sync data")?;
 
     // Drop the M3U temp table now that Xtream mapping is done
