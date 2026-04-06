@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants.dart';
-import '../../data/watch_history_service.dart';
+import 'player_service_providers.dart'
+    show WatchHistoryService, watchHistoryServiceProvider;
 import '../../domain/entities/playback_state.dart';
 import '../../domain/segment_skip_config.dart';
 import '../../domain/utils/skip_segment_utils.dart';

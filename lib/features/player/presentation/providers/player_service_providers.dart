@@ -17,3 +17,7 @@ export '../../data/thumbnail_service.dart'
     show ThumbnailService, ThumbnailSource, ThumbnailRegion;
 export '../../data/gpu_json_codec.dart' show GpuJsonCodec;
 export '../../data/upscale_manager.dart' show UpscaleManager;
+export '../../data/stalker_session_service.dart'
+    show StalkerSessionService, stalkerSessionServiceProvider;
+export '../../data/stream_url_resolver.dart'
+    show ResolvedStream, StreamUrlResolver;

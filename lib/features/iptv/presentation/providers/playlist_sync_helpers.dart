@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
-import '../../../profiles/data/source_access_service.dart';
+import '../../../profiles/presentation/providers/profile_service_providers.dart'
+    show accessibleSourcesProvider;
 import '../../../vod/domain/entities/vod_item.dart';
 import '../../../vod/presentation/providers/vod_favorites_provider.dart';
 import '../../../vod/presentation/providers/vod_providers.dart';

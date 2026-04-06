@@ -5,8 +5,8 @@ import '../../../../config/settings_notifier.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../vod/domain/entities/vod_item.dart';
-import '../../data/stalker_session_service.dart';
-import '../../data/stream_url_resolver.dart';
+import 'player_service_providers.dart'
+    show stalkerSessionServiceProvider, StreamUrlResolver;
 import '../../domain/entities/playback_session_params.dart';
 import '../widgets/bookmark_overlay.dart';
 import 'player_providers.dart';
