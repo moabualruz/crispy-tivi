@@ -37,6 +37,75 @@ mixin _CacheVodMixin on _CacheServiceBase {
     return maps.map(mapToVodItem).toList();
   }
 
+  /// Load a page of VOD items filtered by source IDs, type, category, and query.
+  Future<List<VodItem>> getVodPage({
+    required List<String> sourceIds,
+    String? itemType,
+    String? category,
+    String? query,
+    required String sort,
+    required int offset,
+    required int limit,
+  }) async {
+    final resultJson = await _backend.getVodPage(
+      jsonEncode(sourceIds),
+      itemType: itemType,
+      category: category,
+      query: query,
+      sort: sort,
+      offset: offset,
+      limit: limit,
+    );
+    return (jsonDecode(resultJson) as List)
+        .cast<Map<String, dynamic>>()
+        .map(mapToVodItem)
+        .toList();
+  }
+
+  /// Count VOD items filtered by source IDs, type, category, and query.
+  Future<int> getVodCount({
+    required List<String> sourceIds,
+    String? itemType,
+    String? category,
+    String? query,
+  }) => _backend.getVodCount(
+    jsonEncode(sourceIds),
+    itemType: itemType,
+    category: category,
+    query: query,
+  );
+
+  /// Load VOD categories with item counts filtered by source IDs and type.
+  Future<List<({String name, int count})>> getVodCategories({
+    required List<String> sourceIds,
+    String? itemType,
+  }) async {
+    final resultJson = await _backend.getVodCategories(
+      jsonEncode(sourceIds),
+      itemType: itemType,
+    );
+    return _decodeNameCountList(resultJson);
+  }
+
+  /// Search VOD items by query with pagination.
+  Future<List<VodItem>> searchVod({
+    required String query,
+    required List<String> sourceIds,
+    required int offset,
+    required int limit,
+  }) async {
+    final resultJson = await _backend.searchVod(
+      query,
+      jsonEncode(sourceIds),
+      offset,
+      limit,
+    );
+    return (jsonDecode(resultJson) as List)
+        .cast<Map<String, dynamic>>()
+        .map(mapToVodItem)
+        .toList();
+  }
+
   /// Update a single VOD item's favorite flag.
   Future<void> updateVodFavorite(String itemId, bool isFavorite) async {
     await _backend.updateVodFavorite(itemId, isFavorite);

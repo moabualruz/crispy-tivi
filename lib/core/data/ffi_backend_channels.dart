@@ -39,6 +39,82 @@ mixin _FfiChannelsMixin on _FfiBackendBase {
     return _decodeJsonList(json);
   }
 
+  Future<String> getChannelGroups(String sourceIdsJson) =>
+      rust_api.getChannelGroups(sourceIdsJson: sourceIdsJson);
+
+  Future<String> getChannelsPage(
+    String sourceIdsJson, {
+    String? group,
+    required String sort,
+    required int offset,
+    required int limit,
+  }) => rust_api.getChannelsPage(
+    sourceIdsJson: sourceIdsJson,
+    group: group,
+    sort: sort,
+    offset: PlatformInt64Util.from(offset),
+    limit: PlatformInt64Util.from(limit),
+  );
+
+  Future<int> getChannelCount(
+    String sourceIdsJson, {
+    String? group,
+  }) async {
+    final result = await rust_api.getChannelCount(
+      sourceIdsJson: sourceIdsJson,
+      group: group,
+    );
+    return result;
+  }
+
+  Future<List<String>> getChannelIdsForGroup(
+    String sourceIdsJson, {
+    String? group,
+    required String sort,
+  }) async {
+    final json = await rust_api.getChannelIdsForGroup(
+      sourceIdsJson: sourceIdsJson,
+      group: group,
+      sort: sort,
+    );
+    try {
+      return (jsonDecode(json) as List).cast<String>();
+    } catch (e) {
+      debugPrint('FFI JSON decode error in getChannelIdsForGroup: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> getChannelById(String id) async {
+    final json = await rust_api.getChannelById(id: id);
+    try {
+      final decoded = jsonDecode(json);
+      if (decoded == null) return null;
+      return decoded as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('FFI JSON decode error in getChannelById: $e');
+      return null;
+    }
+  }
+
+  Future<String> getFavoriteChannels(String sourceIdsJson, String profileId) =>
+      rust_api.getFavoriteChannels(
+        sourceIdsJson: sourceIdsJson,
+        profileId: profileId,
+      );
+
+  Future<String> searchChannels(
+    String query,
+    String sourceIdsJson,
+    int offset,
+    int limit,
+  ) => rust_api.searchChannels(
+    query: query,
+    sourceIdsJson: sourceIdsJson,
+    offset: PlatformInt64Util.from(offset),
+    limit: PlatformInt64Util.from(limit),
+  );
+
   // ── Channel Favorites ────────────────────────────
 
   Future<List<String>> getFavorites(String profileId) =>

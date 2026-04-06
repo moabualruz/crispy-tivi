@@ -50,6 +50,93 @@ mixin _CacheChannelsMixin on _CacheServiceBase {
     return maps.map(mapToChannel).toList();
   }
 
+  /// Load channel groups with item counts filtered by source IDs.
+  Future<List<({String name, int count})>> getChannelGroups(
+    List<String> sourceIds,
+  ) async {
+    final resultJson = await _backend.getChannelGroups(jsonEncode(sourceIds));
+    return _decodeNameCountList(resultJson);
+  }
+
+  /// Load a page of channels filtered by source IDs and group.
+  Future<List<Channel>> getChannelsPage({
+    required List<String> sourceIds,
+    String? group,
+    required String sort,
+    required int offset,
+    required int limit,
+  }) async {
+    final resultJson = await _backend.getChannelsPage(
+      jsonEncode(sourceIds),
+      group: group,
+      sort: sort,
+      offset: offset,
+      limit: limit,
+    );
+    return (jsonDecode(resultJson) as List)
+        .cast<Map<String, dynamic>>()
+        .map(mapToChannel)
+        .toList();
+  }
+
+  /// Count channels filtered by source IDs and group.
+  Future<int> getChannelCount({
+    required List<String> sourceIds,
+    String? group,
+  }) => _backend.getChannelCount(jsonEncode(sourceIds), group: group);
+
+  /// Load ordered channel IDs for a group filtered by source IDs.
+  Future<List<String>> getChannelIdsForGroup({
+    required List<String> sourceIds,
+    String? group,
+    required String sort,
+  }) => _backend.getChannelIdsForGroup(
+    jsonEncode(sourceIds),
+    group: group,
+    sort: sort,
+  );
+
+  /// Load a single channel by ID.
+  Future<Channel?> getChannelById(String id) async {
+    final map = await _backend.getChannelById(id);
+    if (map == null) return null;
+    return mapToChannel(map);
+  }
+
+  /// Load favourite channels for a profile filtered by source IDs.
+  Future<List<Channel>> getFavoriteChannels({
+    required List<String> sourceIds,
+    required String profileId,
+  }) async {
+    final resultJson = await _backend.getFavoriteChannels(
+      jsonEncode(sourceIds),
+      profileId,
+    );
+    return (jsonDecode(resultJson) as List)
+        .cast<Map<String, dynamic>>()
+        .map(mapToChannel)
+        .toList();
+  }
+
+  /// Search channels by query with pagination.
+  Future<List<Channel>> searchChannels({
+    required String query,
+    required List<String> sourceIds,
+    required int offset,
+    required int limit,
+  }) async {
+    final resultJson = await _backend.searchChannels(
+      query,
+      jsonEncode(sourceIds),
+      offset,
+      limit,
+    );
+    return (jsonDecode(resultJson) as List)
+        .cast<Map<String, dynamic>>()
+        .map(mapToChannel)
+        .toList();
+  }
+
   /// Load categories filtered by source IDs.
   /// Empty [sourceIds] returns all categories.
   Future<Map<String, List<String>>> getCategoriesBySources(
@@ -195,6 +282,29 @@ mixin _CacheChannelsMixin on _CacheServiceBase {
 /// `dart:convert` directly.
 String encodeChannelsJson(List<Channel> channels) {
   return jsonEncode(channels.map(channelToMap).toList());
+}
+
+List<({String name, int count})> _decodeNameCountList(String json) {
+  try {
+    final raw = jsonDecode(json) as List<dynamic>;
+    return raw.map((entry) {
+      if (entry is List && entry.length >= 2) {
+        return (
+          name: entry[0] as String? ?? '',
+          count: (entry[1] as num?)?.toInt() ?? 0,
+        );
+      }
+      final map = entry as Map<String, dynamic>;
+      return (
+        name:
+            (map['name'] ?? map['group'] ?? map['category'] ?? '') as String,
+        count: (map['count'] as num?)?.toInt() ?? 0,
+      );
+    }).toList();
+  } catch (e) {
+    debugPrint('CacheService JSON decode error in _decodeNameCountList: $e');
+    return [];
+  }
 }
 
 // ── Channel converters (top-level) ────────────────

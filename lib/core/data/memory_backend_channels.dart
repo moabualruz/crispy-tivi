@@ -46,6 +46,55 @@ mixin _MemoryChannelsMixin on _MemoryStorage {
         .toList();
   }
 
+  Future<String> getChannelGroups(String sourceIdsJson) =>
+      throw UnimplementedError(
+        'getChannelGroups is not supported on MemoryBackend',
+      );
+
+  Future<String> getChannelsPage(
+    String sourceIdsJson, {
+    String? group,
+    required String sort,
+    required int offset,
+    required int limit,
+  }) => throw UnimplementedError(
+    'getChannelsPage is not supported on MemoryBackend',
+  );
+
+  Future<int> getChannelCount(
+    String sourceIdsJson, {
+    String? group,
+  }) => throw UnimplementedError(
+    'getChannelCount is not supported on MemoryBackend',
+  );
+
+  Future<List<String>> getChannelIdsForGroup(
+    String sourceIdsJson, {
+    String? group,
+    required String sort,
+  }) => throw UnimplementedError(
+    'getChannelIdsForGroup is not supported on MemoryBackend',
+  );
+
+  Future<Map<String, dynamic>?> getChannelById(String id) =>
+      throw UnimplementedError(
+        'getChannelById is not supported on MemoryBackend',
+      );
+
+  Future<String> getFavoriteChannels(String sourceIdsJson, String profileId) =>
+      throw UnimplementedError(
+        'getFavoriteChannels is not supported on MemoryBackend',
+      );
+
+  Future<String> searchChannels(
+    String query,
+    String sourceIdsJson,
+    int offset,
+    int limit,
+  ) => throw UnimplementedError(
+    'searchChannels is not supported on MemoryBackend',
+  );
+
   // ── Channel Favorites ───────────────────────────
 
   Future<List<String>> getFavorites(String profileId) async =>

@@ -41,6 +41,43 @@ mixin _MemoryVodMixin on _MemoryStorage {
         .toList();
   }
 
+  Future<String> getVodPage(
+    String sourceIdsJson, {
+    String? itemType,
+    String? category,
+    String? query,
+    required String sort,
+    required int offset,
+    required int limit,
+  }) => throw UnimplementedError(
+    'getVodPage is not supported on MemoryBackend',
+  );
+
+  Future<int> getVodCount(
+    String sourceIdsJson, {
+    String? itemType,
+    String? category,
+    String? query,
+  }) => throw UnimplementedError(
+    'getVodCount is not supported on MemoryBackend',
+  );
+
+  Future<String> getVodCategories(
+    String sourceIdsJson, {
+    String? itemType,
+  }) => throw UnimplementedError(
+    'getVodCategories is not supported on MemoryBackend',
+  );
+
+  Future<String> searchVod(
+    String query,
+    String sourceIdsJson,
+    int offset,
+    int limit,
+  ) => throw UnimplementedError(
+    'searchVod is not supported on MemoryBackend',
+  );
+
   // ── VOD Favorites ──────────────────────────────
 
   Future<String> getFilteredVod(
