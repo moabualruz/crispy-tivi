@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/data/cache_service.dart';
-import '../../../core/data/crispy_backend.dart';
-import '../data/profile_service.dart';
-import '../data/source_access_service.dart';
-import 'entities/user_profile.dart';
-import 'enums/dvr_permission.dart';
-import 'enums/user_role.dart';
+import '../../../../core/data/cache_service.dart';
+import '../../../../core/data/crispy_backend.dart';
+import '../../data/profile_service.dart';
+import '../../data/source_access_service.dart';
+import '../../domain/entities/user_profile.dart';
+import '../../domain/enums/dvr_permission.dart';
+import '../../domain/enums/user_role.dart';
 
 /// Centralized permission checking utility.
 ///

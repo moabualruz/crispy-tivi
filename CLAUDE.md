@@ -502,12 +502,20 @@ After completing ANY code changes:
 - [ ] **Formatters run** (`cargo fmt --all` in `rust/`,
       `dart format lib/ test/`)
 
-### Why This Matters
 
-- Docs track project state — future agents need accurate status
-- Docs prevent duplicate work — clearly mark what's done
-- Docs guide implementation — specs define what to build
-- Docs enable handoff — context persists across sessions
+## Coding Standards (from vault — MANDATORY)
+
+See vault `rules/` (ddd.md, solid.md, dry.md, coding-standards.md) for full details.
+See `.ai/docs/TARGET_ARCHITECTURE.md` for the target state with zero violations.
+
+- **DDD:** Domain has zero infra deps. Rich entities with behavior. One aggregate
+  per transaction. Reference aggregates by ID only.
+- **SOLID:** One actor per module (SRP). Extension points on second variant (OCP).
+  Caller-perspective interfaces (ISP). High-level owns abstraction (DIP).
+- **DRY:** Knowledge duplication, not code similarity. Rule of Three before
+  extracting. Wrong abstraction with flags → inline and re-derive.
+- **Limits:** Functions ≤30 lines, ≤4 params. Files ≤800 lines.
+- **Audit:** `scripts/rust/audit_ddd_solid_dry.sh` + `scripts/dart/audit_ddd_solid_dry.sh`
 
 ## Testing Rules
 

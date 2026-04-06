@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'playlist_source.dart';
+import '../domain/entities/playlist_source.dart';
 
 /// UI extension methods for [PlaylistSourceType].
 ///

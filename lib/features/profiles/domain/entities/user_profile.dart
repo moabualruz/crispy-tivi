@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 import '../../../parental/domain/content_rating.dart';
 import '../enums/dvr_permission.dart';

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 import 'vod_item.dart';
 
@@ -50,38 +50,6 @@ class Episode {
       rating: item.rating,
       addedAt: item.addedAt,
       updatedAt: item.updatedAt,
-    );
-  }
-
-  /// Creates an [Episode] from a JSON map (for future FFI integration).
-  factory Episode.fromJson(Map<String, dynamic> json) {
-    return Episode(
-      id: json['id'] as String,
-      seasonId: json['season_id'] as String,
-      sourceId: json['source_id'] as String? ?? '',
-      nativeId: json['native_id'] as String? ?? '',
-      episodeNumber: json['episode_number'] as int,
-      name: json['name'] as String?,
-      description: json['description'] as String?,
-      posterUrl: json['poster_url'] as String?,
-      streamUrl: json['stream_url'] as String?,
-      containerExt: json['container_ext'] as String?,
-      stalkerCmd: json['stalker_cmd'] as String?,
-      resolvedUrl: json['resolved_url'] as String?,
-      resolvedAt: json['resolved_at'] as int?,
-      durationMinutes: json['duration_minutes'] as int?,
-      airDate: json['air_date'] as String?,
-      rating: json['rating'] as String?,
-      contentRating: json['content_rating'] as String?,
-      tmdbId: json['tmdb_id'] as int?,
-      addedAt:
-          json['added_at'] != null
-              ? DateTime.parse(json['added_at'] as String)
-              : null,
-      updatedAt:
-          json['updated_at'] != null
-              ? DateTime.parse(json['updated_at'] as String)
-              : null,
     );
   }
 
@@ -170,32 +138,6 @@ class Episode {
       updatedAt: updatedAt,
       sourceId: sourceId,
     );
-  }
-
-  /// Serializes this [Episode] to a JSON map.
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'season_id': seasonId,
-      'source_id': sourceId,
-      'native_id': nativeId,
-      'episode_number': episodeNumber,
-      'name': name,
-      'description': description,
-      'poster_url': posterUrl,
-      'stream_url': streamUrl,
-      'container_ext': containerExt,
-      'stalker_cmd': stalkerCmd,
-      'resolved_url': resolvedUrl,
-      'resolved_at': resolvedAt,
-      'duration_minutes': durationMinutes,
-      'air_date': airDate,
-      'rating': rating,
-      'content_rating': contentRating,
-      'tmdb_id': tmdbId,
-      'added_at': addedAt?.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
-    };
   }
 
   /// Creates a copy with optional field overrides.

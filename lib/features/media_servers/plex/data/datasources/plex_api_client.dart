@@ -373,14 +373,20 @@ class PlexApiClient {
       // Let's assume I'll add Hub to DTO or ignore search for now in strict mode.
 
       // Let's do a quick manual parse for Hubs to respect the DTO pattern
-      final hubs = (response.data['MediaContainer'] as Map<String, dynamic>)['Hub'] as List<dynamic>?;
+      final hubs =
+          (response.data['MediaContainer'] as Map<String, dynamic>)['Hub']
+              as List<dynamic>?;
       if (hubs == null) return [];
 
       final results = <PlexMetadata>[];
       for (final hub in hubs) {
         final metadata = hub['Metadata'] as List<dynamic>?;
         if (metadata != null) {
-          results.addAll(metadata.map((e) => PlexMetadata.fromJson(e as Map<String, dynamic>)));
+          results.addAll(
+            metadata.map(
+              (e) => PlexMetadata.fromJson(e as Map<String, dynamic>),
+            ),
+          );
         }
       }
 

@@ -7,6 +7,7 @@ import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../player/presentation/providers/pip_provider.dart';
 import '../../domain/entities/multiview_session.dart';
+import 'multiview_preset_ui.dart';
 import '../providers/multiview_providers.dart';
 
 /// Horizontal row of [ChoiceChip]s for each [MultiViewPreset].

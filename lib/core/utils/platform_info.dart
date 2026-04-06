@@ -38,6 +38,9 @@ abstract class PlatformInfo {
   /// True when running on Google Fuchsia.
   bool get isFuchsia;
 
+  /// True when running in a web browser.
+  bool get isWeb;
+
   /// Lower-case OS identifier (e.g. `'windows'`, `'android'`).
   String get operatingSystem;
 

@@ -27,6 +27,8 @@ import '../../features/search/domain/entities/'
 import '../../features/vod/domain/entities/vod_item.dart';
 import '../domain/entities/playlist_source.dart';
 import '../domain/entities/xtream_account_info.dart';
+import 'codecs/xtream_json_codec.dart';
+import '../../features/multiview/data/multiview_json_codec.dart';
 import '../utils/date_format_utils.dart';
 import 'crispy_backend.dart';
 
@@ -198,7 +200,7 @@ class CacheService extends _CacheServiceBase
       acceptInvalidCerts: acceptInvalidCerts,
     );
     final map = jsonDecode(jsonStr) as Map<String, dynamic>;
-    return XtreamAccountInfo.fromJson(map);
+    return XtreamJsonCodec.fromJson(map);
   }
 
   // ── Buffer Tier ───────────────────────────────

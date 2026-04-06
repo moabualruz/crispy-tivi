@@ -15,17 +15,6 @@ class GpuInfo {
     required this.vsrMethod,
   });
 
-  /// Deserializes from the Rust JSON representation.
-  factory GpuInfo.fromJson(Map<String, dynamic> json) {
-    return GpuInfo(
-      vendor: GpuVendor.fromString(json['vendor'] as String? ?? 'Unknown'),
-      name: json['name'] as String? ?? 'Unknown',
-      vramMb: json['vram_mb'] as int?,
-      supportsHwVsr: json['supports_hw_vsr'] as bool? ?? false,
-      vsrMethod: VsrMethod.fromString(json['vsr_method'] as String? ?? 'None'),
-    );
-  }
-
   /// GPU hardware vendor.
   final GpuVendor vendor;
 
@@ -49,15 +38,6 @@ class GpuInfo {
     supportsHwVsr: false,
     vsrMethod: VsrMethod.none,
   );
-
-  /// Serializes to the Rust-compatible JSON format.
-  Map<String, dynamic> toJson() => {
-    'vendor': vendor.toRustString(),
-    'name': name,
-    'vram_mb': vramMb,
-    'supports_hw_vsr': supportsHwVsr,
-    'vsr_method': vsrMethod.toRustString(),
-  };
 }
 
 /// GPU hardware vendor.

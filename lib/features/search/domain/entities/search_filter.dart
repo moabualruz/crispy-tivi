@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart';
+import 'package:collection/collection.dart' show SetEquality;
+import 'package:meta/meta.dart';
 
 /// Types of content that can be searched.
 enum SearchContentType { channels, movies, series, epg }
@@ -85,7 +86,10 @@ class SearchFilter {
       identical(this, other) ||
       other is SearchFilter &&
           runtimeType == other.runtimeType &&
-          setEquals(contentTypes, other.contentTypes) &&
+          const SetEquality<SearchContentType>().equals(
+            contentTypes,
+            other.contentTypes,
+          ) &&
           category == other.category &&
           yearMin == other.yearMin &&
           yearMax == other.yearMax &&

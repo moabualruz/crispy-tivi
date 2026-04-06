@@ -20,3 +20,4 @@ pub mod parsers;
 pub mod services;
 pub mod sync_progress;
 pub mod utils;
+pub mod value_objects;

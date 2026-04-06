@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:meta/meta.dart';
 
 import '../../../../core/utils/format_utils.dart';
 import 'recording_profile.dart';
@@ -6,32 +6,20 @@ import 'recording_profile.dart';
 /// Auto-delete policy applied when a recording series grows.
 enum AutoDeletePolicy {
   /// Keep all episodes — never auto-delete.
-  keepAll(
-    label: 'Keep All',
-    icon: IconData(0xe877, fontFamily: 'MaterialIcons'),
-  ),
+  keepAll('Keep All'),
 
   /// Keep only the latest N episodes, deleting the oldest when
   /// the limit is exceeded. The limit is stored separately per
   /// recording via [Recording.keepEpisodeCount].
-  keepN(
-    label: 'Keep Latest N',
-    icon: IconData(0xe8b8, fontFamily: 'MaterialIcons'),
-  ),
+  keepN('Keep Latest N'),
 
   /// Delete the recording once it has been fully watched.
-  deleteAfterWatching(
-    label: 'Delete After Watching',
-    icon: IconData(0xe872, fontFamily: 'MaterialIcons'),
-  );
+  deleteAfterWatching('Delete After Watching');
 
-  const AutoDeletePolicy({required this.label, required this.icon});
+  const AutoDeletePolicy(this.label);
 
   /// User-visible label.
   final String label;
-
-  /// The associated Material icon.
-  final IconData icon;
 }
 
 /// A DVR recording entry — scheduled, in-progress, or completed.

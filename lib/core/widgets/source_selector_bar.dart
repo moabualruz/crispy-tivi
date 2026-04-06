@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/settings_notifier.dart';
-import '../../core/domain/entities/playlist_source_type_ext.dart';
+import 'playlist_source_type_ext.dart';
 import '../navigation/shell_providers.dart';
 import '../providers/source_filter_provider.dart';
 import '../theme/crispy_animation.dart';

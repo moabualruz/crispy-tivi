@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/format_utils.dart';
-import '../../profiles/domain/permission_guard.dart';
+import '../../profiles/presentation/providers/permission_guard.dart';
 import '../domain/entities/recording.dart';
 import 'dvr_service.dart';
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+// DDD exception: player interface defines the rendering contract
 import 'package:flutter/widgets.dart';
 
 /// Abstract player backend interface.

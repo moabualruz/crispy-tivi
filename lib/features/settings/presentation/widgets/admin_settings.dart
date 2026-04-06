@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../profiles/domain/permission_guard.dart';
+import '../../../profiles/presentation/providers/permission_guard.dart';
 import '../../../../core/widgets/section_header.dart';
 import 'settings_shared_widgets.dart';
 

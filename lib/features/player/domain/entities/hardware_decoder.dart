@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
-
 import '../../../../core/utils/platform_info.dart';
 
 /// Hardware decoder options for video playback.
@@ -94,7 +92,7 @@ enum HardwareDecoder {
 
   /// Returns true if this decoder is available on the current platform.
   bool get isAvailableOnCurrentPlatform {
-    if (kIsWeb) return this == auto || this == none;
+    if (PlatformInfo.instance.isWeb) return this == auto || this == none;
 
     switch (this) {
       case auto:

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../vod/domain/entities/vod_item.dart';

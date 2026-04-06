@@ -1,52 +1,33 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter/material.dart';
+
 import 'active_stream.dart';
 
 /// Named layout presets for Multi-View.
 ///
 /// Each preset maps to a [MultiViewLayout] and carries a display
-/// name and a representative Material icon.
+/// name. Icon mapping lives in the presentation layer via
+/// [MultiViewPresetUi] extension.
 enum MultiViewPreset {
   /// Two streams side by side (2 columns × 1 row).
-  sideBySide(
-    label: 'Side by Side',
-    icon: Icons.view_column_outlined,
-    layout: MultiViewLayout.twoByOne,
-  ),
+  sideBySide(label: 'Side by Side', layout: MultiViewLayout.twoByOne),
 
   /// Four streams in a 2×2 grid.
-  quad(
-    label: 'Quad',
-    icon: Icons.grid_view_outlined,
-    layout: MultiViewLayout.twoByTwo,
-  ),
+  quad(label: 'Quad', layout: MultiViewLayout.twoByTwo),
 
   /// One large main stream with a small inset in the corner (3×3,
   /// caller sets the first slot as the "main" channel).
   pictureInPicture(
     label: 'Picture-in-Picture',
-    icon: Icons.picture_in_picture_outlined,
     layout: MultiViewLayout.twoByOne,
   ),
 
   /// Nine-stream full grid (3 columns × 3 rows).
-  grid(
-    label: 'Grid',
-    icon: Icons.apps_outlined,
-    layout: MultiViewLayout.threeByThree,
-  );
+  grid(label: 'Grid', layout: MultiViewLayout.threeByThree);
 
-  const MultiViewPreset({
-    required this.label,
-    required this.icon,
-    required this.layout,
-  });
+  const MultiViewPreset({required this.label, required this.layout});
 
   /// Human-readable preset name shown in the chip label.
   final String label;
-
-  /// Material icon representing the layout shape.
-  final IconData icon;
 
   /// Underlying [MultiViewLayout] this preset uses.
   final MultiViewLayout layout;

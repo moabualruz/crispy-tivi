@@ -24,6 +24,8 @@ class _StubPlatformInfo implements PlatformInfo {
   @override
   bool get isFuchsia => false;
   @override
+  bool get isWeb => false;
+  @override
   String get operatingSystem => 'unknown';
   @override
   String get operatingSystemVersion => '';

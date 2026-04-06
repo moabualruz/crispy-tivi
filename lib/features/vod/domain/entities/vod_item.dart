@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 /// A VOD (Video On Demand) item — movie or series episode.
 ///

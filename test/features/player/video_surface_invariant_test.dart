@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:crispy_tivi/features/player/domain/video_surface_manager.dart';
+import 'package:crispy_tivi/features/player/presentation/providers/video_surface_manager.dart';
 
 void main() {
   late VideoSurfaceManager manager;

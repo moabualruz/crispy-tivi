@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 import 'grouped_search_results.dart';
 import 'search_filter.dart';

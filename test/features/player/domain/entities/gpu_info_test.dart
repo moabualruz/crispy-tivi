@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:crispy_tivi/features/player/data/gpu_json_codec.dart';
 import 'package:crispy_tivi/features/player/domain/entities/'
     'gpu_info.dart';
 
@@ -107,7 +108,7 @@ void main() {
         'supports_hw_vsr': true,
         'vsr_method': 'D3d11Nvidia',
       };
-      final info = GpuInfo.fromJson(json);
+      final info = GpuJsonCodec.fromJson(json);
 
       expect(info.vendor, GpuVendor.nvidia);
       expect(info.name, 'NVIDIA GeForce RTX 4090');
@@ -123,7 +124,7 @@ void main() {
         'supports_hw_vsr': true,
         'vsr_method': 'D3d11Intel',
       };
-      final info = GpuInfo.fromJson(json);
+      final info = GpuJsonCodec.fromJson(json);
 
       expect(info.vendor, GpuVendor.intel);
       expect(info.name, 'Intel UHD 770');
@@ -140,14 +141,14 @@ void main() {
         'supports_hw_vsr': false,
         'vsr_method': 'AmdDriverRsr',
       };
-      final info = GpuInfo.fromJson(json);
+      final info = GpuJsonCodec.fromJson(json);
 
       expect(info.vramMb, isNull);
     });
 
     test('missing/null fields get defaults', () {
       final json = <String, dynamic>{};
-      final info = GpuInfo.fromJson(json);
+      final info = GpuJsonCodec.fromJson(json);
 
       expect(info.vendor, GpuVendor.unknown);
       expect(info.name, 'Unknown');
@@ -163,7 +164,7 @@ void main() {
         'supports_hw_vsr': true,
         'vsr_method': 'WebGpuCnn',
       };
-      final info = GpuInfo.fromJson(json);
+      final info = GpuJsonCodec.fromJson(json);
 
       expect(info.vendor, GpuVendor.unknown);
     });
@@ -175,7 +176,7 @@ void main() {
         'supports_hw_vsr': null,
         'vsr_method': 'MetalFxSpatial',
       };
-      final info = GpuInfo.fromJson(json);
+      final info = GpuJsonCodec.fromJson(json);
 
       expect(info.supportsHwVsr, isFalse);
     });
@@ -187,7 +188,7 @@ void main() {
         'supports_hw_vsr': false,
         'vsr_method': null,
       };
-      final info = GpuInfo.fromJson(json);
+      final info = GpuJsonCodec.fromJson(json);
 
       expect(info.vsrMethod, VsrMethod.none);
     });
@@ -202,7 +203,7 @@ void main() {
         supportsHwVsr: true,
         vsrMethod: VsrMethod.d3d11Nvidia,
       );
-      final json = info.toJson();
+      final json = GpuJsonCodec.toJson(info);
 
       expect(json.containsKey('vendor'), isTrue);
       expect(json.containsKey('name'), isTrue);
@@ -220,7 +221,7 @@ void main() {
         supportsHwVsr: false,
         vsrMethod: VsrMethod.amdDriverRsr,
       );
-      final json = info.toJson();
+      final json = GpuJsonCodec.toJson(info);
 
       expect(json['vendor'], 'Amd');
       expect(json['name'], 'RX 7900 XTX');
@@ -236,7 +237,7 @@ void main() {
         supportsHwVsr: true,
         vsrMethod: VsrMethod.d3d11Intel,
       );
-      final json = info.toJson();
+      final json = GpuJsonCodec.toJson(info);
 
       expect(json['vram_mb'], isNull);
     });
@@ -251,7 +252,7 @@ void main() {
         'supports_hw_vsr': true,
         'vsr_method': 'D3d11Nvidia',
       };
-      final info = GpuInfo.fromJson(rustJson);
+      final info = GpuJsonCodec.fromJson(rustJson);
 
       expect(info.vendor, GpuVendor.nvidia);
       expect(info.name, 'NVIDIA GeForce RTX 4090');
@@ -269,14 +270,14 @@ void main() {
         supportsHwVsr: true,
         vsrMethod: VsrMethod.d3d11Nvidia,
       );
-      final json = original.toJson();
+      final json = GpuJsonCodec.toJson(original);
 
       // toRustString emits PascalCase:
       expect(json['vendor'], 'Nvidia');
       expect(json['vsr_method'], 'D3d11Nvidia');
 
       // Full roundtrip preserves all values:
-      final restored = GpuInfo.fromJson(json);
+      final restored = GpuJsonCodec.fromJson(json);
       expect(restored.vendor, GpuVendor.nvidia);
       expect(restored.vsrMethod, VsrMethod.d3d11Nvidia);
       expect(restored.name, 'RTX 4090');
@@ -292,7 +293,7 @@ void main() {
         'supports_hw_vsr': true,
         'vsr_method': 'MetalFxSpatial',
       };
-      final info = GpuInfo.fromJson(rustJson);
+      final info = GpuJsonCodec.fromJson(rustJson);
 
       expect(info.vramMb, isNull);
       expect(info.vendor, GpuVendor.apple);

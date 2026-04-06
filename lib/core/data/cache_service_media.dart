@@ -321,7 +321,9 @@ SavedLayout _mapToSavedLayout(Map<String, dynamic> m) {
   final streams =
       streamsList.map((item) {
         if (item == null) return null;
-        return SavedStream.fromJson(item as Map<String, dynamic>);
+        return MultiviewJsonCodec.savedStreamFromJson(
+          item as Map<String, dynamic>,
+        );
       }).toList();
 
   return SavedLayout(
@@ -338,7 +340,13 @@ Map<String, dynamic> _savedLayoutToMap(SavedLayout l) {
     'id': l.id,
     'name': l.name,
     'layout': l.layout.name,
-    'streams': jsonEncode(l.streams.map((s) => s?.toJson()).toList()),
+    'streams': jsonEncode(
+      l.streams
+          .map(
+            (s) => s != null ? MultiviewJsonCodec.savedStreamToJson(s) : null,
+          )
+          .toList(),
+    ),
     'created_at': _toNaiveDateTime(l.createdAt ?? DateTime.now()),
   };
 }

@@ -426,8 +426,7 @@ Map<String, dynamic> channelToMap(Channel c) {
 ///    NaiveDateTime strings (snake_case, no rename_all).
 EpgEntry mapToEpgEntry(Map<String, dynamic> m) {
   // Field name: Rust serializes EpgEntry.epg_channel_id; SQLite rows use channel_id.
-  final channelId =
-      (m['epg_channel_id'] ?? m['channel_id']) as String? ?? '';
+  final channelId = (m['epg_channel_id'] ?? m['channel_id']) as String? ?? '';
 
   // Timestamps arrive as NaiveDateTime strings ("2024-01-01T12:00:00") from both
   // SQLite rows and the Rust serde path. Fall back to epoch on null.
@@ -453,7 +452,8 @@ EpgEntry mapToEpgEntry(Map<String, dynamic> m) {
 /// - `int` — epoch seconds (used by some Rust paths).
 DateTime _parseTimestamp(dynamic value) {
   if (value == null) return DateTime.utc(1970);
-  if (value is int) return DateTime.fromMillisecondsSinceEpoch(value * 1000, isUtc: true);
+  if (value is int)
+    return DateTime.fromMillisecondsSinceEpoch(value * 1000, isUtc: true);
   if (value is String) return _parseNaiveUtc(value);
   return DateTime.utc(1970);
 }

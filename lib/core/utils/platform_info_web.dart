@@ -23,6 +23,8 @@ class _WebPlatformInfo implements PlatformInfo {
   @override
   bool get isFuchsia => false;
   @override
+  bool get isWeb => true;
+  @override
   String get operatingSystem => 'web';
   @override
   String get operatingSystemVersion => '';

@@ -22,6 +22,8 @@ class _IoPlatformInfo implements PlatformInfo {
   @override
   bool get isFuchsia => Platform.isFuchsia;
   @override
+  bool get isWeb => false;
+  @override
   String get operatingSystem => Platform.operatingSystem;
   @override
   String get operatingSystemVersion => Platform.operatingSystemVersion;

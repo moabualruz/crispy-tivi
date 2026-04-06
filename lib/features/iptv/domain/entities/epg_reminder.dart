@@ -1,6 +1,6 @@
 // FE-EPG-02 — domain entity (clock-injectable)
 
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 /// A user-set reminder for an upcoming EPG programme.
 @immutable

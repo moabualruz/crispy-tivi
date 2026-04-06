@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 /// A season within a TV series.
 ///
@@ -15,19 +15,6 @@ class Season {
     this.episodeCount,
     this.airDate,
   });
-
-  /// Creates a [Season] from a JSON map (for future FFI integration).
-  factory Season.fromJson(Map<String, dynamic> json) {
-    return Season(
-      id: json['id'] as String,
-      seriesId: json['series_id'] as String,
-      seasonNumber: json['season_number'] as int,
-      name: json['name'] as String?,
-      posterUrl: json['poster_url'] as String?,
-      episodeCount: json['episode_count'] as int?,
-      airDate: json['air_date'] as String?,
-    );
-  }
 
   /// Unique season identifier.
   final String id;
@@ -52,19 +39,6 @@ class Season {
 
   /// Display label for the season (e.g. "Season 1" or custom name).
   String get displayName => name ?? 'Season $seasonNumber';
-
-  /// Serializes this [Season] to a JSON map.
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'series_id': seriesId,
-      'season_number': seasonNumber,
-      'name': name,
-      'poster_url': posterUrl,
-      'episode_count': episodeCount,
-      'air_date': airDate,
-    };
-  }
 
   /// Creates a copy with optional field overrides.
   Season copyWith({

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../domain/entities/recording.dart';
+import 'auto_delete_policy_ui.dart';
 
 /// Shows the [AutoDeletePolicyDialog] for [recording] and returns
 /// a copy of [recording] with the updated policy, or `null` if

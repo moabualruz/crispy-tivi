@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 import 'vod_item.dart';
 
@@ -48,38 +48,6 @@ class Series {
       director: item.director,
       addedAt: item.addedAt,
       updatedAt: item.updatedAt,
-    );
-  }
-
-  /// Creates a [Series] from a JSON map (for future FFI integration).
-  factory Series.fromJson(Map<String, dynamic> json) {
-    return Series(
-      id: json['id'] as String,
-      sourceId: json['source_id'] as String? ?? '',
-      nativeId: json['native_id'] as String? ?? '',
-      name: json['name'] as String,
-      originalName: json['original_name'] as String?,
-      posterUrl: json['poster_url'] as String?,
-      backdropUrl: json['backdrop_url'] as String?,
-      description: json['description'] as String?,
-      year: json['year'] as int?,
-      genre: json['genre'] as String?,
-      contentRating: json['content_rating'] as String?,
-      rating: json['rating'] as String?,
-      rating5based: (json['rating_5based'] as num?)?.toDouble(),
-      youtubeTrailer: json['youtube_trailer'] as String?,
-      tmdbId: json['tmdb_id'] as int?,
-      castNames: json['cast_names'] as String?,
-      director: json['director'] as String?,
-      isAdult: json['is_adult'] as bool? ?? false,
-      addedAt:
-          json['added_at'] != null
-              ? DateTime.parse(json['added_at'] as String)
-              : null,
-      updatedAt:
-          json['updated_at'] != null
-              ? DateTime.parse(json['updated_at'] as String)
-              : null,
     );
   }
 
@@ -162,32 +130,6 @@ class Series {
       updatedAt: updatedAt,
       sourceId: sourceId,
     );
-  }
-
-  /// Serializes this [Series] to a JSON map.
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'source_id': sourceId,
-      'native_id': nativeId,
-      'name': name,
-      'original_name': originalName,
-      'poster_url': posterUrl,
-      'backdrop_url': backdropUrl,
-      'description': description,
-      'year': year,
-      'genre': genre,
-      'content_rating': contentRating,
-      'rating': rating,
-      'rating_5based': rating5based,
-      'youtube_trailer': youtubeTrailer,
-      'tmdb_id': tmdbId,
-      'cast_names': castNames,
-      'director': director,
-      'is_adult': isAdult,
-      'added_at': addedAt?.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
-    };
   }
 
   /// Creates a copy with optional field overrides.

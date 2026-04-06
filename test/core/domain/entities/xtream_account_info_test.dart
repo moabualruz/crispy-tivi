@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:crispy_tivi/core/data/codecs/xtream_json_codec.dart';
 import 'package:crispy_tivi/core/domain/entities/xtream_account_info.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -27,7 +28,7 @@ void main() {
         'server_time_now': '2024-03-21 12:00:00',
       };
 
-      final info = XtreamAccountInfo.fromJson(json);
+      final info = XtreamJsonCodec.fromJson(json);
 
       expect(info.username, 'testuser');
       expect(info.message, 'Welcome');
@@ -52,7 +53,7 @@ void main() {
     test('fromJson handles minimal response', () {
       final json = <String, dynamic>{'auth': 1};
 
-      final info = XtreamAccountInfo.fromJson(json);
+      final info = XtreamJsonCodec.fromJson(json);
 
       expect(info.auth, 1);
       expect(info.username, isNull);
@@ -63,7 +64,7 @@ void main() {
     });
 
     test('fromJson defaults auth to 0 when missing', () {
-      final info = XtreamAccountInfo.fromJson(<String, dynamic>{});
+      final info = XtreamJsonCodec.fromJson(<String, dynamic>{});
 
       expect(info.auth, 0);
     });
@@ -151,8 +152,8 @@ void main() {
         serverTimestampNow: 1711000000,
       );
 
-      final json = original.toJson();
-      final restored = XtreamAccountInfo.fromJson(json);
+      final json = XtreamJsonCodec.toJson(original);
+      final restored = XtreamJsonCodec.fromJson(json);
 
       expect(restored.username, original.username);
       expect(restored.auth, original.auth);
@@ -168,7 +169,7 @@ void main() {
     test('toJson produces valid JSON string', () {
       const info = XtreamAccountInfo(auth: 1, status: 'Active');
 
-      final jsonStr = jsonEncode(info.toJson());
+      final jsonStr = jsonEncode(XtreamJsonCodec.toJson(info));
       final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
 
       expect(decoded['auth'], 1);

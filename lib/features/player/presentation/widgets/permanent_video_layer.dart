@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../domain/entities/playback_state.dart';
 import '../../domain/player_lifecycle_coordinator.dart';
-import '../../domain/video_surface_manager.dart';
+import '../providers/video_surface_manager.dart';
 import '../providers/player_providers.dart';
 import 'web_hls_video.dart';
 

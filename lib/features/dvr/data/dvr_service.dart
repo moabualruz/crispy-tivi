@@ -12,7 +12,7 @@ import '../../../core/data/data_change_event.dart';
 import '../../../core/data/event_bus_provider.dart';
 import '../../player/presentation/providers/player_providers.dart';
 import '../../profiles/data/profile_service.dart';
-import '../../profiles/domain/permission_guard.dart';
+import '../../profiles/presentation/providers/permission_guard.dart';
 import '../domain/entities/recording.dart';
 import '../domain/entities/recording_profile.dart';
 import 'dvr_capture_helper.dart';

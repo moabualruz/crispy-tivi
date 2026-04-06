@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 import 'multiview_session.dart';
 
@@ -84,20 +84,4 @@ class SavedStream extends Equatable {
 
   @override
   List<Object?> get props => [channelId, channelName, logoUrl];
-
-  /// Serialize to JSON for storage.
-  Map<String, dynamic> toJson() => {
-    'channelId': channelId,
-    'channelName': channelName,
-    if (logoUrl != null) 'logoUrl': logoUrl,
-  };
-
-  /// Deserialize from JSON.
-  factory SavedStream.fromJson(Map<String, dynamic> json) {
-    return SavedStream(
-      channelId: json['channelId'] as String,
-      channelName: json['channelName'] as String,
-      logoUrl: json['logoUrl'] as String?,
-    );
-  }
 }
