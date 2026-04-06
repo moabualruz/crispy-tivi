@@ -11,7 +11,7 @@ import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/core/theme/app_theme.dart';
 import 'package:crispy_tivi/core/theme/theme_provider.dart';
 import 'package:crispy_tivi/features/epg/presentation/providers/epg_providers.dart';
-import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
+import 'package:crispy_tivi/features/iptv/presentation/providers/playlist_sync_service.dart';
 import 'package:crispy_tivi/features/iptv/domain/entities/channel.dart';
 import 'package:crispy_tivi/features/iptv/presentation/providers/channel_providers.dart';
 import 'package:crispy_tivi/features/iptv/presentation/screens/channel_list_screen.dart';

@@ -13,7 +13,7 @@ import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
 import '../../domain/entities/vod_item.dart';
 import '../mixins/vod_sortable_browser_mixin.dart';
-import '../../../iptv/application/playlist_sync_service.dart';
+import '../../../iptv/presentation/providers/playlist_sync_service.dart';
 import '../providers/vod_providers.dart';
 import 'vod_movies_grid.dart';
 import 'vod_search_sort_bar.dart';

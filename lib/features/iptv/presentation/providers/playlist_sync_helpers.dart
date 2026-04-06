@@ -1,17 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../config/settings_notifier.dart';
-import '../../../core/data/cache_service.dart';
-import '../../epg/presentation/providers/epg_providers.dart';
-import '../../profiles/data/source_access_service.dart';
-import '../../vod/domain/entities/vod_item.dart';
-import '../../vod/presentation/providers/vod_favorites_provider.dart';
-import '../../vod/presentation/providers/vod_providers.dart';
-import '../domain/entities/channel.dart';
-import '../../../core/domain/entities/playlist_source.dart';
-import '../presentation/providers/channel_providers.dart';
-import 'duplicate_detection_service.dart';
+import '../../../../config/settings_notifier.dart';
+import '../../../../core/domain/entities/playlist_source.dart';
+import '../../../epg/presentation/providers/epg_providers.dart';
+import '../../../profiles/data/source_access_service.dart';
+import '../../../vod/domain/entities/vod_item.dart';
+import '../../../vod/presentation/providers/vod_favorites_provider.dart';
+import '../../../vod/presentation/providers/vod_providers.dart';
+import '../../domain/entities/channel.dart';
+import 'channel_providers.dart';
+import '../../application/duplicate_detection_service.dart';
+import 'iptv_service_providers.dart';
 import 'playlist_sync_service.dart';
 
 /// Cache, cleanup, and UI reload helpers for

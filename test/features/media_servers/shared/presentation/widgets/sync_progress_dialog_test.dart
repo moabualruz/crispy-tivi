@@ -26,7 +26,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
-import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
+import 'package:crispy_tivi/features/iptv/presentation/providers/playlist_sync_service.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/widgets/sync_progress_dialog.dart';
 import 'package:crispy_tivi/l10n/app_localizations.dart';
 

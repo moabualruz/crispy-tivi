@@ -18,7 +18,7 @@ import '../../media_servers/shared/data/media_server_source.dart';
 import '../../media_servers/shared/utils/media_item_vod_adapter.dart';
 import '../../media_servers/shared/utils/media_server_auth.dart';
 import '../../vod/domain/entities/vod_item.dart';
-import 'playlist_sync_service.dart';
+import '../data/sync_report_codec.dart';
 
 /// Syncs media server (Plex/Emby/Jellyfin) libraries into the
 /// unified Rust VOD database.

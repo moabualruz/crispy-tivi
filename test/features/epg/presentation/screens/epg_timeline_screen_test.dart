@@ -10,7 +10,7 @@ import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/features/dvr/data/dvr_service.dart';
 import 'package:crispy_tivi/features/epg/presentation/providers/epg_providers.dart';
 import 'package:crispy_tivi/features/epg/presentation/screens/epg_timeline_screen.dart';
-import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
+import 'package:crispy_tivi/features/iptv/presentation/providers/playlist_sync_service.dart';
 import 'package:crispy_tivi/features/iptv/domain/entities/channel.dart';
 import 'package:crispy_tivi/features/iptv/domain/entities/epg_entry.dart';
 import 'package:crispy_tivi/features/player/data/player_service.dart';

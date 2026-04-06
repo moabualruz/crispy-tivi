@@ -10,7 +10,7 @@ import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/error_boundary.dart';
 import '../../../../core/widgets/skeleton_loader.dart';
 import '../../../../core/widgets/screen_template.dart';
-import '../../../iptv/application/playlist_sync_service.dart';
+import '../../../iptv/presentation/providers/playlist_sync_service.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../../dvr/data/dvr_service.dart';

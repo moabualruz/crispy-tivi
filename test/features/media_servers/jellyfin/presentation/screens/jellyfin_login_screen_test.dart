@@ -17,7 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
-import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
+import 'package:crispy_tivi/features/iptv/presentation/providers/playlist_sync_service.dart';
 import 'package:crispy_tivi/features/media_servers/jellyfin/presentation/screens/jellyfin_login_screen.dart';
 import 'package:crispy_tivi/features/media_servers/jellyfin/presentation/screens/jellyfin_quick_connect_screen.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';

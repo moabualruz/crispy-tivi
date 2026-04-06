@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../config/settings_notifier.dart';
-import '../../../core/data/cache_service.dart';
-import '../../../core/domain/entities/playlist_source.dart';
-import '../../epg/presentation/providers/epg_providers.dart';
-import '../domain/entities/channel.dart';
+import '../../../../config/settings_notifier.dart';
+import '../../../../core/domain/entities/playlist_source.dart';
+import '../../../epg/presentation/providers/epg_providers.dart';
+import '../../domain/entities/channel.dart';
+import 'iptv_service_providers.dart';
 import 'playlist_sync_service.dart';
 
 /// EPG fetch and matching helpers for

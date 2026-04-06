@@ -16,7 +16,7 @@ import '../../../../core/widgets/screen_template.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../../core/widgets/tv_color_button_legend.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
-import '../../../iptv/application/playlist_sync_service.dart';
+import '../../../iptv/presentation/providers/playlist_sync_service.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../domain/entities/vod_item.dart';
 import '../mixins/vod_sortable_browser_mixin.dart';

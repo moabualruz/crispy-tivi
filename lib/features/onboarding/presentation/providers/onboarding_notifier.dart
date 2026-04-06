@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
-import '../../../iptv/application/playlist_sync_service.dart';
+import '../../../iptv/presentation/providers/playlist_sync_service.dart';
 
 /// Steps in the onboarding wizard.
 enum OnboardingStep { welcome, typePicker, form, syncing }

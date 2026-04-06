@@ -3,87 +3,22 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../config/settings_notifier.dart';
-import '../../../core/data/cache_service.dart';
-import '../../../core/data/crispy_backend.dart';
-import '../../../core/domain/entities/playlist_source.dart';
-import '../../favorites/data/stalker_favorites_service.dart';
-import '../../vod/presentation/providers/vod_providers.dart';
-import '../data/sync_report_codec.dart';
-import 'media_server_sync.dart';
+import '../../../../config/settings_notifier.dart';
+import '../../../../core/domain/entities/playlist_source.dart';
+import '../../../favorites/data/stalker_favorites_service.dart';
+import '../../../vod/presentation/providers/vod_providers.dart';
+import '../../application/media_server_sync.dart';
+import 'iptv_service_providers.dart';
 import 'playlist_epg_helper.dart';
 import 'playlist_sync_helpers.dart';
+import 'playlist_sync_utils.dart';
 
-/// Default sync interval in hours.
-const kDefaultSyncIntervalHours = 24;
-
-/// Result of partitioning sources into stale vs fresh.
-///
-/// [stale] — sources that need a network sync.
-/// [nextSync] — time until the freshest source expires, or
-/// `null` when all sources are stale.
-typedef PartitionResult = ({List<PlaylistSource> stale, Duration? nextSync});
-
-/// Result of a Rust source sync operation.
-class SyncReport {
-  const SyncReport({
-    this.channelsCount = 0,
-    this.channelGroups = const [],
-    this.vodCount = 0,
-    this.vodCategories = const [],
-    this.epgUrl,
-  });
-
-  final int channelsCount;
-  final List<String> channelGroups;
-  final int vodCount;
-  final List<String> vodCategories;
-  final String? epgUrl;
-
-  /// Alias for [channelsCount] — kept for call-site compatibility.
-  int get totalChannels => channelsCount;
-}
-
-/// Partitions [sources] into those that need syncing and
-/// those that are still fresh.
-///
-/// A source is stale when it has no recorded [lastSyncTimes]
-/// entry, or when the elapsed time since its last sync is
-/// at least [interval].  For fresh sources the remaining
-/// time until expiry is tracked and the smallest value is
-/// returned as [nextSync].
-///
-/// All comparisons are done against the caller-supplied
-/// [now] so the function is deterministic and testable
-/// without side effects.
-PartitionResult partitionStaleSources(
-  List<PlaylistSource> sources,
-  Map<String, DateTime> lastSyncTimes,
-  Duration interval,
-  DateTime now,
-) {
-  final stale = <PlaylistSource>[];
-  Duration? nextSync;
-
-  for (final source in sources) {
-    final lastSync = lastSyncTimes[source.id];
-    if (lastSync == null) {
-      stale.add(source);
-      continue;
-    }
-    final age = now.difference(lastSync);
-    if (age >= interval) {
-      stale.add(source);
-    } else {
-      final remaining = interval - age;
-      if (nextSync == null || remaining < nextSync) {
-        nextSync = remaining;
-      }
-    }
-  }
-
-  return (stale: stale, nextSync: nextSync);
-}
+export 'playlist_sync_utils.dart'
+    show
+        SyncReport,
+        PartitionResult,
+        partitionStaleSources,
+        kDefaultSyncIntervalHours;
 
 /// Service that syncs playlist sources → channels
 /// + VODs.
@@ -245,7 +180,7 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       final backend = _ref.read(crispyBackendProvider);
       final cache = _ref.read(cacheServiceProvider);
 
-      final report = await _syncSourceViaRust(backend, source);
+      final report = await _syncAndRecord(backend, cache, source);
       debugPrint(
         'PlaylistSync: ${source.name} → '
         '${report.channelsCount} channels, '
@@ -262,15 +197,6 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
         if (_ref.mounted && _ref.exists(vodProvider)) {
           _ref.invalidate(vodProvider);
         }
-      }
-
-      // Update cache sync time.
-      await cache.setLastSyncTime(source.id, DateTime.now());
-
-      // Auto-save discovered EPG URL (e.g. from M3U header).
-      if (report.epgUrl != null &&
-          (source.epgUrl == null || source.epgUrl!.isEmpty)) {
-        await autoSaveEpgUrl(source, report.epgUrl!);
       }
 
       // Fetch EPG after single source sync.
@@ -296,7 +222,14 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
     CacheService cache,
     PlaylistSource source,
   ) async {
-    final report = await _syncSourceViaRust(backend, source);
+    final enrichVod =
+        _ref.read(settingsNotifierProvider).value?.enrichVodOnSync ?? false;
+    final report = await syncSourceViaRust(
+      backend,
+      source,
+      _mediaServerSync,
+      enrichVod,
+    );
 
     // Auto-save discovered EPG URL.
     if (report.epgUrl != null &&
@@ -314,55 +247,6 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
     );
 
     return report;
-  }
-
-  /// Dispatches a sync call to the appropriate backend
-  /// method based on [source.type].
-  ///
-  /// IPTV sources (M3U, Xtream, Stalker) sync via Rust.
-  /// Media server sources (Plex, Emby, Jellyfin) sync
-  /// via Dart HTTP clients into the same Rust DB.
-  Future<SyncReport> _syncSourceViaRust(
-    CrispyBackend backend,
-    PlaylistSource source,
-  ) async {
-    // Media server sources sync via Dart HTTP clients.
-    if (source.type == PlaylistSourceType.plex ||
-        source.type == PlaylistSourceType.emby ||
-        source.type == PlaylistSourceType.jellyfin) {
-      return _mediaServerSync.syncSource(source);
-    }
-
-    // Read enrichVodOnSync setting for Xtream sources.
-    final enrichVod =
-        _ref.read(settingsNotifierProvider).value?.enrichVodOnSync ?? false;
-
-    // IPTV sources sync via Rust.
-    final json = switch (source.type) {
-      PlaylistSourceType.m3u => await backend.syncM3uSource(
-        url: source.url,
-        sourceId: source.id,
-        acceptInvalidCerts: source.acceptSelfSigned,
-      ),
-      PlaylistSourceType.xtream => await backend.syncXtreamSource(
-        baseUrl: source.url,
-        username: source.username ?? '',
-        password: source.password ?? '',
-        sourceId: source.id,
-        acceptInvalidCerts: source.acceptSelfSigned,
-        enrichVodOnSync: enrichVod,
-      ),
-      PlaylistSourceType.stalkerPortal => await backend.syncStalkerSource(
-        baseUrl: source.url,
-        macAddress: source.macAddress ?? '',
-        sourceId: source.id,
-        acceptInvalidCerts: source.acceptSelfSigned,
-      ),
-      _ =>
-        '{"channels_count":0,"channel_groups":[],'
-            '"vod_count":0,"vod_categories":[],"epg_url":null}',
-    };
-    return decodeSyncReport(json);
   }
 
   /// Schedules a one-shot timer to call [syncAll]

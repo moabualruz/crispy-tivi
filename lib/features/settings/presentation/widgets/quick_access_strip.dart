@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../iptv/application/playlist_sync_service.dart';
+import '../../../iptv/presentation/providers/playlist_sync_service.dart';
 import '../providers/settings_service_providers.dart';
 
 // FE-S-12: Quick-Access strip — horizontally scrollable icon action chips.

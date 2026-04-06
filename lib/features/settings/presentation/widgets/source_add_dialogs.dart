@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/async_filled_button.dart';
-import '../../../iptv/application/playlist_sync_service.dart';
+import '../../../iptv/presentation/providers/playlist_sync_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import 'source_form_fields.dart';
 import 'source_verify_utils.dart';

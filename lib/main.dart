@@ -33,7 +33,7 @@ import 'core/widgets/error_boundary.dart';
 import 'core/widgets/splash_screen.dart';
 import 'core/utils/window_config.dart';
 import 'core/widgets/ui_auto_scale.dart';
-import 'features/iptv/application/playlist_sync_service.dart';
+import 'features/iptv/presentation/providers/playlist_sync_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_io/io.dart';
 import 'package:window_manager/window_manager.dart';

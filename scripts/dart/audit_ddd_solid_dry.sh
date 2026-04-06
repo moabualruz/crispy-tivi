@@ -143,6 +143,30 @@ fi
 echo ""
 
 # ─────────────────────────────────────────────────────────────
+# DDD: Application layer importing Presentation layer
+# ─────────────────────────────────────────────────────────────
+echo "[DDD: Application Layer Importing Presentation Layer]"
+app_to_pres=$(grep -rn "import.*presentation/" \
+  "$LIB/features/"*/application/ \
+  "$LIB/core/application/" \
+  2>/dev/null \
+  | grep -v "// DDD exception" \
+  || true)
+
+if [ -n "$app_to_pres" ]; then
+  while IFS= read -r line; do
+    file=$(echo "$line" | cut -d: -f1)
+    lineno=$(echo "$line" | cut -d: -f2)
+    content=$(echo "$line" | cut -d: -f3- | sed 's/^ *//')
+    echo "  ${file#"$REPO_ROOT/"}:$lineno — $content"
+    ddd_count=$((ddd_count + 1))
+  done <<< "$app_to_pres"
+else
+  echo "  (none found)"
+fi
+echo ""
+
+# ─────────────────────────────────────────────────────────────
 # DDD: Anemic Domain Entities
 # ─────────────────────────────────────────────────────────────
 echo "[DDD: Anemic Domain Entities (no real behavior methods)]"

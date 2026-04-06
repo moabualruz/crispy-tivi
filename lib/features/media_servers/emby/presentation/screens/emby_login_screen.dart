@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/config/settings_notifier.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
-import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
+import 'package:crispy_tivi/features/iptv/presentation/providers/playlist_sync_service.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/media_server_dio_factory.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';
 import 'package:crispy_tivi/features/media_servers/shared/presentation/screens/media_server_login_screen.dart';

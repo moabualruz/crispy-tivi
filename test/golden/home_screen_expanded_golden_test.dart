@@ -13,7 +13,7 @@ import 'package:crispy_tivi/features/epg/presentation/providers/epg_providers.da
 import 'package:crispy_tivi/features/favorites/presentation/providers/favorites_controller.dart';
 import 'package:crispy_tivi/features/home/presentation/providers/home_providers.dart';
 import 'package:crispy_tivi/features/home/presentation/screens/home_screen.dart';
-import 'package:crispy_tivi/features/iptv/application/playlist_sync_service.dart';
+import 'package:crispy_tivi/features/iptv/presentation/providers/playlist_sync_service.dart';
 import 'package:crispy_tivi/features/iptv/domain/entities/channel.dart';
 import 'package:crispy_tivi/features/iptv/presentation/providers/channel_providers.dart';
 import 'package:crispy_tivi/features/player/domain/entities/playback_state.dart';

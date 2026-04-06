@@ -11,7 +11,7 @@ import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../../core/widgets/screen_template.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
-import '../../../iptv/application/playlist_sync_service.dart';
+import '../../../iptv/presentation/providers/playlist_sync_service.dart';
 import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../../vod/presentation/widgets/vod_hero_banner.dart';
 import '../widgets/home_sections.dart';
