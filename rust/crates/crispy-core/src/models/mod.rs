@@ -151,6 +151,29 @@ pub struct Channel {
     pub thumbnail_url: Option<String>,
 }
 
+impl Channel {
+    /// Returns true if catchup/timeshift is available and has archive days configured.
+    pub fn has_catchup(&self) -> bool {
+        self.has_catchup && self.catchup_days > 0
+    }
+
+    /// Returns true if the channel has a non-empty stream URL.
+    pub fn is_live(&self) -> bool {
+        !self.stream_url.is_empty()
+    }
+
+    /// Returns true if the channel group contains sport-related keywords.
+    pub fn is_sport(&self) -> bool {
+        let group = self.channel_group.as_deref().unwrap_or("").to_lowercase();
+        group.contains("sport") || group.contains("football") || group.contains("soccer")
+    }
+
+    /// Returns the display name. The `name` field is always populated on a Channel.
+    pub fn display_name(&self) -> &str {
+        &self.name
+    }
+}
+
 // ── EpgMapping ────────────────────────────────────────
 
 /// A persisted EPG channel-to-channel mapping.
@@ -545,6 +568,21 @@ impl Default for VodItem {
 }
 
 impl VodItem {
+    /// Returns true if this item is a movie.
+    pub fn is_movie(&self) -> bool {
+        self.item_type == "movie"
+    }
+
+    /// Returns true if this item is a series.
+    pub fn is_series(&self) -> bool {
+        self.item_type == "series"
+    }
+
+    /// Returns true if a non-empty rating is present.
+    pub fn has_rating(&self) -> bool {
+        self.rating.as_deref().map_or(false, |r| !r.is_empty())
+    }
+
     /// Convert a legacy VodItem to a Movie (for items with type "movie").
     pub fn to_movie(&self) -> Movie {
         Movie {
@@ -858,6 +896,27 @@ impl Default for EpgEntry {
     }
 }
 
+impl EpgEntry {
+    /// Returns true if the programme is currently airing at the given Unix timestamp.
+    pub fn is_currently_airing(&self, now: i64) -> bool {
+        let start = self.start_time.and_utc().timestamp();
+        let stop = self.end_time.and_utc().timestamp();
+        start <= now && now < stop
+    }
+
+    /// Returns the programme duration in whole minutes.
+    pub fn duration_minutes(&self) -> i64 {
+        let start = self.start_time.and_utc().timestamp();
+        let stop = self.end_time.and_utc().timestamp();
+        (stop - start) / 60
+    }
+
+    /// Returns true if a non-empty description is present.
+    pub fn has_description(&self) -> bool {
+        self.description.as_deref().map_or(false, |d| !d.is_empty())
+    }
+}
+
 // ── WatchHistory ────────────────────────────────────
 
 /// A playback history entry for resume support.
@@ -961,6 +1020,18 @@ fn default_role() -> i32 {
 
 fn default_dvr_permission() -> i32 {
     2
+}
+
+impl UserProfile {
+    /// Returns true if this profile has the admin role (role == 0).
+    pub fn is_admin(&self) -> bool {
+        self.role == 0
+    }
+
+    /// Returns true if this profile has a PIN set.
+    pub fn has_pin(&self) -> bool {
+        self.pin.as_deref().map_or(false, |p| !p.is_empty())
+    }
 }
 
 // ── UserFavorite ────────────────────────────────────
@@ -1118,6 +1189,33 @@ pub struct Source {
     pub epg_last_modified: Option<String>,
 }
 
+impl Source {
+    /// Returns true if this source is an Xtream Codes provider.
+    pub fn is_xtream(&self) -> bool {
+        self.source_type == "xtream"
+    }
+
+    /// Returns true if this source is a Stalker portal.
+    pub fn is_stalker(&self) -> bool {
+        self.source_type == "stalker"
+    }
+
+    /// Returns true if this source is an M3U playlist.
+    pub fn is_m3u(&self) -> bool {
+        self.source_type == "m3u"
+    }
+
+    /// Returns true if this source requires username/password or MAC credentials.
+    pub fn uses_credentials(&self) -> bool {
+        self.is_xtream() || self.is_stalker()
+    }
+
+    /// Returns true if this source is a media server (Plex, Emby, or Jellyfin).
+    pub fn is_media_server(&self) -> bool {
+        matches!(self.source_type.as_str(), "plex" | "emby" | "jellyfin")
+    }
+}
+
 // ── XtreamAccountInfo ───────────────────────────────
 
 /// Parsed Xtream Codes account and server information.
@@ -1271,6 +1369,18 @@ pub struct Recording {
 
 fn default_true() -> bool {
     true
+}
+
+impl Recording {
+    /// Returns true if this recording is currently in progress.
+    pub fn is_active(&self) -> bool {
+        self.status == "recording"
+    }
+
+    /// Returns true if this recording has finished successfully.
+    pub fn is_completed(&self) -> bool {
+        self.status == "completed"
+    }
 }
 
 // ── StorageBackend ──────────────────────────────────

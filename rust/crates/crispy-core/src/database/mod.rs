@@ -15,6 +15,7 @@
 
 pub mod migration_runner;
 pub mod retry_queue;
+pub mod row_helpers;
 
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
