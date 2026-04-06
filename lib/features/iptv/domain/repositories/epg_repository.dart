@@ -23,4 +23,35 @@ abstract interface class EpgRepository {
 
   /// Deletes EPG entries older than [maxAge].
   Future<int> evictStale(Duration maxAge);
+
+  // ── EPG CRUD ───────────────────────────────────────
+
+  /// Fetch EPG entries for [channelIds] within [start] and [end].
+  Future<Map<String, List<EpgEntry>>> getEpgsForChannels(
+    List<String> channelIds,
+    DateTime start,
+    DateTime end,
+  );
+
+  /// Fetch EPG via the 3-layer facade
+  /// (L1 hot cache → L2 SQLite → L3 API).
+  Future<Map<String, List<EpgEntry>>> getChannelsEpg(
+    List<String> channelIds,
+    DateTime start,
+    DateTime end,
+  );
+
+  /// Save EPG entries grouped by channel ID (upsert).
+  Future<void> saveEpgEntries(Map<String, List<EpgEntry>> entriesByChannel);
+
+  /// Load all EPG entries grouped by channel ID.
+  Future<Map<String, List<EpgEntry>>> loadEpgEntries();
+
+  /// Evict EPG entries older than [days] days.
+  ///
+  /// Returns the number of evicted entries.
+  Future<int> evictStaleEpgEntries({int days = 2});
+
+  /// Clear all EPG entries.
+  Future<void> clearEpgEntries();
 }

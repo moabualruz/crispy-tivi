@@ -1,10 +1,12 @@
 import '../entities/user_profile.dart';
 
-/// Repository contract for user profile and profile-scoped
+/// Repository contract for core user profile and profile-scoped
 /// preference operations.
 ///
 /// Implemented by the infrastructure layer backed by the Rust
 /// crispy-core engine via CacheService.
+///
+/// Favorites operations are defined in [ProfileFavoritesRepository].
 abstract interface class ProfileRepository {
   // ── Profiles ───────────────────────────────────────
 
@@ -16,28 +18,6 @@ abstract interface class ProfileRepository {
 
   /// Load all user profiles.
   Future<List<UserProfile>> loadProfiles();
-
-  // ── Channel Favorites ──────────────────────────────
-
-  /// Add a channel to a profile's favorites.
-  Future<void> addFavorite(String profileId, String channelId);
-
-  /// Remove a channel from a profile's favorites.
-  Future<void> removeFavorite(String profileId, String channelId);
-
-  /// Get favorite channel IDs for [profileId].
-  Future<List<String>> getFavorites(String profileId);
-
-  // ── VOD Favorites ──────────────────────────────────
-
-  /// Add a VOD item to a profile's favorites.
-  Future<void> addVodFavorite(String profileId, String vodItemId);
-
-  /// Remove a VOD item from a profile's favorites.
-  Future<void> removeVodFavorite(String profileId, String vodItemId);
-
-  /// Get favorite VOD item IDs for [profileId].
-  Future<List<String>> getVodFavorites(String profileId);
 
   // ── Source Access ──────────────────────────────────
 
@@ -75,26 +55,4 @@ abstract interface class ProfileRepository {
 
   /// Reset the custom channel order for a specific group and profile.
   Future<void> resetChannelOrder(String profileId, String groupName);
-
-  // ── Favorite Categories ────────────────────────────
-
-  /// Add a category to a profile's favorites.
-  Future<void> addFavoriteCategory(
-    String profileId,
-    String categoryType,
-    String categoryName,
-  );
-
-  /// Remove a category from a profile's favorites.
-  Future<void> removeFavoriteCategory(
-    String profileId,
-    String categoryType,
-    String categoryName,
-  );
-
-  /// Get favorite category names for [profileId] and [categoryType].
-  Future<List<String>> getFavoriteCategories(
-    String profileId,
-    String categoryType,
-  );
 }

@@ -423,6 +423,30 @@ echo ""
 # ─────────────────────────────────────────────────────────────
 # SUMMARY
 # ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+# SOLID: Fat Repository Interfaces (ISP)
+# Domain repository interfaces should be focused on one concern.
+# Flag any abstract interface class in domain/repositories/
+# with >15 methods (counted by lines matching "Future<" or "Stream<").
+# ─────────────────────────────────────────────────────────────
+echo "[SOLID: Fat Repository Interfaces (ISP)]"
+ISP_FAT_COUNT=0
+while IFS= read -r repo_file; do
+  method_count=$(grep -cE "^\s+Future<|^\s+Stream<" "$repo_file" 2>/dev/null || echo 0)
+  if [[ "$method_count" -gt 15 ]]; then
+    rel=$(echo "$repo_file" | sed "s|$REPO_ROOT/||")
+    echo "  FAIL: $rel — $method_count methods (max 15)"
+    ISP_FAT_COUNT=$((ISP_FAT_COUNT + 1))
+  fi
+done < <(find "$LIB/features" -path "*/domain/repositories/*.dart" -type f 2>/dev/null)
+
+if [[ "$ISP_FAT_COUNT" -gt 0 ]]; then
+  solid_count=$((solid_count + ISP_FAT_COUNT))
+else
+  echo "  OK  All domain repository interfaces have ≤15 methods"
+fi
+echo ""
+
 total=$((ddd_count + solid_count + dry_count))
 echo "[SUMMARY]"
 echo "  DDD violations:   $ddd_count"

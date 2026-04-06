@@ -617,6 +617,25 @@ echo ""
 # ─────────────────────────────────────────────────────────────────────────────
 # SUMMARY
 # ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# SOLID: DomainError structurally embedding DbError (DIP)
+# DomainError should not contain DbError as an inner type — only convert via From.
+# ─────────────────────────────────────────────────────────────────────────────
+echo -e "${BOLD}[SOLID: DomainError embedding DbError (DIP)]${RESET}"
+ERRORS_FILE="$RUST_SRC/errors.rs"
+if [[ -f "$ERRORS_FILE" ]]; then
+    # Check for #[from] DbError or direct DbError field inside DomainError
+    if grep -qP "Persistence\(.*DbError|Persistence\(#\[from\].*DbError" "$ERRORS_FILE" 2>/dev/null; then
+        fail "DomainError structurally embeds DbError — domain layer coupled to infrastructure"
+        SOLID_VIOLATIONS=$((SOLID_VIOLATIONS + 1))
+    else
+        ok "DomainError uses String for persistence errors — no infra coupling"
+    fi
+else
+    warn "errors.rs not found — skipping"
+fi
+echo ""
+
 TOTAL=$((DDD_VIOLATIONS + SOLID_VIOLATIONS + DRY_VIOLATIONS))
 
 echo -e "${BOLD}[SUMMARY]${RESET}"

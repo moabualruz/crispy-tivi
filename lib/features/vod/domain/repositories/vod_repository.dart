@@ -1,6 +1,6 @@
 import '../entities/vod_item.dart';
 
-/// Repository contract for VOD (video-on-demand) data operations.
+/// Repository contract for VOD (video-on-demand) CRUD and filtering operations.
 ///
 /// Implemented by the infrastructure layer backed by the Rust
 /// crispy-core engine via CacheService.
@@ -68,48 +68,4 @@ abstract interface class VodRepository {
     int days,
     int nowMs,
   );
-
-  // ── VOD Favorites ──────────────────────────────────
-
-  /// Get favorite VOD item IDs for [profileId].
-  Future<List<String>> getVodFavorites(String profileId);
-
-  /// Add a VOD item to a profile's favorites.
-  Future<void> addVodFavorite(String profileId, String vodItemId);
-
-  /// Remove a VOD item from a profile's favorites.
-  Future<void> removeVodFavorite(String profileId, String vodItemId);
-
-  // ── Favorite Categories ────────────────────────────
-
-  /// Get favorite category names for [profileId] and [categoryType].
-  Future<List<String>> getFavoriteCategories(
-    String profileId,
-    String categoryType,
-  );
-
-  /// Add a category to a profile's favorites.
-  Future<void> addFavoriteCategory(
-    String profileId,
-    String categoryType,
-    String categoryName,
-  );
-
-  /// Remove a category from a profile's favorites.
-  Future<void> removeFavoriteCategory(
-    String profileId,
-    String categoryType,
-    String categoryName,
-  );
-
-  // ── Key-Value Settings ─────────────────────────────
-
-  /// Load a generic string setting by [key].
-  Future<String?> getSetting(String key);
-
-  /// Persist a generic string setting.
-  Future<void> setSetting(String key, String value);
-
-  /// Delete a generic string setting.
-  Future<void> removeSetting(String key);
 }

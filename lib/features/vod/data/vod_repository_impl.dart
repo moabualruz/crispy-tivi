@@ -5,10 +5,16 @@ import '../../../core/data/cache_service.dart';
 export '../../../core/data/cache_service.dart'
     show CacheService, cacheServiceProvider, crispyBackendProvider;
 import '../domain/entities/vod_item.dart';
+import '../domain/repositories/vod_favorites_repository.dart';
 import '../domain/repositories/vod_repository.dart';
 
-/// CacheService-backed implementation of [VodRepository].
-class VodRepositoryImpl implements VodRepository {
+/// CacheService-backed implementation of [VodRepository] and
+/// [VodFavoritesRepository].
+///
+/// Note: the settings methods (getSetting, setSetting, removeSetting) that
+/// were previously on VodRepository do not belong in the VOD domain and have
+/// been removed. Settings should go through the settings layer.
+class VodRepositoryImpl implements VodRepository, VodFavoritesRepository {
   VodRepositoryImpl(this._cache);
 
   final CacheService _cache;
@@ -113,21 +119,14 @@ class VodRepositoryImpl implements VodRepository {
     String categoryType,
     String categoryName,
   ) => _cache.removeFavoriteCategory(profileId, categoryType, categoryName);
-
-  // ── Key-Value Settings ─────────────────────────────
-
-  @override
-  Future<String?> getSetting(String key) => _cache.getSetting(key);
-
-  @override
-  Future<void> setSetting(String key, String value) =>
-      _cache.setSetting(key, value);
-
-  @override
-  Future<void> removeSetting(String key) => _cache.removeSetting(key);
 }
 
 /// Riverpod provider for [VodRepository].
 final vodRepositoryProvider = Provider<VodRepository>((ref) {
+  return VodRepositoryImpl(ref.watch(cacheServiceProvider));
+});
+
+/// Riverpod provider for [VodFavoritesRepository].
+final vodFavoritesRepositoryProvider = Provider<VodFavoritesRepository>((ref) {
   return VodRepositoryImpl(ref.watch(cacheServiceProvider));
 });

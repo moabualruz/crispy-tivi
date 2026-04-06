@@ -6,10 +6,22 @@ export '../../../core/data/cache_service.dart'
     show CacheService, cacheServiceProvider, crispyBackendProvider;
 import '../domain/entities/channel.dart';
 import '../domain/entities/epg_entry.dart';
+import '../domain/repositories/channel_order_repository.dart';
 import '../domain/repositories/channel_repository.dart';
+import '../domain/repositories/channel_search_repository.dart';
+import '../domain/repositories/epg_mapping_repository.dart';
+import '../domain/repositories/smart_group_repository.dart';
 
-/// CacheService-backed implementation of [ChannelRepository].
-class ChannelRepositoryImpl implements ChannelRepository {
+/// CacheService-backed implementation of [ChannelRepository],
+/// [EpgMappingRepository], [ChannelOrderRepository],
+/// [ChannelSearchRepository], and [SmartGroupRepository].
+class ChannelRepositoryImpl
+    implements
+        ChannelRepository,
+        EpgMappingRepository,
+        ChannelOrderRepository,
+        ChannelSearchRepository,
+        SmartGroupRepository {
   ChannelRepositoryImpl(this._cache);
 
   final CacheService _cache;
@@ -39,37 +51,6 @@ class ChannelRepositoryImpl implements ChannelRepository {
   @override
   Future<int> deleteRemovedChannels(String sourceId, Set<String> keepIds) =>
       _cache.deleteRemovedChannels(sourceId, keepIds);
-
-  // ── EPG ────────────────────────────────────────────
-
-  @override
-  Future<Map<String, List<EpgEntry>>> getEpgsForChannels(
-    List<String> channelIds,
-    DateTime start,
-    DateTime end,
-  ) => _cache.getEpgsForChannels(channelIds, start, end);
-
-  @override
-  Future<Map<String, List<EpgEntry>>> getChannelsEpg(
-    List<String> channelIds,
-    DateTime start,
-    DateTime end,
-  ) => _cache.getChannelsEpg(channelIds, start, end);
-
-  @override
-  Future<void> saveEpgEntries(Map<String, List<EpgEntry>> entriesByChannel) =>
-      _cache.saveEpgEntries(entriesByChannel);
-
-  @override
-  Future<Map<String, List<EpgEntry>>> loadEpgEntries() =>
-      _cache.loadEpgEntries();
-
-  @override
-  Future<int> evictStaleEpgEntries({int days = 2}) =>
-      _cache.evictStaleEpgEntries(days: days);
-
-  @override
-  Future<void> clearEpgEntries() => _cache.clearEpgEntries();
 
   // ── EPG Mappings ────────────────────────────────────
 
@@ -155,5 +136,27 @@ class ChannelRepositoryImpl implements ChannelRepository {
 
 /// Riverpod provider for [ChannelRepository].
 final channelRepositoryProvider = Provider<ChannelRepository>((ref) {
+  return ChannelRepositoryImpl(ref.watch(cacheServiceProvider));
+});
+
+/// Riverpod provider for [EpgMappingRepository].
+final epgMappingRepositoryProvider = Provider<EpgMappingRepository>((ref) {
+  return ChannelRepositoryImpl(ref.watch(cacheServiceProvider));
+});
+
+/// Riverpod provider for [ChannelOrderRepository].
+final channelOrderRepositoryProvider = Provider<ChannelOrderRepository>((ref) {
+  return ChannelRepositoryImpl(ref.watch(cacheServiceProvider));
+});
+
+/// Riverpod provider for [ChannelSearchRepository].
+final channelSearchRepositoryProvider = Provider<ChannelSearchRepository>((
+  ref,
+) {
+  return ChannelRepositoryImpl(ref.watch(cacheServiceProvider));
+});
+
+/// Riverpod provider for [SmartGroupRepository].
+final smartGroupRepositoryProvider = Provider<SmartGroupRepository>((ref) {
   return ChannelRepositoryImpl(ref.watch(cacheServiceProvider));
 });

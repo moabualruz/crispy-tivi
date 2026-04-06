@@ -98,12 +98,21 @@ pub enum DomainError {
     Validation(String),
 
     /// A persistence operation failed.
+    ///
+    /// Stores the error as a string so the domain layer has no
+    /// structural dependency on the infrastructure `DbError` type.
     #[error("persistence: {0}")]
-    Persistence(#[from] crate::database::DbError),
+    Persistence(String),
 
     /// An unexpected error not covered by the other variants.
     #[error("{0}")]
     Other(#[from] anyhow::Error),
+}
+
+impl From<DbError> for DomainError {
+    fn from(e: DbError) -> Self {
+        DomainError::Persistence(e.to_string())
+    }
 }
 
 // ── From conversions ──────────────────────────────────────────────────────────
