@@ -1,13 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
 import '../../../iptv/domain/entities/channel.dart';
-import '../../../profiles/data/profile_service.dart';
 import '../../../vod/domain/entities/vod_item.dart';
-import '../../../vod/presentation/providers/'
-    'vod_providers.dart';
-import '../../data/recommendation_engine.dart';
+import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../domain/entities/recommendation.dart';
+import 'recommendation_service_providers.dart';
 
 /// Provider for the recommendation engine.
 final recommendationEngineProvider = Provider<RecommendationEngine>((ref) {

@@ -1,9 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/crispy_backend.dart';
-import '../../data/profile_service.dart';
 import 'profile_service_providers.dart';
-import '../../data/source_access_service.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/dvr_permission.dart';
 import '../../domain/enums/user_role.dart';

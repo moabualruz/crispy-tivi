@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../profiles/data/profile_service.dart';
-import '../../data/vod_repository_impl.dart';
+import 'vod_service_providers.dart';
 
 /// Loads favorite category names for a profile + type.
 ///

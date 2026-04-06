@@ -2,9 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../iptv/domain/entities/channel.dart';
-import '../../../profiles/data/profile_service.dart';
-import '../../data/repositories/favorites_repository_impl.dart';
-import '../../data/stalker_favorites_service.dart';
+import 'favorites_service_providers.dart';
 
 /// Manages the list of favorite channels for the
 /// active profile.

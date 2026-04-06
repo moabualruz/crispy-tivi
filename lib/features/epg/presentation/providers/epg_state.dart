@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/dart_algorithm_fallbacks.dart';
+import 'epg_service_providers.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
 

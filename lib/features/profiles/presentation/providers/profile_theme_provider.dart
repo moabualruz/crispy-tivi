@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/accent_color.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_provider.dart';
-import '../../data/profile_service.dart';
+import 'profile_service_providers.dart';
 
 /// Returns a [ThemeData] with the active profile's accent color applied.
 ///

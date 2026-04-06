@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
-import '../../../profiles/data/profile_service.dart';
+import 'home_service_providers.dart';
 import '../../../vod/domain/entities/vod_item.dart';
 
 // FE-H-01: My List / Watchlist provider

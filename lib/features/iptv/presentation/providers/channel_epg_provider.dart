@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../epg/presentation/providers/epg_providers.dart';
-import '../../data/channel_epg_fetcher.dart';
+import 'iptv_service_providers.dart';
 import '../../domain/entities/channel.dart';
 import '../../domain/entities/epg_entry.dart';
 import 'channel_providers.dart';

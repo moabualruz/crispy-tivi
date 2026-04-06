@@ -10,4 +10,8 @@ export '../../../favorites/data/favorites_history_service.dart'
         FavoritesHistoryService,
         FavoritesHistoryState,
         favoritesHistoryProvider;
+export '../../data/channel_epg_fetcher.dart' show fetchChannelEpg;
+export '../../data/channel_repository_impl.dart' show channelRepositoryProvider;
+export '../../data/duplicate_group_codec.dart'
+    show decodeDuplicateGroup, encodeDuplicateGroups;
 export '../../data/sync_report_codec.dart' show SyncReport, decodeSyncReport;

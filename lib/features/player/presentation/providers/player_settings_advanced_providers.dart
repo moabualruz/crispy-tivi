@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
-import '../../data/segment_skip_codec.dart';
+import 'player_service_providers.dart';
 import '../../domain/segment_skip_config.dart';
 import '../../domain/entities/stream_profile.dart';
 import 'player_providers.dart';

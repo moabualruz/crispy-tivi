@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import 'player_service_providers.dart';
-import '../../data/gpu_json_codec.dart';
-import '../../data/upscale_manager.dart';
 import '../../domain/entities/gpu_info.dart';
 import '../../domain/entities/upscale_mode.dart';
 import '../../domain/entities/upscale_quality.dart';

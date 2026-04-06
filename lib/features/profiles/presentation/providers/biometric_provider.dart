@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../core/data/codecs/json_prefs_codec.dart';
+import 'profile_service_providers.dart';
 
 // FE-PS-05
 

@@ -1,10 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
-import '../../../settings/data/backup_service.dart';
-import '../../data/cloud_sync_service.dart';
-import '../../data/google_auth_service.dart';
+import 'cloud_sync_service_providers.dart';
 import '../../domain/entities/cloud_sync_state.dart';
 import '../../domain/entities/sync_conflict.dart';
 

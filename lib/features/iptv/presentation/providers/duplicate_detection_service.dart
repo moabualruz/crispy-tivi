@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'iptv_service_providers.dart';
-import '../../data/duplicate_group_codec.dart';
 import '../../domain/entities/channel.dart';
 import '../../domain/entities/duplicate_group.dart';
 

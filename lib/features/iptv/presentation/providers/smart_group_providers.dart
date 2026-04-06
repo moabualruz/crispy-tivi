@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/channel_repository_impl.dart';
+import 'iptv_service_providers.dart';
 
 /// Parsed smart group data for the UI.
 class SmartGroup {

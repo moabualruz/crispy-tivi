@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/vod_repository_impl.dart';
+import 'vod_service_providers.dart';
 
 /// User rating for a VOD item: thumbs up, thumbs down, or none.
 enum VodRating {

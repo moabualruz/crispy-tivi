@@ -3,6 +3,8 @@
 // here, never directly from data/.
 export '../../../../core/data/cache_service.dart'
     show CacheService, cacheServiceProvider, crispyBackendProvider;
+export '../../../../core/data/dart_algorithm_fallbacks.dart'
+    show categoryBucketCompare;
 export '../../../dvr/data/dvr_service.dart'
     show DvrService, DvrState, dvrServiceProvider;
 export '../../../dvr/data/dvr_state.dart' show ScheduleResult;
