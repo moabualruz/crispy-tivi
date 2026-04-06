@@ -155,13 +155,12 @@ impl From<crispy_xtream::types::XtreamChannel> for Channel {
 
         let number = xc.num.map(|n| n as i32);
 
-        let epg_channel_id = xc.epg_channel_id.clone();
+        let epg_channel_id = xc.epg_channel_id.clone().filter(|s| !s.is_empty());
 
-        // tvg_id: use epg_channel_id if present, else stream_id.
-        let tvg_id = epg_channel_id
-            .clone()
-            .filter(|s| !s.is_empty())
-            .unwrap_or_else(|| native_id.clone());
+        // tvg_id: use epg_channel_id if present, otherwise None.
+        // Never fall back to stream_id — Xtream numeric IDs are NOT EPG IDs
+        // and cause wrong EPG matches.
+        let tvg_id = epg_channel_id.clone();
 
         let added_at = xc
             .added
@@ -178,7 +177,7 @@ impl From<crispy_xtream::types::XtreamChannel> for Channel {
             number,
             channel_group: xc.category_id.clone(),
             logo_url: sanitize_image_url(xc.stream_icon),
-            tvg_id: Some(tvg_id),
+            tvg_id,
             xtream_stream_id: Some(xc.stream_id.to_string()),
             tvg_name: Some(xc.name),
             epg_channel_id,
