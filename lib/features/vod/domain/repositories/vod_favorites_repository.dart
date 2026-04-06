@@ -5,6 +5,9 @@
 abstract interface class VodFavoritesRepository {
   // ── VOD Favorites ──────────────────────────────────
 
+  /// Update a single VOD item's favorite flag.
+  Future<void> updateVodFavorite(String itemId, bool isFavorite);
+
   /// Get favorite VOD item IDs for [profileId].
   Future<List<String>> getVodFavorites(String profileId);
 

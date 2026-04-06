@@ -18,9 +18,6 @@ abstract interface class VodRepository {
   /// Empty [sourceIds] returns all VOD items.
   Future<List<VodItem>> getVodBySources(List<String> sourceIds);
 
-  /// Update a single VOD item's favorite flag.
-  Future<void> updateVodFavorite(String itemId, bool isFavorite);
-
   /// Find VOD alternatives from other sources matching by name and year.
   Future<List<Map<String, dynamic>>> findVodAlternatives(
     String name,
