@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rusqlite::params;
 
 use super::CrispyService;
-use crate::database::DbError;
+use crate::database::{optional, DbError};
 
 // ── Failover thresholds ─────────────────────────────
 
@@ -122,13 +122,11 @@ impl CrispyService {
             },
         );
 
-        match result {
-            Ok((stall_count, buffer_sum, buffer_samples, ttff_ms, last_seen)) => Ok(
-                compute_health_score(stall_count, buffer_sum, buffer_samples, ttff_ms, last_seen),
-            ),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(0.5),
-            Err(e) => Err(DbError::Sqlite(e)),
-        }
+        Ok(optional(result)?
+            .map(|(stall_count, buffer_sum, buffer_samples, ttff_ms, last_seen)| {
+                compute_health_score(stall_count, buffer_sum, buffer_samples, ttff_ms, last_seen)
+            })
+            .unwrap_or(0.5))
     }
 
     /// Get health scores for multiple URL hashes.

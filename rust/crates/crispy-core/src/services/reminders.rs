@@ -3,6 +3,7 @@ use rusqlite::{Row, params};
 use crate::insert_or_replace;
 use super::{CrispyService, bool_to_int, dt_to_ts, int_to_bool, ts_to_dt};
 use crate::database::DbError;
+use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
 use crate::models::Reminder;
 use crate::traits::ReminderRepository;
@@ -109,24 +110,24 @@ impl CrispyService {
 }
 
 impl ReminderRepository for CrispyService {
-    fn load_reminders(&self) -> Result<Vec<Reminder>, DbError> {
-        self.load_reminders()
+    fn load_reminders(&self) -> Result<Vec<Reminder>, DomainError> {
+        Ok(self.load_reminders()?)
     }
 
-    fn save_reminder(&self, reminder: &Reminder) -> Result<(), DbError> {
-        self.save_reminder(reminder)
+    fn save_reminder(&self, reminder: &Reminder) -> Result<(), DomainError> {
+        Ok(self.save_reminder(reminder)?)
     }
 
-    fn delete_reminder(&self, id: &str) -> Result<(), DbError> {
-        self.delete_reminder(id)
+    fn delete_reminder(&self, id: &str) -> Result<(), DomainError> {
+        Ok(self.delete_reminder(id)?)
     }
 
-    fn clear_fired_reminders(&self) -> Result<(), DbError> {
-        self.clear_fired_reminders()
+    fn clear_fired_reminders(&self) -> Result<(), DomainError> {
+        Ok(self.clear_fired_reminders()?)
     }
 
-    fn mark_reminder_fired(&self, id: &str) -> Result<(), DbError> {
-        self.mark_reminder_fired(id)
+    fn mark_reminder_fired(&self, id: &str) -> Result<(), DomainError> {
+        Ok(self.mark_reminder_fired(id)?)
     }
 }
 

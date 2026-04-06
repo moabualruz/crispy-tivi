@@ -2,10 +2,11 @@ use rusqlite::{Row, params};
 
 use super::{CrispyService, bool_to_int, dt_to_ts, int_to_bool, ts_to_dt};
 use crate::database::DbError;
+use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
-use crate::models::{Recording, StorageBackend, TransferTask};
 use crate::insert_or_replace;
-use crate::traits::DvrRepository;
+use crate::models::{Recording, StorageBackend, TransferTask};
+use crate::traits::{RecordingRepository, StorageRepository, TransferRepository};
 
 fn recording_from_row(row: &Row) -> rusqlite::Result<Recording> {
     Ok(Recording {
@@ -281,51 +282,56 @@ impl CrispyService {
     }
 }
 
-impl DvrRepository for CrispyService {
-    fn save_recording(&self, rec: &Recording) -> Result<(), DbError> {
-        self.save_recording(rec)
+impl RecordingRepository for CrispyService {
+    fn save_recording(&self, rec: &Recording) -> Result<(), DomainError> {
+        Ok(self.save_recording(rec)?)
     }
 
-    fn load_recordings(&self) -> Result<Vec<Recording>, DbError> {
-        self.load_recordings()
+    fn load_recordings(&self) -> Result<Vec<Recording>, DomainError> {
+        Ok(self.load_recordings()?)
     }
 
-    fn update_recording(&self, rec: &Recording) -> Result<(), DbError> {
-        self.update_recording(rec)
+    fn update_recording(&self, rec: &Recording) -> Result<(), DomainError> {
+        Ok(self.update_recording(rec)?)
     }
 
-    fn delete_recording(&self, id: &str) -> Result<(), DbError> {
-        self.delete_recording(id)
-    }
-
-    fn save_storage_backend(&self, backend: &StorageBackend) -> Result<(), DbError> {
-        self.save_storage_backend(backend)
-    }
-
-    fn load_storage_backends(&self) -> Result<Vec<StorageBackend>, DbError> {
-        self.load_storage_backends()
-    }
-
-    fn delete_storage_backend(&self, id: &str) -> Result<(), DbError> {
-        self.delete_storage_backend(id)
-    }
-
-    fn save_transfer_task(&self, task: &TransferTask) -> Result<(), DbError> {
-        self.save_transfer_task(task)
-    }
-
-    fn load_transfer_tasks(&self) -> Result<Vec<TransferTask>, DbError> {
-        self.load_transfer_tasks()
-    }
-
-    fn update_transfer_task(&self, task: &TransferTask) -> Result<(), DbError> {
-        self.update_transfer_task(task)
-    }
-
-    fn delete_transfer_task(&self, id: &str) -> Result<(), DbError> {
-        self.delete_transfer_task(id)
+    fn delete_recording(&self, id: &str) -> Result<(), DomainError> {
+        Ok(self.delete_recording(id)?)
     }
 }
+
+impl StorageRepository for CrispyService {
+    fn save_storage_backend(&self, backend: &StorageBackend) -> Result<(), DomainError> {
+        Ok(self.save_storage_backend(backend)?)
+    }
+
+    fn load_storage_backends(&self) -> Result<Vec<StorageBackend>, DomainError> {
+        Ok(self.load_storage_backends()?)
+    }
+
+    fn delete_storage_backend(&self, id: &str) -> Result<(), DomainError> {
+        Ok(self.delete_storage_backend(id)?)
+    }
+}
+
+impl TransferRepository for CrispyService {
+    fn save_transfer_task(&self, task: &TransferTask) -> Result<(), DomainError> {
+        Ok(self.save_transfer_task(task)?)
+    }
+
+    fn load_transfer_tasks(&self) -> Result<Vec<TransferTask>, DomainError> {
+        Ok(self.load_transfer_tasks()?)
+    }
+
+    fn update_transfer_task(&self, task: &TransferTask) -> Result<(), DomainError> {
+        Ok(self.update_transfer_task(task)?)
+    }
+
+    fn delete_transfer_task(&self, id: &str) -> Result<(), DomainError> {
+        Ok(self.delete_transfer_task(id)?)
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

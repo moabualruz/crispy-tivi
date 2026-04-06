@@ -1,5 +1,4 @@
 //! ProfileRole — role level of a user profile.
-use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use serde::{Deserialize, Serialize};
 
 /// Role level of a user profile.
@@ -71,19 +70,6 @@ impl TryFrom<String> for ProfileRole {
     type Error = String;
     fn try_from(s: String) -> Result<Self, Self::Error> {
         Self::try_from(s.as_str())
-    }
-}
-
-impl FromSql for ProfileRole {
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        let n = i32::column_result(value)?;
-        Ok(Self::from(n))
-    }
-}
-
-impl ToSql for ProfileRole {
-    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
-        Ok(ToSqlOutput::from(self.as_i32()))
     }
 }
 

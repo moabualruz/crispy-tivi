@@ -8,7 +8,7 @@
 //! DB triggers notification via the callback passed to
 //! `check_db_integrity`.
 
-use crate::database::{Database, DbError};
+use crate::database::{optional_or, Database, DbError};
 use rusqlite::params;
 
 // ── RecoveryState ─────────────────────────────────────────────────────────────
@@ -95,7 +95,6 @@ impl CrashRecovery {
                     }))
                 }
             }
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(DbError::Sqlite(e)),
         }
     }
@@ -132,11 +131,7 @@ impl CrashRecovery {
             [],
             |row| row.get(0),
         );
-        match result {
-            Ok(clean) => Ok(clean == 0),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(false),
-            Err(e) => Err(DbError::Sqlite(e)),
-        }
+        Ok(optional_or(result, 1)? == 0)
     }
 
     // ── DB integrity ─────────────────────────────────────────────────────────

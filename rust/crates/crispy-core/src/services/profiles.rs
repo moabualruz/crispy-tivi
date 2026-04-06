@@ -4,6 +4,7 @@ use rusqlite::{Row, params};
 
 use super::{CrispyService, bool_to_int, int_to_bool};
 use crate::database::DbError;
+use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
 use crate::models::UserProfile;
 use crate::insert_or_replace;
@@ -278,44 +279,44 @@ impl CrispyService {
 }
 
 impl ProfileRepository for CrispyService {
-    fn save_profile(&self, profile: &UserProfile) -> Result<(), DbError> {
-        self.save_profile(profile)
+    fn save_profile(&self, profile: &UserProfile) -> Result<(), DomainError> {
+        Ok(self.save_profile(profile)?)
     }
 
-    fn delete_profile(&self, id: &str) -> Result<(), DbError> {
-        self.delete_profile(id)
+    fn delete_profile(&self, id: &str) -> Result<(), DomainError> {
+        Ok(self.delete_profile(id)?)
     }
 
-    fn load_profiles(&self) -> Result<Vec<UserProfile>, DbError> {
-        self.load_profiles()
+    fn load_profiles(&self) -> Result<Vec<UserProfile>, DomainError> {
+        Ok(self.load_profiles()?)
     }
 
     fn grant_source_access(
         &self,
         profile_id: &str,
         source_id: &str,
-    ) -> Result<(), DbError> {
-        self.grant_source_access(profile_id, source_id)
+    ) -> Result<(), DomainError> {
+        Ok(self.grant_source_access(profile_id, source_id)?)
     }
 
     fn revoke_source_access(
         &self,
         profile_id: &str,
         source_id: &str,
-    ) -> Result<(), DbError> {
-        self.revoke_source_access(profile_id, source_id)
+    ) -> Result<(), DomainError> {
+        Ok(self.revoke_source_access(profile_id, source_id)?)
     }
 
-    fn get_source_access(&self, profile_id: &str) -> Result<Vec<String>, DbError> {
-        self.get_source_access(profile_id)
+    fn get_source_access(&self, profile_id: &str) -> Result<Vec<String>, DomainError> {
+        Ok(self.get_source_access(profile_id)?)
     }
 
     fn set_source_access(
         &self,
         profile_id: &str,
         source_ids: &[String],
-    ) -> Result<(), DbError> {
-        self.set_source_access(profile_id, source_ids)
+    ) -> Result<(), DomainError> {
+        Ok(self.set_source_access(profile_id, source_ids)?)
     }
 
     fn save_channel_order(
@@ -323,24 +324,24 @@ impl ProfileRepository for CrispyService {
         profile_id: &str,
         group_name: &str,
         channel_ids: &[String],
-    ) -> Result<(), DbError> {
-        self.save_channel_order(profile_id, group_name, channel_ids)
+    ) -> Result<(), DomainError> {
+        Ok(self.save_channel_order(profile_id, group_name, channel_ids)?)
     }
 
     fn load_channel_order(
         &self,
         profile_id: &str,
         group_name: &str,
-    ) -> Result<Option<HashMap<String, i32>>, DbError> {
-        self.load_channel_order(profile_id, group_name)
+    ) -> Result<Option<HashMap<String, i32>>, DomainError> {
+        Ok(self.load_channel_order(profile_id, group_name)?)
     }
 
     fn reset_channel_order(
         &self,
         profile_id: &str,
         group_name: &str,
-    ) -> Result<(), DbError> {
-        self.reset_channel_order(profile_id, group_name)
+    ) -> Result<(), DomainError> {
+        Ok(self.reset_channel_order(profile_id, group_name)?)
     }
 }
 

@@ -1,5 +1,4 @@
 //! BackendType — storage backend protocol discriminator.
-use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use serde::{Deserialize, Serialize};
 
 /// Discriminates the storage protocol used by a [`crate::models::StorageBackend`].
@@ -54,24 +53,6 @@ impl TryFrom<String> for BackendType {
     type Error = String;
     fn try_from(s: String) -> Result<Self, Self::Error> {
         Self::try_from(s.as_str())
-    }
-}
-
-impl FromSql for BackendType {
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        let s = String::column_result(value)?;
-        Self::try_from(s.as_str()).map_err(|e| {
-            FromSqlError::Other(Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                e,
-            )))
-        })
-    }
-}
-
-impl ToSql for BackendType {
-    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
-        Ok(ToSqlOutput::from(self.as_str()))
     }
 }
 

@@ -3,6 +3,7 @@ use rusqlite::{Row, params};
 use super::{CrispyService, bool_to_int, build_in_placeholders, opt_dt_to_ts, str_params};
 use crate::database::row_helpers::RowExt;
 use crate::database::{DbError, TABLE_MOVIES};
+use crate::errors::DomainError;
 use crate::insert_or_replace;
 use crate::events::DataChangeEvent;
 use crate::models::VodItem;
@@ -317,19 +318,19 @@ impl CrispyService {
 }
 
 impl VodRepository for CrispyService {
-    fn save_vod_items(&self, items: &[VodItem]) -> Result<usize, DbError> {
-        self.save_vod_items(items)
+    fn save_vod_items(&self, items: &[VodItem]) -> Result<usize, DomainError> {
+        Ok(self.save_vod_items(items)?)
     }
 
-    fn load_vod_items(&self) -> Result<Vec<VodItem>, DbError> {
-        self.load_vod_items()
+    fn load_vod_items(&self) -> Result<Vec<VodItem>, DomainError> {
+        Ok(self.load_vod_items()?)
     }
 
     fn get_vod_by_sources(
         &self,
         source_ids: &[String],
-    ) -> Result<Vec<VodItem>, DbError> {
-        self.get_vod_by_sources(source_ids)
+    ) -> Result<Vec<VodItem>, DomainError> {
+        Ok(self.get_vod_by_sources(source_ids)?)
     }
 
     fn get_filtered_vod(
@@ -339,8 +340,8 @@ impl VodRepository for CrispyService {
         category: Option<&str>,
         query: Option<&str>,
         sort_by: &str,
-    ) -> Result<Vec<VodItem>, DbError> {
-        self.get_filtered_vod(source_ids, item_type, category, query, sort_by)
+    ) -> Result<Vec<VodItem>, DomainError> {
+        Ok(self.get_filtered_vod(source_ids, item_type, category, query, sort_by)?)
     }
 
     fn find_vod_alternatives(
@@ -349,36 +350,36 @@ impl VodRepository for CrispyService {
         year: Option<i32>,
         exclude_id: &str,
         limit: usize,
-    ) -> Result<Vec<VodItem>, DbError> {
-        self.find_vod_alternatives(name, year, exclude_id, limit)
+    ) -> Result<Vec<VodItem>, DomainError> {
+        Ok(self.find_vod_alternatives(name, year, exclude_id, limit)?)
     }
 
     fn delete_removed_vod_items(
         &self,
         source_id: &str,
         keep_ids: &[String],
-    ) -> Result<usize, DbError> {
-        self.delete_removed_vod_items(source_id, keep_ids)
+    ) -> Result<usize, DomainError> {
+        Ok(self.delete_removed_vod_items(source_id, keep_ids)?)
     }
 
-    fn get_vod_favorites(&self, profile_id: &str) -> Result<Vec<String>, DbError> {
-        self.get_vod_favorites(profile_id)
+    fn get_vod_favorites(&self, profile_id: &str) -> Result<Vec<String>, DomainError> {
+        Ok(self.get_vod_favorites(profile_id)?)
     }
 
     fn add_vod_favorite(
         &self,
         profile_id: &str,
         vod_item_id: &str,
-    ) -> Result<(), DbError> {
-        self.add_vod_favorite(profile_id, vod_item_id)
+    ) -> Result<(), DomainError> {
+        Ok(self.add_vod_favorite(profile_id, vod_item_id)?)
     }
 
     fn remove_vod_favorite(
         &self,
         profile_id: &str,
         vod_item_id: &str,
-    ) -> Result<(), DbError> {
-        self.remove_vod_favorite(profile_id, vod_item_id)
+    ) -> Result<(), DomainError> {
+        Ok(self.remove_vod_favorite(profile_id, vod_item_id)?)
     }
 }
 

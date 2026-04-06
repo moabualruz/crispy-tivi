@@ -3,7 +3,8 @@ use rusqlite::params;
 
 use crate::insert_or_replace;
 use super::{CrispyService, dt_to_ts, ts_to_dt};
-use crate::database::DbError;
+use crate::database::{optional, DbError};
+use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
 use crate::traits::SettingsRepository;
 
@@ -19,11 +20,7 @@ impl CrispyService {
             params![key],
             |row| row.get(0),
         );
-        match result {
-            Ok(val) => Ok(Some(val)),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(DbError::Sqlite(e)),
-        }
+        optional(result)
     }
 
     /// Set a setting value.
@@ -72,41 +69,36 @@ impl CrispyService {
             params![source_id],
             |row| row.get::<_, Option<i64>>(0),
         );
-        match result {
-            Ok(Some(ts)) => Ok(Some(ts_to_dt(ts))),
-            Ok(None) => Ok(None),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(DbError::Sqlite(e)),
-        }
+        Ok(optional(result)?.and_then(|ts| ts.map(ts_to_dt)))
     }
 }
 
 impl SettingsRepository for CrispyService {
-    fn get_setting(&self, key: &str) -> Result<Option<String>, DbError> {
-        self.get_setting(key)
+    fn get_setting(&self, key: &str) -> Result<Option<String>, DomainError> {
+        Ok(self.get_setting(key)?)
     }
 
-    fn set_setting(&self, key: &str, value: &str) -> Result<(), DbError> {
-        self.set_setting(key, value)
+    fn set_setting(&self, key: &str, value: &str) -> Result<(), DomainError> {
+        Ok(self.set_setting(key, value)?)
     }
 
-    fn remove_setting(&self, key: &str) -> Result<(), DbError> {
-        self.remove_setting(key)
+    fn remove_setting(&self, key: &str) -> Result<(), DomainError> {
+        Ok(self.remove_setting(key)?)
     }
 
     fn set_last_sync_time(
         &self,
         source_id: &str,
         time: NaiveDateTime,
-    ) -> Result<(), DbError> {
-        self.set_last_sync_time(source_id, time)
+    ) -> Result<(), DomainError> {
+        Ok(self.set_last_sync_time(source_id, time)?)
     }
 
     fn get_last_sync_time(
         &self,
         source_id: &str,
-    ) -> Result<Option<NaiveDateTime>, DbError> {
-        self.get_last_sync_time(source_id)
+    ) -> Result<Option<NaiveDateTime>, DomainError> {
+        Ok(self.get_last_sync_time(source_id)?)
     }
 }
 

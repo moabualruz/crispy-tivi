@@ -1,5 +1,4 @@
 //! TransferDirection — direction of a file transfer task.
-use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use serde::{Deserialize, Serialize};
 
 /// Direction of a file transfer between local and remote storage.
@@ -46,24 +45,6 @@ impl TryFrom<String> for TransferDirection {
     type Error = String;
     fn try_from(s: String) -> Result<Self, Self::Error> {
         Self::try_from(s.as_str())
-    }
-}
-
-impl FromSql for TransferDirection {
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        let s = String::column_result(value)?;
-        Self::try_from(s.as_str()).map_err(|e| {
-            FromSqlError::Other(Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                e,
-            )))
-        })
-    }
-}
-
-impl ToSql for TransferDirection {
-    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
-        Ok(ToSqlOutput::from(self.as_str()))
     }
 }
 

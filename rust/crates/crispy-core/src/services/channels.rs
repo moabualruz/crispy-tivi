@@ -2,6 +2,7 @@ use rusqlite::{Row, params};
 
 use super::{CrispyService, bool_to_int, build_in_placeholders, opt_dt_to_ts, str_params};
 use crate::database::DbError;
+use crate::errors::DomainError;
 use crate::insert_or_replace;
 use crate::database::row_helpers::RowExt;
 use crate::events::DataChangeEvent;
@@ -311,47 +312,47 @@ impl CrispyService {
 }
 
 impl ChannelRepository for CrispyService {
-    fn save_channels(&self, channels: &[Channel]) -> Result<usize, DbError> {
-        self.save_channels(channels)
+    fn save_channels(&self, channels: &[Channel]) -> Result<usize, DomainError> {
+        Ok(self.save_channels(channels)?)
     }
 
-    fn load_channels(&self) -> Result<Vec<Channel>, DbError> {
-        self.load_channels()
+    fn load_channels(&self) -> Result<Vec<Channel>, DomainError> {
+        Ok(self.load_channels()?)
     }
 
     fn get_channels_by_sources(
         &self,
         source_ids: &[String],
-    ) -> Result<Vec<Channel>, DbError> {
-        self.get_channels_by_sources(source_ids)
+    ) -> Result<Vec<Channel>, DomainError> {
+        Ok(self.get_channels_by_sources(source_ids)?)
     }
 
-    fn get_channels_by_ids(&self, ids: &[String]) -> Result<Vec<Channel>, DbError> {
-        self.get_channels_by_ids(ids)
+    fn get_channels_by_ids(&self, ids: &[String]) -> Result<Vec<Channel>, DomainError> {
+        Ok(self.get_channels_by_ids(ids)?)
     }
 
     fn delete_removed_channels(
         &self,
         source_id: &str,
         keep_ids: &[String],
-    ) -> Result<usize, DbError> {
-        self.delete_removed_channels(source_id, keep_ids)
+    ) -> Result<usize, DomainError> {
+        Ok(self.delete_removed_channels(source_id, keep_ids)?)
     }
 
-    fn get_favorites(&self, profile_id: &str) -> Result<Vec<String>, DbError> {
-        self.get_favorites(profile_id)
+    fn get_favorites(&self, profile_id: &str) -> Result<Vec<String>, DomainError> {
+        Ok(self.get_favorites(profile_id)?)
     }
 
-    fn add_favorite(&self, profile_id: &str, channel_id: &str) -> Result<(), DbError> {
-        self.add_favorite(profile_id, channel_id)
+    fn add_favorite(&self, profile_id: &str, channel_id: &str) -> Result<(), DomainError> {
+        Ok(self.add_favorite(profile_id, channel_id)?)
     }
 
     fn remove_favorite(
         &self,
         profile_id: &str,
         channel_id: &str,
-    ) -> Result<(), DbError> {
-        self.remove_favorite(profile_id, channel_id)
+    ) -> Result<(), DomainError> {
+        Ok(self.remove_favorite(profile_id, channel_id)?)
     }
 }
 

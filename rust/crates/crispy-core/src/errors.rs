@@ -80,6 +80,32 @@ impl From<url::ParseError> for CrispyError {
     }
 }
 
+// ── DomainError ───────────────────────────────────────────────────────────────
+
+/// Domain-level error type for repository traits.
+///
+/// Repository traits return `DomainError` so that the domain layer has no
+/// direct dependency on `DbError` (an infrastructure type).  The `From<DbError>`
+/// impl allows service implementations to use `?` and have `DbError` auto-convert.
+#[derive(Error, Debug)]
+pub enum DomainError {
+    /// Entity was not found in the persistence store.
+    #[error("not found: {0}")]
+    NotFound(String),
+
+    /// A domain validation rule was violated.
+    #[error("validation: {0}")]
+    Validation(String),
+
+    /// A persistence operation failed.
+    #[error("persistence: {0}")]
+    Persistence(#[from] crate::database::DbError),
+
+    /// An unexpected error not covered by the other variants.
+    #[error("{0}")]
+    Other(#[from] anyhow::Error),
+}
+
 // ── From conversions ──────────────────────────────────────────────────────────
 
 impl From<DbError> for CrispyError {

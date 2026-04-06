@@ -1,5 +1,4 @@
 //! DvrPermission — DVR access level of a user profile.
-use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use serde::{Deserialize, Serialize};
 
 /// DVR access level granted to a user profile.
@@ -71,19 +70,6 @@ impl TryFrom<String> for DvrPermission {
     type Error = String;
     fn try_from(s: String) -> Result<Self, Self::Error> {
         Self::try_from(s.as_str())
-    }
-}
-
-impl FromSql for DvrPermission {
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        let n = i32::column_result(value)?;
-        Ok(Self::from(n))
-    }
-}
-
-impl ToSql for DvrPermission {
-    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
-        Ok(ToSqlOutput::from(self.as_i32()))
     }
 }
 

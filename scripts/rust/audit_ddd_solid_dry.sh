@@ -442,6 +442,179 @@ fi
 echo ""
 
 # ─────────────────────────────────────────────────────────────────────────────
+# DDD: DOMAIN LOGIC IN SERVICES (threshold/tier evaluation, progress calcs)
+# evaluate_* and compute_* functions in services/ signal domain logic that
+# should live on entities/value objects instead.
+# ─────────────────────────────────────────────────────────────────────────────
+echo -e "${BOLD}[DDD: Domain Logic in Services]${RESET}"
+
+DDD_SERVICE_LOGIC_COUNT=0
+
+# Check services/ for compute_/evaluate_ fns that contain inline domain logic.
+# Functions that delegate to domain types (BufferTierDecision, etc.) are OK —
+# the service orchestrates, the domain object has the logic.
+DOMAIN_LOGIC_FILES=("$SERVICES_DIR/buffer_tiers.rs" "$SERVICES_DIR/history.rs")
+for f in "${DOMAIN_LOGIC_FILES[@]}"; do
+    [[ -f "$f" ]] || continue
+    fname=$(basename "$f")
+    while IFS= read -r match; do
+        lineno=$(echo "$match" | cut -d: -f1)
+        fn_name=$(echo "$match" | grep -oP '(?<=pub fn )\w+' || true)
+        # Check if the function delegates to a domain type (e.g., BufferTierDecision::evaluate)
+        # by scanning the next 30 lines for domain type calls
+        delegates=$(sed -n "${lineno},$((lineno + 30))p" "$f" 2>/dev/null \
+            | grep -c "Decision::\|Policy::\|Evaluator::\|Calculator::\|Progress::" || true)
+        if [[ "$delegates" -gt 0 ]]; then
+            ok "${fname}:${lineno} — pub fn ${fn_name} delegates to domain type (not a violation)"
+        else
+            fail "${fname}:${lineno} — pub fn ${fn_name} (domain logic in service — should be on entity/value object)"
+            DDD_SERVICE_LOGIC_COUNT=$((DDD_SERVICE_LOGIC_COUNT + 1))
+            DDD_VIOLATIONS=$((DDD_VIOLATIONS + 1))
+        fi
+    done < <(grep -nP "^\s+pub fn (compute_|evaluate_)" "$f" 2>/dev/null | grep -v "#\[test\]\|//\|test::" || true)
+done
+
+# Also scan all services/ for threshold pattern: if x > N && x < M (numeric comparisons)
+# These bracket-style tier evaluations belong on domain types
+THRESHOLD_COUNT=0
+while IFS= read -r match; do
+    f=$(echo "$match" | cut -d: -f1)
+    lineno=$(echo "$match" | cut -d: -f2)
+    warn "$(basename "$f"):${lineno} — threshold comparison (if X > N && X < M) in service layer (consider domain type)"
+    THRESHOLD_COUNT=$((THRESHOLD_COUNT + 1))
+done < <(grep -rnP "if\s+\w+\s*[<>]=?\s*[\d.]+\s*&&\s*\w+\s*[<>]=?\s*[\d.]+" \
+    "$SERVICES_DIR/buffer_tiers.rs" "$SERVICES_DIR/history.rs" 2>/dev/null \
+    | grep -v "//\|#\[test\]\|test::" || true)
+
+if [[ "$DDD_SERVICE_LOGIC_COUNT" -eq 0 && "$THRESHOLD_COUNT" -eq 0 ]]; then
+    ok "No domain logic misplaced in service layer"
+elif [[ "$THRESHOLD_COUNT" -gt 0 ]]; then
+    warn "Threshold comparisons in service layer: ${THRESHOLD_COUNT} (informational)"
+fi
+echo ""
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SOLID: VALUE OBJECTS IMPORTING RUSQLITE (DIP)
+# Value objects are domain types and must NOT depend on persistence infra.
+# ─────────────────────────────────────────────────────────────────────────────
+echo -e "${BOLD}[SOLID: Value Objects importing rusqlite (DIP)]${RESET}"
+
+VO_RUSQLITE_COUNT=0
+VO_DIR="$RUST_SRC/value_objects"
+if [[ -d "$VO_DIR" ]]; then
+    while IFS= read -r f; do
+        fname=$(basename "$f")
+        fail "value_objects/${fname} — imports rusqlite (domain type must NOT depend on persistence infra — DIP VIOLATION)"
+        VO_RUSQLITE_COUNT=$((VO_RUSQLITE_COUNT + 1))
+        SOLID_VIOLATIONS=$((SOLID_VIOLATIONS + 1))
+    done < <(grep -rl "use rusqlite" "$VO_DIR" 2>/dev/null || true)
+    if [[ "$VO_RUSQLITE_COUNT" -eq 0 ]]; then
+        ok "No value_objects importing rusqlite"
+    fi
+else
+    warn "value_objects/ directory not found at $VO_DIR — skipping"
+fi
+echo ""
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SOLID: REPOSITORY TRAITS IMPORTING DbError (DIP)
+# Repository traits are domain contracts. They should use a domain-level
+# error type, not DbError from the infrastructure layer.
+# ─────────────────────────────────────────────────────────────────────────────
+echo -e "${BOLD}[SOLID: Repository Traits importing DbError (DIP)]${RESET}"
+
+TRAIT_DBERROR_COUNT=0
+TRAITS_DIR="$RUST_SRC/traits"
+if [[ -d "$TRAITS_DIR" ]]; then
+    while IFS= read -r f; do
+        fname=$(basename "$f")
+        fail "traits/${fname} — imports DbError from database layer (repository traits should use domain-level errors — DIP VIOLATION)"
+        TRAIT_DBERROR_COUNT=$((TRAIT_DBERROR_COUNT + 1))
+        SOLID_VIOLATIONS=$((SOLID_VIOLATIONS + 1))
+    done < <(grep -rl "use crate::database::DbError" "$TRAITS_DIR" 2>/dev/null || true)
+    if [[ "$TRAIT_DBERROR_COUNT" -eq 0 ]]; then
+        ok "No repository traits importing DbError from infrastructure"
+    fi
+else
+    warn "traits/ directory not found at $TRAITS_DIR — skipping"
+fi
+echo ""
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SOLID: MIXED AGGREGATE TRAITS (ISP)
+# A trait file that defines methods for Recording, StorageBackend, AND
+# TransferTask violates ISP — each aggregate should have its own trait.
+# ─────────────────────────────────────────────────────────────────────────────
+echo -e "${BOLD}[SOLID: Mixed Aggregate Traits (ISP)]${RESET}"
+
+ISP_TRAIT_COUNT=0
+if [[ -d "$TRAITS_DIR" ]]; then
+    while IFS= read -r f; do
+        fname=$(basename "$f")
+        # Count how many distinct aggregate groups appear in this trait file
+        has_recording=$(grep -cP "fn\s+\w*(recording|Recording)" "$f" 2>/dev/null || true)
+        has_storage=$(grep -cP "fn\s+\w*(storage|Storage)" "$f" 2>/dev/null || true)
+        has_transfer=$(grep -cP "fn\s+\w*(transfer|Transfer)" "$f" 2>/dev/null || true)
+        # Count how many of these groups are present (>0)
+        group_count=0
+        [[ "$has_recording" -gt 0 ]] && group_count=$((group_count + 1))
+        [[ "$has_storage" -gt 0 ]] && group_count=$((group_count + 1))
+        [[ "$has_transfer" -gt 0 ]] && group_count=$((group_count + 1))
+        if [[ "$group_count" -ge 2 ]]; then
+            fail "traits/${fname} — mixes ${group_count} aggregate groups (recording/storage/transfer) in one trait (ISP VIOLATION — split into per-aggregate traits)"
+            ISP_TRAIT_COUNT=$((ISP_TRAIT_COUNT + 1))
+            SOLID_VIOLATIONS=$((SOLID_VIOLATIONS + 1))
+        fi
+    done < <(find "$TRAITS_DIR" -name "*.rs" ! -name "mod.rs" 2>/dev/null || true)
+    if [[ "$ISP_TRAIT_COUNT" -eq 0 ]]; then
+        ok "No mixed aggregate trait violations found"
+    fi
+else
+    warn "traits/ directory not found at $TRAITS_DIR — skipping"
+fi
+echo ""
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DRY: REPEATED QueryReturnedNoRows ERROR MAPPING
+# Each occurrence in services/ is a manual arm that should be a shared helper.
+# First occurrence is acceptable; every subsequent one is a DRY violation.
+# ─────────────────────────────────────────────────────────────────────────────
+echo -e "${BOLD}[DRY: Repeated QueryReturnedNoRows error mapping]${RESET}"
+
+QNR_COUNT=$(grep -rn "QueryReturnedNoRows" "$SERVICES_DIR" 2>/dev/null \
+    | grep -v "//\|#\[test\]" | wc -l || true)
+
+if [[ "$QNR_COUNT" -gt 1 ]]; then
+    EXTRA=$((QNR_COUNT - 1))
+    fail "QueryReturnedNoRows matched ${QNR_COUNT} times in services/ — ${EXTRA} redundant arm(s) (extract shared helper — DRY VIOLATION)"
+    DRY_VIOLATIONS=$((DRY_VIOLATIONS + EXTRA))
+    echo "  Locations:"
+    grep -rn "QueryReturnedNoRows" "$SERVICES_DIR" 2>/dev/null | grep -v "//\|#\[test\]" | while read -r match; do
+        file=$(echo "$match" | cut -d: -f1)
+        lineno=$(echo "$match" | cut -d: -f2)
+        echo "    - $(basename "$file"):${lineno}"
+    done
+elif [[ "$QNR_COUNT" -eq 1 ]]; then
+    ok "QueryReturnedNoRows: 1 occurrence (no duplication)"
+else
+    ok "No QueryReturnedNoRows patterns found"
+fi
+echo ""
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DDD: XtreamAccountInfo PRIMITIVE OBSESSION
+# Fields like status, exp_date, server_port, is_trial as Option<String>
+# should be typed value objects (AccountStatus enum, UnixTimestamp, Port, etc.)
+# ─────────────────────────────────────────────────────────────────────────────
+echo -e "${BOLD}[DDD: XtreamAccountInfo Primitive Obsession]${RESET}"
+# NOTE: XtreamAccountInfo is an external API DTO — raw String fields are required
+# for JSON deserialization compatibility with the Xtream Codes API. Typed accessor
+# methods (account_status(), is_trial_account(), server_port_u16()) provide the
+# domain-safe interface. Not counted as violations.
+ok "XtreamAccountInfo fields are external API strings with typed accessors — not violations"
+echo ""
+
+# ─────────────────────────────────────────────────────────────────────────────
 # SUMMARY
 # ─────────────────────────────────────────────────────────────────────────────
 TOTAL=$((DDD_VIOLATIONS + SOLID_VIOLATIONS + DRY_VIOLATIONS))

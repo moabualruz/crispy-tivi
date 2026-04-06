@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::upsert;
 
-use crate::database::{Database, DbError};
+use crate::database::{optional, Database, DbError};
 
 // ── DDL ──────────────────────────────────────────────────
 
@@ -123,16 +123,15 @@ impl PlaybackRecovery {
             |row| Ok((row.get::<_, f64>(0)?, row.get::<_, String>(1)?)),
         );
 
-        match result {
-            Ok((pos, content_type_str)) => {
+        match optional(result)? {
+            Some((pos, content_type_str)) => {
                 if ContentType::from_str(&content_type_str) == ContentType::Live {
                     Ok(None) // live TV always resumes at live edge
                 } else {
                     Ok(Some(pos))
                 }
             }
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(DbError::Sqlite(e)),
+            None => Ok(None),
         }
     }
 
@@ -156,19 +155,15 @@ impl PlaybackRecovery {
             },
         );
 
-        match result {
-            Ok((position_secs, ts, ct_str)) => {
-                let timestamp = DateTime::from_timestamp(ts, 0).unwrap_or_default();
-                Ok(Some(PlaybackCheckpoint {
-                    content_id: content_id.to_string(),
-                    position_secs,
-                    timestamp,
-                    content_type: ContentType::from_str(&ct_str),
-                }))
+        Ok(optional(result)?.map(|(position_secs, ts, ct_str)| {
+            let timestamp = DateTime::from_timestamp(ts, 0).unwrap_or_default();
+            PlaybackCheckpoint {
+                content_id: content_id.to_string(),
+                position_secs,
+                timestamp,
+                content_type: ContentType::from_str(&ct_str),
             }
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(DbError::Sqlite(e)),
-        }
+        }))
     }
 
     /// Delete the checkpoint for `content_id` (e.g. when a VOD

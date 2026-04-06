@@ -3,7 +3,7 @@
 //! Queries the `db_epg_entries` table to determine freshness
 //! and drives pruning of entries older than 14 days.
 
-use crate::database::{Database, DbError};
+use crate::database::{optional, Database, DbError};
 
 /// Maximum age (hours) before EPG data is considered stale.
 const STALE_THRESHOLD_HOURS: i64 = 24;
@@ -94,8 +94,9 @@ impl EpgCache {
             |row| row.get(0),
         );
 
-        match sync_result {
-            Ok(Some(last_sync_ts)) => {
+        // Treat QueryReturnedNoRows (source not found) same as NULL sync time.
+        match optional(sync_result)? {
+            Some(Some(last_sync_ts)) => {
                 let now = chrono::Utc::now().timestamp();
                 let hours_old = (now - last_sync_ts) / 3600;
                 if hours_old < STALE_THRESHOLD_HOURS {
@@ -106,7 +107,7 @@ impl EpgCache {
             }
             // Source row exists but last_sync_time is NULL, or source row not found —
             // fall back to checking whether EPG entries exist.
-            Ok(None) | Err(rusqlite::Error::QueryReturnedNoRows) => {
+            Some(None) | None => {
                 let count: i64 = conn.query_row(
                     "SELECT COUNT(*) FROM db_epg_entries WHERE source_id = ?1",
                     rusqlite::params![source_id],
@@ -121,7 +122,6 @@ impl EpgCache {
                     })
                 }
             }
-            Err(e) => Err(DbError::Sqlite(e)),
         }
     }
 }

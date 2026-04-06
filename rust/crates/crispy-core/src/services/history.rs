@@ -2,8 +2,9 @@ use rusqlite::{Row, params};
 
 use super::{CrispyService, dt_to_ts, ts_to_dt};
 use crate::database::DbError;
+use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
-use crate::models::WatchHistory;
+use crate::models::{EpisodeProgress, WatchHistory};
 use crate::insert_or_replace;
 use crate::traits::HistoryRepository;
 
@@ -125,30 +126,11 @@ impl CrispyService {
             ))
         })?;
 
-        let mut progress_map = std::collections::BTreeMap::new();
-        let mut latest_ts: Option<i64> = None;
-        let mut latest_url: Option<String> = None;
-
+        let mut entries = Vec::new();
         for r in rows {
-            let (url, pos, dur, ts) = r?;
-            let progress = if dur <= 0 {
-                0.0
-            } else {
-                (pos as f64 / dur as f64).clamp(0.0, 1.0)
-            };
-            progress_map.insert(url.clone(), progress);
-            if latest_ts.is_none_or(|lt| ts > lt) {
-                latest_ts = Some(ts);
-                latest_url = Some(url);
-            }
+            entries.push(r?);
         }
-
-        let result = serde_json::json!({
-            "progress_map": progress_map,
-            "last_watched_url": latest_url,
-        });
-        Ok(serde_json::to_string(&result)
-            .unwrap_or_else(|_| r#"{"progress_map":{},"last_watched_url":null}"#.to_string()))
+        Ok(EpisodeProgress::compute(entries).to_json())
     }
 
     /// Delete a watch history entry by ID.
@@ -192,30 +174,30 @@ impl CrispyService {
 }
 
 impl HistoryRepository for CrispyService {
-    fn save_watch_history(&self, entry: &WatchHistory) -> Result<(), DbError> {
-        self.save_watch_history(entry)
+    fn save_watch_history(&self, entry: &WatchHistory) -> Result<(), DomainError> {
+        Ok(self.save_watch_history(entry)?)
     }
 
-    fn load_watch_history(&self) -> Result<Vec<WatchHistory>, DbError> {
-        self.load_watch_history()
+    fn load_watch_history(&self) -> Result<Vec<WatchHistory>, DomainError> {
+        Ok(self.load_watch_history()?)
     }
 
     fn load_watch_history_for_profile(
         &self,
         profile_id: &str,
-    ) -> Result<Vec<WatchHistory>, DbError> {
-        self.load_watch_history_for_profile(profile_id)
+    ) -> Result<Vec<WatchHistory>, DomainError> {
+        Ok(self.load_watch_history_for_profile(profile_id)?)
     }
 
     fn compute_episode_progress_from_db(
         &self,
         series_id: &str,
-    ) -> Result<String, DbError> {
-        self.compute_episode_progress_from_db(series_id)
+    ) -> Result<String, DomainError> {
+        Ok(self.compute_episode_progress_from_db(series_id)?)
     }
 
-    fn delete_watch_history(&self, id: &str) -> Result<(), DbError> {
-        self.delete_watch_history(id)
+    fn delete_watch_history(&self, id: &str) -> Result<(), DomainError> {
+        Ok(self.delete_watch_history(id)?)
     }
 }
 

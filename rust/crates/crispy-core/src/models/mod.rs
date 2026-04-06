@@ -1289,6 +1289,27 @@ impl Source {
     }
 }
 
+// ── AccountStatus ────────────────────────────────────
+
+/// Domain representation of an Xtream account status string.
+///
+/// The Xtream API sends a raw status string (e.g. `"Active"`).
+/// This enum centralises interpretation so callers use typed
+/// variants instead of comparing raw string literals.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AccountStatus {
+    /// Account is active and usable.
+    Active,
+    /// Account has been banned by the server.
+    Banned,
+    /// Account is disabled (suspended).
+    Disabled,
+    /// Subscription has expired.
+    Expired,
+    /// Any other status value returned by the server.
+    Unknown(String),
+}
+
 // ── XtreamAccountInfo ───────────────────────────────
 
 /// Parsed Xtream Codes account and server information.
@@ -1688,6 +1709,32 @@ impl ProfileSourceAccess {
 }
 
 impl XtreamAccountInfo {
+    /// Returns `true` if this is a trial account.
+    ///
+    /// The Xtream API encodes this as the string `"1"` (trial) or `"0"` (full).
+    /// This method centralises the string-to-bool conversion so callers never
+    /// repeat the `== "1"` primitive comparison.
+    pub fn is_trial_account(&self) -> bool {
+        self.is_trial.as_deref() == Some("1")
+    }
+
+    /// Returns the server port as a `u16`, or `None` if absent or unparseable.
+    pub fn server_port_u16(&self) -> Option<u16> {
+        self.server_port.as_deref()?.parse().ok()
+    }
+
+    /// Returns the account status as a domain-meaningful enum.
+    pub fn account_status(&self) -> AccountStatus {
+        match self.status.as_deref() {
+            Some("Active") => AccountStatus::Active,
+            Some("Banned") => AccountStatus::Banned,
+            Some("Disabled") => AccountStatus::Disabled,
+            Some("Expired") => AccountStatus::Expired,
+            Some(other) => AccountStatus::Unknown(other.to_string()),
+            None => AccountStatus::Unknown(String::new()),
+        }
+    }
+
     /// Returns true if the account expiry date is in the past relative to `now` (epoch seconds).
     pub fn is_expired(&self, now: i64) -> bool {
         self.exp_date
@@ -2223,5 +2270,51 @@ mod tests {
         let s: SearchHistory = serde_json::from_str(json).unwrap();
         assert_eq!(s.result_count, 0);
         assert_eq!(s.query, "breaking news");
+    }
+}
+
+// ── Domain value object: EpisodeProgress ─────────────────────────────────────
+
+/// Computed progress across episodes in a series.
+///
+/// Pure domain logic — takes raw watch data, computes progress
+/// percentages and identifies the last-watched episode.
+pub struct EpisodeProgress {
+    pub progress_map: std::collections::BTreeMap<String, f64>,
+    pub last_watched_url: Option<String>,
+}
+
+impl EpisodeProgress {
+    /// Compute episode progress from raw watch-history rows.
+    /// Each tuple is `(stream_url, position_ms, duration_ms, last_watched_ts)`.
+    pub fn compute(entries: Vec<(String, i64, i64, i64)>) -> Self {
+        let mut progress_map = std::collections::BTreeMap::new();
+        let mut latest_ts: Option<i64> = None;
+        let mut latest_url: Option<String> = None;
+
+        for (url, pos, dur, ts) in entries {
+            let progress = if dur <= 0 {
+                0.0
+            } else {
+                (pos as f64 / dur as f64).clamp(0.0, 1.0)
+            };
+            progress_map.insert(url.clone(), progress);
+            if latest_ts.is_none_or(|lt| ts > lt) {
+                latest_ts = Some(ts);
+                latest_url = Some(url);
+            }
+        }
+
+        Self { progress_map, last_watched_url: latest_url }
+    }
+
+    /// Serialize to JSON string for FFI transport.
+    pub fn to_json(&self) -> String {
+        let result = serde_json::json!({
+            "progress_map": self.progress_map,
+            "last_watched_url": self.last_watched_url,
+        });
+        serde_json::to_string(&result)
+            .unwrap_or_else(|_| r#"{"progress_map":{},"last_watched_url":null}"#.to_string())
     }
 }

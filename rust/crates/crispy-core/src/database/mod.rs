@@ -17,6 +17,34 @@ pub mod migration_runner;
 pub mod retry_queue;
 pub mod row_helpers;
 pub mod upsert;
+pub mod value_object_adapters;
+
+// ── Query helpers ────────────────────────────────────────
+
+/// Maps a rusqlite single-row query result to `Option<T>`,
+/// treating `QueryReturnedNoRows` as `None` instead of an error.
+///
+/// Use this instead of repeating the three-arm match pattern
+/// across every service that calls `query_row`.
+pub fn optional<T>(result: rusqlite::Result<T>) -> Result<Option<T>, DbError> {
+    match result {
+        Ok(v) => Ok(Some(v)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(DbError::Sqlite(e)),
+    }
+}
+
+/// Same as [`optional`] but for queries that return a default
+/// scalar value when no row is found (e.g. counts, scores).
+///
+/// `default` is returned as `Ok(default)` on `QueryReturnedNoRows`.
+pub fn optional_or<T>(result: rusqlite::Result<T>, default: T) -> Result<T, DbError> {
+    match result {
+        Ok(v) => Ok(v),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(default),
+        Err(e) => Err(DbError::Sqlite(e)),
+    }
+}
 
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;

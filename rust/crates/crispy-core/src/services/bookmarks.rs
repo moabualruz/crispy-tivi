@@ -3,6 +3,7 @@ use rusqlite::{Row, params};
 use crate::insert_or_replace;
 use super::{CrispyService, dt_to_ts, ts_to_dt};
 use crate::database::DbError;
+use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
 use crate::models::Bookmark;
 use crate::traits::BookmarkRepository;
@@ -87,20 +88,20 @@ impl CrispyService {
 }
 
 impl BookmarkRepository for CrispyService {
-    fn load_bookmarks(&self, content_id: &str) -> Result<Vec<Bookmark>, DbError> {
-        self.load_bookmarks(content_id)
+    fn load_bookmarks(&self, content_id: &str) -> Result<Vec<Bookmark>, DomainError> {
+        Ok(self.load_bookmarks(content_id)?)
     }
 
-    fn save_bookmark(&self, bookmark: &Bookmark) -> Result<(), DbError> {
-        self.save_bookmark(bookmark)
+    fn save_bookmark(&self, bookmark: &Bookmark) -> Result<(), DomainError> {
+        Ok(self.save_bookmark(bookmark)?)
     }
 
-    fn delete_bookmark(&self, id: &str) -> Result<(), DbError> {
-        self.delete_bookmark(id)
+    fn delete_bookmark(&self, id: &str) -> Result<(), DomainError> {
+        Ok(self.delete_bookmark(id)?)
     }
 
-    fn clear_bookmarks(&self, content_id: &str) -> Result<(), DbError> {
-        self.clear_bookmarks(content_id)
+    fn clear_bookmarks(&self, content_id: &str) -> Result<(), DomainError> {
+        Ok(self.clear_bookmarks(content_id)?)
     }
 }
 

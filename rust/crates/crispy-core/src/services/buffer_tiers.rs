@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rusqlite::params;
 
 use super::CrispyService;
-use crate::database::DbError;
+use crate::database::{optional, DbError};
 use crate::insert_or_replace;
 
 // ── Tier constants ──────────────────────────────────
@@ -36,6 +36,77 @@ const UPGRADE_AFTER_STALL_COUNT: u32 = 3;
 /// before downgrading tier. 30 samples × 2s = 60s.
 const DOWNGRADE_AFTER_STABLE_COUNT: u32 = 30;
 
+// ── BufferTierDecision value object ─────────────────
+
+/// Outcome of evaluating one buffer health sample against
+/// the current tier and in-memory stall/healthy counters.
+///
+/// This is a pure value object — it contains no DB or I/O
+/// logic. The service layer reads/writes the persisted tier
+/// and delegates the actual decision to this type.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BufferTierDecision {
+    /// Tier name after applying this sample.
+    pub tier: String,
+    /// `true` if the tier changed as a result of this sample.
+    pub changed: bool,
+    /// Recommended readahead window in seconds for this tier.
+    pub readahead_secs: i64,
+}
+
+impl BufferTierDecision {
+    /// Evaluate one buffer health sample.
+    ///
+    /// Mutates `low_count` and `healthy_count` in place (the
+    /// caller owns the in-memory state map entry) and returns
+    /// a decision describing the new tier and whether it changed.
+    pub fn evaluate(
+        current_tier: &str,
+        cache_duration_secs: f64,
+        low_count: &mut u32,
+        healthy_count: &mut u32,
+    ) -> Self {
+        let mut tier = current_tier.to_string();
+        let mut changed = false;
+
+        if cache_duration_secs < LOW_BUFFER_THRESHOLD {
+            *low_count += 1;
+            *healthy_count = 0;
+
+            if *low_count >= UPGRADE_AFTER_STALL_COUNT {
+                if let Some(upgraded) = upgrade_tier(&tier) {
+                    tier = upgraded;
+                    changed = true;
+                }
+                *low_count = 0;
+            }
+        } else if cache_duration_secs > HEALTHY_BUFFER_THRESHOLD {
+            *healthy_count += 1;
+            if *low_count > 0 {
+                *low_count -= 1;
+            }
+
+            if *healthy_count >= DOWNGRADE_AFTER_STABLE_COUNT {
+                if let Some(downgraded) = downgrade_tier(&tier) {
+                    tier = downgraded;
+                    changed = true;
+                }
+                *healthy_count = 0;
+            }
+        } else {
+            *low_count = 0;
+            *healthy_count = 0;
+        }
+
+        let readahead_secs = tier_readahead(&tier);
+        Self {
+            tier,
+            changed,
+            readahead_secs,
+        }
+    }
+}
+
 impl CrispyService {
     // ── DB persistence ──────────────────────────────
 
@@ -49,11 +120,7 @@ impl CrispyService {
             params![url_hash],
             |row| row.get(0),
         );
-        match result {
-            Ok(tier) => Ok(Some(tier)),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(DbError::Sqlite(e)),
-        }
+        optional(result)
     }
 
     /// Upsert a tier for a URL hash.
@@ -104,46 +171,22 @@ impl CrispyService {
             .get_buffer_tier(url_hash)?
             .unwrap_or_else(|| "normal".to_string());
 
-        let mut tier = current_tier.clone();
-        let mut changed = false;
+        // Delegate pure tier logic to the domain value object.
+        let decision = BufferTierDecision::evaluate(
+            &current_tier,
+            cache_duration_secs,
+            low_count,
+            healthy_count,
+        );
 
-        if cache_duration_secs < LOW_BUFFER_THRESHOLD {
-            *low_count += 1;
-            *healthy_count = 0;
-
-            if *low_count >= UPGRADE_AFTER_STALL_COUNT {
-                if let Some(upgraded) = upgrade_tier(&tier) {
-                    tier = upgraded;
-                    changed = true;
-                    self.set_buffer_tier(url_hash, &tier)?;
-                }
-                *low_count = 0;
-            }
-        } else if cache_duration_secs > HEALTHY_BUFFER_THRESHOLD {
-            *healthy_count += 1;
-            // Gradually decay stall count during healthy periods.
-            if *low_count > 0 {
-                *low_count -= 1;
-            }
-
-            if *healthy_count >= DOWNGRADE_AFTER_STABLE_COUNT {
-                if let Some(downgraded) = downgrade_tier(&tier) {
-                    tier = downgraded;
-                    changed = true;
-                    self.set_buffer_tier(url_hash, &tier)?;
-                }
-                *healthy_count = 0;
-            }
-        } else {
-            // Middle zone — reset both counters.
-            *low_count = 0;
-            *healthy_count = 0;
+        // Persist the new tier only when it changed.
+        if decision.changed {
+            self.set_buffer_tier(url_hash, &decision.tier)?;
         }
 
-        let readahead = tier_readahead(&tier);
         Ok(format!(
             r#"{{"tier":"{}","changed":{},"readahead_secs":{}}}"#,
-            tier, changed, readahead,
+            decision.tier, decision.changed, decision.readahead_secs,
         ))
     }
 

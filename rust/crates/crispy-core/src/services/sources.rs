@@ -3,8 +3,8 @@ use rusqlite::params;
 use super::{CrispyService, bool_to_int, dt_to_ts, opt_dt_to_ts};
 use crate::algorithms::crypto::{decrypt_field, encrypt_field, get_or_create_encryption_key};
 use crate::database::row_helpers::RowExt;
-use crate::database::{DbError, TABLE_CHANNELS, TABLE_MOVIES, TABLE_SOURCES};
-use crate::errors::CrispyError;
+use crate::database::{optional, DbError, TABLE_CHANNELS, TABLE_MOVIES, TABLE_SOURCES};
+use crate::errors::{CrispyError, DomainError};
 use crate::events::DataChangeEvent;
 use crate::insert_or_replace;
 use crate::models::{Source, SourceStats};
@@ -165,13 +165,12 @@ impl CrispyService {
             params![id],
             row_to_source,
         );
-        match result {
-            Ok(s) => {
+        match optional(result)? {
+            Some(s) => {
                 drop(conn);
                 Ok(Some(decrypt_source(self, s)?))
             }
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(DbError::Sqlite(e)),
+            None => Ok(None),
         }
     }
 
@@ -361,28 +360,28 @@ impl CrispyService {
 }
 
 impl SourceRepository for CrispyService {
-    fn get_sources(&self) -> Result<Vec<Source>, DbError> {
-        self.get_sources()
+    fn get_sources(&self) -> Result<Vec<Source>, DomainError> {
+        Ok(self.get_sources()?)
     }
 
-    fn get_source(&self, id: &str) -> Result<Option<Source>, DbError> {
-        self.get_source(id)
+    fn get_source(&self, id: &str) -> Result<Option<Source>, DomainError> {
+        Ok(self.get_source(id)?)
     }
 
-    fn save_source(&self, source: &Source) -> Result<(), DbError> {
-        self.save_source(source)
+    fn save_source(&self, source: &Source) -> Result<(), DomainError> {
+        Ok(self.save_source(source)?)
     }
 
-    fn delete_source(&self, id: &str) -> Result<(), DbError> {
-        self.delete_source(id)
+    fn delete_source(&self, id: &str) -> Result<(), DomainError> {
+        Ok(self.delete_source(id)?)
     }
 
-    fn reorder_sources(&self, source_ids: &[String]) -> Result<(), DbError> {
-        self.reorder_sources(source_ids)
+    fn reorder_sources(&self, source_ids: &[String]) -> Result<(), DomainError> {
+        Ok(self.reorder_sources(source_ids)?)
     }
 
-    fn get_source_stats(&self) -> Result<Vec<SourceStats>, DbError> {
-        self.get_source_stats()
+    fn get_source_stats(&self) -> Result<Vec<SourceStats>, DomainError> {
+        Ok(self.get_source_stats()?)
     }
 
     fn update_source_sync_status(
@@ -391,8 +390,8 @@ impl SourceRepository for CrispyService {
         status: &str,
         error: Option<&str>,
         sync_time: Option<chrono::NaiveDateTime>,
-    ) -> Result<(), DbError> {
-        self.update_source_sync_status(id, status, error, sync_time)
+    ) -> Result<(), DomainError> {
+        Ok(self.update_source_sync_status(id, status, error, sync_time)?)
     }
 }
 

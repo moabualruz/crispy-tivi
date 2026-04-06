@@ -3,7 +3,8 @@ use std::collections::{HashMap, HashSet};
 use rusqlite::params;
 
 use super::{CrispyService, bool_to_int, dt_to_ts, str_params, ts_to_dt};
-use crate::database::DbError;
+use crate::database::{optional, DbError};
+use crate::errors::DomainError;
 use crate::database::row_helpers::RowExt;
 use crate::events::DataChangeEvent;
 use crate::models::EpgEntry;
@@ -513,11 +514,7 @@ impl CrispyService {
             params![channel_id, Self::PLACEHOLDER_SOURCE],
             |row| row.get(0),
         );
-        match result {
-            Ok(ts) => Ok(ts),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(DbError::Sqlite(e)),
-        }
+        optional(result).map(|opt| opt.flatten())
     }
 
     /// Check if a channel has real (non-placeholder) EPG data
@@ -567,12 +564,12 @@ impl EpgRepository for CrispyService {
     fn save_epg_entries(
         &self,
         entries: &HashMap<String, Vec<EpgEntry>>,
-    ) -> Result<usize, DbError> {
-        self.save_epg_entries(entries)
+    ) -> Result<usize, DomainError> {
+        Ok(self.save_epg_entries(entries)?)
     }
 
-    fn load_epg_entries(&self) -> Result<HashMap<String, Vec<EpgEntry>>, DbError> {
-        self.load_epg_entries()
+    fn load_epg_entries(&self) -> Result<HashMap<String, Vec<EpgEntry>>, DomainError> {
+        Ok(self.load_epg_entries()?)
     }
 
     fn get_epgs_for_channels(
@@ -580,29 +577,29 @@ impl EpgRepository for CrispyService {
         channel_ids: &[String],
         start_time: i64,
         end_time: i64,
-    ) -> Result<HashMap<String, Vec<EpgEntry>>, DbError> {
-        self.get_epgs_for_channels(channel_ids, start_time, end_time)
+    ) -> Result<HashMap<String, Vec<EpgEntry>>, DomainError> {
+        Ok(self.get_epgs_for_channels(channel_ids, start_time, end_time)?)
     }
 
     fn get_epg_by_sources(
         &self,
         source_ids: &[String],
-    ) -> Result<HashMap<String, Vec<EpgEntry>>, DbError> {
-        self.get_epg_by_sources(source_ids)
+    ) -> Result<HashMap<String, Vec<EpgEntry>>, DomainError> {
+        Ok(self.get_epg_by_sources(source_ids)?)
     }
 
     fn generate_placeholders_for_channels(
         &self,
         channels: &[crate::models::Channel],
-    ) -> Result<usize, DbError> {
-        self.generate_placeholders_for_channels(channels)
+    ) -> Result<usize, DomainError> {
+        Ok(self.generate_placeholders_for_channels(channels)?)
     }
 
     fn get_real_epg_coverage_end(
         &self,
         channel_id: &str,
-    ) -> Result<Option<i64>, DbError> {
-        self.get_real_epg_coverage_end(channel_id)
+    ) -> Result<Option<i64>, DomainError> {
+        Ok(self.get_real_epg_coverage_end(channel_id)?)
     }
 
     fn has_real_epg_coverage(
@@ -610,16 +607,16 @@ impl EpgRepository for CrispyService {
         channel_id: &str,
         start_time: i64,
         end_time: i64,
-    ) -> Result<bool, DbError> {
-        self.has_real_epg_coverage(channel_id, start_time, end_time)
+    ) -> Result<bool, DomainError> {
+        Ok(self.has_real_epg_coverage(channel_id, start_time, end_time)?)
     }
 
-    fn evict_stale_epg(&self, days: i64) -> Result<usize, DbError> {
-        self.evict_stale_epg(days)
+    fn evict_stale_epg(&self, days: i64) -> Result<usize, DomainError> {
+        Ok(self.evict_stale_epg(days)?)
     }
 
-    fn clear_epg_entries(&self) -> Result<(), DbError> {
-        self.clear_epg_entries()
+    fn clear_epg_entries(&self) -> Result<(), DomainError> {
+        Ok(self.clear_epg_entries()?)
     }
 }
 
