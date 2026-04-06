@@ -408,8 +408,11 @@ fn apply_m3u_metadata_from_temp_table(service: &ServiceContext, channels: &mut [
             ) = row;
 
             // Only set tvg_id if channel doesn't already have one from Xtream API.
+            // Reject purely numeric tvg_id values — Xtream M3U playlists often
+            // put the stream_id (e.g. "374694") in tvg-id, which is NOT a valid
+            // XMLTV channel ID and causes wrong EPG matches.
             if ch.tvg_id.as_ref().is_none_or(|t| t.is_empty()) {
-                ch.tvg_id = tvg_id;
+                ch.tvg_id = tvg_id.filter(|t| !t.chars().all(|c| c.is_ascii_digit()));
             }
             // Enrich logo if missing.
             if ch.logo_url.as_ref().is_none_or(|l| l.is_empty()) {
