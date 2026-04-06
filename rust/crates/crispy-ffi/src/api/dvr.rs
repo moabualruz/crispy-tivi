@@ -1,29 +1,30 @@
-use super::{from_json, json_result, ms_to_naive, svc};
+use super::{ctx, from_json, json_result, ms_to_naive};
 use anyhow::Result;
 use crispy_core::models::{Recording, Reminder, StorageBackend, TransferTask, WatchHistory};
+use crispy_core::services::{BulkService, DvrService, HistoryService, ReminderService};
 
 // ── Recordings ───────────────────────────────────────
 
 /// Load all recordings as JSON array.
 pub fn load_recordings() -> Result<String> {
-    json_result(svc()?.load_recordings()?)
+    json_result(DvrService(ctx()?).load_recordings()?)
 }
 
 /// Save a recording from JSON.
 pub fn save_recording(json: String) -> Result<()> {
     let rec: Recording = from_json(&json)?;
-    Ok(svc()?.save_recording(&rec)?)
+    Ok(DvrService(ctx()?).save_recording(&rec)?)
 }
 
 /// Update an existing recording from JSON.
 pub fn update_recording(json: String) -> Result<()> {
     let rec: Recording = from_json(&json)?;
-    Ok(svc()?.update_recording(&rec)?)
+    Ok(DvrService(ctx()?).update_recording(&rec)?)
 }
 
 /// Delete a recording by ID.
 pub fn delete_recording(id: String) -> Result<()> {
-    Ok(svc()?.delete_recording(&id)?)
+    Ok(DvrService(ctx()?).delete_recording(&id)?)
 }
 
 /// Fetch commercial markers for a given recording by ID.
@@ -38,93 +39,93 @@ pub fn get_recording_markers(recording_id: String) -> Result<String> {
 
 /// Load all storage backends as JSON array.
 pub fn load_storage_backends() -> Result<String> {
-    json_result(svc()?.load_storage_backends()?)
+    json_result(DvrService(ctx()?).load_storage_backends()?)
 }
 
 /// Save a storage backend from JSON.
 pub fn save_storage_backend(json: String) -> Result<()> {
     let backend: StorageBackend = from_json(&json)?;
-    Ok(svc()?.save_storage_backend(&backend)?)
+    Ok(DvrService(ctx()?).save_storage_backend(&backend)?)
 }
 
 /// Delete a storage backend by ID.
 pub fn delete_storage_backend(id: String) -> Result<()> {
-    Ok(svc()?.delete_storage_backend(&id)?)
+    Ok(DvrService(ctx()?).delete_storage_backend(&id)?)
 }
 
 // ── Transfer Tasks ───────────────────────────────────
 
 /// Load all transfer tasks as JSON array.
 pub fn load_transfer_tasks() -> Result<String> {
-    json_result(svc()?.load_transfer_tasks()?)
+    json_result(DvrService(ctx()?).load_transfer_tasks()?)
 }
 
 /// Save a transfer task from JSON.
 pub fn save_transfer_task(json: String) -> Result<()> {
     let task: TransferTask = from_json(&json)?;
-    Ok(svc()?.save_transfer_task(&task)?)
+    Ok(DvrService(ctx()?).save_transfer_task(&task)?)
 }
 
 /// Update a transfer task from JSON.
 pub fn update_transfer_task(json: String) -> Result<()> {
     let task: TransferTask = from_json(&json)?;
-    Ok(svc()?.update_transfer_task(&task)?)
+    Ok(DvrService(ctx()?).update_transfer_task(&task)?)
 }
 
 /// Delete a transfer task by ID.
 pub fn delete_transfer_task(id: String) -> Result<()> {
-    Ok(svc()?.delete_transfer_task(&id)?)
+    Ok(DvrService(ctx()?).delete_transfer_task(&id)?)
 }
 
 // ── Watch History ────────────────────────────────────
 
 /// Load watch history as JSON array.
 pub fn load_watch_history() -> Result<String> {
-    json_result(svc()?.load_watch_history()?)
+    json_result(HistoryService(ctx()?).load_watch_history()?)
 }
 
 /// Save a watch history entry from JSON.
 pub fn save_watch_history(json: String) -> Result<()> {
     let entry: WatchHistory = from_json(&json)?;
-    Ok(svc()?.save_watch_history(&entry)?)
+    Ok(HistoryService(ctx()?).save_watch_history(&entry)?)
 }
 
 /// Delete a watch history entry by ID.
 pub fn delete_watch_history(id: String) -> Result<()> {
-    Ok(svc()?.delete_watch_history(&id)?)
+    Ok(HistoryService(ctx()?).delete_watch_history(&id)?)
 }
 
 /// Delete all watch history entries. Returns count.
 pub fn clear_all_watch_history() -> Result<usize> {
-    Ok(svc()?.clear_all_watch_history()?)
+    Ok(BulkService(ctx()?).clear_all_watch_history()?)
 }
 
 // ── Reminders ───────────────────────────────────────
 
 /// Load all reminders as JSON array.
 pub fn load_reminders() -> Result<String> {
-    json_result(svc()?.load_reminders()?)
+    json_result(ReminderService(ctx()?).load_reminders()?)
 }
 
 /// Save a reminder from JSON.
 pub fn save_reminder(json: String) -> Result<()> {
     let reminder: Reminder = from_json(&json)?;
-    Ok(svc()?.save_reminder(&reminder)?)
+    Ok(ReminderService(ctx()?).save_reminder(&reminder)?)
 }
 
 /// Delete a reminder by ID.
 pub fn delete_reminder(id: String) -> Result<()> {
-    Ok(svc()?.delete_reminder(&id)?)
+    Ok(ReminderService(ctx()?).delete_reminder(&id)?)
 }
 
 /// Delete all fired reminders.
 pub fn clear_fired_reminders() -> Result<()> {
-    Ok(svc()?.clear_fired_reminders()?)
+    Ok(ReminderService(ctx()?).clear_fired_reminders()?)
 }
 
 /// Mark a reminder as fired by ID.
 pub fn mark_reminder_fired(id: String) -> Result<()> {
-    Ok(svc()?.mark_reminder_fired(&id)?)
+    Ok(ReminderService(ctx()?).mark_reminder_fired(&id)?)
 }
 
 // ── DVR Algorithms ──────────────────────────────────

@@ -18,7 +18,7 @@
 use rusqlite::{Row, params};
 use serde::{Deserialize, Serialize};
 
-use super::CrispyService;
+use super::ServiceContext;
 use crate::database::DbError;
 use crate::insert_or_replace;
 
@@ -108,7 +108,7 @@ fn notif_pref_key(profile_id: &str, category: &NotifCategory) -> String {
 const RETENTION_SECS: i64 = 30 * 24 * 60 * 60;
 
 /// Domain service for in-app notification operations.
-pub struct NotificationService(pub(super) CrispyService);
+pub struct NotificationService(pub ServiceContext);
 
 impl NotificationService {
     // ── Schema bootstrap ─────────────────────────
@@ -397,7 +397,9 @@ mod tests {
         let svc = make_notif_service();
         let mut profile = make_profile("kid1", "Kid");
         profile.is_child = true;
-        svc.0.save_profile(&profile).unwrap();
+        crate::services::ProfileService(svc.0.clone())
+            .save_profile(&profile)
+            .unwrap();
 
         // Social not allowed for kids.
         svc.add_notification(notif("n1", "kid1", NotifCategory::Social))

@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::CrispyService;
+use super::ServiceContext;
 use crate::database::DbError;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -39,7 +39,7 @@ fn theme_key(profile_id: &str) -> String {
 // ── Service impl ──────────────────────────────────────────────────────────────
 
 /// Domain service for theme configuration operations.
-pub struct ThemeService(pub(super) CrispyService);
+pub struct ThemeService(pub ServiceContext);
 
 impl ThemeService {
     /// Return the theme config for `profile_id`.

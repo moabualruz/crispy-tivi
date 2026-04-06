@@ -12,7 +12,7 @@ use serde::Serialize;
 
 use crate::database::DbError;
 use crate::models::{Source, UserProfile, WatchHistory};
-use crate::services::CrispyService;
+use crate::services::ServiceContext;
 use crate::services::history::HistoryService;
 use crate::services::profiles::ProfileService;
 use crate::services::sources::SourceService;
@@ -66,7 +66,7 @@ pub struct GdprSetting {
 // ── GdprService ───────────────────────────────────────────────────────────────
 
 /// Domain service for GDPR data export and deletion operations.
-pub struct GdprService(pub(super) CrispyService);
+pub struct GdprService(pub ServiceContext);
 
 impl GdprService {
     /// Export all personal data for `profile_id` as a `GdprExport`.
@@ -171,7 +171,7 @@ mod tests {
     use crate::traits::SettingsRepository;
 
     fn open_svc() -> GdprService {
-        GdprService(CrispyService::open_in_memory().expect("in-memory DB"))
+        GdprService(ServiceContext::open_in_memory().expect("in-memory DB"))
     }
 
     fn make_profile(id: &str, name: &str) -> UserProfile {

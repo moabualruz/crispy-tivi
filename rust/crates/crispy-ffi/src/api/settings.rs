@@ -1,29 +1,31 @@
-use super::{from_json, svc};
-use anyhow::{Result, anyhow};
+use super::{ctx, from_json};
+use anyhow::{anyhow, Result};
 use crispy_core::models::{SavedLayout, SearchHistory};
+use crispy_core::services::logo_resolver::LogoService;
+use crispy_core::services::{BulkService, MiscService, SettingsService};
 
 // ── Settings (KV Store) ──────────────────────────────
 
 /// Get a setting value by key.
 pub fn get_setting(key: String) -> Result<Option<String>> {
-    Ok(svc()?.get_setting(&key)?)
+    Ok(ctx()?.get_setting(&key)?)
 }
 
 /// Set a setting value.
 pub fn set_setting(key: String, value: String) -> Result<()> {
-    Ok(svc()?.set_setting(&key, &value)?)
+    Ok(ctx()?.set_setting(&key, &value)?)
 }
 
 /// Remove a setting.
 pub fn remove_setting(key: String) -> Result<()> {
-    Ok(svc()?.remove_setting(&key)?)
+    Ok(ctx()?.remove_setting(&key)?)
 }
 
 // ── Sync Meta ────────────────────────────────────────
 
 /// Get last sync time for a source (Unix seconds).
 pub fn get_last_sync_time(source_id: String) -> Result<Option<i64>> {
-    let time = svc()?.get_last_sync_time(&source_id)?;
+    let time = SettingsService(ctx()?).get_last_sync_time(&source_id)?;
     Ok(time.map(|t| t.and_utc().timestamp()))
 }
 
@@ -32,28 +34,28 @@ pub fn set_last_sync_time(source_id: String, timestamp: i64) -> Result<()> {
     let dt = chrono::DateTime::from_timestamp(timestamp, 0)
         .ok_or_else(|| anyhow!("Invalid timestamp"))?
         .naive_utc();
-    Ok(svc()?.set_last_sync_time(&source_id, dt)?)
+    Ok(SettingsService(ctx()?).set_last_sync_time(&source_id, dt)?)
 }
 
 // ── Bulk ─────────────────────────────────────────────
 
 /// Delete all data from all tables.
 pub fn clear_all() -> Result<()> {
-    Ok(svc()?.clear_all()?)
+    Ok(BulkService(ctx()?).clear_all()?)
 }
 
 // ── Backup ──────────────────────────────────────────
 
 /// Export all data as a JSON backup string.
 pub fn export_backup() -> Result<String> {
-    let svc = svc()?;
+    let svc = ctx()?;
     crispy_core::backup::export_backup(&svc).map_err(|e| anyhow!("{e}"))
 }
 
 /// Import data from a JSON backup string.
 /// Returns JSON summary of imported entities.
 pub fn import_backup(json: String) -> Result<String> {
-    let svc = svc()?;
+    let svc = ctx()?;
     let summary = crispy_core::backup::import_backup(&svc, &json).map_err(|e| anyhow!("{e}"))?;
     Ok(serde_json::to_string(&summary)?)
 }
@@ -113,24 +115,24 @@ pub fn determine_sync_direction(
 
 /// Load all saved layouts as JSON array.
 pub fn load_saved_layouts() -> Result<String> {
-    let layouts = svc()?.load_saved_layouts()?;
+    let layouts = MiscService(ctx()?).load_saved_layouts()?;
     Ok(serde_json::to_string(&layouts)?)
 }
 
 /// Save a layout from JSON.
 pub fn save_saved_layout(json: String) -> Result<()> {
     let layout: SavedLayout = from_json(&json)?;
-    Ok(svc()?.save_saved_layout(&layout)?)
+    Ok(MiscService(ctx()?).save_saved_layout(&layout)?)
 }
 
 /// Delete a saved layout by ID.
 pub fn delete_saved_layout(id: String) -> Result<()> {
-    Ok(svc()?.delete_saved_layout(&id)?)
+    Ok(MiscService(ctx()?).delete_saved_layout(&id)?)
 }
 
 /// Get a saved layout by ID (direct query).
 pub fn get_saved_layout_by_id(id: String) -> Result<String> {
-    let layout = svc()?.get_saved_layout_by_id(&id)?;
+    let layout = MiscService(ctx()?).get_saved_layout_by_id(&id)?;
     Ok(serde_json::to_string(&layout)?)
 }
 
@@ -138,50 +140,50 @@ pub fn get_saved_layout_by_id(id: String) -> Result<String> {
 
 /// Load all search history as JSON array.
 pub fn load_search_history() -> Result<String> {
-    let history = svc()?.load_search_history()?;
+    let history = MiscService(ctx()?).load_search_history()?;
     Ok(serde_json::to_string(&history)?)
 }
 
 /// Save a search entry from JSON.
 pub fn save_search_entry(json: String) -> Result<()> {
     let entry: SearchHistory = from_json(&json)?;
-    Ok(svc()?.save_search_entry(&entry)?)
+    Ok(MiscService(ctx()?).save_search_entry(&entry)?)
 }
 
 /// Delete a search entry by ID.
 pub fn delete_search_entry(id: String) -> Result<()> {
-    Ok(svc()?.delete_search_entry(&id)?)
+    Ok(MiscService(ctx()?).delete_search_entry(&id)?)
 }
 
 /// Clear all search history.
 pub fn clear_search_history() -> Result<()> {
-    Ok(svc()?.clear_search_history()?)
+    Ok(MiscService(ctx()?).clear_search_history()?)
 }
 
 /// Delete search history by query text
 /// (case-insensitive). Returns count deleted.
 pub fn delete_search_by_query(query: String) -> Result<usize> {
-    Ok(svc()?.delete_search_by_query(&query)?)
+    Ok(BulkService(ctx()?).delete_search_by_query(&query)?)
 }
 
 // ── Logo Resolver ──────────────────────────────────────
 
 /// Resolve a single channel name to a tv-logos URL.
 pub fn resolve_channel_logo(name: String) -> Result<Option<String>> {
-    Ok(svc()?.resolve_logo(&name)?)
+    Ok(LogoService(ctx()?).resolve_logo(&name)?)
 }
 
 /// Resolve logos for a batch of channel names.
 /// Returns JSON map of `name → url`.
 pub fn resolve_logos_batch(names_json: String) -> Result<String> {
     let names: Vec<String> = from_json(&names_json)?;
-    let results = svc()?.resolve_logos_batch(&names)?;
+    let results = LogoService(ctx()?).resolve_logos_batch(&names)?;
     Ok(serde_json::to_string(&results)?)
 }
 
 /// Check if the logo index needs refreshing (>24 h old).
 pub fn is_logo_index_stale() -> Result<bool> {
-    Ok(svc()?.is_logo_index_stale()?)
+    Ok(LogoService(ctx()?).is_logo_index_stale()?)
 }
 
 /// Fetch the logo index from the GitHub API and save it.
@@ -189,7 +191,7 @@ pub async fn refresh_logo_index() -> Result<()> {
     let index = crispy_core::services::logo_resolver::fetch_logo_index()
         .await
         .map_err(|e| anyhow!("{e}"))?;
-    svc()?.save_logo_index(&index)?;
+    LogoService(ctx()?).save_logo_index(&index)?;
     Ok(())
 }
 

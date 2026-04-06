@@ -2,7 +2,7 @@
 //!
 //! Handles downloading EPG data (XMLTV, Xtream, Stalker), parsing it,
 //! matching it to local channels, and persisting the results directly
-//! to the database via `CrispyService`.
+//! to the database via `ServiceContext`.
 //!
 //! Includes a 4-hour cooldown per EPG URL to prevent redundant
 //! network traffic. Callers can bypass via `force: true`.
@@ -25,7 +25,7 @@ use crate::insert_or_replace;
 use crate::http_client::shared_client;
 use crate::models::{Channel, EpgEntry};
 use crate::parsers::epg::{EpgChannel, ParsedEpg};
-use crate::services::{CrispyService, build_in_placeholders, str_params};
+use crate::services::{EpgService, ServiceContext, build_in_placeholders, str_params};
 
 /// Minimum interval between EPG refreshes for the same URL (4 hours).
 const EPG_COOLDOWN_SECS: i64 = 14_400;
@@ -47,7 +47,7 @@ const RETRY_BACKOFF_SECS: [u64; 3] = [1, 2, 4];
 /// Skips the download if the same URL was successfully refreshed
 /// within [`EPG_COOLDOWN_SECS`] unless `force` is true.
 pub async fn fetch_and_save_xmltv_epg(
-    service: &CrispyService,
+    service: &ServiceContext,
     url: &str,
     source_id: Option<String>,
     force: bool,
@@ -106,7 +106,7 @@ pub async fn fetch_and_save_xmltv_epg(
             .push(entry);
     }
 
-    let count = service.save_epg_entries(&grouped)?;
+    let count = EpgService(service.clone()).save_epg_entries(&grouped)?;
 
     mark_refreshed(service, url);
     emit_epg_progress(service, source_id.as_deref(), url);
@@ -117,7 +117,7 @@ pub async fn fetch_and_save_xmltv_epg(
 /// Downloads and processes Xtream EPG by deferring to the XMLTV parser,
 /// since Xtream supports `xmltv.php?username=U&password=P`.
 pub async fn fetch_and_save_xtream_epg(
-    service: &CrispyService,
+    service: &ServiceContext,
     base_url: &str,
     username: &str,
     password: &str,
@@ -142,7 +142,7 @@ pub async fn fetch_and_save_xtream_epg(
 ///
 /// Uses per-channel cooldown metadata so stale channels refresh incrementally.
 pub async fn fetch_and_save_stalker_epg(
-    service: &CrispyService,
+    service: &ServiceContext,
     base_url: &str,
     mac: Option<&str>,
     source_id: Option<String>,
@@ -238,7 +238,7 @@ pub async fn fetch_and_save_stalker_epg(
         }
 
         if !batch_entries.is_empty() {
-            total_saved += service.save_epg_entries(&batch_entries)?;
+            total_saved += EpgService(service.clone()).save_epg_entries(&batch_entries)?;
         }
         for channel_id in &refreshed_channel_ids {
             mark_channel_refreshed(service, channel_id);
@@ -474,7 +474,7 @@ impl Read for StreamChunkReader {
 /// re-running a sync always reflects the latest channel metadata
 /// from the XMLTV feed.
 fn save_epg_channels(
-    service: &CrispyService,
+    service: &ServiceContext,
     channels: &[EpgChannel],
     source_id: Option<&str>,
 ) -> Result<()> {
@@ -505,7 +505,7 @@ fn save_epg_channels(
 ///
 /// Only channels with a NULL or empty `epg_channel_id` are updated,
 /// so manually-assigned mappings are never overwritten.
-fn resolve_epg_channel_ids(service: &CrispyService, source_id: Option<&str>) -> Result<()> {
+fn resolve_epg_channel_ids(service: &ServiceContext, source_id: Option<&str>) -> Result<()> {
     let conn = service.db.get()?;
     let sid = source_id.unwrap_or("");
     let updated = conn.execute(
@@ -547,7 +547,7 @@ fn header_value(headers: &HeaderMap, name: reqwest::header::HeaderName) -> Optio
         .map(|value| value.to_owned())
 }
 
-fn emit_epg_progress(service: &CrispyService, source_id: Option<&str>, fallback: &str) {
+fn emit_epg_progress(service: &ServiceContext, source_id: Option<&str>, fallback: &str) {
     let source_id = source_id
         .filter(|value| !value.trim().is_empty())
         .unwrap_or(fallback)
@@ -555,7 +555,7 @@ fn emit_epg_progress(service: &CrispyService, source_id: Option<&str>, fallback:
     service.emit(DataChangeEvent::EpgUpdated { source_id });
 }
 
-fn load_xmltv_validators(service: &CrispyService, url: &str) -> XmltvValidators {
+fn load_xmltv_validators(service: &ServiceContext, url: &str) -> XmltvValidators {
     XmltvValidators {
         etag: read_sync_setting(service, &xmltv_etag_key(url)),
         last_modified: read_sync_setting(service, &xmltv_last_modified_key(url)),
@@ -563,7 +563,7 @@ fn load_xmltv_validators(service: &CrispyService, url: &str) -> XmltvValidators 
 }
 
 fn persist_xmltv_validators(
-    service: &CrispyService,
+    service: &ServiceContext,
     url: &str,
     validators: &XmltvValidators,
     preserve_absent: bool,
@@ -586,7 +586,7 @@ fn persist_xmltv_validators(
 }
 
 fn persist_validator_setting(
-    service: &CrispyService,
+    service: &ServiceContext,
     key: &str,
     value: Option<&str>,
     preserve_absent: bool,
@@ -604,7 +604,7 @@ fn persist_validator_setting(
 }
 
 fn sort_stalker_channels_for_sync(
-    service: &CrispyService,
+    service: &ServiceContext,
     channels: &[Channel],
 ) -> Result<Vec<Channel>> {
     let channel_ids: Vec<String> = channels.iter().map(|channel| channel.id.clone()).collect();
@@ -636,7 +636,7 @@ fn sort_stalker_channels_for_sync(
 }
 
 fn load_stalker_channel_priorities(
-    service: &CrispyService,
+    service: &ServiceContext,
     channel_ids: &[String],
 ) -> Result<HashMap<String, ChannelSyncPriority>> {
     if channel_ids.is_empty() {
@@ -669,7 +669,7 @@ fn load_stalker_channel_priorities(
 
 /// Returns true if the given URL was refreshed within
 /// [`EPG_COOLDOWN_SECS`].
-fn is_within_cooldown(service: &CrispyService, url: &str) -> bool {
+fn is_within_cooldown(service: &ServiceContext, url: &str) -> bool {
     let key = epg_cooldown_key(url);
     if let Some(ts_str) = read_sync_setting(service, &key)
         && let Ok(ts) = ts_str.parse::<i64>()
@@ -682,13 +682,13 @@ fn is_within_cooldown(service: &CrispyService, url: &str) -> bool {
 
 /// Records the current time as the last refresh for
 /// the given URL.
-fn mark_refreshed(service: &CrispyService, url: &str) {
+fn mark_refreshed(service: &ServiceContext, url: &str) {
     let key = epg_cooldown_key(url);
     let now = chrono::Utc::now().timestamp().to_string();
     let _ = write_sync_setting(service, &key, &now);
 }
 
-fn is_channel_within_cooldown(service: &CrispyService, channel_id: &str) -> bool {
+fn is_channel_within_cooldown(service: &ServiceContext, channel_id: &str) -> bool {
     let key = stalker_channel_refresh_key(channel_id);
     if let Some(ts_str) = read_sync_setting(service, &key)
         && let Ok(ts) = ts_str.parse::<i64>()
@@ -699,7 +699,7 @@ fn is_channel_within_cooldown(service: &CrispyService, channel_id: &str) -> bool
     false
 }
 
-fn mark_channel_refreshed(service: &CrispyService, channel_id: &str) {
+fn mark_channel_refreshed(service: &ServiceContext, channel_id: &str) {
     let key = stalker_channel_refresh_key(channel_id);
     let now = chrono::Utc::now().timestamp().to_string();
     let _ = write_sync_setting(service, &key, &now);
@@ -729,7 +729,7 @@ fn epg_hash_suffix(value: &str) -> String {
     hash.iter().take(8).map(|b| format!("{b:02x}")).collect()
 }
 
-fn read_sync_setting(service: &CrispyService, key: &str) -> Option<String> {
+fn read_sync_setting(service: &ServiceContext, key: &str) -> Option<String> {
     let conn = service.db.get().ok()?;
     conn.query_row(
         "SELECT value FROM db_settings WHERE key = ?1",
@@ -739,7 +739,7 @@ fn read_sync_setting(service: &CrispyService, key: &str) -> Option<String> {
     .ok()
 }
 
-fn write_sync_setting(service: &CrispyService, key: &str, value: &str) -> Result<()> {
+fn write_sync_setting(service: &ServiceContext, key: &str, value: &str) -> Result<()> {
     let conn = service.db.get()?;
     insert_or_replace!(conn, "db_settings",
         ["key", "value"],
@@ -748,7 +748,7 @@ fn write_sync_setting(service: &CrispyService, key: &str, value: &str) -> Result
     Ok(())
 }
 
-fn delete_sync_setting(service: &CrispyService, key: &str) -> Result<()> {
+fn delete_sync_setting(service: &ServiceContext, key: &str) -> Result<()> {
     let conn = service.db.get()?;
     conn.execute("DELETE FROM db_settings WHERE key = ?1", params![key])?;
     Ok(())
@@ -851,14 +851,17 @@ mod tests {
         plain.native_id = "3".to_string();
         plain.source_id = Some("src1".to_string());
 
-        svc.save_channels(&[favorite.clone(), recent.clone(), plain.clone()])
+        crate::services::ChannelService(svc.clone())
+            .save_channels(&[favorite.clone(), recent.clone(), plain.clone()])
             .unwrap();
 
         let mut watch = make_watch_entry("ch-2", "Recent");
         watch.media_type = crate::value_objects::MediaType::Channel;
         watch.source_id = Some("src1".to_string());
         watch.last_watched = parse_dt("2025-02-01 12:00:00");
-        svc.save_watch_history(&watch).unwrap();
+        crate::services::HistoryService(svc.clone())
+            .save_watch_history(&watch)
+            .unwrap();
 
         let sorted =
             sort_stalker_channels_for_sync(&svc, &[plain, recent, favorite]).expect("sort");

@@ -286,7 +286,7 @@ class MediaKitPlayer implements CrispyPlayer {
   Widget buildVideoWidget({BoxFit fit = BoxFit.contain}) {
     return Video(
       controller: _ctrl,
-      controls: NoVideoControls as VideoControlsBuilder?,
+      controls: null,
       fit: fit,
       // Explicit black fill prevents platform-default surface color
       // (white on some Windows/ANGLE backends) from showing before

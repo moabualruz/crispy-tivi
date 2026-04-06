@@ -1,6 +1,6 @@
 use rusqlite::params;
 
-use super::{CrispyService, bool_to_int, dt_to_ts, opt_dt_to_ts};
+use super::{ServiceContext, bool_to_int, dt_to_ts, opt_dt_to_ts};
 use crate::algorithms::crypto::{decrypt_field, encrypt_field, get_or_create_encryption_key};
 use crate::database::row_helpers::RowExt;
 use crate::database::{optional, DbError, TABLE_CHANNELS, TABLE_MOVIES, TABLE_SOURCES};
@@ -123,7 +123,7 @@ fn decrypt_source(svc: &SourceService, mut source: Source) -> Result<Source, DbE
 }
 
 /// Domain service for source operations.
-pub struct SourceService(pub(super) CrispyService);
+pub struct SourceService(pub ServiceContext);
 
 impl SourceService {
     /// Get all sources ordered by sort_order.
@@ -419,7 +419,9 @@ mod tests {
         ch2.source_id = Some("src_a".to_string());
         let mut ch3 = make_channel("ch3", "Ch3");
         ch3.source_id = Some("src_b".to_string());
-        svc.0.save_channels(&[ch1, ch2, ch3]).unwrap();
+        crate::services::ChannelService(svc.0.clone())
+            .save_channels(&[ch1, ch2, ch3])
+            .unwrap();
 
         // 3 VOD items on src_b, 0 on src_a.
         let mut v1 = make_vod_item("v1", "Movie 1");
@@ -428,7 +430,9 @@ mod tests {
         v2.source_id = Some("src_b".to_string());
         let mut v3 = make_vod_item("v3", "Movie 3");
         v3.source_id = Some("src_b".to_string());
-        svc.0.save_vod_items(&[v1, v2, v3]).unwrap();
+        crate::services::VodService(svc.0.clone())
+            .save_vod_items(&[v1, v2, v3])
+            .unwrap();
 
         let stats = svc.get_source_stats().unwrap();
         assert_eq!(stats.len(), 2);
@@ -484,22 +488,50 @@ mod tests {
         // Add channels and VOD belonging to this source.
         let mut ch = make_channel("ch1", "Channel 1");
         ch.source_id = Some("src1".to_string());
-        svc.0.save_channels(&[ch]).unwrap();
+        crate::services::ChannelService(svc.0.clone())
+            .save_channels(&[ch])
+            .unwrap();
 
         let mut vod = make_vod_item("vod1", "Movie 1");
         vod.source_id = Some("src1".to_string());
-        svc.0.save_vod_items(&[vod]).unwrap();
+        crate::services::VodService(svc.0.clone())
+            .save_vod_items(&[vod])
+            .unwrap();
 
         // Verify data exists.
-        assert_eq!(svc.0.load_channels().unwrap().len(), 1);
-        assert_eq!(svc.0.load_vod_items().unwrap().len(), 1);
+        assert_eq!(
+            crate::services::ChannelService(svc.0.clone())
+                .load_channels()
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            crate::services::VodService(svc.0.clone())
+                .load_vod_items()
+                .unwrap()
+                .len(),
+            1
+        );
 
         // Delete source — should cascade.
         svc.delete_source("src1").unwrap();
 
         assert!(svc.get_source("src1").unwrap().is_none());
-        assert_eq!(svc.0.load_channels().unwrap().len(), 0);
-        assert_eq!(svc.0.load_vod_items().unwrap().len(), 0);
+        assert_eq!(
+            crate::services::ChannelService(svc.0.clone())
+                .load_channels()
+                .unwrap()
+                .len(),
+            0
+        );
+        assert_eq!(
+            crate::services::VodService(svc.0.clone())
+                .load_vod_items()
+                .unwrap()
+                .len(),
+            0
+        );
     }
 
     #[test]
@@ -562,14 +594,18 @@ mod tests {
         ch1.source_id = Some("src1".to_string());
         let mut ch2 = make_channel("ch2", "Ch from B");
         ch2.source_id = Some("src2".to_string());
-        svc.0.save_channels(&[ch1, ch2]).unwrap();
+        crate::services::ChannelService(svc.0.clone())
+            .save_channels(&[ch1, ch2])
+            .unwrap();
 
         // Delete only source A.
         svc.delete_source("src1").unwrap();
 
         assert!(svc.get_source("src1").unwrap().is_none());
         assert!(svc.get_source("src2").unwrap().is_some());
-        let channels = svc.0.load_channels().unwrap();
+        let channels = crate::services::ChannelService(svc.0.clone())
+            .load_channels()
+            .unwrap();
         assert_eq!(channels.len(), 1);
         assert_eq!(channels[0].id, "ch2");
     }

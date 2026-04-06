@@ -1,6 +1,6 @@
 use rusqlite::{Row, params};
 
-use super::{CrispyService, dt_to_ts, ts_to_dt};
+use super::{ServiceContext, dt_to_ts, ts_to_dt};
 use crate::database::DbError;
 use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
@@ -33,7 +33,7 @@ fn watch_history_from_row(row: &Row) -> rusqlite::Result<WatchHistory> {
 }
 
 /// Domain service for watch history operations.
-pub struct HistoryService(pub(super) CrispyService);
+pub struct HistoryService(pub ServiceContext);
 
 impl HistoryService {
     // ── Watch History ───────────────────────────────
@@ -332,7 +332,9 @@ mod tests {
         svc.save_watch_history(&make_watch_entry("w3", "Movie 3"))
             .unwrap();
 
-        let deleted = svc.0.clear_all_watch_history().unwrap();
+        let deleted = crate::services::BulkService(svc.0.clone())
+            .clear_all_watch_history()
+            .unwrap();
         assert_eq!(deleted, 3);
 
         let history = svc.load_watch_history().unwrap();
@@ -342,7 +344,9 @@ mod tests {
     #[test]
     fn clear_all_watch_history_empty_table() {
         let svc = HistoryService(make_service());
-        let deleted = svc.0.clear_all_watch_history().unwrap();
+        let deleted = crate::services::BulkService(svc.0.clone())
+            .clear_all_watch_history()
+            .unwrap();
         assert_eq!(deleted, 0);
     }
 
@@ -359,7 +363,9 @@ mod tests {
         let svc = HistoryService(base);
         svc.save_watch_history(&make_watch_entry("w1", "Movie 1"))
             .unwrap();
-        svc.0.clear_all_watch_history().unwrap();
+        crate::services::BulkService(svc.0.clone())
+            .clear_all_watch_history()
+            .unwrap();
         let recorded = log.lock().unwrap();
         let last = recorded.last().unwrap();
         assert!(last.contains("WatchHistoryCleared"), "{last}");

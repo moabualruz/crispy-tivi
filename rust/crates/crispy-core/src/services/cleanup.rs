@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use super::CrispyService;
+use super::ServiceContext;
 
 // ── TTL constants ────────────────────────────────────
 
@@ -42,9 +42,9 @@ const VACUUM_THRESHOLD: usize = 1000;
 ///
 /// Failures are returned as errors; the caller in `lifecycle.rs` logs a
 /// warning and continues — a cleanup failure must never block app startup.
-pub fn run_startup_cleanup(service: &CrispyService) -> Result<()> {
+pub fn run_startup_cleanup(ctx: &ServiceContext) -> Result<()> {
     let now = chrono::Utc::now().timestamp();
-    let conn = service.db.get()?; // ONE connection for all cleanup
+    let conn = ctx.db.get()?; // ONE connection for all cleanup
     let mut total_deleted: usize = 0;
 
     // ── 1. Expired soft-deleted sources (30-day retention) ──────────────
@@ -110,7 +110,7 @@ pub fn run_startup_cleanup(service: &CrispyService) -> Result<()> {
     // ── 5. VACUUM if significant rows were removed ────────────────────────
     if total_deleted >= VACUUM_THRESHOLD {
         eprintln!("[cleanup] {total_deleted} rows deleted — running VACUUM to compact DB");
-        let vconn = service.db.get()?;
+        let vconn = ctx.db.get()?;
         vconn.execute_batch("VACUUM")?;
     }
 
@@ -124,7 +124,7 @@ mod tests {
 
     // ── helpers ──────────────────────────────────────────────────────────
 
-    fn insert_source_deleted_at(svc: &CrispyService, id: &str, deleted_at: i64) {
+    fn insert_source_deleted_at(svc: &ServiceContext, id: &str, deleted_at: i64) {
         let conn = svc.db.get().unwrap();
         // Insert a minimal source row then mark it soft-deleted.
         conn.execute(
@@ -138,7 +138,7 @@ mod tests {
         .unwrap();
     }
 
-    fn insert_bookmark_created_at(svc: &CrispyService, id: &str, created_at: i64) {
+    fn insert_bookmark_created_at(svc: &ServiceContext, id: &str, created_at: i64) {
         let conn = svc.db.get().unwrap();
         conn.execute(
             "INSERT OR REPLACE INTO db_bookmarks
@@ -149,7 +149,7 @@ mod tests {
         .unwrap();
     }
 
-    fn insert_stream_health_last_seen(svc: &CrispyService, hash: &str, last_seen: i64) {
+    fn insert_stream_health_last_seen(svc: &ServiceContext, hash: &str, last_seen: i64) {
         let conn = svc.db.get().unwrap();
         conn.execute(
             "INSERT OR REPLACE INTO db_stream_health
@@ -160,7 +160,7 @@ mod tests {
         .unwrap();
     }
 
-    fn insert_epg_entry_end_time(svc: &CrispyService, _id: &str, end_time: i64) {
+    fn insert_epg_entry_end_time(svc: &ServiceContext, _id: &str, end_time: i64) {
         let conn = svc.db.get().unwrap();
         // start_time must be < end_time per CHECK constraint.
         let start_time = end_time - 3600;
@@ -174,7 +174,7 @@ mod tests {
         .unwrap();
     }
 
-    fn count_rows(svc: &CrispyService, table: &str) -> i64 {
+    fn count_rows(svc: &ServiceContext, table: &str) -> i64 {
         let conn = svc.db.get().unwrap();
         conn.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
             row.get(0)
@@ -220,10 +220,14 @@ mod tests {
     #[test]
     fn cleanup_preserves_active_sources() {
         let svc = make_service();
-        svc.save_source(&make_source("active_src", "Active", "m3u"))
+        crate::services::SourceService(svc.clone())
+            .save_source(&make_source("active_src", "Active", "m3u"))
             .unwrap();
         run_startup_cleanup(&svc).unwrap();
-        assert!(svc.get_source("active_src").unwrap().is_some());
+        assert!(crate::services::SourceService(svc.clone())
+            .get_source("active_src")
+            .unwrap()
+            .is_some());
     }
 
     #[test]

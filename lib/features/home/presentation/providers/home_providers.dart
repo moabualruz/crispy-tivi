@@ -16,7 +16,12 @@ import 'package:crispy_tivi/features/home/domain/utils/upcoming_programs.dart';
 export 'package:crispy_tivi/features/home/domain/utils/upcoming_programs.dart'
     show UpcomingProgram;
 export '../../../player/data/watch_history_service.dart'
-    show WatchHistoryService, watchHistoryServiceProvider;
+    show
+        WatchHistoryService,
+        WatchHistoryEntry,
+        watchHistoryServiceProvider,
+        continueWatchingMoviesProvider,
+        crossDeviceWatchingProvider;
 
 // ── FE-H-08: Dismissed recommendations ──────────────────
 

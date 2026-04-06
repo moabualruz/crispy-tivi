@@ -1,17 +1,18 @@
-use super::{from_json, json_result, svc};
+use super::{ctx, from_json, json_result};
 use anyhow::{Context, Result};
 use crispy_core::models::VodItem;
+use crispy_core::services::{BulkService, HistoryService, VodService};
 use std::collections::HashMap;
 
 /// Load all VOD items as JSON array.
 pub fn load_vod_items() -> Result<String> {
-    json_result(svc()?.load_vod_items()?)
+    json_result(VodService(ctx()?).load_vod_items()?)
 }
 
 /// Save VOD items from JSON array. Returns count.
 pub fn save_vod_items(json: String) -> Result<usize> {
     let items: Vec<VodItem> = from_json(&json)?;
-    Ok(svc()?.save_vod_items(&items)?)
+    Ok(VodService(ctx()?).save_vod_items(&items)?)
 }
 
 /// Load VOD items filtered by source IDs. Returns JSON array.
@@ -20,7 +21,7 @@ pub fn save_vod_items(json: String) -> Result<usize> {
 /// array returns ALL VOD items (same as `load_vod_items`).
 pub fn get_vod_by_sources(source_ids_json: String) -> Result<String> {
     let ids: Vec<String> = from_json(&source_ids_json)?;
-    json_result(svc()?.get_vod_by_sources(&ids)?)
+    json_result(VodService(ctx()?).get_vod_by_sources(&ids)?)
 }
 
 /// Load VOD items filtered by sources, type, category, query, and sorted by sorting key.
@@ -32,7 +33,7 @@ pub fn get_filtered_vod(
     sort_by: String,
 ) -> Result<String> {
     let ids: Vec<String> = from_json(&source_ids_json)?;
-    json_result(svc()?.get_filtered_vod(
+    json_result(VodService(ctx()?).get_filtered_vod(
         &ids,
         item_type.as_deref(),
         category.as_deref(),
@@ -43,7 +44,7 @@ pub fn get_filtered_vod(
 
 /// Delete VOD items not in keep_ids for a source.
 pub fn delete_removed_vod_items(source_id: String, keep_ids: Vec<String>) -> Result<usize> {
-    Ok(svc()?.delete_removed_vod_items(&source_id, &keep_ids)?)
+    Ok(VodService(ctx()?).delete_removed_vod_items(&source_id, &keep_ids)?)
 }
 
 /// Find VOD alternatives from other sources matching by name + year.
@@ -56,29 +57,29 @@ pub fn find_vod_alternatives(
     limit: usize,
 ) -> Result<String> {
     let year_opt = if year > 0 { Some(year) } else { None };
-    json_result(svc()?.find_vod_alternatives(&name, year_opt, &exclude_id, limit)?)
+    json_result(VodService(ctx()?).find_vod_alternatives(&name, year_opt, &exclude_id, limit)?)
 }
 
 // ── VOD Favorites ────────────────────────────────────
 
 /// Get favourite VOD item IDs for a profile.
 pub fn get_vod_favorites(profile_id: String) -> Result<Vec<String>> {
-    Ok(svc()?.get_vod_favorites(&profile_id)?)
+    Ok(VodService(ctx()?).get_vod_favorites(&profile_id)?)
 }
 
 /// Add a VOD item to profile favourites.
 pub fn add_vod_favorite(profile_id: String, vod_item_id: String) -> Result<()> {
-    Ok(svc()?.add_vod_favorite(&profile_id, &vod_item_id)?)
+    Ok(VodService(ctx()?).add_vod_favorite(&profile_id, &vod_item_id)?)
 }
 
 /// Remove a VOD item from profile favourites.
 pub fn remove_vod_favorite(profile_id: String, vod_item_id: String) -> Result<()> {
-    Ok(svc()?.remove_vod_favorite(&profile_id, &vod_item_id)?)
+    Ok(VodService(ctx()?).remove_vod_favorite(&profile_id, &vod_item_id)?)
 }
 
 /// Update the is_favorite flag on a VOD item.
 pub fn update_vod_favorite(item_id: String, is_favorite: bool) -> Result<()> {
-    Ok(svc()?.update_vod_favorite(&item_id, is_favorite)?)
+    Ok(BulkService(ctx()?).update_vod_favorite(&item_id, is_favorite)?)
 }
 
 // ── VOD Algorithms ───────────────────────────────────
@@ -148,7 +149,7 @@ pub fn compute_episode_progress(history_json: String, series_id: String) -> Stri
 /// Compute episode progress from DB for a series.
 /// Returns JSON with progress_map + last_watched_url.
 pub fn compute_episode_progress_from_db(series_id: String) -> Result<String> {
-    let result = svc()?
+    let result = HistoryService(ctx()?)
         .compute_episode_progress_from_db(&series_id)
         .context("compute_episode_progress_from_db")?;
     Ok(result)

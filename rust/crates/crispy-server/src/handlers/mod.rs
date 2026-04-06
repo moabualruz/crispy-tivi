@@ -69,7 +69,7 @@ macro_rules! svc_ok {
 
 pub(super) use {svc_call, svc_data, svc_ok};
 
-use crispy_core::services::CrispyService;
+use crispy_core::services::ServiceContext;
 
 // ── Arg extraction helpers ──────────────────────────
 
@@ -134,7 +134,7 @@ pub(super) fn ts_to_dt(ts: i64) -> Result<chrono::NaiveDateTime> {
 /// Handle a single WebSocket text message.
 ///
 /// Returns the JSON response string to send back.
-pub fn handle_message(svc: &CrispyService, text: &str) -> String {
+pub fn handle_message(svc: &ServiceContext, text: &str) -> String {
     let result = dispatch(svc, text);
     match result {
         Ok(resp) => resp.to_string(),
@@ -143,7 +143,7 @@ pub fn handle_message(svc: &CrispyService, text: &str) -> String {
 }
 
 /// Parse and dispatch a command message.
-fn dispatch(svc: &CrispyService, text: &str) -> Result<Value> {
+fn dispatch(svc: &ServiceContext, text: &str) -> Result<Value> {
     let msg: Value = serde_json::from_str(text).context("Invalid JSON")?;
 
     let id = msg.get("id").cloned().unwrap_or(Value::Null);
@@ -176,7 +176,7 @@ fn dispatch(svc: &CrispyService, text: &str) -> Result<Value> {
 }
 
 /// Execute a single command against the service.
-fn exec_cmd(svc: &CrispyService, cmd: &str, args: &Value) -> Result<Value> {
+fn exec_cmd(svc: &ServiceContext, cmd: &str, args: &Value) -> Result<Value> {
     if let Some(r) = crud::handle(svc, cmd, args) {
         return r;
     }

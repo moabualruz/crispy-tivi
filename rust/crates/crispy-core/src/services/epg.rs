@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use rusqlite::params;
 
-use super::{CrispyService, bool_to_int, dt_to_ts, str_params, ts_to_dt};
+use super::{ServiceContext, bool_to_int, dt_to_ts, str_params, ts_to_dt};
 use crate::database::{optional, DbError};
 use crate::errors::DomainError;
 use crate::database::row_helpers::RowExt;
@@ -11,7 +11,7 @@ use crate::models::EpgEntry;
 use crate::traits::EpgRepository;
 
 /// Domain service for EPG operations.
-pub struct EpgService(pub(super) CrispyService);
+pub struct EpgService(pub ServiceContext);
 
 /// Column list for all EPG SELECT queries. Kept in one place so
 /// every load method stays in sync with `epg_entry_from_row`.
@@ -657,7 +657,9 @@ mod tests {
         // Create a channel with tvg_id — the EPG bridge used by get_epgs_for_channels.
         let mut ch = make_channel("ch1", "Test Channel");
         ch.tvg_id = Some("tvg_ch1".to_string());
-        base.save_channels(&[ch]).unwrap();
+        crate::services::ChannelService(base.clone())
+            .save_channels(&[ch])
+            .unwrap();
         let svc = EpgService(base);
 
         let dt = parse_dt("2025-01-15 10:00:00");
@@ -853,8 +855,12 @@ mod tests {
         src_a.sort_order = 0;
         let mut src_b = make_source("src_b", "Source B", "m3u");
         src_b.sort_order = 5;
-        base.save_source(&src_a).unwrap();
-        base.save_source(&src_b).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_a)
+            .unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_b)
+            .unwrap();
         let svc = EpgService(base);
 
         // Insert from source B.
@@ -884,7 +890,9 @@ mod tests {
         let base = make_service();
         let mut src_a = make_source("src_a", "Source A", "m3u");
         src_a.sort_order = 0;
-        base.save_source(&src_a).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_a)
+            .unwrap();
         let svc = EpgService(base);
 
         // Insert entry from src_a.
@@ -920,8 +928,12 @@ mod tests {
         src_a.sort_order = 3;
         let mut src_b = make_source("src_b", "Source B", "m3u");
         src_b.sort_order = 3;
-        base.save_source(&src_a).unwrap();
-        base.save_source(&src_b).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_a)
+            .unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_b)
+            .unwrap();
         let svc = EpgService(base);
 
         let mut map_a = HashMap::new();
@@ -949,7 +961,9 @@ mod tests {
         let base = make_service();
         let mut src_a = make_source("src_a", "Source A", "m3u");
         src_a.sort_order = 10;
-        base.save_source(&src_a).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_a)
+            .unwrap();
         let svc = EpgService(base);
 
         // Insert entry with no source_id.
@@ -980,7 +994,9 @@ mod tests {
         let base = make_service();
         let mut src_a = make_source("src_a", "Source A", "m3u");
         src_a.sort_order = 0;
-        base.save_source(&src_a).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_a)
+            .unwrap();
         let svc = EpgService(base);
 
         let mut map = HashMap::new();

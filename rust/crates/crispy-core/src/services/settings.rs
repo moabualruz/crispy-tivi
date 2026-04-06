@@ -1,13 +1,13 @@
 use chrono::NaiveDateTime;
 use rusqlite::params;
 
-use super::{CrispyService, dt_to_ts, ts_to_dt};
+use super::{ServiceContext, dt_to_ts, ts_to_dt};
 use crate::database::{optional, DbError};
 use crate::errors::DomainError;
 use crate::traits::SettingsRepository;
 
 /// Domain service for settings and sync metadata.
-pub struct SettingsService(pub(super) CrispyService);
+pub struct SettingsService(pub ServiceContext);
 
 impl SettingsService {
     // ── Sync Meta ───────────────────────────────────
@@ -132,7 +132,9 @@ mod tests {
     fn no_event_emitted_without_callback() {
         // Verify no panic when no callback is set.
         let svc = make_service();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        crate::services::ProfileService(svc.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
         svc.set_setting("k", "v").unwrap();
         // If we get here without panic, the test passes.
     }

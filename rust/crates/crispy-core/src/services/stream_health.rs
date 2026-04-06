@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use rusqlite::params;
 
-use super::CrispyService;
+use super::ServiceContext;
 use crate::database::{optional, DbError};
 
 // ── Failover thresholds ─────────────────────────────
@@ -40,7 +40,7 @@ const MAX_TTFF_MS: f64 = 10000.0;
 const MAX_AVG_BUFFER: f64 = 10.0;
 
 /// Domain service for stream health operations.
-pub struct StreamHealthService(pub(super) CrispyService);
+pub struct StreamHealthService(pub ServiceContext);
 
 impl StreamHealthService {
     // ── DB persistence ──────────────────────────────

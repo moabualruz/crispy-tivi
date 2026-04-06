@@ -28,7 +28,6 @@ import '../../../favorites/domain/utils/cw_filter_utils.dart';
 import '../../../vod/presentation/widgets/continue_watching_section.dart';
 import '../../../vod/presentation/widgets/cross_device_section.dart';
 import '../../domain/utils/home_utils.dart';
-import '../providers/home_providers.dart';
 import 'channel_list_section.dart';
 import 'vod_row.dart';
 

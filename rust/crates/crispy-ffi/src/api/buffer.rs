@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use super::svc;
+use super::ctx;
 use anyhow::Result;
+use crispy_core::services::BufferTierService;
 
 /// In-memory buffer health counters, keyed by URL hash.
 ///
@@ -25,18 +26,18 @@ fn state_map() -> std::sync::MutexGuard<'static, Option<HashMap<String, (u32, u3
 
 /// Get the persisted tier for a URL hash.
 pub fn get_buffer_tier(url_hash: String) -> Result<Option<String>> {
-    Ok(svc()?.get_buffer_tier(&url_hash)?)
+    Ok(BufferTierService(ctx()?).get_buffer_tier(&url_hash)?)
 }
 
 /// Persist a tier for a URL hash.
 pub fn set_buffer_tier(url_hash: String, tier: String) -> Result<()> {
-    Ok(svc()?.set_buffer_tier(&url_hash, &tier)?)
+    Ok(BufferTierService(ctx()?).set_buffer_tier(&url_hash, &tier)?)
 }
 
 /// Prune buffer tier entries, keeping only the newest
 /// `max_entries`.
 pub fn prune_buffer_tiers(max_entries: i64) -> Result<usize> {
-    Ok(svc()?.prune_buffer_tiers(max_entries)?)
+    Ok(BufferTierService(ctx()?).prune_buffer_tiers(max_entries)?)
 }
 
 /// Feed a buffer health sample and get back the
@@ -44,7 +45,7 @@ pub fn prune_buffer_tiers(max_entries: i64) -> Result<usize> {
 ///
 /// Returns: `{"tier":"normal","changed":false,"readahead_secs":120}`
 pub fn evaluate_buffer_sample(url_hash: String, cache_duration_secs: f64) -> Result<String> {
-    let svc = svc()?;
+    let svc = BufferTierService(ctx()?);
     let mut guard = state_map();
     let map = guard.as_mut().unwrap();
     Ok(svc.evaluate_buffer_sample(&url_hash, cache_duration_secs, map)?)
@@ -54,7 +55,7 @@ pub fn evaluate_buffer_sample(url_hash: String, cache_duration_secs: f64) -> Res
 pub fn reset_buffer_state(url_hash: String) -> Result<()> {
     let mut guard = state_map();
     let map = guard.as_mut().unwrap();
-    crispy_core::services::CrispyService::reset_buffer_state(&url_hash, map);
+    crispy_core::services::BufferTierService::reset_buffer_state(&url_hash, map);
     Ok(())
 }
 
@@ -63,5 +64,5 @@ pub fn reset_buffer_state(url_hash: String) -> Result<()> {
 /// Returns maximum forward buffer in MB.
 #[flutter_rust_bridge::frb(sync)]
 pub fn get_buffer_cap_mb(heap_max_mb: i64) -> i64 {
-    crispy_core::services::CrispyService::get_buffer_cap_mb(heap_max_mb)
+    crispy_core::services::BufferTierService::get_buffer_cap_mb(heap_max_mb)
 }

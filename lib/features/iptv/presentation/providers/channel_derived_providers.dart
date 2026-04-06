@@ -1,7 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../epg/presentation/providers/epg_providers.dart';
-import 'iptv_service_providers.dart';
+import '../../data/channel_repository_impl.dart'
+    show channelSearchRepositoryProvider;
 import '../../domain/entities/channel.dart';
 import 'channel_providers.dart';
 
@@ -30,7 +31,7 @@ final _epgAwareChannelListAsyncProvider =
       if (query.isEmpty) return null;
 
       final epgState = ref.watch(epgProvider);
-      final repo = ref.read(channelRepositoryProvider);
+      final repo = ref.read(channelSearchRepositoryProvider);
       final now = DateTime.now();
 
       // Step 1: find channel IDs whose live program matches query.
@@ -43,7 +44,7 @@ final _epgAwareChannelListAsyncProvider =
       if (matchedIds.isEmpty) return channelState.filteredChannels;
 
       // Step 2: merge matched channels into base filtered list.
-      return repo.mergeEpgMatchedChannels(
+      return ref.read(channelSearchRepositoryProvider).mergeEpgMatchedChannels(
         baseChannels: channelState.filteredChannels,
         allChannels: channelState.channels,
         matchedIds: matchedIds,

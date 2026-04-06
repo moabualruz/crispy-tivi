@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 
-use super::{into_anyhow, json_result, svc};
+use super::{ctx, into_anyhow, json_result};
 use crate::frb_generated::StreamSink;
 
 /// Subscribe to sync progress events from Rust.
@@ -75,7 +75,7 @@ pub async fn sync_xtream_source(
     accept_invalid_certs: bool,
     enrich_vod_on_sync: bool,
 ) -> Result<String> {
-    let service = svc()?;
+    let service = ctx()?;
     let report = into_anyhow(
         crispy_core::services::xtream_sync::sync_xtream_source(
             &service,
@@ -102,7 +102,7 @@ pub async fn sync_m3u_source(
     source_id: String,
     accept_invalid_certs: bool,
 ) -> Result<String> {
-    let service = svc()?;
+    let service = ctx()?;
     let report = into_anyhow(
         crispy_core::services::m3u_sync::sync_m3u_source(
             &service,
@@ -138,7 +138,7 @@ pub async fn sync_stalker_source(
     source_id: String,
     accept_invalid_certs: bool,
 ) -> Result<String> {
-    let service = svc()?;
+    let service = ctx()?;
     let report = into_anyhow(
         crispy_core::services::stalker_sync::sync_stalker_source(
             &service,

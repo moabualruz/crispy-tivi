@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use super::{from_json, svc};
+use super::{ctx, from_json};
 use anyhow::Result;
 use crispy_core::models::Channel;
+use crispy_core::services::StreamHealthService;
 
 /// In-memory failover state counters, keyed by URL hash.
 ///
@@ -26,22 +27,22 @@ fn failover_map() -> std::sync::MutexGuard<'static, Option<HashMap<String, (u32,
 
 /// Record a stream stall event for a URL hash.
 pub fn record_stream_stall(url_hash: String) -> Result<()> {
-    Ok(svc()?.record_stream_stall(&url_hash)?)
+    Ok(StreamHealthService(ctx()?).record_stream_stall(&url_hash)?)
 }
 
 /// Record a buffer health sample for a URL hash.
 pub fn record_buffer_sample(url_hash: String, cache_duration_secs: f64) -> Result<()> {
-    Ok(svc()?.record_buffer_sample(&url_hash, cache_duration_secs)?)
+    Ok(StreamHealthService(ctx()?).record_buffer_sample(&url_hash, cache_duration_secs)?)
 }
 
 /// Record time-to-first-frame for a URL hash.
 pub fn record_ttff(url_hash: String, ttff_ms: i64) -> Result<()> {
-    Ok(svc()?.record_ttff(&url_hash, ttff_ms)?)
+    Ok(StreamHealthService(ctx()?).record_ttff(&url_hash, ttff_ms)?)
 }
 
 /// Get the health score for a URL hash (0.0–1.0).
 pub fn get_stream_health_score(url_hash: String) -> Result<f64> {
-    Ok(svc()?.get_stream_health_score(&url_hash)?)
+    Ok(StreamHealthService(ctx()?).get_stream_health_score(&url_hash)?)
 }
 
 /// Get health scores for multiple URL hashes.
@@ -49,13 +50,13 @@ pub fn get_stream_health_score(url_hash: String) -> Result<f64> {
 /// Returns JSON: `{"hash1": 0.8, "hash2": 0.5}`
 pub fn get_stream_health_scores(url_hashes_json: String) -> Result<String> {
     let hashes: Vec<String> = from_json(&url_hashes_json)?;
-    let scores = svc()?.get_stream_health_scores(&hashes)?;
+    let scores = StreamHealthService(ctx()?).get_stream_health_scores(&hashes)?;
     Ok(serde_json::to_string(&scores)?)
 }
 
 /// Keep only the newest `max_entries` stream health rows.
 pub fn prune_stream_health(max_entries: i64) -> Result<usize> {
-    Ok(svc()?.prune_stream_health(max_entries)?)
+    Ok(StreamHealthService(ctx()?).prune_stream_health(max_entries)?)
 }
 
 // ── Failover Threshold Evaluation ─────────────────────
@@ -64,7 +65,7 @@ pub fn prune_stream_health(max_entries: i64) -> Result<usize> {
 ///
 /// Returns JSON: `{"action":"none"|"start_warming"|"swap_warm"}`
 pub fn evaluate_failover_event(url_hash: String, event_type: String, value: f64) -> Result<String> {
-    let svc = svc()?;
+    let svc = StreamHealthService(ctx()?);
     let mut guard = failover_map();
     let map = guard.as_mut().unwrap();
     Ok(svc.evaluate_failover_event(&url_hash, &event_type, value, map)?)
@@ -74,7 +75,7 @@ pub fn evaluate_failover_event(url_hash: String, event_type: String, value: f64)
 pub fn reset_failover_state(url_hash: String) -> Result<()> {
     let mut guard = failover_map();
     let map = guard.as_mut().unwrap();
-    crispy_core::services::CrispyService::reset_failover_state(&url_hash, map);
+    crispy_core::services::StreamHealthService::reset_failover_state(&url_hash, map);
     Ok(())
 }
 

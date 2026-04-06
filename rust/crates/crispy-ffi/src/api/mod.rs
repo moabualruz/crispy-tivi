@@ -1,6 +1,6 @@
 //! FFI API surface for Flutter.
 //!
-//! Thin wrapper around `CrispyService` exposed via
+//! Thin wrapper around `ServiceContext` exposed via
 //! `flutter_rust_bridge`. Functions use primitive types
 //! and JSON strings for struct transfer.
 //!
@@ -9,7 +9,7 @@
 //! - Simple params/returns: typed (String, i32, bool)
 //! - Complex structs: JSON `String` via serde
 //! - Errors: `anyhow::Result` (FRB maps to exceptions)
-//! - State: `OnceLock<CrispyService>` singleton
+//! - State: `OnceLock<ServiceContext>` singleton
 
 pub mod algorithms;
 pub mod app_update;
@@ -50,32 +50,32 @@ pub use vod::*;
 pub use watchlist::*;
 
 use anyhow::{Result, anyhow};
-use crispy_core::services::CrispyService;
+use crispy_core::services::ServiceContext;
 use crispy_core::services::epg_facade::EpgFacade;
 use std::sync::OnceLock;
 
-/// Global service singleton. CrispyService uses an internal r2d2 connection
+/// Global service singleton. ServiceContext uses an internal r2d2 connection
 /// pool, making it completely thread-safe and cheaply cloneable.
-pub(super) static SERVICE: OnceLock<CrispyService> = OnceLock::new();
+pub(super) static CTX: OnceLock<ServiceContext> = OnceLock::new();
 
 /// Global EPG facade singleton. Provides L1 hot cache + L2 SQLite +
 /// L3 throttled network fetch with request dedup.
 pub(super) static EPG_FACADE: OnceLock<EpgFacade> = OnceLock::new();
 
-/// Get a clone of the service or error if not initialized.
-pub(super) fn svc() -> Result<CrispyService> {
-    SERVICE
-        .get()
+/// Get a clone of the service context or error if not initialized.
+pub(super) fn ctx() -> Result<ServiceContext> {
+    CTX.get()
         .cloned()
         .ok_or_else(|| anyhow!("Not initialized"))
 }
 
-/// Get the EPG facade, initializing it from the service if needed.
+
+/// Get the EPG facade, initializing it from the context if needed.
 pub(super) fn epg() -> Result<EpgFacade> {
     if let Some(facade) = EPG_FACADE.get() {
         return Ok(facade.clone());
     }
-    let service = svc()?;
+    let service = ctx()?;
     let facade = EpgFacade::new(service);
     let _ = EPG_FACADE.set(facade.clone());
     Ok(facade)

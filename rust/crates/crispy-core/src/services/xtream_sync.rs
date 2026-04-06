@@ -21,7 +21,7 @@ use crate::http_client::get_fast_client;
 use crate::http_resilience::{fetch_json_list, fetch_json_object};
 use crate::models::{Channel, SyncReport, XtreamAccountInfo};
 use crate::parsers::{vod, xtream};
-use crate::services::CrispyService;
+use crate::services::ServiceContext;
 use crate::services::url_validator::validate_url;
 use crate::sync_progress::emit_progress;
 use anyhow::{Context, Result};
@@ -165,7 +165,7 @@ fn parse_xtream_account_info(data: &serde_json::Value) -> XtreamAccountInfo {
 ///
 /// Returns the number of rows inserted, or 0 on failure.
 async fn download_m3u_to_temp_table(
-    service: &CrispyService,
+    service: &ServiceContext,
     base: &str,
     username: &str,
     password: &str,
@@ -357,7 +357,7 @@ async fn download_m3u_to_temp_table(
 
 /// Apply tvg_id and metadata from the M3U temp table to Xtream channels.
 /// Matches by normalized stream URL.
-fn apply_m3u_metadata_from_temp_table(service: &CrispyService, channels: &mut [Channel]) {
+fn apply_m3u_metadata_from_temp_table(service: &ServiceContext, channels: &mut [Channel]) {
     let conn = match service.db.get() {
         Ok(c) => c,
         Err(_) => return,
@@ -463,7 +463,7 @@ fn apply_m3u_metadata_from_temp_table(service: &CrispyService, channels: &mut [C
 }
 
 /// Drop the M3U temp table after Xtream mapping is complete.
-fn drop_m3u_temp_table(service: &CrispyService) {
+fn drop_m3u_temp_table(service: &ServiceContext) {
     if let Ok(conn) = service.db.get() {
         let _ = conn.execute_batch("DROP TABLE IF EXISTS tmp_m3u_channels");
     }
@@ -488,7 +488,7 @@ fn extract_m3u_attr(line: &str, attr_name: &str) -> Option<String> {
 /// Fetches all data from the Xtream server, parses it, resolves
 /// categories, and saves to the database. Returns a report.
 pub async fn sync_xtream_source(
-    service: &CrispyService,
+    service: &ServiceContext,
     base_url: &str,
     username: &str,
     password: &str,
@@ -925,7 +925,7 @@ mod tests {
             .await;
 
         let service = make_service();
-        service
+        crate::services::SourceService(service.clone())
             .save_source(&make_source("src-1", "Xtream Source", "xtream"))
             .unwrap();
         let report = sync_xtream_source(

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use rusqlite::params;
 
-use super::CrispyService;
+use super::ServiceContext;
 use crate::database::{optional, DbError};
 use crate::insert_or_replace;
 use crate::models::BufferTierDecision;
@@ -10,7 +10,7 @@ use crate::models::BufferTierDecision;
 // BufferTierDecision and its evaluate() method live in models/mod.rs (domain layer).
 
 /// Domain service for buffer tier operations.
-pub struct BufferTierService(pub(super) CrispyService);
+pub struct BufferTierService(pub ServiceContext);
 
 impl BufferTierService {
     // ── DB persistence ──────────────────────────────

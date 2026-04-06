@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'iptv_service_providers.dart';
+import '../../data/channel_repository_impl.dart'
+    show smartGroupRepositoryProvider;
 
 /// Parsed smart group data for the UI.
 class SmartGroup {
@@ -95,7 +96,7 @@ class CandidateMember {
 final smartGroupsProvider = FutureProvider.autoDispose<List<SmartGroup>>((
   ref,
 ) async {
-  final repo = ref.watch(channelRepositoryProvider);
+  final repo = ref.watch(smartGroupRepositoryProvider);
   final raw = await repo.getSmartGroupsParsed();
   return raw.map(SmartGroup.fromJson).toList();
 });
@@ -118,7 +119,7 @@ final smartGroupChannelIdsProvider = FutureProvider.autoDispose<Set<String>>((
 /// Auto-detected smart group candidates.
 final smartGroupCandidatesProvider =
     FutureProvider.autoDispose<List<SmartGroupCandidate>>((ref) async {
-      final repo = ref.watch(channelRepositoryProvider);
+      final repo = ref.watch(smartGroupRepositoryProvider);
       final raw = await repo.getSmartGroupCandidatesParsed();
       return raw.map(SmartGroupCandidate.fromJson).toList();
     });

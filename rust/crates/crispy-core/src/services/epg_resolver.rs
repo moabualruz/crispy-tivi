@@ -11,15 +11,16 @@ use std::collections::HashMap;
 use anyhow::Result;
 
 use super::epg_fetcher::{ChannelEpgRequest, ThrottledEpgFetcher};
+use super::{ChannelService, EpgService};
 use crate::models::{EpgEntry, Source};
-use crate::services::CrispyService;
+use crate::services::ServiceContext;
 
 /// Resolve EPG for a list of channels from a specific source.
 ///
 /// First checks if SQLite already has data covering the requested
 /// time window. If not, fetches via the appropriate API.
 pub async fn resolve_epg_for_channels(
-    service: &CrispyService,
+    service: &ServiceContext,
     source: &Source,
     channel_ids: &[String],
     start_time: i64,
@@ -27,7 +28,7 @@ pub async fn resolve_epg_for_channels(
     fetcher: &ThrottledEpgFetcher,
 ) -> Result<HashMap<String, Vec<EpgEntry>>> {
     // Step 1: Check SQLite L2 cache.
-    let cached = service.get_epgs_for_channels(channel_ids, start_time, end_time)?;
+    let cached = EpgService(service.clone()).get_epgs_for_channels(channel_ids, start_time, end_time)?;
 
     // Find channels with no cached data.
     let missing: Vec<String> = channel_ids
@@ -51,7 +52,7 @@ pub async fn resolve_epg_for_channels(
 
     // Step 3: Save fetched entries to SQLite (write-through).
     if !fetched.is_empty() {
-        let _ = service.save_epg_entries(&fetched);
+        let _ = EpgService(service.clone()).save_epg_entries(&fetched);
     }
 
     // Merge cached + fetched.
@@ -64,11 +65,11 @@ pub async fn resolve_epg_for_channels(
 }
 
 fn build_epg_requests(
-    service: &CrispyService,
+    service: &ServiceContext,
     source: &Source,
     channel_ids: &[String],
 ) -> Result<Vec<ChannelEpgRequest>> {
-    let channels = service.get_channels_by_ids(channel_ids)?;
+    let channels = ChannelService(service.clone()).get_channels_by_ids(channel_ids)?;
     let mut by_id: HashMap<String, crate::models::Channel> = channels
         .into_iter()
         .map(|channel| (channel.id.clone(), channel))
@@ -97,7 +98,7 @@ fn build_epg_requests(
 
 /// Resolve EPG for a single channel, returning up to `count` entries.
 pub async fn resolve_epg_for_channel(
-    service: &CrispyService,
+    service: &ServiceContext,
     source: &Source,
     epg_channel_id: &str,
     count: usize,
@@ -136,7 +137,9 @@ mod tests {
         let svc = make_service();
         let mut ch = make_channel("ch1", "Test Channel");
         ch.tvg_id = Some("tvg_ch1".to_string());
-        svc.save_channels(&[ch]).unwrap();
+        crate::services::ChannelService(svc.clone())
+            .save_channels(&[ch])
+            .unwrap();
 
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
@@ -149,10 +152,12 @@ mod tests {
         };
         let mut map = HashMap::new();
         map.insert("tvg_ch1".to_string(), vec![entry]);
-        svc.save_epg_entries(&map).unwrap();
+        crate::services::EpgService(svc.clone())
+            .save_epg_entries(&map)
+            .unwrap();
 
         // The resolver should find the cached data without fetching.
-        let cached = svc
+        let cached = crate::services::EpgService(svc.clone())
             .get_epgs_for_channels(
                 &["ch1".to_string()],
                 dt.and_utc().timestamp() - 1,

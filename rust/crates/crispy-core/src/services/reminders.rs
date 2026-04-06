@@ -1,7 +1,7 @@
 use rusqlite::{Row, params};
 
 use crate::insert_or_replace;
-use super::{CrispyService, bool_to_int, dt_to_ts, int_to_bool, ts_to_dt};
+use super::{ServiceContext, bool_to_int, dt_to_ts, int_to_bool, ts_to_dt};
 use crate::database::DbError;
 use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
@@ -22,7 +22,7 @@ fn reminder_from_row(row: &Row) -> rusqlite::Result<Reminder> {
 }
 
 /// Domain service for reminder operations.
-pub struct ReminderService(pub(super) CrispyService);
+pub struct ReminderService(pub ServiceContext);
 
 impl ReminderService {
     // ── Reminders ─────────────────────────────────────
@@ -156,7 +156,9 @@ mod tests {
     #[test]
     fn reminders_crud() {
         let base = make_service();
-        base.save_profile(&make_profile("p1", "Test")).unwrap();
+        crate::services::ProfileService(base.clone())
+            .save_profile(&make_profile("p1", "Test"))
+            .unwrap();
         let svc = ReminderService(base);
 
         let reminders = svc.load_reminders().unwrap();
@@ -177,7 +179,9 @@ mod tests {
     #[test]
     fn reminders_upsert() {
         let base = make_service();
-        base.save_profile(&make_profile("p1", "Test")).unwrap();
+        crate::services::ProfileService(base.clone())
+            .save_profile(&make_profile("p1", "Test"))
+            .unwrap();
         let svc = ReminderService(base);
         let mut reminder = make_reminder("r1", false);
         svc.save_reminder(&reminder).unwrap();
@@ -193,7 +197,9 @@ mod tests {
     #[test]
     fn clear_fired_reminders() {
         let base = make_service();
-        base.save_profile(&make_profile("p1", "Test")).unwrap();
+        crate::services::ProfileService(base.clone())
+            .save_profile(&make_profile("p1", "Test"))
+            .unwrap();
         let svc = ReminderService(base);
         svc.save_reminder(&make_reminder("r1", true)).unwrap();
         svc.save_reminder(&make_reminder("r2", false)).unwrap();
@@ -210,7 +216,9 @@ mod tests {
     #[test]
     fn mark_reminder_fired_updates() {
         let base = make_service();
-        base.save_profile(&make_profile("p1", "Test")).unwrap();
+        crate::services::ProfileService(base.clone())
+            .save_profile(&make_profile("p1", "Test"))
+            .unwrap();
         let svc = ReminderService(base);
         svc.save_reminder(&make_reminder("r1", false)).unwrap();
 

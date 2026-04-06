@@ -1,6 +1,6 @@
 use rusqlite::{Row, params};
 
-use super::{CrispyService, bool_to_int, int_to_bool};
+use super::{ServiceContext, bool_to_int, int_to_bool};
 use crate::database::DbError;
 use crate::models::EpgMapping;
 use crate::insert_or_replace;
@@ -21,7 +21,7 @@ fn epg_mapping_from_row(row: &Row) -> rusqlite::Result<EpgMapping> {
 }
 
 /// Domain service for EPG mapping operations.
-pub struct EpgMappingService(pub(super) CrispyService);
+pub struct EpgMappingService(pub ServiceContext);
 
 impl EpgMappingService {
     /// Save or update an EPG mapping.

@@ -14,7 +14,7 @@ use crate::algorithms::normalize::{mac_to_device_id, validate_mac_address};
 use crate::http_client::{get_fast_client, get_shared_client};
 use crate::models::SyncReport;
 use crate::parsers::stalker;
-use crate::services::CrispyService;
+use crate::services::{ServiceContext, SourceService};
 use crate::services::url_validator::validate_url;
 use crate::sync_progress::emit_progress;
 
@@ -313,7 +313,7 @@ pub async fn verify_stalker_portal(
 /// category resolution, and persists to the database. Returns a report
 /// describing what was saved.
 pub async fn sync_stalker_source(
-    service: &CrispyService,
+    service: &ServiceContext,
     base_url: &str,
     mac_address: &str,
     source_id: &str,
@@ -458,7 +458,7 @@ pub async fn sync_stalker_source(
     emit_progress(source_id, "complete", 1.0, "Sync complete");
 
     // Spawn background bulk EPG fetch for Stalker channels.
-    if let Ok(Some(src)) = service.get_source(source_id) {
+    if let Ok(Some(src)) = SourceService(service.clone()).get_source(source_id) {
         crate::services::epg_bulk_fetch::spawn_bulk_epg_fetch(service.clone(), src, channels);
     }
 

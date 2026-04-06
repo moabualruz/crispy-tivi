@@ -9,7 +9,11 @@ export '../../data/player_service.dart' show PlayerService;
 export '../../data/shader_service.dart'
     show ShaderPreset, ShaderService, shaderPresetProvider;
 export '../../data/watch_history_service.dart'
-    show WatchHistoryService, watchHistoryServiceProvider;
+    show
+        WatchHistoryService,
+        WatchHistoryEntry,
+        watchHistoryServiceProvider,
+        watchProgressProvider;
 export '../../data/web_video_bridge_web.dart' show escapeJs;
 export '../../data/segment_skip_codec.dart'
     show decodeSegmentSkipConfig, encodeSegmentSkipConfig;

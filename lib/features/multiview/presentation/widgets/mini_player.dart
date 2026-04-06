@@ -99,8 +99,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
     return Video(
       controller: _controller,
       fit: BoxFit.contain,
-      controls:
-          NoVideoControls as VideoControlsBuilder?, // NoVideoControls == null
+      controls: null, // NoVideoControls == null
     );
   }
 }

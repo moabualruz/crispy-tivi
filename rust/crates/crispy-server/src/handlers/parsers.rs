@@ -3,13 +3,13 @@
 use anyhow::{Context, Result, anyhow};
 use serde_json::{Value, json};
 
-use crispy_core::services::CrispyService;
+use crispy_core::services::ServiceContext;
 
 use super::{get_str, get_str_opt};
 
 /// Handle parser commands. Returns `Some(result)` if the
 /// command matched, `None` otherwise.
-pub(super) fn handle(_svc: &CrispyService, cmd: &str, args: &Value) -> Option<Result<Value>> {
+pub(super) fn handle(_svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Result<Value>> {
     let r = match cmd {
         // ── M3U / EPG ──────────────────────────
         "parseM3u" => (|| {

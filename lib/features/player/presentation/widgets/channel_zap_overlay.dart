@@ -6,6 +6,8 @@ import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/glass_surface.dart';
+import '../../../epg/presentation/providers/epg_service_providers.dart'
+    show categoryBucketCompare;
 import '../../../iptv/domain/entities/channel.dart';
 
 /// Slide-in channel zap overlay for quick channel switching

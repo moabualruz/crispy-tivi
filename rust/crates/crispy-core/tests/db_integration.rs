@@ -18,12 +18,14 @@
 //!  - Profile cascade delete removes watch history and favorites
 
 use crispy_core::models::{Channel, Source, UserProfile, WatchHistory};
-use crispy_core::services::CrispyService;
+use crispy_core::services::{
+    ChannelService, HistoryService, ProfileService, ServiceContext, SourceService,
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-fn make_svc() -> CrispyService {
-    let svc = CrispyService::open_in_memory().expect("open in-memory DB");
+fn make_svc() -> ServiceContext {
+    let svc = ServiceContext::open_in_memory().expect("open in-memory DB");
     // Seed sources so FK constraints on channels are satisfied.
     for (id, name) in [
         ("s1", "Source 1"),
@@ -34,7 +36,9 @@ fn make_svc() -> CrispyService {
         ("srcA", "Src A"),
         ("srcB", "Src B"),
     ] {
-        svc.save_source(&source(id, name)).expect("seed source");
+        SourceService(svc.clone())
+            .save_source(&source(id, name))
+            .expect("seed source");
     }
     // Seed profiles so watch history + favorites FK constraints pass.
     for (id, name) in [
@@ -43,7 +47,9 @@ fn make_svc() -> CrispyService {
         ("profile_alice", "Alice"),
         ("profile_bob", "Bob"),
     ] {
-        svc.save_profile(&profile(id, name)).expect("seed profile");
+        ProfileService(svc.clone())
+            .save_profile(&profile(id, name))
+            .expect("seed profile");
     }
     svc
 }
@@ -132,14 +138,15 @@ fn watch_entry(id: &str, name: &str, profile_id: &str, last_watched_str: &str) -
 #[test]
 fn test_save_profile_updates_name_and_pin_when_saved_twice() {
     let svc = make_svc();
+    let psvc = ProfileService(svc.clone());
     let mut p = profile("p1", "Alice");
-    svc.save_profile(&p).unwrap();
+    psvc.save_profile(&p).unwrap();
 
     p.name = "Alicia".to_string();
     p.pin = Some("1234".to_string());
-    svc.save_profile(&p).unwrap();
+    psvc.save_profile(&p).unwrap();
 
-    let loaded = svc
+    let loaded = psvc
         .load_profiles()
         .unwrap()
         .into_iter()
@@ -154,11 +161,12 @@ fn test_save_profile_updates_name_and_pin_when_saved_twice() {
 #[test]
 fn test_save_profile_persists_is_child_flag_when_true() {
     let svc = make_svc();
+    let psvc = ProfileService(svc.clone());
     let mut p = profile("p2", "KidProfile");
     p.is_child = true;
-    svc.save_profile(&p).unwrap();
+    psvc.save_profile(&p).unwrap();
 
-    let loaded = svc
+    let loaded = psvc
         .load_profiles()
         .unwrap()
         .into_iter()
@@ -172,15 +180,14 @@ fn test_save_profile_persists_is_child_flag_when_true() {
 #[test]
 fn test_load_profiles_returns_all_when_multiple_saved() {
     let svc = make_svc();
-    svc.save_profile(&profile("p1", "Alice")).unwrap();
-    svc.save_profile(&profile("p2", "Bob")).unwrap();
-    svc.save_profile(&profile("p3", "Charlie")).unwrap();
+    let psvc = ProfileService(svc.clone());
+    psvc.save_profile(&profile("p1", "Alice")).unwrap();
+    psvc.save_profile(&profile("p2", "Bob")).unwrap();
+    psvc.save_profile(&profile("p3", "Charlie")).unwrap();
 
-    let all = svc.load_profiles().unwrap();
+    let all = psvc.load_profiles().unwrap();
     let ids: Vec<&str> = all.iter().map(|p| p.id.as_str()).collect();
     assert!(ids.contains(&"p1"));
-    assert!(ids.contains(&"p2"));
-    assert!(ids.contains(&"p3"));
     assert!(ids.contains(&"p2"));
     assert!(ids.contains(&"p3"));
 }
@@ -189,13 +196,14 @@ fn test_load_profiles_returns_all_when_multiple_saved() {
 #[test]
 fn test_delete_profile_removes_only_target_when_multiple_exist() {
     let svc = make_svc();
-    svc.save_profile(&profile("p1", "Alice")).unwrap();
-    svc.save_profile(&profile("p2", "Bob")).unwrap();
+    let psvc = ProfileService(svc.clone());
+    psvc.save_profile(&profile("p1", "Alice")).unwrap();
+    psvc.save_profile(&profile("p2", "Bob")).unwrap();
 
-    let before = svc.load_profiles().unwrap().len();
-    svc.delete_profile("p1").unwrap();
+    let before = psvc.load_profiles().unwrap().len();
+    psvc.delete_profile("p1").unwrap();
 
-    let remaining = svc.load_profiles().unwrap();
+    let remaining = psvc.load_profiles().unwrap();
     assert_eq!(remaining.len(), before - 1, "exactly one profile removed");
     assert!(remaining.iter().any(|p| p.id == "p2"), "p2 must survive");
     assert!(!remaining.iter().any(|p| p.id == "p1"), "p1 must be gone");
@@ -205,22 +213,24 @@ fn test_delete_profile_removes_only_target_when_multiple_exist() {
 #[test]
 fn test_delete_profile_removes_favorites_when_profile_deleted() {
     let svc = make_svc();
-    svc.save_profile(&profile("p1", "Alice")).unwrap();
+    let psvc = ProfileService(svc.clone());
+    let csvc = ChannelService(svc.clone());
+    psvc.save_profile(&profile("p1", "Alice")).unwrap();
 
     let ch = channel("ch1", "CNN", "src1");
-    svc.save_channels(&[ch]).unwrap();
-    svc.add_favorite("p1", "ch1").unwrap();
-    assert_eq!(svc.get_favorites("p1").unwrap().len(), 1);
+    csvc.save_channels(&[ch]).unwrap();
+    csvc.add_favorite("p1", "ch1").unwrap();
+    assert_eq!(csvc.get_favorites("p1").unwrap().len(), 1);
 
-    svc.delete_profile("p1").unwrap();
+    psvc.delete_profile("p1").unwrap();
 
-    let remaining = svc.load_profiles().unwrap();
+    let remaining = psvc.load_profiles().unwrap();
     assert!(
         !remaining.iter().any(|p| p.id == "p1"),
         "deleted profile must not appear in list"
     );
     assert!(
-        svc.get_favorites("p1").unwrap().is_empty(),
+        csvc.get_favorites("p1").unwrap().is_empty(),
         "favorites must be removed when their profile is deleted"
     );
 }
@@ -229,16 +239,18 @@ fn test_delete_profile_removes_favorites_when_profile_deleted() {
 #[test]
 fn test_delete_profile_removes_watch_history_when_profile_deleted() {
     let svc = make_svc();
-    svc.save_profile(&profile("p1", "Alice")).unwrap();
+    let psvc = ProfileService(svc.clone());
+    let hsvc = HistoryService(svc.clone());
+    psvc.save_profile(&profile("p1", "Alice")).unwrap();
 
     let entry = watch_entry("w1", "Film", "p1", "2024-06-01 10:00:00");
-    svc.save_watch_history(&entry).unwrap();
-    assert_eq!(svc.load_watch_history().unwrap().len(), 1);
+    hsvc.save_watch_history(&entry).unwrap();
+    assert_eq!(hsvc.load_watch_history().unwrap().len(), 1);
 
-    svc.delete_profile("p1").unwrap();
+    psvc.delete_profile("p1").unwrap();
 
     assert!(
-        svc.load_watch_history().unwrap().is_empty(),
+        hsvc.load_watch_history().unwrap().is_empty(),
         "watch history must be removed when its profile is deleted"
     );
 }
@@ -249,16 +261,17 @@ fn test_delete_profile_removes_watch_history_when_profile_deleted() {
 #[test]
 fn test_load_watch_history_orders_most_recent_first_when_multiple_entries() {
     let svc = make_svc();
+    let hsvc = HistoryService(svc.clone());
 
     // Insert in non-chronological order.
-    svc.save_watch_history(&watch_entry("w1", "Oldest", "p1", "2024-01-01 10:00:00"))
+    hsvc.save_watch_history(&watch_entry("w1", "Oldest", "p1", "2024-01-01 10:00:00"))
         .unwrap();
-    svc.save_watch_history(&watch_entry("w3", "Newest", "p1", "2024-03-01 10:00:00"))
+    hsvc.save_watch_history(&watch_entry("w3", "Newest", "p1", "2024-03-01 10:00:00"))
         .unwrap();
-    svc.save_watch_history(&watch_entry("w2", "Middle", "p1", "2024-02-01 10:00:00"))
+    hsvc.save_watch_history(&watch_entry("w2", "Middle", "p1", "2024-02-01 10:00:00"))
         .unwrap();
 
-    let history = svc.load_watch_history().unwrap();
+    let history = hsvc.load_watch_history().unwrap();
     assert_eq!(history.len(), 3);
     assert_eq!(history[0].id, "w3", "most recent must be first");
     assert_eq!(history[1].id, "w2");
@@ -269,15 +282,16 @@ fn test_load_watch_history_orders_most_recent_first_when_multiple_entries() {
 #[test]
 fn test_save_watch_history_preserves_profile_id_for_isolation_when_multiple_profiles() {
     let svc = make_svc();
+    let hsvc = HistoryService(svc.clone());
 
-    svc.save_watch_history(&watch_entry(
+    hsvc.save_watch_history(&watch_entry(
         "w1",
         "Movie A",
         "profile_alice",
         "2024-01-01 10:00:00",
     ))
     .unwrap();
-    svc.save_watch_history(&watch_entry(
+    hsvc.save_watch_history(&watch_entry(
         "w2",
         "Movie B",
         "profile_bob",
@@ -285,7 +299,7 @@ fn test_save_watch_history_preserves_profile_id_for_isolation_when_multiple_prof
     ))
     .unwrap();
 
-    let all = svc.load_watch_history().unwrap();
+    let all = hsvc.load_watch_history().unwrap();
     assert_eq!(all.len(), 2);
 
     let alice: Vec<_> = all
@@ -307,15 +321,16 @@ fn test_save_watch_history_preserves_profile_id_for_isolation_when_multiple_prof
 #[test]
 fn test_save_watch_history_overwrites_position_when_same_id_saved_twice() {
     let svc = make_svc();
+    let hsvc = HistoryService(svc.clone());
 
     let mut e = watch_entry("w1", "Movie", "p1", "2024-01-01 10:00:00");
     e.position_ms = 1000;
-    svc.save_watch_history(&e).unwrap();
+    hsvc.save_watch_history(&e).unwrap();
 
     e.position_ms = 9500;
-    svc.save_watch_history(&e).unwrap();
+    hsvc.save_watch_history(&e).unwrap();
 
-    let all = svc.load_watch_history().unwrap();
+    let all = hsvc.load_watch_history().unwrap();
     assert_eq!(all.len(), 1, "upsert must not create duplicate rows");
     assert_eq!(
         all[0].position_ms, 9500,
@@ -329,16 +344,18 @@ fn test_save_watch_history_overwrites_position_when_same_id_saved_twice() {
 #[test]
 fn test_favorites_are_isolated_per_profile_when_two_profiles_share_channel() {
     let svc = make_svc();
-    svc.save_profile(&profile("pA", "Alice")).unwrap();
-    svc.save_profile(&profile("pB", "Bob")).unwrap();
+    let psvc = ProfileService(svc.clone());
+    let csvc = ChannelService(svc.clone());
+    psvc.save_profile(&profile("pA", "Alice")).unwrap();
+    psvc.save_profile(&profile("pB", "Bob")).unwrap();
 
     let ch = channel("ch1", "CNN", "src1");
-    svc.save_channels(&[ch]).unwrap();
+    csvc.save_channels(&[ch]).unwrap();
 
-    svc.add_favorite("pA", "ch1").unwrap();
+    csvc.add_favorite("pA", "ch1").unwrap();
 
-    let alice_favs = svc.get_favorites("pA").unwrap();
-    let bob_favs = svc.get_favorites("pB").unwrap();
+    let alice_favs = csvc.get_favorites("pA").unwrap();
+    let bob_favs = csvc.get_favorites("pB").unwrap();
 
     assert_eq!(alice_favs, vec!["ch1"]);
     assert!(bob_favs.is_empty(), "Bob's favorites must be empty");
@@ -348,19 +365,21 @@ fn test_favorites_are_isolated_per_profile_when_two_profiles_share_channel() {
 #[test]
 fn test_remove_favorite_only_removes_from_target_profile_when_both_have_same_channel() {
     let svc = make_svc();
-    svc.save_profile(&profile("pA", "Alice")).unwrap();
-    svc.save_profile(&profile("pB", "Bob")).unwrap();
+    let psvc = ProfileService(svc.clone());
+    let csvc = ChannelService(svc.clone());
+    psvc.save_profile(&profile("pA", "Alice")).unwrap();
+    psvc.save_profile(&profile("pB", "Bob")).unwrap();
 
     let ch = channel("ch1", "BBC", "src1");
-    svc.save_channels(&[ch]).unwrap();
+    csvc.save_channels(&[ch]).unwrap();
 
-    svc.add_favorite("pA", "ch1").unwrap();
-    svc.add_favorite("pB", "ch1").unwrap();
+    csvc.add_favorite("pA", "ch1").unwrap();
+    csvc.add_favorite("pB", "ch1").unwrap();
 
-    svc.remove_favorite("pA", "ch1").unwrap();
+    csvc.remove_favorite("pA", "ch1").unwrap();
 
-    assert!(svc.get_favorites("pA").unwrap().is_empty());
-    assert_eq!(svc.get_favorites("pB").unwrap(), vec!["ch1"]);
+    assert!(csvc.get_favorites("pA").unwrap().is_empty());
+    assert_eq!(csvc.get_favorites("pB").unwrap(), vec!["ch1"]);
 }
 
 // ── Source tests ──────────────────────────────────────────────────────────────
@@ -369,20 +388,21 @@ fn test_remove_favorite_only_removes_from_target_profile_when_both_have_same_cha
 #[test]
 fn test_save_source_upserts_when_same_id_saved_twice() {
     let svc = make_svc();
-    let before = svc.get_sources().unwrap().len();
-    svc.save_source(&source("upsert_test", "Original")).unwrap();
+    let ssvc = SourceService(svc.clone());
+    let before = ssvc.get_sources().unwrap().len();
+    ssvc.save_source(&source("upsert_test", "Original")).unwrap();
 
     let mut s2 = source("upsert_test", "Renamed");
     s2.source_type = crispy_core::value_objects::SourceType::Xtream;
-    svc.save_source(&s2).unwrap();
+    ssvc.save_source(&s2).unwrap();
 
-    let all = svc.get_sources().unwrap();
+    let all = ssvc.get_sources().unwrap();
     assert_eq!(
         all.len(),
         before + 1,
         "must have exactly one new source after two saves with same id"
     );
-    let loaded = svc.get_source("upsert_test").unwrap().unwrap();
+    let loaded = ssvc.get_source("upsert_test").unwrap().unwrap();
     assert_eq!(loaded.name, "Renamed");
     assert_eq!(
         loaded.source_type,
@@ -394,21 +414,23 @@ fn test_save_source_upserts_when_same_id_saved_twice() {
 #[test]
 fn test_delete_source_removes_only_its_channels_when_multiple_sources_exist() {
     let svc = make_svc();
-    svc.save_source(&source("src1", "Source A")).unwrap();
-    svc.save_source(&source("src2", "Source B")).unwrap();
+    let ssvc = SourceService(svc.clone());
+    let csvc = ChannelService(svc.clone());
+    ssvc.save_source(&source("src1", "Source A")).unwrap();
+    ssvc.save_source(&source("src2", "Source B")).unwrap();
 
-    svc.save_channels(&[
+    csvc.save_channels(&[
         channel("ch1", "Ch-A1", "src1"),
         channel("ch2", "Ch-A2", "src1"),
         channel("ch3", "Ch-B1", "src2"),
     ])
     .unwrap();
 
-    assert_eq!(svc.load_channels().unwrap().len(), 3);
+    assert_eq!(csvc.load_channels().unwrap().len(), 3);
 
-    svc.delete_source("src1").unwrap();
+    ssvc.delete_source("src1").unwrap();
 
-    let remaining = svc.load_channels().unwrap();
+    let remaining = csvc.load_channels().unwrap();
     assert_eq!(remaining.len(), 1, "only ch3 from src2 must survive");
     assert_eq!(remaining[0].id, "ch3");
 }
@@ -417,7 +439,9 @@ fn test_delete_source_removes_only_its_channels_when_multiple_sources_exist() {
 #[test]
 fn test_delete_source_is_noop_when_source_does_not_exist() {
     let svc = make_svc();
-    svc.delete_source("nonexistent-id").unwrap();
+    SourceService(svc.clone())
+        .delete_source("nonexistent-id")
+        .unwrap();
 }
 
 // ── Channel tests ─────────────────────────────────────────────────────────────
@@ -426,12 +450,13 @@ fn test_delete_source_is_noop_when_source_does_not_exist() {
 #[test]
 fn test_save_channels_persists_channel_group_when_group_is_set() {
     let svc = make_svc();
+    let csvc = ChannelService(svc.clone());
 
     let mut ch = channel("ch1", "Al Jazeera", "src1");
     ch.channel_group = Some("News".to_string());
-    svc.save_channels(&[ch]).unwrap();
+    csvc.save_channels(&[ch]).unwrap();
 
-    let loaded = svc.load_channels().unwrap();
+    let loaded = csvc.load_channels().unwrap();
     assert_eq!(loaded.len(), 1);
     assert_eq!(
         loaded[0].channel_group.as_deref(),
@@ -444,15 +469,18 @@ fn test_save_channels_persists_channel_group_when_group_is_set() {
 #[test]
 fn test_get_channels_by_sources_returns_only_matching_source_when_multiple_sources_exist() {
     let svc = make_svc();
+    let csvc = ChannelService(svc.clone());
 
-    svc.save_channels(&[
+    csvc.save_channels(&[
         channel("ch1", "Ch1", "srcA"),
         channel("ch2", "Ch2", "srcA"),
         channel("ch3", "Ch3", "srcB"),
     ])
     .unwrap();
 
-    let result = svc.get_channels_by_sources(&["srcA".to_string()]).unwrap();
+    let result = csvc
+        .get_channels_by_sources(&["srcA".to_string()])
+        .unwrap();
 
     assert_eq!(result.len(), 2);
     let ids: Vec<&str> = result.iter().map(|c| c.id.as_str()).collect();
@@ -468,10 +496,11 @@ fn test_get_channels_by_sources_returns_only_matching_source_when_multiple_sourc
 #[test]
 fn test_save_channels_returns_zero_and_preserves_existing_when_empty_slice() {
     let svc = make_svc();
-    svc.save_channels(&[channel("ch1", "Existing", "src1")])
+    let csvc = ChannelService(svc.clone());
+    csvc.save_channels(&[channel("ch1", "Existing", "src1")])
         .unwrap();
 
-    let count = svc.save_channels(&[]).unwrap();
+    let count = csvc.save_channels(&[]).unwrap();
     assert_eq!(count, 0);
-    assert_eq!(svc.load_channels().unwrap().len(), 1);
+    assert_eq!(csvc.load_channels().unwrap().len(), 1);
 }

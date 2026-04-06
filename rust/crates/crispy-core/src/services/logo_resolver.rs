@@ -10,7 +10,7 @@ use regex::Regex;
 use rusqlite::params;
 use serde::Deserialize;
 
-use super::CrispyService;
+use super::ServiceContext;
 use crate::database::DbError;
 use crate::insert_or_replace;
 
@@ -197,7 +197,7 @@ fn resolve_from_index(index: &HashMap<String, String>, channel_name: &str) -> Op
 // ── CrispyService methods ──────────────────────────────
 
 /// Domain service for logo resolution operations.
-pub struct LogoService(pub(super) CrispyService);
+pub struct LogoService(pub ServiceContext);
 
 impl LogoService {
     /// Check whether the cached logo index is stale (>24 h).
@@ -590,7 +590,7 @@ mod tests {
     // ── LogoService integration ──────────────────────
 
     fn make_logo_service() -> LogoService {
-        LogoService(CrispyService::open_in_memory().unwrap())
+        LogoService(ServiceContext::open_in_memory().unwrap())
     }
 
     #[test]

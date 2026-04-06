@@ -1,13 +1,13 @@
 use rusqlite::params;
 
 use crate::insert_or_replace;
-use super::{CrispyService, vod::vod_item_from_row};
+use super::{ServiceContext, vod::vod_item_from_row};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::models::VodItem;
 
 /// Domain service for watchlist operations.
-pub struct WatchlistService(pub(super) CrispyService);
+pub struct WatchlistService(pub ServiceContext);
 
 impl WatchlistService {
     // ── Watchlist ──────────────────────────────────────────
@@ -72,8 +72,11 @@ mod tests {
     /// Call `seed_vod` to add individual VOD items.
     fn make_watchlist_service() -> WatchlistService {
         let svc = make_service();
-        svc.save_profile(&make_profile("prof1", "Tester")).unwrap();
-        svc.save_source(&make_source("src1", "TestSrc", "m3u"))
+        crate::services::ProfileService(svc.clone())
+            .save_profile(&make_profile("prof1", "Tester"))
+            .unwrap();
+        crate::services::SourceService(svc.clone())
+            .save_source(&make_source("src1", "TestSrc", "m3u"))
             .unwrap();
         WatchlistService(svc)
     }
@@ -82,7 +85,9 @@ mod tests {
     fn seed_vod(svc: &WatchlistService, vod_id: &str) {
         let mut movie = make_vod_item(vod_id, &format!("Movie {vod_id}"));
         movie.source_id = Some("src1".to_string());
-        svc.0.save_vod_items(&[movie]).unwrap();
+        crate::services::VodService(svc.0.clone())
+            .save_vod_items(&[movie])
+            .unwrap();
     }
 
     // ── Basic CRUD ────────────────────────────────────

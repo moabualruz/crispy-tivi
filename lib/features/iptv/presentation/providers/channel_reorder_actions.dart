@@ -1,8 +1,7 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../../core/providers/active_profile_provider.dart';
+import '../../data/channel_repository_impl.dart'
+    show channelOrderRepositoryProvider;
 import 'channel_providers.dart';
-import 'iptv_service_providers.dart';
 
 /// Channel reorder action extensions for [ChannelListNotifier].
 ///
@@ -31,7 +30,7 @@ extension ChannelReorderActions on ChannelListNotifier {
 
     final channelIds = channels.map((c) => c.id).toList();
     await ref
-        .read(channelRepositoryProvider)
+        .read(channelOrderRepositoryProvider)
         .saveChannelOrder(profileId, groupName, channelIds);
 
     final orderMap = <String, int>{};
@@ -50,7 +49,7 @@ extension ChannelReorderActions on ChannelListNotifier {
     final groupName = state.effectiveGroup ?? '';
 
     await ref
-        .read(channelRepositoryProvider)
+        .read(channelOrderRepositoryProvider)
         .resetChannelOrder(profileId, groupName);
 
     state = state.copyWith(clearCustomOrder: true);

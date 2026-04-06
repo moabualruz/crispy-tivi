@@ -1,6 +1,6 @@
 use rusqlite::{Row, params};
 
-use super::{CrispyService, bool_to_int, dt_to_ts, int_to_bool, ts_to_dt};
+use super::{ServiceContext, bool_to_int, dt_to_ts, int_to_bool, ts_to_dt};
 use crate::database::DbError;
 use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
@@ -9,7 +9,7 @@ use crate::models::{Recording, StorageBackend, TransferTask};
 use crate::traits::{RecordingRepository, StorageRepository, TransferRepository};
 
 /// Domain service for DVR operations.
-pub struct DvrService(pub(super) CrispyService);
+pub struct DvrService(pub ServiceContext);
 
 fn recording_from_row(row: &Row) -> rusqlite::Result<Recording> {
     Ok(Recording {
@@ -345,7 +345,8 @@ mod tests {
     /// Create a service with fixtures and seed channel "ch1" for recording FK.
     fn make_dvr_service() -> DvrService {
         let svc = make_service_with_fixtures();
-        svc.save_channels(&[make_channel("ch1", "Channel 1")])
+        crate::services::ChannelService(svc.clone())
+            .save_channels(&[make_channel("ch1", "Channel 1")])
             .unwrap();
         DvrService(svc)
     }

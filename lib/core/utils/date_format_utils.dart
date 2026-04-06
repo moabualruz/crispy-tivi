@@ -65,6 +65,27 @@ String formatH12mm(DateTime dt) {
   return '$h12:$m $period';
 }
 
+/// Formats a [DateTime] as a wall-clock time string.
+///
+/// When [is24Hour] is true, returns `"HH:MM"` (zero-padded).
+/// When false, returns `"h:MM AM/PM"`.
+///
+/// Uses the [DateTime] value as-is (no timezone conversion).
+String formatFinishTime(DateTime time, bool is24Hour) {
+  if (is24Hour) {
+    return '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}';
+  }
+  final hour12 =
+      time.hour == 0
+          ? 12
+          : time.hour > 12
+          ? time.hour - 12
+          : time.hour;
+  final amPm = time.hour >= 12 ? 'PM' : 'AM';
+  return '$hour12:${time.minute.toString().padLeft(2, '0')} $amPm';
+}
+
 /// Formats a [DateTime] as "D/M/YYYY".
 String formatDMY(DateTime dt) => '${dt.day}/${dt.month}/${dt.year}';
 

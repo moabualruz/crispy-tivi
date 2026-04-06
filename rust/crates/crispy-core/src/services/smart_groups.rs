@@ -1,14 +1,14 @@
 use rusqlite::params;
 use serde_json::{Value, json};
 
-use super::CrispyService;
+use super::ServiceContext;
 use crate::algorithms::stream_alternatives::normalize_for_matching;
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::insert_or_replace;
 
 /// Domain service for smart channel group operations.
-pub struct SmartGroupService(pub(super) CrispyService);
+pub struct SmartGroupService(pub ServiceContext);
 
 impl SmartGroupService {
     // ── Smart Channel Groups ────────────────────────────

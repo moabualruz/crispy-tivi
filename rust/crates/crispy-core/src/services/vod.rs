@@ -1,6 +1,6 @@
 use rusqlite::{Row, params};
 
-use super::{CrispyService, bool_to_int, build_in_placeholders, opt_dt_to_ts, str_params};
+use super::{ServiceContext, bool_to_int, build_in_placeholders, opt_dt_to_ts, str_params};
 use crate::database::row_helpers::RowExt;
 use crate::database::{DbError, TABLE_MOVIES};
 use crate::errors::DomainError;
@@ -11,7 +11,7 @@ use crate::models::columns::{VOD_COLUMNS, VOD_COLUMNS_V};
 use crate::traits::VodRepository;
 
 /// Domain service for VOD operations.
-pub struct VodService(pub(super) CrispyService);
+pub struct VodService(pub ServiceContext);
 
 /// Map a single SQLite row to a `VodItem` (backward compat).
 pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
@@ -395,7 +395,9 @@ mod tests {
     fn save_and_load_vod_items() {
         let base = make_service();
         let src = make_source("src1", "S1", "m3u");
-        base.save_source(&src).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src)
+            .unwrap();
         let svc = VodService(base);
         let mut v1 = make_vod_item("v1", "Movie 1");
         v1.source_id = Some("src1".to_string());
@@ -447,7 +449,9 @@ mod tests {
     fn vod_upsert_overwrites() {
         let base = make_service();
         let src = make_source("src1", "S1", "m3u");
-        base.save_source(&src).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src)
+            .unwrap();
         let svc = VodService(base);
         let mut v = make_vod_item("v1", "Original");
         v.source_id = Some("src1".to_string());
@@ -485,9 +489,13 @@ mod tests {
     #[test]
     fn vod_favorites_crud() {
         let base = make_service();
-        base.save_profile(&make_profile("p1", "Alice")).unwrap();
+        crate::services::ProfileService(base.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
         let src = make_source("src1", "S1", "m3u");
-        base.save_source(&src).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src)
+            .unwrap();
         let svc = VodService(base);
         let mut v = make_vod_item("v1", "Movie");
         v.source_id = Some("src1".to_string());
@@ -512,9 +520,13 @@ mod tests {
         base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
-        base.save_profile(&make_profile("p1", "Alice")).unwrap();
+        crate::services::ProfileService(base.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
         let src = make_source("src1", "S1", "m3u");
-        base.save_source(&src).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src)
+            .unwrap();
         let svc = VodService(base);
         let mut v = make_vod_item("v1", "Movie");
         v.source_id = Some("src1".to_string());
@@ -533,8 +545,12 @@ mod tests {
         src_a.sort_order = 0;
         let mut src_b = make_source("src_b", "Source B", "m3u");
         src_b.sort_order = 1;
-        base.save_source(&src_a).unwrap();
-        base.save_source(&src_b).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_a)
+            .unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_b)
+            .unwrap();
         let svc = VodService(base);
 
         let mut v1 = make_vod_item("v1", "Dune");
@@ -556,7 +572,9 @@ mod tests {
     fn find_vod_alternatives_excludes_self() {
         let base = make_service();
         let src = make_source("src_a", "Source A", "m3u");
-        base.save_source(&src).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src)
+            .unwrap();
         let svc = VodService(base);
 
         let mut v1 = make_vod_item("v1", "Dune");
@@ -577,8 +595,12 @@ mod tests {
         src_a.sort_order = 0;
         let mut src_b = make_source("src_b", "Source B", "m3u");
         src_b.sort_order = 1;
-        base.save_source(&src_a).unwrap();
-        base.save_source(&src_b).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_a)
+            .unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_b)
+            .unwrap();
         let svc = VodService(base);
 
         let mut v1 = make_vod_item("v1", "Dune");
@@ -604,9 +626,15 @@ mod tests {
         src_b.sort_order = 1;
         let mut src_c = make_source("src_c", "Source C", "m3u");
         src_c.sort_order = 2;
-        base.save_source(&src_a).unwrap();
-        base.save_source(&src_b).unwrap();
-        base.save_source(&src_c).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_a)
+            .unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_b)
+            .unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_c)
+            .unwrap();
         let svc = VodService(base);
 
         let mut v1 = make_vod_item("v1", "Dune");
@@ -637,9 +665,15 @@ mod tests {
         src_b.sort_order = 0;
         let mut src_c = make_source("src_c", "Source C", "m3u");
         src_c.sort_order = 10;
-        base.save_source(&src_a).unwrap();
-        base.save_source(&src_b).unwrap();
-        base.save_source(&src_c).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_a)
+            .unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_b)
+            .unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src_c)
+            .unwrap();
         let svc = VodService(base);
 
         let mut v1 = make_vod_item("v1", "Inception");

@@ -10,7 +10,7 @@ use crate::algorithms::categories;
 use crate::http_client::get_shared_client;
 use crate::models::SyncReport;
 use crate::parsers::{m3u, vod};
-use crate::services::CrispyService;
+use crate::services::ServiceContext;
 use crate::services::url_validator::validate_url;
 use crate::sync_progress::emit_progress;
 
@@ -32,7 +32,7 @@ pub async fn verify_m3u_url(url: &str, accept_invalid_certs: bool) -> Result<boo
 /// Downloads the M3U content, parses channels and EPG URL,
 /// extracts VOD items, saves to DB, and returns a report.
 pub async fn sync_m3u_source(
-    service: &CrispyService,
+    service: &ServiceContext,
     url: &str,
     source_id: &str,
     accept_invalid_certs: bool,
@@ -132,7 +132,7 @@ mod tests {
 
         let url = format!("{}/playlist.m3u", mock_server.uri());
         let service = make_service();
-        service
+        crate::services::SourceService(service.clone())
             .save_source(&make_source("src-1", "M3U Source", "m3u"))
             .unwrap();
         let report = sync_m3u_source(&service, &url, "src-1", false)
@@ -162,7 +162,7 @@ mod tests {
 
         let url = format!("{}/empty.m3u", mock_server.uri());
         let service = make_service();
-        service
+        crate::services::SourceService(service.clone())
             .save_source(&make_source("src-empty", "Empty Source", "m3u"))
             .unwrap();
         let report = sync_m3u_source(&service, &url, "src-empty", false)
@@ -194,7 +194,7 @@ mod tests {
 
         let url = format!("{}/epg_playlist.m3u", mock_server.uri());
         let service = make_service();
-        service
+        crate::services::SourceService(service.clone())
             .save_source(&make_source("src-epg", "EPG Source", "m3u"))
             .unwrap();
         let report = sync_m3u_source(&service, &url, "src-epg", false)

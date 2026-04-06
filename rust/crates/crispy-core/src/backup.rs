@@ -2,7 +2,7 @@
 //!
 //! Provides full data export and import as JSON.
 //! Reads from and writes to the database via
-//! [`CrispyService`].
+//! [`ServiceContext`].
 
 use std::collections::HashMap;
 
@@ -11,7 +11,9 @@ use serde_json::Value;
 
 use crate::algorithms::cloud_sync::SYNC_META_KEYS;
 use crate::models::{Recording, Source, StorageBackend, UserProfile, WatchHistory};
-use crate::services::CrispyService;
+use crate::services::{
+    ChannelService, DvrService, HistoryService, ProfileService, ServiceContext, SourceService,
+};
 use crate::value_objects::{DvrPermission, ProfileRole};
 
 /// Current backup format version.
@@ -104,15 +106,21 @@ pub struct BackupSummary {
 // ── Export ───────────────────────────────────────────
 
 /// Export all data from the database as pretty JSON.
-pub fn export_backup(svc: &CrispyService) -> Result<String, String> {
+pub fn export_backup(ctx: &ServiceContext) -> Result<String, String> {
+    let profile_svc = ProfileService(ctx.clone());
+    let channel_svc = ChannelService(ctx.clone());
+    let history_svc = HistoryService(ctx.clone());
+    let dvr_svc = DvrService(ctx.clone());
+    let source_svc = SourceService(ctx.clone());
+
     // 1. Profiles
-    let profiles = svc.load_profiles().map_err(|e| e.to_string())?;
+    let profiles = profile_svc.load_profiles().map_err(|e| e.to_string())?;
     let profile_values: Vec<Value> = profiles.iter().map(profile_to_value).collect();
 
     // 2. Favourites per profile
     let mut favorites: HashMap<String, Vec<String>> = HashMap::new();
     for p in &profiles {
-        let fav_ids = svc.get_favorites(&p.id).map_err(|e| e.to_string())?;
+        let fav_ids = channel_svc.get_favorites(&p.id).map_err(|e| e.to_string())?;
         if !fav_ids.is_empty() {
             favorites.insert(p.id.clone(), fav_ids);
         }
@@ -121,33 +129,33 @@ pub fn export_backup(svc: &CrispyService) -> Result<String, String> {
     // 3. Source access per profile
     let mut source_access: HashMap<String, Vec<String>> = HashMap::new();
     for p in &profiles {
-        let sids = svc.get_source_access(&p.id).map_err(|e| e.to_string())?;
+        let sids = profile_svc.get_source_access(&p.id).map_err(|e| e.to_string())?;
         if !sids.is_empty() {
             source_access.insert(p.id.clone(), sids);
         }
     }
 
     // 4. Channel orders
-    let channel_orders = export_channel_orders(svc, &profiles)?;
+    let channel_orders = export_channel_orders(ctx, &profiles)?;
 
     // 5. Settings — base keys first, then sync metadata keys from
     //    the canonical SYNC_META_KEYS constant.
     let mut settings: HashMap<String, String> = HashMap::new();
     for &key in BASE_SETTINGS_KEYS.iter().chain(SYNC_META_KEYS.iter()) {
-        if let Some(val) = svc.get_setting(key).map_err(|e| e.to_string())? {
+        if let Some(val) = ctx.get_setting(key).map_err(|e| e.to_string())? {
             settings.insert(key.to_string(), val);
         }
     }
 
     // 6. Watch history
-    let watch_history = svc.load_watch_history().map_err(|e| e.to_string())?;
+    let watch_history = history_svc.load_watch_history().map_err(|e| e.to_string())?;
     let wh_values: Vec<Value> = watch_history
         .iter()
         .filter_map(|e| serde_json::to_value(e).ok())
         .collect();
 
     // 7. Recordings
-    let recordings = svc.load_recordings().map_err(|e| e.to_string())?;
+    let recordings = dvr_svc.load_recordings().map_err(|e| e.to_string())?;
     let rec_values: Vec<Value> = recordings
         .iter()
         .filter_map(|r| serde_json::to_value(r).ok())
@@ -157,7 +165,7 @@ pub fn export_backup(svc: &CrispyService) -> Result<String, String> {
     let sources = extract_sources(&settings);
 
     // 9. Storage backends (redact secrets)
-    let backends = svc.load_storage_backends().map_err(|e| e.to_string())?;
+    let backends = dvr_svc.load_storage_backends().map_err(|e| e.to_string())?;
     let backend_values: Vec<Value> = backends
         .iter()
         .filter_map(|b| {
@@ -168,7 +176,7 @@ pub fn export_backup(svc: &CrispyService) -> Result<String, String> {
         .collect();
 
     // 10. db_sources table entries
-    let db_sources_list = svc.get_sources().map_err(|e| e.to_string())?;
+    let db_sources_list = source_svc.get_sources().map_err(|e| e.to_string())?;
     let db_sources_values: Vec<Value> = db_sources_list
         .iter()
         .filter_map(|s| serde_json::to_value(s).ok())
@@ -202,7 +210,7 @@ pub fn export_backup(svc: &CrispyService) -> Result<String, String> {
 ///
 /// Returns a summary of what was imported. Individual
 /// items that fail to deserialize are silently skipped.
-pub fn import_backup(svc: &CrispyService, json: &str) -> Result<BackupSummary, String> {
+pub fn import_backup(ctx: &ServiceContext, json: &str) -> Result<BackupSummary, String> {
     let data: BackupData =
         serde_json::from_str(json).map_err(|e| format!("invalid backup JSON: {e}"))?;
 
@@ -214,12 +222,18 @@ pub fn import_backup(svc: &CrispyService, json: &str) -> Result<BackupSummary, S
         ));
     }
 
+    let profile_svc = ProfileService(ctx.clone());
+    let channel_svc = ChannelService(ctx.clone());
+    let history_svc = HistoryService(ctx.clone());
+    let dvr_svc = DvrService(ctx.clone());
+    let source_svc = SourceService(ctx.clone());
+
     let mut summary = BackupSummary::default();
 
     // 1. Profiles
     for pv in &data.profiles {
         if let Some(profile) = value_to_profile(pv)
-            && svc.save_profile(&profile).is_ok()
+            && profile_svc.save_profile(&profile).is_ok()
         {
             summary.profiles += 1;
         }
@@ -228,7 +242,7 @@ pub fn import_backup(svc: &CrispyService, json: &str) -> Result<BackupSummary, S
     // 2. Favourites
     for (profile_id, channel_ids) in &data.favorites {
         for cid in channel_ids {
-            if svc.add_favorite(profile_id, cid).is_ok() {
+            if channel_svc.add_favorite(profile_id, cid).is_ok() {
                 summary.favorites += 1;
             }
         }
@@ -236,14 +250,14 @@ pub fn import_backup(svc: &CrispyService, json: &str) -> Result<BackupSummary, S
 
     // 3. Source access
     for (profile_id, source_ids) in &data.source_access {
-        if svc.set_source_access(profile_id, source_ids).is_ok() {
+        if profile_svc.set_source_access(profile_id, source_ids).is_ok() {
             summary.source_access += source_ids.len() as i32;
         }
     }
 
     // 4. Settings
     for (key, value) in &data.settings {
-        if svc.set_setting(key, value).is_ok() {
+        if ctx.set_setting(key, value).is_ok() {
             summary.settings += 1;
         }
     }
@@ -251,7 +265,7 @@ pub fn import_backup(svc: &CrispyService, json: &str) -> Result<BackupSummary, S
     // 5. Sources → store as setting
     if !data.sources.is_empty()
         && let Ok(json_str) = serde_json::to_string(&data.sources)
-        && svc
+        && ctx
             .set_setting("crispy_tivi_playlist_sources", &json_str)
             .is_ok()
     {
@@ -261,7 +275,7 @@ pub fn import_backup(svc: &CrispyService, json: &str) -> Result<BackupSummary, S
     // 6. Watch history
     for whv in &data.watch_history {
         if let Ok(entry) = serde_json::from_value::<WatchHistory>(whv.clone())
-            && svc.save_watch_history(&entry).is_ok()
+            && history_svc.save_watch_history(&entry).is_ok()
         {
             summary.watch_history += 1;
         }
@@ -270,7 +284,7 @@ pub fn import_backup(svc: &CrispyService, json: &str) -> Result<BackupSummary, S
     // 7. Recordings
     for rv in &data.recordings {
         if let Ok(rec) = serde_json::from_value::<Recording>(rv.clone())
-            && svc.save_recording(&rec).is_ok()
+            && dvr_svc.save_recording(&rec).is_ok()
         {
             summary.recordings += 1;
         }
@@ -279,19 +293,19 @@ pub fn import_backup(svc: &CrispyService, json: &str) -> Result<BackupSummary, S
     // 8. Storage backends
     for bv in &data.storage_backends {
         if let Ok(backend) = serde_json::from_value::<StorageBackend>(bv.clone())
-            && svc.save_storage_backend(&backend).is_ok()
+            && dvr_svc.save_storage_backend(&backend).is_ok()
         {
             summary.storage_backends += 1;
         }
     }
 
     // 9. Channel orders
-    import_channel_orders(svc, &data, &mut summary);
+    import_channel_orders(ctx, &data, &mut summary);
 
     // 10. db_sources
     for sv in &data.db_sources {
         if let Ok(source) = serde_json::from_value::<Source>(sv.clone())
-            && svc.save_source(&source).is_ok()
+            && source_svc.save_source(&source).is_ok()
         {
             summary.db_sources += 1;
         }
@@ -378,11 +392,14 @@ fn redact_backend_config(v: &mut Value) {
 /// Export channel orders by iterating all profiles and
 /// unique channel groups via the service API.
 fn export_channel_orders(
-    svc: &CrispyService,
+    ctx: &ServiceContext,
     profiles: &[UserProfile],
 ) -> Result<Vec<Value>, String> {
+    let channel_svc = ChannelService(ctx.clone());
+    let profile_svc = ProfileService(ctx.clone());
+
     // Collect unique group names from channels.
-    let channels = svc.load_channels().map_err(|e| e.to_string())?;
+    let channels = channel_svc.load_channels().map_err(|e| e.to_string())?;
     let mut groups: Vec<String> = channels
         .iter()
         .filter_map(|ch| ch.channel_group.clone())
@@ -393,7 +410,7 @@ fn export_channel_orders(
     let mut orders: Vec<Value> = Vec::new();
     for p in profiles {
         for group in &groups {
-            if let Ok(Some(order_map)) = svc.load_channel_order(&p.id, group) {
+            if let Ok(Some(order_map)) = profile_svc.load_channel_order(&p.id, group) {
                 // order_map: channel_id -> sort_index
                 for (cid, idx) in &order_map {
                     orders.push(serde_json::json!({
@@ -413,7 +430,9 @@ fn export_channel_orders(
 ///
 /// Groups entries by (profileId, groupName), sorts by
 /// sortIndex, then calls `save_channel_order`.
-fn import_channel_orders(svc: &CrispyService, data: &BackupData, summary: &mut BackupSummary) {
+fn import_channel_orders(ctx: &ServiceContext, data: &BackupData, summary: &mut BackupSummary) {
+    let profile_svc = ProfileService(ctx.clone());
+
     // Collect entries grouped by (profile, group).
     let mut grouped: HashMap<(String, String), Vec<(i32, String)>> = HashMap::new();
 
@@ -441,7 +460,7 @@ fn import_channel_orders(svc: &CrispyService, data: &BackupData, summary: &mut B
     for ((profile_id, group_name), mut entries) in grouped {
         entries.sort_by_key(|(idx, _)| *idx);
         let channel_ids: Vec<String> = entries.into_iter().map(|(_, cid)| cid).collect();
-        if svc
+        if profile_svc
             .save_channel_order(&profile_id, &group_name, &channel_ids)
             .is_ok()
         {
@@ -459,12 +478,12 @@ mod tests {
     use crate::models::{Channel, Recording, StorageBackend, WatchHistory};
     use crate::value_objects::MediaType;
 
-    fn make_service() -> CrispyService {
-        CrispyService::open_in_memory().expect("open in-memory")
+    fn make_service() -> ServiceContext {
+        ServiceContext::open_in_memory().expect("open in-memory")
     }
 
     /// Seed a source row so FK constraints on child tables are satisfied.
-    fn seed_source(svc: &CrispyService, id: &str) {
+    fn seed_source(ctx: &ServiceContext, id: &str) {
         let src = Source {
             id: id.to_string(),
             name: format!("Source {id}"),
@@ -492,7 +511,7 @@ mod tests {
             epg_etag: None,
             epg_last_modified: None,
         };
-        svc.save_source(&src).unwrap();
+        SourceService(ctx.clone()).save_source(&src).unwrap();
     }
 
     fn make_channel(id: &str, name: &str, group: Option<&str>) -> Channel {
@@ -615,11 +634,12 @@ mod tests {
 
         let p1 = make_profile("p1", "Alice");
         let p2 = make_profile("p2", "Bob");
-        src.save_profile(&p1).unwrap();
-        src.save_profile(&p2).unwrap();
+        ProfileService(src.clone()).save_profile(&p1).unwrap();
+        ProfileService(src.clone()).save_profile(&p2).unwrap();
 
         // Seed a channel for recording FK.
-        src.save_channels(&[make_channel("ch1", "CNN", None)])
+        ChannelService(src.clone())
+            .save_channels(&[make_channel("ch1", "CNN", None)])
             .unwrap();
 
         // Settings
@@ -637,15 +657,15 @@ mod tests {
 
         // Watch history
         let wh = make_watch_history("wh1");
-        src.save_watch_history(&wh).unwrap();
+        HistoryService(src.clone()).save_watch_history(&wh).unwrap();
 
         // Recording
         let rec = make_recording("rec1");
-        src.save_recording(&rec).unwrap();
+        DvrService(src.clone()).save_recording(&rec).unwrap();
 
         // Storage backend
         let backend = make_storage_backend("sb1");
-        src.save_storage_backend(&backend).unwrap();
+        DvrService(src.clone()).save_storage_backend(&backend).unwrap();
 
         // ── Export ──────────────────────────────────
         let json = export_backup(&src).unwrap();
@@ -665,7 +685,8 @@ mod tests {
         // ── Import into fresh DB ────────────────────
         let dst = make_service();
         // Seed channel for recording FK.
-        dst.save_channels(&[make_channel("ch1", "CNN", None)])
+        ChannelService(dst.clone())
+            .save_channels(&[make_channel("ch1", "CNN", None)])
             .unwrap();
         let summary = import_backup(&dst, &json).unwrap();
 
@@ -677,7 +698,7 @@ mod tests {
         assert_eq!(summary.sources, 1);
 
         // Verify profiles match.
-        let profiles = dst.load_profiles().unwrap();
+        let profiles = ProfileService(dst.clone()).load_profiles().unwrap();
         assert_eq!(profiles.len(), 2);
         let alice = profiles.iter().find(|p| p.id == "p1").unwrap();
         assert_eq!(alice.name, "Alice");
@@ -696,13 +717,13 @@ mod tests {
         );
 
         // Verify watch history.
-        let wh_list = dst.load_watch_history().unwrap();
+        let wh_list = HistoryService(dst.clone()).load_watch_history().unwrap();
         assert_eq!(wh_list.len(), 1);
         assert_eq!(wh_list[0].id, "wh1");
         assert_eq!(wh_list[0].position_ms, 12345);
 
         // Verify recordings.
-        let recs = dst.load_recordings().unwrap();
+        let recs = DvrService(dst.clone()).load_recordings().unwrap();
         assert_eq!(recs.len(), 1);
         assert_eq!(recs[0].id, "rec1");
         assert_eq!(recs[0].program_name, "News Hour",);
@@ -712,7 +733,7 @@ mod tests {
 
     #[test]
     fn import_rejects_future_version() {
-        let svc = make_service();
+        let ctx = make_service();
         let json = serde_json::json!({
             "version": BACKUP_VERSION + 1,
             "exportedAt": "2025-01-01T00:00:00Z",
@@ -728,7 +749,7 @@ mod tests {
         })
         .to_string();
 
-        let result = import_backup(&svc, &json);
+        let result = import_backup(&ctx, &json);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("newer than supported"));
     }
@@ -739,16 +760,17 @@ mod tests {
     fn export_import_favorites() {
         let src = make_service();
         let p = make_profile("p1", "Alice");
-        src.save_profile(&p).unwrap();
+        ProfileService(src.clone()).save_profile(&p).unwrap();
 
         // Need channels to exist for FK.
-        src.save_channels(&[
-            make_channel("ch1", "CNN", None),
-            make_channel("ch2", "BBC", None),
-        ])
-        .unwrap();
-        src.add_favorite("p1", "ch1").unwrap();
-        src.add_favorite("p1", "ch2").unwrap();
+        ChannelService(src.clone())
+            .save_channels(&[
+                make_channel("ch1", "CNN", None),
+                make_channel("ch2", "BBC", None),
+            ])
+            .unwrap();
+        ChannelService(src.clone()).add_favorite("p1", "ch1").unwrap();
+        ChannelService(src.clone()).add_favorite("p1", "ch2").unwrap();
 
         let json = export_backup(&src).unwrap();
         let parsed: BackupData = serde_json::from_str(&json).unwrap();
@@ -758,17 +780,18 @@ mod tests {
         // Import into fresh DB.
         let dst = make_service();
         // Need profile + channels for FK.
-        dst.save_profile(&p).unwrap();
-        dst.save_channels(&[
-            make_channel("ch1", "CNN", None),
-            make_channel("ch2", "BBC", None),
-        ])
-        .unwrap();
+        ProfileService(dst.clone()).save_profile(&p).unwrap();
+        ChannelService(dst.clone())
+            .save_channels(&[
+                make_channel("ch1", "CNN", None),
+                make_channel("ch2", "BBC", None),
+            ])
+            .unwrap();
 
         let summary = import_backup(&dst, &json).unwrap();
         assert_eq!(summary.favorites, 2);
 
-        let dst_favs = dst.get_favorites("p1").unwrap();
+        let dst_favs = ChannelService(dst.clone()).get_favorites("p1").unwrap();
         assert_eq!(dst_favs.len(), 2);
     }
 
@@ -778,17 +801,19 @@ mod tests {
     fn export_import_channel_orders() {
         let src = make_service();
         let p = make_profile("p1", "Alice");
-        src.save_profile(&p).unwrap();
+        ProfileService(src.clone()).save_profile(&p).unwrap();
 
         // Channels with a group.
-        src.save_channels(&[
-            make_channel("ch1", "CNN", Some("News")),
-            make_channel("ch2", "BBC", Some("News")),
-        ])
-        .unwrap();
+        ChannelService(src.clone())
+            .save_channels(&[
+                make_channel("ch1", "CNN", Some("News")),
+                make_channel("ch2", "BBC", Some("News")),
+            ])
+            .unwrap();
 
         // Custom order: ch2 before ch1.
-        src.save_channel_order("p1", "News", &["ch2".to_string(), "ch1".to_string()])
+        ProfileService(src.clone())
+            .save_channel_order("p1", "News", &["ch2".to_string(), "ch1".to_string()])
             .unwrap();
 
         let json = export_backup(&src).unwrap();
@@ -797,17 +822,21 @@ mod tests {
 
         // Import into fresh DB.
         let dst = make_service();
-        dst.save_profile(&p).unwrap();
-        dst.save_channels(&[
-            make_channel("ch1", "CNN", Some("News")),
-            make_channel("ch2", "BBC", Some("News")),
-        ])
-        .unwrap();
+        ProfileService(dst.clone()).save_profile(&p).unwrap();
+        ChannelService(dst.clone())
+            .save_channels(&[
+                make_channel("ch1", "CNN", Some("News")),
+                make_channel("ch2", "BBC", Some("News")),
+            ])
+            .unwrap();
         let summary = import_backup(&dst, &json).unwrap();
         // One group = one save_channel_order call.
         assert_eq!(summary.channel_orders, 1);
 
-        let order = dst.load_channel_order("p1", "News").unwrap().unwrap();
+        let order = ProfileService(dst.clone())
+            .load_channel_order("p1", "News")
+            .unwrap()
+            .unwrap();
         assert_eq!(order.get("ch2").copied(), Some(0));
         assert_eq!(order.get("ch1").copied(), Some(1));
     }
@@ -820,8 +849,9 @@ mod tests {
         seed_source(&src, "src1");
         seed_source(&src, "src2");
         let p = make_profile("p1", "Alice");
-        src.save_profile(&p).unwrap();
-        src.set_source_access("p1", &["src1".to_string(), "src2".to_string()])
+        ProfileService(src.clone()).save_profile(&p).unwrap();
+        ProfileService(src.clone())
+            .set_source_access("p1", &["src1".to_string(), "src2".to_string()])
             .unwrap();
 
         let json = export_backup(&src).unwrap();
@@ -834,15 +864,16 @@ mod tests {
         // the export captured them correctly and the db_sources were
         // imported, then re-apply source access manually.
         let dst = make_service();
-        dst.save_profile(&p).unwrap();
+        ProfileService(dst.clone()).save_profile(&p).unwrap();
         let summary = import_backup(&dst, &json).unwrap();
         // db_sources are imported at step 10 — verify they landed.
         assert_eq!(summary.db_sources, 2);
 
         // Re-apply source access now that sources exist.
-        dst.set_source_access("p1", &["src1".to_string(), "src2".to_string()])
+        ProfileService(dst.clone())
+            .set_source_access("p1", &["src1".to_string(), "src2".to_string()])
             .unwrap();
-        let access = dst.get_source_access("p1").unwrap();
+        let access = ProfileService(dst.clone()).get_source_access("p1").unwrap();
         assert_eq!(access.len(), 2);
     }
 
@@ -850,11 +881,11 @@ mod tests {
 
     #[test]
     fn storage_backend_secrets_redacted() {
-        let svc = make_service();
+        let ctx = make_service();
         let b = make_storage_backend("sb1");
-        svc.save_storage_backend(&b).unwrap();
+        DvrService(ctx.clone()).save_storage_backend(&b).unwrap();
 
-        let json = export_backup(&svc).unwrap();
+        let json = export_backup(&ctx).unwrap();
         let data: BackupData = serde_json::from_str(&json).unwrap();
         let sb = &data.storage_backends[0];
         let cfg_str = sb["config"].as_str().unwrap();
@@ -868,8 +899,8 @@ mod tests {
 
     #[test]
     fn export_empty_database() {
-        let svc = make_service();
-        let json = export_backup(&svc).unwrap();
+        let ctx = make_service();
+        let json = export_backup(&ctx).unwrap();
         let data: BackupData = serde_json::from_str(&json).unwrap();
         assert_eq!(data.version, BACKUP_VERSION);
         assert!(data.profiles.is_empty());
@@ -887,7 +918,7 @@ mod tests {
 
     #[test]
     fn import_skips_malformed_items() {
-        let svc = make_service();
+        let ctx = make_service();
         let json = serde_json::json!({
             "version": BACKUP_VERSION,
             "exportedAt": "2025-01-01T00:00:00Z",
@@ -908,7 +939,7 @@ mod tests {
         })
         .to_string();
 
-        let summary = import_backup(&svc, &json).unwrap();
+        let summary = import_backup(&ctx, &json).unwrap();
         // Only the good profile imported.
         assert_eq!(summary.profiles, 1);
         // Malformed watch history skipped.

@@ -4,7 +4,7 @@
 //! wraps it in `Arc<Mutex<_>>`, and calls
 //! `handle_message` directly — no WebSocket needed.
 
-use crispy_core::services::CrispyService;
+use crispy_core::services::ServiceContext;
 use crispy_server::handlers::handle_message;
 use serde_json::Value;
 
@@ -28,24 +28,24 @@ mod parsers;
 // ── Helpers ────────────────────────────────────────
 
 /// Create a fresh in-memory service.
-pub fn make_svc() -> CrispyService {
-    CrispyService::open_in_memory().expect("open in-memory")
+pub fn make_svc() -> ServiceContext {
+    ServiceContext::open_in_memory().expect("open in-memory")
 }
 
 /// Send a JSON command and parse the response.
-pub fn send(svc: &CrispyService, msg: &Value) -> Value {
+pub fn send(svc: &ServiceContext, msg: &Value) -> Value {
     let resp = handle_message(svc, &msg.to_string());
     serde_json::from_str(&resp).expect("Response is valid JSON")
 }
 
 /// Send a raw string and parse the response.
-pub fn send_raw(svc: &CrispyService, text: &str) -> Value {
+pub fn send_raw(svc: &ServiceContext, text: &str) -> Value {
     let resp = handle_message(svc, text);
     serde_json::from_str(&resp).expect("Response is valid JSON")
 }
 
 /// Seed a source so FK constraints on channels/VOD/categories/etc. pass.
-pub fn seed_source(svc: &CrispyService, id: &str) {
+pub fn seed_source(svc: &ServiceContext, id: &str) {
     use serde_json::json;
     let resp = send(
         svc,

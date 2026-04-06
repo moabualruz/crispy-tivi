@@ -1,11 +1,12 @@
-use super::{epg, from_json, into_anyhow, json_result, svc};
-use anyhow::{Result, anyhow};
+use super::{ctx, epg, from_json, into_anyhow, json_result};
+use anyhow::{anyhow, Result};
 use crispy_core::models::{Channel, EpgEntry};
+use crispy_core::services::{EpgMappingService, EpgService};
 use std::collections::HashMap;
 
 /// Load EPG entries as JSON {channel_id: [entries]}.
 pub fn load_epg_entries() -> Result<String> {
-    json_result(svc()?.load_epg_entries()?)
+    json_result(EpgService(ctx()?).load_epg_entries()?)
 }
 
 /// Load EPG entries for specific channels within a time window.
@@ -14,7 +15,7 @@ pub fn get_epgs_for_channels(
     start_time: i64,
     end_time: i64,
 ) -> Result<String> {
-    json_result(svc()?.get_epgs_for_channels(&channel_ids, start_time, end_time)?)
+    json_result(EpgService(ctx()?).get_epgs_for_channels(&channel_ids, start_time, end_time)?)
 }
 
 /// Load EPG entries filtered by source IDs. Returns JSON {channel_id: [entries]}.
@@ -23,18 +24,18 @@ pub fn get_epgs_for_channels(
 /// array returns ALL EPG entries (same as `load_epg_entries`).
 pub fn get_epg_by_sources(source_ids_json: String) -> Result<String> {
     let ids: Vec<String> = from_json(&source_ids_json)?;
-    json_result(svc()?.get_epg_by_sources(&ids)?)
+    json_result(EpgService(ctx()?).get_epg_by_sources(&ids)?)
 }
 
 /// Save EPG entries from JSON {channel_id: [entries]}.
 pub fn save_epg_entries(json: String) -> Result<usize> {
     let entries: HashMap<String, Vec<EpgEntry>> = from_json(&json)?;
-    Ok(svc()?.save_epg_entries(&entries)?)
+    Ok(EpgService(ctx()?).save_epg_entries(&entries)?)
 }
 
 /// Delete EPG entries older than N days.
 pub fn evict_stale_epg(days: i64) -> Result<usize> {
-    Ok(svc()?.evict_stale_epg(days)?)
+    Ok(EpgService(ctx()?).evict_stale_epg(days)?)
 }
 
 /// Download, parse, match, and save XMLTV EPG asynchronously.
@@ -42,7 +43,7 @@ pub fn evict_stale_epg(days: i64) -> Result<usize> {
 /// Skips if the same URL was refreshed within the 4-hour
 /// cooldown window.
 pub async fn sync_xmltv_epg(url: String, source_id: String, force: bool) -> Result<usize> {
-    let service = svc()?;
+    let service = ctx()?;
     into_anyhow(
         crispy_core::services::epg_sync::fetch_and_save_xmltv_epg(
             &service,
@@ -65,7 +66,7 @@ pub async fn sync_xtream_epg(
     channels_json: String,
     force: bool,
 ) -> Result<usize> {
-    let service = svc()?;
+    let service = ctx()?;
     let channels: Vec<Channel> = from_json(&channels_json)?;
     into_anyhow(
         crispy_core::services::epg_sync::fetch_and_save_xtream_epg(
@@ -91,7 +92,7 @@ pub async fn sync_stalker_epg(
     channels_json: String,
     force: bool,
 ) -> Result<usize> {
-    let service = svc()?;
+    let service = ctx()?;
     let channels: Vec<Channel> = from_json(&channels_json)?;
     into_anyhow(
         crispy_core::services::epg_sync::fetch_and_save_stalker_epg(
@@ -108,7 +109,7 @@ pub async fn sync_stalker_epg(
 
 /// Delete all EPG entries.
 pub fn clear_epg_entries() -> Result<()> {
-    Ok(svc()?.clear_epg_entries()?)
+    Ok(EpgService(ctx()?).clear_epg_entries()?)
 }
 
 /// Match EPG entries to channels using 6 strategies.
@@ -213,32 +214,32 @@ pub fn match_epg_with_confidence(
 /// Save an EPG mapping.
 pub fn save_epg_mapping(json: String) -> Result<()> {
     let mapping: crispy_core::models::EpgMapping = from_json(&json)?;
-    Ok(svc()?.save_epg_mapping(&mapping)?)
+    Ok(EpgMappingService(ctx()?).save_epg_mapping(&mapping)?)
 }
 
 /// Get all EPG mappings as JSON array.
 pub fn get_epg_mappings() -> Result<String> {
-    json_result(svc()?.get_epg_mappings()?)
+    json_result(EpgMappingService(ctx()?).get_epg_mappings()?)
 }
 
 /// Lock an EPG mapping so it won't be overridden.
 pub fn lock_epg_mapping(channel_id: String) -> Result<()> {
-    Ok(svc()?.lock_epg_mapping(&channel_id)?)
+    Ok(EpgMappingService(ctx()?).lock_epg_mapping(&channel_id)?)
 }
 
 /// Delete an EPG mapping.
 pub fn delete_epg_mapping(channel_id: String) -> Result<()> {
-    Ok(svc()?.delete_epg_mapping(&channel_id)?)
+    Ok(EpgMappingService(ctx()?).delete_epg_mapping(&channel_id)?)
 }
 
 /// Get pending EPG suggestions (0.40-0.69 confidence, not locked).
 pub fn get_pending_epg_suggestions() -> Result<String> {
-    json_result(svc()?.get_pending_epg_suggestions()?)
+    json_result(EpgMappingService(ctx()?).get_pending_epg_suggestions()?)
 }
 
 /// Mark a channel as 24/7.
 pub fn set_channel_247(channel_id: String, is_247: bool) -> Result<()> {
-    Ok(svc()?.set_channel_247(&channel_id, is_247)?)
+    Ok(EpgMappingService(ctx()?).set_channel_247(&channel_id, is_247)?)
 }
 
 /// Merges new EPG entries into existing entries,

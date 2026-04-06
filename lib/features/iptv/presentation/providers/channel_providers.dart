@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/active_profile_provider.dart';
 import '../../../../core/providers/source_filter_provider.dart';
-import '../../data/channel_repository_impl.dart';
+import 'iptv_service_providers.dart' show crispyBackendProvider;
+import '../../data/channel_repository_impl.dart'
+    show channelRepositoryProvider, channelOrderRepositoryProvider;
 import '../../data/parsers/m3u_parser.dart';
 import '../../domain/entities/channel.dart';
 import '../../../favorites/presentation/providers/favorites_controller.dart';
@@ -56,7 +58,7 @@ class ChannelListNotifier extends Notifier<ChannelListState> {
       final channels = parsed.channels;
 
       final groups = await ref
-          .read(channelRepositoryProvider)
+          .read(channelOrderRepositoryProvider)
           .extractSortedGroups(channels);
 
       List<Channel> finalChannels = channels;
@@ -146,7 +148,9 @@ class ChannelListNotifier extends Notifier<ChannelListState> {
           sourceIds.isEmpty
               ? await repo.loadChannels()
               : await repo.getChannelsBySources(sourceIds);
-      final groups = await repo.extractSortedGroups(channels);
+      final groups = await ref
+          .read(channelOrderRepositoryProvider)
+          .extractSortedGroups(channels);
       loadChannels(channels, groups);
     } on StateError {
       return;
@@ -211,7 +215,7 @@ class ChannelListNotifier extends Notifier<ChannelListState> {
     final groupName = state.effectiveGroup ?? '';
 
     final orderMap = await ref
-        .read(channelRepositoryProvider)
+        .read(channelOrderRepositoryProvider)
         .loadChannelOrder(profileId, groupName);
 
     state = state.copyWith(

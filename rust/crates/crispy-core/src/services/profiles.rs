@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use rusqlite::{Row, params};
 
-use super::{CrispyService, bool_to_int, int_to_bool};
+use super::{ServiceContext, bool_to_int, int_to_bool};
 use crate::database::DbError;
 use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
@@ -11,7 +11,7 @@ use crate::insert_or_replace;
 use crate::traits::ProfileRepository;
 
 /// Domain service for profile operations.
-pub struct ProfileService(pub(super) CrispyService);
+pub struct ProfileService(pub ServiceContext);
 
 fn profile_from_row(row: &Row) -> rusqlite::Result<UserProfile> {
     Ok(UserProfile {
@@ -357,10 +357,15 @@ mod tests {
     fn profile_crud_and_cascade_delete() {
         let base = make_service();
         let profile = make_profile("p1", "Alice");
-        base.save_profile(&profile).unwrap();
-        base.save_channels(&[make_channel("ch1", "Channel 1")])
+        crate::services::ProfileService(base.clone())
+            .save_profile(&profile)
             .unwrap();
-        base.add_favorite("p1", "ch1").unwrap();
+        crate::services::ChannelService(base.clone())
+            .save_channels(&[make_channel("ch1", "Channel 1")])
+            .unwrap();
+        crate::services::ChannelService(base.clone())
+            .add_favorite("p1", "ch1")
+            .unwrap();
         let svc = ProfileService(base);
 
         let profiles = svc.load_profiles().unwrap();
@@ -370,7 +375,9 @@ mod tests {
         svc.delete_profile("p1").unwrap();
         let profiles = svc.load_profiles().unwrap();
         assert!(profiles.is_empty());
-        let favs = svc.0.get_favorites("p1").unwrap();
+        let favs = crate::services::ChannelService(svc.0.clone())
+            .get_favorites("p1")
+            .unwrap();
         assert!(favs.is_empty());
     }
 
@@ -395,7 +402,9 @@ mod tests {
     #[test]
     fn source_access_crud() {
         let base = make_service_with_fixtures();
-        base.save_profile(&make_profile("p1", "Alice")).unwrap();
+        crate::services::ProfileService(base.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
         let svc = ProfileService(base);
 
         svc.grant_source_access("p1", "src1").unwrap();
@@ -412,11 +421,18 @@ mod tests {
     #[test]
     fn set_source_access_replaces_all() {
         let base = make_service_with_fixtures();
-        base.save_source(&make_source("src4", "Test Source 4", "m3u"))
+        crate::services::SourceService(base.clone())
+            .save_source(&make_source("src4", "Test Source 4", "m3u"))
             .unwrap();
-        base.save_profile(&make_profile("p1", "Alice")).unwrap();
-        base.grant_source_access("p1", "src1").unwrap();
-        base.grant_source_access("p1", "src2").unwrap();
+        crate::services::ProfileService(base.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
+        crate::services::ProfileService(base.clone())
+            .grant_source_access("p1", "src1")
+            .unwrap();
+        crate::services::ProfileService(base.clone())
+            .grant_source_access("p1", "src2")
+            .unwrap();
         let svc = ProfileService(base);
 
         svc.set_source_access("p1", &["src3".to_string(), "src4".to_string()])
@@ -430,13 +446,16 @@ mod tests {
     #[test]
     fn channel_order_save_load_reset() {
         let base = make_service();
-        base.save_profile(&make_profile("p1", "Alice")).unwrap();
-        base.save_channels(&[
-            make_channel("ch1", "Ch1"),
-            make_channel("ch2", "Ch2"),
-            make_channel("ch3", "Ch3"),
-        ])
-        .unwrap();
+        crate::services::ProfileService(base.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
+        crate::services::ChannelService(base.clone())
+            .save_channels(&[
+                make_channel("ch1", "Ch1"),
+                make_channel("ch2", "Ch2"),
+                make_channel("ch3", "Ch3"),
+            ])
+            .unwrap();
         let svc = ProfileService(base);
 
         let order = vec!["ch3".to_string(), "ch1".to_string(), "ch2".to_string()];

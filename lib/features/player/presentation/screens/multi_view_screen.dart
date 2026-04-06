@@ -198,10 +198,7 @@ class _CellView extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Video(
-              controller: cell.controller,
-              controls: NoVideoControls as VideoControlsBuilder?,
-            ),
+            Video(controller: cell.controller, controls: null),
             // Channel name label.
             Positioned(
               left: CrispySpacing.xs,

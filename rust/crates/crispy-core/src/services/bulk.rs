@@ -1,11 +1,11 @@
 use rusqlite::params;
 
-use super::CrispyService;
+use super::ServiceContext;
 use crate::database::{DbError, TABLE_CHANNELS, TABLE_EPG_ENTRIES, TABLE_MOVIES};
 use crate::events::DataChangeEvent;
 
 /// Domain service for bulk and utility operations.
-pub struct BulkService(pub(super) CrispyService);
+pub struct BulkService(pub ServiceContext);
 
 impl BulkService {
     // ── Targeted Updates (N+1 eliminators) ──────────
@@ -120,12 +120,13 @@ mod tests {
 
     #[test]
     fn update_vod_favorite_emits_event() {
+        use crate::services::{SourceService, VodService};
         let base = make_service();
         let src = make_source("src1", "S1", "m3u");
-        base.save_source(&src).unwrap();
+        SourceService(base.clone()).save_source(&src).unwrap();
         let mut item = make_vod_item("v1", "Movie 1");
         item.source_id = Some("src1".to_string());
-        base.save_vod_items(&[item]).unwrap();
+        VodService(base.clone()).save_vod_items(&[item]).unwrap();
         let svc = BulkService(base);
 
         // Should succeed for existing item.
@@ -142,16 +143,17 @@ mod tests {
 
     #[test]
     fn delete_search_by_query_case_insensitive() {
-        let svc = BulkService(make_service());
         use crate::models::SearchHistory;
-        svc.0.save_search_entry(&SearchHistory {
+        use crate::services::MiscService;
+        let svc = BulkService(make_service());
+        MiscService(svc.0.clone()).save_search_entry(&SearchHistory {
             id: "s1".to_string(),
             query: "News".to_string(),
             searched_at: parse_dt("2025-01-15 12:00:00"),
             result_count: 1,
         })
         .unwrap();
-        svc.0.save_search_entry(&SearchHistory {
+        MiscService(svc.0.clone()).save_search_entry(&SearchHistory {
             id: "s2".to_string(),
             query: "sports".to_string(),
             searched_at: parse_dt("2025-01-15 12:00:00"),
@@ -162,24 +164,31 @@ mod tests {
         let deleted = svc.delete_search_by_query("  news  ").unwrap();
         assert_eq!(deleted, 1);
 
-        let history = svc.0.load_search_history().unwrap();
+        let history = MiscService(svc.0.clone()).load_search_history().unwrap();
         assert_eq!(history.len(), 1);
         assert_eq!(history[0].query, "sports");
     }
 
     #[test]
     fn clear_all_watch_history_returns_count() {
+        use crate::services::HistoryService;
         let svc = BulkService(make_service());
-        svc.0.save_watch_history(&make_watch_entry("w1", "Movie 1"))
+        HistoryService(svc.0.clone())
+            .save_watch_history(&make_watch_entry("w1", "Movie 1"))
             .unwrap();
-        svc.0.save_watch_history(&make_watch_entry("w2", "Movie 2"))
+        HistoryService(svc.0.clone())
+            .save_watch_history(&make_watch_entry("w2", "Movie 2"))
             .unwrap();
-        svc.0.save_watch_history(&make_watch_entry("w3", "Movie 3"))
+        HistoryService(svc.0.clone())
+            .save_watch_history(&make_watch_entry("w3", "Movie 3"))
             .unwrap();
 
         let deleted = svc.clear_all_watch_history().unwrap();
         assert_eq!(deleted, 3);
-        assert!(svc.0.load_watch_history().unwrap().is_empty());
+        assert!(HistoryService(svc.0.clone())
+            .load_watch_history()
+            .unwrap()
+            .is_empty());
     }
 
     #[test]
@@ -191,14 +200,20 @@ mod tests {
 
     #[test]
     fn clear_all_empties_everything() {
+        use crate::services::ChannelService;
         let base = make_service();
-        base.save_channels(&[make_channel("ch1", "A")]).unwrap();
+        ChannelService(base.clone())
+            .save_channels(&[make_channel("ch1", "A")])
+            .unwrap();
         base.set_setting("k", "v").unwrap();
         let svc = BulkService(base);
 
         svc.clear_all().unwrap();
 
-        assert!(svc.0.load_channels().unwrap().is_empty());
+        assert!(ChannelService(svc.0.clone())
+            .load_channels()
+            .unwrap()
+            .is_empty());
         assert_eq!(svc.0.get_setting("k").unwrap(), None,);
     }
 

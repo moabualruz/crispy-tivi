@@ -1,17 +1,18 @@
-use super::{from_json, json_result, svc};
+use super::{ctx, from_json, json_result};
 use anyhow::Result;
 use crispy_core::models::Channel;
+use crispy_core::services::{CategoryService, ChannelService, ProfileService};
 use std::collections::HashMap;
 
 /// Load all channels as JSON array.
 pub fn load_channels() -> Result<String> {
-    json_result(svc()?.load_channels()?)
+    json_result(ChannelService(ctx()?).load_channels()?)
 }
 
 /// Save channels from JSON array. Returns count.
 pub fn save_channels(json: String) -> Result<usize> {
     let channels: Vec<Channel> = from_json(&json)?;
-    Ok(svc()?.save_channels(&channels)?)
+    Ok(ChannelService(ctx()?).save_channels(&channels)?)
 }
 
 /// Load channels filtered by source IDs. Returns JSON array.
@@ -20,35 +21,35 @@ pub fn save_channels(json: String) -> Result<usize> {
 /// array returns ALL channels (same as `load_channels`).
 pub fn get_channels_by_sources(source_ids_json: String) -> Result<String> {
     let ids: Vec<String> = from_json(&source_ids_json)?;
-    json_result(svc()?.get_channels_by_sources(&ids)?)
+    json_result(ChannelService(ctx()?).get_channels_by_sources(&ids)?)
 }
 
 /// Load channels by IDs. Returns JSON array.
 pub fn get_channels_by_ids(ids: Vec<String>) -> Result<String> {
-    json_result(svc()?.get_channels_by_ids(&ids)?)
+    json_result(ChannelService(ctx()?).get_channels_by_ids(&ids)?)
 }
 
 /// Delete channels not in keep_ids for a source.
 /// Returns count deleted.
 pub fn delete_removed_channels(source_id: String, keep_ids: Vec<String>) -> Result<usize> {
-    Ok(svc()?.delete_removed_channels(&source_id, &keep_ids)?)
+    Ok(ChannelService(ctx()?).delete_removed_channels(&source_id, &keep_ids)?)
 }
 
 // ── Channel Favorites ────────────────────────────────
 
 /// Get favourite channel IDs for a profile.
 pub fn get_favorites(profile_id: String) -> Result<Vec<String>> {
-    Ok(svc()?.get_favorites(&profile_id)?)
+    Ok(ChannelService(ctx()?).get_favorites(&profile_id)?)
 }
 
 /// Add a channel to profile favourites.
 pub fn add_favorite(profile_id: String, channel_id: String) -> Result<()> {
-    Ok(svc()?.add_favorite(&profile_id, &channel_id)?)
+    Ok(ChannelService(ctx()?).add_favorite(&profile_id, &channel_id)?)
 }
 
 /// Remove a channel from profile favourites.
 pub fn remove_favorite(profile_id: String, channel_id: String) -> Result<()> {
-    Ok(svc()?.remove_favorite(&profile_id, &channel_id)?)
+    Ok(ChannelService(ctx()?).remove_favorite(&profile_id, &channel_id)?)
 }
 
 // ── Categories ───────────────────────────────────────
@@ -59,25 +60,25 @@ pub fn remove_favorite(profile_id: String, channel_id: String) -> Result<()> {
 /// array returns ALL categories (same as `load_categories`).
 pub fn get_categories_by_sources(source_ids_json: String) -> Result<String> {
     let ids: Vec<String> = from_json(&source_ids_json)?;
-    json_result(svc()?.get_categories_by_sources(&ids)?)
+    json_result(CategoryService(ctx()?).get_categories_by_sources(&ids)?)
 }
 
 /// Load categories as JSON object {type: [names]}.
 pub fn load_categories() -> Result<String> {
-    json_result(svc()?.load_categories()?)
+    json_result(CategoryService(ctx()?).load_categories()?)
 }
 
 /// Save categories from JSON object {source_id: str, categories: {type: [names]}}.
 pub fn save_categories(source_id: String, json: String) -> Result<()> {
     let cats: HashMap<String, Vec<String>> = from_json(&json)?;
-    Ok(svc()?.save_categories(&source_id, &cats)?)
+    Ok(CategoryService(ctx()?).save_categories(&source_id, &cats)?)
 }
 
 // ── Favorite Categories ──────────────────────────────
 
 /// Get favourite category names for profile + type.
 pub fn get_favorite_categories(profile_id: String, category_type: String) -> Result<Vec<String>> {
-    Ok(svc()?.get_favorite_categories(&profile_id, &category_type)?)
+    Ok(CategoryService(ctx()?).get_favorite_categories(&profile_id, &category_type)?)
 }
 
 /// Add a category to profile favourites.
@@ -86,7 +87,7 @@ pub fn add_favorite_category(
     category_type: String,
     category_name: String,
 ) -> Result<()> {
-    Ok(svc()?.add_favorite_category(&profile_id, &category_type, &category_name)?)
+    Ok(CategoryService(ctx()?).add_favorite_category(&profile_id, &category_type, &category_name)?)
 }
 
 /// Remove a category from profile favourites.
@@ -95,7 +96,10 @@ pub fn remove_favorite_category(
     category_type: String,
     category_name: String,
 ) -> Result<()> {
-    Ok(svc()?.remove_favorite_category(&profile_id, &category_type, &category_name)?)
+    Ok(
+        CategoryService(ctx()?)
+            .remove_favorite_category(&profile_id, &category_type, &category_name)?,
+    )
 }
 
 // ── Channel Order ────────────────────────────────────
@@ -106,13 +110,13 @@ pub fn save_channel_order(
     group_name: String,
     channel_ids: Vec<String>,
 ) -> Result<()> {
-    Ok(svc()?.save_channel_order(&profile_id, &group_name, &channel_ids)?)
+    Ok(ProfileService(ctx()?).save_channel_order(&profile_id, &group_name, &channel_ids)?)
 }
 
 /// Load channel order as JSON {channel_id: index}
 /// or null if no custom order.
 pub fn load_channel_order(profile_id: String, group_name: String) -> Result<Option<String>> {
-    let order = svc()?.load_channel_order(&profile_id, &group_name)?;
+    let order = ProfileService(ctx()?).load_channel_order(&profile_id, &group_name)?;
     match order {
         Some(map) => Ok(Some(serde_json::to_string(&map)?)),
         None => Ok(None),
@@ -121,7 +125,7 @@ pub fn load_channel_order(profile_id: String, group_name: String) -> Result<Opti
 
 /// Reset channel order for profile + group.
 pub fn reset_channel_order(profile_id: String, group_name: String) -> Result<()> {
-    Ok(svc()?.reset_channel_order(&profile_id, &group_name)?)
+    Ok(ProfileService(ctx()?).reset_channel_order(&profile_id, &group_name)?)
 }
 
 // ── Channel Algorithms ───────────────────────────────

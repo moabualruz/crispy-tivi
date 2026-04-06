@@ -1,6 +1,6 @@
 use rusqlite::{Row, params};
 
-use super::{CrispyService, dt_to_ts, ts_to_dt};
+use super::{ServiceContext, dt_to_ts, ts_to_dt};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::models::{SavedLayout, SearchHistory};
@@ -30,7 +30,7 @@ fn search_history_from_row(row: &Row) -> rusqlite::Result<SearchHistory> {
 }
 
 /// Domain service for miscellaneous operations.
-pub struct MiscService(pub(super) CrispyService);
+pub struct MiscService(pub ServiceContext);
 
 impl MiscService {
     // ── Saved Layouts ─────────────────────────────────

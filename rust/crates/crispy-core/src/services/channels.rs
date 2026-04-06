@@ -1,6 +1,6 @@
 use rusqlite::{Row, params};
 
-use super::{CrispyService, bool_to_int, build_in_placeholders, opt_dt_to_ts, str_params};
+use super::{ServiceContext, bool_to_int, build_in_placeholders, opt_dt_to_ts, str_params};
 use crate::database::DbError;
 use crate::errors::DomainError;
 use crate::insert_or_replace;
@@ -11,7 +11,7 @@ use crate::models::columns::CHANNEL_COLUMNS;
 use crate::traits::ChannelRepository;
 
 /// Domain service for channel operations.
-pub struct ChannelService(pub(super) CrispyService);
+pub struct ChannelService(pub ServiceContext);
 
 /// Map a single SQLite row to a `Channel`.
 ///
@@ -459,7 +459,8 @@ mod tests {
         // source_id must be non-NULL so the (source_id, native_id) conflict
         // key triggers on the second save instead of hitting the PK constraint.
         // A matching source row must exist first to satisfy the FK constraint.
-        base.save_source(&make_source("src1", "Source 1", "m3u"))
+        crate::services::SourceService(base.clone())
+            .save_source(&make_source("src1", "Source 1", "m3u"))
             .unwrap();
         let svc = ChannelService(base);
         let mut ch = make_channel("ch1", "Original");
@@ -478,7 +479,9 @@ mod tests {
     fn channel_favorites_crud() {
         let base = make_service();
         let profile = make_profile("p1", "Alice");
-        base.save_profile(&profile).unwrap();
+        crate::services::ProfileService(base.clone())
+            .save_profile(&profile)
+            .unwrap();
         let svc = ChannelService(base);
         let ch = make_channel("ch1", "Channel 1");
         svc.save_channels(&[ch]).unwrap();
@@ -502,7 +505,9 @@ mod tests {
         base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
-        base.save_profile(&make_profile("p1", "Alice")).unwrap();
+        crate::services::ProfileService(base.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
         let svc = ChannelService(base);
         svc.save_channels(&[make_channel("ch1", "Channel 1")])
             .unwrap();
@@ -524,7 +529,9 @@ mod tests {
         base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
-        base.save_profile(&make_profile("p1", "Alice")).unwrap();
+        crate::services::ProfileService(base.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
         let svc = ChannelService(base);
         svc.save_channels(&[make_channel("ch1", "Channel 1")])
             .unwrap();

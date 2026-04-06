@@ -1,7 +1,7 @@
 use rusqlite::{Row, params};
 
 use crate::insert_or_replace;
-use super::{CrispyService, dt_to_ts, ts_to_dt};
+use super::{ServiceContext, dt_to_ts, ts_to_dt};
 use crate::database::DbError;
 use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
@@ -24,7 +24,7 @@ fn bookmark_from_row(row: &Row) -> rusqlite::Result<Bookmark> {
 }
 
 /// Domain service for bookmark operations.
-pub struct BookmarkService(pub(super) CrispyService);
+pub struct BookmarkService(pub ServiceContext);
 
 impl BookmarkService {
     // ── Bookmarks ─────────────────────────────────────

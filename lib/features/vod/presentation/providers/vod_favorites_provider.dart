@@ -2,7 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../profiles/presentation/providers/profile_service_providers.dart'
     show profileServiceProvider;
-import 'vod_service_providers.dart';
+import '../../data/vod_repository_impl.dart'
+    show vodFavoritesRepositoryProvider;
 
 /// Manages profile-scoped VOD favorites (movies + series).
 ///
@@ -10,7 +11,7 @@ import 'vod_service_providers.dart';
 class VodFavoritesController extends AsyncNotifier<Set<String>> {
   @override
   Future<Set<String>> build() async {
-    final repo = ref.watch(vodRepositoryProvider);
+    final repo = ref.watch(vodFavoritesRepositoryProvider);
     // Watch profile state so we rebuild when the profile loads or switches.
     final profileState = ref.watch(profileServiceProvider);
     final pid = profileState.value?.activeProfileId;
@@ -30,7 +31,7 @@ class VodFavoritesController extends AsyncNotifier<Set<String>> {
 
   /// Toggle the favorite status of a VOD item.
   Future<void> toggleFavorite(String vodItemId) async {
-    final repo = ref.read(vodRepositoryProvider);
+    final repo = ref.read(vodFavoritesRepositoryProvider);
     final pid = _activeProfileId;
     if (pid == null) return;
 

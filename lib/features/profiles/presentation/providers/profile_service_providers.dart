@@ -3,6 +3,7 @@
 // here, never directly from data/.
 export '../../../../core/data/cache_service.dart'
     show CacheService, cacheServiceProvider, crispyBackendProvider;
+export '../../../../core/data/crispy_backend.dart' show CrispyBackend;
 export '../../../../core/data/codecs/json_prefs_codec.dart';
 export '../../data/profile_service.dart'
     show ProfileService, ProfileState, profileServiceProvider;

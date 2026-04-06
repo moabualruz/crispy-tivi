@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::CrispyService;
+use super::ServiceContext;
 use crate::database::DbError;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ fn tour_key(tour_id: &str, profile_id: &str) -> String {
 // ── Service impl ──────────────────────────────────────────────────────────────
 
 /// Domain service for help tip and guided-tour operations.
-pub struct HelpService(pub(super) CrispyService);
+pub struct HelpService(pub ServiceContext);
 
 impl HelpService {
     // ── Tip helpers ──────────────────────────────

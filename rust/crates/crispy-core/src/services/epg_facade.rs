@@ -15,8 +15,9 @@ use anyhow::Result;
 
 use super::epg_fetcher::ThrottledEpgFetcher;
 use super::epg_resolver;
+use super::{EpgService, SourceService};
 use crate::models::{EpgEntry, Source};
-use crate::services::CrispyService;
+use crate::services::ServiceContext;
 
 /// Minimum gap (seconds) before we bother fetching real EPG — 1 hour.
 /// If real (non-placeholder) data covers at least the next hour, skip.
@@ -30,13 +31,13 @@ const MIN_REAL_COVERAGE_SECS: i64 = 3600;
 /// Create once at app startup, pass a clone to each provider.
 #[derive(Clone)]
 pub struct EpgFacade {
-    service: CrispyService,
+    service: ServiceContext,
     fetcher: ThrottledEpgFetcher,
 }
 
 impl EpgFacade {
     /// Create a new EPG facade wrapping the given service.
-    pub fn new(service: CrispyService) -> Self {
+    pub fn new(service: ServiceContext) -> Self {
         Self {
             service,
             fetcher: ThrottledEpgFetcher::new(),
@@ -48,7 +49,7 @@ impl EpgFacade {
     fn has_sufficient_real_coverage(&self, epg_channel_id: &str) -> bool {
         let now = chrono::Utc::now().timestamp();
         let check_end = now + MIN_REAL_COVERAGE_SECS;
-        self.service
+        EpgService(self.service.clone())
             .has_real_epg_coverage(epg_channel_id, now, check_end)
             .unwrap_or(false)
     }
@@ -99,8 +100,7 @@ impl EpgFacade {
         end_time: i64,
     ) -> Result<HashMap<String, Vec<EpgEntry>>> {
         // Query SQLite for all channels at once.
-        let result = self
-            .service
+        let result = EpgService(self.service.clone())
             .get_epgs_for_channels(epg_channel_ids, start_time, end_time)?;
 
         // Identify channels with no EPG in SQLite.
@@ -151,7 +151,7 @@ impl EpgFacade {
 
     /// Evict EPG entries older than `days` from SQLite.
     pub fn evict_stale(&self, days: i64) -> Result<usize> {
-        Ok(self.service.evict_stale_epg(days)?)
+        Ok(EpgService(self.service.clone()).evict_stale_epg(days)?)
     }
 
     /// Always returns 0 — no in-memory cache.
@@ -173,7 +173,7 @@ impl EpgFacade {
             .ok();
 
         if let Some(ref sid) = source_id
-            && let Ok(Some(source)) = self.service.get_source(sid)
+            && let Ok(Some(source)) = SourceService(self.service.clone()).get_source(sid)
         {
             return Ok(Some(source));
         }
@@ -204,8 +204,7 @@ impl EpgFacade {
     fn get_from_sqlite(&self, epg_channel_id: &str, count: usize) -> Result<Vec<EpgEntry>> {
         let now = chrono::Utc::now().timestamp();
         let end = now + 86_400;
-        let result = self
-            .service
+        let result = EpgService(self.service.clone())
             .get_epgs_for_channels(&[epg_channel_id.to_string()], now, end)?;
         let mut entries = result.get(epg_channel_id).cloned().unwrap_or_default();
         entries.sort_by_key(|e| e.start_time);
@@ -251,7 +250,9 @@ mod tests {
         let mut ch = make_channel("ch1", "Test Channel");
         ch.source_id = Some("src1".to_string());
         ch.tvg_id = Some("tvg_ch1".to_string());
-        svc.save_channels(&[ch]).unwrap();
+        crate::services::ChannelService(svc.clone())
+            .save_channels(&[ch])
+            .unwrap();
 
         let facade = EpgFacade::new(svc);
         let entries = facade.get_epg_for_channel("ch1", 10).await.unwrap();
@@ -272,7 +273,9 @@ mod tests {
         let mut ch_b = make_channel("ch_b", "Channel B");
         ch_b.source_id = Some("src1".to_string());
         ch_b.tvg_id = Some("tvg_b".to_string());
-        svc.save_channels(&[ch_a, ch_b]).unwrap();
+        crate::services::ChannelService(svc.clone())
+            .save_channels(&[ch_a, ch_b])
+            .unwrap();
 
         let facade = EpgFacade::new(svc);
         let now = chrono::Utc::now().timestamp();

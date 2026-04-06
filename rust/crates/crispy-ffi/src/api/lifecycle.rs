@@ -1,7 +1,7 @@
-use super::SERVICE;
+use super::CTX;
 use crate::frb_generated::StreamSink;
 use anyhow::{Result, anyhow};
-use crispy_core::services::CrispyService;
+use crispy_core::services::ServiceContext;
 
 /// Initialize the Rust backend with a database path.
 /// Must be called once before any other API function.
@@ -33,17 +33,16 @@ pub fn init_backend(db_path: String) -> Result<()> {
         );
     }));
 
-    let service = CrispyService::open(&db_path)?;
+    let service = ServiceContext::open(&db_path)?;
 
-    SERVICE
-        .set(service)
+    CTX.set(service)
         .map_err(|_| anyhow!("Already initialized"))?;
 
     // Run startup cleanup on a background thread so it never blocks app startup.
-    // Uses super::svc() to get a reference to the already-initialized SERVICE.
+    // Uses super::ctx() to get a reference to the already-initialized CTX.
     std::thread::spawn(|| {
         if let Err(e) =
-            super::svc().and_then(|s| crispy_core::services::cleanup::run_startup_cleanup(&s))
+            super::ctx().and_then(|s| crispy_core::services::cleanup::run_startup_cleanup(&s))
         {
             eprintln!("[lifecycle] startup cleanup warning (non-fatal): {e}");
         }
@@ -58,7 +57,7 @@ pub fn init_backend(db_path: String) -> Result<()> {
 /// Dart side. Call once at app startup.
 pub fn subscribe_data_events(sink: StreamSink<String>) {
     let sink = std::sync::Arc::new(sink);
-    if let Some(svc) = SERVICE.get() {
+    if let Some(svc) = CTX.get() {
         svc.set_event_callback(std::sync::Arc::new(
             move |event: &crispy_core::events::DataChangeEvent| {
                 let json = crispy_core::events::serialize_event(event);

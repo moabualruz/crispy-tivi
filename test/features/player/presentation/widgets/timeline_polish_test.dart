@@ -1,4 +1,4 @@
-import 'package:crispy_tivi/features/player/presentation/widgets/player_osd/osd_bottom_bar.dart';
+import 'package:crispy_tivi/core/utils/date_format_utils.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

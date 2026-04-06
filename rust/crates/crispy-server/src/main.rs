@@ -36,7 +36,7 @@ use tokio::time;
 use tower_http::cors::{AllowOrigin, CorsLayer};
 
 use crispy_core::events::{DataChangeEvent, serialize_event};
-use crispy_core::services::CrispyService;
+use crispy_core::services::ServiceContext;
 use crispy_server::handlers::handle_message;
 
 // ── Shared state ────────────────────────────────────
@@ -44,7 +44,7 @@ use crispy_server::handlers::handle_message;
 /// Application state shared across handlers.
 #[derive(Clone)]
 struct AppState {
-    svc: CrispyService,
+    ctx: ServiceContext,
     event_tx: broadcast::Sender<String>,
 }
 
@@ -237,13 +237,13 @@ async fn ws_handler(mut socket: WebSocket, state: AppState) {
                             continue;
                         }
 
-                        let svc = state.svc.clone();
+                        let ctx = state.ctx.clone();
                         let text_clone = text.clone();
                         let resp =
                             tokio::task::spawn_blocking(
                                 move || {
                                     handle_message(
-                                        &svc,
+                                        &ctx,
                                         &text_clone,
                                     )
                                 },
@@ -394,17 +394,17 @@ async fn main() {
 
     println!("DB path: {db_path}");
 
-    let service = CrispyService::open(&db_path).expect("Failed to open database");
+    let ctx = ServiceContext::open(&db_path).expect("Failed to open database");
 
     let (event_tx, _) = broadcast::channel::<String>(256);
     let tx_clone = event_tx.clone();
-    service.set_event_callback(Arc::new(move |event: &DataChangeEvent| {
+    ctx.set_event_callback(Arc::new(move |event: &DataChangeEvent| {
         let json = serialize_event(event);
         let _ = tx_clone.send(json);
     }));
 
     let state = AppState {
-        svc: service,
+        ctx,
         event_tx,
     };
 

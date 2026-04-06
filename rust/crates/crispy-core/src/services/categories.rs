@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use rusqlite::params;
 
-use super::{CrispyService, str_params};
+use super::{ServiceContext, str_params};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::insert_or_replace;
 
 /// Domain service for category operations.
-pub struct CategoryService(pub(super) CrispyService);
+pub struct CategoryService(pub ServiceContext);
 
 impl CategoryService {
     // ── Categories ──────────────────────────────────
@@ -173,7 +173,9 @@ mod tests {
     fn categories_crud() {
         let base = make_service();
         let src = make_source("s1", "S1", "m3u");
-        base.save_source(&src).unwrap();
+        crate::services::SourceService(base.clone())
+            .save_source(&src)
+            .unwrap();
         let svc = CategoryService(base);
 
         let mut cats = HashMap::new();
@@ -192,7 +194,9 @@ mod tests {
     #[test]
     fn favorite_categories_crud() {
         let base = make_service();
-        base.save_profile(&make_profile("p1", "Alice")).unwrap();
+        crate::services::ProfileService(base.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
         let svc = CategoryService(base);
 
         svc.add_favorite_category("p1", "live", "News").unwrap();

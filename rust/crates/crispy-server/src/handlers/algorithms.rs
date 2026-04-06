@@ -6,13 +6,13 @@ use anyhow::{Context, Result, anyhow};
 use serde_json::{Value, json};
 
 use crispy_core::models::*;
-use crispy_core::services::CrispyService;
+use crispy_core::services::{HistoryService, ServiceContext};
 
 use super::{get_i64, get_str, get_str_opt, get_str_vec, svc_call, svc_data};
 
 /// Handle algorithm commands. Returns `Some(result)` if the
 /// command matched, `None` otherwise.
-pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Result<Value>> {
+pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Result<Value>> {
     let r = match cmd {
         // ── Normalize ──────────────────────────
         "normalizeChannelName" => (|| {
@@ -695,7 +695,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
         })(),
         "computeEpisodeProgressFromDb" => (|| {
             let series_id = get_str(args, "seriesId")?;
-            svc_data!(svc, compute_episode_progress_from_db, &series_id)
+            svc_data!(HistoryService(svc.clone()), compute_episode_progress_from_db, &series_id)
         })(),
         "filterVodByContentRating" => (|| {
             let items = get_str(args, "itemsJson")?;

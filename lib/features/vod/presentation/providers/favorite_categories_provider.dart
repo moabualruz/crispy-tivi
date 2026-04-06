@@ -2,7 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../profiles/presentation/providers/profile_service_providers.dart'
     show profileServiceProvider;
-import 'vod_service_providers.dart';
+import '../../data/vod_repository_impl.dart'
+    show vodFavoritesRepositoryProvider;
 
 /// Loads favorite category names for a profile + type.
 ///
@@ -16,7 +17,7 @@ final favoriteCategoriesProvider = FutureProvider.family<Set<String>, String>((
   ref,
   categoryType,
 ) async {
-  final repo = ref.watch(vodRepositoryProvider);
+  final repo = ref.watch(vodFavoritesRepositoryProvider);
   final pid =
       ref
           .read(profileServiceProvider.notifier)
@@ -36,7 +37,7 @@ Future<void> toggleFavoriteCategory(
   String categoryType,
   String categoryName,
 ) async {
-  final repo = ref.read(vodRepositoryProvider);
+  final repo = ref.read(vodFavoritesRepositoryProvider);
   final pid =
       ref
           .read(profileServiceProvider.notifier)

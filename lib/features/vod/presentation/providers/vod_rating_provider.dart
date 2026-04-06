@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'vod_service_providers.dart' show cacheServiceProvider;
 import 'vod_service_providers.dart';
 
 /// User rating for a VOD item: thumbs up, thumbs down, or none.
@@ -51,8 +52,8 @@ class VodRatingNotifier extends AsyncNotifier<VodRating> {
 
   @override
   Future<VodRating> build() async {
-    final repo = ref.watch(vodRepositoryProvider);
-    final value = await repo.getSetting(_settingKey);
+    final cache = ref.watch(cacheServiceProvider);
+    final value = await cache.getSetting(_settingKey);
     return VodRating.fromSettingValue(value);
   }
 
@@ -60,12 +61,12 @@ class VodRatingNotifier extends AsyncNotifier<VodRating> {
   Future<void> toggle() async {
     final current = state.value ?? VodRating.none;
     final next = current.next;
-    final repo = ref.read(vodRepositoryProvider);
+    final cache = ref.read(cacheServiceProvider);
 
     if (next == VodRating.none) {
-      await repo.removeSetting(_settingKey);
+      await cache.removeSetting(_settingKey);
     } else {
-      await repo.setSetting(_settingKey, next.toSettingValue());
+      await cache.setSetting(_settingKey, next.toSettingValue());
     }
     state = AsyncData(next);
   }

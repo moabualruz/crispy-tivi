@@ -2,18 +2,21 @@ use std::collections::HashMap;
 
 use crate::algorithms::normalize::EPG_FORMAT;
 use crate::models::{Channel, EpgEntry, Movie, Source, UserProfile, VodItem, WatchHistory};
-use crate::services::CrispyService;
 use crate::value_objects::MediaType;
 
+use super::ServiceContext;
+use super::epg::EpgService;
+use super::sources::SourceService;
+
 /// Open a fresh in-memory service for testing.
-pub fn make_service() -> CrispyService {
-    CrispyService::open_in_memory().expect("open in-memory")
+pub fn make_service() -> ServiceContext {
+    ServiceContext::open_in_memory().expect("open in-memory")
 }
 
 /// Create a service pre-seeded with common test sources and a
 /// default channel.  Use in tests that insert child rows
 /// (channels, VOD, EPG, recordings) referencing source/channel FKs.
-pub fn make_service_with_fixtures() -> CrispyService {
+pub fn make_service_with_fixtures() -> ServiceContext {
     let svc = make_service();
     for (id, name) in [
         ("src1", "Test Source 1"),
@@ -27,7 +30,8 @@ pub fn make_service_with_fixtures() -> CrispyService {
         ("s3", "Source 3"),
         ("_placeholder", "Placeholder"),
     ] {
-        svc.save_source(&make_source(id, name, "m3u"))
+        SourceService(svc.clone())
+            .save_source(&make_source(id, name, "m3u"))
             .expect("seed test source");
     }
     svc
@@ -196,8 +200,9 @@ pub fn make_watch_entry(id: &str, name: &str) -> WatchHistory {
 
 /// Create a source and persist it. Convenience for tests that need a valid
 /// source FK before inserting channels or EPG entries.
-pub fn make_source_and_save(svc: &CrispyService, id: &str) {
-    svc.save_source(&make_source(id, id, "m3u"))
+pub fn make_source_and_save(ctx: &ServiceContext, id: &str) {
+    SourceService(ctx.clone())
+        .save_source(&make_source(id, id, "m3u"))
         .expect("save test source");
 }
 
@@ -205,7 +210,7 @@ pub fn make_source_and_save(svc: &CrispyService, id: &str) {
 /// `start_offset` and `end_offset` are seconds relative to Unix epoch 0 for
 /// determinism (tests should not depend on the current wall clock).
 pub fn insert_test_epg_entry(
-    svc: &CrispyService,
+    ctx: &ServiceContext,
     epg_channel_id: &str,
     source_id: &str,
     title: &str,
@@ -227,7 +232,9 @@ pub fn insert_test_epg_entry(
     };
     let mut map = HashMap::new();
     map.insert(epg_channel_id.to_string(), vec![entry]);
-    svc.save_epg_entries(&map).expect("save test epg entry");
+    EpgService(ctx.clone())
+        .save_epg_entries(&map)
+        .expect("save test epg entry");
 }
 
 pub fn make_episode_entry(
