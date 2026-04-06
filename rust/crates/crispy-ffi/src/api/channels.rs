@@ -29,6 +29,72 @@ pub fn get_channels_by_ids(ids: Vec<String>) -> Result<String> {
     json_result(ChannelService(ctx()?).get_channels_by_ids(&ids)?)
 }
 
+/// Load channel groups with item counts filtered by source IDs.
+pub fn get_channel_groups(source_ids_json: String) -> Result<String> {
+    let source_ids: Vec<String> = from_json(&source_ids_json)?;
+    json_result(ChannelService(ctx()?).get_channel_groups(&source_ids)?)
+}
+
+/// Load a page of channels filtered by source IDs and group.
+pub fn get_channels_page(
+    source_ids_json: String,
+    group: Option<String>,
+    sort: String,
+    offset: i64,
+    limit: i64,
+) -> Result<String> {
+    let source_ids: Vec<String> = from_json(&source_ids_json)?;
+    json_result(ChannelService(ctx()?).get_channels_page(
+        &source_ids,
+        group.as_deref(),
+        &sort,
+        offset,
+        limit,
+    )?)
+}
+
+/// Count channels filtered by source IDs and group.
+pub fn get_channel_count(source_ids_json: String, group: Option<String>) -> Result<i64> {
+    let source_ids: Vec<String> = from_json(&source_ids_json)?;
+    Ok(ChannelService(ctx()?).get_channel_count(&source_ids, group.as_deref())?)
+}
+
+/// Load ordered channel IDs for a group filtered by source IDs.
+pub fn get_channel_ids_for_group(
+    source_ids_json: String,
+    group: Option<String>,
+    sort: String,
+) -> Result<String> {
+    let source_ids: Vec<String> = from_json(&source_ids_json)?;
+    json_result(ChannelService(ctx()?).get_channel_ids_for_group(
+        &source_ids,
+        group.as_deref(),
+        &sort,
+    )?)
+}
+
+/// Load a single channel by ID. Returns JSON object or null.
+pub fn get_channel_by_id(id: String) -> Result<String> {
+    json_result(ChannelService(ctx()?).get_channel_by_id(&id)?)
+}
+
+/// Load favourite channels for a profile filtered by source IDs.
+pub fn get_favorite_channels(source_ids_json: String, profile_id: String) -> Result<String> {
+    let source_ids: Vec<String> = from_json(&source_ids_json)?;
+    json_result(ChannelService(ctx()?).get_favorite_channels(&source_ids, &profile_id)?)
+}
+
+/// Search channels by query with pagination.
+pub fn search_channels(
+    query: String,
+    source_ids_json: String,
+    offset: i64,
+    limit: i64,
+) -> Result<String> {
+    let source_ids: Vec<String> = from_json(&source_ids_json)?;
+    json_result(ChannelService(ctx()?).search_channels(&query, &source_ids, offset, limit)?)
+}
+
 /// Delete channels not in keep_ids for a source.
 /// Returns count deleted.
 pub fn delete_removed_channels(source_id: String, keep_ids: Vec<String>) -> Result<usize> {

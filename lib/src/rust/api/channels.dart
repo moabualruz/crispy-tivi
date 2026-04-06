@@ -27,6 +27,73 @@ Future<String> getChannelsBySources({required String sourceIdsJson}) => RustLib
 Future<String> getChannelsByIds({required List<String> ids}) =>
     RustLib.instance.api.crateApiChannelsGetChannelsByIds(ids: ids);
 
+/// Load channel groups with item counts filtered by source IDs.
+Future<String> getChannelGroups({required String sourceIdsJson}) => RustLib
+    .instance
+    .api
+    .crateApiChannelsGetChannelGroups(sourceIdsJson: sourceIdsJson);
+
+/// Load a page of channels filtered by source IDs and group.
+Future<String> getChannelsPage({
+  required String sourceIdsJson,
+  String? group,
+  required String sort,
+  required PlatformInt64 offset,
+  required PlatformInt64 limit,
+}) => RustLib.instance.api.crateApiChannelsGetChannelsPage(
+  sourceIdsJson: sourceIdsJson,
+  group: group,
+  sort: sort,
+  offset: offset,
+  limit: limit,
+);
+
+/// Count channels filtered by source IDs and group.
+Future<PlatformInt64> getChannelCount({
+  required String sourceIdsJson,
+  String? group,
+}) => RustLib.instance.api.crateApiChannelsGetChannelCount(
+  sourceIdsJson: sourceIdsJson,
+  group: group,
+);
+
+/// Load ordered channel IDs for a group filtered by source IDs.
+Future<String> getChannelIdsForGroup({
+  required String sourceIdsJson,
+  String? group,
+  required String sort,
+}) => RustLib.instance.api.crateApiChannelsGetChannelIdsForGroup(
+  sourceIdsJson: sourceIdsJson,
+  group: group,
+  sort: sort,
+);
+
+/// Load a single channel by ID. Returns JSON object or null.
+Future<String> getChannelById({required String id}) =>
+    RustLib.instance.api.crateApiChannelsGetChannelById(id: id);
+
+/// Load favourite channels for a profile filtered by source IDs.
+Future<String> getFavoriteChannels({
+  required String sourceIdsJson,
+  required String profileId,
+}) => RustLib.instance.api.crateApiChannelsGetFavoriteChannels(
+  sourceIdsJson: sourceIdsJson,
+  profileId: profileId,
+);
+
+/// Search channels by query with pagination.
+Future<String> searchChannels({
+  required String query,
+  required String sourceIdsJson,
+  required PlatformInt64 offset,
+  required PlatformInt64 limit,
+}) => RustLib.instance.api.crateApiChannelsSearchChannels(
+  query: query,
+  sourceIdsJson: sourceIdsJson,
+  offset: offset,
+  limit: limit,
+);
+
 /// Delete channels not in keep_ids for a source.
 /// Returns count deleted.
 Future<BigInt> deleteRemovedChannels({

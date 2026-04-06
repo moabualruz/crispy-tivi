@@ -22,6 +22,60 @@ Future<String> getVodBySources({required String sourceIdsJson}) => RustLib
     .api
     .crateApiVodGetVodBySources(sourceIdsJson: sourceIdsJson);
 
+/// Load a page of VOD items filtered by source IDs, type, category, and query.
+Future<String> getVodPage({
+  required String sourceIdsJson,
+  String? vodType,
+  String? category,
+  String? query,
+  required String sort,
+  required PlatformInt64 offset,
+  required PlatformInt64 limit,
+}) => RustLib.instance.api.crateApiVodGetVodPage(
+  sourceIdsJson: sourceIdsJson,
+  vodType: vodType,
+  category: category,
+  query: query,
+  sort: sort,
+  offset: offset,
+  limit: limit,
+);
+
+/// Count VOD items filtered by source IDs, type, category, and query.
+Future<PlatformInt64> getVodCount({
+  required String sourceIdsJson,
+  String? vodType,
+  String? category,
+  String? query,
+}) => RustLib.instance.api.crateApiVodGetVodCount(
+  sourceIdsJson: sourceIdsJson,
+  vodType: vodType,
+  category: category,
+  query: query,
+);
+
+/// Load VOD categories with item counts filtered by source IDs and type.
+Future<String> getVodCategories({
+  required String sourceIdsJson,
+  String? vodType,
+}) => RustLib.instance.api.crateApiVodGetVodCategories(
+  sourceIdsJson: sourceIdsJson,
+  vodType: vodType,
+);
+
+/// Search VOD items by query with pagination.
+Future<String> searchVod({
+  required String query,
+  required String sourceIdsJson,
+  required PlatformInt64 offset,
+  required PlatformInt64 limit,
+}) => RustLib.instance.api.crateApiVodSearchVod(
+  query: query,
+  sourceIdsJson: sourceIdsJson,
+  offset: offset,
+  limit: limit,
+);
+
 /// Load VOD items filtered by sources, type, category, query, and sorted by sorting key.
 Future<String> getFilteredVod({
   required String sourceIdsJson,

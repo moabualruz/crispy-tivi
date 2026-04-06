@@ -24,6 +24,61 @@ pub fn get_vod_by_sources(source_ids_json: String) -> Result<String> {
     json_result(VodService(ctx()?).get_vod_by_sources(&ids)?)
 }
 
+/// Load a page of VOD items filtered by source IDs, type, category, and query.
+pub fn get_vod_page(
+    source_ids_json: String,
+    vod_type: Option<String>,
+    category: Option<String>,
+    query: Option<String>,
+    sort: String,
+    offset: i64,
+    limit: i64,
+) -> Result<String> {
+    let source_ids: Vec<String> = from_json(&source_ids_json)?;
+    json_result(VodService(ctx()?).get_vod_page(
+        &source_ids,
+        vod_type.as_deref(),
+        category.as_deref(),
+        query.as_deref(),
+        &sort,
+        offset,
+        limit,
+    )?)
+}
+
+/// Count VOD items filtered by source IDs, type, category, and query.
+pub fn get_vod_count(
+    source_ids_json: String,
+    vod_type: Option<String>,
+    category: Option<String>,
+    query: Option<String>,
+) -> Result<i64> {
+    let source_ids: Vec<String> = from_json(&source_ids_json)?;
+    Ok(VodService(ctx()?).get_vod_count(
+        &source_ids,
+        vod_type.as_deref(),
+        category.as_deref(),
+        query.as_deref(),
+    )?)
+}
+
+/// Load VOD categories with item counts filtered by source IDs and type.
+pub fn get_vod_categories(source_ids_json: String, vod_type: Option<String>) -> Result<String> {
+    let source_ids: Vec<String> = from_json(&source_ids_json)?;
+    json_result(VodService(ctx()?).get_vod_categories(&source_ids, vod_type.as_deref())?)
+}
+
+/// Search VOD items by query with pagination.
+pub fn search_vod(
+    query: String,
+    source_ids_json: String,
+    offset: i64,
+    limit: i64,
+) -> Result<String> {
+    let source_ids: Vec<String> = from_json(&source_ids_json)?;
+    json_result(VodService(ctx()?).search_vod(&query, &source_ids, offset, limit)?)
+}
+
 /// Load VOD items filtered by sources, type, category, query, and sorted by sorting key.
 pub fn get_filtered_vod(
     source_ids_json: String,

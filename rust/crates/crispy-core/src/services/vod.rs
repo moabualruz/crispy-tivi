@@ -230,6 +230,192 @@ impl VodService {
         Ok(items)
     }
 
+    /// Load a single page of VOD items filtered by multiple criteria and sorted.
+    pub fn get_vod_page(
+        &self,
+        source_ids: &[String],
+        item_type: Option<&str>,
+        category: Option<&str>,
+        query: Option<&str>,
+        sort_by: &str,
+        offset: i64,
+        limit: i64,
+    ) -> Result<Vec<VodItem>, DbError> {
+        let conn = self.0.db.get()?;
+        let mut sql = format!("SELECT {VOD_COLUMNS} FROM db_movies WHERE 1=1",);
+
+        let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
+        let mut param_idx = 1;
+
+        // item_type filter is ignored for db_movies (all are movies).
+        let _ = item_type;
+
+        if !source_ids.is_empty() {
+            let placeholders = build_in_placeholders(source_ids.len());
+            sql.push_str(&format!(" AND source_id IN ({})", placeholders));
+            for id in source_ids {
+                params.push(Box::new(id.clone()));
+            }
+            param_idx += source_ids.len();
+        }
+
+        if let Some(cat) = category {
+            sql.push_str(&format!(" AND genre = ?{}", param_idx));
+            params.push(Box::new(cat.to_string()));
+            param_idx += 1;
+        }
+
+        if let Some(q) = query
+            && !q.trim().is_empty()
+        {
+            let lower = format!("%{}%", q.to_lowercase().trim());
+            sql.push_str(&format!(" AND LOWER(name) LIKE ?{}", param_idx));
+            params.push(Box::new(lower));
+            param_idx += 1;
+        }
+
+        match sort_by {
+            "added_desc" => sql.push_str(" ORDER BY added_at DESC"),
+            "name_asc" => sql.push_str(" ORDER BY LOWER(name) ASC"),
+            "name_desc" => sql.push_str(" ORDER BY LOWER(name) DESC"),
+            "year_desc" => sql.push_str(" ORDER BY year DESC"),
+            "rating_desc" => sql.push_str(" ORDER BY CAST(rating AS REAL) DESC"),
+            _ => sql.push_str(" ORDER BY name ASC"),
+        }
+
+        sql.push_str(&format!(" LIMIT ?{} OFFSET ?{}", param_idx, param_idx + 1));
+        params.push(Box::new(limit));
+        params.push(Box::new(offset));
+
+        let mut stmt = conn.prepare(&sql)?;
+        let refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
+        let rows = stmt.query_map(refs.as_slice(), vod_item_from_row)?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    /// Count VOD items filtered by the same criteria as `get_vod_page`.
+    pub fn get_vod_count(
+        &self,
+        source_ids: &[String],
+        item_type: Option<&str>,
+        category: Option<&str>,
+        query: Option<&str>,
+    ) -> Result<i64, DbError> {
+        let conn = self.0.db.get()?;
+        let mut sql = "SELECT COUNT(*) FROM db_movies WHERE 1=1".to_string();
+
+        let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
+        let mut param_idx = 1;
+
+        // item_type filter is ignored for db_movies (all are movies).
+        let _ = item_type;
+
+        if !source_ids.is_empty() {
+            let placeholders = build_in_placeholders(source_ids.len());
+            sql.push_str(&format!(" AND source_id IN ({})", placeholders));
+            for id in source_ids {
+                params.push(Box::new(id.clone()));
+            }
+            param_idx += source_ids.len();
+        }
+
+        if let Some(cat) = category {
+            sql.push_str(&format!(" AND genre = ?{}", param_idx));
+            params.push(Box::new(cat.to_string()));
+            param_idx += 1;
+        }
+
+        if let Some(q) = query
+            && !q.trim().is_empty()
+        {
+            let lower = format!("%{}%", q.to_lowercase().trim());
+            sql.push_str(&format!(" AND LOWER(name) LIKE ?{}", param_idx));
+            params.push(Box::new(lower));
+        }
+
+        let mut stmt = conn.prepare(&sql)?;
+        let refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
+        let count: i64 = stmt.query_row(refs.as_slice(), |row| row.get(0))?;
+        Ok(count)
+    }
+
+    /// Return grouped VOD categories with item counts.
+    pub fn get_vod_categories(
+        &self,
+        source_ids: &[String],
+        item_type: Option<&str>,
+    ) -> Result<Vec<(String, i32)>, DbError> {
+        let conn = self.0.db.get()?;
+        let mut sql =
+            "SELECT COALESCE(genre, 'Uncategorized') as cat, COUNT(*) FROM db_movies".to_string();
+
+        // item_type filter is ignored for db_movies (all are movies).
+        let _ = item_type;
+
+        if !source_ids.is_empty() {
+            sql.push_str(&format!(
+                " WHERE source_id IN ({})",
+                build_in_placeholders(source_ids.len())
+            ));
+        }
+
+        sql.push_str(" GROUP BY cat ORDER BY cat");
+
+        let mut stmt = conn.prepare(&sql)?;
+        let params = str_params(source_ids);
+        let rows = stmt.query_map(params.as_slice(), |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?))
+        })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    /// Search VOD items by name or category with pagination.
+    pub fn search_vod(
+        &self,
+        query: &str,
+        source_ids: &[String],
+        offset: i64,
+        limit: i64,
+    ) -> Result<Vec<VodItem>, DbError> {
+        if query.trim().is_empty() {
+            return Ok(vec![]);
+        }
+
+        let conn = self.0.db.get()?;
+        let mut sql = format!(
+            "SELECT {VOD_COLUMNS} FROM db_movies WHERE (name LIKE ?1 OR genre LIKE ?2)",
+        );
+        let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
+        let like = format!("%{query}%");
+        let mut param_idx = 3;
+
+        params.push(Box::new(like.clone()));
+        params.push(Box::new(like));
+
+        if !source_ids.is_empty() {
+            let placeholders =
+                (param_idx..param_idx + source_ids.len()).map(|i| format!("?{i}")).collect::<Vec<_>>().join(", ");
+            sql.push_str(&format!(" AND source_id IN ({})", placeholders));
+            for id in source_ids {
+                params.push(Box::new(id.clone()));
+            }
+            param_idx += source_ids.len();
+        }
+
+        sql.push_str(&format!(
+            " ORDER BY name LIMIT ?{} OFFSET ?{}",
+            param_idx,
+            param_idx + 1
+        ));
+        params.push(Box::new(limit));
+        params.push(Box::new(offset));
+
+        let mut stmt = conn.prepare(&sql)?;
+        let refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
+        let rows = stmt.query_map(refs.as_slice(), vod_item_from_row)?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
     /// Find VOD items from other sources with the same title and year.
     pub fn find_vod_alternatives(
         &self,
@@ -382,6 +568,7 @@ impl VodRepository for VodService {
 #[cfg(test)]
 mod tests {
     use super::VodService;
+    use crate::services::ChannelService;
     use crate::services::test_helpers::*;
 
     #[test]
@@ -721,5 +908,65 @@ mod tests {
         assert!(sources.contains("src_a"), "{sources:?}");
         assert!(sources.contains("src_b"), "{sources:?}");
         assert_eq!(sources.len(), 2, "expected 2 distinct source events");
+    }
+
+    #[test]
+    fn get_vod_page_with_offset_limit() {
+        let svc = VodService(make_service_with_fixtures());
+        let mut v1 = make_vod_item("v1", "Alpha");
+        v1.source_id = Some("src_a".to_string());
+        let mut v2 = make_vod_item("v2", "Bravo");
+        v2.source_id = Some("src_a".to_string());
+        let mut v3 = make_vod_item("v3", "Charlie");
+        v3.source_id = Some("src_a".to_string());
+        svc.save_vod_items(&[v1, v2, v3]).unwrap();
+
+        let page = svc
+            .get_vod_page(&["src_a".to_string()], None, None, None, "name_asc", 1, 1)
+            .unwrap();
+
+        assert_eq!(page.len(), 1);
+        assert_eq!(page[0].id, "v2");
+        assert_eq!(page[0].name, "Bravo");
+    }
+
+    #[test]
+    fn get_vod_categories_returns_counts() {
+        let svc = VodService(make_service_with_fixtures());
+        let mut v1 = make_vod_item("v1", "Action 1");
+        v1.source_id = Some("src_a".to_string());
+        v1.genre = Some("Action".to_string());
+        let mut v2 = make_vod_item("v2", "Comedy 1");
+        v2.source_id = Some("src_a".to_string());
+        v2.genre = Some("Comedy".to_string());
+        let mut v3 = make_vod_item("v3", "Action 2");
+        v3.source_id = Some("src_a".to_string());
+        v3.genre = Some("Action".to_string());
+        svc.save_vod_items(&[v1, v2, v3]).unwrap();
+
+        let categories = svc.get_vod_categories(&["src_a".to_string()], None).unwrap();
+
+        assert_eq!(
+            categories,
+            vec![("Action".to_string(), 2), ("Comedy".to_string(), 1)]
+        );
+    }
+
+    #[test]
+    fn search_channels_finds_by_name() {
+        let svc = ChannelService(make_service_with_fixtures());
+        let mut ch1 = make_channel("ch1", "Movie Hub");
+        ch1.source_id = Some("src_a".to_string());
+        let mut ch2 = make_channel("ch2", "Sports Live");
+        ch2.source_id = Some("src_a".to_string());
+        svc.save_channels(&[ch1, ch2]).unwrap();
+
+        let result = svc
+            .search_channels("Movie", &["src_a".to_string()], 0, 10)
+            .unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id, "ch1");
+        assert_eq!(result[0].name, "Movie Hub");
     }
 }

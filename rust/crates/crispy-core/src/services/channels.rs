@@ -1,7 +1,7 @@
 use rusqlite::{Row, params};
 
 use super::{ServiceContext, bool_to_int, build_in_placeholders, opt_dt_to_ts, str_params};
-use crate::database::DbError;
+use crate::database::{DbError, optional};
 use crate::database::row_helpers::RowExt;
 use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
@@ -59,6 +59,58 @@ fn channel_from_row(row: &Row) -> rusqlite::Result<Channel> {
         stream_type: row.get(37)?,
         thumbnail_url: row.get(38)?,
     })
+}
+
+fn channel_sort_clause(sort: &str) -> &'static str {
+    match sort {
+        "name_desc" => "name DESC",
+        "added_desc" => "added_at DESC, name ASC",
+        "number_asc" => "COALESCE(number, 999999) ASC, name ASC",
+        "name_asc" => "name ASC",
+        _ => "name ASC",
+    }
+}
+
+fn build_channel_filters(
+    source_ids: &[String],
+    group: Option<&str>,
+) -> (String, Vec<Box<dyn rusqlite::types::ToSql>>, usize) {
+    let mut clauses = Vec::new();
+    let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+    let mut param_idx = 1;
+
+    if !source_ids.is_empty() {
+        clauses.push(format!(
+            "source_id IN ({})",
+            build_in_placeholders(source_ids.len())
+        ));
+        for source_id in source_ids {
+            params.push(Box::new(source_id.clone()));
+        }
+        param_idx += source_ids.len();
+    }
+
+    if let Some(group) = group {
+        clauses.push(format!("COALESCE(channel_group, 'Ungrouped') = ?{param_idx}"));
+        params.push(Box::new(group.to_string()));
+        param_idx += 1;
+    }
+
+    let where_sql = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!(" WHERE {}", clauses.join(" AND "))
+    };
+
+    (where_sql, params, param_idx)
+}
+
+fn qualified_channel_columns(alias: &str) -> String {
+    CHANNEL_COLUMNS
+        .split(',')
+        .map(|column| format!("{alias}.{}", column.trim()))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 impl ChannelService {
@@ -247,6 +299,184 @@ impl ChannelService {
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
+    pub fn get_channel_groups(&self, source_ids: &[String]) -> Result<Vec<(String, i32)>, DbError> {
+        let conn = self.0.db.get()?;
+
+        if source_ids.is_empty() {
+            let mut stmt = conn.prepare(
+                "SELECT COALESCE(channel_group, 'Ungrouped') AS grp, COUNT(*) AS cnt
+                 FROM db_channels
+                 GROUP BY grp
+                 ORDER BY grp",
+            )?;
+            let rows =
+                stmt.query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?)))?;
+            return Ok(rows.collect::<Result<Vec<_>, _>>()?);
+        }
+
+        let sql = format!(
+            "SELECT COALESCE(channel_group, 'Ungrouped') AS grp, COUNT(*) AS cnt
+             FROM db_channels
+             WHERE source_id IN ({})
+             GROUP BY grp
+             ORDER BY grp",
+            build_in_placeholders(source_ids.len())
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let params = str_params(source_ids);
+        let rows =
+            stmt.query_map(params.as_slice(), |row| Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?)))?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn get_channels_page(
+        &self,
+        source_ids: &[String],
+        group: Option<&str>,
+        sort: &str,
+        offset: i64,
+        limit: i64,
+    ) -> Result<Vec<Channel>, DbError> {
+        let conn = self.0.db.get()?;
+        let (where_sql, mut params, param_idx) = build_channel_filters(source_ids, group);
+        let sql = format!(
+            "SELECT {CHANNEL_COLUMNS} FROM db_channels{where_sql}
+             ORDER BY {}
+             LIMIT ?{param_idx} OFFSET ?{}",
+            channel_sort_clause(sort),
+            param_idx + 1
+        );
+        params.push(Box::new(limit));
+        params.push(Box::new(offset));
+
+        let mut stmt = conn.prepare(&sql)?;
+        let refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
+        let rows = stmt.query_map(refs.as_slice(), channel_from_row)?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn get_channel_count(
+        &self,
+        source_ids: &[String],
+        group: Option<&str>,
+    ) -> Result<i64, DbError> {
+        let conn = self.0.db.get()?;
+        let (where_sql, params, _) = build_channel_filters(source_ids, group);
+        let sql = format!("SELECT COUNT(*) FROM db_channels{where_sql}");
+        let refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
+        conn.query_row(&sql, refs.as_slice(), |row| row.get(0))
+            .map_err(Into::into)
+    }
+
+    pub fn search_channels(
+        &self,
+        query: &str,
+        source_ids: &[String],
+        offset: i64,
+        limit: i64,
+    ) -> Result<Vec<Channel>, DbError> {
+        if query.trim().is_empty() {
+            return Ok(vec![]);
+        }
+
+        let conn = self.0.db.get()?;
+        let mut sql = format!(
+            "SELECT {CHANNEL_COLUMNS} FROM db_channels WHERE (name LIKE ?1 OR channel_group LIKE ?2)",
+        );
+        let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
+        let like = format!("%{query}%");
+        let mut param_idx = 3;
+
+        params.push(Box::new(like.clone()));
+        params.push(Box::new(like));
+
+        if !source_ids.is_empty() {
+            let placeholders = (param_idx..param_idx + source_ids.len())
+                .map(|i| format!("?{i}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            sql.push_str(&format!(" AND source_id IN ({})", placeholders));
+            for id in source_ids {
+                params.push(Box::new(id.clone()));
+            }
+            param_idx += source_ids.len();
+        }
+
+        sql.push_str(&format!(
+            " ORDER BY name LIMIT ?{} OFFSET ?{}",
+            param_idx,
+            param_idx + 1
+        ));
+        params.push(Box::new(limit));
+        params.push(Box::new(offset));
+
+        let mut stmt = conn.prepare(&sql)?;
+        let refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
+        let rows = stmt.query_map(refs.as_slice(), channel_from_row)?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn get_channel_ids_for_group(
+        &self,
+        source_ids: &[String],
+        group: Option<&str>,
+        sort: &str,
+    ) -> Result<Vec<String>, DbError> {
+        let conn = self.0.db.get()?;
+        let (where_sql, params, _) = build_channel_filters(source_ids, group);
+        let sql = format!(
+            "SELECT id FROM db_channels{where_sql}
+             ORDER BY {}",
+            channel_sort_clause(sort)
+        );
+        let refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
+        let mut stmt = conn.prepare(&sql)?;
+        let rows = stmt.query_map(refs.as_slice(), |row| row.get(0))?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn get_channel_by_id(&self, id: &str) -> Result<Option<Channel>, DbError> {
+        let conn = self.0.db.get()?;
+        let result = conn.query_row(
+            &format!("SELECT {CHANNEL_COLUMNS} FROM db_channels WHERE id = ?1"),
+            params![id],
+            channel_from_row,
+        );
+        optional(result)
+    }
+
+    pub fn get_favorite_channels(
+        &self,
+        source_ids: &[String],
+        profile_id: &str,
+    ) -> Result<Vec<Channel>, DbError> {
+        let conn = self.0.db.get()?;
+        let channel_columns = qualified_channel_columns("c");
+        let mut sql = format!(
+            "SELECT {channel_columns}
+             FROM db_channels c
+             JOIN db_user_favorites f ON f.channel_id = c.id
+             WHERE f.profile_id = ?1"
+        );
+        let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![Box::new(profile_id.to_string())];
+
+        if !source_ids.is_empty() {
+            let placeholders = (2..source_ids.len() + 2)
+                .map(|i| format!("?{i}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            sql.push_str(&format!(" AND c.source_id IN ({placeholders})"));
+            for source_id in source_ids {
+                params.push(Box::new(source_id.clone()));
+            }
+        }
+
+        let refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
+        let mut stmt = conn.prepare(&sql)?;
+        let rows = stmt.query_map(refs.as_slice(), channel_from_row)?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
     /// Delete channels from `source_id` whose `id` is not in `keep_ids`.
     ///
     /// Used by external callers (Flutter / server) that track IDs explicitly.
@@ -428,6 +658,58 @@ mod tests {
         let ids: Vec<&str> = found.iter().map(|c| c.id.as_str()).collect();
         assert!(ids.contains(&"ch1"));
         assert!(ids.contains(&"ch3"));
+    }
+
+    #[test]
+    fn get_channel_groups_returns_counts() {
+        let svc = ChannelService(make_service_with_fixtures());
+
+        let mut ch1 = make_channel("ch1", "Channel 1");
+        ch1.source_id = Some("src_a".to_string());
+        ch1.channel_group = Some("News".to_string());
+
+        let mut ch2 = make_channel("ch2", "Channel 2");
+        ch2.source_id = Some("src_a".to_string());
+        ch2.channel_group = Some("News".to_string());
+
+        let mut ch3 = make_channel("ch3", "Channel 3");
+        ch3.source_id = Some("src_a".to_string());
+        ch3.channel_group = None;
+
+        svc.save_channels(&[ch1, ch2, ch3]).unwrap();
+
+        let groups = svc.get_channel_groups(&["src_a".to_string()]).unwrap();
+        assert_eq!(
+            groups,
+            vec![("News".to_string(), 2), ("Ungrouped".to_string(), 1)]
+        );
+    }
+
+    #[test]
+    fn get_channels_page_respects_offset_limit() {
+        let svc = ChannelService(make_service_with_fixtures());
+
+        let channels = (0..10)
+            .map(|idx| {
+                let mut ch = make_channel(
+                    &format!("ch{idx:02}"),
+                    &format!("Channel {idx:02}"),
+                );
+                ch.source_id = Some("src_a".to_string());
+                ch
+            })
+            .collect::<Vec<_>>();
+
+        svc.save_channels(&channels).unwrap();
+
+        let page = svc
+            .get_channels_page(&["src_a".to_string()], None, "name_asc", 3, 3)
+            .unwrap();
+
+        assert_eq!(page.len(), 3);
+        assert_eq!(page[0].id, "ch03");
+        assert_eq!(page[1].id, "ch04");
+        assert_eq!(page[2].id, "ch05");
     }
 
     #[test]
