@@ -160,6 +160,7 @@ class _TransferCard extends ConsumerWidget {
       TransferStatus.paused => ('Paused', cs.tertiary),
       TransferStatus.completed => ('Done', cs.primary),
       TransferStatus.failed => ('Failed', cs.error),
+      TransferStatus.cancelled => ('Cancelled', cs.outline),
     };
 
     return Container(

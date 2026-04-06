@@ -174,8 +174,8 @@ UserProfile _mapToProfile(Map<String, dynamic> m) {
     isGuest: m['is_guest'] as bool? ?? false,
     pinVersion: m['pin_version'] as int? ?? 0,
     maxAllowedRating: m['max_allowed_rating'] as int? ?? 4,
-    role: UserRole.fromValue(m['role'] as int? ?? 1),
-    dvrPermission: DvrPermission.fromValue(m['dvr_permission'] as int? ?? 2),
+    role: _parseRole(m['role']),
+    dvrPermission: _parseDvrPermission(m['dvr_permission']),
     dvrQuotaMB: m['dvr_quota_mb'] as int?,
     // FE-PM-08: per-profile accent color override.
     accentColorValue: m['accent_color_value'] as int?,
@@ -186,6 +186,32 @@ UserProfile _mapToProfile(Map<String, dynamic> m) {
         m['subtitle_enabled_by_default'] as bool? ?? false,
     isActive: false,
   );
+}
+
+/// Parse role from either string ("admin") or int (0) for backward compat.
+/// Case-insensitive to handle Rust serialization differences.
+UserRole _parseRole(dynamic v) {
+  if (v is String) {
+    final lower = v.toLowerCase();
+    return UserRole.values.firstWhere(
+      (r) => r.name.toLowerCase() == lower,
+      orElse: () => UserRole.viewer,
+    );
+  }
+  return UserRole.fromValue(v as int? ?? 1);
+}
+
+/// Parse DVR permission from either string ("full") or int (2).
+/// Case-insensitive to handle Rust serialization differences.
+DvrPermission _parseDvrPermission(dynamic v) {
+  if (v is String) {
+    final lower = v.toLowerCase();
+    return DvrPermission.values.firstWhere(
+      (p) => p.name.toLowerCase() == lower,
+      orElse: () => DvrPermission.viewOnly,
+    );
+  }
+  return DvrPermission.fromValue(v as int? ?? 2);
 }
 
 Map<String, dynamic> _profileToMap(UserProfile p) {
@@ -199,8 +225,8 @@ Map<String, dynamic> _profileToMap(UserProfile p) {
     'is_guest': p.isGuest,
     'pin_version': p.pinVersion,
     'max_allowed_rating': p.maxAllowedRating,
-    'role': p.role.value,
-    'dvr_permission': p.dvrPermission.value,
+    'role': p.role.name,
+    'dvr_permission': p.dvrPermission.name.toLowerCase(),
     'dvr_quota_mb': p.dvrQuotaMB,
     // FE-PM-08: per-profile accent color override.
     'accent_color_value': p.accentColorValue,

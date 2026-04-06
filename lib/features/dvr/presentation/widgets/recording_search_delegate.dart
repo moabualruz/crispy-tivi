@@ -230,6 +230,7 @@ class _ResultList extends StatelessWidget {
       ),
       RecordingStatus.completed => Icon(Icons.check_circle, color: cs.tertiary),
       RecordingStatus.failed => Icon(Icons.error, color: cs.error),
+      RecordingStatus.cancelled => Icon(Icons.cancel, color: cs.outline),
     };
   }
 
@@ -258,6 +259,7 @@ class _StatusChip extends StatelessWidget {
       RecordingStatus.recording => ('Recording', cs.error),
       RecordingStatus.completed => ('Done', cs.tertiary),
       RecordingStatus.failed => ('Failed', cs.error),
+      RecordingStatus.cancelled => ('Cancelled', cs.outline),
     };
 
     return Container(

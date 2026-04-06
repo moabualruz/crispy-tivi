@@ -148,4 +148,4 @@ class Recording {
   int get hashCode => Object.hash(runtimeType, id);
 }
 
-enum RecordingStatus { scheduled, recording, completed, failed }
+enum RecordingStatus { scheduled, recording, completed, failed, cancelled }

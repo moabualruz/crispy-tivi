@@ -25,6 +25,9 @@ enum TransferStatus {
 
   /// Transfer failed (see [TransferTask.errorMessage]).
   failed,
+
+  /// Transfer was cancelled.
+  cancelled,
 }
 
 /// A file transfer task (upload or download).
@@ -83,9 +86,11 @@ class TransferTask {
     return (transferredBytes / totalBytes).clamp(0.0, 1.0);
   }
 
-  /// Whether the task is terminal (completed or failed).
+  /// Whether the task is terminal (completed, failed, or cancelled).
   bool get isDone =>
-      status == TransferStatus.completed || status == TransferStatus.failed;
+      status == TransferStatus.completed ||
+      status == TransferStatus.failed ||
+      status == TransferStatus.cancelled;
 
   TransferTask copyWith({
     String? id,

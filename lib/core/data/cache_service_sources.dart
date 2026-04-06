@@ -48,7 +48,7 @@ DateTime? parseMapDateTime(dynamic value) {
 Map<String, dynamic> sourceToMap(PlaylistSource s) => {
   'id': s.id,
   'name': s.name,
-  'source_type': s.type.name,
+  'source_type': _sourceTypeToRust(s.type),
   'url': s.url,
   'username': s.username,
   'password': s.password,
@@ -70,10 +70,7 @@ PlaylistSource mapToSource(Map<String, dynamic> m) {
     id: m['id'] as String,
     name: m['name'] as String,
     url: m['url'] as String,
-    type: PlaylistSourceType.values.firstWhere(
-      (e) => e.name == m['source_type'],
-      orElse: () => PlaylistSourceType.m3u,
-    ),
+    type: _parseSourceType(m['source_type'] as String? ?? 'm3u'),
     epgUrl: m['epg_url'] as String?,
     userAgent: m['user_agent'] as String?,
     refreshIntervalMinutes: (m['refresh_interval_minutes'] as int?) ?? 60,
@@ -86,6 +83,25 @@ PlaylistSource mapToSource(Map<String, dynamic> m) {
     acceptSelfSigned: m['accept_self_signed'] as bool? ?? false,
   );
 }
+
+// ── Source type serialization helpers ───────────────────────────────────────
+
+/// Maps Dart [PlaylistSourceType] to the Rust serialized string.
+///
+/// Rust uses "stalker" for the Stalker portal; Dart uses "stalkerPortal".
+String _sourceTypeToRust(PlaylistSourceType t) => switch (t) {
+  PlaylistSourceType.stalkerPortal => 'stalker',
+  _ => t.name,
+};
+
+/// Maps a Rust source type string to Dart [PlaylistSourceType].
+PlaylistSourceType _parseSourceType(String s) => switch (s) {
+  'stalker' => PlaylistSourceType.stalkerPortal,
+  _ => PlaylistSourceType.values.firstWhere(
+    (e) => e.name == s,
+    orElse: () => PlaylistSourceType.m3u,
+  ),
+};
 
 // ── Providers ────────────────────────────────────────────────────────────────
 

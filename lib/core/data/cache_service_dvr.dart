@@ -143,7 +143,7 @@ Recording _mapToRecording(Map<String, dynamic> m) {
     streamUrl: m['stream_url'] as String?,
     startTime: _parseNaiveUtc(m['start_time'] as String),
     endTime: _parseNaiveUtc(m['end_time'] as String),
-    status: RecordingStatus.values.byName(m['status'] as String),
+    status: _parseRecordingStatus(m['status'] as String? ?? 'scheduled'),
     filePath: m['file_path'] as String?,
     fileSizeBytes: m['file_size_bytes'] as int?,
     isRecurring: m['is_recurring'] as bool? ?? false,
@@ -174,7 +174,7 @@ StorageBackend _mapToStorageBackend(Map<String, dynamic> m) {
   return StorageBackend(
     id: m['id'] as String,
     name: m['name'] as String,
-    type: StorageType.values.byName(m['type'] as String),
+    type: _storageTypeFromRust(m['type'] as String? ?? 'local'),
     config: config,
     isDefault: m['is_default'] as bool? ?? false,
   );
@@ -184,7 +184,7 @@ Map<String, dynamic> _storageBackendToMap(StorageBackend b) {
   return {
     'id': b.id,
     'name': b.name,
-    'type': b.type.name,
+    'type': _storageTypeToRust(b.type),
     'config': b.config,
     'is_default': b.isDefault,
   };
@@ -196,7 +196,7 @@ TransferTask _mapToTransferTask(Map<String, dynamic> m) {
     recordingId: m['recording_id'] as String,
     backendId: m['backend_id'] as String,
     direction: TransferDirection.values.byName(m['direction'] as String),
-    status: TransferStatus.values.byName(m['status'] as String),
+    status: _transferStatusFromRust(m['status'] as String? ?? 'pending'),
     totalBytes: m['total_bytes'] as int? ?? 0,
     transferredBytes: m['transferred_bytes'] as int? ?? 0,
     createdAt: _parseNaiveUtc(m['created_at'] as String),
@@ -211,7 +211,7 @@ Map<String, dynamic> _transferTaskToMap(TransferTask t) {
     'recording_id': t.recordingId,
     'backend_id': t.backendId,
     'direction': t.direction.name,
-    'status': t.status.name,
+    'status': _transferStatusToRust(t.status),
     'total_bytes': t.totalBytes,
     'transferred_bytes': t.transferredBytes,
     'created_at': _toNaiveDateTime(t.createdAt),
@@ -219,3 +219,54 @@ Map<String, dynamic> _transferTaskToMap(TransferTask t) {
     'remote_path': t.remotePath,
   };
 }
+
+// ── Serialization helpers ─────────────────────────────
+
+/// Maps Dart [RecordingStatus] from a Rust string,
+/// safe against unknown variants.
+RecordingStatus _parseRecordingStatus(String s) => RecordingStatus.values
+    .firstWhere((e) => e.name == s, orElse: () => RecordingStatus.scheduled);
+
+/// Maps Dart [TransferStatus] to the Rust serialized string.
+///
+/// Rust variants: pending, inprogress, completed, failed, cancelled.
+/// Dart extras: queued → pending, active → inprogress, paused → pending.
+String _transferStatusToRust(TransferStatus s) => switch (s) {
+  TransferStatus.queued => 'pending',
+  TransferStatus.active => 'inprogress',
+  TransferStatus.paused => 'pending',
+  TransferStatus.completed => 'completed',
+  TransferStatus.failed => 'failed',
+  TransferStatus.cancelled => 'cancelled',
+};
+
+/// Maps a Rust transfer status string to Dart [TransferStatus].
+TransferStatus _transferStatusFromRust(String s) => switch (s) {
+  'pending' => TransferStatus.queued,
+  'inprogress' => TransferStatus.active,
+  'completed' => TransferStatus.completed,
+  'failed' => TransferStatus.failed,
+  'cancelled' => TransferStatus.cancelled,
+  _ => TransferStatus.queued,
+};
+
+/// Maps Dart [StorageType] to the Rust BackendType string.
+///
+/// Rust variants: local, network_smb, network_nfs, cloud.
+String _storageTypeToRust(StorageType t) => switch (t) {
+  StorageType.local => 'local',
+  StorageType.smb => 'network_smb',
+  StorageType.s3 => 'cloud',
+  StorageType.googleDrive => 'cloud',
+  StorageType.ftp => 'cloud',
+  StorageType.webdav => 'cloud',
+};
+
+/// Maps a Rust BackendType string to Dart [StorageType].
+StorageType _storageTypeFromRust(String s) => switch (s) {
+  'local' => StorageType.local,
+  'network_smb' => StorageType.smb,
+  'network_nfs' => StorageType.smb,
+  'cloud' => StorageType.s3,
+  _ => StorageType.local,
+};

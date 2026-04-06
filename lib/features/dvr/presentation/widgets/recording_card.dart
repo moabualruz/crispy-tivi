@@ -297,6 +297,7 @@ class RecordingCard extends ConsumerWidget {
         RecordingStatus.recording => 'Recording',
         RecordingStatus.failed => 'Failed',
         RecordingStatus.completed => 'Completed',
+        RecordingStatus.cancelled => 'Cancelled',
       };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -424,6 +425,8 @@ class _PlayableStatusIcon extends StatelessWidget {
         return Icon(Icons.check_circle, color: cs.tertiary);
       case RecordingStatus.failed:
         return Icon(Icons.error, color: cs.error);
+      case RecordingStatus.cancelled:
+        return Icon(Icons.cancel, color: cs.outline);
     }
   }
 }
