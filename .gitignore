@@ -77,8 +77,6 @@ e2e/robot_tests/node_modules
 **/test_creds.local.json
 
 # AI/agent config (managed as git submodule in .ai/)
-CLAUDE.md
-GEMINI.md
 .cursorrules
 .agent/
 
