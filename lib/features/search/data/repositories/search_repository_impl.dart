@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/data/crispy_backend.dart';
 import '../../../../core/domain/entities/media_item.dart';
@@ -20,9 +22,10 @@ import '../../domain/repositories/search_repository.dart';
 /// Media server search stays in Dart because it
 /// involves async I/O with external services.
 class SearchRepositoryImpl implements SearchRepository {
-  SearchRepositoryImpl(this._backend);
+  SearchRepositoryImpl(this._backend, this._cache);
 
   final CrispyBackend _backend;
+  final CacheService _cache;
 
   @override
   Future<GroupedSearchResults> search(
@@ -305,4 +308,18 @@ class SearchRepositoryImpl implements SearchRepository {
       epgPrograms: epgResults,
     );
   }
+
+  @override
+  List<String> buildSearchCategories(
+    List<String> vodCategories,
+    List<String> channelGroups,
+  ) => _cache.buildSearchCategories(vodCategories, channelGroups);
 }
+
+/// Riverpod provider for [SearchRepository].
+final searchRepositoryProvider = Provider<SearchRepository>((ref) {
+  return SearchRepositoryImpl(
+    ref.read(crispyBackendProvider),
+    ref.read(cacheServiceProvider),
+  );
+});

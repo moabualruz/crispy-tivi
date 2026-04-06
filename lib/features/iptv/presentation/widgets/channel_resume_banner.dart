@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../favorites/data/favorites_history_service.dart';
+import '../providers/iptv_service_providers.dart';
 import '../../domain/entities/channel.dart';
 import '../providers/channel_providers.dart';
 

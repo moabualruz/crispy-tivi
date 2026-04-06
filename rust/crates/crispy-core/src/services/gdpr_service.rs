@@ -171,8 +171,8 @@ mod tests {
             pin_version: 0,
             is_child: false,
             max_allowed_rating: 18,
-            role: 0,
-            dvr_permission: 0,
+            role: crate::value_objects::ProfileRole::Admin,
+            dvr_permission: crate::value_objects::DvrPermission::None,
             dvr_quota_mb: None,
         }
     }

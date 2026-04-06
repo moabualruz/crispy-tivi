@@ -1,3 +1,5 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/data/cache_service.dart';
 import '../domain/entities/saved_layout.dart';
 import '../domain/repositories/layout_repository.dart';
@@ -39,3 +41,8 @@ class LayoutRepositoryImpl implements LayoutRepository {
   @override
   String generateId() => 'layout_${DateTime.now().millisecondsSinceEpoch}';
 }
+
+/// Riverpod provider for [LayoutRepository].
+final layoutRepositoryProvider = Provider.autoDispose<LayoutRepository>((ref) {
+  return LayoutRepositoryImpl(ref.watch(cacheServiceProvider));
+});

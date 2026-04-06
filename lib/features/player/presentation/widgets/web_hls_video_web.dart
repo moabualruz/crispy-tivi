@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/utils/stream_url_actions.dart';
 import '../../../../core/widgets/smart_image.dart';
-import '../../../player/data/web_video_bridge_web.dart' show escapeJs;
+import '../providers/player_service_providers.dart' show escapeJs;
 import 'package:web/web.dart' as web;
 
 /// A web-only video widget that uses HLS.js for live stream

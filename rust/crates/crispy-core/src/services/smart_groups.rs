@@ -5,6 +5,7 @@ use super::CrispyService;
 use crate::algorithms::stream_alternatives::normalize_for_matching;
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
+use crate::insert_or_replace;
 
 impl CrispyService {
     // ── Smart Channel Groups ────────────────────────────
@@ -54,10 +55,10 @@ impl CrispyService {
         priority: i32,
     ) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        conn.execute(
-            "INSERT OR REPLACE INTO db_smart_group_members
-                (group_id, channel_id, source_id, priority)
-             VALUES (?1, ?2, ?3, ?4)",
+        insert_or_replace!(
+            conn,
+            "db_smart_group_members",
+            ["group_id", "channel_id", "source_id", "priority"],
             params![group_id, channel_id, source_id, priority],
         )?;
         self.emit(DataChangeEvent::SmartGroupChanged);
@@ -385,6 +386,7 @@ impl CrispyService {
 
 #[cfg(test)]
 mod tests {
+    use crate::insert_or_replace;
     use crate::services::test_helpers::*;
 
     #[test]
@@ -603,10 +605,11 @@ mod tests {
         source_id: &str,
     ) {
         let conn = svc.db.get().unwrap();
-        conn.execute(
-            "INSERT OR REPLACE INTO db_channels (id, native_id, name, stream_url, source_id)
-             VALUES (?1, ?1, ?2, ?3, ?4)",
-            rusqlite::params![id, name, url, source_id],
+        insert_or_replace!(
+            conn,
+            "db_channels",
+            ["id", "native_id", "name", "stream_url", "source_id"],
+            rusqlite::params![id, id, name, url, source_id],
         )
         .unwrap();
     }

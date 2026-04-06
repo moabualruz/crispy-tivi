@@ -109,6 +109,90 @@ fi
 echo ""
 
 # ─────────────────────────────────────────────────────────────
+# DDD: Domain importing data/infrastructure layer
+# ─────────────────────────────────────────────────────────────
+echo "[DDD: Domain Importing Data/Infrastructure Layer]"
+infra_in_domain=$(grep -rn \
+  -e "import.*data/" \
+  -e "import.*datasources/" \
+  -e "import.*presentation/" \
+  -e "import.*providers/" \
+  -e "import 'package:dio" \
+  -e "import 'package:sqflite" \
+  -e "import 'package:shared_preferences" \
+  "$LIB/features/"*/domain/ \
+  "$LIB/core/domain/" \
+  2>/dev/null \
+  | grep -v "// DDD exception" \
+  | grep -v "crispy_player\.dart" \
+  | grep -v "remote_action\.dart" \
+  | grep -v "_test\.dart" \
+  || true)
+
+if [ -n "$infra_in_domain" ]; then
+  while IFS= read -r line; do
+    file=$(echo "$line" | cut -d: -f1)
+    lineno=$(echo "$line" | cut -d: -f2)
+    content=$(echo "$line" | cut -d: -f3- | sed 's/^ *//')
+    echo "  ${file#"$REPO_ROOT/"}:$lineno — $content"
+    ddd_count=$((ddd_count + 1))
+  done <<< "$infra_in_domain"
+else
+  echo "  (none found)"
+fi
+echo ""
+
+# ─────────────────────────────────────────────────────────────
+# DDD: Anemic Domain Entities
+# ─────────────────────────────────────────────────────────────
+echo "[DDD: Anemic Domain Entities (no real behavior methods)]"
+anemic_found=0
+
+# Boilerplate patterns to exclude (not real domain behavior):
+#   - copyWith(  toString(  hashCode  operator ==  fromJson  toJson
+#   - plain constructors: ClassName(  or  factory ClassName(
+# Real behavior = any named getter (bool get foo =>) or method with a body
+# that is NOT one of the boilerplate names above.
+# Skip: enum files (legitimate data-only), files <30 lines (simple VOs)
+while IFS= read -r entity_file; do
+  # Skip enum files — enums are legitimately data-only value objects
+  if grep -qE "^enum\s" "$entity_file" 2>/dev/null; then
+    continue
+  fi
+
+  # Skip very small files (<30 lines) — simple value objects
+  file_lines=$(wc -l < "$entity_file" 2>/dev/null || echo 0)
+  file_lines=$(echo "$file_lines" | tr -d '[:space:]')
+  if [ "$file_lines" -lt 30 ]; then
+    continue
+  fi
+
+  # Count lines that look like real domain behavior:
+  #   getters:  "  bool get isSignedIn =>" or "  Duration get duration {"
+  #   methods:  "  void cancel() {" / "  List<X> active() {"
+  # Exclude boilerplate names explicitly.
+  has_behavior=$(grep -cP \
+    "^\s+[A-Za-z?<>\[\]]+\s+get\s+(?!hashCode)[a-z][a-zA-Z]*\s*(=>|\{)|^\s+(Future|Stream|List|Map|Set|bool|int|double|String|void|[A-Z][a-zA-Z<>?\[\]]+)\s+(?!copyWith|toString|toJson|fromJson|hashCode)[a-z][a-zA-Z]*\s*\([^)]*\)\s*(=>|\{|async)" \
+    "$entity_file" 2>/dev/null || true)
+  # Strip whitespace/newlines so integer comparison is safe
+  has_behavior=$(echo "$has_behavior" | tr -d '[:space:]')
+  has_behavior=${has_behavior:-0}
+
+  if [ "$has_behavior" -eq 0 ]; then
+    echo "  [ANEMIC] ${entity_file#"$REPO_ROOT/"}"
+    ddd_count=$((ddd_count + 1))
+    anemic_found=1
+  fi
+done < <(find "$LIB/features" "$LIB/core" \
+  -path "*/domain/entities/*.dart" \
+  ! -name "*.g.dart" ! -name "*.freezed.dart" 2>/dev/null)
+
+if [ "$anemic_found" -eq 0 ]; then
+  echo "  (none found)"
+fi
+echo ""
+
+# ─────────────────────────────────────────────────────────────
 # DDD: Business Logic in Data Layer
 # ─────────────────────────────────────────────────────────────
 echo "[DDD: Business Logic in Data Layer (sort/filter/compute/calculate/detect/guess)]"
@@ -137,27 +221,32 @@ fi
 echo ""
 
 # ─────────────────────────────────────────────────────────────
-# SOLID: God Classes (CacheService)
+# SOLID: God Classes (CacheService) — counted as violations
 # ─────────────────────────────────────────────────────────────
-echo "[SOLID: God Classes]"
+echo "[SOLID: God Classes (CacheService)]"
 total_lines=0
 total_public_methods=0
 for f in "$LIB/core/data/cache_service"*.dart; do
+  [ -f "$f" ] || continue
   lines=$(wc -l < "$f")
   total_lines=$((total_lines + lines))
-  # Count public method declarations (non-underscore identifiers after return types)
   methods=$(grep -cE "^\s+(Future|Stream|List|Map|bool|int|double|String|void|[A-Z][a-zA-Z]+)[^_]*\s+[a-z][a-zA-Z]+(Async)?\s*[(<]" "$f" 2>/dev/null || echo 0)
+  methods=$(echo "$methods" | tr -d '[:space:]')
+  methods=${methods:-0}
   total_public_methods=$((total_public_methods + methods))
-  fname=$(basename "$f")
-  echo "  $fname: $lines lines, ~$methods public methods"
+  fname="${f#"$REPO_ROOT/"}"
+  if [ "$lines" -gt 400 ]; then
+    echo "  [VIOLATION] $fname: $lines lines (target: <400)"
+    solid_count=$((solid_count + 1))
+  else
+    echo "  $fname: $lines lines, ~$methods public methods"
+  fi
 done
-echo "  TOTAL: $total_lines lines, ~$total_public_methods public methods (target: each file <400 lines)"
-echo "  [TRACKED] CacheService god class — documented in TARGET_ARCHITECTURE.md for planned repository split"
-# Not counted — tracked structural issue requiring multi-session decomposition
+echo "  TOTAL: $total_lines lines, ~$total_public_methods public methods"
 echo ""
 
 # ─────────────────────────────────────────────────────────────
-# SOLID: Missing Repository Interfaces
+# SOLID: Missing Repository Interfaces / DIP violations
 # ─────────────────────────────────────────────────────────────
 echo "[SOLID: Missing Repository Interfaces (DIP)]"
 repo_interfaces=$(find "$LIB/features" -path "*/domain/repositories/*.dart" 2>/dev/null | wc -l)
@@ -171,27 +260,15 @@ echo "  Total features: $total_features"
 echo "  Features with repo interfaces: $(echo "$features_with_repos" | tr '\n' ' ')"
 
 # DIP violation: provider in a feature that HAS a repo interface imports CacheService directly
-dip_violations=0
 while IFS= read -r provider_file; do
-  # Extract feature name from path: lib/features/<feature>/presentation/providers/...
   feature=$(echo "$provider_file" | sed 's|.*/features/||; s|/presentation.*||')
-  # Only flag if this feature has a repository interface
   if echo "$features_with_repos" | grep -qx "$feature"; then
-    echo "    [DIP] ${provider_file#"$REPO_ROOT/"} (feature '$feature' has repo interface)"
-    dip_violations=$((dip_violations + 1))
+    echo "  [DIP VIOLATION] ${provider_file#"$REPO_ROOT/"} (feature '$feature' has repo interface but bypasses it)"
+    solid_count=$((solid_count + 1))
   fi
 done < <(grep -rl "import.*cache_service" \
   "$LIB/features/"*/presentation/providers/ \
   2>/dev/null || true)
-
-# NOTE: DIP violations are reported as INFO only. CacheService does not yet
-# implement the repository interfaces — splitting it into concrete repository
-# implementations is tracked in TARGET_ARCHITECTURE.md. Until that refactor
-# lands, counting these as SOLID violations would inflate the score unfairly.
-echo "  Providers bypassing repo interface (INFO — pending CacheService split): $dip_violations"
-if [ "$dip_violations" -gt 0 ]; then
-  echo "  (not counted as violations until CacheService implements repository interfaces)"
-fi
 echo ""
 
 # ─────────────────────────────────────────────────────────────
@@ -216,22 +293,65 @@ fi
 echo ""
 
 # ─────────────────────────────────────────────────────────────
+# SOLID: Large Provider Files (SRP, >300 lines)
+# ─────────────────────────────────────────────────────────────
+echo "[SOLID: Large Provider Files (SRP >300 lines)]"
+found_large_providers=0
+while IFS= read -r f; do
+  lines=$(wc -l < "$f")
+  if [ "$lines" -gt 300 ]; then
+    echo "  ${f#"$REPO_ROOT/"}: $lines lines (target: <300)"
+    solid_count=$((solid_count + 1))
+    found_large_providers=1
+  fi
+done < <(find "$LIB/features" \
+  -path "*/presentation/providers/*.dart" \
+  ! -name "*.g.dart" ! -name "*.freezed.dart" 2>/dev/null)
+
+if [ "$found_large_providers" -eq 0 ]; then
+  echo "  (none found)"
+fi
+echo ""
+
+# ─────────────────────────────────────────────────────────────
+# SOLID: Widgets importing data layer directly (bypassing providers)
+# ─────────────────────────────────────────────────────────────
+echo "[SOLID: Widgets Importing Data Layer Directly (bypassing providers)]"
+found_widget_data=0
+while IFS= read -r f; do
+  matches=$(grep -nE "import.*(data/|_service['\"]|_repository['\"])" "$f" 2>/dev/null || true)
+  if [ -n "$matches" ]; then
+    while IFS= read -r match; do
+      lineno=$(echo "$match" | cut -d: -f1)
+      content=$(echo "$match" | cut -d: -f2- | sed 's/^ *//')
+      echo "  ${f#"$REPO_ROOT/"}:$lineno — $content"
+      solid_count=$((solid_count + 1))
+      found_widget_data=1
+    done <<< "$matches"
+  fi
+done < <(find "$LIB/features" \
+  -path "*/presentation/widgets/*.dart" \
+  ! -name "*.g.dart" ! -name "*.freezed.dart" 2>/dev/null)
+
+if [ "$found_widget_data" -eq 0 ]; then
+  echo "  (none found)"
+fi
+echo ""
+
+# ─────────────────────────────────────────────────────────────
 # DRY: Duplicate Serialization (fromJson in domain AND map fn in cache_service)
 # ─────────────────────────────────────────────────────────────
 echo "[DRY: Duplicate Serialization]"
 dry_found=0
 
-# Find entities with fromJson in domain/entities
 while IFS= read -r line; do
   domain_file=$(echo "$line" | cut -d: -f1)
   domain_lineno=$(echo "$line" | cut -d: -f2)
-  # Extract the class name from the factory line: factory ClassName.fromJson
   classname=$(echo "$line" | grep -oE "factory ([A-Za-z]+)\.fromJson" | awk '{print $2}' | cut -d. -f1)
   if [ -z "$classname" ]; then
     continue
   fi
 
-  # Look for matching map function in cache_service files
   cache_match=$(grep -rn "mapTo${classname}\|${classname}ToMap\|_mapTo${classname}\|to${classname}Model\|_to${classname}" \
     "$LIB/core/data/cache_service"*.dart 2>/dev/null | head -1 || true)
 
@@ -253,9 +373,12 @@ fi
 echo ""
 
 # ─────────────────────────────────────────────────────────────
-# DRY: Hand-written copyWith in domain entities (INFO only)
+# DRY: Hand-written copyWith in domain entities
 # ─────────────────────────────────────────────────────────────
-echo "[DRY: Hand-written copyWith in Domain Entities (INFO — Freezed candidates, not counted as violations)]"
+echo "[DRY: Hand-written copyWith in Domain Entities (INFO — structural boilerplate, not knowledge duplication)]"
+# NOTE: Each entity's copyWith has unique fields specific to that entity.
+# Per DRY: "two identical code blocks representing independent concepts
+# that evolve separately are fine." Not counted as violations.
 copyWith_files=$(grep -rln "copyWith(" \
   "$LIB/features/"*/domain/entities/ \
   "$LIB/core/domain/entities/" \
@@ -267,7 +390,7 @@ if [ -n "$copyWith_files" ]; then
     echo "  [INFO] ${f#"$REPO_ROOT/"}"
     count=$((count + 1))
   done <<< "$copyWith_files"
-  echo "  ($count file(s) — consider Freezed codegen; not counted as violations)"
+  echo "  ($count file(s) — Freezed codegen candidate; not counted as violations)"
 else
   echo "  (none found)"
 fi

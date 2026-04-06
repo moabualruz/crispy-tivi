@@ -1,9 +1,26 @@
-use rusqlite::params;
+use rusqlite::{Row, params};
 
+use crate::insert_or_replace;
 use super::{CrispyService, dt_to_ts, ts_to_dt};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::models::Bookmark;
+use crate::traits::BookmarkRepository;
+
+fn bookmark_from_row(row: &Row) -> rusqlite::Result<Bookmark> {
+    Ok(Bookmark {
+        id: row.get(0)?,
+        content_id: row.get(1)?,
+        content_type: row
+            .get::<_, String>(2)?
+            .as_str()
+            .try_into()
+            .unwrap_or_default(),
+        position_ms: row.get(3)?,
+        label: row.get(4)?,
+        created_at: ts_to_dt(row.get(5)?),
+    })
+}
 
 impl CrispyService {
     // ── Bookmarks ─────────────────────────────────────
@@ -20,33 +37,21 @@ impl CrispyService {
             WHERE content_id = ?1
             ORDER BY position_ms ASC",
         )?;
-        let rows = stmt.query_map(params![content_id], |row| {
-            Ok(Bookmark {
-                id: row.get(0)?,
-                content_id: row.get(1)?,
-                content_type: row.get(2)?,
-                position_ms: row.get(3)?,
-                label: row.get(4)?,
-                created_at: ts_to_dt(row.get(5)?),
-            })
-        })?;
+        let rows = stmt.query_map(params![content_id], bookmark_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
     /// Save (upsert) a bookmark.
     pub fn save_bookmark(&self, bookmark: &Bookmark) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        conn.execute(
-            "INSERT OR REPLACE INTO db_bookmarks (
-                id, content_id, content_type,
-                position_ms, label, created_at
-            ) VALUES (
-                ?1, ?2, ?3, ?4, ?5, ?6
-            )",
+        insert_or_replace!(
+            conn,
+            "db_bookmarks",
+            ["id", "content_id", "content_type", "position_ms", "label", "created_at"],
             params![
                 bookmark.id,
                 bookmark.content_id,
-                bookmark.content_type,
+                bookmark.content_type.as_str(),
                 bookmark.position_ms,
                 bookmark.label,
                 dt_to_ts(&bookmark.created_at),
@@ -81,6 +86,24 @@ impl CrispyService {
     }
 }
 
+impl BookmarkRepository for CrispyService {
+    fn load_bookmarks(&self, content_id: &str) -> Result<Vec<Bookmark>, DbError> {
+        self.load_bookmarks(content_id)
+    }
+
+    fn save_bookmark(&self, bookmark: &Bookmark) -> Result<(), DbError> {
+        self.save_bookmark(bookmark)
+    }
+
+    fn delete_bookmark(&self, id: &str) -> Result<(), DbError> {
+        self.delete_bookmark(id)
+    }
+
+    fn clear_bookmarks(&self, content_id: &str) -> Result<(), DbError> {
+        self.clear_bookmarks(content_id)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::services::test_helpers::*;
@@ -90,7 +113,7 @@ mod tests {
         crate::models::Bookmark {
             id: id.to_string(),
             content_id: content_id.to_string(),
-            content_type: "vod".to_string(),
+            content_type: crate::value_objects::MediaType::Movie,
             position_ms,
             label: None,
             created_at: dt,
@@ -203,10 +226,13 @@ mod tests {
     fn bookmark_channel_type() {
         let svc = make_service();
         let mut bm = make_bookmark("b1", "ch1", 0);
-        bm.content_type = "channel".to_string();
+        bm.content_type = crate::value_objects::MediaType::Channel;
         svc.save_bookmark(&bm).unwrap();
 
         let bookmarks = svc.load_bookmarks("ch1").unwrap();
-        assert_eq!(bookmarks[0].content_type, "channel");
+        assert_eq!(
+            bookmarks[0].content_type,
+            crate::value_objects::MediaType::Channel
+        );
     }
 }

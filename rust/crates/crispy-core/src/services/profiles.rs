@@ -1,11 +1,28 @@
 use std::collections::HashMap;
 
-use rusqlite::params;
+use rusqlite::{Row, params};
 
 use super::{CrispyService, bool_to_int, int_to_bool};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::models::UserProfile;
+use crate::insert_or_replace;
+use crate::traits::ProfileRepository;
+
+fn profile_from_row(row: &Row) -> rusqlite::Result<UserProfile> {
+    Ok(UserProfile {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        avatar_index: row.get(2)?,
+        pin: row.get(3)?,
+        is_child: int_to_bool(row.get(4)?),
+        pin_version: row.get(5)?,
+        max_allowed_rating: row.get(6)?,
+        role: row.get(7)?,
+        dvr_permission: row.get(8)?,
+        dvr_quota_mb: row.get(9)?,
+    })
+}
 
 impl CrispyService {
     // ── Profiles ────────────────────────────────────
@@ -13,16 +30,21 @@ impl CrispyService {
     /// Upsert a user profile.
     pub fn save_profile(&self, profile: &UserProfile) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        conn.execute(
-            "INSERT OR REPLACE INTO db_profiles (
-                id, name, avatar_index, pin,
-                is_child, pin_version,
-                max_allowed_rating, role,
-                dvr_permission, dvr_quota_mb
-            ) VALUES (
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
-                ?9, ?10
-            )",
+        insert_or_replace!(
+            conn,
+            "db_profiles",
+            [
+                "id",
+                "name",
+                "avatar_index",
+                "pin",
+                "is_child",
+                "pin_version",
+                "max_allowed_rating",
+                "role",
+                "dvr_permission",
+                "dvr_quota_mb",
+            ],
             params![
                 profile.id,
                 profile.name,
@@ -100,20 +122,7 @@ impl CrispyService {
                 dvr_permission, dvr_quota_mb
             FROM db_profiles",
         )?;
-        let rows = stmt.query_map([], |row| {
-            Ok(UserProfile {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                avatar_index: row.get(2)?,
-                pin: row.get(3)?,
-                is_child: int_to_bool(row.get(4)?),
-                pin_version: row.get(5)?,
-                max_allowed_rating: row.get(6)?,
-                role: row.get(7)?,
-                dvr_permission: row.get(8)?,
-                dvr_quota_mb: row.get(9)?,
-            })
-        })?;
+        let rows = stmt.query_map([], profile_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
@@ -123,11 +132,10 @@ impl CrispyService {
     pub fn grant_source_access(&self, profile_id: &str, source_id: &str) -> Result<(), DbError> {
         let conn = self.db.get()?;
         let now = chrono::Utc::now().timestamp();
-        conn.execute(
-            "INSERT OR REPLACE INTO
-             db_profile_source_access
-             (profile_id, source_id, granted_at)
-             VALUES (?1, ?2, ?3)",
+        insert_or_replace!(
+            conn,
+            "db_profile_source_access",
+            ["profile_id", "source_id", "granted_at"],
             params![profile_id, source_id, now],
         )?;
         self.emit(DataChangeEvent::ProfileChanged {
@@ -266,6 +274,73 @@ impl CrispyService {
         )?;
         self.emit(DataChangeEvent::ChannelOrderChanged);
         Ok(())
+    }
+}
+
+impl ProfileRepository for CrispyService {
+    fn save_profile(&self, profile: &UserProfile) -> Result<(), DbError> {
+        self.save_profile(profile)
+    }
+
+    fn delete_profile(&self, id: &str) -> Result<(), DbError> {
+        self.delete_profile(id)
+    }
+
+    fn load_profiles(&self) -> Result<Vec<UserProfile>, DbError> {
+        self.load_profiles()
+    }
+
+    fn grant_source_access(
+        &self,
+        profile_id: &str,
+        source_id: &str,
+    ) -> Result<(), DbError> {
+        self.grant_source_access(profile_id, source_id)
+    }
+
+    fn revoke_source_access(
+        &self,
+        profile_id: &str,
+        source_id: &str,
+    ) -> Result<(), DbError> {
+        self.revoke_source_access(profile_id, source_id)
+    }
+
+    fn get_source_access(&self, profile_id: &str) -> Result<Vec<String>, DbError> {
+        self.get_source_access(profile_id)
+    }
+
+    fn set_source_access(
+        &self,
+        profile_id: &str,
+        source_ids: &[String],
+    ) -> Result<(), DbError> {
+        self.set_source_access(profile_id, source_ids)
+    }
+
+    fn save_channel_order(
+        &self,
+        profile_id: &str,
+        group_name: &str,
+        channel_ids: &[String],
+    ) -> Result<(), DbError> {
+        self.save_channel_order(profile_id, group_name, channel_ids)
+    }
+
+    fn load_channel_order(
+        &self,
+        profile_id: &str,
+        group_name: &str,
+    ) -> Result<Option<HashMap<String, i32>>, DbError> {
+        self.load_channel_order(profile_id, group_name)
+    }
+
+    fn reset_channel_order(
+        &self,
+        profile_id: &str,
+        group_name: &str,
+    ) -> Result<(), DbError> {
+        self.reset_channel_order(profile_id, group_name)
     }
 }
 

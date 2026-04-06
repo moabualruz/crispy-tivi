@@ -95,6 +95,23 @@ class PlaybackSessionParams {
   /// Source ID for multi-source tracking in watch history.
   final String? sourceId;
 
+  // ── Domain behaviour ──────────────────────────────────────
+
+  /// Whether this is a live IPTV stream (not VOD or file playback).
+  bool get isLiveStream =>
+      isLive || mediaType == 'live' || streamType == 'live';
+
+  /// Whether this session has a valid non-empty source URL.
+  bool get hasSource => streamUrl.isNotEmpty;
+
+  /// Whether this session requires HTTP authentication headers.
+  bool get requiresAuth =>
+      headers != null && headers!.isNotEmpty;
+
+  /// Convenience getter — the stream type inferred from [mediaType]
+  /// or the [isLive] flag.
+  String get streamType => mediaType ?? (isLive ? 'live' : 'vod');
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

@@ -12,6 +12,7 @@ use serde::Deserialize;
 
 use super::CrispyService;
 use crate::database::DbError;
+use crate::insert_or_replace;
 
 // ── Constants ──────────────────────────────────────────
 
@@ -215,9 +216,10 @@ impl CrispyService {
         let now = chrono::Utc::now().timestamp().to_string();
         // Write timestamp silently (no event emit).
         let conn = self.db.get()?;
-        conn.execute(
-            "INSERT OR REPLACE INTO db_settings \
-             (key, value) VALUES (?1, ?2)",
+        insert_or_replace!(
+            conn,
+            "db_settings",
+            ["key", "value"],
             params![LOGO_INDEX_TS_KEY, now],
         )?;
         Ok(())

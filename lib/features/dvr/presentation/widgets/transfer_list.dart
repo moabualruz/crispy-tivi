@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/widgets/async_value_ui.dart';
-import '../../data/transfer_service.dart';
+import '../providers/dvr_providers.dart';
 import '../../domain/entities/transfer_task.dart';
 
 /// Tab content showing queued, active, and completed

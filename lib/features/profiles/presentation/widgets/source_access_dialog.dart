@@ -6,8 +6,7 @@ import '../../../../core/widgets/async_filled_button.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
-import '../../data/profile_service.dart';
-import '../../data/source_access_service.dart';
+import '../providers/profile_service_providers.dart';
 import '../../domain/entities/user_profile.dart';
 
 /// Dialog for managing which sources a profile can access.

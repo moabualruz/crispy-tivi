@@ -21,6 +21,7 @@ use sha2::{Digest, Sha256};
 use tokio::sync::Semaphore;
 
 use crate::events::DataChangeEvent;
+use crate::insert_or_replace;
 use crate::http_client::shared_client;
 use crate::models::{Channel, EpgEntry};
 use crate::parsers::epg::{EpgChannel, ParsedEpg};
@@ -484,11 +485,9 @@ fn save_epg_channels(
     let conn = service.db.get()?;
     let tx = conn.unchecked_transaction()?;
     for ch in channels {
-        tx.execute(
-            "INSERT OR REPLACE INTO db_epg_channels \
-             (xmltv_id, source_id, display_name, icon_url) \
-             VALUES (?1, ?2, ?3, ?4)",
-            params![ch.xmltv_id, sid, ch.display_name, ch.icon_url],
+        insert_or_replace!(tx, "db_epg_channels",
+            ["xmltv_id", "source_id", "display_name", "icon_url"],
+            params![ch.xmltv_id, sid, ch.display_name, ch.icon_url]
         )?;
     }
     tx.commit()?;
@@ -742,9 +741,9 @@ fn read_sync_setting(service: &CrispyService, key: &str) -> Option<String> {
 
 fn write_sync_setting(service: &CrispyService, key: &str, value: &str) -> Result<()> {
     let conn = service.db.get()?;
-    conn.execute(
-        "INSERT OR REPLACE INTO db_settings (key, value) VALUES (?1, ?2)",
-        params![key, value],
+    insert_or_replace!(conn, "db_settings",
+        ["key", "value"],
+        params![key, value]
     )?;
     Ok(())
 }

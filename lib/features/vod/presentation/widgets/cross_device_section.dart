@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
-import '../../../player/data/watch_history_service.dart';
+import '../providers/vod_service_providers.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import 'continue_watching_section.dart';

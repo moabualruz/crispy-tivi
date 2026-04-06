@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
+import '../providers/dvr_providers.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/date_format_utils.dart';
 import '../../../../core/widgets/async_value_ui.dart';
 import '../../../../core/widgets/error_state_widget.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
-import '../../data/dvr_service.dart';
 import '../../domain/entities/recording.dart';
 import '../../domain/entities/recording_profile.dart';
 

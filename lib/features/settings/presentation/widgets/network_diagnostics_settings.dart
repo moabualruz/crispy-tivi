@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
-import '../../data/network_diagnostics_service.dart';
+import '../providers/settings_service_providers.dart';
 import 'settings_shared_widgets.dart';
 
 // FE-S-11: Network Diagnostics — tile + bottom sheet with live checks.

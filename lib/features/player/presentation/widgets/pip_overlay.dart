@@ -3,9 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/screenshot_service.dart';
 import '../../../../core/theme/crispy_animation.dart';
-import '../../data/watch_history_service.dart';
 import '../providers/pip_provider.dart';
 import '../providers/player_providers.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../data/dvr_service.dart';
+import '../providers/dvr_providers.dart';
 import 'recording_list.dart';
 import 'storage_bar.dart';
 import 'storage_breakdown_sheet.dart';

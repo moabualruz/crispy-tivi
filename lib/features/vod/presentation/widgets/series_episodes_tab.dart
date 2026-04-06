@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants.dart';
-import '../../../../core/data/cache_service.dart';
+import '../providers/vod_service_providers.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/responsive_layout.dart';
-import '../../../player/data/watch_history_service.dart';
 import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../domain/entities/vod_item.dart';
 import '../../domain/utils/episode_utils.dart';

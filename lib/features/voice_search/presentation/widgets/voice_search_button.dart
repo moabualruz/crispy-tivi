@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../data/services/speech_service.dart';
+import '../providers/voice_search_service_providers.dart';
 import '../../domain/entities/voice_search_state.dart';
 
 /// Voice search button with animated recording indicator.

@@ -1,10 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
-import '../../../../core/data/cache_service.dart';
+import '../providers/vod_service_providers.dart';
 import '../../../../core/network/http_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
-import '../../data/vod_parser.dart';
 import '../../domain/entities/vod_item.dart';
 
 /// Result of fetching series episodes from the

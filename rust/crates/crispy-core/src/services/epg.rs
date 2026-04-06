@@ -4,8 +4,10 @@ use rusqlite::params;
 
 use super::{CrispyService, bool_to_int, dt_to_ts, str_params, ts_to_dt};
 use crate::database::DbError;
+use crate::database::row_helpers::RowExt;
 use crate::events::DataChangeEvent;
 use crate::models::EpgEntry;
+use crate::traits::EpgRepository;
 
 /// Column list for all EPG SELECT queries. Kept in one place so
 /// every load method stays in sync with `epg_entry_from_row`.
@@ -31,7 +33,7 @@ fn epg_entry_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<EpgEntry> {
         category: row.get(6)?,
         icon_url: row.get(7)?,
         source_id: row.get(8)?,
-        is_placeholder: row.get::<_, i32>(9).unwrap_or(0) != 0,
+        is_placeholder: row.get_bool(9).unwrap_or(false),
         sub_title: row.get(10)?,
         season: row.get(11)?,
         episode: row.get(12)?,
@@ -558,6 +560,66 @@ impl CrispyService {
         conn.execute("DELETE FROM db_epg_entries", [])?;
         self.emit(DataChangeEvent::BulkDataRefresh);
         Ok(())
+    }
+}
+
+impl EpgRepository for CrispyService {
+    fn save_epg_entries(
+        &self,
+        entries: &HashMap<String, Vec<EpgEntry>>,
+    ) -> Result<usize, DbError> {
+        self.save_epg_entries(entries)
+    }
+
+    fn load_epg_entries(&self) -> Result<HashMap<String, Vec<EpgEntry>>, DbError> {
+        self.load_epg_entries()
+    }
+
+    fn get_epgs_for_channels(
+        &self,
+        channel_ids: &[String],
+        start_time: i64,
+        end_time: i64,
+    ) -> Result<HashMap<String, Vec<EpgEntry>>, DbError> {
+        self.get_epgs_for_channels(channel_ids, start_time, end_time)
+    }
+
+    fn get_epg_by_sources(
+        &self,
+        source_ids: &[String],
+    ) -> Result<HashMap<String, Vec<EpgEntry>>, DbError> {
+        self.get_epg_by_sources(source_ids)
+    }
+
+    fn generate_placeholders_for_channels(
+        &self,
+        channels: &[crate::models::Channel],
+    ) -> Result<usize, DbError> {
+        self.generate_placeholders_for_channels(channels)
+    }
+
+    fn get_real_epg_coverage_end(
+        &self,
+        channel_id: &str,
+    ) -> Result<Option<i64>, DbError> {
+        self.get_real_epg_coverage_end(channel_id)
+    }
+
+    fn has_real_epg_coverage(
+        &self,
+        channel_id: &str,
+        start_time: i64,
+        end_time: i64,
+    ) -> Result<bool, DbError> {
+        self.has_real_epg_coverage(channel_id, start_time, end_time)
+    }
+
+    fn evict_stale_epg(&self, days: i64) -> Result<usize, DbError> {
+        self.evict_stale_epg(days)
+    }
+
+    fn clear_epg_entries(&self) -> Result<(), DbError> {
+        self.clear_epg_entries()
     }
 }
 

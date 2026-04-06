@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../data/profile_service.dart';
+import '../providers/profile_service_providers.dart';
 import '../../domain/entities/user_profile.dart';
 
 /// Known BCP-47 language codes with human-readable labels.

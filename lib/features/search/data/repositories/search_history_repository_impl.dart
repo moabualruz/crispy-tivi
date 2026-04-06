@@ -1,3 +1,5 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/data/cache_service.dart';
 import '../../domain/entities/'
     'search_history_entry.dart';
@@ -37,3 +39,10 @@ class SearchHistoryRepositoryImpl implements SearchHistoryRepository {
     await _cache.clearSearchHistory();
   }
 }
+
+/// Riverpod provider for [SearchHistoryRepository].
+final searchHistoryRepositoryProvider = Provider<SearchHistoryRepository>((
+  ref,
+) {
+  return SearchHistoryRepositoryImpl(ref.read(cacheServiceProvider));
+});

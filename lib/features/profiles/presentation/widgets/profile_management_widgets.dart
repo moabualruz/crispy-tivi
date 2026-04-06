@@ -1,5 +1,5 @@
-import '../../../../core/data/codecs/json_prefs_codec.dart';
 import '../../../../core/utils/platform_info.dart';
+import '../providers/profile_service_providers.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +11,6 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../parental/domain/content_rating.dart';
-import '../../data/profile_service.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/dvr_permission.dart';
 import '../../domain/enums/user_role.dart';

@@ -12,6 +12,7 @@ use serde_json::Value;
 use crate::algorithms::cloud_sync::SYNC_META_KEYS;
 use crate::models::{Recording, Source, StorageBackend, UserProfile, WatchHistory};
 use crate::services::CrispyService;
+use crate::value_objects::{DvrPermission, ProfileRole};
 
 /// Current backup format version.
 const BACKUP_VERSION: i32 = 4;
@@ -329,11 +330,12 @@ fn value_to_profile(v: &Value) -> Option<UserProfile> {
             .get("max_allowed_rating")
             .and_then(|x| x.as_i64())
             .unwrap_or(4) as i32,
-        role: v.get("role").and_then(|x| x.as_i64()).unwrap_or(1) as i32,
-        dvr_permission: v
-            .get("dvr_permission")
-            .and_then(|x| x.as_i64())
-            .unwrap_or(2) as i32,
+        role: ProfileRole::from(v.get("role").and_then(|x| x.as_i64()).unwrap_or(1) as i32),
+        dvr_permission: DvrPermission::from(
+            v.get("dvr_permission")
+                .and_then(|x| x.as_i64())
+                .unwrap_or(2) as i32,
+        ),
         dvr_quota_mb: v
             .get("dvr_quota_mb")
             .and_then(|x| x.as_i64())
@@ -536,8 +538,8 @@ mod tests {
             is_child: false,
             pin_version: 0,
             max_allowed_rating: 4,
-            role: 0,
-            dvr_permission: 2,
+            role: ProfileRole::Admin,
+            dvr_permission: DvrPermission::Full,
             dvr_quota_mb: Some(500),
         }
     }
@@ -593,7 +595,7 @@ mod tests {
         StorageBackend {
             id: id.to_string(),
             name: "My S3".to_string(),
-            backend_type: "s3".to_string(),
+            backend_type: crate::value_objects::BackendType::Cloud,
             config: serde_json::json!({
                 "bucket": "my-bucket",
                 "region": "us-east-1",

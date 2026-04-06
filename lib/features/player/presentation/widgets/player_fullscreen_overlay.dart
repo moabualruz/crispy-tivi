@@ -9,13 +9,11 @@ import 'package:universal_io/io.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../../../config/settings_state.dart';
-import '../../../../core/data/cache_service.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/utils/platform_capabilities.dart';
 import '../../../../core/utils/screen_brightness_helper.dart';
-import '../../../favorites/data/favorites_history_service.dart';
-import '../../data/afr_service.dart';
+import '../../../favorites/presentation/providers/favorites_history_provider.dart';
 import '../providers/pip_provider.dart';
 import '../../domain/entities/playback_state.dart';
 import '../providers/playback_progress_provider.dart';

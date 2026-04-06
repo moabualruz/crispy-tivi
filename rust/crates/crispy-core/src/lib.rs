@@ -6,6 +6,7 @@
 //! WebSocket).
 
 pub mod algorithms;
+pub mod traits;
 pub mod backup;
 pub mod database;
 pub mod i18n;

@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:crispy_tivi/l10n/l10n_extension.dart';
 
-import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_colors.dart';
+import '../providers/epg_service_providers.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/live_badge.dart';
@@ -12,12 +12,9 @@ import '../../../../core/utils/duration_formatter.dart';
 import '../../../../core/utils/timezone_utils.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../../core/widgets/watch_progress_bar.dart';
-import '../../../dvr/data/dvr_service.dart';
-import '../../../iptv/data/services/catchup_url_builder.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../../iptv/presentation/providers/channel_providers.dart';
-import '../../../notifications/data/notification_service.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../providers/epg_providers.dart';
 

@@ -13,6 +13,8 @@ use chrono::{DateTime, Utc};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
+use crate::upsert;
+
 use crate::database::{Database, DbError};
 
 // ── DDL ──────────────────────────────────────────────────
@@ -90,14 +92,11 @@ impl PlaybackRecovery {
     /// every 30 s during playback, and on app background.
     pub fn save_checkpoint(db: &Database, checkpoint: &PlaybackCheckpoint) -> Result<(), DbError> {
         let conn = db.get()?;
-        conn.execute(
-            "INSERT INTO db_playback_checkpoints \
-             (content_id, position_secs, timestamp, content_type) \
-             VALUES (?1, ?2, ?3, ?4) \
-             ON CONFLICT(content_id) DO UPDATE SET \
-               position_secs = excluded.position_secs, \
-               timestamp     = excluded.timestamp,     \
-               content_type  = excluded.content_type",
+        upsert!(
+            conn,
+            "db_playback_checkpoints",
+            ["content_id", "position_secs", "timestamp", "content_type"],
+            "content_id",
             params![
                 checkpoint.content_id,
                 checkpoint.position_secs,

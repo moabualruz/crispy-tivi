@@ -5,6 +5,7 @@ use rusqlite::params;
 use super::{CrispyService, str_params};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
+use crate::insert_or_replace;
 
 impl CrispyService {
     // ── Categories ──────────────────────────────────
@@ -104,13 +105,11 @@ impl CrispyService {
     ) -> Result<(), DbError> {
         let conn = self.db.get()?;
         let now = chrono::Utc::now().timestamp();
-        conn.execute(
-            "INSERT OR REPLACE INTO
-             db_favorite_categories (
-                 profile_id, category_type,
-                 category_name, added_at
-             ) VALUES (?1, ?2, ?3, ?4)",
-            params![profile_id, category_type, category_name, now,],
+        insert_or_replace!(
+            conn,
+            "db_favorite_categories",
+            ["profile_id", "category_type", "category_name", "added_at"],
+            params![profile_id, category_type, category_name, now],
         )?;
         self.emit(DataChangeEvent::FavoriteCategoryToggled {
             category_type: category_type.to_string(),

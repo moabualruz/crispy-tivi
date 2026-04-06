@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
 import '../../../profiles/data/profile_service.dart';
+import '../../data/vod_repository_impl.dart';
 
 /// Manages profile-scoped VOD favorites (movies + series).
 ///
@@ -9,12 +9,12 @@ import '../../../profiles/data/profile_service.dart';
 class VodFavoritesController extends AsyncNotifier<Set<String>> {
   @override
   Future<Set<String>> build() async {
-    final cache = ref.watch(cacheServiceProvider);
+    final repo = ref.watch(vodRepositoryProvider);
     // Watch profile state so we rebuild when the profile loads or switches.
     final profileState = ref.watch(profileServiceProvider);
     final pid = profileState.value?.activeProfileId;
     if (pid == null) return {};
-    final ids = await cache.getVodFavorites(pid);
+    final ids = await repo.getVodFavorites(pid);
     return ids.toSet();
   }
 
@@ -29,16 +29,16 @@ class VodFavoritesController extends AsyncNotifier<Set<String>> {
 
   /// Toggle the favorite status of a VOD item.
   Future<void> toggleFavorite(String vodItemId) async {
-    final cache = ref.read(cacheServiceProvider);
+    final repo = ref.read(vodRepositoryProvider);
     final pid = _activeProfileId;
     if (pid == null) return;
 
     final current = state.value ?? {};
     if (current.contains(vodItemId)) {
-      await cache.removeVodFavorite(pid, vodItemId);
+      await repo.removeVodFavorite(pid, vodItemId);
       state = AsyncData({...current}..remove(vodItemId));
     } else {
-      await cache.addVodFavorite(pid, vodItemId);
+      await repo.addVodFavorite(pid, vodItemId);
       state = AsyncData({...current, vodItemId});
     }
   }

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
 import '../../../profiles/data/profile_service.dart';
+import '../../data/vod_repository_impl.dart';
 
 /// Loads favorite category names for a profile + type.
 ///
@@ -15,7 +15,7 @@ final favoriteCategoriesProvider = FutureProvider.family<Set<String>, String>((
   ref,
   categoryType,
 ) async {
-  final cache = ref.watch(cacheServiceProvider);
+  final repo = ref.watch(vodRepositoryProvider);
   final pid =
       ref
           .read(profileServiceProvider.notifier)
@@ -24,7 +24,7 @@ final favoriteCategoriesProvider = FutureProvider.family<Set<String>, String>((
           .value
           ?.activeProfileId;
   if (pid == null) return {};
-  final names = await cache.getFavoriteCategories(pid, categoryType);
+  final names = await repo.getFavoriteCategories(pid, categoryType);
   return names.toSet();
 });
 
@@ -35,7 +35,7 @@ Future<void> toggleFavoriteCategory(
   String categoryType,
   String categoryName,
 ) async {
-  final cache = ref.read(cacheServiceProvider);
+  final repo = ref.read(vodRepositoryProvider);
   final pid =
       ref
           .read(profileServiceProvider.notifier)
@@ -49,8 +49,8 @@ Future<void> toggleFavoriteCategory(
   final favs = current.asData?.value ?? {};
 
   if (favs.contains(categoryName)) {
-    await cache.removeFavoriteCategory(pid, categoryType, categoryName);
+    await repo.removeFavoriteCategory(pid, categoryType, categoryName);
   } else {
-    await cache.addFavoriteCategory(pid, categoryType, categoryName);
+    await repo.addFavoriteCategory(pid, categoryType, categoryName);
   }
 }

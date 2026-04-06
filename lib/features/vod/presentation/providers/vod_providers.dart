@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
 import '../../../../core/data/dart_algorithm_fallbacks.dart';
+import '../../data/vod_repository_impl.dart';
 import '../../../../core/providers/source_filter_provider.dart';
 import '../../domain/entities/vod_item.dart';
 import '../../domain/utils/vod_utils.dart';
@@ -174,12 +174,12 @@ class VodNotifier extends Notifier<VodState> {
   /// Called by the event-driven invalidator when
   /// VOD data changes (e.g. [VodUpdated]).
   Future<void> refreshFromBackend() async {
-    final cache = ref.read(cacheServiceProvider);
+    final repo = ref.read(vodRepositoryProvider);
     final sourceIds = ref.read(effectiveSourceIdsProvider);
     final items =
         sourceIds.isEmpty
-            ? await cache.loadVodItems()
-            : await cache.getVodBySources(sourceIds);
+            ? await repo.loadVodItems()
+            : await repo.getVodBySources(sourceIds);
     if (_disposed) return;
     loadData(items);
     // db_vod_items.is_favorite is reset by playlist syncs

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/shader_service.dart';
+import '../../providers/player_service_providers.dart';
 import 'osd_shared.dart';
 
 /// Shows a shader preset picker dialog over the OSD.

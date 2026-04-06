@@ -5,6 +5,7 @@
 //! `Debug, Clone, Serialize, Deserialize` for
 //! interop and diagnostics.
 
+pub mod columns;
 pub mod content_rating;
 pub mod conversions;
 pub mod stream_quality;
@@ -13,7 +14,10 @@ pub use content_rating::ContentRating;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
-use crate::value_objects::{CategoryType, MatchMethod, MediaType};
+use crate::value_objects::{
+    BackendType, CategoryType, DvrPermission, LayoutType, MatchMethod, MediaType, ProfileRole,
+    TransferDirection, TransferStatus,
+};
 
 pub fn new_entity_id() -> String {
     uuid::Uuid::now_v7().to_string()
@@ -1076,12 +1080,12 @@ pub struct UserProfile {
     /// Maximum allowed content rating (0-4 scale).
     #[serde(default = "default_max_rating")]
     pub max_allowed_rating: i32,
-    /// Profile role: 0=admin, 1=viewer, 2=restricted.
-    #[serde(default = "default_role")]
-    pub role: i32,
+    /// Profile role.
+    #[serde(default)]
+    pub role: ProfileRole,
     /// DVR permission level.
-    #[serde(default = "default_dvr_permission")]
-    pub dvr_permission: i32,
+    #[serde(default)]
+    pub dvr_permission: DvrPermission,
     /// DVR storage quota in megabytes.
     #[serde(default)]
     pub dvr_quota_mb: Option<i32>,
@@ -1091,18 +1095,10 @@ fn default_max_rating() -> i32 {
     4
 }
 
-fn default_role() -> i32 {
-    1
-}
-
-fn default_dvr_permission() -> i32 {
-    2
-}
-
 impl UserProfile {
-    /// Returns true if this profile has the admin role (role == 0).
+    /// Returns true if this profile has the admin role.
     pub fn is_admin(&self) -> bool {
-        self.role == 0
+        self.role == ProfileRole::Admin
     }
 
     /// Returns true if this profile has a PIN set.
@@ -1139,8 +1135,8 @@ pub struct VodFavorite {
     pub profile_id: String,
     /// Favourited content ID (movie or series).
     pub content_id: String,
-    /// Content type: "movie" or "series".
-    pub content_type: String,
+    /// Content type discriminator.
+    pub content_type: MediaType,
     /// When the favourite was added.
     pub added_at: NaiveDateTime,
 }
@@ -1472,9 +1468,8 @@ pub struct StorageBackend {
     pub id: String,
     /// Human-readable backend name.
     pub name: String,
-    /// Backend type: "local", "s3", "webdav", "smb",
-    /// "googleDrive", or "ftp".
-    pub backend_type: String,
+    /// Backend type discriminator.
+    pub backend_type: BackendType,
     /// JSON-encoded configuration object.
     pub config: String,
     /// Whether this is the default backend.
@@ -1497,11 +1492,10 @@ pub struct TransferTask {
     pub recording_id: String,
     /// Target/source storage backend.
     pub backend_id: String,
-    /// Transfer direction: "upload" or "download".
-    pub direction: String,
-    /// Task status: "queued", "active", "paused",
-    /// "completed", or "failed".
-    pub status: String,
+    /// Transfer direction discriminator.
+    pub direction: TransferDirection,
+    /// Transfer status discriminator.
+    pub status: TransferStatus,
     /// Total file size in bytes.
     #[serde(default)]
     pub total_bytes: i64,
@@ -1531,8 +1525,8 @@ pub struct SavedLayout {
     pub id: String,
     /// Human-readable layout name.
     pub name: String,
-    /// Layout enum name (e.g. "pip", "quad", "grid").
-    pub layout: String,
+    /// Layout type discriminator.
+    pub layout: LayoutType,
     /// JSON array of stream references.
     pub streams: String,
     /// When the layout was created.
@@ -1570,8 +1564,8 @@ pub struct Bookmark {
     pub id: String,
     /// Content identifier (channel ID or VOD item ID).
     pub content_id: String,
-    /// Content type: "channel" or "vod".
-    pub content_type: String,
+    /// Content type discriminator.
+    pub content_type: MediaType,
     /// Playback position in milliseconds.
     pub position_ms: i64,
     /// Optional user label (e.g. "Best scene").
@@ -1724,7 +1718,7 @@ impl SourceStats {
 impl StorageBackend {
     /// Returns true if this is a local filesystem backend.
     pub fn is_local(&self) -> bool {
-        self.backend_type == "local"
+        self.backend_type == BackendType::Local
     }
 
     /// Returns true if this is a remote backend (S3, WebDAV, SMB, etc.).
@@ -1736,12 +1730,12 @@ impl StorageBackend {
 impl TransferTask {
     /// Returns true if the task is queued (not yet started).
     pub fn is_pending(&self) -> bool {
-        self.status == "queued"
+        self.status == TransferStatus::Pending
     }
 
     /// Returns true if the task has completed successfully.
     pub fn is_completed(&self) -> bool {
-        self.status == "completed"
+        self.status == TransferStatus::Completed
     }
 }
 
@@ -2051,14 +2045,14 @@ mod tests {
     fn test_user_profile_role_defaults_to_1() {
         let json = r#"{"id":"p1","name":"Alice"}"#;
         let p: UserProfile = serde_json::from_str(json).unwrap();
-        assert_eq!(p.role, 1);
+        assert_eq!(p.role, ProfileRole::Viewer);
     }
 
     #[test]
     fn test_user_profile_dvr_permission_defaults_to_2() {
         let json = r#"{"id":"p1","name":"Alice"}"#;
         let p: UserProfile = serde_json::from_str(json).unwrap();
-        assert_eq!(p.dvr_permission, 2);
+        assert_eq!(p.dvr_permission, DvrPermission::Full);
     }
 
     #[test]
@@ -2212,7 +2206,7 @@ mod tests {
         let b = Bookmark {
             id: "bk1".to_string(),
             content_id: "ch1".to_string(),
-            content_type: "channel".to_string(),
+            content_type: MediaType::Channel,
             position_ms: 12345,
             label: None,
             created_at: now,

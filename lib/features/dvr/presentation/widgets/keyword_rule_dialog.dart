@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/async_value_ui.dart';
-import '../../data/keyword_rule_provider.dart';
+import '../providers/dvr_providers.dart';
 
 // ─────────────────────────────────────────────────────────
 //  Public entry points

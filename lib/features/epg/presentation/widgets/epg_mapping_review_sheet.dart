@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
+import '../providers/epg_service_providers.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 
 /// Provider for pending EPG suggestions.

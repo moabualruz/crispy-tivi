@@ -11,7 +11,7 @@ import '../../../player/domain/entities/audio_output.dart';
 import '../../../player/domain/entities/hardware_decoder.dart';
 import '../../../player/domain/entities/passthrough_codec.dart';
 import '../../../player/domain/entities/stream_profile.dart';
-import '../../../player/data/segment_skip_codec.dart';
+import '../providers/settings_service_providers.dart';
 import '../../../player/domain/segment_skip_config.dart';
 import 'playback_audio_dialogs.dart';
 import 'playback_hwdec_dialog.dart';

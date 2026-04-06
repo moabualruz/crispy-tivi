@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
+import '../providers/settings_service_providers.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
 import 'settings_shared_widgets.dart';

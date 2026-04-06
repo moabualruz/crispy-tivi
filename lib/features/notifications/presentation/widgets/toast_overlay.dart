@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_elevation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../data/notification_service.dart';
+import '../providers/notification_service_providers.dart';
 
 /// Overlay that shows toast notifications at the top of the
 /// screen. Place this in the widget tree above your main

@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
-import '../../../profiles/data/profile_service.dart';
+import '../providers/external_service_providers.dart';
 import 'settings_shared_widgets.dart';
 
 /// Profiles settings section.

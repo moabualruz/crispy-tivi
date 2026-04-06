@@ -1,71 +1,13 @@
 use rusqlite::{Row, params};
 
-use super::{
-    CrispyService, bool_to_int, build_in_placeholders, int_to_bool, opt_dt_to_ts, opt_ts_to_dt,
-    str_params,
-};
+use super::{CrispyService, bool_to_int, build_in_placeholders, opt_dt_to_ts, str_params};
+use crate::database::row_helpers::RowExt;
 use crate::database::{DbError, TABLE_MOVIES};
+use crate::insert_or_replace;
 use crate::events::DataChangeEvent;
 use crate::models::VodItem;
-
-/// SELECT column list for `db_movies` mapped to VodItem fields.
-///
-/// Column order (0-based):
-///   0  id
-///   1  name
-///   2  stream_url
-///   3  type        (literal 'movie')
-///   4  poster_url
-///   5  backdrop_url
-///   6  description
-///   7  rating
-///   8  year
-///   9  duration_minutes
-///  10  genre
-///  11  series_id   (NULL)
-///  12  season_number (NULL)
-///  13  episode_number (NULL)
-///  14  container_ext
-///  15  is_favorite (0)
-///  16  added_at
-///  17  updated_at
-///  18  source_id
-///  19  cast_names
-///  20  director
-///  21  genre       (duplicate for backward compat)
-///  22  youtube_trailer
-///  23  tmdb_id
-///  24  rating_5based
-///  25  original_name
-///  26  is_adult
-///  27  content_rating
-///  28  native_id
-pub(crate) const VOD_COLUMNS: &str = "id, name, stream_url, \
-     'movie' AS type, \
-     poster_url, backdrop_url, \
-     description, rating, year, \
-     duration_minutes, genre, NULL AS series_id, \
-     NULL AS season_number, NULL AS episode_number, \
-     container_ext, 0 AS is_favorite, added_at, \
-     updated_at, source_id, \
-     cast_names, director, genre, \
-     youtube_trailer, tmdb_id, rating_5based, \
-     original_name, is_adult, content_rating, \
-     native_id";
-
-/// Same as `VOD_COLUMNS` but qualified with table alias `v.` for JOIN queries.
-pub(crate) const VOD_COLUMNS_V: &str = "v.id, v.name, v.stream_url, \
-     'movie' AS type, \
-     v.poster_url, v.backdrop_url, \
-     v.description, v.rating, v.year, \
-     v.duration_minutes, v.genre, NULL AS series_id, \
-     NULL AS season_number, NULL AS episode_number, \
-     v.container_ext, 0 AS is_favorite, v.added_at, \
-     v.updated_at, v.source_id, \
-     v.cast_names, v.director, v.genre, \
-     v.youtube_trailer, v.tmdb_id, v.rating_5based, \
-     v.original_name, v.is_adult, v.content_rating, \
-     v.native_id";
+use crate::models::columns::{VOD_COLUMNS, VOD_COLUMNS_V};
+use crate::traits::VodRepository;
 
 /// Map a single SQLite row to a `VodItem` (backward compat).
 pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
@@ -88,9 +30,9 @@ pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
         season_number: row.get(12)?,
         episode_number: row.get(13)?,
         ext: row.get(14)?,
-        is_favorite: int_to_bool(row.get(15)?),
-        added_at: opt_ts_to_dt(row.get(16)?),
-        updated_at: opt_ts_to_dt(row.get(17)?),
+        is_favorite: row.get_bool(15)?,
+        added_at: row.get_datetime(16)?,
+        updated_at: row.get_datetime(17)?,
         source_id: row.get(18)?,
         cast: row.get(19)?,
         director: row.get(20)?,
@@ -99,7 +41,7 @@ pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
         tmdb_id: row.get(23)?,
         rating_5based: row.get(24)?,
         original_name: row.get(25)?,
-        is_adult: int_to_bool(row.get(26)?),
+        is_adult: row.get_bool(26)?,
         content_rating: row.get(27)?,
         native_id: row.get::<_, Option<String>>(28)?.unwrap_or_default(),
     })
@@ -346,11 +288,9 @@ impl CrispyService {
     pub fn add_vod_favorite(&self, profile_id: &str, vod_item_id: &str) -> Result<(), DbError> {
         let conn = self.db.get()?;
         let now = chrono::Utc::now().timestamp();
-        conn.execute(
-            "INSERT OR REPLACE INTO db_vod_favorites
-             (profile_id, content_id, content_type, added_at)
-             VALUES (?1, ?2, 'movie', ?3)",
-            params![profile_id, vod_item_id, now],
+        insert_or_replace!(conn, "db_vod_favorites",
+            ["profile_id", "content_id", "content_type", "added_at"],
+            params![profile_id, vod_item_id, "movie", now]
         )?;
         self.emit(DataChangeEvent::VodFavoriteToggled {
             vod_id: vod_item_id.to_string(),
@@ -373,6 +313,72 @@ impl CrispyService {
             is_favorite: false,
         });
         Ok(())
+    }
+}
+
+impl VodRepository for CrispyService {
+    fn save_vod_items(&self, items: &[VodItem]) -> Result<usize, DbError> {
+        self.save_vod_items(items)
+    }
+
+    fn load_vod_items(&self) -> Result<Vec<VodItem>, DbError> {
+        self.load_vod_items()
+    }
+
+    fn get_vod_by_sources(
+        &self,
+        source_ids: &[String],
+    ) -> Result<Vec<VodItem>, DbError> {
+        self.get_vod_by_sources(source_ids)
+    }
+
+    fn get_filtered_vod(
+        &self,
+        source_ids: &[String],
+        item_type: Option<&str>,
+        category: Option<&str>,
+        query: Option<&str>,
+        sort_by: &str,
+    ) -> Result<Vec<VodItem>, DbError> {
+        self.get_filtered_vod(source_ids, item_type, category, query, sort_by)
+    }
+
+    fn find_vod_alternatives(
+        &self,
+        name: &str,
+        year: Option<i32>,
+        exclude_id: &str,
+        limit: usize,
+    ) -> Result<Vec<VodItem>, DbError> {
+        self.find_vod_alternatives(name, year, exclude_id, limit)
+    }
+
+    fn delete_removed_vod_items(
+        &self,
+        source_id: &str,
+        keep_ids: &[String],
+    ) -> Result<usize, DbError> {
+        self.delete_removed_vod_items(source_id, keep_ids)
+    }
+
+    fn get_vod_favorites(&self, profile_id: &str) -> Result<Vec<String>, DbError> {
+        self.get_vod_favorites(profile_id)
+    }
+
+    fn add_vod_favorite(
+        &self,
+        profile_id: &str,
+        vod_item_id: &str,
+    ) -> Result<(), DbError> {
+        self.add_vod_favorite(profile_id, vod_item_id)
+    }
+
+    fn remove_vod_favorite(
+        &self,
+        profile_id: &str,
+        vod_item_id: &str,
+    ) -> Result<(), DbError> {
+        self.remove_vod_favorite(profile_id, vod_item_id)
     }
 }
 

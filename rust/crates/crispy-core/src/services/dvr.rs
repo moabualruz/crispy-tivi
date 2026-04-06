@@ -1,9 +1,74 @@
-use rusqlite::params;
+use rusqlite::{Row, params};
 
 use super::{CrispyService, bool_to_int, dt_to_ts, int_to_bool, ts_to_dt};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::models::{Recording, StorageBackend, TransferTask};
+use crate::insert_or_replace;
+use crate::traits::DvrRepository;
+
+fn recording_from_row(row: &Row) -> rusqlite::Result<Recording> {
+    Ok(Recording {
+        id: row.get(0)?,
+        channel_id: row.get(1)?,
+        channel_name: row.get(2)?,
+        channel_logo_url: row.get(3)?,
+        program_name: row.get(4)?,
+        stream_url: row.get(5)?,
+        start_time: ts_to_dt(row.get(6)?),
+        end_time: ts_to_dt(row.get(7)?),
+        status: row
+            .get::<_, String>(8)?
+            .as_str()
+            .try_into()
+            .unwrap_or_default(),
+        file_path: row.get(9)?,
+        file_size_bytes: row.get(10)?,
+        is_recurring: int_to_bool(row.get(11)?),
+        recur_days: row.get(12)?,
+        owner_profile_id: row.get(13)?,
+        is_shared: int_to_bool(row.get(14)?),
+        remote_backend_id: row.get(15)?,
+        remote_path: row.get(16)?,
+    })
+}
+
+fn storage_backend_from_row(row: &Row) -> rusqlite::Result<StorageBackend> {
+    Ok(StorageBackend {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        backend_type: row
+            .get::<_, String>(2)?
+            .as_str()
+            .try_into()
+            .unwrap_or_default(),
+        config: row.get(3)?,
+        is_default: int_to_bool(row.get(4)?),
+    })
+}
+
+fn transfer_task_from_row(row: &Row) -> rusqlite::Result<TransferTask> {
+    Ok(TransferTask {
+        id: row.get(0)?,
+        recording_id: row.get(1)?,
+        backend_id: row.get(2)?,
+        direction: row
+            .get::<_, String>(3)?
+            .as_str()
+            .try_into()
+            .unwrap_or_default(),
+        status: row
+            .get::<_, String>(4)?
+            .as_str()
+            .try_into()
+            .unwrap_or_default(),
+        total_bytes: row.get(5)?,
+        transferred_bytes: row.get(6)?,
+        created_at: ts_to_dt(row.get(7)?),
+        error_message: row.get(8)?,
+        remote_path: row.get(9)?,
+    })
+}
 
 impl CrispyService {
     // ── Recordings ──────────────────────────────────
@@ -11,20 +76,28 @@ impl CrispyService {
     /// Save (insert) a recording.
     pub fn save_recording(&self, rec: &Recording) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        conn.execute(
-            "INSERT OR REPLACE INTO db_recordings (
-                id, channel_id, channel_name,
-                channel_logo_url, program_name,
-                stream_url, start_time, end_time,
-                status, file_path, file_size_bytes,
-                is_recurring, recur_days,
-                owner_profile_id, is_shared,
-                remote_backend_id, remote_path
-            ) VALUES (
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
-                ?9, ?10, ?11, ?12, ?13, ?14, ?15,
-                ?16, ?17
-            )",
+        insert_or_replace!(
+            conn,
+            "db_recordings",
+            [
+                "id",
+                "channel_id",
+                "channel_name",
+                "channel_logo_url",
+                "program_name",
+                "stream_url",
+                "start_time",
+                "end_time",
+                "status",
+                "file_path",
+                "file_size_bytes",
+                "is_recurring",
+                "recur_days",
+                "owner_profile_id",
+                "is_shared",
+                "remote_backend_id",
+                "remote_path",
+            ],
             params![
                 rec.id,
                 rec.channel_id,
@@ -65,31 +138,7 @@ impl CrispyService {
                 remote_backend_id, remote_path
             FROM db_recordings",
         )?;
-        let rows = stmt.query_map([], |row| {
-            Ok(Recording {
-                id: row.get(0)?,
-                channel_id: row.get(1)?,
-                channel_name: row.get(2)?,
-                channel_logo_url: row.get(3)?,
-                program_name: row.get(4)?,
-                stream_url: row.get(5)?,
-                start_time: ts_to_dt(row.get(6)?),
-                end_time: ts_to_dt(row.get(7)?),
-                status: row
-                    .get::<_, String>(8)?
-                    .as_str()
-                    .try_into()
-                    .unwrap_or_default(),
-                file_path: row.get(9)?,
-                file_size_bytes: row.get(10)?,
-                is_recurring: int_to_bool(row.get(11)?),
-                recur_days: row.get(12)?,
-                owner_profile_id: row.get(13)?,
-                is_shared: int_to_bool(row.get(14)?),
-                remote_backend_id: row.get(15)?,
-                remote_path: row.get(16)?,
-            })
-        })?;
+        let rows = stmt.query_map([], recording_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
@@ -116,15 +165,14 @@ impl CrispyService {
     /// Save (upsert) a storage backend.
     pub fn save_storage_backend(&self, backend: &StorageBackend) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        conn.execute(
-            "INSERT OR REPLACE INTO
-             db_storage_backends (
-                 id, name, type, config, is_default
-             ) VALUES (?1, ?2, ?3, ?4, ?5)",
+        insert_or_replace!(
+            conn,
+            "db_storage_backends",
+            ["id", "name", "type", "config", "is_default"],
             params![
                 backend.id,
                 backend.name,
-                backend.backend_type,
+                backend.backend_type.as_str(),
                 backend.config,
                 bool_to_int(backend.is_default),
             ],
@@ -142,15 +190,7 @@ impl CrispyService {
             "SELECT id, name, type, config, is_default
              FROM db_storage_backends",
         )?;
-        let rows = stmt.query_map([], |row| {
-            Ok(StorageBackend {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                backend_type: row.get(2)?,
-                config: row.get(3)?,
-                is_default: int_to_bool(row.get(4)?),
-            })
-        })?;
+        let rows = stmt.query_map([], storage_backend_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
@@ -173,23 +213,27 @@ impl CrispyService {
     /// Save (insert) a transfer task.
     pub fn save_transfer_task(&self, task: &TransferTask) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        conn.execute(
-            "INSERT OR REPLACE INTO
-             db_transfer_tasks (
-                 id, recording_id, backend_id,
-                 direction, status, total_bytes,
-                 transferred_bytes, created_at,
-                 error_message, remote_path
-             ) VALUES (
-                 ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
-                 ?9, ?10
-             )",
+        insert_or_replace!(
+            conn,
+            "db_transfer_tasks",
+            [
+                "id",
+                "recording_id",
+                "backend_id",
+                "direction",
+                "status",
+                "total_bytes",
+                "transferred_bytes",
+                "created_at",
+                "error_message",
+                "remote_path",
+            ],
             params![
                 task.id,
                 task.recording_id,
                 task.backend_id,
-                task.direction,
-                task.status,
+                task.direction.as_str(),
+                task.status.as_str(),
                 task.total_bytes,
                 task.transferred_bytes,
                 dt_to_ts(&task.created_at),
@@ -214,20 +258,7 @@ impl CrispyService {
                 error_message, remote_path
             FROM db_transfer_tasks",
         )?;
-        let rows = stmt.query_map([], |row| {
-            Ok(TransferTask {
-                id: row.get(0)?,
-                recording_id: row.get(1)?,
-                backend_id: row.get(2)?,
-                direction: row.get(3)?,
-                status: row.get(4)?,
-                total_bytes: row.get(5)?,
-                transferred_bytes: row.get(6)?,
-                created_at: ts_to_dt(row.get(7)?),
-                error_message: row.get(8)?,
-                remote_path: row.get(9)?,
-            })
-        })?;
+        let rows = stmt.query_map([], transfer_task_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
@@ -247,6 +278,52 @@ impl CrispyService {
             task_id: id.to_string(),
         });
         Ok(())
+    }
+}
+
+impl DvrRepository for CrispyService {
+    fn save_recording(&self, rec: &Recording) -> Result<(), DbError> {
+        self.save_recording(rec)
+    }
+
+    fn load_recordings(&self) -> Result<Vec<Recording>, DbError> {
+        self.load_recordings()
+    }
+
+    fn update_recording(&self, rec: &Recording) -> Result<(), DbError> {
+        self.update_recording(rec)
+    }
+
+    fn delete_recording(&self, id: &str) -> Result<(), DbError> {
+        self.delete_recording(id)
+    }
+
+    fn save_storage_backend(&self, backend: &StorageBackend) -> Result<(), DbError> {
+        self.save_storage_backend(backend)
+    }
+
+    fn load_storage_backends(&self) -> Result<Vec<StorageBackend>, DbError> {
+        self.load_storage_backends()
+    }
+
+    fn delete_storage_backend(&self, id: &str) -> Result<(), DbError> {
+        self.delete_storage_backend(id)
+    }
+
+    fn save_transfer_task(&self, task: &TransferTask) -> Result<(), DbError> {
+        self.save_transfer_task(task)
+    }
+
+    fn load_transfer_tasks(&self) -> Result<Vec<TransferTask>, DbError> {
+        self.load_transfer_tasks()
+    }
+
+    fn update_transfer_task(&self, task: &TransferTask) -> Result<(), DbError> {
+        self.update_transfer_task(task)
+    }
+
+    fn delete_transfer_task(&self, id: &str) -> Result<(), DbError> {
+        self.delete_transfer_task(id)
     }
 }
 
@@ -291,7 +368,7 @@ mod tests {
         StorageBackend {
             id: id.to_string(),
             name: format!("Backend {id}"),
-            backend_type: "local".to_string(),
+            backend_type: crate::value_objects::BackendType::Local,
             config: "{}".to_string(),
             is_default: false,
         }
@@ -302,8 +379,8 @@ mod tests {
             id: id.to_string(),
             recording_id: recording_id.to_string(),
             backend_id: "b1".to_string(),
-            direction: "upload".to_string(),
-            status: "pending".to_string(),
+            direction: crate::value_objects::TransferDirection::Upload,
+            status: crate::value_objects::TransferStatus::Pending,
             total_bytes: 1024,
             transferred_bytes: 0,
             created_at: parse_dt("2025-01-15 12:00:00"),
@@ -393,12 +470,15 @@ mod tests {
         let mut task = make_transfer_task("t1", "rec1");
         svc.save_transfer_task(&task).unwrap();
 
-        task.status = "done".to_string();
+        task.status = crate::value_objects::TransferStatus::Completed;
         svc.update_transfer_task(&task).unwrap();
 
         let loaded = svc.load_transfer_tasks().unwrap();
         assert_eq!(loaded.len(), 1);
-        assert_eq!(loaded[0].status, "done");
+        assert_eq!(
+            loaded[0].status,
+            crate::value_objects::TransferStatus::Completed
+        );
     }
 
     #[test]

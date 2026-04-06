@@ -1,17 +1,41 @@
-use rusqlite::params;
+use rusqlite::{Row, params};
 
 use super::{CrispyService, bool_to_int, int_to_bool};
 use crate::database::DbError;
 use crate::models::EpgMapping;
+use crate::insert_or_replace;
+
+fn epg_mapping_from_row(row: &Row) -> rusqlite::Result<EpgMapping> {
+    Ok(EpgMapping {
+        channel_id: row.get(0)?,
+        epg_channel_id: row.get(1)?,
+        confidence: row.get(2)?,
+        match_method: row
+            .get::<_, String>(3)
+            .map(|s| s.as_str().try_into().unwrap_or_default())
+            .unwrap_or_default(),
+        epg_source_id: row.get(4)?,
+        locked: int_to_bool(row.get(5)?),
+        created_at: row.get(6)?,
+    })
+}
 
 impl CrispyService {
     /// Save or update an EPG mapping.
     pub fn save_epg_mapping(&self, mapping: &EpgMapping) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        conn.execute(
-            "INSERT OR REPLACE INTO db_epg_mappings \
-             (channel_id, epg_channel_id, confidence, match_method, epg_source_id, locked, created_at) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        insert_or_replace!(
+            conn,
+            "db_epg_mappings",
+            [
+                "channel_id",
+                "epg_channel_id",
+                "confidence",
+                "match_method",
+                "epg_source_id",
+                "locked",
+                "created_at",
+            ],
             params![
                 mapping.channel_id,
                 mapping.epg_channel_id,
@@ -33,20 +57,7 @@ impl CrispyService {
              FROM db_epg_mappings ORDER BY confidence DESC",
         )?;
         let rows = stmt
-            .query_map([], |row| {
-                Ok(EpgMapping {
-                    channel_id: row.get(0)?,
-                    epg_channel_id: row.get(1)?,
-                    confidence: row.get(2)?,
-                    match_method: row
-                        .get::<_, String>(3)
-                        .map(|s| s.as_str().try_into().unwrap_or_default())
-                        .unwrap_or_default(),
-                    epg_source_id: row.get(4)?,
-                    locked: int_to_bool(row.get(5)?),
-                    created_at: row.get(6)?,
-                })
-            })?
+            .query_map([], epg_mapping_from_row)?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
     }
@@ -81,20 +92,7 @@ impl CrispyService {
              ORDER BY confidence DESC",
         )?;
         let rows = stmt
-            .query_map([], |row| {
-                Ok(EpgMapping {
-                    channel_id: row.get(0)?,
-                    epg_channel_id: row.get(1)?,
-                    confidence: row.get(2)?,
-                    match_method: row
-                        .get::<_, String>(3)
-                        .map(|s| s.as_str().try_into().unwrap_or_default())
-                        .unwrap_or_default(),
-                    epg_source_id: row.get(4)?,
-                    locked: int_to_bool(row.get(5)?),
-                    created_at: row.get(6)?,
-                })
-            })?
+            .query_map([], epg_mapping_from_row)?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
     }

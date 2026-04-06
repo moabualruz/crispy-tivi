@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
 import '../../../../core/providers/toggle_notifier.dart';
+import 'player_service_providers.dart';
 import '../../data/adaptive_buffer.dart';
 import '../../data/player_service.dart';
 import '../../domain/crispy_player.dart';
@@ -14,6 +14,7 @@ export 'cursor_providers.dart';
 export 'osd_providers.dart';
 export 'playback_session_provider.dart';
 export 'player_mode_provider.dart';
+export 'player_service_providers.dart';
 export 'player_settings_providers.dart';
 
 /// Global [PlayerService] provider — single instance.

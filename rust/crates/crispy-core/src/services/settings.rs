@@ -1,9 +1,11 @@
 use chrono::NaiveDateTime;
 use rusqlite::params;
 
+use crate::insert_or_replace;
 use super::{CrispyService, dt_to_ts, ts_to_dt};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
+use crate::traits::SettingsRepository;
 
 impl CrispyService {
     // ── Settings (KV Store) ─────────────────────────
@@ -27,9 +29,10 @@ impl CrispyService {
     /// Set a setting value.
     pub fn set_setting(&self, key: &str, value: &str) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        conn.execute(
-            "INSERT OR REPLACE INTO db_settings
-             (key, value) VALUES (?1, ?2)",
+        insert_or_replace!(
+            conn,
+            "db_settings",
+            ["key", "value"],
             params![key, value],
         )?;
         self.emit(DataChangeEvent::SettingsUpdated {
@@ -75,6 +78,35 @@ impl CrispyService {
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(DbError::Sqlite(e)),
         }
+    }
+}
+
+impl SettingsRepository for CrispyService {
+    fn get_setting(&self, key: &str) -> Result<Option<String>, DbError> {
+        self.get_setting(key)
+    }
+
+    fn set_setting(&self, key: &str, value: &str) -> Result<(), DbError> {
+        self.set_setting(key, value)
+    }
+
+    fn remove_setting(&self, key: &str) -> Result<(), DbError> {
+        self.remove_setting(key)
+    }
+
+    fn set_last_sync_time(
+        &self,
+        source_id: &str,
+        time: NaiveDateTime,
+    ) -> Result<(), DbError> {
+        self.set_last_sync_time(source_id, time)
+    }
+
+    fn get_last_sync_time(
+        &self,
+        source_id: &str,
+    ) -> Result<Option<NaiveDateTime>, DbError> {
+        self.get_last_sync_time(source_id)
     }
 }
 

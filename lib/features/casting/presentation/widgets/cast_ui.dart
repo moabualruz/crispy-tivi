@@ -7,7 +7,7 @@ import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/glass_surface.dart';
-import '../../data/cast_service.dart';
+import '../providers/casting_service_providers.dart';
 
 /// Cast device picker dialog.
 ///

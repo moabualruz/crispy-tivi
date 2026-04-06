@@ -4,11 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:universal_io/io.dart';
 
-import '../../../../../core/data/cache_service.dart';
 import '../../../../../core/theme/crispy_colors.dart';
 import '../../../../../core/theme/crispy_radius.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
-import '../../../data/shader_service.dart';
+import '../../providers/player_service_providers.dart';
 import '../../providers/player_providers.dart';
 import 'osd_bottom_bar_dialogs.dart';
 import 'osd_overflow_menu.dart';

@@ -12,7 +12,7 @@ import '../../../../core/widgets/content_badge.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/hover_builder.dart';
 import '../../../../core/widgets/smart_image.dart';
-import '../../../player/data/watch_history_service.dart';
+import '../providers/vod_service_providers.dart';
 import '../../domain/entities/vod_item.dart';
 import '../providers/vod_favorites_provider.dart';
 

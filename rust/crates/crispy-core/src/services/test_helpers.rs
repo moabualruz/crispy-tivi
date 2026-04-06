@@ -103,8 +103,8 @@ pub fn make_profile(id: &str, name: &str) -> UserProfile {
         is_child: false,
         pin_version: 0,
         max_allowed_rating: 4,
-        role: 1,
-        dvr_permission: 2,
+        role: crate::value_objects::ProfileRole::Viewer,
+        dvr_permission: crate::value_objects::DvrPermission::Full,
         dvr_quota_mb: None,
     }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
 import '../../../../core/network/dio_provider.dart';
+import 'player_service_providers.dart';
 import '../../data/thumbnail_service.dart';
 import '../../domain/entities/thumbnail_sprite.dart';
 

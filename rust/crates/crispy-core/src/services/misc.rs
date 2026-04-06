@@ -1,9 +1,33 @@
-use rusqlite::params;
+use rusqlite::{Row, params};
 
 use super::{CrispyService, dt_to_ts, ts_to_dt};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::models::{SavedLayout, SearchHistory};
+use crate::insert_or_replace;
+
+fn saved_layout_from_row(row: &Row) -> rusqlite::Result<SavedLayout> {
+    Ok(SavedLayout {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        layout: row
+            .get::<_, String>(2)?
+            .as_str()
+            .try_into()
+            .unwrap_or_default(),
+        streams: row.get(3)?,
+        created_at: ts_to_dt(row.get(4)?),
+    })
+}
+
+fn search_history_from_row(row: &Row) -> rusqlite::Result<SearchHistory> {
+    Ok(SearchHistory {
+        id: row.get(0)?,
+        query: row.get(1)?,
+        searched_at: ts_to_dt(row.get(2)?),
+        result_count: row.get(3)?,
+    })
+}
 
 impl CrispyService {
     // ── Saved Layouts ─────────────────────────────────
@@ -19,31 +43,21 @@ impl CrispyService {
             FROM db_saved_layouts
             ORDER BY created_at DESC",
         )?;
-        let rows = stmt.query_map([], |row| {
-            Ok(SavedLayout {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                layout: row.get(2)?,
-                streams: row.get(3)?,
-                created_at: ts_to_dt(row.get(4)?),
-            })
-        })?;
+        let rows = stmt.query_map([], saved_layout_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
     /// Save (upsert) a layout.
     pub fn save_saved_layout(&self, layout: &SavedLayout) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        conn.execute(
-            "INSERT OR REPLACE INTO
-             db_saved_layouts (
-                 id, name, layout, streams,
-                 created_at
-             ) VALUES (?1, ?2, ?3, ?4, ?5)",
+        insert_or_replace!(
+            conn,
+            "db_saved_layouts",
+            ["id", "name", "layout", "streams", "created_at"],
             params![
                 layout.id,
                 layout.name,
-                layout.layout,
+                layout.layout.as_str(),
                 layout.streams,
                 dt_to_ts(&layout.created_at),
             ],
@@ -73,15 +87,7 @@ impl CrispyService {
              FROM db_saved_layouts
              WHERE id = ?1",
         )?;
-        let mut rows = stmt.query_map(params![id], |row| {
-            Ok(SavedLayout {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                layout: row.get(2)?,
-                streams: row.get(3)?,
-                created_at: ts_to_dt(row.get(4)?),
-            })
-        })?;
+        let mut rows = stmt.query_map(params![id], saved_layout_from_row)?;
         match rows.next() {
             Some(r) => Ok(Some(r?)),
             None => Ok(None),
@@ -101,14 +107,7 @@ impl CrispyService {
             FROM db_search_history
             ORDER BY searched_at DESC",
         )?;
-        let rows = stmt.query_map([], |row| {
-            Ok(SearchHistory {
-                id: row.get(0)?,
-                query: row.get(1)?,
-                searched_at: ts_to_dt(row.get(2)?),
-                result_count: row.get(3)?,
-            })
-        })?;
+        let rows = stmt.query_map([], search_history_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
@@ -169,7 +168,7 @@ mod tests {
         crate::models::SavedLayout {
             id: id.to_string(),
             name: name.to_string(),
-            layout: "quad".to_string(),
+            layout: crate::value_objects::LayoutType::Grid2x2,
             streams: r#"["url1","url2"]"#.to_string(),
             created_at: parse_dt("2025-01-15 12:00:00"),
         }
@@ -232,7 +231,7 @@ mod tests {
         let found = found.unwrap();
         assert_eq!(found.id, "l1");
         assert_eq!(found.name, "Layout 1");
-        assert_eq!(found.layout, "quad");
+        assert_eq!(found.layout, crate::value_objects::LayoutType::Grid2x2);
         assert_eq!(found.streams, r#"["url1","url2"]"#,);
     }
 

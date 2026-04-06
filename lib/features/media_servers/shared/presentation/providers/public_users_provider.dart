@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:crispy_tivi/core/network/http_service.dart';
 import 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart';
 
+export 'package:crispy_tivi/features/media_servers/shared/data/models/media_server_user.dart'
+    show MediaServerUser;
+
 /// Fetches the public user list from an Emby or Jellyfin server before login.
 ///
 /// Both server types expose `/Users/Public` without authentication.

@@ -1,5 +1,5 @@
-import '../presentation/providers/player_mode_provider.dart';
 import 'entities/playback_state.dart';
+import 'entities/player_mode.dart';
 
 /// Pure validation utility for player mode + playback status
 /// combinations.

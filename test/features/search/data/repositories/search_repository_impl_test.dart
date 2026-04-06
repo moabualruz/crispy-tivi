@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/crispy_backend.dart';
 import 'package:crispy_tivi/core/domain/entities/'
     'media_item.dart';
@@ -22,15 +23,19 @@ import 'package:crispy_tivi/features/vod/domain/'
 
 class MockCrispyBackend extends Mock implements CrispyBackend {}
 
+class MockCacheService extends Mock implements CacheService {}
+
 class MockMediaSource extends Mock implements MediaSource {}
 
 void main() {
   late MockCrispyBackend mockBackend;
+  late MockCacheService mockCache;
   late SearchRepositoryImpl repo;
 
   setUp(() {
     mockBackend = MockCrispyBackend();
-    repo = SearchRepositoryImpl(mockBackend);
+    mockCache = MockCacheService();
+    repo = SearchRepositoryImpl(mockBackend, mockCache);
   });
 
   // ── Helpers ──────────────────────────────────────

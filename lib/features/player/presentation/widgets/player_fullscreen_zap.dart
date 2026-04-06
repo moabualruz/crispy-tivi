@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../favorites/data/favorites_history_service.dart';
+import '../../../favorites/presentation/providers/favorites_history_provider.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../vod/domain/entities/vod_item.dart';
 import '../providers/player_providers.dart';

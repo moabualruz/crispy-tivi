@@ -83,17 +83,7 @@ impl RetryQueue {
              ORDER BY next_retry_at ASC",
         )?;
         let items = stmt
-            .query_map(params![now], |row| {
-                Ok(QueueItem {
-                    id: row.get(0)?,
-                    operation: row.get(1)?,
-                    payload: row.get(2)?,
-                    attempts: row.get(3)?,
-                    next_retry_at: parse_dt(row.get::<_, String>(4)?),
-                    max_lifetime: parse_dt(row.get::<_, String>(5)?),
-                    created_at: parse_dt(row.get::<_, String>(6)?),
-                })
-            })?
+            .query_map(params![now], queue_item_from_row)?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(items)
     }
@@ -161,6 +151,18 @@ impl RetryQueue {
 
 fn parse_dt(s: String) -> DateTime<Utc> {
     s.parse::<DateTime<Utc>>().unwrap_or_else(|_| Utc::now())
+}
+
+fn queue_item_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<QueueItem> {
+    Ok(QueueItem {
+        id: row.get(0)?,
+        operation: row.get(1)?,
+        payload: row.get(2)?,
+        attempts: row.get(3)?,
+        next_retry_at: parse_dt(row.get::<_, String>(4)?),
+        max_lifetime: parse_dt(row.get::<_, String>(5)?),
+        created_at: parse_dt(row.get::<_, String>(6)?),
+    })
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

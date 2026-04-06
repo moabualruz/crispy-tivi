@@ -7,9 +7,8 @@ import 'package:universal_io/io.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../../../../config/settings_notifier.dart';
-import '../../../../../core/data/cache_service.dart';
 import '../../../../../core/utils/screen_brightness_helper.dart';
-import '../../../data/shader_service.dart';
+import '../../providers/player_service_providers.dart';
 import '../../../domain/entities/stream_profile.dart';
 import '../../providers/player_providers.dart';
 import 'osd_audio_device_picker.dart';

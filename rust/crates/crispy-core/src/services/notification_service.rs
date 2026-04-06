@@ -15,11 +15,12 @@
 //! `group_notifications` collapses multiple same-category notifications
 //! from the same sync cycle (within 60 s) into one summary entry.
 
-use rusqlite::params;
+use rusqlite::{Row, params};
 use serde::{Deserialize, Serialize};
 
 use super::CrispyService;
 use crate::database::DbError;
+use crate::insert_or_replace;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -79,6 +80,20 @@ pub struct Notification {
     /// Unix timestamp (seconds) when the notification was created.
     pub created_at: i64,
     pub read: bool,
+}
+
+fn notification_from_row(row: &Row) -> rusqlite::Result<Notification> {
+    let cat_str: String = row.get(2)?;
+    Ok(Notification {
+        id: row.get(0)?,
+        profile_id: row.get(1)?,
+        category: NotifCategory::from_str(&cat_str),
+        title: row.get(3)?,
+        body: row.get(4)?,
+        deep_link: row.get(5)?,
+        created_at: row.get(6)?,
+        read: row.get::<_, i32>(7)? != 0,
+    })
 }
 
 // ── Per-category preferences ──────────────────────────────────────────────────
@@ -176,10 +191,19 @@ impl CrispyService {
         }
 
         let conn = self.db.get()?;
-        conn.execute(
-            "INSERT OR REPLACE INTO db_notifications
-             (id, profile_id, category, title, body, deep_link, created_at, read)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        insert_or_replace!(
+            conn,
+            "db_notifications",
+            [
+                "id",
+                "profile_id",
+                "category",
+                "title",
+                "body",
+                "deep_link",
+                "created_at",
+                "read",
+            ],
             params![
                 notif.id,
                 notif.profile_id,
@@ -212,19 +236,7 @@ impl CrispyService {
              WHERE profile_id = ?1
              ORDER BY created_at DESC",
         )?;
-        let rows = stmt.query_map(params![profile_id], |row| {
-            let cat_str: String = row.get(2)?;
-            Ok(Notification {
-                id: row.get(0)?,
-                profile_id: row.get(1)?,
-                category: NotifCategory::from_str(&cat_str),
-                title: row.get(3)?,
-                body: row.get(4)?,
-                deep_link: row.get(5)?,
-                created_at: row.get(6)?,
-                read: row.get::<_, i32>(7)? != 0,
-            })
-        })?;
+        let rows = stmt.query_map(params![profile_id], notification_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 

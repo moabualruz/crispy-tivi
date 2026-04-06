@@ -22,4 +22,11 @@ abstract class SearchRepository {
     Map<String, List<EpgEntry>>? epgEntries,
     List<Channel>? channels,
   });
+
+  /// Merge VOD category names and channel group names into a
+  /// deduplicated, sorted list of search category options.
+  List<String> buildSearchCategories(
+    List<String> vodCategories,
+    List<String> channelGroups,
+  );
 }

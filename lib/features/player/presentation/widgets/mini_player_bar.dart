@@ -2,7 +2,6 @@ import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/screenshot_service.dart';
 import '../../../../core/navigation/shell_providers.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_colors.dart';
@@ -11,7 +10,6 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/glass_surface.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../../core/widgets/watch_progress_bar.dart';
-import '../../data/watch_history_service.dart';
 import '../../domain/entities/playback_state.dart';
 import '../../domain/player_lifecycle_coordinator.dart';
 import '../providers/player_providers.dart';

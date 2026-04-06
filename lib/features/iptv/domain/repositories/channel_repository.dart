@@ -83,4 +83,52 @@ abstract interface class ChannelRepository {
 
   /// Mark or unmark a channel as 24/7.
   Future<void> setChannel247(String channelId, {required bool is247});
+
+  // ── Channel Ordering ────────────────────────────────
+
+  /// Extract a sorted, deduplicated list of group names from [channels].
+  Future<List<String>> extractSortedGroups(List<Channel> channels);
+
+  /// Save a custom channel order for [profileId] and [groupName].
+  Future<void> saveChannelOrder(
+    String profileId,
+    String groupName,
+    List<String> channelIds,
+  );
+
+  /// Load the custom channel order for [profileId] and [groupName].
+  ///
+  /// Returns null when no custom order has been saved.
+  Future<Map<String, int>?> loadChannelOrder(
+    String profileId,
+    String groupName,
+  );
+
+  /// Reset the custom channel order for [profileId] and [groupName].
+  Future<void> resetChannelOrder(String profileId, String groupName);
+
+  // ── EPG-aware Search ───────────────────────────────
+
+  /// Return channel IDs whose currently-airing program title matches [query].
+  Future<List<String>> searchChannelsByLiveProgram(
+    Map<String, List<EpgEntry>> epgEntries,
+    String query,
+    int nowMs,
+  );
+
+  /// Merge EPG-matched channels into the base filtered list.
+  Future<List<Channel>> mergeEpgMatchedChannels({
+    required List<Channel> baseChannels,
+    required List<Channel> allChannels,
+    required List<String> matchedIds,
+    required Map<String, String> epgOverrides,
+  });
+
+  // ── Smart Groups ────────────────────────────────────
+
+  /// Return all smart groups as raw JSON maps.
+  Future<List<Map<String, dynamic>>> getSmartGroupsParsed();
+
+  /// Return auto-detected smart group candidates as raw JSON maps.
+  Future<List<Map<String, dynamic>>> getSmartGroupCandidatesParsed();
 }

@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/codecs/json_prefs_codec.dart';
-
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
-import '../../data/backup_service.dart';
+import '../providers/settings_service_providers.dart';
 import 'settings_shared_widgets.dart';
 
 /// Backup & Restore settings section.

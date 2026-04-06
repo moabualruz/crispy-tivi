@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
+import '../providers/settings_service_providers.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 
 /// Verifies connectivity for [type] using the appropriate backend method.

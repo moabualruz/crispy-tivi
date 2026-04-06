@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../dvr/data/transfer_service.dart';
+import '../providers/external_service_providers.dart';
 import '../../../dvr/domain/entities/storage_backend.dart';
 import '../../../dvr/presentation/widgets/storage_config_dialog.dart';
 import '../../../../core/widgets/section_header.dart';

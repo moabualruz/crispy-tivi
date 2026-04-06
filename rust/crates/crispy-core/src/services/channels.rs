@@ -1,29 +1,13 @@
 use rusqlite::{Row, params};
 
-use super::{
-    CrispyService, bool_to_int, build_in_placeholders, int_to_bool, opt_dt_to_ts, opt_ts_to_dt,
-    str_params,
-};
+use super::{CrispyService, bool_to_int, build_in_placeholders, opt_dt_to_ts, str_params};
 use crate::database::DbError;
+use crate::insert_or_replace;
+use crate::database::row_helpers::RowExt;
 use crate::events::DataChangeEvent;
 use crate::models::Channel;
-
-/// SELECT column list for `db_channels` (39 columns, positional order).
-///
-/// Use with `format!("SELECT {CHANNEL_COLUMNS} FROM db_channels ...")`.
-/// Column order matches `channel_from_row` index bindings.
-pub(crate) const CHANNEL_COLUMNS: &str = "id, native_id, name, stream_url, number, \
-     channel_group, logo_url, tvg_id, xtream_stream_id, epg_channel_id, \
-     tvg_name, is_favorite, user_agent, \
-     has_catchup, catchup_days, \
-     catchup_type, catchup_source, \
-     source_id, added_at, updated_at, is_247, \
-     tvg_shift, tvg_language, tvg_country, \
-     parent_code, is_radio, tvg_rec, \
-     is_adult, custom_sid, direct_source, \
-     stalker_cmd, resolved_url, resolved_at, \
-     tvg_url, stream_properties_json, vlc_options_json, \
-     timeshift, stream_type, thumbnail_url";
+use crate::models::columns::CHANNEL_COLUMNS;
+use crate::traits::ChannelRepository;
 
 /// Map a single SQLite row to a `Channel`.
 ///
@@ -41,24 +25,24 @@ fn channel_from_row(row: &Row) -> rusqlite::Result<Channel> {
         xtream_stream_id: row.get(8)?,
         epg_channel_id: row.get(9)?,
         tvg_name: row.get(10)?,
-        is_favorite: int_to_bool(row.get(11)?),
+        is_favorite: row.get_bool(11)?,
         user_agent: row.get(12)?,
-        has_catchup: int_to_bool(row.get(13)?),
+        has_catchup: row.get_bool(13)?,
         catchup_days: row.get(14)?,
         catchup_type: row.get(15)?,
         catchup_source: row.get(16)?,
         resolution: None,
         source_id: row.get(17)?,
-        added_at: opt_ts_to_dt(row.get(18)?),
-        updated_at: opt_ts_to_dt(row.get(19)?),
-        is_247: int_to_bool(row.get(20)?),
+        added_at: row.get_datetime(18)?,
+        updated_at: row.get_datetime(19)?,
+        is_247: row.get_bool(20)?,
         tvg_shift: row.get(21)?,
         tvg_language: row.get(22)?,
         tvg_country: row.get(23)?,
         parent_code: row.get(24)?,
-        is_radio: int_to_bool(row.get(25)?),
+        is_radio: row.get_bool(25)?,
         tvg_rec: row.get(26)?,
-        is_adult: int_to_bool(row.get(27)?),
+        is_adult: row.get_bool(27)?,
         custom_sid: row.get(28)?,
         direct_source: row.get(29)?,
         stalker_cmd: row.get(30)?,
@@ -298,11 +282,9 @@ impl CrispyService {
     pub fn add_favorite(&self, profile_id: &str, channel_id: &str) -> Result<(), DbError> {
         let conn = self.db.get()?;
         let now = chrono::Utc::now().timestamp();
-        conn.execute(
-            "INSERT OR REPLACE INTO db_user_favorites
-             (profile_id, channel_id, added_at)
-             VALUES (?1, ?2, ?3)",
-            params![profile_id, channel_id, now],
+        insert_or_replace!(conn, "db_user_favorites",
+            ["profile_id", "channel_id", "added_at"],
+            params![profile_id, channel_id, now]
         )?;
         self.emit(DataChangeEvent::FavoriteToggled {
             item_id: channel_id.to_string(),
@@ -325,6 +307,51 @@ impl CrispyService {
             is_favorite: false,
         });
         Ok(())
+    }
+}
+
+impl ChannelRepository for CrispyService {
+    fn save_channels(&self, channels: &[Channel]) -> Result<usize, DbError> {
+        self.save_channels(channels)
+    }
+
+    fn load_channels(&self) -> Result<Vec<Channel>, DbError> {
+        self.load_channels()
+    }
+
+    fn get_channels_by_sources(
+        &self,
+        source_ids: &[String],
+    ) -> Result<Vec<Channel>, DbError> {
+        self.get_channels_by_sources(source_ids)
+    }
+
+    fn get_channels_by_ids(&self, ids: &[String]) -> Result<Vec<Channel>, DbError> {
+        self.get_channels_by_ids(ids)
+    }
+
+    fn delete_removed_channels(
+        &self,
+        source_id: &str,
+        keep_ids: &[String],
+    ) -> Result<usize, DbError> {
+        self.delete_removed_channels(source_id, keep_ids)
+    }
+
+    fn get_favorites(&self, profile_id: &str) -> Result<Vec<String>, DbError> {
+        self.get_favorites(profile_id)
+    }
+
+    fn add_favorite(&self, profile_id: &str, channel_id: &str) -> Result<(), DbError> {
+        self.add_favorite(profile_id, channel_id)
+    }
+
+    fn remove_favorite(
+        &self,
+        profile_id: &str,
+        channel_id: &str,
+    ) -> Result<(), DbError> {
+        self.remove_favorite(profile_id, channel_id)
     }
 }
 

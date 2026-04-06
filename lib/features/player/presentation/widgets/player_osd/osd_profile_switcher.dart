@@ -7,7 +7,7 @@ import '../../../../../core/widgets/async_value_ui.dart';
 import '../../../../../core/theme/crispy_radius.dart';
 import '../../../../../core/theme/crispy_spacing.dart';
 import '../../../../../core/widgets/pin_input_dialog.dart';
-import '../../../../profiles/data/profile_service.dart';
+import '../../../../profiles/presentation/providers/profile_service_providers.dart';
 import '../../../../profiles/domain/entities/user_profile.dart';
 import '../../../../profiles/presentation/profile_constants.dart';
 

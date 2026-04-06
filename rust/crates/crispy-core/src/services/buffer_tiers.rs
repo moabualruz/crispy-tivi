@@ -4,6 +4,7 @@ use rusqlite::params;
 
 use super::CrispyService;
 use crate::database::DbError;
+use crate::insert_or_replace;
 
 // ── Tier constants ──────────────────────────────────
 
@@ -59,9 +60,10 @@ impl CrispyService {
     pub fn set_buffer_tier(&self, url_hash: &str, tier: &str) -> Result<(), DbError> {
         let conn = self.db.get()?;
         let now = chrono::Utc::now().timestamp();
-        conn.execute(
-            "INSERT OR REPLACE INTO db_buffer_tiers \
-             (url_hash, tier, updated_at) VALUES (?1, ?2, ?3)",
+        insert_or_replace!(
+            conn,
+            "db_buffer_tiers",
+            ["url_hash", "tier", "updated_at"],
             params![url_hash, tier, now],
         )?;
         Ok(())

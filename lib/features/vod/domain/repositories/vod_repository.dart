@@ -44,4 +44,72 @@ abstract interface class VodRepository {
   /// Deletes VOD items belonging to [sourceId] that are not
   /// in [keepIds]. Returns the number of deleted items.
   Future<int> deleteRemovedVodItems(String sourceId, Set<String> keepIds);
+
+  // ── Content Filtering ──────────────────────────────
+
+  /// Filter [items] by the given content [ratingLevel].
+  Future<List<VodItem>> filterVodByContentRating(
+    List<VodItem> items,
+    int ratingLevel,
+  );
+
+  /// Return items from [items] added within the last [days] days,
+  /// relative to [nowMs] (milliseconds since epoch).
+  Future<List<VodItem>> filterRecentlyAdded(
+    List<VodItem> items,
+    int days,
+    int nowMs,
+  );
+
+  /// Return the set of series item IDs that have been updated within
+  /// the last [days] days, relative to [nowMs].
+  Future<Set<String>> seriesIdsWithNewEpisodes(
+    List<VodItem> series,
+    int days,
+    int nowMs,
+  );
+
+  // ── VOD Favorites ──────────────────────────────────
+
+  /// Get favorite VOD item IDs for [profileId].
+  Future<List<String>> getVodFavorites(String profileId);
+
+  /// Add a VOD item to a profile's favorites.
+  Future<void> addVodFavorite(String profileId, String vodItemId);
+
+  /// Remove a VOD item from a profile's favorites.
+  Future<void> removeVodFavorite(String profileId, String vodItemId);
+
+  // ── Favorite Categories ────────────────────────────
+
+  /// Get favorite category names for [profileId] and [categoryType].
+  Future<List<String>> getFavoriteCategories(
+    String profileId,
+    String categoryType,
+  );
+
+  /// Add a category to a profile's favorites.
+  Future<void> addFavoriteCategory(
+    String profileId,
+    String categoryType,
+    String categoryName,
+  );
+
+  /// Remove a category from a profile's favorites.
+  Future<void> removeFavoriteCategory(
+    String profileId,
+    String categoryType,
+    String categoryName,
+  );
+
+  // ── Key-Value Settings ─────────────────────────────
+
+  /// Load a generic string setting by [key].
+  Future<String?> getSetting(String key);
+
+  /// Persist a generic string setting.
+  Future<void> setSetting(String key, String value);
+
+  /// Delete a generic string setting.
+  Future<void> removeSetting(String key);
 }

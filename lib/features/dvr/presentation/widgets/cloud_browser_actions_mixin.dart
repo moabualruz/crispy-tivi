@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/widgets/confirm_delete_dialog.dart';
-import '../../data/transfer_service.dart';
+import '../providers/dvr_providers.dart';
 import '../../domain/entities/storage_backend.dart';
 import '../../domain/entities/transfer_task.dart';
 import '../../domain/storage_provider.dart';

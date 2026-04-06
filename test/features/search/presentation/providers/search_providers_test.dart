@@ -56,6 +56,12 @@ class MockSearchRepository implements SearchRepository {
       series: [],
     );
   }
+
+  @override
+  List<String> buildSearchCategories(
+    List<String> vodCategories,
+    List<String> channelGroups,
+  ) => [...vodCategories, ...channelGroups];
 }
 
 void main() {

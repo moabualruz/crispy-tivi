@@ -3,9 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/pin_input_dialog.dart';
-import '../../../parental/data/parental_service.dart';
 import '../../../parental/domain/content_rating.dart';
-import '../../../profiles/data/profile_service.dart';
+import '../providers/external_service_providers.dart';
 import '../../../profiles/domain/entities/user_profile.dart';
 import '../../../../core/widgets/section_header.dart';
 import 'settings_shared_widgets.dart';

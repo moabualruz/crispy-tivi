@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../player/data/watch_history_service.dart';
+import '../providers/profile_service_providers.dart';
 import '../../domain/utils/profile_stats.dart';
 
 /// Riverpod provider that computes [ProfileViewingStats] for a given profile.

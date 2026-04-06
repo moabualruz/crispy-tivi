@@ -1,5 +1,6 @@
 use rusqlite::params;
 
+use crate::insert_or_replace;
 use super::{CrispyService, vod::vod_item_from_row};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
@@ -134,7 +135,7 @@ impl CrispyService {
 
     /// Get all full VOD items in a profile's watchlist, ordered by added_at (oldest first).
     pub fn get_watchlist_items(&self, profile_id: &str) -> Result<Vec<VodItem>, DbError> {
-        use super::vod::VOD_COLUMNS_V;
+        use crate::models::columns::VOD_COLUMNS_V;
         let conn = self.db.get()?;
         let mut stmt = conn.prepare(&format!(
             "SELECT {VOD_COLUMNS_V}
@@ -151,11 +152,11 @@ impl CrispyService {
     pub fn add_watchlist_item(&self, profile_id: &str, vod_item_id: &str) -> Result<(), DbError> {
         let conn = self.db.get()?;
         let now = chrono::Utc::now().timestamp();
-        conn.execute(
-            "INSERT OR REPLACE INTO db_watchlist
-             (profile_id, content_id, content_type, added_at)
-             VALUES (?1, ?2, 'movie', ?3)",
-            params![profile_id, vod_item_id, now],
+        insert_or_replace!(
+            conn,
+            "db_watchlist",
+            ["profile_id", "content_id", "content_type", "added_at"],
+            params![profile_id, vod_item_id, "movie", now],
         )?;
         self.emit(DataChangeEvent::WatchlistUpdated {
             profile_id: profile_id.to_string(),

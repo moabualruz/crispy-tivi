@@ -1,9 +1,35 @@
-use rusqlite::params;
+use rusqlite::{Row, params};
 
 use super::{CrispyService, dt_to_ts, ts_to_dt};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::models::WatchHistory;
+use crate::insert_or_replace;
+use crate::traits::HistoryRepository;
+
+fn watch_history_from_row(row: &Row) -> rusqlite::Result<WatchHistory> {
+    Ok(WatchHistory {
+        id: row.get(0)?,
+        media_type: row
+            .get::<_, String>(1)
+            .map(|s| s.as_str().try_into().unwrap_or_default())
+            .unwrap_or_default(),
+        name: row.get(2)?,
+        stream_url: row.get(3)?,
+        poster_url: row.get(4)?,
+        position_ms: row.get(5)?,
+        duration_ms: row.get(6)?,
+        last_watched: ts_to_dt(row.get(7)?),
+        series_id: row.get(8)?,
+        season_number: row.get(9)?,
+        episode_number: row.get(10)?,
+        device_id: row.get(11)?,
+        device_name: row.get(12)?,
+        series_poster_url: row.get(13)?,
+        profile_id: row.get(14)?,
+        source_id: row.get(15)?,
+    })
+}
 
 impl CrispyService {
     // ── Watch History ───────────────────────────────
@@ -11,18 +37,28 @@ impl CrispyService {
     /// Upsert a watch history entry.
     pub fn save_watch_history(&self, entry: &WatchHistory) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        conn.execute(
-            "INSERT OR REPLACE INTO db_watch_history (
-                id, content_id, media_type, name, stream_url,
-                poster_url, position_ms, duration_ms,
-                last_watched, series_id,
-                season_number, episode_number,
-                device_id, device_name, series_poster_url,
-                profile_id, source_id
-            ) VALUES (
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9,
-                ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17
-            )",
+        insert_or_replace!(
+            conn,
+            "db_watch_history",
+            [
+                "id",
+                "content_id",
+                "media_type",
+                "name",
+                "stream_url",
+                "poster_url",
+                "position_ms",
+                "duration_ms",
+                "last_watched",
+                "series_id",
+                "season_number",
+                "episode_number",
+                "device_id",
+                "device_name",
+                "series_poster_url",
+                "profile_id",
+                "source_id",
+            ],
             params![
                 entry.id,
                 entry.id, // content_id = id for backward compat
@@ -64,29 +100,7 @@ impl CrispyService {
             FROM db_watch_history
             ORDER BY last_watched DESC",
         )?;
-        let rows = stmt.query_map([], |row| {
-            Ok(WatchHistory {
-                id: row.get(0)?,
-                media_type: row
-                    .get::<_, String>(1)
-                    .map(|s| s.as_str().try_into().unwrap_or_default())
-                    .unwrap_or_default(),
-                name: row.get(2)?,
-                stream_url: row.get(3)?,
-                poster_url: row.get(4)?,
-                position_ms: row.get(5)?,
-                duration_ms: row.get(6)?,
-                last_watched: ts_to_dt(row.get(7)?),
-                series_id: row.get(8)?,
-                season_number: row.get(9)?,
-                episode_number: row.get(10)?,
-                device_id: row.get(11)?,
-                device_name: row.get(12)?,
-                series_poster_url: row.get(13)?,
-                profile_id: row.get(14)?,
-                source_id: row.get(15)?,
-            })
-        })?;
+        let rows = stmt.query_map([], watch_history_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
@@ -172,30 +186,36 @@ impl CrispyService {
             ORDER BY last_watched DESC
             LIMIT 100",
         )?;
-        let rows = stmt.query_map(params![profile_id], |row| {
-            Ok(WatchHistory {
-                id: row.get(0)?,
-                media_type: row
-                    .get::<_, String>(1)
-                    .map(|s| s.as_str().try_into().unwrap_or_default())
-                    .unwrap_or_default(),
-                name: row.get(2)?,
-                stream_url: row.get(3)?,
-                poster_url: row.get(4)?,
-                position_ms: row.get(5)?,
-                duration_ms: row.get(6)?,
-                last_watched: ts_to_dt(row.get(7)?),
-                series_id: row.get(8)?,
-                season_number: row.get(9)?,
-                episode_number: row.get(10)?,
-                device_id: row.get(11)?,
-                device_name: row.get(12)?,
-                series_poster_url: row.get(13)?,
-                profile_id: row.get(14)?,
-                source_id: row.get(15)?,
-            })
-        })?;
+        let rows = stmt.query_map(params![profile_id], watch_history_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+}
+
+impl HistoryRepository for CrispyService {
+    fn save_watch_history(&self, entry: &WatchHistory) -> Result<(), DbError> {
+        self.save_watch_history(entry)
+    }
+
+    fn load_watch_history(&self) -> Result<Vec<WatchHistory>, DbError> {
+        self.load_watch_history()
+    }
+
+    fn load_watch_history_for_profile(
+        &self,
+        profile_id: &str,
+    ) -> Result<Vec<WatchHistory>, DbError> {
+        self.load_watch_history_for_profile(profile_id)
+    }
+
+    fn compute_episode_progress_from_db(
+        &self,
+        series_id: &str,
+    ) -> Result<String, DbError> {
+        self.compute_episode_progress_from_db(series_id)
+    }
+
+    fn delete_watch_history(&self, id: &str) -> Result<(), DbError> {
+        self.delete_watch_history(id)
     }
 }
 

@@ -10,7 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
 
-import '../../data/player_service.dart';
+import '../providers/player_service_providers.dart';
 import '../providers/player_providers.dart';
 
 // ─────────────────────────────────────────────────────────────

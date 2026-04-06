@@ -6,7 +6,7 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../../core/widgets/horizontal_scroll_row.dart';
 import '../../../../core/widgets/smart_image.dart';
-import '../../../favorites/data/favorites_history_service.dart';
+import '../providers/iptv_service_providers.dart';
 import '../../domain/entities/channel.dart';
 
 /// Horizontal strip of recently watched channels.

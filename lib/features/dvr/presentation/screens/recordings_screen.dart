@@ -7,7 +7,7 @@ import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/screen_template.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../data/dvr_service.dart';
+import '../providers/dvr_providers.dart';
 import '../widgets/keyword_rule_dialog.dart';
 import '../widgets/recording_list.dart';
 import '../widgets/recording_search_delegate.dart';

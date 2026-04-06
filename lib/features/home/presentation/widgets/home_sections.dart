@@ -20,7 +20,7 @@ import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../favorites/presentation/providers/favorites_controller.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
-import '../../../player/data/watch_history_service.dart';
+import '../providers/home_providers.dart';
 import '../../../recommendations/domain/entities/recommendation.dart';
 import '../../../recommendations/presentation/providers/recommendation_providers.dart';
 import '../../../vod/domain/entities/vod_item.dart';

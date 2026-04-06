@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
-import '../../../../core/data/cache_service.dart';
-import '../../../../core/data/dart_algorithm_fallbacks.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../../core/widgets/playlist_source_type_ext.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
-import '../../data/stalker_account_info.dart';
+import '../providers/settings_service_providers.dart';
 import 'settings_shared_widgets.dart';
 import 'tls_toggle_widget.dart';
 

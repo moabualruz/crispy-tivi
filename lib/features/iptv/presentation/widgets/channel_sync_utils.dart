@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
-import '../../../favorites/data/favorites_history_service.dart';
+import '../providers/iptv_service_providers.dart';
 import '../providers/channel_providers.dart';
 
 /// Syncs hidden groups from user settings into the

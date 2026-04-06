@@ -7,7 +7,6 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/utils/keyboard_utils.dart';
-import '../../data/shader_service.dart';
 import '../providers/player_providers.dart';
 import '../screens/player_keyboard_handler.dart';
 import 'player_fullscreen_overlay.dart';

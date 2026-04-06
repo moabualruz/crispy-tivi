@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants.dart';
 import '../../../../core/utils/duration_formatter.dart';
-import '../../../player/data/watch_history_service.dart';
+import '../providers/vod_service_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../domain/entities/vod_item.dart';
 

@@ -1,17 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
 import '../../data/layout_repository_impl.dart';
+
+export '../../data/layout_repository_impl.dart' show layoutRepositoryProvider;
 import '../../domain/entities/active_stream.dart';
 import '../../domain/entities/multiview_session.dart';
 import '../../domain/entities/saved_layout.dart';
 import '../../domain/repositories/layout_repository.dart';
-
-/// Repository provider for saved layouts.
-final layoutRepositoryProvider = Provider.autoDispose<LayoutRepository>((ref) {
-  final cache = ref.watch(cacheServiceProvider);
-  return LayoutRepositoryImpl(cache);
-});
 
 /// List of saved layouts (async).
 final savedLayoutsProvider = FutureProvider.autoDispose<List<SavedLayout>>((

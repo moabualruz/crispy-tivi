@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
+import '../../data/channel_repository_impl.dart';
 
 /// Parsed smart group data for the UI.
 class SmartGroup {
@@ -95,8 +95,8 @@ class CandidateMember {
 final smartGroupsProvider = FutureProvider.autoDispose<List<SmartGroup>>((
   ref,
 ) async {
-  final cache = ref.watch(cacheServiceProvider);
-  final raw = await cache.getSmartGroupsParsed();
+  final repo = ref.watch(channelRepositoryProvider);
+  final raw = await repo.getSmartGroupsParsed();
   return raw.map(SmartGroup.fromJson).toList();
 });
 
@@ -118,7 +118,7 @@ final smartGroupChannelIdsProvider = FutureProvider.autoDispose<Set<String>>((
 /// Auto-detected smart group candidates.
 final smartGroupCandidatesProvider =
     FutureProvider.autoDispose<List<SmartGroupCandidate>>((ref) async {
-      final cache = ref.watch(cacheServiceProvider);
-      final raw = await cache.getSmartGroupCandidatesParsed();
+      final repo = ref.watch(channelRepositoryProvider);
+      final raw = await repo.getSmartGroupCandidatesParsed();
       return raw.map(SmartGroupCandidate.fromJson).toList();
     });

@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../iptv/application/playlist_sync_service.dart';
-import '../../data/web_sync_service.dart';
+import '../providers/settings_service_providers.dart';
 import '../../../../core/widgets/section_header.dart';
 import 'settings_shared_widgets.dart';
 

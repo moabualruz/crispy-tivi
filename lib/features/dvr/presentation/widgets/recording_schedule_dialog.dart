@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/date_format_utils.dart';
-import '../../data/dvr_service.dart';
+import '../providers/dvr_providers.dart';
 import '../../domain/entities/recording.dart';
 import '../../domain/recording_quality.dart';
 import 'auto_delete_policy_picker.dart';

@@ -1,4 +1,5 @@
 //! MediaType — discriminates the kind of media item.
+use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use serde::{Deserialize, Serialize};
 
 /// Discriminates the kind of a media item.
@@ -51,6 +52,24 @@ impl TryFrom<String> for MediaType {
     type Error = String;
     fn try_from(s: String) -> Result<Self, Self::Error> {
         Self::try_from(s.as_str())
+    }
+}
+
+impl FromSql for MediaType {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        let s = String::column_result(value)?;
+        Self::try_from(s.as_str()).map_err(|e| {
+            FromSqlError::Other(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                e,
+            )))
+        })
+    }
+}
+
+impl ToSql for MediaType {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(ToSqlOutput::from(self.as_str()))
     }
 }
 

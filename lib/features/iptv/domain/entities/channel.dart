@@ -182,6 +182,46 @@ class Channel {
     );
   }
 
+  // ── Domain behaviour ──────────────────────────────────────
+
+  /// Whether this channel has a valid stream URL that can be played.
+  bool get isPlayable => streamUrl.isNotEmpty;
+
+  /// Whether this channel has EPG data mapped via TVG identifiers.
+  bool get hasEpg =>
+      (tvgId != null && tvgId!.isNotEmpty) ||
+      (tvgName != null && tvgName!.isNotEmpty);
+
+  /// Whether this channel is a radio station.
+  ///
+  /// Determined by the explicit [streamType] field or group/name hints.
+  bool get isRadio {
+    final type = streamType?.toLowerCase() ?? '';
+    if (type == 'radio') return true;
+    final grpHint = group?.toLowerCase() ?? '';
+    final nameHint = name.toLowerCase();
+    return grpHint.contains('radio') || nameHint.contains('radio');
+  }
+
+  /// Best display name — prefers [tvgName] when it is set and
+  /// different from the raw [name], falling back to [name].
+  String get displayName {
+    if (tvgName != null && tvgName!.isNotEmpty && tvgName != name) {
+      return tvgName!;
+    }
+    return name;
+  }
+
+  /// Whether this channel matches a search [query].
+  ///
+  /// Case-insensitive comparison against [displayName] and [group].
+  bool matchesSearch(String query) {
+    if (query.isEmpty) return true;
+    final q = query.toLowerCase();
+    return displayName.toLowerCase().contains(q) ||
+        (group?.toLowerCase().contains(q) ?? false);
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

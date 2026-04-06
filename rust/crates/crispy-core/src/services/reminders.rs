@@ -1,9 +1,24 @@
-use rusqlite::params;
+use rusqlite::{Row, params};
 
+use crate::insert_or_replace;
 use super::{CrispyService, bool_to_int, dt_to_ts, int_to_bool, ts_to_dt};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::models::Reminder;
+use crate::traits::ReminderRepository;
+
+fn reminder_from_row(row: &Row) -> rusqlite::Result<Reminder> {
+    Ok(Reminder {
+        id: row.get(0)?,
+        program_name: row.get(1)?,
+        channel_name: row.get(2)?,
+        start_time: ts_to_dt(row.get(3)?),
+        notify_at: ts_to_dt(row.get(4)?),
+        fired: int_to_bool(row.get(5)?),
+        profile_id: row.get(6)?,
+        created_at: ts_to_dt(row.get(7)?),
+    })
+}
 
 impl CrispyService {
     // ── Reminders ─────────────────────────────────────
@@ -20,32 +35,26 @@ impl CrispyService {
             FROM db_reminders
             ORDER BY notify_at ASC",
         )?;
-        let rows = stmt.query_map([], |row| {
-            Ok(Reminder {
-                id: row.get(0)?,
-                program_name: row.get(1)?,
-                channel_name: row.get(2)?,
-                start_time: ts_to_dt(row.get(3)?),
-                notify_at: ts_to_dt(row.get(4)?),
-                fired: int_to_bool(row.get(5)?),
-                profile_id: row.get(6)?,
-                created_at: ts_to_dt(row.get(7)?),
-            })
-        })?;
+        let rows = stmt.query_map([], reminder_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
     /// Save (upsert) a reminder.
     pub fn save_reminder(&self, reminder: &Reminder) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        conn.execute(
-            "INSERT OR REPLACE INTO db_reminders (
-                id, program_name, channel_name,
-                start_time, notify_at, fired,
-                profile_id, created_at
-            ) VALUES (
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
-            )",
+        insert_or_replace!(
+            conn,
+            "db_reminders",
+            [
+                "id",
+                "program_name",
+                "channel_name",
+                "start_time",
+                "notify_at",
+                "fired",
+                "profile_id",
+                "created_at",
+            ],
             params![
                 reminder.id,
                 reminder.program_name,
@@ -96,6 +105,28 @@ impl CrispyService {
         )?;
         self.emit(DataChangeEvent::ReminderChanged);
         Ok(())
+    }
+}
+
+impl ReminderRepository for CrispyService {
+    fn load_reminders(&self) -> Result<Vec<Reminder>, DbError> {
+        self.load_reminders()
+    }
+
+    fn save_reminder(&self, reminder: &Reminder) -> Result<(), DbError> {
+        self.save_reminder(reminder)
+    }
+
+    fn delete_reminder(&self, id: &str) -> Result<(), DbError> {
+        self.delete_reminder(id)
+    }
+
+    fn clear_fired_reminders(&self) -> Result<(), DbError> {
+        self.clear_fired_reminders()
+    }
+
+    fn mark_reminder_fired(&self, id: &str) -> Result<(), DbError> {
+        self.mark_reminder_fired(id)
     }
 }
 

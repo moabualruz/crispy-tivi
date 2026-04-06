@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/screenshot_service.dart';
 import '../../../vod/domain/entities/vod_item.dart';
-import '../../data/watch_history_service.dart';
+import '../providers/player_service_providers.dart';
 import '../providers/playback_progress_provider.dart';
 import '../providers/playback_session_provider.dart';
 import 'player_fullscreen_overlay.dart';

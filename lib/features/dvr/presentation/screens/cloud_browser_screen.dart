@@ -6,7 +6,7 @@ import '../../../../core/data/cache_service.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/widgets/screen_template.dart';
-import '../../data/transfer_service.dart';
+import '../providers/dvr_providers.dart';
 import '../../domain/entities/storage_backend.dart';
 import '../../domain/storage_provider.dart';
 import '../../domain/utils/file_filter.dart';

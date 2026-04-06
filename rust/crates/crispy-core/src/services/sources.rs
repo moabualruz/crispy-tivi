@@ -1,11 +1,14 @@
 use rusqlite::params;
 
-use super::{CrispyService, bool_to_int, dt_to_ts, int_to_bool, opt_dt_to_ts, opt_ts_to_dt};
+use super::{CrispyService, bool_to_int, dt_to_ts, opt_dt_to_ts};
 use crate::algorithms::crypto::{decrypt_field, encrypt_field, get_or_create_encryption_key};
+use crate::database::row_helpers::RowExt;
 use crate::database::{DbError, TABLE_CHANNELS, TABLE_MOVIES, TABLE_SOURCES};
 use crate::errors::CrispyError;
 use crate::events::DataChangeEvent;
+use crate::insert_or_replace;
 use crate::models::{Source, SourceStats};
+use crate::traits::SourceRepository;
 
 // ── Credential encryption helpers ─────────────────────────────────────────────
 
@@ -67,15 +70,15 @@ fn row_to_source(row: &rusqlite::Row<'_>) -> rusqlite::Result<Source> {
         epg_url: row.get(10)?,
         user_agent: row.get(11)?,
         refresh_interval_minutes: row.get(12)?,
-        accept_self_signed: int_to_bool(row.get(13)?),
-        enabled: int_to_bool(row.get(14)?),
+        accept_self_signed: row.get_bool(13)?,
+        enabled: row.get_bool(14)?,
         sort_order: row.get(15)?,
-        last_sync_time: opt_ts_to_dt(row.get(16)?),
+        last_sync_time: row.get_datetime(16)?,
         last_sync_status: row.get(17)?,
         last_sync_error: row.get(18)?,
-        created_at: opt_ts_to_dt(row.get(19)?),
-        updated_at: opt_ts_to_dt(row.get(20)?),
-        credentials_encrypted: int_to_bool(row.get::<_, i32>(21).unwrap_or(0)),
+        created_at: row.get_datetime(19)?,
+        updated_at: row.get_datetime(20)?,
+        credentials_encrypted: row.get_bool(21).unwrap_or(false),
         deleted_at: row.get(22)?,
         epg_etag: row.get(23)?,
         epg_last_modified: row.get(24)?,
@@ -201,20 +204,18 @@ impl CrispyService {
     /// re-encryption path in [`decrypt_source`].
     pub(super) fn save_source_raw(&self, source: &Source) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        conn.execute(
-            &format!(
-                "INSERT OR REPLACE INTO {TABLE_SOURCES}
-                 (id, name, source_type, url, username, password,
-                  access_token, device_id, user_id, mac_address,
-                  epg_url, user_agent, refresh_interval_minutes,
-                  accept_self_signed, enabled, sort_order,
-                  last_sync_time, last_sync_status, last_sync_error,
-                  created_at, updated_at, credentials_encrypted,
-                  deleted_at, epg_etag, epg_last_modified)
-                 VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,
-                         ?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,
-                         ?23,?24,?25)"
-            ),
+        insert_or_replace!(
+            conn,
+            TABLE_SOURCES,
+            [
+                "id", "name", "source_type", "url", "username", "password",
+                "access_token", "device_id", "user_id", "mac_address",
+                "epg_url", "user_agent", "refresh_interval_minutes",
+                "accept_self_signed", "enabled", "sort_order",
+                "last_sync_time", "last_sync_status", "last_sync_error",
+                "created_at", "updated_at", "credentials_encrypted",
+                "deleted_at", "epg_etag", "epg_last_modified",
+            ],
             params![
                 source.id,
                 source.name,
@@ -356,6 +357,42 @@ impl CrispyService {
             params![status, error, sync_time.as_ref().map(dt_to_ts), id,],
         )?;
         Ok(())
+    }
+}
+
+impl SourceRepository for CrispyService {
+    fn get_sources(&self) -> Result<Vec<Source>, DbError> {
+        self.get_sources()
+    }
+
+    fn get_source(&self, id: &str) -> Result<Option<Source>, DbError> {
+        self.get_source(id)
+    }
+
+    fn save_source(&self, source: &Source) -> Result<(), DbError> {
+        self.save_source(source)
+    }
+
+    fn delete_source(&self, id: &str) -> Result<(), DbError> {
+        self.delete_source(id)
+    }
+
+    fn reorder_sources(&self, source_ids: &[String]) -> Result<(), DbError> {
+        self.reorder_sources(source_ids)
+    }
+
+    fn get_source_stats(&self) -> Result<Vec<SourceStats>, DbError> {
+        self.get_source_stats()
+    }
+
+    fn update_source_sync_status(
+        &self,
+        id: &str,
+        status: &str,
+        error: Option<&str>,
+        sync_time: Option<chrono::NaiveDateTime>,
+    ) -> Result<(), DbError> {
+        self.update_source_sync_status(id, status, error, sync_time)
     }
 }
 

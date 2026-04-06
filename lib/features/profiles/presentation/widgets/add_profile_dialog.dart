@@ -6,7 +6,7 @@ import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/focus_wrapper.dart';
 import '../../../parental/domain/content_rating.dart';
-import '../../data/profile_service.dart';
+import '../providers/profile_service_providers.dart';
 import '../../domain/entities/user_profile.dart';
 import '../profile_constants.dart';
 
