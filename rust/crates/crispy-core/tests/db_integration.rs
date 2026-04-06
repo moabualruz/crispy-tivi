@@ -107,7 +107,7 @@ fn channel(id: &str, name: &str, source_id: &str) -> Channel {
 fn watch_entry(id: &str, name: &str, profile_id: &str, last_watched_str: &str) -> WatchHistory {
     WatchHistory {
         id: id.to_string(),
-        media_type: "movie".to_string(),
+        media_type: crispy_core::value_objects::MediaType::Movie,
         name: name.to_string(),
         stream_url: format!("http://example.com/{id}"),
         poster_url: None,

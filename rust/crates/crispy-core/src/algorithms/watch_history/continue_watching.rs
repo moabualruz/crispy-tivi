@@ -48,7 +48,7 @@ pub fn filter_continue_watching(
         .iter()
         .filter(|e| {
             let in_prog = is_in_progress(e);
-            let mt_match = media_type.is_none_or(|mt| e.media_type == mt);
+            let mt_match = media_type.is_none_or(|mt| e.media_type.as_str() == mt);
             let pid_match = profile_id.is_none_or(|pid| e.profile_id.as_deref() == Some(pid));
 
             in_prog && mt_match && pid_match
@@ -168,6 +168,7 @@ pub fn filter_by_cw_status(history_json: &str, filter: &str) -> String {
 mod tests {
     use super::*;
     use crate::algorithms::normalize::EPG_FORMAT;
+    use crate::value_objects::MediaType;
     use sha2::{Digest, Sha256};
 
     fn ts(s: &str) -> NaiveDateTime {
@@ -184,7 +185,7 @@ mod tests {
     ) -> WatchHistory {
         WatchHistory {
             id: id.to_string(),
-            media_type: media_type.to_string(),
+            media_type: media_type.try_into().unwrap_or_default(),
             name: format!("Item {id}"),
             stream_url: format!("http://example.com/{id}"),
             poster_url: None,

@@ -11,6 +11,7 @@ use regex::Regex;
 use serde_json::Value;
 
 use crate::models::VodItem;
+use crate::value_objects::MediaType;
 
 static RE_YEAR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(\d{4})").unwrap());
 
@@ -80,7 +81,7 @@ pub fn parse_vod_streams(
                 native_id: native_id_str,
                 name: name.to_string(),
                 stream_url,
-                item_type: "movie".to_string(),
+                item_type: MediaType::Movie,
                 poster_url: map
                     .get("stream_icon")
                     .and_then(Value::as_str)
@@ -198,7 +199,7 @@ pub fn parse_series(data: &[Value], source_id: Option<&str>) -> Vec<VodItem> {
                 native_id: native_id_str,
                 name: name.to_string(),
                 stream_url: String::new(),
-                item_type: "series".to_string(),
+                item_type: MediaType::Series,
                 poster_url: map.get("cover").and_then(Value::as_str).map(String::from),
                 backdrop_url,
                 description: map.get("plot").and_then(Value::as_str).map(String::from),
@@ -386,7 +387,7 @@ pub fn parse_episodes(
                 native_id: ep_id.clone(),
                 name: title.to_string(),
                 stream_url,
-                item_type: "episode".to_string(),
+                item_type: MediaType::Episode,
                 poster_url,
                 backdrop_url,
                 description,
@@ -475,7 +476,7 @@ pub fn parse_m3u_vod(channels: &[Value], source_id: Option<&str>) -> Vec<VodItem
                 native_id: id,
                 name: name.to_string(),
                 stream_url: url.to_string(),
-                item_type: "movie".to_string(),
+                item_type: MediaType::Movie,
                 poster_url,
                 backdrop_url: None,
                 description: None,
@@ -759,6 +760,7 @@ pub fn movies_from_xtream_listings(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value_objects::MediaType;
     use serde_json::json;
 
     #[test]
@@ -794,7 +796,7 @@ mod tests {
         let i0 = &items[0];
         assert_eq!(i0.id, "vod_101");
         assert_eq!(i0.name, "Inception");
-        assert_eq!(i0.item_type, "movie");
+        assert_eq!(i0.item_type, MediaType::Movie);
         assert_eq!(
             i0.stream_url,
             "http://api.example.com/movie/user1/pass1/101.mkv",
@@ -829,7 +831,7 @@ mod tests {
 
         let s = &items[0];
         assert_eq!(s.id, "series_200");
-        assert_eq!(s.item_type, "series");
+        assert_eq!(s.item_type, MediaType::Series);
         assert_eq!(s.backdrop_url.as_deref(), Some("http://img/bb_bg1.jpg"),);
         assert_eq!(
             s.description.as_deref(),
@@ -894,7 +896,7 @@ mod tests {
         let e0 = &eps[0];
         assert_eq!(e0.id, "ep_200_501");
         assert_eq!(e0.name, "Pilot");
-        assert_eq!(e0.item_type, "episode");
+        assert_eq!(e0.item_type, MediaType::Episode);
         assert_eq!(e0.series_id.as_deref(), Some("series_200"),);
         assert_eq!(e0.season_number, Some(1));
         assert_eq!(e0.episode_number, Some(1));
@@ -937,7 +939,7 @@ mod tests {
         // "Film Classic" matches "film" in group.
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].name, "Big Movie");
-        assert_eq!(items[0].item_type, "movie");
+        assert_eq!(items[0].item_type, MediaType::Movie);
         assert_eq!(items[0].source_id.as_deref(), Some("src_2"),);
         assert_eq!(items[1].name, "Film Classic");
     }
@@ -971,7 +973,7 @@ mod tests {
         let m = &items[0];
         assert_eq!(m.id, "vod_42");
         assert_eq!(m.name, "The Matrix");
-        assert_eq!(m.item_type, "movie");
+        assert_eq!(m.item_type, MediaType::Movie);
         assert_eq!(m.stream_url, "http://srv.test/movie/neo/trinity/42.avi",);
         assert_eq!(m.poster_url.as_deref(), Some("http://img/matrix.jpg"),);
         assert_eq!(m.rating.as_deref(), Some("8.7"));
@@ -1047,7 +1049,7 @@ mod tests {
         let s = &items[0];
         assert_eq!(s.id, "series_300");
         assert_eq!(s.name, "The Wire");
-        assert_eq!(s.item_type, "series");
+        assert_eq!(s.item_type, MediaType::Series);
         assert!(s.stream_url.is_empty());
         assert_eq!(s.poster_url.as_deref(), Some("http://img/wire.jpg"),);
         assert_eq!(s.description.as_deref(), Some("Baltimore drug scene."),);
@@ -1105,7 +1107,7 @@ mod tests {
         let e = &eps[0];
         assert_eq!(e.id, "ep_500_901");
         assert_eq!(e.name, "Finale");
-        assert_eq!(e.item_type, "episode");
+        assert_eq!(e.item_type, MediaType::Episode);
         assert_eq!(e.stream_url, "http://api.test/series/u/p/901.mp4",);
         assert_eq!(e.series_id.as_deref(), Some("series_500"));
         assert_eq!(e.season_number, Some(3));
@@ -1235,7 +1237,7 @@ mod tests {
         assert_eq!(v.poster_url.as_deref(), Some("http://img/alt.png"),);
         assert_eq!(v.category.as_deref(), Some("VOD Alt"),);
         assert_eq!(v.source_id.as_deref(), Some("src_a"));
-        assert_eq!(v.item_type, "movie");
+        assert_eq!(v.item_type, MediaType::Movie);
     }
 
     #[test]
@@ -1343,7 +1345,7 @@ mod tests {
         let mut item = VodItem {
             id: "vod_101".into(),
             name: "Test Movie".into(),
-            item_type: "movie".into(),
+            item_type: MediaType::Movie,
             ..VodItem::default()
         };
 
@@ -1386,7 +1388,7 @@ mod tests {
         let mut item = VodItem {
             id: "vod_102".into(),
             name: "Test Movie 2".into(),
-            item_type: "movie".into(),
+            item_type: MediaType::Movie,
             description: Some("Original plot".into()),
             cast: Some("Original Cast".into()),
             director: Some("Original Director".into()),
@@ -1441,7 +1443,7 @@ mod tests {
         let mut item = VodItem {
             id: "vod_103".into(),
             name: "No Info".into(),
-            item_type: "movie".into(),
+            item_type: MediaType::Movie,
             ..VodItem::default()
         };
 
@@ -1458,7 +1460,7 @@ mod tests {
         let mut item = VodItem {
             id: "vod_104".into(),
             name: "Zero Duration".into(),
-            item_type: "movie".into(),
+            item_type: MediaType::Movie,
             duration: Some(0),
             ..VodItem::default()
         };
@@ -1479,7 +1481,7 @@ mod tests {
         let mut item = VodItem {
             id: "vod_105".into(),
             name: "Duration Secs".into(),
-            item_type: "movie".into(),
+            item_type: MediaType::Movie,
             ..VodItem::default()
         };
 
@@ -1499,7 +1501,7 @@ mod tests {
         let mut item = VodItem {
             id: "vod_106".into(),
             name: "Backdrop String".into(),
-            item_type: "movie".into(),
+            item_type: MediaType::Movie,
             ..VodItem::default()
         };
 
@@ -1522,7 +1524,7 @@ mod tests {
         let mut item = VodItem {
             id: "series_50".into(),
             name: "Test Series".into(),
-            item_type: "series".into(),
+            item_type: MediaType::Series,
             ..VodItem::default()
         };
 
@@ -1564,7 +1566,7 @@ mod tests {
         let mut item = VodItem {
             id: "series_51".into(),
             name: "Existing Series".into(),
-            item_type: "series".into(),
+            item_type: MediaType::Series,
             description: Some("Existing desc".into()),
             cast: Some("Existing cast".into()),
             ..VodItem::default()

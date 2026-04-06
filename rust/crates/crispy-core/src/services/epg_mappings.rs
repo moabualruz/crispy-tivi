@@ -16,7 +16,7 @@ impl CrispyService {
                 mapping.channel_id,
                 mapping.epg_channel_id,
                 mapping.confidence,
-                mapping.match_method,
+                mapping.match_method.as_str(),
                 mapping.epg_source_id,
                 bool_to_int(mapping.locked),
                 mapping.created_at,
@@ -38,7 +38,10 @@ impl CrispyService {
                     channel_id: row.get(0)?,
                     epg_channel_id: row.get(1)?,
                     confidence: row.get(2)?,
-                    match_method: row.get(3)?,
+                    match_method: row
+                        .get::<_, String>(3)
+                        .map(|s| s.as_str().try_into().unwrap_or_default())
+                        .unwrap_or_default(),
                     epg_source_id: row.get(4)?,
                     locked: int_to_bool(row.get(5)?),
                     created_at: row.get(6)?,
@@ -83,7 +86,10 @@ impl CrispyService {
                     channel_id: row.get(0)?,
                     epg_channel_id: row.get(1)?,
                     confidence: row.get(2)?,
-                    match_method: row.get(3)?,
+                    match_method: row
+                        .get::<_, String>(3)
+                        .map(|s| s.as_str().try_into().unwrap_or_default())
+                        .unwrap_or_default(),
                     epg_source_id: row.get(4)?,
                     locked: int_to_bool(row.get(5)?),
                     created_at: row.get(6)?,
@@ -108,6 +114,7 @@ impl CrispyService {
 mod tests {
     use super::*;
     use crate::services::test_helpers::*;
+    use crate::value_objects::MatchMethod;
 
     #[test]
     fn save_and_get_mapping() {
@@ -116,7 +123,7 @@ mod tests {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),
             confidence: 0.85,
-            match_method: "tvg_id_exact".to_string(),
+            match_method: MatchMethod::TvgIdExact,
             epg_source_id: None,
             locked: false,
             created_at: 1000,
@@ -138,7 +145,7 @@ mod tests {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),
             confidence: 0.90,
-            match_method: "tvg_id_exact".to_string(),
+            match_method: MatchMethod::TvgIdExact,
             epg_source_id: None,
             locked: false,
             created_at: 1000,
@@ -158,7 +165,7 @@ mod tests {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),
             confidence: 0.90,
-            match_method: "tvg_id_exact".to_string(),
+            match_method: MatchMethod::TvgIdExact,
             epg_source_id: None,
             locked: false,
             created_at: 1000,
@@ -179,7 +186,7 @@ mod tests {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),
             confidence: 0.85,
-            match_method: "tvg_id_exact".to_string(),
+            match_method: MatchMethod::TvgIdExact,
             epg_source_id: None,
             locked: false,
             created_at: 1000,
@@ -190,7 +197,7 @@ mod tests {
             channel_id: "ch2".to_string(),
             epg_channel_id: "epg2".to_string(),
             confidence: 0.55,
-            match_method: "fuzzy".to_string(),
+            match_method: MatchMethod::Fuzzy,
             epg_source_id: None,
             locked: false,
             created_at: 1000,
@@ -201,7 +208,7 @@ mod tests {
             channel_id: "ch3".to_string(),
             epg_channel_id: "epg3".to_string(),
             confidence: 0.30,
-            match_method: "fuzzy".to_string(),
+            match_method: MatchMethod::Fuzzy,
             epg_source_id: None,
             locked: false,
             created_at: 1000,
@@ -212,7 +219,7 @@ mod tests {
             channel_id: "ch4".to_string(),
             epg_channel_id: "epg4".to_string(),
             confidence: 0.50,
-            match_method: "fuzzy".to_string(),
+            match_method: MatchMethod::Fuzzy,
             epg_source_id: None,
             locked: true,
             created_at: 1000,
@@ -243,7 +250,7 @@ mod tests {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),
             confidence: 0.50,
-            match_method: "fuzzy".to_string(),
+            match_method: MatchMethod::Fuzzy,
             epg_source_id: None,
             locked: false,
             created_at: 1000,
@@ -255,7 +262,7 @@ mod tests {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg2".to_string(),
             confidence: 0.90,
-            match_method: "tvg_id_exact".to_string(),
+            match_method: MatchMethod::TvgIdExact,
             epg_source_id: None,
             locked: false,
             created_at: 2000,

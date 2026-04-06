@@ -63,7 +63,7 @@ pub fn count_in_progress_episodes(history_json: &str, series_id: &str) -> usize 
         .iter()
         .filter(|e| {
             e.series_id.as_deref() == Some(series_id)
-                && e.media_type == "episode"
+                && e.media_type.as_str() == "episode"
                 && e.duration_ms > 0
                 && (e.position_ms as f64 / e.duration_ms as f64) < COMPLETION_THRESHOLD
         })

@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::models::{Channel, EpgEntry, VodItem, new_entity_id};
+use crate::value_objects::MediaType;
 
 // ── Public types ──────────────────────────────────
 
@@ -537,7 +538,7 @@ pub fn parse_stalker_vod_items(
                 native_id: stalker_native_id,
                 name: name.to_string(),
                 stream_url,
-                item_type: vod_type.to_string(),
+                item_type: vod_type.try_into().unwrap_or_default(),
                 poster_url,
                 backdrop_url: None,
                 description,
@@ -916,7 +917,7 @@ fn parse_single_episode(ep: &Value, base_url: &str, source_id: &str) -> Option<V
         id: new_entity_id(),
         name: name.to_string(),
         stream_url,
-        item_type: "episode".to_string(),
+        item_type: MediaType::Episode,
         poster_url,
         description,
         duration,
@@ -1282,6 +1283,7 @@ pub fn series_from_stalker_json(data: &[Value], source_id: &str) -> Vec<crate::m
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value_objects::MediaType;
     use serde_json::json;
 
     fn assert_uuid_v7(id: &str) {
@@ -1735,7 +1737,7 @@ mod tests {
         assert_uuid_v7(&v.id);
         assert_eq!(v.name, "Inception");
         assert_eq!(v.stream_url, "http://vod/101.mp4",);
-        assert_eq!(v.item_type, "movie");
+        assert_eq!(v.item_type, MediaType::Movie);
         assert_eq!(v.poster_url.as_deref(), Some("http://img/inc.jpg"),);
         assert_eq!(v.description.as_deref(), Some("A mind-bending thriller"),);
         // kinopoisk preferred over imdb
@@ -1825,7 +1827,7 @@ mod tests {
 
         let items = parse_stalker_vod_items(&data, "http://portal.com", "series", "src_test");
 
-        assert_eq!(items[0].item_type, "series");
+        assert_eq!(items[0].item_type, MediaType::Series);
     }
 
     // ── parse_stalker_create_link ─────────────
@@ -2035,7 +2037,7 @@ mod tests {
         assert_uuid_v7(&v.id);
         assert_eq!(v.name, "The Matrix");
         assert_eq!(v.stream_url, "http://vod/201.mp4");
-        assert_eq!(v.item_type, "movie");
+        assert_eq!(v.item_type, MediaType::Movie);
 
         // Original name
         assert_eq!(v.original_name.as_deref(), Some("Matrix"));

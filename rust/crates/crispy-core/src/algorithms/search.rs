@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::models::{Channel, EpgEntry, VodItem};
+use crate::value_objects::MediaType;
 
 /// Aggregated search results across all content types.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -543,7 +544,7 @@ fn search_vod(
 
     for item in vod_items {
         // Skip episodes — they appear under their series.
-        if item.item_type == "episode" {
+        if item.item_type == MediaType::Episode {
             continue;
         }
 
@@ -696,7 +697,7 @@ mod tests {
             native_id: id.to_string(),
             name: name.to_string(),
             stream_url: format!("http://example.com/vod/{id}"),
-            item_type: item_type.to_string(),
+            item_type: item_type.try_into().unwrap_or_default(),
             poster_url: None,
             backdrop_url: None,
             description: description.map(String::from),

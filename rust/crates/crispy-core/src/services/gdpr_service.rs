@@ -207,7 +207,7 @@ mod tests {
 
         let entry_alice = crate::models::WatchHistory {
             id: "wh1".to_string(),
-            media_type: "channel".to_string(),
+            media_type: crate::value_objects::MediaType::Channel,
             name: "CNN".to_string(),
             stream_url: "http://example.com/cnn".to_string(),
             poster_url: None,
@@ -331,7 +331,7 @@ mod tests {
 
         let entry = crate::models::WatchHistory {
             id: "wh1".to_string(),
-            media_type: "channel".to_string(),
+            media_type: crate::value_objects::MediaType::Channel,
             name: "BBC".to_string(),
             stream_url: "http://bbc.com/stream".to_string(),
             poster_url: None,

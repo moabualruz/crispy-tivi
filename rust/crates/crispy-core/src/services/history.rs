@@ -26,7 +26,7 @@ impl CrispyService {
             params![
                 entry.id,
                 entry.id, // content_id = id for backward compat
-                entry.media_type,
+                entry.media_type.as_str(),
                 entry.name,
                 entry.stream_url,
                 entry.poster_url,
@@ -67,7 +67,10 @@ impl CrispyService {
         let rows = stmt.query_map([], |row| {
             Ok(WatchHistory {
                 id: row.get(0)?,
-                media_type: row.get(1)?,
+                media_type: row
+                    .get::<_, String>(1)
+                    .map(|s| s.as_str().try_into().unwrap_or_default())
+                    .unwrap_or_default(),
                 name: row.get(2)?,
                 stream_url: row.get(3)?,
                 poster_url: row.get(4)?,
@@ -172,7 +175,10 @@ impl CrispyService {
         let rows = stmt.query_map(params![profile_id], |row| {
             Ok(WatchHistory {
                 id: row.get(0)?,
-                media_type: row.get(1)?,
+                media_type: row
+                    .get::<_, String>(1)
+                    .map(|s| s.as_str().try_into().unwrap_or_default())
+                    .unwrap_or_default(),
                 name: row.get(2)?,
                 stream_url: row.get(3)?,
                 poster_url: row.get(4)?,

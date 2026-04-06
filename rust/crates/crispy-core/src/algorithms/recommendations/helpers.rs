@@ -3,6 +3,7 @@
 use chrono::NaiveDateTime;
 
 use crate::models::VodItem;
+use crate::value_objects::MediaType;
 
 use super::types::Recommendation;
 
@@ -23,7 +24,7 @@ pub(super) fn vod_to_recommendation(item: &VodItem, reason: &str, score: f64) ->
         backdrop_url: item.backdrop_url.clone(),
         rating: parsed_rating,
         year: item.year,
-        media_type: if item.item_type == "series" {
+        media_type: if item.item_type == MediaType::Series {
             "series".to_string()
         } else {
             "movie".to_string()
@@ -78,7 +79,7 @@ mod tests {
             native_id: id.to_string(),
             name: name.to_string(),
             stream_url: "http://stream".to_string(),
-            item_type: item_type.to_string(),
+            item_type: item_type.try_into().unwrap_or_default(),
             poster_url: None,
             backdrop_url: None,
             description: None,

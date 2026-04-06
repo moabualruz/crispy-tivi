@@ -13,6 +13,8 @@ pub use content_rating::ContentRating;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
+use crate::value_objects::{CategoryType, MatchMethod, MediaType};
+
 pub fn new_entity_id() -> String {
     uuid::Uuid::now_v7().to_string()
 }
@@ -174,6 +176,69 @@ impl Channel {
     }
 }
 
+impl Movie {
+    /// Returns true if the movie is flagged as adult content.
+    pub fn is_adult(&self) -> bool {
+        self.is_adult
+    }
+
+    /// Returns true if a YouTube trailer ID is present.
+    pub fn has_trailer(&self) -> bool {
+        self.youtube_trailer
+            .as_deref()
+            .map_or(false, |t| !t.is_empty())
+    }
+}
+
+impl Series {
+    /// Returns true if the series has no end year (still airing).
+    pub fn is_ongoing(&self) -> bool {
+        self.year.is_none() || self.updated_at.is_some()
+    }
+
+    /// Returns the number of seasons stored (always 0 at the Series level;
+    /// seasons are a separate collection).
+    pub fn season_count(&self) -> usize {
+        0
+    }
+}
+
+impl Season {
+    /// Returns the number of episodes in this season, defaulting to 0.
+    pub fn episode_count(&self) -> usize {
+        self.episode_count.unwrap_or(0) as usize
+    }
+
+    /// Returns true if this season has at least one episode.
+    pub fn has_episodes(&self) -> bool {
+        self.episode_count.unwrap_or(0) > 0
+    }
+}
+
+impl Episode {
+    /// Returns true if a non-empty description is present.
+    pub fn has_plot(&self) -> bool {
+        self.description.as_deref().map_or(false, |d| !d.is_empty())
+    }
+
+    /// Returns a label like "S01E03" for this episode.
+    pub fn season_episode_label(&self, season_number: i32) -> String {
+        format!("S{:02}E{:02}", season_number, self.episode_number)
+    }
+}
+
+impl Category {
+    /// Returns true if this is a live/channel category.
+    pub fn is_live(&self) -> bool {
+        self.category_type == CategoryType::Live
+    }
+
+    /// Returns true if this is a VOD category.
+    pub fn is_vod(&self) -> bool {
+        self.category_type == CategoryType::Vod
+    }
+}
+
 // ── EpgMapping ────────────────────────────────────────
 
 /// A persisted EPG channel-to-channel mapping.
@@ -186,7 +251,7 @@ pub struct EpgMapping {
     /// Confidence score (0.0 - 1.0).
     pub confidence: f64,
     /// Matching strategy that produced this mapping.
-    pub match_method: String,
+    pub match_method: MatchMethod,
     /// Source of the EPG data.
     #[serde(default)]
     pub epg_source_id: Option<String>,
@@ -195,6 +260,18 @@ pub struct EpgMapping {
     pub locked: bool,
     /// When the mapping was created (epoch seconds).
     pub created_at: i64,
+}
+
+impl EpgMapping {
+    /// Returns true if this mapping was set manually by the user (locked).
+    pub fn is_manual(&self) -> bool {
+        self.locked
+    }
+
+    /// Returns true if a custom EPG channel ID was provided (non-empty).
+    pub fn has_custom_name(&self) -> bool {
+        !self.epg_channel_id.is_empty()
+    }
 }
 
 // ── Movie ───────────────────────────────────────────
@@ -454,9 +531,9 @@ pub struct VodItem {
     pub name: String,
     /// Direct stream URL.
     pub stream_url: String,
-    /// Content type: "movie", "series", or "episode".
+    /// Content type: movie, series, or episode.
     #[serde(rename = "type")]
-    pub item_type: String,
+    pub item_type: MediaType,
     /// URL of the poster image.
     #[serde(default)]
     pub poster_url: Option<String>,
@@ -538,7 +615,7 @@ impl Default for VodItem {
             native_id: String::new(),
             name: String::new(),
             stream_url: String::new(),
-            item_type: "movie".to_string(),
+            item_type: MediaType::Movie,
             poster_url: None,
             backdrop_url: None,
             description: None,
@@ -570,12 +647,12 @@ impl Default for VodItem {
 impl VodItem {
     /// Returns true if this item is a movie.
     pub fn is_movie(&self) -> bool {
-        self.item_type == "movie"
+        self.item_type == MediaType::Movie
     }
 
     /// Returns true if this item is a series.
     pub fn is_series(&self) -> bool {
-        self.item_type == "series"
+        self.item_type == MediaType::Series
     }
 
     /// Returns true if a non-empty rating is present.
@@ -625,7 +702,7 @@ impl From<Movie> for VodItem {
             native_id: m.native_id,
             name: m.name,
             stream_url: m.stream_url.unwrap_or_default(),
-            item_type: "movie".to_string(),
+            item_type: MediaType::Movie,
             poster_url: m.poster_url,
             backdrop_url: m.backdrop_url,
             description: m.description,
@@ -665,7 +742,7 @@ impl From<Series> for VodItem {
             native_id: s.native_id,
             name: s.name,
             stream_url: String::new(),
-            item_type: "series".to_string(),
+            item_type: MediaType::Series,
             poster_url: s.poster_url,
             backdrop_url: s.backdrop_url,
             description: s.description,
@@ -706,8 +783,8 @@ impl From<Series> for VodItem {
 /// primary key: (`category_type`, `name`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Category {
-    /// Type discriminator: "live", "vod", or "series".
-    pub category_type: String,
+    /// Type discriminator: live, vod, series, or radio.
+    pub category_type: CategoryType,
     /// Human-readable category name.
     pub name: String,
     /// Source this category belongs to.
@@ -928,8 +1005,8 @@ impl EpgEntry {
 pub struct WatchHistory {
     /// Unique history entry identifier.
     pub id: String,
-    /// Content type: "channel", "movie", or "episode".
-    pub media_type: String,
+    /// Content type: channel, movie, series, or episode.
+    pub media_type: MediaType,
     /// Display name of the watched content.
     pub name: String,
     /// Stream URL that was playing.
@@ -1079,8 +1156,8 @@ pub struct VodFavorite {
 pub struct FavoriteCategory {
     /// Profile that owns this favourite.
     pub profile_id: String,
-    /// Type: "live", "vod", or "series".
-    pub category_type: String,
+    /// Category domain discriminator.
+    pub category_type: crate::value_objects::CategoryType,
     /// Name of the favourited category.
     pub category_name: String,
     /// When the favourite was added.
@@ -1553,6 +1630,231 @@ pub struct Reminder {
     pub created_at: NaiveDateTime,
 }
 
+impl WatchHistory {
+    /// Returns true if this entry was watched within `threshold_secs` of `now`.
+    pub fn is_recent(&self, now: i64, threshold_secs: i64) -> bool {
+        now - self.last_watched.and_utc().timestamp() <= threshold_secs
+    }
+
+    /// Returns playback progress as a percentage (0.0–100.0).
+    pub fn progress_percent(&self) -> f64 {
+        if self.duration_ms == 0 {
+            return 0.0;
+        }
+        (self.position_ms as f64 / self.duration_ms as f64 * 100.0).clamp(0.0, 100.0)
+    }
+}
+
+impl UserFavorite {
+    /// Returns true — UserFavorite always references a channel.
+    pub fn is_channel(&self) -> bool {
+        !self.channel_id.is_empty()
+    }
+
+    /// Returns true if this favourite belongs to the given channel.
+    pub fn matches_channel(&self, channel_id: &str) -> bool {
+        self.channel_id == channel_id
+    }
+}
+
+impl VodFavorite {
+    /// Returns true if the content ID references a non-empty source.
+    pub fn has_source(&self) -> bool {
+        !self.content_id.is_empty()
+    }
+
+    /// Returns true if this favourite matches the given item ID.
+    pub fn matches_item(&self, item_id: &str) -> bool {
+        self.content_id == item_id
+    }
+}
+
+impl FavoriteCategory {
+    /// Returns true if the category name is empty.
+    pub fn is_empty(&self) -> bool {
+        self.category_name.is_empty()
+    }
+
+    /// Returns true if this favourite matches the given category name.
+    pub fn contains(&self, category: &str) -> bool {
+        self.category_name == category
+    }
+}
+
+impl ProfileSourceAccess {
+    /// Returns true — a row existing means access is granted.
+    pub fn is_granted(&self) -> bool {
+        !self.source_id.is_empty()
+    }
+
+    /// Returns true if this access entry is for the given source.
+    pub fn matches_source(&self, source_id: &str) -> bool {
+        self.source_id == source_id
+    }
+}
+
+impl XtreamAccountInfo {
+    /// Returns true if the account expiry date is in the past relative to `now` (epoch seconds).
+    pub fn is_expired(&self, now: i64) -> bool {
+        self.exp_date
+            .as_deref()
+            .and_then(|s| s.parse::<i64>().ok())
+            .map_or(false, |exp| exp < now)
+    }
+
+    /// Returns the number of days remaining until expiry, or `None` if unknown.
+    pub fn days_remaining(&self, now: i64) -> Option<i64> {
+        let exp = self.exp_date.as_deref()?.parse::<i64>().ok()?;
+        Some((exp - now) / 86_400)
+    }
+}
+
+impl SourceStats {
+    /// Returns true if at least one live channel exists for this source.
+    pub fn has_channels(&self) -> bool {
+        self.channel_count > 0
+    }
+
+    /// Returns the total number of items (channels + VOD) for this source.
+    pub fn total_items(&self) -> i64 {
+        self.channel_count + self.vod_count
+    }
+}
+
+impl StorageBackend {
+    /// Returns true if this is a local filesystem backend.
+    pub fn is_local(&self) -> bool {
+        self.backend_type == "local"
+    }
+
+    /// Returns true if this is a remote backend (S3, WebDAV, SMB, etc.).
+    pub fn is_remote(&self) -> bool {
+        !self.is_local()
+    }
+}
+
+impl TransferTask {
+    /// Returns true if the task is queued (not yet started).
+    pub fn is_pending(&self) -> bool {
+        self.status == "queued"
+    }
+
+    /// Returns true if the task has completed successfully.
+    pub fn is_completed(&self) -> bool {
+        self.status == "completed"
+    }
+}
+
+impl SavedLayout {
+    /// Returns the number of stream panels in this layout by parsing the JSON array.
+    pub fn panel_count(&self) -> usize {
+        serde_json::from_str::<Vec<serde_json::Value>>(&self.streams)
+            .map(|v| v.len())
+            .unwrap_or(0)
+    }
+
+    /// Returns true if the streams JSON array is empty or unparseable.
+    pub fn is_empty(&self) -> bool {
+        self.panel_count() == 0
+    }
+}
+
+impl SearchHistory {
+    /// Returns true if this search was performed within the last hour relative to `now`.
+    pub fn is_recent(&self, now: i64) -> bool {
+        now - self.searched_at.and_utc().timestamp() <= 3_600
+    }
+
+    /// Returns true if the stored query matches the given search term (case-insensitive).
+    pub fn matches_query(&self, query: &str) -> bool {
+        self.query.to_lowercase().contains(&query.to_lowercase())
+    }
+}
+
+impl Bookmark {
+    /// Returns true if a non-empty user label is present.
+    pub fn has_note(&self) -> bool {
+        self.label.as_deref().map_or(false, |l| !l.is_empty())
+    }
+
+    /// Returns true if the bookmark position is within `tolerance_ms` of `pos_ms`.
+    pub fn is_at_position(&self, pos_ms: f64) -> bool {
+        (self.position_ms as f64 - pos_ms).abs() < 1000.0
+    }
+}
+
+impl ChannelOrder {
+    /// Returns true if this entry is the first in its group (sort_index == 0).
+    pub fn is_first(&self) -> bool {
+        self.sort_index == 0
+    }
+
+    /// Returns true if this entry has a non-zero custom sort position.
+    pub fn has_custom_position(&self) -> bool {
+        self.sort_index != 0
+    }
+}
+
+impl Reminder {
+    /// Returns true if the notification time has passed and the reminder hasn't fired yet.
+    pub fn is_due(&self, now: i64) -> bool {
+        !self.fired && self.notify_at.and_utc().timestamp() <= now
+    }
+
+    /// Returns true if the programme start time is in the past relative to `now`.
+    pub fn is_past(&self, now: i64) -> bool {
+        self.start_time.and_utc().timestamp() < now
+    }
+}
+
+impl SyncReport {
+    /// Returns true if no channels or VOD items were synced (likely an error state).
+    pub fn has_errors(&self) -> bool {
+        self.channels_count == 0 && self.vod_count == 0
+    }
+
+    /// Returns the total number of synced items (channels + VOD).
+    pub fn total_items(&self) -> i64 {
+        (self.channels_count + self.vod_count) as i64
+    }
+}
+
+impl SyncProgress {
+    /// Returns true if progress has reached 1.0 (complete).
+    pub fn is_complete(&self) -> bool {
+        self.progress >= 1.0
+    }
+
+    /// Returns true if sync has started (progress > 0.0).
+    pub fn has_started(&self) -> bool {
+        self.progress > 0.0
+    }
+}
+
+impl SyncMeta {
+    /// Returns true if the last sync is older than `max_age_secs` seconds.
+    pub fn is_stale(&self, now: i64, max_age_secs: i64) -> bool {
+        now - self.last_sync_time.and_utc().timestamp() > max_age_secs
+    }
+
+    /// Returns true if a refresh is needed: last sync time is older than `max_age_secs`.
+    pub fn needs_refresh(&self, now: i64, max_age_secs: i64) -> bool {
+        self.is_stale(now, max_age_secs)
+    }
+}
+
+impl Setting {
+    /// Returns true if the setting value is empty.
+    pub fn is_empty(&self) -> bool {
+        self.value.is_empty()
+    }
+
+    /// Returns true if the setting value is non-empty.
+    pub fn has_value(&self) -> bool {
+        !self.value.is_empty()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1645,7 +1947,7 @@ mod tests {
         let json = r#"{"id":"v1","name":"Inception","stream_url":"u","type":"movie"}"#;
         let v: VodItem = serde_json::from_str(json).unwrap();
         assert_eq!(v.id, "v1");
-        assert_eq!(v.item_type, "movie");
+        assert_eq!(v.item_type, MediaType::Movie);
         assert!(v.poster_url.is_none());
         assert!(v.year.is_none());
         assert!(v.duration.is_none());
@@ -1657,7 +1959,7 @@ mod tests {
     fn test_vod_item_episode_type_preserved() {
         let json = r#"{"id":"e1","name":"Ep1","stream_url":"u","type":"episode","series_id":"s1","season_number":2,"episode_number":3}"#;
         let v: VodItem = serde_json::from_str(json).unwrap();
-        assert_eq!(v.item_type, "episode");
+        assert_eq!(v.item_type, MediaType::Episode);
         assert_eq!(v.series_id.as_deref(), Some("s1"));
         assert_eq!(v.season_number, Some(2));
         assert_eq!(v.episode_number, Some(3));
@@ -1668,13 +1970,13 @@ mod tests {
     #[test]
     fn test_category_roundtrips_via_serde() {
         let c = Category {
-            category_type: "live".to_string(),
+            category_type: CategoryType::Live,
             name: "Sports".to_string(),
             source_id: Some("src1".to_string()),
         };
         let json = serde_json::to_string(&c).unwrap();
         let back: Category = serde_json::from_str(&json).unwrap();
-        assert_eq!(back.category_type, "live");
+        assert_eq!(back.category_type, CategoryType::Live);
         assert_eq!(back.name, "Sports");
         assert_eq!(back.source_id.as_deref(), Some("src1"));
     }
@@ -1837,7 +2139,7 @@ mod tests {
 
     #[test]
     fn test_epg_mapping_locked_defaults_false() {
-        let json = r#"{"channel_id":"c1","epg_channel_id":"e1","confidence":0.9,"match_method":"tvg-id","created_at":0}"#;
+        let json = r#"{"channel_id":"c1","epg_channel_id":"e1","confidence":0.9,"match_method":"tvg_id_exact","created_at":0}"#;
         let m: EpgMapping = serde_json::from_str(json).unwrap();
         assert!(!m.locked);
         assert_eq!(m.confidence, 0.9);

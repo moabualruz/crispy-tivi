@@ -139,7 +139,7 @@ mod tests {
             native_id: id.to_string(),
             name: name.to_string(),
             stream_url: format!("http://example.com/{}", id),
-            item_type: item_type.to_string(),
+            item_type: item_type.try_into().unwrap_or_default(),
             poster_url: None,
             backdrop_url: None,
             description: None,

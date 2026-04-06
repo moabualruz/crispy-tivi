@@ -10,6 +10,7 @@ use chrono::NaiveDateTime;
 use crate::algorithms::normalize::normalize_category;
 use crate::algorithms::watch_progress::NEXT_EPISODE_THRESHOLD;
 use crate::models::{Channel, VodItem};
+use crate::value_objects::MediaType;
 
 use super::helpers::{naive_from_epoch_ms, title_case, top_n_by_score, vod_to_recommendation};
 use super::types::weights;
@@ -129,7 +130,7 @@ pub(super) fn build_top_picks(
         if watched_ids.contains(item.id.as_str()) {
             continue;
         }
-        if item.item_type == "episode" {
+        if item.item_type == MediaType::Episode {
             continue;
         }
 
@@ -227,7 +228,7 @@ pub(super) fn build_because_you_watched(
             .iter()
             .filter(|item| {
                 !watched_ids.contains(item.id.as_str())
-                    && item.item_type != "episode"
+                    && item.item_type != MediaType::Episode
                     && item
                         .category
                         .as_ref()
@@ -297,7 +298,7 @@ pub(super) fn build_popular_in_genre(
             .iter()
             .filter(|item| {
                 !watched_ids.contains(item.id.as_str())
-                    && item.item_type != "episode"
+                    && item.item_type != MediaType::Episode
                     && item
                         .category
                         .as_ref()
@@ -365,7 +366,7 @@ pub(super) fn build_trending(
             Some(v) => v,
             None => continue,
         };
-        if vod.item_type == "episode" {
+        if vod.item_type == MediaType::Episode {
             continue;
         }
 
@@ -416,7 +417,7 @@ mod tests {
             native_id: id.to_string(),
             name: format!("Film {id}"),
             stream_url: "http://stream".to_string(),
-            item_type: item_type.to_string(),
+            item_type: item_type.try_into().unwrap_or_default(),
             poster_url: None,
             backdrop_url: None,
             description: None,
@@ -802,7 +803,7 @@ pub(super) fn build_new_for_you(
         .iter()
         .filter(|item| {
             !watched_ids.contains(item.id.as_str())
-                && item.item_type != "episode"
+                && item.item_type != MediaType::Episode
                 && item.added_at.map(|a| a > cutoff).unwrap_or(false)
         })
         .map(|item| {
@@ -842,7 +843,7 @@ pub(super) fn build_cold_start(
         .iter()
         .filter(|item| {
             !watched_ids.contains(item.id.as_str())
-                && item.item_type != "episode"
+                && item.item_type != MediaType::Episode
                 && item
                     .rating
                     .as_deref()
@@ -891,7 +892,7 @@ pub(super) fn build_cold_start(
         .iter()
         .filter(|item| {
             !watched_ids.contains(item.id.as_str())
-                && item.item_type != "episode"
+                && item.item_type != MediaType::Episode
                 && item.added_at.is_some()
         })
         .collect();

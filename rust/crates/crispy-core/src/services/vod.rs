@@ -73,7 +73,10 @@ pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
         id: row.get(0)?,
         name: row.get(1)?,
         stream_url: row.get::<_, Option<String>>(2)?.unwrap_or_default(),
-        item_type: row.get(3)?,
+        item_type: row
+            .get::<_, String>(3)
+            .map(|s| s.as_str().try_into().unwrap_or_default())
+            .unwrap_or_default(),
         poster_url: row.get(4)?,
         backdrop_url: row.get(5)?,
         description: row.get(6)?,

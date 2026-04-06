@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::algorithms::normalize::EPG_FORMAT;
 use crate::models::{Channel, EpgEntry, Movie, Source, UserProfile, VodItem, WatchHistory};
 use crate::services::CrispyService;
+use crate::value_objects::MediaType;
 
 /// Open a fresh in-memory service for testing.
 pub fn make_service() -> CrispyService {
@@ -114,7 +115,7 @@ pub fn make_vod_item(id: &str, name: &str) -> VodItem {
         native_id: id.to_string(),
         name: name.to_string(),
         stream_url: format!("http://example.com/vod/{id}"),
-        item_type: "movie".to_string(),
+        item_type: MediaType::Movie,
         poster_url: None,
         backdrop_url: None,
         description: None,
@@ -175,7 +176,7 @@ pub fn make_source(id: &str, name: &str, source_type: &str) -> Source {
 pub fn make_watch_entry(id: &str, name: &str) -> WatchHistory {
     WatchHistory {
         id: id.to_string(),
-        media_type: "movie".to_string(),
+        media_type: MediaType::Movie,
         name: name.to_string(),
         stream_url: format!("http://example.com/{id}"),
         poster_url: None,
@@ -239,7 +240,7 @@ pub fn make_episode_entry(
 ) -> WatchHistory {
     WatchHistory {
         id: id.to_string(),
-        media_type: "episode".to_string(),
+        media_type: MediaType::Episode,
         name: format!("Ep {id}"),
         stream_url: stream_url.to_string(),
         poster_url: None,

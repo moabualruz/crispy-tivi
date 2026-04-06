@@ -455,6 +455,7 @@ mod tests {
     use super::*;
     use crate::algorithms::normalize::EPG_FORMAT;
     use crate::models::{Channel, Recording, StorageBackend, WatchHistory};
+    use crate::value_objects::MediaType;
 
     fn make_service() -> CrispyService {
         CrispyService::open_in_memory().expect("open in-memory")
@@ -544,7 +545,7 @@ mod tests {
     fn make_watch_history(id: &str) -> WatchHistory {
         WatchHistory {
             id: id.to_string(),
-            media_type: "channel".to_string(),
+            media_type: MediaType::Channel,
             name: "CNN".to_string(),
             stream_url: "http://example.com/cnn".to_string(),
             poster_url: None,

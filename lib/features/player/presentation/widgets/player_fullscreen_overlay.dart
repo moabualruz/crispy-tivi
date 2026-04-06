@@ -8,31 +8,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:universal_io/io.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../../../../config/settings_notifier.dart';
-import 'channel_zap_overlay.dart';
+import '../../../../config/settings_state.dart';
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
-import '../../../../core/utils/keyboard_utils.dart';
 import '../../../../core/utils/platform_capabilities.dart';
 import '../../../../core/utils/screen_brightness_helper.dart';
 import '../../../favorites/data/favorites_history_service.dart';
 import '../../data/afr_service.dart';
 import '../providers/pip_provider.dart';
-import '../../../iptv/domain/entities/channel.dart';
-import '../../../vod/domain/entities/vod_item.dart';
-import '../../data/shader_service.dart';
 import '../../domain/entities/playback_state.dart';
 import '../providers/playback_progress_provider.dart';
 import '../providers/player_providers.dart';
 import '../screens/player_external_launch.dart';
-import '../screens/player_keyboard_handler.dart';
+import 'channel_zap_overlay.dart';
+import 'player_fullscreen_keyboard.dart';
+import 'player_fullscreen_zap.dart';
 import 'player_gesture_handler.dart';
 import 'player_history_tracker.dart';
 import 'player_lifecycle_handler.dart';
 import 'player_mouse_region.dart';
 import 'player_gesture_overlays.dart';
-import 'player_osd/osd_subtitle_picker.dart';
 import 'player_osd/subtitle_style_dialog.dart';
 import 'player_queue_overlay.dart';
 import 'player_shortcuts_help_overlay.dart';
@@ -40,7 +36,6 @@ import 'player_guide_split.dart';
 import 'player_stack.dart';
 import 'screensaver_overlay.dart';
 import 'player_zoom_indicator.dart';
-import 'screenshot_indicator.dart';
 
 /// Fullscreen player overlay mounted in [AppShell] Stack layer 2.
 ///
@@ -68,17 +63,9 @@ class _PlayerFullscreenOverlayState
         WindowListener,
         PlayerLifecycleMixin,
         PlayerGestureMixin,
-        PlayerHistoryMixin {
-  // ── Zap state ──
-  String? _zapChannelName;
-  Timer? _zapOverlayTimer;
-  bool _showZapOverlay = false;
-
-  // ── Shortcuts help overlay ──
-  bool _showShortcutsHelp = false;
-
-  // ── Session tracking ──
-  String? _activeStreamUrl;
+        PlayerHistoryMixin,
+        PlayerFullscreenZapMixin,
+        PlayerFullscreenKeyboardMixin {
   late final FocusNode _focusNode;
   PlayerMode? _lastAppliedMode;
 
@@ -103,7 +90,9 @@ class _PlayerFullscreenOverlayState
     WidgetsBinding.instance.addObserver(this);
     initWindowListener();
     initFullscreenSync();
-    FocusManager.instance.addLateKeyEventHandler(_lateKeyHandler);
+    FocusManager.instance.addLateKeyEventHandler(
+      (e) => lateKeyHandler(_focusNode, e),
+    );
 
     // Defer initial playback setup.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -240,9 +229,11 @@ class _PlayerFullscreenOverlayState
       }
     }
 
-    _zapOverlayTimer?.cancel();
+    zapOverlayTimer?.cancel();
     _singleClickTimer?.cancel();
-    FocusManager.instance.removeLateKeyEventHandler(_lateKeyHandler);
+    FocusManager.instance.removeLateKeyEventHandler(
+      (e) => lateKeyHandler(_focusNode, e),
+    );
     _focusNode.dispose();
     disposeGestures();
     disposeHistory();
@@ -262,13 +253,13 @@ class _PlayerFullscreenOverlayState
     // the overlay is remounted after a mini-player ↔ fullscreen toggle.
     final lastSynced = ref.read(lastSyncedStreamUrlProvider);
     if (session.streamUrl == lastSynced) {
-      _activeStreamUrl = session.streamUrl;
+      activeStreamUrl = session.streamUrl;
       return;
     }
 
-    if (session.streamUrl == _activeStreamUrl) return;
+    if (session.streamUrl == activeStreamUrl) return;
 
-    _activeStreamUrl = session.streamUrl;
+    activeStreamUrl = session.streamUrl;
     ref.read(lastSyncedStreamUrlProvider.notifier).set(session.streamUrl);
     _resetTrackingState();
 
@@ -329,98 +320,8 @@ class _PlayerFullscreenOverlayState
       // Provider may not yet be alive on first call.
     }
     resetHistoryState();
-    _zapChannelName = null;
-    _showZapOverlay = false;
-  }
-
-  // ────────────────────────────────────────────────
-  //  Channel zapping
-  // ────────────────────────────────────────────────
-
-  /// Zap to the channel [direction] steps away in the current list.
-  ///
-  /// Positive [direction] = next channel, negative = previous.
-  void _zapChannel(int direction) {
-    final session = ref.read(playbackSessionProvider);
-    final channels = session.channelList;
-    if (channels == null || channels.length <= 1) return;
-
-    final idx = (session.channelIndex + direction) % channels.length;
-    _zapToChannelAt(channels[idx], index: idx);
-  }
-
-  /// Zap directly to [ch] by resolving its index from the session list.
-  void _zapToChannel(Channel ch) {
-    final channels = ref.read(playbackSessionProvider).channelList;
-    final idx = channels?.indexWhere((c) => c.id == ch.id) ?? -1;
-    _zapToChannelAt(ch, index: idx >= 0 ? idx : null);
-  }
-
-  /// Core zap implementation — plays [ch], updates session index if
-  /// [index] is provided, and shows the brief channel-name overlay.
-  void _zapToChannelAt(Channel ch, {int? index}) {
-    if (index != null) {
-      ref.read(playbackSessionProvider.notifier).updateChannelIndex(index);
-    }
-
-    ref
-        .read(playerServiceProvider)
-        .play(
-          ch.streamUrl,
-          isLive: true,
-          channelName: ch.name,
-          channelLogoUrl: ch.logoUrl,
-          headers: ch.userAgent != null ? {'User-Agent': ch.userAgent!} : null,
-        );
-
-    _activeStreamUrl = ch.streamUrl;
-    _showZapNameBriefly(ch.name);
-    ref.read(favoritesHistoryProvider.notifier).addToHistory(ch);
-  }
-
-  void _showZapNameBriefly(String name) {
-    _zapOverlayTimer?.cancel();
-    setState(() => _zapChannelName = name);
-    _zapOverlayTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _zapChannelName = null);
-    });
-  }
-
-  // ────────────────────────────────────────────────
-  //  Queue item playback
-  // ────────────────────────────────────────────────
-
-  /// Plays a queue item based on the current session type.
-  void _playQueueItem(QueueItem item, PlaybackSessionState session) {
-    // Hide the queue panel.
-    ref.read(queueProvider.notifier).hide();
-
-    if (session.isLive) {
-      // Live TV: find the Channel in the list and zap to it.
-      final ch = session.channelList?.firstWhere(
-        (c) => c.id == item.id,
-        orElse:
-            () => Channel(
-              id: item.id,
-              name: item.title,
-              streamUrl: item.streamUrl,
-            ),
-      );
-      if (ch != null) _zapToChannel(ch);
-    } else {
-      // VOD: find the episode in the list and play it.
-      final ep = session.episodeList?.firstWhere(
-        (e) => e.id == item.id,
-        orElse:
-            () => VodItem(
-              id: item.id,
-              name: item.title,
-              streamUrl: item.streamUrl,
-              type: VodType.episode,
-            ),
-      );
-      if (ep != null) playNextEpisode(ep);
-    }
+    zapChannelName = null;
+    showZapOverlay = false;
   }
 
   // ────────────────────────────────────────────────
@@ -483,102 +384,10 @@ class _PlayerFullscreenOverlayState
   }
 
   // ────────────────────────────────────────────────
-  //  Focus management
+  //  Focus restoration (PlayerLifecycleMixin override)
   // ────────────────────────────────────────────────
 
-  /// Late key event handler — fires only for events NOT consumed
-  /// by any widget in the focus tree. Acts as a safety net when
-  /// focus is lost (e.g. after mouse clicks steal focus).
-  /// Restores focus to [_focusNode] so subsequent key events are
-  /// handled by [KeyboardListener.onKeyEvent] directly.
-  ///
-  /// Skips text-input keys (letters, digits, symbols) when an
-  /// [EditableText] has focus so TextFields work normally.
-  KeyEventResult _lateKeyHandler(KeyEvent event) {
-    if (!mounted) return KeyEventResult.ignored;
-    if (ModalRoute.of(context)?.isCurrent != true) {
-      return KeyEventResult.ignored;
-    }
-
-    // Let text fields handle their own input — only skip character
-    // keys and symbols, NOT D-pad / arrow / Escape / media keys.
-    if (isTextFieldFocused() && _isTextInputKey(event)) {
-      return KeyEventResult.ignored;
-    }
-
-    // Restore focus so primary handler takes over next time.
-    if (!_focusNode.hasPrimaryFocus) {
-      _focusNode.requestFocus();
-    }
-    _onKeyEvent(event);
-    return KeyEventResult.handled;
-  }
-
-  /// Returns `true` for keys that produce text input — letters,
-  /// digits, and printable symbols. Returns `false` for navigation
-  /// (arrows, Tab), activation (Enter, Space), media transport,
-  /// and modifier keys so those still work for player control and
-  /// D-pad navigation even when a text field is focused.
-  static bool _isTextInputKey(KeyEvent event) {
-    final key = event.logicalKey;
-    final keyId = key.keyId;
-
-    // Letters: a-z (keyId range 0x00000061 – 0x0000007A).
-    if (keyId >= 0x00000061 && keyId <= 0x0000007A) return true;
-
-    // Main-row digits: 0-9 (keyId range 0x00000030 – 0x00000039).
-    if (keyId >= 0x00000030 && keyId <= 0x00000039) return true;
-
-    // Numpad digits.
-    if (key == LogicalKeyboardKey.numpad0 ||
-        key == LogicalKeyboardKey.numpad1 ||
-        key == LogicalKeyboardKey.numpad2 ||
-        key == LogicalKeyboardKey.numpad3 ||
-        key == LogicalKeyboardKey.numpad4 ||
-        key == LogicalKeyboardKey.numpad5 ||
-        key == LogicalKeyboardKey.numpad6 ||
-        key == LogicalKeyboardKey.numpad7 ||
-        key == LogicalKeyboardKey.numpad8 ||
-        key == LogicalKeyboardKey.numpad9) {
-      return true;
-    }
-
-    // Common printable symbols that appear in URLs and text.
-    if (key == LogicalKeyboardKey.slash ||
-        key == LogicalKeyboardKey.backslash ||
-        key == LogicalKeyboardKey.period ||
-        key == LogicalKeyboardKey.comma ||
-        key == LogicalKeyboardKey.semicolon ||
-        key == LogicalKeyboardKey.quoteSingle ||
-        key == LogicalKeyboardKey.quote ||
-        key == LogicalKeyboardKey.bracketLeft ||
-        key == LogicalKeyboardKey.bracketRight ||
-        key == LogicalKeyboardKey.minus ||
-        key == LogicalKeyboardKey.equal ||
-        key == LogicalKeyboardKey.backquote ||
-        key == LogicalKeyboardKey.space ||
-        key == LogicalKeyboardKey.at ||
-        key == LogicalKeyboardKey.colon ||
-        key == LogicalKeyboardKey.underscore ||
-        key == LogicalKeyboardKey.exclamation ||
-        key == LogicalKeyboardKey.numberSign ||
-        key == LogicalKeyboardKey.dollar ||
-        key == LogicalKeyboardKey.percent ||
-        key == LogicalKeyboardKey.ampersand ||
-        key == LogicalKeyboardKey.asterisk ||
-        key == LogicalKeyboardKey.parenthesisLeft ||
-        key == LogicalKeyboardKey.parenthesisRight ||
-        key == LogicalKeyboardKey.less ||
-        key == LogicalKeyboardKey.greater ||
-        key == LogicalKeyboardKey.question ||
-        key == LogicalKeyboardKey.backspace) {
-      return true;
-    }
-
-    return false;
-  }
-
-  /// Restores keyboard focus to the player's [_focusNode].
+  /// Restores keyboard focus to [_focusNode].
   void _restoreFocus() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && !_focusNode.hasPrimaryFocus) {
@@ -589,92 +398,6 @@ class _PlayerFullscreenOverlayState
 
   @override
   void restorePlayerFocus() => _restoreFocus();
-
-  // ────────────────────────────────────────────────
-  //  Keyboard
-  // ────────────────────────────────────────────────
-
-  void _onKeyEvent(KeyEvent event) {
-    final session = ref.read(playbackSessionProvider);
-    final canZap =
-        session.isLive &&
-        session.channelList != null &&
-        session.channelList!.length > 1;
-
-    handlePlayerKeyEvent(
-      event: event,
-      ref: ref,
-      isLive: session.isLive,
-      canZap: canZap,
-      // Always true: the late key handler only fires for events
-      // not consumed by any focused widget, so button activation
-      // keys (Enter/Space) are already handled upstream.
-      hasPrimaryFocus: true,
-      showZapOverlay: _showZapOverlay,
-      onPlayPause: () => ref.read(playerServiceProvider).playOrPause(),
-      onZapChannel: _zapChannel,
-      onSeekForward: () {
-        final svc = ref.read(playerServiceProvider);
-        final step = Duration(seconds: ref.read(seekStepSecondsProvider));
-        svc.seek(svc.state.position + step);
-        showSeekIndicator(true);
-      },
-      onSeekBack: () {
-        final svc = ref.read(playerServiceProvider);
-        final step = Duration(seconds: ref.read(seekStepSecondsProvider));
-        final p = svc.state.position - step;
-        svc.seek(p < Duration.zero ? Duration.zero : p);
-        showSeekIndicator(false);
-      },
-      onToggleFullscreen: toggleOsFullscreen,
-      onToggleZap: () => setState(() => _showZapOverlay = !_showZapOverlay),
-      onShowZap: () => setState(() => _showZapOverlay = true),
-      onBack: onBack,
-      onToggleCaptions: () {
-        final state = ref.read(playbackStateProvider).value;
-        if (state != null) {
-          showSubtitleTrackPicker(context, ref, state);
-        }
-      },
-      onShowShortcuts: () {
-        setState(() => _showShortcutsHelp = !_showShortcutsHelp);
-      },
-      onToggleLock: () {
-        ref.read(playerLockedProvider.notifier).toggle();
-      },
-      onOpenGuide: () {
-        ref.read(guideSplitProvider.notifier).toggle();
-      },
-      onShowDebug: () {
-        ref.read(streamStatsVisibleProvider.notifier).update((v) => !v);
-      },
-      onScreenshot: () {
-        captureScreenshot(boundaryKey: screenshotBoundaryKey, ref: ref);
-      },
-      onCleanScreenshot: () {
-        captureScreenshot(
-          boundaryKey: screenshotBoundaryKey,
-          ref: ref,
-          clean: true,
-        );
-      },
-      onAlwaysOnTop: () {
-        if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
-          final notifier = ref.read(alwaysOnTopProvider.notifier);
-          notifier.toggle();
-          final newValue = ref.read(alwaysOnTopProvider);
-          windowManager.setAlwaysOnTop(newValue);
-        }
-      },
-      onCycleShader: () {
-        final current = ref.read(shaderPresetProvider);
-        final presets = ShaderPreset.allPresets;
-        final idx = presets.indexWhere((p) => p.id == current.id);
-        final next = presets[(idx + 1) % presets.length];
-        ref.read(settingsNotifierProvider.notifier).setShaderPreset(next.id);
-      },
-    );
-  }
 
   // ────────────────────────────────────────────────
   //  Build
@@ -708,7 +431,7 @@ class _PlayerFullscreenOverlayState
       prev,
       next,
     ) {
-      if (next.isNotEmpty && next != _activeStreamUrl) {
+      if (next.isNotEmpty && next != activeStreamUrl) {
         _syncSession();
       }
     });
@@ -781,7 +504,7 @@ class _PlayerFullscreenOverlayState
             child: Focus(
               focusNode: _focusNode,
               onKeyEvent: (_, event) {
-                _onKeyEvent(event);
+                onKeyEvent(event);
                 return KeyEventResult.handled;
               },
               child: GestureDetector(
@@ -872,22 +595,22 @@ class _PlayerFullscreenOverlayState
                         swipeType == SwipeType.volume
                             ? ref.read(playerServiceProvider).state.volume
                             : 1.0 - brightnessNotifier.value,
-                    zapChannelName: _zapChannelName,
+                    zapChannelName: zapChannelName,
                     canZap: canZap,
-                    showZapOverlay: _showZapOverlay,
+                    showZapOverlay: showZapOverlay,
                     rightEdgeThreshold: PlayerGestureMixin.rightEdgeThreshold,
                     onSwipeLeftEdge:
-                        () => setState(() => _showZapOverlay = true),
+                        () => setState(() => showZapOverlay = true),
                     isLive: session.isLive,
                     channelList: session.channelList,
                     currentChannelIndex: session.channelIndex,
                     onZapDismiss: () {
-                      setState(() => _showZapOverlay = false);
+                      setState(() => showZapOverlay = false);
                       _restoreFocus();
                     },
                     onChannelSelected: (ch) {
-                      _zapToChannel(ch);
-                      setState(() => _showZapOverlay = false);
+                      zapToChannel(ch);
+                      setState(() => showZapOverlay = false);
                       _restoreFocus();
                     },
                     nextEpisode: nextEpisodeToShow,
@@ -941,9 +664,8 @@ class _PlayerFullscreenOverlayState
                     onEnterPip: PlatformCapabilities.pip ? onEnterPip : null,
                     onToggleZapOverlay:
                         canZap
-                            ? () => setState(
-                              () => _showZapOverlay = !_showZapOverlay,
-                            )
+                            ? () =>
+                                setState(() => showZapOverlay = !showZapOverlay)
                             : null,
                     onOpenExternal:
                         PlatformCapabilities.externalPlayer
@@ -957,7 +679,7 @@ class _PlayerFullscreenOverlayState
                             )
                             : null,
                     channelLogoUrl: s.channelLogoUrl,
-                    onSkipToQueueItem: (item) => _playQueueItem(item, session),
+                    onSkipToQueueItem: (item) => playQueueItem(item, session),
                   ),
                 ),
               ),
@@ -966,7 +688,7 @@ class _PlayerFullscreenOverlayState
         ),
 
         // ── Channel zap overlay (outside GestureDetector for tap passthrough) ──
-        if (_showZapOverlay &&
+        if (showZapOverlay &&
             session.isLive &&
             session.channelList != null &&
             session.channelList!.isNotEmpty &&
@@ -980,22 +702,22 @@ class _PlayerFullscreenOverlayState
                       : '',
               isVisible: true,
               onDismiss: () {
-                setState(() => _showZapOverlay = false);
+                setState(() => showZapOverlay = false);
                 _restoreFocus();
               },
               onChannelSelected: (ch) {
-                _zapToChannel(ch);
-                setState(() => _showZapOverlay = false);
+                zapToChannel(ch);
+                setState(() => showZapOverlay = false);
                 _restoreFocus();
               },
             ),
           ),
 
         // ── Shortcuts help overlay (? key) ──
-        if (_showShortcutsHelp && !isInPip)
+        if (showShortcutsHelp && !isInPip)
           PlayerShortcutsHelpOverlay(
             onDismiss: () {
-              setState(() => _showShortcutsHelp = false);
+              setState(() => showShortcutsHelp = false);
               _restoreFocus();
             },
           ),
@@ -1019,7 +741,7 @@ class _PlayerFullscreenOverlayState
                 width: screenWidth / 2,
                 child: PlayerGuideSplit(
                   onChannelSelected: (ch) {
-                    _zapToChannel(ch);
+                    zapToChannel(ch);
                     _restoreFocus();
                   },
                   onDismiss: () {

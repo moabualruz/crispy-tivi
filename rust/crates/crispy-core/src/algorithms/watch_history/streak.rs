@@ -155,7 +155,7 @@ pub fn compute_profile_stats(history_json: &str, now_ms: i64) -> String {
     let mut genre_counts: std::collections::HashMap<&str, u32> = std::collections::HashMap::new();
     for e in &entries {
         *genre_counts
-            .entry(media_type_to_genre(&e.media_type))
+            .entry(media_type_to_genre(e.media_type.as_str()))
             .or_insert(0) += 1;
     }
     let mut genre_vec: Vec<(&str, u32)> = genre_counts.into_iter().collect();

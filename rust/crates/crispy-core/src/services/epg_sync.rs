@@ -856,7 +856,7 @@ mod tests {
             .unwrap();
 
         let mut watch = make_watch_entry("ch-2", "Recent");
-        watch.media_type = "channel".to_string();
+        watch.media_type = crate::value_objects::MediaType::Channel;
         watch.source_id = Some("src1".to_string());
         watch.last_watched = parse_dt("2025-02-01 12:00:00");
         svc.save_watch_history(&watch).unwrap();

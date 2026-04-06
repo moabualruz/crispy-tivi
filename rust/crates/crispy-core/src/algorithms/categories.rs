@@ -265,7 +265,7 @@ pub fn build_type_categories(items_json: &str, vod_type: &str) -> String {
 
     let set: HashSet<&str> = items
         .iter()
-        .filter(|v| v.item_type == vod_type)
+        .filter(|v| v.item_type.as_str() == vod_type)
         .filter_map(|v| v.category.as_deref())
         .filter(|c| !c.is_empty())
         .collect();
@@ -317,6 +317,7 @@ pub fn build_search_categories(vod_categories_json: &str, channel_groups_json: &
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value_objects::MediaType;
     use serde_json::json;
 
     #[test]
@@ -464,7 +465,7 @@ mod tests {
             native_id: id.to_string(),
             name: format!("Vod {id}"),
             stream_url: String::new(),
-            item_type: "movie".to_string(),
+            item_type: MediaType::Movie,
             poster_url: None,
             backdrop_url: None,
             description: None,
@@ -683,7 +684,7 @@ mod tests {
             native_id: id.to_string(),
             name: format!("Item {id}"),
             stream_url: String::new(),
-            item_type: vod_type.to_string(),
+            item_type: vod_type.try_into().unwrap_or_default(),
             poster_url: None,
             backdrop_url: None,
             description: None,
