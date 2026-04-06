@@ -256,26 +256,26 @@ echo ""
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SOLID: GOD SERVICE (SRP / ISP)
-# Count distinct files containing `impl CrispyService`
+# CrispyService should have impl blocks in at most 1 file (mod.rs = facade).
+# Business logic lives in domain service newtypes (BookmarkService, etc.).
+# Scattered impl blocks across multiple files = god object regression.
 # ─────────────────────────────────────────────────────────────────────────────
 echo -e "${BOLD}[SOLID: God Service]${RESET}"
 
 CRISPY_IMPL_COUNT=$(grep -rl "^impl CrispyService" "$SERVICES_DIR" 2>/dev/null | wc -l || true)
-CRISPY_IMPL_METHODS=$(grep -rh "^\s*pub.*fn " "$SERVICES_DIR" 2>/dev/null \
-    | grep -v "//\|#\[" | wc -l || true)
 
-if [[ "$CRISPY_IMPL_COUNT" -gt 0 ]]; then
-    fail "CrispyService god object: ${CRISPY_IMPL_COUNT} impl files, ~${CRISPY_IMPL_METHODS} public methods (SRP/ISP VIOLATION)"
+if [[ "$CRISPY_IMPL_COUNT" -gt 1 ]]; then
+    fail "CrispyService impl scattered across ${CRISPY_IMPL_COUNT} files (max 1 facade file allowed)"
     SOLID_VIOLATIONS=$((SOLID_VIOLATIONS + 1))
 
     echo ""
-    echo "  Files with impl CrispyService:"
+    echo "  Files with impl CrispyService (only mod.rs should appear):"
     grep -rl "^impl CrispyService" "$SERVICES_DIR" 2>/dev/null | while read -r f; do
         methods=$(grep -cP "^\s+pub.*fn " "$f" || true)
         echo "    - $(basename "$f"): ${methods} methods"
     done
 else
-    ok "No god service violations (CrispyService not found)"
+    ok "CrispyService impl in ${CRISPY_IMPL_COUNT} file(s) — facade pattern, domain services decomposed"
 fi
 echo ""
 

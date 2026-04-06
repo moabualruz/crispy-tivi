@@ -196,10 +196,13 @@ fn resolve_from_index(index: &HashMap<String, String>, channel_name: &str) -> Op
 
 // ── CrispyService methods ──────────────────────────────
 
-impl CrispyService {
+/// Domain service for logo resolution operations.
+pub struct LogoService(pub(super) CrispyService);
+
+impl LogoService {
     /// Check whether the cached logo index is stale (>24 h).
     pub fn is_logo_index_stale(&self) -> Result<bool, DbError> {
-        match self.get_setting(LOGO_INDEX_TS_KEY)? {
+        match self.0.get_setting(LOGO_INDEX_TS_KEY)? {
             None => Ok(true),
             Some(ts_str) => {
                 let ts: i64 = ts_str.parse().unwrap_or(0);
@@ -212,10 +215,10 @@ impl CrispyService {
     /// Persist the logo index and set the fetched-at timestamp.
     pub fn save_logo_index(&self, index: &HashMap<String, String>) -> Result<(), DbError> {
         let json = serde_json::to_string(index).map_err(|e| DbError::Migration(e.to_string()))?;
-        self.set_setting(LOGO_INDEX_KEY, &json)?;
+        self.0.set_setting(LOGO_INDEX_KEY, &json)?;
         let now = chrono::Utc::now().timestamp().to_string();
         // Write timestamp silently (no event emit).
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         insert_or_replace!(
             conn,
             "db_settings",
@@ -227,7 +230,7 @@ impl CrispyService {
 
     /// Load the cached logo index from the KV store.
     fn load_logo_index(&self) -> Result<HashMap<String, String>, DbError> {
-        match self.get_setting(LOGO_INDEX_KEY)? {
+        match self.0.get_setting(LOGO_INDEX_KEY)? {
             None => Ok(HashMap::new()),
             Some(json) => {
                 serde_json::from_str(&json).map_err(|e| DbError::Migration(e.to_string()))
@@ -584,17 +587,21 @@ mod tests {
         assert_eq!(resolve_from_index(&idx, ""), None);
     }
 
-    // ── CrispyService integration ──────────────────────
+    // ── LogoService integration ──────────────────────
+
+    fn make_logo_service() -> LogoService {
+        LogoService(CrispyService::open_in_memory().unwrap())
+    }
 
     #[test]
     fn stale_when_no_timestamp() {
-        let svc = CrispyService::open_in_memory().unwrap();
+        let svc = make_logo_service();
         assert!(svc.is_logo_index_stale().unwrap());
     }
 
     #[test]
     fn not_stale_after_save() {
-        let svc = CrispyService::open_in_memory().unwrap();
+        let svc = make_logo_service();
         let index = test_index();
         svc.save_logo_index(&index).unwrap();
         assert!(!svc.is_logo_index_stale().unwrap());
@@ -602,7 +609,7 @@ mod tests {
 
     #[test]
     fn resolve_after_save() {
-        let svc = CrispyService::open_in_memory().unwrap();
+        let svc = make_logo_service();
         let index = test_index();
         svc.save_logo_index(&index).unwrap();
 
@@ -612,13 +619,13 @@ mod tests {
 
     #[test]
     fn resolve_returns_none_without_index() {
-        let svc = CrispyService::open_in_memory().unwrap();
+        let svc = make_logo_service();
         assert_eq!(svc.resolve_logo("CBS").unwrap(), None);
     }
 
     #[test]
     fn batch_resolve() {
-        let svc = CrispyService::open_in_memory().unwrap();
+        let svc = make_logo_service();
         let index = test_index();
         svc.save_logo_index(&index).unwrap();
 
@@ -632,7 +639,7 @@ mod tests {
 
     #[test]
     fn iptv_prefix_resolves() {
-        let svc = CrispyService::open_in_memory().unwrap();
+        let svc = make_logo_service();
         let index = test_index();
         svc.save_logo_index(&index).unwrap();
 
@@ -644,7 +651,7 @@ mod tests {
 
     #[test]
     fn quality_tag_resolves() {
-        let svc = CrispyService::open_in_memory().unwrap();
+        let svc = make_logo_service();
         let index = test_index();
         svc.save_logo_index(&index).unwrap();
 

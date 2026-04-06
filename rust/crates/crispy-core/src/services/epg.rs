@@ -10,6 +10,9 @@ use crate::events::DataChangeEvent;
 use crate::models::EpgEntry;
 use crate::traits::EpgRepository;
 
+/// Domain service for EPG operations.
+pub struct EpgService(pub(super) CrispyService);
+
 /// Column list for all EPG SELECT queries. Kept in one place so
 /// every load method stays in sync with `epg_entry_from_row`.
 const EPG_SELECT_COLS: &str = "\
@@ -52,7 +55,7 @@ fn epg_entry_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<EpgEntry> {
     })
 }
 
-impl CrispyService {
+impl EpgService {
     // ── EPG ─────────────────────────────────────────
 
     /// Batch upsert EPG entries grouped by channel.
@@ -69,7 +72,7 @@ impl CrispyService {
         &self,
         entries: &HashMap<String, Vec<EpgEntry>>,
     ) -> Result<usize, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let tx = conn.unchecked_transaction()?;
 
         let upsert_sql = "\
@@ -168,12 +171,12 @@ impl CrispyService {
         let mut channel_ids: Vec<&String> = entries.keys().collect();
         channel_ids.sort();
         for channel_id in channel_ids {
-            self.emit(DataChangeEvent::EpgUpdated {
+            self.0.emit(DataChangeEvent::EpgUpdated {
                 source_id: channel_id.clone(),
             });
         }
         if entries.is_empty() {
-            self.emit(DataChangeEvent::EpgUpdated {
+            self.0.emit(DataChangeEvent::EpgUpdated {
                 source_id: String::new(),
             });
         }
@@ -184,7 +187,7 @@ impl CrispyService {
 
     /// Load all EPG entries grouped by epg_channel_id.
     pub fn load_epg_entries(&self) -> Result<HashMap<String, Vec<EpgEntry>>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(&format!(
             "SELECT {} FROM db_epg_entries ORDER BY epg_channel_id, start_time",
             EPG_SELECT_COLS
@@ -224,7 +227,7 @@ impl CrispyService {
         start_time: i64,
         end_time: i64,
     ) -> Result<HashMap<String, Vec<EpgEntry>>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         if channel_ids.is_empty() {
             return Ok(HashMap::new());
         }
@@ -410,7 +413,7 @@ impl CrispyService {
         if source_ids.is_empty() {
             return self.load_epg_entries();
         }
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let placeholders: Vec<String> = (1..=source_ids.len()).map(|i| format!("?{i}")).collect();
         let sql = format!(
             "SELECT {cols}
@@ -507,7 +510,7 @@ impl CrispyService {
     /// Check the latest real (non-placeholder) EPG coverage end time
     /// for a specific channel. Returns `None` if no real data exists.
     pub fn get_real_epg_coverage_end(&self, channel_id: &str) -> Result<Option<i64>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let result: rusqlite::Result<Option<i64>> = conn.query_row(
             "SELECT MAX(end_time) FROM db_epg_entries
              WHERE epg_channel_id = ?1 AND (source_id IS NULL OR source_id != ?2)",
@@ -525,7 +528,7 @@ impl CrispyService {
         start_time: i64,
         end_time: i64,
     ) -> Result<bool, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM db_epg_entries
              WHERE epg_channel_id = ?1
@@ -541,7 +544,7 @@ impl CrispyService {
     /// Delete EPG entries older than `days` days.
     /// Returns count deleted.
     pub fn evict_stale_epg(&self, days: i64) -> Result<usize, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let cutoff = chrono::Utc::now().timestamp() - (days * 86400);
         let deleted = conn.execute(
             "DELETE FROM db_epg_entries
@@ -553,14 +556,14 @@ impl CrispyService {
 
     /// Delete all EPG entries.
     pub fn clear_epg_entries(&self) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute("DELETE FROM db_epg_entries", [])?;
-        self.emit(DataChangeEvent::BulkDataRefresh);
+        self.0.emit(DataChangeEvent::BulkDataRefresh);
         Ok(())
     }
 }
 
-impl EpgRepository for CrispyService {
+impl EpgRepository for EpgService {
     fn save_epg_entries(
         &self,
         entries: &HashMap<String, Vec<EpgEntry>>,
@@ -623,11 +626,12 @@ impl EpgRepository for CrispyService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::EpgService;
     use crate::services::test_helpers::*;
 
     #[test]
     fn save_and_load_epg_entries() {
-        let svc = make_service();
+        let svc = EpgService(make_service());
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
         let entry = EpgEntry {
@@ -649,11 +653,12 @@ mod tests {
 
     #[test]
     fn get_epgs_for_channels_filters_by_window() {
-        let svc = make_service();
+        let base = make_service();
         // Create a channel with tvg_id — the EPG bridge used by get_epgs_for_channels.
         let mut ch = make_channel("ch1", "Test Channel");
         ch.tvg_id = Some("tvg_ch1".to_string());
-        svc.save_channels(&[ch]).unwrap();
+        base.save_channels(&[ch]).unwrap();
+        let svc = EpgService(base);
 
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
@@ -688,7 +693,7 @@ mod tests {
 
     #[test]
     fn test_get_epg_by_sources_empty_returns_all() {
-        let svc = make_service_with_fixtures();
+        let svc = EpgService(make_service_with_fixtures());
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
         let make_entry = |ch: &str, src: &str| EpgEntry {
@@ -713,7 +718,7 @@ mod tests {
 
     #[test]
     fn test_get_epg_by_sources_filters() {
-        let svc = make_service_with_fixtures();
+        let svc = EpgService(make_service_with_fixtures());
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
         let make_entry = |ch: &str, src: &str| EpgEntry {
@@ -738,7 +743,7 @@ mod tests {
 
     #[test]
     fn evict_stale_epg_removes_old_entries() {
-        let svc = make_service();
+        let svc = EpgService(make_service());
         // Insert an old entry (far in the past).
         let old_dt = parse_dt("2020-01-01 00:00:00");
         let old_end = parse_dt("2020-01-01 01:00:00");
@@ -763,7 +768,7 @@ mod tests {
 
     #[test]
     fn clear_epg_entries_removes_all() {
-        let svc = make_service();
+        let svc = EpgService(make_service());
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
         let entry = EpgEntry {
@@ -787,12 +792,13 @@ mod tests {
         use crate::events::serialize_event;
         use std::collections::HashSet;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let base = make_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
+        let svc = EpgService(base);
         let dt = parse_dt("2025-01-15 10:00:00");
         let dt_end = parse_dt("2025-01-15 11:00:00");
         let make_entry = |channel_id: &str| EpgEntry {
@@ -842,13 +848,14 @@ mod tests {
     /// entries from different sources are stored separately.
     #[test]
     fn epg_priority_high_wins() {
-        let svc = make_service();
+        let base = make_service();
         let mut src_a = make_source("src_a", "Source A", "m3u");
         src_a.sort_order = 0;
         let mut src_b = make_source("src_b", "Source B", "m3u");
         src_b.sort_order = 5;
-        svc.save_source(&src_a).unwrap();
-        svc.save_source(&src_b).unwrap();
+        base.save_source(&src_a).unwrap();
+        base.save_source(&src_b).unwrap();
+        let svc = EpgService(base);
 
         // Insert from source B.
         let mut map_b = HashMap::new();
@@ -874,10 +881,11 @@ mod tests {
     /// Same-source re-insert updates the existing entry.
     #[test]
     fn epg_priority_low_skipped() {
-        let svc = make_service();
+        let base = make_service();
         let mut src_a = make_source("src_a", "Source A", "m3u");
         src_a.sort_order = 0;
-        svc.save_source(&src_a).unwrap();
+        base.save_source(&src_a).unwrap();
+        let svc = EpgService(base);
 
         // Insert entry from src_a.
         let mut map1 = HashMap::new();
@@ -907,13 +915,14 @@ mod tests {
     /// Two different sources produce separate entries (not conflicts).
     #[test]
     fn epg_priority_equal_last_writer() {
-        let svc = make_service();
+        let base = make_service();
         let mut src_a = make_source("src_a", "Source A", "m3u");
         src_a.sort_order = 3;
         let mut src_b = make_source("src_b", "Source B", "m3u");
         src_b.sort_order = 3;
-        svc.save_source(&src_a).unwrap();
-        svc.save_source(&src_b).unwrap();
+        base.save_source(&src_a).unwrap();
+        base.save_source(&src_b).unwrap();
+        let svc = EpgService(base);
 
         let mut map_a = HashMap::new();
         map_a.insert(
@@ -937,10 +946,11 @@ mod tests {
     /// An entry with source_id=None and one with source_id set are separate.
     #[test]
     fn epg_priority_no_source_id_lowest() {
-        let svc = make_service();
+        let base = make_service();
         let mut src_a = make_source("src_a", "Source A", "m3u");
         src_a.sort_order = 10;
-        svc.save_source(&src_a).unwrap();
+        base.save_source(&src_a).unwrap();
+        let svc = EpgService(base);
 
         // Insert entry with no source_id.
         let mut map_none = HashMap::new();
@@ -967,10 +977,11 @@ mod tests {
     /// slot, insertion must always succeed regardless of source priority.
     #[test]
     fn epg_priority_new_entry_always_inserted() {
-        let svc = make_service();
+        let base = make_service();
         let mut src_a = make_source("src_a", "Source A", "m3u");
         src_a.sort_order = 0;
-        svc.save_source(&src_a).unwrap();
+        base.save_source(&src_a).unwrap();
+        let svc = EpgService(base);
 
         let mut map = HashMap::new();
         map.insert(

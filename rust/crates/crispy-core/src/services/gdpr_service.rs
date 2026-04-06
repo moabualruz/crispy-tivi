@@ -13,6 +13,10 @@ use serde::Serialize;
 use crate::database::DbError;
 use crate::models::{Source, UserProfile, WatchHistory};
 use crate::services::CrispyService;
+use crate::services::history::HistoryService;
+use crate::services::profiles::ProfileService;
+use crate::services::sources::SourceService;
+use crate::services::watchlist::WatchlistService;
 
 // ── Export types ──────────────────────────────────────────────────────────────
 
@@ -59,9 +63,12 @@ pub struct GdprSetting {
     pub value: String,
 }
 
-// ── CrispyService impl ────────────────────────────────────────────────────────
+// ── GdprService ───────────────────────────────────────────────────────────────
 
-impl CrispyService {
+/// Domain service for GDPR data export and deletion operations.
+pub struct GdprService(pub(super) CrispyService);
+
+impl GdprService {
     /// Export all personal data for `profile_id` as a `GdprExport`.
     ///
     /// The caller should serialise the result to JSON and deliver it to
@@ -70,26 +77,26 @@ impl CrispyService {
     /// Passwords, encrypted tokens, and MAC addresses are excluded.
     pub fn export_user_data(&self, profile_id: &str) -> Result<GdprExport, DbError> {
         // ── Profile ──────────────────────────────────────────────────────────
-        let profiles = self.load_profiles()?;
+        let profiles = ProfileService(self.0.clone()).load_profiles()?;
         let profile = profiles
             .into_iter()
             .find(|p| p.id == profile_id)
             .ok_or(DbError::NotFound)?;
 
         // ── Watch history ─────────────────────────────────────────────────────
-        let all_history = self.load_watch_history()?;
+        let all_history = HistoryService(self.0.clone()).load_watch_history()?;
         let watch_history: Vec<WatchHistory> = all_history
             .into_iter()
             .filter(|e| e.profile_id.as_deref() == Some(profile_id))
             .collect();
 
         // ── Watchlist (VOD item IDs) ───────────────────────────────────────────
-        let watchlist_vod = self.get_watchlist_items(profile_id)?;
+        let watchlist_vod = WatchlistService(self.0.clone()).get_watchlist_items(profile_id)?;
         let watchlist_ids: Vec<String> = watchlist_vod.into_iter().map(|v| v.id).collect();
 
         // ── Sources accessible by this profile ────────────────────────────────
-        let accessible_source_ids = self.get_source_access(profile_id)?;
-        let all_sources = self.get_sources()?;
+        let accessible_source_ids = ProfileService(self.0.clone()).get_source_access(profile_id)?;
+        let all_sources = SourceService(self.0.clone()).get_sources()?;
         let sources: Vec<GdprSource> = all_sources
             .into_iter()
             .filter(|s| accessible_source_ids.contains(&s.id))
@@ -119,14 +126,14 @@ impl CrispyService {
     /// Delegates to the existing `delete_profile` implementation, which
     /// already handles the full cascade in a transaction.
     pub fn delete_user_data(&self, profile_id: &str) -> Result<(), DbError> {
-        self.delete_profile(profile_id)
+        ProfileService(self.0.clone()).delete_profile(profile_id)
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
     /// Load all settings as key/value pairs.
     fn load_all_settings(&self) -> Result<Vec<GdprSetting>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare("SELECT key, value FROM db_settings ORDER BY key")?;
         let rows = stmt.query_map([], |row| {
             Ok(GdprSetting {
@@ -157,9 +164,14 @@ fn redact_source(s: Source) -> GdprSource {
 mod tests {
     use super::*;
     use crate::models::UserProfile;
+    use crate::services::history::HistoryService;
+    use crate::services::profiles::ProfileService;
+    use crate::services::settings::SettingsService;
+    use crate::services::sources::SourceService;
+    use crate::traits::SettingsRepository;
 
-    fn open_svc() -> CrispyService {
-        CrispyService::open_in_memory().expect("in-memory DB")
+    fn open_svc() -> GdprService {
+        GdprService(CrispyService::open_in_memory().expect("in-memory DB"))
     }
 
     fn make_profile(id: &str, name: &str) -> UserProfile {
@@ -190,7 +202,7 @@ mod tests {
     fn test_export_returns_profile_data() {
         let svc = open_svc();
         let profile = make_profile("p1", "Alice");
-        svc.save_profile(&profile).unwrap();
+        ProfileService(svc.0.clone()).save_profile(&profile).unwrap();
 
         let export = svc.export_user_data("p1").unwrap();
         assert_eq!(export.profile.id, "p1");
@@ -202,8 +214,8 @@ mod tests {
     #[test]
     fn test_export_watch_history_filtered_to_profile() {
         let svc = open_svc();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
-        svc.save_profile(&make_profile("p2", "Bob")).unwrap();
+        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone()).save_profile(&make_profile("p2", "Bob")).unwrap();
 
         let entry_alice = crate::models::WatchHistory {
             id: "wh1".to_string(),
@@ -223,12 +235,12 @@ mod tests {
             profile_id: Some("p1".to_string()),
             source_id: None,
         };
-        svc.save_watch_history(&entry_alice).unwrap();
+        HistoryService(svc.0.clone()).save_watch_history(&entry_alice).unwrap();
 
         let mut entry_bob = entry_alice.clone();
         entry_bob.id = "wh2".to_string();
         entry_bob.profile_id = Some("p2".to_string());
-        svc.save_watch_history(&entry_bob).unwrap();
+        HistoryService(svc.0.clone()).save_watch_history(&entry_bob).unwrap();
 
         let export = svc.export_user_data("p1").unwrap();
         assert_eq!(export.watch_history.len(), 1);
@@ -238,7 +250,7 @@ mod tests {
     #[test]
     fn test_export_empty_watchlist_when_none_added() {
         let svc = open_svc();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
         let export = svc.export_user_data("p1").unwrap();
         assert!(export.watchlist_ids.is_empty());
     }
@@ -246,7 +258,7 @@ mod tests {
     #[test]
     fn test_export_sources_only_accessible_ones() {
         let svc = open_svc();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
 
         let src = crate::models::Source {
             id: "src1".to_string(),
@@ -275,8 +287,8 @@ mod tests {
             epg_etag: None,
             epg_last_modified: None,
         };
-        svc.save_source(&src).unwrap();
-        svc.grant_source_access("p1", "src1").unwrap();
+        SourceService(svc.0.clone()).save_source(&src).unwrap();
+        ProfileService(svc.0.clone()).grant_source_access("p1", "src1").unwrap();
 
         let export = svc.export_user_data("p1").unwrap();
         assert_eq!(export.sources.len(), 1);
@@ -289,8 +301,8 @@ mod tests {
     #[test]
     fn test_export_settings_included() {
         let svc = open_svc();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
-        svc.set_setting("theme", "dark").unwrap();
+        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
+        SettingsService(svc.0.clone()).set_setting("theme", "dark").unwrap();
 
         let export = svc.export_user_data("p1").unwrap();
         let found = export
@@ -303,7 +315,7 @@ mod tests {
     #[test]
     fn test_export_serialises_to_valid_json() {
         let svc = open_svc();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
         let export = svc.export_user_data("p1").unwrap();
         let json = serde_json::to_string(&export).unwrap();
         assert!(!json.is_empty());
@@ -317,17 +329,17 @@ mod tests {
     #[test]
     fn test_delete_user_data_removes_profile() {
         let svc = open_svc();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
         svc.delete_user_data("p1").unwrap();
 
-        let profiles = svc.load_profiles().unwrap();
+        let profiles = ProfileService(svc.0.clone()).load_profiles().unwrap();
         assert!(!profiles.iter().any(|p| p.id == "p1"));
     }
 
     #[test]
     fn test_delete_user_data_cascades_watch_history() {
         let svc = open_svc();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
 
         let entry = crate::models::WatchHistory {
             id: "wh1".to_string(),
@@ -347,28 +359,28 @@ mod tests {
             profile_id: Some("p1".to_string()),
             source_id: None,
         };
-        svc.save_watch_history(&entry).unwrap();
+        HistoryService(svc.0.clone()).save_watch_history(&entry).unwrap();
         svc.delete_user_data("p1").unwrap();
 
-        let history = svc.load_watch_history().unwrap();
+        let history = HistoryService(svc.0.clone()).load_watch_history().unwrap();
         assert!(!history.iter().any(|h| h.id == "wh1"));
     }
 
     #[test]
     fn test_delete_user_data_does_not_affect_other_profiles() {
         let svc = open_svc();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
-        svc.save_profile(&make_profile("p2", "Bob")).unwrap();
+        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone()).save_profile(&make_profile("p2", "Bob")).unwrap();
         svc.delete_user_data("p1").unwrap();
 
-        let profiles = svc.load_profiles().unwrap();
+        let profiles = ProfileService(svc.0.clone()).load_profiles().unwrap();
         assert!(profiles.iter().any(|p| p.id == "p2"));
     }
 
     #[test]
     fn test_delete_then_export_returns_not_found() {
         let svc = open_svc();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
         svc.delete_user_data("p1").unwrap();
 
         let err = svc.export_user_data("p1").unwrap_err();

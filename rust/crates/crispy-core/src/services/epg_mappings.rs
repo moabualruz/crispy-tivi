@@ -20,10 +20,13 @@ fn epg_mapping_from_row(row: &Row) -> rusqlite::Result<EpgMapping> {
     })
 }
 
-impl CrispyService {
+/// Domain service for EPG mapping operations.
+pub struct EpgMappingService(pub(super) CrispyService);
+
+impl EpgMappingService {
     /// Save or update an EPG mapping.
     pub fn save_epg_mapping(&self, mapping: &EpgMapping) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         insert_or_replace!(
             conn,
             "db_epg_mappings",
@@ -51,7 +54,7 @@ impl CrispyService {
 
     /// Get all EPG mappings.
     pub fn get_epg_mappings(&self) -> Result<Vec<EpgMapping>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT channel_id, epg_channel_id, confidence, match_method, epg_source_id, locked, created_at \
              FROM db_epg_mappings ORDER BY confidence DESC",
@@ -64,7 +67,7 @@ impl CrispyService {
 
     /// Lock an EPG mapping so it won't be overridden.
     pub fn lock_epg_mapping(&self, channel_id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "UPDATE db_epg_mappings SET locked = 1 WHERE channel_id = ?1",
             params![channel_id],
@@ -74,7 +77,7 @@ impl CrispyService {
 
     /// Delete an EPG mapping.
     pub fn delete_epg_mapping(&self, channel_id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_epg_mappings WHERE channel_id = ?1",
             params![channel_id],
@@ -84,7 +87,7 @@ impl CrispyService {
 
     /// Get pending EPG suggestions (confidence 0.40-0.69, not locked).
     pub fn get_pending_epg_suggestions(&self) -> Result<Vec<EpgMapping>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT channel_id, epg_channel_id, confidence, match_method, epg_source_id, locked, created_at \
              FROM db_epg_mappings \
@@ -99,7 +102,7 @@ impl CrispyService {
 
     /// Mark a channel as 24/7.
     pub fn set_channel_247(&self, channel_id: &str, is_247: bool) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "UPDATE db_channels SET is_247 = ?1 WHERE id = ?2",
             params![bool_to_int(is_247), channel_id],
@@ -113,10 +116,11 @@ mod tests {
     use super::*;
     use crate::services::test_helpers::*;
     use crate::value_objects::MatchMethod;
+    use super::EpgMappingService;
 
     #[test]
     fn save_and_get_mapping() {
-        let svc = make_service();
+        let svc = EpgMappingService(make_service());
         let mapping = EpgMapping {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),
@@ -138,7 +142,7 @@ mod tests {
 
     #[test]
     fn lock_mapping() {
-        let svc = make_service();
+        let svc = EpgMappingService(make_service());
         svc.save_epg_mapping(&EpgMapping {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),
@@ -158,7 +162,7 @@ mod tests {
 
     #[test]
     fn delete_mapping() {
-        let svc = make_service();
+        let svc = EpgMappingService(make_service());
         svc.save_epg_mapping(&EpgMapping {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),
@@ -178,7 +182,7 @@ mod tests {
 
     #[test]
     fn pending_suggestions_filters_correctly() {
-        let svc = make_service();
+        let svc = EpgMappingService(make_service());
         // Auto-applied (>= 0.70) — NOT pending
         svc.save_epg_mapping(&EpgMapping {
             channel_id: "ch1".to_string(),
@@ -231,19 +235,21 @@ mod tests {
 
     #[test]
     fn set_channel_247_flag() {
-        let svc = make_service();
+        use crate::services::channels::ChannelService;
+        let base = make_service();
         let ch = make_channel("ch1", "Movies 24/7");
-        svc.save_channels(&[ch]).unwrap();
+        ChannelService(base.clone()).save_channels(&[ch]).unwrap();
+        let svc = EpgMappingService(base);
 
         svc.set_channel_247("ch1", true).unwrap();
 
-        let channels = svc.load_channels().unwrap();
+        let channels = ChannelService(svc.0.clone()).load_channels().unwrap();
         assert!(channels[0].is_247);
     }
 
     #[test]
     fn upsert_mapping_overwrites() {
-        let svc = make_service();
+        let svc = EpgMappingService(make_service());
         svc.save_epg_mapping(&EpgMapping {
             channel_id: "ch1".to_string(),
             epg_channel_id: "epg1".to_string(),

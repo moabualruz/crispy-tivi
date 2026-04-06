@@ -38,14 +38,17 @@ fn theme_key(profile_id: &str) -> String {
 
 // ── Service impl ──────────────────────────────────────────────────────────────
 
-impl CrispyService {
+/// Domain service for theme configuration operations.
+pub struct ThemeService(pub(super) CrispyService);
+
+impl ThemeService {
     /// Return the theme config for `profile_id`.
     ///
     /// Returns `ThemeConfig::default()` (Dark, no custom accent) when no
     /// preference has been saved yet.
     pub fn get_theme(&self, profile_id: &str) -> Result<ThemeConfig, DbError> {
         let key = theme_key(profile_id);
-        match self.get_setting(&key)? {
+        match self.0.get_setting(&key)? {
             Some(json) => {
                 let cfg: ThemeConfig = serde_json::from_str(&json).unwrap_or_default();
                 Ok(cfg)
@@ -59,7 +62,7 @@ impl CrispyService {
         let key = theme_key(profile_id);
         let json = serde_json::to_string(&config)
             .map_err(|e| DbError::Migration(format!("theme serialisation: {e}")))?;
-        self.set_setting(&key, &json)
+        self.0.set_setting(&key, &json)
     }
 }
 
@@ -70,9 +73,13 @@ mod tests {
     use super::*;
     use crate::services::test_helpers::make_service;
 
+    fn make_theme_service() -> ThemeService {
+        ThemeService(make_service())
+    }
+
     #[test]
     fn test_get_theme_defaults_to_dark_when_unset() {
-        let svc = make_service();
+        let svc = make_theme_service();
         let cfg = svc.get_theme("p1").unwrap();
         assert_eq!(cfg.mode, ThemeMode::Dark);
         assert_eq!(cfg.accent_color, None);
@@ -80,7 +87,7 @@ mod tests {
 
     #[test]
     fn test_set_and_get_theme_round_trips() {
-        let svc = make_service();
+        let svc = make_theme_service();
         let want = ThemeConfig {
             mode: ThemeMode::Light,
             accent_color: Some("#FF4B2B".to_string()),
@@ -92,7 +99,7 @@ mod tests {
 
     #[test]
     fn test_themes_are_per_profile() {
-        let svc = make_service();
+        let svc = make_theme_service();
         svc.set_theme(
             "p1",
             ThemeConfig {
@@ -115,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_overwrite_theme() {
-        let svc = make_service();
+        let svc = make_theme_service();
         svc.set_theme(
             "p1",
             ThemeConfig {

@@ -29,13 +29,16 @@ fn search_history_from_row(row: &Row) -> rusqlite::Result<SearchHistory> {
     })
 }
 
-impl CrispyService {
+/// Domain service for miscellaneous operations.
+pub struct MiscService(pub(super) CrispyService);
+
+impl MiscService {
     // ── Saved Layouts ─────────────────────────────────
 
     /// Load all saved layouts ordered by created_at
     /// descending.
     pub fn load_saved_layouts(&self) -> Result<Vec<SavedLayout>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT
                 id, name, layout, streams,
@@ -49,7 +52,7 @@ impl CrispyService {
 
     /// Save (upsert) a layout.
     pub fn save_saved_layout(&self, layout: &SavedLayout) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         insert_or_replace!(
             conn,
             "db_saved_layouts",
@@ -62,25 +65,25 @@ impl CrispyService {
                 dt_to_ts(&layout.created_at),
             ],
         )?;
-        self.emit(DataChangeEvent::SavedLayoutChanged);
+        self.0.emit(DataChangeEvent::SavedLayoutChanged);
         Ok(())
     }
 
     /// Delete a saved layout by ID.
     pub fn delete_saved_layout(&self, id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_saved_layouts
              WHERE id = ?1",
             params![id],
         )?;
-        self.emit(DataChangeEvent::SavedLayoutChanged);
+        self.0.emit(DataChangeEvent::SavedLayoutChanged);
         Ok(())
     }
 
     /// Get a saved layout by ID (direct query).
     pub fn get_saved_layout_by_id(&self, id: &str) -> Result<Option<SavedLayout>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT id, name, layout, streams,
                     created_at
@@ -99,7 +102,7 @@ impl CrispyService {
     /// Load all search history ordered by searched_at
     /// descending.
     pub fn load_search_history(&self) -> Result<Vec<SearchHistory>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT
                 id, query, searched_at,
@@ -115,7 +118,7 @@ impl CrispyService {
     /// text. Deletes any existing entry with the same
     /// query before inserting.
     pub fn save_search_entry(&self, entry: &SearchHistory) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let tx = conn.unchecked_transaction()?;
         tx.execute(
             "DELETE FROM db_search_history
@@ -135,27 +138,27 @@ impl CrispyService {
             ],
         )?;
         tx.commit()?;
-        self.emit(DataChangeEvent::SearchHistoryChanged);
+        self.0.emit(DataChangeEvent::SearchHistoryChanged);
         Ok(())
     }
 
     /// Delete a search history entry by ID.
     pub fn delete_search_entry(&self, id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_search_history
              WHERE id = ?1",
             params![id],
         )?;
-        self.emit(DataChangeEvent::SearchHistoryChanged);
+        self.0.emit(DataChangeEvent::SearchHistoryChanged);
         Ok(())
     }
 
     /// Delete all search history entries.
     pub fn clear_search_history(&self) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute("DELETE FROM db_search_history", [])?;
-        self.emit(DataChangeEvent::SearchHistoryChanged);
+        self.0.emit(DataChangeEvent::SearchHistoryChanged);
         Ok(())
     }
 }
@@ -163,6 +166,7 @@ impl CrispyService {
 #[cfg(test)]
 mod tests {
     use crate::services::test_helpers::*;
+    use super::MiscService;
 
     fn make_saved_layout(id: &str, name: &str) -> crate::models::SavedLayout {
         crate::models::SavedLayout {
@@ -187,7 +191,7 @@ mod tests {
 
     #[test]
     fn saved_layouts_crud() {
-        let svc = make_service();
+        let svc = MiscService(make_service());
 
         let layouts = svc.load_saved_layouts().unwrap();
         assert!(layouts.is_empty());
@@ -208,7 +212,7 @@ mod tests {
 
     #[test]
     fn saved_layout_upsert() {
-        let svc = make_service();
+        let svc = MiscService(make_service());
         let mut layout = make_saved_layout("l1", "Original");
         svc.save_saved_layout(&layout).unwrap();
 
@@ -222,7 +226,7 @@ mod tests {
 
     #[test]
     fn get_saved_layout_by_id_found() {
-        let svc = make_service();
+        let svc = MiscService(make_service());
         let layout = make_saved_layout("l1", "Layout 1");
         svc.save_saved_layout(&layout).unwrap();
 
@@ -237,7 +241,7 @@ mod tests {
 
     #[test]
     fn get_saved_layout_by_id_not_found() {
-        let svc = make_service();
+        let svc = MiscService(make_service());
         let found = svc.get_saved_layout_by_id("nonexistent").unwrap();
         assert!(found.is_none());
     }
@@ -246,10 +250,10 @@ mod tests {
     fn emit_saved_layout_changed_on_save() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let svc = MiscService(make_service());
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        svc.0.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
         svc.save_saved_layout(&make_saved_layout("l1", "Layout 1"))
@@ -263,7 +267,7 @@ mod tests {
 
     #[test]
     fn search_history_crud() {
-        let svc = make_service();
+        let svc = MiscService(make_service());
 
         let history = svc.load_search_history().unwrap();
         assert!(history.is_empty());
@@ -284,7 +288,7 @@ mod tests {
 
     #[test]
     fn search_history_dedup_by_query() {
-        let svc = make_service();
+        let svc = MiscService(make_service());
 
         svc.save_search_entry(&make_search_entry("s1", "news"))
             .unwrap();
@@ -298,7 +302,7 @@ mod tests {
 
     #[test]
     fn search_history_clear() {
-        let svc = make_service();
+        let svc = MiscService(make_service());
         svc.save_search_entry(&make_search_entry("s1", "a"))
             .unwrap();
         svc.save_search_entry(&make_search_entry("s2", "b"))
@@ -313,10 +317,10 @@ mod tests {
     fn emit_search_history_changed_on_save() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let svc = MiscService(make_service());
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        svc.0.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
         svc.save_search_entry(&make_search_entry("s1", "news"))

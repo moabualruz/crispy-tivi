@@ -10,6 +10,9 @@ use crate::models::UserProfile;
 use crate::insert_or_replace;
 use crate::traits::ProfileRepository;
 
+/// Domain service for profile operations.
+pub struct ProfileService(pub(super) CrispyService);
+
 fn profile_from_row(row: &Row) -> rusqlite::Result<UserProfile> {
     Ok(UserProfile {
         id: row.get(0)?,
@@ -25,12 +28,12 @@ fn profile_from_row(row: &Row) -> rusqlite::Result<UserProfile> {
     })
 }
 
-impl CrispyService {
+impl ProfileService {
     // ── Profiles ────────────────────────────────────
 
     /// Upsert a user profile.
     pub fn save_profile(&self, profile: &UserProfile) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         insert_or_replace!(
             conn,
             "db_profiles",
@@ -59,7 +62,7 @@ impl CrispyService {
                 profile.dvr_quota_mb,
             ],
         )?;
-        self.emit(DataChangeEvent::ProfileChanged {
+        self.0.emit(DataChangeEvent::ProfileChanged {
             profile_id: profile.id.clone(),
         });
         Ok(())
@@ -68,7 +71,7 @@ impl CrispyService {
     /// Delete a profile and cascade-delete its
     /// favourites, channel order, and source access.
     pub fn delete_profile(&self, id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let tx = conn.unchecked_transaction()?;
         tx.execute(
             "DELETE FROM db_watch_history
@@ -106,7 +109,7 @@ impl CrispyService {
             params![id],
         )?;
         tx.commit()?;
-        self.emit(DataChangeEvent::ProfileChanged {
+        self.0.emit(DataChangeEvent::ProfileChanged {
             profile_id: id.to_string(),
         });
         Ok(())
@@ -114,7 +117,7 @@ impl CrispyService {
 
     /// Load all user profiles.
     pub fn load_profiles(&self) -> Result<Vec<UserProfile>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT
                 id, name, avatar_index, pin,
@@ -131,7 +134,7 @@ impl CrispyService {
 
     /// Grant a profile access to a source.
     pub fn grant_source_access(&self, profile_id: &str, source_id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let now = chrono::Utc::now().timestamp();
         insert_or_replace!(
             conn,
@@ -139,7 +142,7 @@ impl CrispyService {
             ["profile_id", "source_id", "granted_at"],
             params![profile_id, source_id, now],
         )?;
-        self.emit(DataChangeEvent::ProfileChanged {
+        self.0.emit(DataChangeEvent::ProfileChanged {
             profile_id: profile_id.to_string(),
         });
         Ok(())
@@ -147,14 +150,14 @@ impl CrispyService {
 
     /// Revoke a profile's access to a source.
     pub fn revoke_source_access(&self, profile_id: &str, source_id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_profile_source_access
              WHERE profile_id = ?1
              AND source_id = ?2",
             params![profile_id, source_id],
         )?;
-        self.emit(DataChangeEvent::ProfileChanged {
+        self.0.emit(DataChangeEvent::ProfileChanged {
             profile_id: profile_id.to_string(),
         });
         Ok(())
@@ -162,7 +165,7 @@ impl CrispyService {
 
     /// Get source IDs a profile has access to.
     pub fn get_source_access(&self, profile_id: &str) -> Result<Vec<String>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT source_id
              FROM db_profile_source_access
@@ -179,7 +182,7 @@ impl CrispyService {
         profile_id: &str,
         source_ids: &[String],
     ) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let tx = conn.unchecked_transaction()?;
         tx.execute(
             "DELETE FROM db_profile_source_access
@@ -196,7 +199,7 @@ impl CrispyService {
             )?;
         }
         tx.commit()?;
-        self.emit(DataChangeEvent::ProfileChanged {
+        self.0.emit(DataChangeEvent::ProfileChanged {
             profile_id: profile_id.to_string(),
         });
         Ok(())
@@ -212,7 +215,7 @@ impl CrispyService {
         group_name: &str,
         channel_ids: &[String],
     ) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let tx = conn.unchecked_transaction()?;
         tx.execute(
             "DELETE FROM db_channel_order
@@ -230,7 +233,7 @@ impl CrispyService {
             )?;
         }
         tx.commit()?;
-        self.emit(DataChangeEvent::ChannelOrderChanged);
+        self.0.emit(DataChangeEvent::ChannelOrderChanged);
         Ok(())
     }
 
@@ -241,7 +244,7 @@ impl CrispyService {
         profile_id: &str,
         group_name: &str,
     ) -> Result<Option<HashMap<String, i32>>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT channel_id, sort_index
              FROM db_channel_order
@@ -266,19 +269,19 @@ impl CrispyService {
     /// Reset custom channel order for a profile and
     /// group (delete all entries).
     pub fn reset_channel_order(&self, profile_id: &str, group_name: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_channel_order
              WHERE profile_id = ?1
              AND group_name = ?2",
             params![profile_id, group_name],
         )?;
-        self.emit(DataChangeEvent::ChannelOrderChanged);
+        self.0.emit(DataChangeEvent::ChannelOrderChanged);
         Ok(())
     }
 }
 
-impl ProfileRepository for CrispyService {
+impl ProfileRepository for ProfileService {
     fn save_profile(&self, profile: &UserProfile) -> Result<(), DomainError> {
         Ok(self.save_profile(profile)?)
     }
@@ -347,17 +350,18 @@ impl ProfileRepository for CrispyService {
 
 #[cfg(test)]
 mod tests {
+    use super::ProfileService;
     use crate::services::test_helpers::*;
 
     #[test]
     fn profile_crud_and_cascade_delete() {
-        let svc = make_service();
+        let base = make_service();
         let profile = make_profile("p1", "Alice");
-        svc.save_profile(&profile).unwrap();
-
-        let ch = make_channel("ch1", "Channel 1");
-        svc.save_channels(&[ch]).unwrap();
-        svc.add_favorite("p1", "ch1").unwrap();
+        base.save_profile(&profile).unwrap();
+        base.save_channels(&[make_channel("ch1", "Channel 1")])
+            .unwrap();
+        base.add_favorite("p1", "ch1").unwrap();
+        let svc = ProfileService(base);
 
         let profiles = svc.load_profiles().unwrap();
         assert_eq!(profiles.len(), 1);
@@ -366,7 +370,7 @@ mod tests {
         svc.delete_profile("p1").unwrap();
         let profiles = svc.load_profiles().unwrap();
         assert!(profiles.is_empty());
-        let favs = svc.get_favorites("p1").unwrap();
+        let favs = svc.0.get_favorites("p1").unwrap();
         assert!(favs.is_empty());
     }
 
@@ -374,12 +378,13 @@ mod tests {
     fn emit_profile_changed_on_save() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let base = make_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
+        let svc = ProfileService(base);
         svc.save_profile(&make_profile("p1", "Alice")).unwrap();
         let recorded = log.lock().unwrap();
         let last = recorded.last().unwrap();
@@ -389,8 +394,9 @@ mod tests {
 
     #[test]
     fn source_access_crud() {
-        let svc = make_service_with_fixtures();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        let base = make_service_with_fixtures();
+        base.save_profile(&make_profile("p1", "Alice")).unwrap();
+        let svc = ProfileService(base);
 
         svc.grant_source_access("p1", "src1").unwrap();
         svc.grant_source_access("p1", "src2").unwrap();
@@ -405,12 +411,13 @@ mod tests {
 
     #[test]
     fn set_source_access_replaces_all() {
-        let svc = make_service_with_fixtures();
-        svc.save_source(&make_source("src4", "Test Source 4", "m3u"))
+        let base = make_service_with_fixtures();
+        base.save_source(&make_source("src4", "Test Source 4", "m3u"))
             .unwrap();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
-        svc.grant_source_access("p1", "src1").unwrap();
-        svc.grant_source_access("p1", "src2").unwrap();
+        base.save_profile(&make_profile("p1", "Alice")).unwrap();
+        base.grant_source_access("p1", "src1").unwrap();
+        base.grant_source_access("p1", "src2").unwrap();
+        let svc = ProfileService(base);
 
         svc.set_source_access("p1", &["src3".to_string(), "src4".to_string()])
             .unwrap();
@@ -422,14 +429,15 @@ mod tests {
 
     #[test]
     fn channel_order_save_load_reset() {
-        let svc = make_service();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
-        svc.save_channels(&[
+        let base = make_service();
+        base.save_profile(&make_profile("p1", "Alice")).unwrap();
+        base.save_channels(&[
             make_channel("ch1", "Ch1"),
             make_channel("ch2", "Ch2"),
             make_channel("ch3", "Ch3"),
         ])
         .unwrap();
+        let svc = ProfileService(base);
 
         let order = vec!["ch3".to_string(), "ch1".to_string(), "ch2".to_string()];
         svc.save_channel_order("p1", "News", &order).unwrap();

@@ -8,6 +8,9 @@ use crate::insert_or_replace;
 use crate::models::{Recording, StorageBackend, TransferTask};
 use crate::traits::{RecordingRepository, StorageRepository, TransferRepository};
 
+/// Domain service for DVR operations.
+pub struct DvrService(pub(super) CrispyService);
+
 fn recording_from_row(row: &Row) -> rusqlite::Result<Recording> {
     Ok(Recording {
         id: row.get(0)?,
@@ -71,12 +74,12 @@ fn transfer_task_from_row(row: &Row) -> rusqlite::Result<TransferTask> {
     })
 }
 
-impl CrispyService {
+impl DvrService {
     // ── Recordings ──────────────────────────────────
 
     /// Save (insert) a recording.
     pub fn save_recording(&self, rec: &Recording) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         insert_or_replace!(
             conn,
             "db_recordings",
@@ -119,7 +122,7 @@ impl CrispyService {
                 rec.remote_path,
             ],
         )?;
-        self.emit(DataChangeEvent::RecordingChanged {
+        self.0.emit(DataChangeEvent::RecordingChanged {
             recording_id: rec.id.clone(),
         });
         Ok(())
@@ -127,7 +130,7 @@ impl CrispyService {
 
     /// Load all recordings.
     pub fn load_recordings(&self) -> Result<Vec<Recording>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT
                 id, channel_id, channel_name,
@@ -149,13 +152,13 @@ impl CrispyService {
 
     /// Delete a recording by ID.
     pub fn delete_recording(&self, id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_recordings
              WHERE id = ?1",
             params![id],
         )?;
-        self.emit(DataChangeEvent::RecordingChanged {
+        self.0.emit(DataChangeEvent::RecordingChanged {
             recording_id: id.to_string(),
         });
         Ok(())
@@ -165,7 +168,7 @@ impl CrispyService {
 
     /// Save (upsert) a storage backend.
     pub fn save_storage_backend(&self, backend: &StorageBackend) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         insert_or_replace!(
             conn,
             "db_storage_backends",
@@ -178,7 +181,7 @@ impl CrispyService {
                 bool_to_int(backend.is_default),
             ],
         )?;
-        self.emit(DataChangeEvent::StorageBackendChanged {
+        self.0.emit(DataChangeEvent::StorageBackendChanged {
             backend_id: backend.id.clone(),
         });
         Ok(())
@@ -186,7 +189,7 @@ impl CrispyService {
 
     /// Load all storage backends.
     pub fn load_storage_backends(&self) -> Result<Vec<StorageBackend>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT id, name, type, config, is_default
              FROM db_storage_backends",
@@ -197,13 +200,13 @@ impl CrispyService {
 
     /// Delete a storage backend by ID.
     pub fn delete_storage_backend(&self, id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_storage_backends
              WHERE id = ?1",
             params![id],
         )?;
-        self.emit(DataChangeEvent::StorageBackendChanged {
+        self.0.emit(DataChangeEvent::StorageBackendChanged {
             backend_id: id.to_string(),
         });
         Ok(())
@@ -213,7 +216,7 @@ impl CrispyService {
 
     /// Save (insert) a transfer task.
     pub fn save_transfer_task(&self, task: &TransferTask) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         insert_or_replace!(
             conn,
             "db_transfer_tasks",
@@ -242,7 +245,7 @@ impl CrispyService {
                 task.remote_path,
             ],
         )?;
-        self.emit(DataChangeEvent::TransferTaskChanged {
+        self.0.emit(DataChangeEvent::TransferTaskChanged {
             task_id: task.id.clone(),
         });
         Ok(())
@@ -250,7 +253,7 @@ impl CrispyService {
 
     /// Load all transfer tasks.
     pub fn load_transfer_tasks(&self) -> Result<Vec<TransferTask>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT
                 id, recording_id, backend_id,
@@ -269,20 +272,20 @@ impl CrispyService {
 
     /// Delete a transfer task by ID.
     pub fn delete_transfer_task(&self, id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_transfer_tasks
              WHERE id = ?1",
             params![id],
         )?;
-        self.emit(DataChangeEvent::TransferTaskChanged {
+        self.0.emit(DataChangeEvent::TransferTaskChanged {
             task_id: id.to_string(),
         });
         Ok(())
     }
 }
 
-impl RecordingRepository for CrispyService {
+impl RecordingRepository for DvrService {
     fn save_recording(&self, rec: &Recording) -> Result<(), DomainError> {
         Ok(self.save_recording(rec)?)
     }
@@ -300,7 +303,7 @@ impl RecordingRepository for CrispyService {
     }
 }
 
-impl StorageRepository for CrispyService {
+impl StorageRepository for DvrService {
     fn save_storage_backend(&self, backend: &StorageBackend) -> Result<(), DomainError> {
         Ok(self.save_storage_backend(backend)?)
     }
@@ -314,7 +317,7 @@ impl StorageRepository for CrispyService {
     }
 }
 
-impl TransferRepository for CrispyService {
+impl TransferRepository for DvrService {
     fn save_transfer_task(&self, task: &TransferTask) -> Result<(), DomainError> {
         Ok(self.save_transfer_task(task)?)
     }
@@ -336,14 +339,15 @@ impl TransferRepository for CrispyService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::DvrService;
     use crate::services::test_helpers::*;
 
     /// Create a service with fixtures and seed channel "ch1" for recording FK.
-    fn make_dvr_service() -> crate::services::CrispyService {
+    fn make_dvr_service() -> DvrService {
         let svc = make_service_with_fixtures();
         svc.save_channels(&[make_channel("ch1", "Channel 1")])
             .unwrap();
-        svc
+        DvrService(svc)
     }
 
     fn make_recording(id: &str) -> Recording {
@@ -494,7 +498,7 @@ mod tests {
         let svc = make_dvr_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        svc.0.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
         svc.save_recording(&make_recording("rec1")).unwrap();
@@ -508,12 +512,13 @@ mod tests {
     fn emit_recording_changed_on_delete() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let base = make_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
+        let svc = DvrService(base);
         svc.delete_recording("rec-nonexistent").unwrap();
         let recorded = log.lock().unwrap();
         let last = recorded.last().unwrap();
@@ -528,12 +533,13 @@ mod tests {
     fn emit_storage_backend_changed_on_save() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let base = make_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
+        let svc = DvrService(base);
         svc.save_storage_backend(&make_storage_backend("sb1"))
             .unwrap();
         let recorded = log.lock().unwrap();
@@ -546,12 +552,13 @@ mod tests {
     fn emit_storage_backend_changed_on_delete() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let base = make_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
+        let svc = DvrService(base);
         svc.delete_storage_backend("sb-gone").unwrap();
         let recorded = log.lock().unwrap();
         let last = recorded.last().unwrap();
@@ -569,7 +576,7 @@ mod tests {
             .unwrap();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        svc.0.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
         svc.save_transfer_task(&make_transfer_task("tt1", "rec1"))
@@ -584,12 +591,13 @@ mod tests {
     fn emit_transfer_task_changed_on_delete() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let base = make_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
+        let svc = DvrService(base);
         svc.delete_transfer_task("tt-gone").unwrap();
         let recorded = log.lock().unwrap();
         let last = recorded.last().unwrap();

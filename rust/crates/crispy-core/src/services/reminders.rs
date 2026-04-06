@@ -21,13 +21,16 @@ fn reminder_from_row(row: &Row) -> rusqlite::Result<Reminder> {
     })
 }
 
-impl CrispyService {
+/// Domain service for reminder operations.
+pub struct ReminderService(pub(super) CrispyService);
+
+impl ReminderService {
     // ── Reminders ─────────────────────────────────────
 
     /// Load all reminders ordered by notify_at
     /// ascending.
     pub fn load_reminders(&self) -> Result<Vec<Reminder>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT
                 id, program_name, channel_name,
@@ -42,7 +45,7 @@ impl CrispyService {
 
     /// Save (upsert) a reminder.
     pub fn save_reminder(&self, reminder: &Reminder) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         insert_or_replace!(
             conn,
             "db_reminders",
@@ -67,49 +70,49 @@ impl CrispyService {
                 dt_to_ts(&reminder.created_at),
             ],
         )?;
-        self.emit(DataChangeEvent::ReminderChanged);
+        self.0.emit(DataChangeEvent::ReminderChanged);
         Ok(())
     }
 
     /// Delete a reminder by ID.
     pub fn delete_reminder(&self, id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_reminders
              WHERE id = ?1",
             params![id],
         )?;
-        self.emit(DataChangeEvent::ReminderChanged);
+        self.0.emit(DataChangeEvent::ReminderChanged);
         Ok(())
     }
 
     /// Delete all fired reminders.
     pub fn clear_fired_reminders(&self) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_reminders
              WHERE fired = 1",
             [],
         )?;
-        self.emit(DataChangeEvent::ReminderChanged);
+        self.0.emit(DataChangeEvent::ReminderChanged);
         Ok(())
     }
 
     /// Mark a reminder as fired (direct update).
     pub fn mark_reminder_fired(&self, id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "UPDATE db_reminders
              SET fired = 1
              WHERE id = ?1",
             params![id],
         )?;
-        self.emit(DataChangeEvent::ReminderChanged);
+        self.0.emit(DataChangeEvent::ReminderChanged);
         Ok(())
     }
 }
 
-impl ReminderRepository for CrispyService {
+impl ReminderRepository for ReminderService {
     fn load_reminders(&self) -> Result<Vec<Reminder>, DomainError> {
         Ok(self.load_reminders()?)
     }
@@ -134,6 +137,7 @@ impl ReminderRepository for CrispyService {
 #[cfg(test)]
 mod tests {
     use crate::services::test_helpers::*;
+    use super::ReminderService;
 
     fn make_reminder(id: &str, fired: bool) -> crate::models::Reminder {
         let dt = parse_dt("2025-01-15 12:00:00");
@@ -151,8 +155,9 @@ mod tests {
 
     #[test]
     fn reminders_crud() {
-        let svc = make_service();
-        svc.save_profile(&make_profile("p1", "Test")).unwrap();
+        let base = make_service();
+        base.save_profile(&make_profile("p1", "Test")).unwrap();
+        let svc = ReminderService(base);
 
         let reminders = svc.load_reminders().unwrap();
         assert!(reminders.is_empty());
@@ -171,8 +176,9 @@ mod tests {
 
     #[test]
     fn reminders_upsert() {
-        let svc = make_service();
-        svc.save_profile(&make_profile("p1", "Test")).unwrap();
+        let base = make_service();
+        base.save_profile(&make_profile("p1", "Test")).unwrap();
+        let svc = ReminderService(base);
         let mut reminder = make_reminder("r1", false);
         svc.save_reminder(&reminder).unwrap();
 
@@ -186,8 +192,9 @@ mod tests {
 
     #[test]
     fn clear_fired_reminders() {
-        let svc = make_service();
-        svc.save_profile(&make_profile("p1", "Test")).unwrap();
+        let base = make_service();
+        base.save_profile(&make_profile("p1", "Test")).unwrap();
+        let svc = ReminderService(base);
         svc.save_reminder(&make_reminder("r1", true)).unwrap();
         svc.save_reminder(&make_reminder("r2", false)).unwrap();
         svc.save_reminder(&make_reminder("r3", true)).unwrap();
@@ -202,8 +209,9 @@ mod tests {
 
     #[test]
     fn mark_reminder_fired_updates() {
-        let svc = make_service();
-        svc.save_profile(&make_profile("p1", "Test")).unwrap();
+        let base = make_service();
+        base.save_profile(&make_profile("p1", "Test")).unwrap();
+        let svc = ReminderService(base);
         svc.save_reminder(&make_reminder("r1", false)).unwrap();
 
         svc.mark_reminder_fired("r1").unwrap();
@@ -215,7 +223,7 @@ mod tests {
 
     #[test]
     fn mark_reminder_fired_nonexistent() {
-        let svc = make_service();
+        let svc = ReminderService(make_service());
         svc.mark_reminder_fired("nonexistent").unwrap();
     }
 }

@@ -23,13 +23,16 @@ fn bookmark_from_row(row: &Row) -> rusqlite::Result<Bookmark> {
     })
 }
 
-impl CrispyService {
+/// Domain service for bookmark operations.
+pub struct BookmarkService(pub(super) CrispyService);
+
+impl BookmarkService {
     // ── Bookmarks ─────────────────────────────────────
 
     /// Load all bookmarks for a content item, ordered
     /// by position ascending.
     pub fn load_bookmarks(&self, content_id: &str) -> Result<Vec<Bookmark>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT
                 id, content_id, content_type,
@@ -44,7 +47,7 @@ impl CrispyService {
 
     /// Save (upsert) a bookmark.
     pub fn save_bookmark(&self, bookmark: &Bookmark) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         insert_or_replace!(
             conn,
             "db_bookmarks",
@@ -58,36 +61,36 @@ impl CrispyService {
                 dt_to_ts(&bookmark.created_at),
             ],
         )?;
-        self.emit(DataChangeEvent::BookmarkChanged);
+        self.0.emit(DataChangeEvent::BookmarkChanged);
         Ok(())
     }
 
     /// Delete a bookmark by ID.
     pub fn delete_bookmark(&self, id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_bookmarks
              WHERE id = ?1",
             params![id],
         )?;
-        self.emit(DataChangeEvent::BookmarkChanged);
+        self.0.emit(DataChangeEvent::BookmarkChanged);
         Ok(())
     }
 
     /// Delete all bookmarks for a content item.
     pub fn clear_bookmarks(&self, content_id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_bookmarks
              WHERE content_id = ?1",
             params![content_id],
         )?;
-        self.emit(DataChangeEvent::BookmarkChanged);
+        self.0.emit(DataChangeEvent::BookmarkChanged);
         Ok(())
     }
 }
 
-impl BookmarkRepository for CrispyService {
+impl BookmarkRepository for BookmarkService {
     fn load_bookmarks(&self, content_id: &str) -> Result<Vec<Bookmark>, DomainError> {
         Ok(self.load_bookmarks(content_id)?)
     }
@@ -108,6 +111,7 @@ impl BookmarkRepository for CrispyService {
 #[cfg(test)]
 mod tests {
     use crate::services::test_helpers::*;
+    use super::BookmarkService;
 
     fn make_bookmark(id: &str, content_id: &str, position_ms: i64) -> crate::models::Bookmark {
         let dt = parse_dt("2025-01-15 12:00:00");
@@ -123,7 +127,7 @@ mod tests {
 
     #[test]
     fn bookmarks_crud() {
-        let svc = make_service();
+        let svc = BookmarkService(make_service());
 
         let bookmarks = svc.load_bookmarks("movie1").unwrap();
         assert!(bookmarks.is_empty());
@@ -146,7 +150,7 @@ mod tests {
 
     #[test]
     fn bookmarks_upsert() {
-        let svc = make_service();
+        let svc = BookmarkService(make_service());
         let mut bm = make_bookmark("b1", "movie1", 5000);
         svc.save_bookmark(&bm).unwrap();
 
@@ -160,7 +164,7 @@ mod tests {
 
     #[test]
     fn bookmarks_ordered_by_position() {
-        let svc = make_service();
+        let svc = BookmarkService(make_service());
         svc.save_bookmark(&make_bookmark("b3", "movie1", 30000))
             .unwrap();
         svc.save_bookmark(&make_bookmark("b1", "movie1", 10000))
@@ -176,7 +180,7 @@ mod tests {
 
     #[test]
     fn bookmarks_isolated_by_content() {
-        let svc = make_service();
+        let svc = BookmarkService(make_service());
         svc.save_bookmark(&make_bookmark("b1", "movie1", 5000))
             .unwrap();
         svc.save_bookmark(&make_bookmark("b2", "movie2", 8000))
@@ -192,7 +196,7 @@ mod tests {
 
     #[test]
     fn clear_bookmarks() {
-        let svc = make_service();
+        let svc = BookmarkService(make_service());
         svc.save_bookmark(&make_bookmark("b1", "movie1", 5000))
             .unwrap();
         svc.save_bookmark(&make_bookmark("b2", "movie1", 10000))
@@ -208,13 +212,13 @@ mod tests {
 
     #[test]
     fn delete_nonexistent_bookmark() {
-        let svc = make_service();
+        let svc = BookmarkService(make_service());
         svc.delete_bookmark("nonexistent").unwrap();
     }
 
     #[test]
     fn bookmark_with_label() {
-        let svc = make_service();
+        let svc = BookmarkService(make_service());
         let mut bm = make_bookmark("b1", "movie1", 5000);
         bm.label = Some("Best fight scene".to_string());
         svc.save_bookmark(&bm).unwrap();
@@ -225,7 +229,7 @@ mod tests {
 
     #[test]
     fn bookmark_channel_type() {
-        let svc = make_service();
+        let svc = BookmarkService(make_service());
         let mut bm = make_bookmark("b1", "ch1", 0);
         bm.content_type = crate::value_objects::MediaType::Channel;
         svc.save_bookmark(&bm).unwrap();

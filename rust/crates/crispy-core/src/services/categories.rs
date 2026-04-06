@@ -7,7 +7,10 @@ use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::insert_or_replace;
 
-impl CrispyService {
+/// Domain service for category operations.
+pub struct CategoryService(pub(super) CrispyService);
+
+impl CategoryService {
     // ── Categories ──────────────────────────────────
 
     /// Save categories for a specific source as type -> [names].
@@ -18,7 +21,7 @@ impl CrispyService {
         source_id: &str,
         categories: &HashMap<String, Vec<String>>,
     ) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let tx = conn.unchecked_transaction()?;
         tx.execute(
             "DELETE FROM db_categories WHERE source_id = ?1",
@@ -37,13 +40,13 @@ impl CrispyService {
             }
         }
         tx.commit()?;
-        self.emit(DataChangeEvent::BulkDataRefresh);
+        self.0.emit(DataChangeEvent::BulkDataRefresh);
         Ok(())
     }
 
     /// Load all categories grouped by type.
     pub fn load_categories(&self) -> Result<HashMap<String, Vec<String>>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT category_type, name
              FROM db_categories
@@ -72,7 +75,7 @@ impl CrispyService {
         if source_ids.is_empty() {
             return self.load_categories();
         }
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let placeholders: Vec<String> = (1..=source_ids.len()).map(|i| format!("?{i}")).collect();
         let sql = format!(
             "SELECT category_type, name
@@ -103,7 +106,7 @@ impl CrispyService {
         category_type: &str,
         category_name: &str,
     ) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let now = chrono::Utc::now().timestamp();
         insert_or_replace!(
             conn,
@@ -111,7 +114,7 @@ impl CrispyService {
             ["profile_id", "category_type", "category_name", "added_at"],
             params![profile_id, category_type, category_name, now],
         )?;
-        self.emit(DataChangeEvent::FavoriteCategoryToggled {
+        self.0.emit(DataChangeEvent::FavoriteCategoryToggled {
             category_type: category_type.to_string(),
             category_name: category_name.to_string(),
         });
@@ -125,7 +128,7 @@ impl CrispyService {
         category_type: &str,
         category_name: &str,
     ) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_favorite_categories
              WHERE profile_id = ?1
@@ -133,7 +136,7 @@ impl CrispyService {
              AND category_name = ?3",
             params![profile_id, category_type, category_name,],
         )?;
-        self.emit(DataChangeEvent::FavoriteCategoryToggled {
+        self.0.emit(DataChangeEvent::FavoriteCategoryToggled {
             category_type: category_type.to_string(),
             category_name: category_name.to_string(),
         });
@@ -147,7 +150,7 @@ impl CrispyService {
         profile_id: &str,
         category_type: &str,
     ) -> Result<Vec<String>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT category_name
              FROM db_favorite_categories
@@ -164,12 +167,14 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::services::test_helpers::*;
+    use super::CategoryService;
 
     #[test]
     fn categories_crud() {
-        let svc = make_service();
+        let base = make_service();
         let src = make_source("s1", "S1", "m3u");
-        svc.save_source(&src).unwrap();
+        base.save_source(&src).unwrap();
+        let svc = CategoryService(base);
 
         let mut cats = HashMap::new();
         cats.insert(
@@ -186,8 +191,9 @@ mod tests {
 
     #[test]
     fn favorite_categories_crud() {
-        let svc = make_service();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        let base = make_service();
+        base.save_profile(&make_profile("p1", "Alice")).unwrap();
+        let svc = CategoryService(base);
 
         svc.add_favorite_category("p1", "live", "News").unwrap();
         svc.add_favorite_category("p1", "live", "Sports").unwrap();

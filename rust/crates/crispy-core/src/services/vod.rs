@@ -10,6 +10,9 @@ use crate::models::VodItem;
 use crate::models::columns::{VOD_COLUMNS, VOD_COLUMNS_V};
 use crate::traits::VodRepository;
 
+/// Domain service for VOD operations.
+pub struct VodService(pub(super) CrispyService);
+
 /// Map a single SQLite row to a `VodItem` (backward compat).
 pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
     Ok(VodItem {
@@ -48,7 +51,7 @@ pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
     })
 }
 
-impl CrispyService {
+impl VodService {
     // ── VOD Items (backward compat — writes to db_movies) ──
 
     /// Batch upsert VOD items using a caller-supplied connection.
@@ -137,11 +140,11 @@ impl CrispyService {
     /// This is a backward-compatibility shim: parsers still produce
     /// VodItem structs which are mapped to db_movies rows.
     pub fn save_vod_items(&self, items: &[VodItem]) -> Result<usize, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let tx = conn.unchecked_transaction()?;
         let count = Self::save_vod_items_inner(&tx, items)?;
         tx.commit()?;
-        self.emit_per_source(
+        self.0.emit_per_source(
             items,
             |v| v.source_id.as_deref(),
             |sid| DataChangeEvent::VodUpdated { source_id: sid },
@@ -151,7 +154,7 @@ impl CrispyService {
 
     /// Load all VOD items (from db_movies).
     pub fn load_vod_items(&self) -> Result<Vec<VodItem>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(&format!("SELECT {VOD_COLUMNS} FROM db_movies",))?;
         let rows = stmt.query_map([], vod_item_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -162,7 +165,7 @@ impl CrispyService {
         if source_ids.is_empty() {
             return self.load_vod_items();
         }
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let sql = format!(
             "SELECT {VOD_COLUMNS} FROM db_movies WHERE source_id IN ({})",
             build_in_placeholders(source_ids.len())
@@ -182,7 +185,7 @@ impl CrispyService {
         query: Option<&str>,
         sort_by: &str,
     ) -> Result<Vec<VodItem>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut sql = format!("SELECT {VOD_COLUMNS} FROM db_movies WHERE 1=1",);
 
         let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
@@ -233,7 +236,7 @@ impl CrispyService {
         exclude_id: &str,
         limit: usize,
     ) -> Result<Vec<VodItem>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let name_lower = name.to_lowercase().trim().to_string();
         let mut stmt = conn.prepare(&format!(
             "SELECT {VOD_COLUMNS_V}
@@ -261,11 +264,11 @@ impl CrispyService {
         source_id: &str,
         keep_ids: &[String],
     ) -> Result<usize, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let tx = conn.unchecked_transaction()?;
         let deleted = super::delete_removed_by_source_conn(&tx, TABLE_MOVIES, source_id, keep_ids)?;
         tx.commit()?;
-        self.emit(DataChangeEvent::VodUpdated {
+        self.0.emit(DataChangeEvent::VodUpdated {
             source_id: source_id.to_string(),
         });
         Ok(deleted)
@@ -275,7 +278,7 @@ impl CrispyService {
 
     /// Get favourite VOD content IDs for a profile.
     pub fn get_vod_favorites(&self, profile_id: &str) -> Result<Vec<String>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT content_id
              FROM db_vod_favorites
@@ -287,13 +290,13 @@ impl CrispyService {
 
     /// Add a VOD item to a profile's favourites.
     pub fn add_vod_favorite(&self, profile_id: &str, vod_item_id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let now = chrono::Utc::now().timestamp();
         insert_or_replace!(conn, "db_vod_favorites",
             ["profile_id", "content_id", "content_type", "added_at"],
             params![profile_id, vod_item_id, "movie", now]
         )?;
-        self.emit(DataChangeEvent::VodFavoriteToggled {
+        self.0.emit(DataChangeEvent::VodFavoriteToggled {
             vod_id: vod_item_id.to_string(),
             is_favorite: true,
         });
@@ -302,14 +305,14 @@ impl CrispyService {
 
     /// Remove a VOD item from a profile's favourites.
     pub fn remove_vod_favorite(&self, profile_id: &str, vod_item_id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_vod_favorites
              WHERE profile_id = ?1
              AND content_id = ?2",
             params![profile_id, vod_item_id],
         )?;
-        self.emit(DataChangeEvent::VodFavoriteToggled {
+        self.0.emit(DataChangeEvent::VodFavoriteToggled {
             vod_id: vod_item_id.to_string(),
             is_favorite: false,
         });
@@ -317,7 +320,7 @@ impl CrispyService {
     }
 }
 
-impl VodRepository for CrispyService {
+impl VodRepository for VodService {
     fn save_vod_items(&self, items: &[VodItem]) -> Result<usize, DomainError> {
         Ok(self.save_vod_items(items)?)
     }
@@ -385,13 +388,15 @@ impl VodRepository for CrispyService {
 
 #[cfg(test)]
 mod tests {
+    use super::VodService;
     use crate::services::test_helpers::*;
 
     #[test]
     fn save_and_load_vod_items() {
-        let svc = make_service();
+        let base = make_service();
         let src = make_source("src1", "S1", "m3u");
-        svc.save_source(&src).unwrap();
+        base.save_source(&src).unwrap();
+        let svc = VodService(base);
         let mut v1 = make_vod_item("v1", "Movie 1");
         v1.source_id = Some("src1".to_string());
         let mut v2 = make_vod_item("v2", "Movie 2");
@@ -407,7 +412,7 @@ mod tests {
 
     #[test]
     fn test_get_vod_by_sources_empty_returns_all() {
-        let svc = make_service_with_fixtures();
+        let svc = VodService(make_service_with_fixtures());
         let mut v1 = make_vod_item("v1", "Movie 1");
         v1.source_id = Some("src_a".to_string());
         let mut v2 = make_vod_item("v2", "Movie 2");
@@ -421,7 +426,7 @@ mod tests {
 
     #[test]
     fn test_get_vod_by_sources_filters() {
-        let svc = make_service_with_fixtures();
+        let svc = VodService(make_service_with_fixtures());
         let mut v1 = make_vod_item("v1", "Movie 1");
         v1.source_id = Some("src_a".to_string());
         let mut v2 = make_vod_item("v2", "Movie 2");
@@ -440,9 +445,10 @@ mod tests {
 
     #[test]
     fn vod_upsert_overwrites() {
-        let svc = make_service();
+        let base = make_service();
         let src = make_source("src1", "S1", "m3u");
-        svc.save_source(&src).unwrap();
+        base.save_source(&src).unwrap();
+        let svc = VodService(base);
         let mut v = make_vod_item("v1", "Original");
         v.source_id = Some("src1".to_string());
         svc.save_vod_items(&[v.clone()]).unwrap();
@@ -457,7 +463,7 @@ mod tests {
 
     #[test]
     fn delete_removed_vod_items() {
-        let svc = make_service_with_fixtures();
+        let svc = VodService(make_service_with_fixtures());
         let mut v1 = make_vod_item("v1", "Movie 1");
         v1.source_id = Some("src1".to_string());
         let mut v2 = make_vod_item("v2", "Movie 2");
@@ -478,10 +484,11 @@ mod tests {
 
     #[test]
     fn vod_favorites_crud() {
-        let svc = make_service();
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        let base = make_service();
+        base.save_profile(&make_profile("p1", "Alice")).unwrap();
         let src = make_source("src1", "S1", "m3u");
-        svc.save_source(&src).unwrap();
+        base.save_source(&src).unwrap();
+        let svc = VodService(base);
         let mut v = make_vod_item("v1", "Movie");
         v.source_id = Some("src1".to_string());
         svc.save_vod_items(&[v]).unwrap();
@@ -499,15 +506,16 @@ mod tests {
     fn emit_vod_favorite_toggled_on_add() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let base = make_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        base.save_profile(&make_profile("p1", "Alice")).unwrap();
         let src = make_source("src1", "S1", "m3u");
-        svc.save_source(&src).unwrap();
+        base.save_source(&src).unwrap();
+        let svc = VodService(base);
         let mut v = make_vod_item("v1", "Movie");
         v.source_id = Some("src1".to_string());
         svc.save_vod_items(&[v]).unwrap();
@@ -520,13 +528,14 @@ mod tests {
 
     #[test]
     fn find_vod_alternatives_returns_matches() {
-        let svc = make_service();
+        let base = make_service();
         let mut src_a = make_source("src_a", "Source A", "m3u");
         src_a.sort_order = 0;
         let mut src_b = make_source("src_b", "Source B", "m3u");
         src_b.sort_order = 1;
-        svc.save_source(&src_a).unwrap();
-        svc.save_source(&src_b).unwrap();
+        base.save_source(&src_a).unwrap();
+        base.save_source(&src_b).unwrap();
+        let svc = VodService(base);
 
         let mut v1 = make_vod_item("v1", "Dune");
         v1.year = Some(2021);
@@ -545,9 +554,10 @@ mod tests {
 
     #[test]
     fn find_vod_alternatives_excludes_self() {
-        let svc = make_service();
+        let base = make_service();
         let src = make_source("src_a", "Source A", "m3u");
-        svc.save_source(&src).unwrap();
+        base.save_source(&src).unwrap();
+        let svc = VodService(base);
 
         let mut v1 = make_vod_item("v1", "Dune");
         v1.year = Some(2021);
@@ -562,13 +572,14 @@ mod tests {
 
     #[test]
     fn find_vod_alternatives_year_mismatch() {
-        let svc = make_service();
+        let base = make_service();
         let mut src_a = make_source("src_a", "Source A", "m3u");
         src_a.sort_order = 0;
         let mut src_b = make_source("src_b", "Source B", "m3u");
         src_b.sort_order = 1;
-        svc.save_source(&src_a).unwrap();
-        svc.save_source(&src_b).unwrap();
+        base.save_source(&src_a).unwrap();
+        base.save_source(&src_b).unwrap();
+        let svc = VodService(base);
 
         let mut v1 = make_vod_item("v1", "Dune");
         v1.year = Some(2021);
@@ -586,16 +597,17 @@ mod tests {
 
     #[test]
     fn find_vod_alternatives_nil_year_matches_any() {
-        let svc = make_service();
+        let base = make_service();
         let mut src_a = make_source("src_a", "Source A", "m3u");
         src_a.sort_order = 0;
         let mut src_b = make_source("src_b", "Source B", "m3u");
         src_b.sort_order = 1;
         let mut src_c = make_source("src_c", "Source C", "m3u");
         src_c.sort_order = 2;
-        svc.save_source(&src_a).unwrap();
-        svc.save_source(&src_b).unwrap();
-        svc.save_source(&src_c).unwrap();
+        base.save_source(&src_a).unwrap();
+        base.save_source(&src_b).unwrap();
+        base.save_source(&src_c).unwrap();
+        let svc = VodService(base);
 
         let mut v1 = make_vod_item("v1", "Dune");
         v1.year = None;
@@ -618,16 +630,17 @@ mod tests {
 
     #[test]
     fn find_vod_alternatives_ordered_by_priority() {
-        let svc = make_service();
+        let base = make_service();
         let mut src_a = make_source("src_a", "Source A", "m3u");
         src_a.sort_order = 5;
         let mut src_b = make_source("src_b", "Source B", "m3u");
         src_b.sort_order = 0;
         let mut src_c = make_source("src_c", "Source C", "m3u");
         src_c.sort_order = 10;
-        svc.save_source(&src_a).unwrap();
-        svc.save_source(&src_b).unwrap();
-        svc.save_source(&src_c).unwrap();
+        base.save_source(&src_a).unwrap();
+        base.save_source(&src_b).unwrap();
+        base.save_source(&src_c).unwrap();
+        let svc = VodService(base);
 
         let mut v1 = make_vod_item("v1", "Inception");
         v1.year = Some(2010);
@@ -653,12 +666,13 @@ mod tests {
         use crate::events::serialize_event;
         use std::collections::HashSet;
         use std::sync::{Arc, Mutex};
-        let svc = make_service_with_fixtures();
+        let base = make_service_with_fixtures();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
+        let svc = VodService(base);
         let mut v1 = make_vod_item("v1", "Movie 1");
         v1.source_id = Some("src_a".to_string());
         let mut v2 = make_vod_item("v2", "Movie 2");

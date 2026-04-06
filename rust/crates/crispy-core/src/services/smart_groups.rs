@@ -7,42 +7,45 @@ use crate::database::DbError;
 use crate::events::DataChangeEvent;
 use crate::insert_or_replace;
 
-impl CrispyService {
+/// Domain service for smart channel group operations.
+pub struct SmartGroupService(pub(super) CrispyService);
+
+impl SmartGroupService {
     // ── Smart Channel Groups ────────────────────────────
 
     /// Create a new smart channel group. Returns its UUID.
     pub fn create_smart_group(&self, name: &str) -> Result<String, DbError> {
         let id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now().timestamp();
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "INSERT INTO db_smart_groups (id, name, created_at)
              VALUES (?1, ?2, ?3)",
             params![id, name, now],
         )?;
-        self.emit(DataChangeEvent::SmartGroupChanged);
+        self.0.emit(DataChangeEvent::SmartGroupChanged);
         Ok(id)
     }
 
     /// Delete a smart group and all its members (CASCADE).
     pub fn delete_smart_group(&self, group_id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_smart_groups WHERE id = ?1",
             params![group_id],
         )?;
-        self.emit(DataChangeEvent::SmartGroupChanged);
+        self.0.emit(DataChangeEvent::SmartGroupChanged);
         Ok(())
     }
 
     /// Rename a smart group.
     pub fn rename_smart_group(&self, group_id: &str, name: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "UPDATE db_smart_groups SET name = ?2 WHERE id = ?1",
             params![group_id, name],
         )?;
-        self.emit(DataChangeEvent::SmartGroupChanged);
+        self.0.emit(DataChangeEvent::SmartGroupChanged);
         Ok(())
     }
 
@@ -54,14 +57,14 @@ impl CrispyService {
         source_id: &str,
         priority: i32,
     ) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         insert_or_replace!(
             conn,
             "db_smart_group_members",
             ["group_id", "channel_id", "source_id", "priority"],
             params![group_id, channel_id, source_id, priority],
         )?;
-        self.emit(DataChangeEvent::SmartGroupChanged);
+        self.0.emit(DataChangeEvent::SmartGroupChanged);
         Ok(())
     }
 
@@ -71,13 +74,13 @@ impl CrispyService {
         group_id: &str,
         channel_id: &str,
     ) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_smart_group_members
              WHERE group_id = ?1 AND channel_id = ?2",
             params![group_id, channel_id],
         )?;
-        self.emit(DataChangeEvent::SmartGroupChanged);
+        self.0.emit(DataChangeEvent::SmartGroupChanged);
         Ok(())
     }
 
@@ -91,7 +94,7 @@ impl CrispyService {
     ) -> Result<(), DbError> {
         let ids: Vec<String> = serde_json::from_str(ordered_channel_ids_json)
             .map_err(|e| DbError::Migration(e.to_string()))?;
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         for (i, id) in ids.iter().enumerate() {
             conn.execute(
                 "UPDATE db_smart_group_members
@@ -100,7 +103,7 @@ impl CrispyService {
                 params![group_id, id, i as i32],
             )?;
         }
-        self.emit(DataChangeEvent::SmartGroupChanged);
+        self.0.emit(DataChangeEvent::SmartGroupChanged);
         Ok(())
     }
 
@@ -121,7 +124,7 @@ impl CrispyService {
     /// ]
     /// ```
     pub fn get_smart_groups_json(&self) -> Result<String, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut group_stmt =
             conn.prepare("SELECT id, name, created_at FROM db_smart_groups ORDER BY name")?;
         let mut member_stmt = conn.prepare(
@@ -172,7 +175,7 @@ impl CrispyService {
     /// Get the smart group (if any) that a channel belongs to.
     /// Returns the group JSON or None.
     pub fn get_smart_group_for_channel(&self, channel_id: &str) -> Result<Option<String>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let group_id: Option<String> = conn
             .query_row(
                 "SELECT group_id FROM db_smart_group_members
@@ -229,7 +232,7 @@ impl CrispyService {
     /// same-source channels. Returns JSON array of
     /// `{ channel_id, source_id, priority }` sorted by priority.
     pub fn get_smart_group_alternatives(&self, channel_id: &str) -> Result<String, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
 
         // Find this channel's group and source.
         let member: Option<(String, String)> = conn
@@ -292,7 +295,7 @@ impl CrispyService {
     /// ]
     /// ```
     pub fn detect_smart_group_candidates(&self) -> Result<String, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
 
         // Get channel IDs already in smart groups.
         let mut existing_stmt = conn.prepare("SELECT channel_id FROM db_smart_group_members")?;
@@ -387,13 +390,17 @@ impl CrispyService {
 #[cfg(test)]
 mod tests {
     use crate::insert_or_replace;
+    use crate::services::channels::ChannelService;
     use crate::services::test_helpers::*;
+    use super::SmartGroupService;
 
     #[test]
     fn smart_group_crud() {
-        let svc = make_service_with_fixtures();
-        svc.save_channels(&[make_channel("ch1", "Ch1"), make_channel("ch2", "Ch2")])
+        let base = make_service_with_fixtures();
+        ChannelService(base.clone())
+            .save_channels(&[make_channel("ch1", "Ch1"), make_channel("ch2", "Ch2")])
             .unwrap();
+        let svc = SmartGroupService(base);
 
         // Create a group.
         let gid = svc.create_smart_group("ESPN").unwrap();
@@ -431,13 +438,15 @@ mod tests {
 
     #[test]
     fn smart_group_member_priority_ordering() {
-        let svc = make_service_with_fixtures();
-        svc.save_channels(&[
-            make_channel("ch_a", "ChA"),
-            make_channel("ch_b", "ChB"),
-            make_channel("ch_c", "ChC"),
-        ])
-        .unwrap();
+        let base = make_service_with_fixtures();
+        ChannelService(base.clone())
+            .save_channels(&[
+                make_channel("ch_a", "ChA"),
+                make_channel("ch_b", "ChB"),
+                make_channel("ch_c", "ChC"),
+            ])
+            .unwrap();
+        let svc = SmartGroupService(base);
         let gid = svc.create_smart_group("Fox News").unwrap();
 
         svc.add_smart_group_member(&gid, "ch_a", "s1", 2).unwrap();
@@ -454,13 +463,15 @@ mod tests {
 
     #[test]
     fn smart_group_reorder() {
-        let svc = make_service_with_fixtures();
-        svc.save_channels(&[
-            make_channel("ch1", "Ch1"),
-            make_channel("ch2", "Ch2"),
-            make_channel("ch3", "Ch3"),
-        ])
-        .unwrap();
+        let base = make_service_with_fixtures();
+        ChannelService(base.clone())
+            .save_channels(&[
+                make_channel("ch1", "Ch1"),
+                make_channel("ch2", "Ch2"),
+                make_channel("ch3", "Ch3"),
+            ])
+            .unwrap();
+        let svc = SmartGroupService(base);
         let gid = svc.create_smart_group("CNN").unwrap();
 
         svc.add_smart_group_member(&gid, "ch1", "s1", 0).unwrap();
@@ -481,9 +492,11 @@ mod tests {
 
     #[test]
     fn get_smart_group_for_channel() {
-        let svc = make_service_with_fixtures();
-        svc.save_channels(&[make_channel("ch1", "Ch1"), make_channel("ch2", "Ch2")])
+        let base = make_service_with_fixtures();
+        ChannelService(base.clone())
+            .save_channels(&[make_channel("ch1", "Ch1"), make_channel("ch2", "Ch2")])
             .unwrap();
+        let svc = SmartGroupService(base);
         let gid = svc.create_smart_group("BBC").unwrap();
         svc.add_smart_group_member(&gid, "ch1", "s1", 0).unwrap();
         svc.add_smart_group_member(&gid, "ch2", "s2", 1).unwrap();
@@ -502,14 +515,16 @@ mod tests {
 
     #[test]
     fn get_smart_group_alternatives_excludes_same_source() {
-        let svc = make_service_with_fixtures();
-        svc.save_channels(&[
-            make_channel("ch1", "Ch1"),
-            make_channel("ch2", "Ch2"),
-            make_channel("ch3", "Ch3"),
-            make_channel("ch4", "Ch4"),
-        ])
-        .unwrap();
+        let base = make_service_with_fixtures();
+        ChannelService(base.clone())
+            .save_channels(&[
+                make_channel("ch1", "Ch1"),
+                make_channel("ch2", "Ch2"),
+                make_channel("ch3", "Ch3"),
+                make_channel("ch4", "Ch4"),
+            ])
+            .unwrap();
+        let svc = SmartGroupService(base);
         let gid = svc.create_smart_group("ESPN").unwrap();
         svc.add_smart_group_member(&gid, "ch1", "src_a", 0).unwrap();
         svc.add_smart_group_member(&gid, "ch2", "src_b", 1).unwrap();
@@ -527,14 +542,14 @@ mod tests {
 
     #[test]
     fn get_alternatives_for_ungrouped_channel() {
-        let svc = make_service_with_fixtures();
+        let svc = SmartGroupService(make_service_with_fixtures());
         let json = svc.get_smart_group_alternatives("ch_nowhere").unwrap();
         assert_eq!(json, "[]");
     }
 
     #[test]
     fn detect_candidates_finds_same_name_across_sources() {
-        let svc = make_service_with_fixtures();
+        let svc = SmartGroupService(make_service_with_fixtures());
         // Insert channels with same normalized name across sources.
         insert_channel(&svc, "ch1", "ESPN HD", "http://a.m3u8", "src1");
         insert_channel(&svc, "ch2", "US: ESPN", "http://b.m3u8", "src2");
@@ -552,7 +567,7 @@ mod tests {
 
     #[test]
     fn detect_candidates_excludes_already_grouped() {
-        let svc = make_service_with_fixtures();
+        let svc = SmartGroupService(make_service_with_fixtures());
         insert_channel(&svc, "ch1", "ESPN HD", "http://a.m3u8", "src1");
         insert_channel(&svc, "ch2", "ESPN", "http://b.m3u8", "src2");
 
@@ -569,7 +584,7 @@ mod tests {
 
     #[test]
     fn detect_candidates_ignores_same_source_duplicates() {
-        let svc = make_service_with_fixtures();
+        let svc = SmartGroupService(make_service_with_fixtures());
         insert_channel(&svc, "ch1", "ESPN", "http://a.m3u8", "src1");
         insert_channel(&svc, "ch2", "ESPN", "http://b.m3u8", "src1"); // same source
 
@@ -582,9 +597,11 @@ mod tests {
 
     #[test]
     fn delete_group_cascades_members() {
-        let svc = make_service_with_fixtures();
-        svc.save_channels(&[make_channel("ch1", "Ch1"), make_channel("ch2", "Ch2")])
+        let base = make_service_with_fixtures();
+        ChannelService(base.clone())
+            .save_channels(&[make_channel("ch1", "Ch1"), make_channel("ch2", "Ch2")])
             .unwrap();
+        let svc = SmartGroupService(base);
         let gid = svc.create_smart_group("Test").unwrap();
         svc.add_smart_group_member(&gid, "ch1", "s1", 0).unwrap();
         svc.add_smart_group_member(&gid, "ch2", "s2", 1).unwrap();
@@ -598,13 +615,13 @@ mod tests {
 
     /// Helper to insert a channel for testing.
     fn insert_channel(
-        svc: &crate::services::CrispyService,
+        svc: &SmartGroupService,
         id: &str,
         name: &str,
         url: &str,
         source_id: &str,
     ) {
-        let conn = svc.db.get().unwrap();
+        let conn = svc.0.db.get().unwrap();
         insert_or_replace!(
             conn,
             "db_channels",

@@ -1,59 +1,21 @@
 use chrono::NaiveDateTime;
 use rusqlite::params;
 
-use crate::insert_or_replace;
 use super::{CrispyService, dt_to_ts, ts_to_dt};
 use crate::database::{optional, DbError};
 use crate::errors::DomainError;
-use crate::events::DataChangeEvent;
 use crate::traits::SettingsRepository;
 
-impl CrispyService {
-    // ── Settings (KV Store) ─────────────────────────
+/// Domain service for settings and sync metadata.
+pub struct SettingsService(pub(super) CrispyService);
 
-    /// Get a setting value by key.
-    pub fn get_setting(&self, key: &str) -> Result<Option<String>, DbError> {
-        let conn = self.db.get()?;
-        let result = conn.query_row(
-            "SELECT value FROM db_settings
-             WHERE key = ?1",
-            params![key],
-            |row| row.get(0),
-        );
-        optional(result)
-    }
-
-    /// Set a setting value.
-    pub fn set_setting(&self, key: &str, value: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
-        insert_or_replace!(
-            conn,
-            "db_settings",
-            ["key", "value"],
-            params![key, value],
-        )?;
-        self.emit(DataChangeEvent::SettingsUpdated {
-            key: key.to_string(),
-        });
-        Ok(())
-    }
-
-    /// Remove a setting by key.
-    pub fn remove_setting(&self, key: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
-        conn.execute("DELETE FROM db_settings WHERE key = ?1", params![key])?;
-        self.emit(DataChangeEvent::SettingsUpdated {
-            key: key.to_string(),
-        });
-        Ok(())
-    }
-
+impl SettingsService {
     // ── Sync Meta ───────────────────────────────────
     // last_sync_time is stored directly on db_sources (db_sync_meta removed, D-5 cleanup).
 
     /// Set the last sync time for a source.
     pub fn set_last_sync_time(&self, source_id: &str, time: NaiveDateTime) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "UPDATE db_sources SET last_sync_time = ?1 WHERE id = ?2",
             params![dt_to_ts(&time), source_id],
@@ -63,7 +25,7 @@ impl CrispyService {
 
     /// Get the last sync time for a source.
     pub fn get_last_sync_time(&self, source_id: &str) -> Result<Option<NaiveDateTime>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let result = conn.query_row(
             "SELECT last_sync_time FROM db_sources WHERE id = ?1",
             params![source_id],
@@ -73,17 +35,17 @@ impl CrispyService {
     }
 }
 
-impl SettingsRepository for CrispyService {
+impl SettingsRepository for SettingsService {
     fn get_setting(&self, key: &str) -> Result<Option<String>, DomainError> {
-        Ok(self.get_setting(key)?)
+        Ok(self.0.get_setting(key)?)
     }
 
     fn set_setting(&self, key: &str, value: &str) -> Result<(), DomainError> {
-        Ok(self.set_setting(key, value)?)
+        Ok(self.0.set_setting(key, value)?)
     }
 
     fn remove_setting(&self, key: &str) -> Result<(), DomainError> {
-        Ok(self.remove_setting(key)?)
+        Ok(self.0.remove_setting(key)?)
     }
 
     fn set_last_sync_time(
@@ -104,6 +66,7 @@ impl SettingsRepository for CrispyService {
 
 #[cfg(test)]
 mod tests {
+    use super::SettingsService;
     use crate::services::test_helpers::*;
 
     #[test]
@@ -128,7 +91,7 @@ mod tests {
 
     #[test]
     fn sync_meta_set_and_get() {
-        let svc = make_service_with_fixtures();
+        let svc = SettingsService(make_service_with_fixtures());
         let dt = parse_dt("2025-01-15 12:00:00");
 
         svc.set_last_sync_time("src1", dt).unwrap();
@@ -143,7 +106,7 @@ mod tests {
 
     #[test]
     fn sync_meta_missing_returns_none() {
-        let svc = make_service();
+        let svc = SettingsService(make_service());
         let loaded = svc.get_last_sync_time("nonexistent").unwrap();
         assert!(loaded.is_none());
     }

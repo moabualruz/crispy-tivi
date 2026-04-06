@@ -90,8 +90,8 @@ fn row_to_source(row: &rusqlite::Row<'_>) -> rusqlite::Result<Source> {
 /// If the source has `credentials_encrypted = false` (legacy plaintext row)
 /// and a keyring is available, this re-encrypts and saves the row so that
 /// future loads are encrypted.
-fn decrypt_source(svc: &CrispyService, mut source: Source) -> Result<Source, DbError> {
-    let Some(kr) = svc.keyring.as_deref() else {
+fn decrypt_source(svc: &SourceService, mut source: Source) -> Result<Source, DbError> {
+    let Some(kr) = svc.0.keyring.as_deref() else {
         // No keyring configured (tests or no-keyring build): return as-is.
         return Ok(source);
     };
@@ -122,10 +122,13 @@ fn decrypt_source(svc: &CrispyService, mut source: Source) -> Result<Source, DbE
     Ok(source)
 }
 
-impl CrispyService {
+/// Domain service for source operations.
+pub struct SourceService(pub(super) CrispyService);
+
+impl SourceService {
     /// Get all sources ordered by sort_order.
     pub fn get_sources(&self) -> Result<Vec<Source>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(&format!(
             "SELECT id, name, source_type, url, username, password,
                     access_token, device_id, user_id, mac_address,
@@ -150,7 +153,7 @@ impl CrispyService {
 
     /// Get a single source by ID.
     pub fn get_source(&self, id: &str) -> Result<Option<Source>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let result = conn.query_row(
             &format!(
                 "SELECT id, name, source_type, url, username, password,
@@ -180,7 +183,7 @@ impl CrispyService {
     /// Callers pass a source with plaintext credentials; this method encrypts
     /// them before writing to the DB and sets `credentials_encrypted = true`.
     pub fn save_source(&self, source: &Source) -> Result<(), DbError> {
-        if let Some(kr) = self.keyring.as_deref() {
+        if let Some(kr) = self.0.keyring.as_deref() {
             let key = get_or_create_encryption_key(kr).map_err(crypto_to_db)?;
             let encrypted = Source {
                 password: encrypt_opt(&source.password, &key)?,
@@ -202,7 +205,7 @@ impl CrispyService {
     /// Not part of the public API; used by [`save_source`] and the legacy
     /// re-encryption path in [`decrypt_source`].
     pub(super) fn save_source_raw(&self, source: &Source) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         insert_or_replace!(
             conn,
             TABLE_SOURCES,
@@ -243,7 +246,7 @@ impl CrispyService {
                 source.epg_last_modified,
             ],
         )?;
-        self.emit(DataChangeEvent::SourceChanged {
+        self.0.emit(DataChangeEvent::SourceChanged {
             source_id: source.id.clone(),
         });
         Ok(())
@@ -252,12 +255,12 @@ impl CrispyService {
     /// Delete a source. FK CASCADE handles all child table cleanup
     /// (channels, VOD, EPG, categories, sync_meta, profile_source_access).
     pub fn delete_source(&self, id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             &format!("DELETE FROM {TABLE_SOURCES} WHERE id = ?1"),
             params![id],
         )?;
-        self.emit(DataChangeEvent::SourceDeleted {
+        self.0.emit(DataChangeEvent::SourceDeleted {
             source_id: id.to_string(),
         });
         Ok(())
@@ -265,7 +268,7 @@ impl CrispyService {
 
     /// Reorder sources by setting sort_order from the given ID list.
     pub fn reorder_sources(&self, source_ids: &[String]) -> Result<(), DbError> {
-        let mut conn = self.db.get()?;
+        let mut conn = self.0.db.get()?;
         let tx = conn.transaction()?;
         for (i, id) in source_ids.iter().enumerate() {
             tx.execute(
@@ -274,7 +277,7 @@ impl CrispyService {
             )?;
         }
         tx.commit()?;
-        self.emit(DataChangeEvent::BulkDataRefresh);
+        self.0.emit(DataChangeEvent::BulkDataRefresh);
         Ok(())
     }
 
@@ -283,7 +286,7 @@ impl CrispyService {
     /// Runs two aggregate queries and merges the results into one
     /// `SourceStats` entry per distinct `source_id`.
     pub fn get_source_stats(&self) -> Result<Vec<SourceStats>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
 
         // Channel counts per source.
         let mut ch_stmt = conn.prepare(&format!(
@@ -344,7 +347,7 @@ impl CrispyService {
         error: Option<&str>,
         sync_time: Option<chrono::NaiveDateTime>,
     ) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             &format!(
                 "UPDATE {TABLE_SOURCES}
@@ -359,7 +362,7 @@ impl CrispyService {
     }
 }
 
-impl SourceRepository for CrispyService {
+impl SourceRepository for SourceService {
     fn get_sources(&self) -> Result<Vec<Source>, DomainError> {
         Ok(self.get_sources()?)
     }
@@ -397,11 +400,12 @@ impl SourceRepository for CrispyService {
 
 #[cfg(test)]
 mod tests {
+    use super::SourceService;
     use crate::services::test_helpers::*;
 
     #[test]
     fn test_get_source_stats() {
-        let svc = make_service();
+        let svc = SourceService(make_service());
 
         // Two sources.
         svc.save_source(&make_source("src_a", "A", "m3u")).unwrap();
@@ -415,7 +419,7 @@ mod tests {
         ch2.source_id = Some("src_a".to_string());
         let mut ch3 = make_channel("ch3", "Ch3");
         ch3.source_id = Some("src_b".to_string());
-        svc.save_channels(&[ch1, ch2, ch3]).unwrap();
+        svc.0.save_channels(&[ch1, ch2, ch3]).unwrap();
 
         // 3 VOD items on src_b, 0 on src_a.
         let mut v1 = make_vod_item("v1", "Movie 1");
@@ -424,7 +428,7 @@ mod tests {
         v2.source_id = Some("src_b".to_string());
         let mut v3 = make_vod_item("v3", "Movie 3");
         v3.source_id = Some("src_b".to_string());
-        svc.save_vod_items(&[v1, v2, v3]).unwrap();
+        svc.0.save_vod_items(&[v1, v2, v3]).unwrap();
 
         let stats = svc.get_source_stats().unwrap();
         assert_eq!(stats.len(), 2);
@@ -440,7 +444,7 @@ mod tests {
 
     #[test]
     fn source_crud_roundtrip() {
-        let svc = make_service();
+        let svc = SourceService(make_service());
         let source = make_source("src1", "My IPTV", "xtream");
 
         // Save.
@@ -467,40 +471,40 @@ mod tests {
 
     #[test]
     fn source_not_found_returns_none() {
-        let svc = make_service();
+        let svc = SourceService(make_service());
         assert!(svc.get_source("nonexistent").unwrap().is_none());
     }
 
     #[test]
     fn delete_source_cascades() {
-        let svc = make_service();
+        let svc = SourceService(make_service());
         let source = make_source("src1", "Test", "m3u");
         svc.save_source(&source).unwrap();
 
         // Add channels and VOD belonging to this source.
         let mut ch = make_channel("ch1", "Channel 1");
         ch.source_id = Some("src1".to_string());
-        svc.save_channels(&[ch]).unwrap();
+        svc.0.save_channels(&[ch]).unwrap();
 
         let mut vod = make_vod_item("vod1", "Movie 1");
         vod.source_id = Some("src1".to_string());
-        svc.save_vod_items(&[vod]).unwrap();
+        svc.0.save_vod_items(&[vod]).unwrap();
 
         // Verify data exists.
-        assert_eq!(svc.load_channels().unwrap().len(), 1);
-        assert_eq!(svc.load_vod_items().unwrap().len(), 1);
+        assert_eq!(svc.0.load_channels().unwrap().len(), 1);
+        assert_eq!(svc.0.load_vod_items().unwrap().len(), 1);
 
         // Delete source — should cascade.
         svc.delete_source("src1").unwrap();
 
         assert!(svc.get_source("src1").unwrap().is_none());
-        assert_eq!(svc.load_channels().unwrap().len(), 0);
-        assert_eq!(svc.load_vod_items().unwrap().len(), 0);
+        assert_eq!(svc.0.load_channels().unwrap().len(), 0);
+        assert_eq!(svc.0.load_vod_items().unwrap().len(), 0);
     }
 
     #[test]
     fn reorder_sources() {
-        let svc = make_service();
+        let svc = SourceService(make_service());
         svc.save_source(&make_source("a", "Alpha", "m3u")).unwrap();
         svc.save_source(&make_source("b", "Beta", "xtream"))
             .unwrap();
@@ -522,7 +526,7 @@ mod tests {
 
     #[test]
     fn update_sync_status() {
-        let svc = make_service();
+        let svc = SourceService(make_service());
         svc.save_source(&make_source("src1", "Test", "m3u"))
             .unwrap();
 
@@ -536,7 +540,7 @@ mod tests {
 
     #[test]
     fn multiple_sources_same_type() {
-        let svc = make_service();
+        let svc = SourceService(make_service());
         svc.save_source(&make_source("src1", "IPTV One", "xtream"))
             .unwrap();
         svc.save_source(&make_source("src2", "IPTV Two", "xtream"))
@@ -548,7 +552,7 @@ mod tests {
 
     #[test]
     fn cascade_delete_preserves_other_sources() {
-        let svc = make_service();
+        let svc = SourceService(make_service());
         svc.save_source(&make_source("src1", "Source A", "m3u"))
             .unwrap();
         svc.save_source(&make_source("src2", "Source B", "m3u"))
@@ -558,14 +562,14 @@ mod tests {
         ch1.source_id = Some("src1".to_string());
         let mut ch2 = make_channel("ch2", "Ch from B");
         ch2.source_id = Some("src2".to_string());
-        svc.save_channels(&[ch1, ch2]).unwrap();
+        svc.0.save_channels(&[ch1, ch2]).unwrap();
 
         // Delete only source A.
         svc.delete_source("src1").unwrap();
 
         assert!(svc.get_source("src1").unwrap().is_none());
         assert!(svc.get_source("src2").unwrap().is_some());
-        let channels = svc.load_channels().unwrap();
+        let channels = svc.0.load_channels().unwrap();
         assert_eq!(channels.len(), 1);
         assert_eq!(channels[0].id, "ch2");
     }
@@ -574,12 +578,13 @@ mod tests {
     fn source_events_emitted() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let base = make_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
+        let svc = SourceService(base);
 
         let source = make_source("src1", "Test", "m3u");
         svc.save_source(&source).unwrap();
@@ -598,14 +603,14 @@ mod tests {
 
     #[test]
     fn get_sources_empty() {
-        let svc = make_service();
+        let svc = SourceService(make_service());
         let all = svc.get_sources().unwrap();
         assert!(all.is_empty());
     }
 
     #[test]
     fn update_sync_status_sets_success() {
-        let svc = make_service();
+        let svc = SourceService(make_service());
         svc.save_source(&make_source("s1", "Test", "m3u")).unwrap();
 
         svc.update_source_sync_status("s1", "success", None, None)

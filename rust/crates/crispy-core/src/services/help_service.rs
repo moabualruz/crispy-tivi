@@ -46,13 +46,16 @@ fn tour_key(tour_id: &str, profile_id: &str) -> String {
 
 // ── Service impl ──────────────────────────────────────────────────────────────
 
-impl CrispyService {
+/// Domain service for help tip and guided-tour operations.
+pub struct HelpService(pub(super) CrispyService);
+
+impl HelpService {
     // ── Tip helpers ──────────────────────────────
 
     /// Return the current state of `tip_id` for `profile_id`.
     pub fn get_tip_state(&self, tip_id: &str, profile_id: &str) -> Result<TipState, DbError> {
         let key = tip_key(tip_id, profile_id);
-        match self.get_setting(&key)? {
+        match self.0.get_setting(&key)? {
             Some(json) => Ok(serde_json::from_str(&json).unwrap_or_default()),
             None => Ok(TipState::NotShown),
         }
@@ -67,7 +70,7 @@ impl CrispyService {
         let key = tip_key(tip_id, profile_id);
         let json = serde_json::to_string(state)
             .map_err(|e| DbError::Migration(format!("tip state serialisation: {e}")))?;
-        self.set_setting(&key, &json)
+        self.0.set_setting(&key, &json)
     }
 
     /// Record that the tip has been shown.
@@ -116,7 +119,7 @@ impl CrispyService {
     /// Returns 0 when the tour has never been started.
     pub fn get_tour_progress(&self, tour_id: &str, profile_id: &str) -> Result<u8, DbError> {
         let key = tour_key(tour_id, profile_id);
-        match self.get_setting(&key)? {
+        match self.0.get_setting(&key)? {
             Some(s) => Ok(s.parse::<u8>().unwrap_or(0)),
             None => Ok(0),
         }
@@ -133,7 +136,7 @@ impl CrispyService {
         }
         let next = current.saturating_add(1);
         let key = tour_key(tour_id, profile_id);
-        self.set_setting(&key, &next.to_string())
+        self.0.set_setting(&key, &next.to_string())
     }
 
     /// Return `true` when the tour has reached `MAX_TOUR_STEPS`.
@@ -144,7 +147,7 @@ impl CrispyService {
     /// Reset a tour back to step 0 (e.g. for replay or testing).
     pub fn reset_tour(&self, tour_id: &str, profile_id: &str) -> Result<(), DbError> {
         let key = tour_key(tour_id, profile_id);
-        self.set_setting(&key, "0")
+        self.0.set_setting(&key, "0")
     }
 }
 
@@ -155,30 +158,34 @@ mod tests {
     use super::*;
     use crate::services::test_helpers::make_service;
 
+    fn make_help_service() -> HelpService {
+        HelpService(make_service())
+    }
+
     #[test]
     fn test_tip_state_defaults_to_not_shown() {
-        let svc = make_service();
+        let svc = make_help_service();
         let state = svc.get_tip_state("welcome", "p1").unwrap();
         assert_eq!(state, TipState::NotShown);
     }
 
     #[test]
     fn test_mark_shown() {
-        let svc = make_service();
+        let svc = make_help_service();
         svc.mark_shown("tip1", "p1").unwrap();
         assert_eq!(svc.get_tip_state("tip1", "p1").unwrap(), TipState::Shown);
     }
 
     #[test]
     fn test_mark_dismissed_never_shows_again() {
-        let svc = make_service();
+        let svc = make_help_service();
         svc.mark_dismissed("tip1", "p1").unwrap();
         assert!(!svc.should_show_tip("tip1", "p1").unwrap());
     }
 
     #[test]
     fn test_snooze_increments_count() {
-        let svc = make_service();
+        let svc = make_help_service();
         svc.snooze("tip1", "p1").unwrap();
         assert_eq!(
             svc.get_tip_state("tip1", "p1").unwrap(),
@@ -193,7 +200,7 @@ mod tests {
 
     #[test]
     fn test_snooze_auto_dismisses_after_max() {
-        let svc = make_service();
+        let svc = make_help_service();
         for _ in 0..MAX_SNOOZE {
             svc.snooze("tip1", "p1").unwrap();
         }
@@ -206,14 +213,14 @@ mod tests {
 
     #[test]
     fn test_should_show_tip_returns_true_for_snoozed() {
-        let svc = make_service();
+        let svc = make_help_service();
         svc.snooze("tip1", "p1").unwrap();
         assert!(svc.should_show_tip("tip1", "p1").unwrap());
     }
 
     #[test]
     fn test_tip_states_are_per_profile() {
-        let svc = make_service();
+        let svc = make_help_service();
         svc.mark_dismissed("tip1", "p1").unwrap();
         // p2 is unaffected.
         assert!(svc.should_show_tip("tip1", "p2").unwrap());
@@ -221,13 +228,13 @@ mod tests {
 
     #[test]
     fn test_tour_progress_starts_at_zero() {
-        let svc = make_service();
+        let svc = make_help_service();
         assert_eq!(svc.get_tour_progress("onboarding", "p1").unwrap(), 0);
     }
 
     #[test]
     fn test_advance_tour_increments() {
-        let svc = make_service();
+        let svc = make_help_service();
         svc.advance_tour("onboarding", "p1").unwrap();
         assert_eq!(svc.get_tour_progress("onboarding", "p1").unwrap(), 1);
         svc.advance_tour("onboarding", "p1").unwrap();
@@ -236,14 +243,14 @@ mod tests {
 
     #[test]
     fn test_tours_are_per_profile() {
-        let svc = make_service();
+        let svc = make_help_service();
         svc.advance_tour("tour_a", "p1").unwrap();
         assert_eq!(svc.get_tour_progress("tour_a", "p2").unwrap(), 0);
     }
 
     #[test]
     fn test_advance_tour_capped_at_max_steps() {
-        let svc = make_service();
+        let svc = make_help_service();
         // Advance past the maximum.
         for _ in 0..MAX_TOUR_STEPS + 5 {
             svc.advance_tour("onboarding", "p1").unwrap();
@@ -257,7 +264,7 @@ mod tests {
 
     #[test]
     fn test_is_tour_complete_false_until_max() {
-        let svc = make_service();
+        let svc = make_help_service();
         assert!(!svc.is_tour_complete("onboarding", "p1").unwrap());
         for _ in 0..MAX_TOUR_STEPS {
             svc.advance_tour("onboarding", "p1").unwrap();
@@ -267,7 +274,7 @@ mod tests {
 
     #[test]
     fn test_reset_tour_returns_to_zero() {
-        let svc = make_service();
+        let svc = make_help_service();
         svc.advance_tour("onboarding", "p1").unwrap();
         svc.advance_tour("onboarding", "p1").unwrap();
         svc.reset_tour("onboarding", "p1").unwrap();

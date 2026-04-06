@@ -39,7 +39,10 @@ const MAX_TTFF_MS: f64 = 10000.0;
 /// Maximum average buffer duration used for normalization.
 const MAX_AVG_BUFFER: f64 = 10.0;
 
-impl CrispyService {
+/// Domain service for stream health operations.
+pub struct StreamHealthService(pub(super) CrispyService);
+
+impl StreamHealthService {
     // ── DB persistence ──────────────────────────────
 
     /// Record a stream stall event for a URL hash.
@@ -47,7 +50,7 @@ impl CrispyService {
     /// Increments `stall_count` and updates `last_seen`.
     /// Creates a new row if none exists.
     pub fn record_stream_stall(&self, url_hash: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let now = chrono::Utc::now().timestamp();
         conn.execute(
             "INSERT INTO db_stream_health (url_hash, stall_count, buffer_sum, buffer_samples, ttff_ms, last_seen) \
@@ -68,7 +71,7 @@ impl CrispyService {
         url_hash: &str,
         cache_duration_secs: f64,
     ) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let now = chrono::Utc::now().timestamp();
         conn.execute(
             "INSERT INTO db_stream_health (url_hash, stall_count, buffer_sum, buffer_samples, ttff_ms, last_seen) \
@@ -84,7 +87,7 @@ impl CrispyService {
     ///
     /// Keeps the latest TTFF value (overwrites previous).
     pub fn record_ttff(&self, url_hash: &str, ttff_ms: i64) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let now = chrono::Utc::now().timestamp();
         conn.execute(
             "INSERT INTO db_stream_health (url_hash, stall_count, buffer_sum, buffer_samples, ttff_ms, last_seen) \
@@ -106,7 +109,7 @@ impl CrispyService {
     ///
     /// Returns 0.5 if no data exists for the URL.
     pub fn get_stream_health_score(&self, url_hash: &str) -> Result<f64, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let result = conn.query_row(
             "SELECT stall_count, buffer_sum, buffer_samples, ttff_ms, last_seen \
              FROM db_stream_health WHERE url_hash = ?1",
@@ -147,7 +150,7 @@ impl CrispyService {
     /// Keep only the newest `max_entries` rows, deleting
     /// the oldest by `last_seen` (LRU eviction).
     pub fn prune_stream_health(&self, max_entries: i64) -> Result<usize, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let deleted = conn.execute(
             "DELETE FROM db_stream_health WHERE url_hash NOT IN \
              (SELECT url_hash FROM db_stream_health ORDER BY last_seen DESC LIMIT ?1)",
@@ -239,10 +242,11 @@ fn compute_health_score(
 mod tests {
     use super::*;
     use crate::services::test_helpers::*;
+    use super::StreamHealthService;
 
     #[test]
     fn record_stall_creates_entry() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         svc.record_stream_stall("h1").unwrap();
         let score = svc.get_stream_health_score("h1").unwrap();
         // Fresh entry with 1 stall — score should be slightly below 1.0
@@ -251,12 +255,12 @@ mod tests {
 
     #[test]
     fn record_stall_increments() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         svc.record_stream_stall("h1").unwrap();
         svc.record_stream_stall("h1").unwrap();
         svc.record_stream_stall("h1").unwrap();
 
-        let conn = svc.db.get().unwrap();
+        let conn = svc.0.db.get().unwrap();
         let count: i64 = conn
             .query_row(
                 "SELECT stall_count FROM db_stream_health WHERE url_hash = ?1",
@@ -269,11 +273,11 @@ mod tests {
 
     #[test]
     fn record_buffer_sample_accumulates() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         svc.record_buffer_sample("h2", 5.0).unwrap();
         svc.record_buffer_sample("h2", 3.0).unwrap();
 
-        let conn = svc.db.get().unwrap();
+        let conn = svc.0.db.get().unwrap();
         let (sum, samples): (f64, i64) = conn
             .query_row(
                 "SELECT buffer_sum, buffer_samples FROM db_stream_health WHERE url_hash = ?1",
@@ -287,11 +291,11 @@ mod tests {
 
     #[test]
     fn record_ttff_overwrites() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         svc.record_ttff("h3", 1000).unwrap();
         svc.record_ttff("h3", 500).unwrap();
 
-        let conn = svc.db.get().unwrap();
+        let conn = svc.0.db.get().unwrap();
         let ttff: i64 = conn
             .query_row(
                 "SELECT ttff_ms FROM db_stream_health WHERE url_hash = ?1",
@@ -304,14 +308,14 @@ mod tests {
 
     #[test]
     fn missing_url_returns_default_score() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         let score = svc.get_stream_health_score("nonexistent").unwrap();
         assert!((score - 0.5).abs() < 0.001);
     }
 
     #[test]
     fn healthy_stream_scores_high() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         // Lots of good buffer samples, no stalls, fast TTFF
         for _ in 0..20 {
             svc.record_buffer_sample("h4", 8.0).unwrap();
@@ -327,7 +331,7 @@ mod tests {
 
     #[test]
     fn unhealthy_stream_scores_low() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         // Many stalls, low buffer, slow TTFF
         for _ in 0..10 {
             svc.record_stream_stall("h5").unwrap();
@@ -344,12 +348,12 @@ mod tests {
 
     #[test]
     fn prune_keeps_max_entries() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         for i in 0..10 {
             let hash = format!("url_{i}");
             svc.record_stream_stall(&hash).unwrap();
             // Set distinct last_seen timestamps
-            let conn = svc.db.get().unwrap();
+            let conn = svc.0.db.get().unwrap();
             conn.execute(
                 "UPDATE db_stream_health SET last_seen = ?1 WHERE url_hash = ?2",
                 params![1000 + i, hash],
@@ -371,7 +375,7 @@ mod tests {
 
     #[test]
     fn prune_noop_when_under_limit() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         svc.record_stream_stall("h1").unwrap();
         let deleted = svc.prune_stream_health(100).unwrap();
         assert_eq!(deleted, 0);
@@ -379,7 +383,7 @@ mod tests {
 
     #[test]
     fn evaluate_warming_after_4_low_buffers() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         let mut state = HashMap::new();
 
         for i in 0..3 {
@@ -400,7 +404,7 @@ mod tests {
 
     #[test]
     fn evaluate_swap_after_6_stalls() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         let mut state = HashMap::new();
 
         for i in 0..5 {
@@ -418,7 +422,7 @@ mod tests {
 
     #[test]
     fn evaluate_buffer_above_reset_clears_counter() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         let mut state = HashMap::new();
 
         // 3 low samples
@@ -441,13 +445,13 @@ mod tests {
     fn reset_failover_state_clears_counters() {
         let mut state = HashMap::new();
         state.insert("u4".to_string(), (5, 10));
-        CrispyService::reset_failover_state("u4", &mut state);
+        StreamHealthService::reset_failover_state("u4", &mut state);
         assert!(!state.contains_key("u4"));
     }
 
     #[test]
     fn get_stream_health_scores_batch() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         svc.record_stream_stall("a").unwrap();
         svc.record_buffer_sample("b", 5.0).unwrap();
 
@@ -488,7 +492,7 @@ mod tests {
 
     #[test]
     fn evaluate_unknown_event_type_returns_none() {
-        let svc = make_service();
+        let svc = StreamHealthService(make_service());
         let mut state = HashMap::new();
         let r = svc
             .evaluate_failover_event("u5", "unknown", 0.0, &mut state)

@@ -32,12 +32,15 @@ fn watch_history_from_row(row: &Row) -> rusqlite::Result<WatchHistory> {
     })
 }
 
-impl CrispyService {
+/// Domain service for watch history operations.
+pub struct HistoryService(pub(super) CrispyService);
+
+impl HistoryService {
     // ── Watch History ───────────────────────────────
 
     /// Upsert a watch history entry.
     pub fn save_watch_history(&self, entry: &WatchHistory) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         insert_or_replace!(
             conn,
             "db_watch_history",
@@ -80,7 +83,7 @@ impl CrispyService {
                 entry.source_id,
             ],
         )?;
-        self.emit(DataChangeEvent::WatchHistoryUpdated {
+        self.0.emit(DataChangeEvent::WatchHistoryUpdated {
             channel_id: entry.id.clone(),
         });
         Ok(())
@@ -89,7 +92,7 @@ impl CrispyService {
     /// Load all watch history ordered by last_watched
     /// descending.
     pub fn load_watch_history(&self) -> Result<Vec<WatchHistory>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT
                 id, media_type, name, stream_url,
@@ -109,7 +112,7 @@ impl CrispyService {
     /// querying DB directly. Returns JSON:
     /// `{"progress_map": {"url": pct}, "last_watched_url": "..."}`
     pub fn compute_episode_progress_from_db(&self, series_id: &str) -> Result<String, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT stream_url, position_ms,
                     duration_ms, last_watched
@@ -135,13 +138,13 @@ impl CrispyService {
 
     /// Delete a watch history entry by ID.
     pub fn delete_watch_history(&self, id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_watch_history
              WHERE id = ?1",
             params![id],
         )?;
-        self.emit(DataChangeEvent::WatchHistoryUpdated {
+        self.0.emit(DataChangeEvent::WatchHistoryUpdated {
             channel_id: id.to_string(),
         });
         Ok(())
@@ -154,7 +157,7 @@ impl CrispyService {
         &self,
         profile_id: &str,
     ) -> Result<Vec<WatchHistory>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT
                 id, media_type, name, stream_url,
@@ -173,7 +176,7 @@ impl CrispyService {
     }
 }
 
-impl HistoryRepository for CrispyService {
+impl HistoryRepository for HistoryService {
     fn save_watch_history(&self, entry: &WatchHistory) -> Result<(), DomainError> {
         Ok(self.save_watch_history(entry)?)
     }
@@ -204,10 +207,11 @@ impl HistoryRepository for CrispyService {
 #[cfg(test)]
 mod tests {
     use crate::services::test_helpers::*;
+    use super::HistoryService;
 
     #[test]
     fn save_and_load_watch_history() {
-        let svc = make_service();
+        let svc = HistoryService(make_service());
         svc.save_watch_history(&make_watch_entry("w1", "Movie 1"))
             .unwrap();
         svc.save_watch_history(&make_watch_entry("w2", "Movie 2"))
@@ -219,7 +223,7 @@ mod tests {
 
     #[test]
     fn delete_watch_history_entry() {
-        let svc = make_service();
+        let svc = HistoryService(make_service());
         svc.save_watch_history(&make_watch_entry("w1", "Movie 1"))
             .unwrap();
         svc.save_watch_history(&make_watch_entry("w2", "Movie 2"))
@@ -235,12 +239,13 @@ mod tests {
     fn emit_watch_history_updated_on_save() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let base = make_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
+        let svc = HistoryService(base);
         svc.save_watch_history(&make_watch_entry("w1", "Movie 1"))
             .unwrap();
         let recorded = log.lock().unwrap();
@@ -251,7 +256,7 @@ mod tests {
 
     #[test]
     fn compute_episode_progress_from_db_basic() {
-        let svc = make_service();
+        let svc = HistoryService(make_service());
         svc.save_watch_history(&make_episode_entry(
             "w1",
             "http://stream1",
@@ -292,7 +297,7 @@ mod tests {
 
     #[test]
     fn compute_episode_progress_from_db_empty() {
-        let svc = make_service();
+        let svc = HistoryService(make_service());
         let result = svc.compute_episode_progress_from_db("nonexistent").unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
         assert!(parsed["progress_map"].as_object().unwrap().is_empty());
@@ -301,7 +306,7 @@ mod tests {
 
     #[test]
     fn compute_episode_progress_excludes_zero_dur() {
-        let svc = make_service();
+        let svc = HistoryService(make_service());
         svc.save_watch_history(&make_episode_entry(
             "w1",
             "http://stream1",
@@ -319,7 +324,7 @@ mod tests {
 
     #[test]
     fn clear_all_watch_history_returns_count() {
-        let svc = make_service();
+        let svc = HistoryService(make_service());
         svc.save_watch_history(&make_watch_entry("w1", "Movie 1"))
             .unwrap();
         svc.save_watch_history(&make_watch_entry("w2", "Movie 2"))
@@ -327,7 +332,7 @@ mod tests {
         svc.save_watch_history(&make_watch_entry("w3", "Movie 3"))
             .unwrap();
 
-        let deleted = svc.clear_all_watch_history().unwrap();
+        let deleted = svc.0.clear_all_watch_history().unwrap();
         assert_eq!(deleted, 3);
 
         let history = svc.load_watch_history().unwrap();
@@ -336,8 +341,8 @@ mod tests {
 
     #[test]
     fn clear_all_watch_history_empty_table() {
-        let svc = make_service();
-        let deleted = svc.clear_all_watch_history().unwrap();
+        let svc = HistoryService(make_service());
+        let deleted = svc.0.clear_all_watch_history().unwrap();
         assert_eq!(deleted, 0);
     }
 
@@ -345,15 +350,16 @@ mod tests {
     fn emit_watch_history_cleared_on_clear_all() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let base = make_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
+        let svc = HistoryService(base);
         svc.save_watch_history(&make_watch_entry("w1", "Movie 1"))
             .unwrap();
-        svc.clear_all_watch_history().unwrap();
+        svc.0.clear_all_watch_history().unwrap();
         let recorded = log.lock().unwrap();
         let last = recorded.last().unwrap();
         assert!(last.contains("WatchHistoryCleared"), "{last}");
@@ -361,7 +367,7 @@ mod tests {
 
     #[test]
     fn save_and_load_watch_history_with_source_id() {
-        let svc = make_service_with_fixtures();
+        let svc = HistoryService(make_service_with_fixtures());
         let mut entry = make_watch_entry("w1", "Movie With Source");
         entry.source_id = Some("src_a".to_string());
         svc.save_watch_history(&entry).unwrap();

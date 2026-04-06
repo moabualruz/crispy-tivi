@@ -10,6 +10,9 @@ use crate::models::Channel;
 use crate::models::columns::CHANNEL_COLUMNS;
 use crate::traits::ChannelRepository;
 
+/// Domain service for channel operations.
+pub struct ChannelService(pub(super) CrispyService);
+
 /// Map a single SQLite row to a `Channel`.
 ///
 /// Column order must match `CHANNEL_COLUMNS`.
@@ -58,7 +61,7 @@ fn channel_from_row(row: &Row) -> rusqlite::Result<Channel> {
     })
 }
 
-impl CrispyService {
+impl ChannelService {
     // ── Channels ────────────────────────────────────
 
     /// Batch upsert channels using a caller-supplied connection.
@@ -183,13 +186,13 @@ impl CrispyService {
 
     /// Batch upsert channels. Returns count inserted.
     pub fn save_channels(&self, channels: &[Channel]) -> Result<usize, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let tx = conn.unchecked_transaction()?;
         let count = Self::save_channels_inner(&tx, channels)?;
         tx.commit()?;
         // Emit one event per distinct source_id so each
         // source's subscribers are notified independently.
-        self.emit_per_source(
+        self.0.emit_per_source(
             channels,
             |ch| ch.source_id.as_deref(),
             |sid| DataChangeEvent::ChannelsUpdated { source_id: sid },
@@ -199,7 +202,7 @@ impl CrispyService {
 
     /// Load all channels.
     pub fn load_channels(&self) -> Result<Vec<Channel>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(&format!("SELECT {CHANNEL_COLUMNS} FROM db_channels",))?;
         let rows = stmt.query_map([], channel_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -214,7 +217,7 @@ impl CrispyService {
         if source_ids.is_empty() {
             return self.load_channels();
         }
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let sql = format!(
             "SELECT {CHANNEL_COLUMNS} FROM db_channels WHERE source_id IN ({})",
             build_in_placeholders(source_ids.len())
@@ -227,7 +230,7 @@ impl CrispyService {
 
     /// Load channels by a list of IDs.
     pub fn get_channels_by_ids(&self, ids: &[String]) -> Result<Vec<Channel>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         if ids.is_empty() {
             return Ok(Vec::new());
         }
@@ -250,7 +253,7 @@ impl CrispyService {
         source_id: &str,
         keep_ids: &[String],
     ) -> Result<usize, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let tx = conn.unchecked_transaction()?;
         let deleted = super::delete_removed_by_source_conn(
             &tx,
@@ -259,7 +262,7 @@ impl CrispyService {
             keep_ids,
         )?;
         tx.commit()?;
-        self.emit(DataChangeEvent::ChannelsUpdated {
+        self.0.emit(DataChangeEvent::ChannelsUpdated {
             source_id: source_id.to_string(),
         });
         Ok(deleted)
@@ -269,7 +272,7 @@ impl CrispyService {
 
     /// Get favourite channel IDs for a profile.
     pub fn get_favorites(&self, profile_id: &str) -> Result<Vec<String>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT channel_id
              FROM db_user_favorites
@@ -281,13 +284,13 @@ impl CrispyService {
 
     /// Add a channel to a profile's favourites.
     pub fn add_favorite(&self, profile_id: &str, channel_id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let now = chrono::Utc::now().timestamp();
         insert_or_replace!(conn, "db_user_favorites",
             ["profile_id", "channel_id", "added_at"],
             params![profile_id, channel_id, now]
         )?;
-        self.emit(DataChangeEvent::FavoriteToggled {
+        self.0.emit(DataChangeEvent::FavoriteToggled {
             item_id: channel_id.to_string(),
             is_favorite: true,
         });
@@ -296,14 +299,14 @@ impl CrispyService {
 
     /// Remove a channel from a profile's favourites.
     pub fn remove_favorite(&self, profile_id: &str, channel_id: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "DELETE FROM db_user_favorites
              WHERE profile_id = ?1
              AND channel_id = ?2",
             params![profile_id, channel_id],
         )?;
-        self.emit(DataChangeEvent::FavoriteToggled {
+        self.0.emit(DataChangeEvent::FavoriteToggled {
             item_id: channel_id.to_string(),
             is_favorite: false,
         });
@@ -311,7 +314,7 @@ impl CrispyService {
     }
 }
 
-impl ChannelRepository for CrispyService {
+impl ChannelRepository for ChannelService {
     fn save_channels(&self, channels: &[Channel]) -> Result<usize, DomainError> {
         Ok(self.save_channels(channels)?)
     }
@@ -358,11 +361,12 @@ impl ChannelRepository for CrispyService {
 
 #[cfg(test)]
 mod tests {
+    use super::ChannelService;
     use crate::services::test_helpers::*;
 
     #[test]
     fn save_and_load_channels() {
-        let svc = make_service();
+        let svc = ChannelService(make_service());
         let channels = vec![
             make_channel("ch1", "Channel 1"),
             make_channel("ch2", "Channel 2"),
@@ -378,7 +382,7 @@ mod tests {
 
     #[test]
     fn test_get_channels_by_sources_empty_returns_all() {
-        let svc = make_service_with_fixtures();
+        let svc = ChannelService(make_service_with_fixtures());
         let mut ch1 = make_channel("ch1", "Channel 1");
         ch1.source_id = Some("src_a".to_string());
         let mut ch2 = make_channel("ch2", "Channel 2");
@@ -392,7 +396,7 @@ mod tests {
 
     #[test]
     fn test_get_channels_by_sources_filters() {
-        let svc = make_service_with_fixtures();
+        let svc = ChannelService(make_service_with_fixtures());
         let mut ch1 = make_channel("ch1", "Channel 1");
         ch1.source_id = Some("src_a".to_string());
         let mut ch2 = make_channel("ch2", "Channel 2");
@@ -411,7 +415,7 @@ mod tests {
 
     #[test]
     fn get_channels_by_ids() {
-        let svc = make_service();
+        let svc = ChannelService(make_service());
         let channels = vec![
             make_channel("ch1", "Channel 1"),
             make_channel("ch2", "Channel 2"),
@@ -430,7 +434,7 @@ mod tests {
 
     #[test]
     fn delete_removed_channels() {
-        let svc = make_service_with_fixtures();
+        let svc = ChannelService(make_service_with_fixtures());
         let mut ch1 = make_channel("ch1", "Channel 1");
         ch1.source_id = Some("src1".to_string());
         let mut ch2 = make_channel("ch2", "Channel 2");
@@ -451,12 +455,13 @@ mod tests {
 
     #[test]
     fn channel_upsert_overwrites() {
-        let svc = make_service();
+        let base = make_service();
         // source_id must be non-NULL so the (source_id, native_id) conflict
         // key triggers on the second save instead of hitting the PK constraint.
         // A matching source row must exist first to satisfy the FK constraint.
-        svc.save_source(&make_source("src1", "Source 1", "m3u"))
+        base.save_source(&make_source("src1", "Source 1", "m3u"))
             .unwrap();
+        let svc = ChannelService(base);
         let mut ch = make_channel("ch1", "Original");
         ch.source_id = Some("src1".to_string());
         svc.save_channels(&[ch.clone()]).unwrap();
@@ -471,9 +476,10 @@ mod tests {
 
     #[test]
     fn channel_favorites_crud() {
-        let svc = make_service();
+        let base = make_service();
         let profile = make_profile("p1", "Alice");
-        svc.save_profile(&profile).unwrap();
+        base.save_profile(&profile).unwrap();
+        let svc = ChannelService(base);
         let ch = make_channel("ch1", "Channel 1");
         svc.save_channels(&[ch]).unwrap();
 
@@ -490,13 +496,14 @@ mod tests {
     fn emit_favorite_toggled_on_add() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let base = make_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        base.save_profile(&make_profile("p1", "Alice")).unwrap();
+        let svc = ChannelService(base);
         svc.save_channels(&[make_channel("ch1", "Channel 1")])
             .unwrap();
         svc.add_favorite("p1", "ch1").unwrap();
@@ -511,13 +518,14 @@ mod tests {
     fn emit_favorite_toggled_on_remove() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let base = make_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
-        svc.save_profile(&make_profile("p1", "Alice")).unwrap();
+        base.save_profile(&make_profile("p1", "Alice")).unwrap();
+        let svc = ChannelService(base);
         svc.save_channels(&[make_channel("ch1", "Channel 1")])
             .unwrap();
         svc.add_favorite("p1", "ch1").unwrap();
@@ -532,12 +540,13 @@ mod tests {
     fn save_channels_empty_slice_emits_with_empty_source_id() {
         use crate::events::serialize_event;
         use std::sync::{Arc, Mutex};
-        let svc = make_service();
+        let base = make_service();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
+        let svc = ChannelService(base);
         let count = svc.save_channels(&[]).unwrap();
         assert_eq!(count, 0);
         let recorded = log.lock().unwrap();
@@ -551,12 +560,13 @@ mod tests {
         use crate::events::serialize_event;
         use std::collections::HashSet;
         use std::sync::{Arc, Mutex};
-        let svc = make_service_with_fixtures();
+        let base = make_service_with_fixtures();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let log_clone = log.clone();
-        svc.set_event_callback(Arc::new(move |e| {
+        base.set_event_callback(Arc::new(move |e| {
             log_clone.lock().unwrap().push(serialize_event(e));
         }));
+        let svc = ChannelService(base);
         let mut ch1 = make_channel("ch1", "Channel 1");
         ch1.source_id = Some("src_a".to_string());
         let mut ch2 = make_channel("ch2", "Channel 2");

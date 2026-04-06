@@ -107,14 +107,17 @@ fn notif_pref_key(profile_id: &str, category: &NotifCategory) -> String {
 /// How long notifications are retained (30 days in seconds).
 const RETENTION_SECS: i64 = 30 * 24 * 60 * 60;
 
-impl CrispyService {
+/// Domain service for in-app notification operations.
+pub struct NotificationService(pub(super) CrispyService);
+
+impl NotificationService {
     // ── Schema bootstrap ─────────────────────────
 
     /// Ensure the `db_notifications` table exists.
     ///
     /// Called automatically by `add_notification`; safe to call multiple times.
     fn ensure_notifications_table(&self) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS db_notifications (
                 id          TEXT PRIMARY KEY,
@@ -143,7 +146,7 @@ impl CrispyService {
         category: &NotifCategory,
     ) -> Result<bool, DbError> {
         let key = notif_pref_key(profile_id, category);
-        Ok(self.get_setting(&key)?.map(|v| v != "0").unwrap_or(true))
+        Ok(self.0.get_setting(&key)?.map(|v| v != "0").unwrap_or(true))
     }
 
     /// Enable or disable a notification category for a profile.
@@ -154,7 +157,7 @@ impl CrispyService {
         enabled: bool,
     ) -> Result<(), DbError> {
         let key = notif_pref_key(profile_id, category);
-        self.set_setting(&key, if enabled { "1" } else { "0" })
+        self.0.set_setting(&key, if enabled { "1" } else { "0" })
     }
 
     // ── Mutations ────────────────────────────────
@@ -172,7 +175,7 @@ impl CrispyService {
         // Kids-profile category gate.
         if !notif.category.allowed_for_kids() {
             // Check if profile is child.
-            let conn = self.db.get()?;
+            let conn = self.0.db.get()?;
             let is_child: Option<i32> = conn
                 .query_row(
                     "SELECT is_child FROM db_profiles WHERE id = ?1",
@@ -190,7 +193,7 @@ impl CrispyService {
             return Ok(());
         }
 
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         insert_or_replace!(
             conn,
             "db_notifications",
@@ -229,7 +232,7 @@ impl CrispyService {
     /// Return all notifications for `profile_id`, newest first.
     pub fn get_notifications(&self, profile_id: &str) -> Result<Vec<Notification>, DbError> {
         self.ensure_notifications_table()?;
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(
             "SELECT id, profile_id, category, title, body, deep_link, created_at, read
              FROM db_notifications
@@ -243,7 +246,7 @@ impl CrispyService {
     /// Mark a single notification as read.
     pub fn mark_notification_read(&self, id: &str) -> Result<(), DbError> {
         self.ensure_notifications_table()?;
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute(
             "UPDATE db_notifications SET read = 1 WHERE id = ?1",
             params![id],
@@ -254,7 +257,7 @@ impl CrispyService {
     /// Delete a notification.
     pub fn dismiss_notification(&self, id: &str) -> Result<(), DbError> {
         self.ensure_notifications_table()?;
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         conn.execute("DELETE FROM db_notifications WHERE id = ?1", params![id])?;
         Ok(())
     }
@@ -262,7 +265,7 @@ impl CrispyService {
     /// Return the number of unread notifications for `profile_id`.
     pub fn get_unread_count(&self, profile_id: &str) -> Result<u32, DbError> {
         self.ensure_notifications_table()?;
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM db_notifications
              WHERE profile_id = ?1 AND read = 0",
@@ -284,7 +287,7 @@ impl CrispyService {
         window_secs: i64,
     ) -> Result<(), DbError> {
         self.ensure_notifications_table()?;
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
 
         // Collect IDs and timestamps within the window.
         let now = chrono::Utc::now().timestamp();
@@ -330,6 +333,10 @@ mod tests {
     use super::*;
     use crate::services::test_helpers::{make_profile, make_service};
 
+    fn make_notif_service() -> NotificationService {
+        NotificationService(make_service())
+    }
+
     fn notif(id: &str, profile_id: &str, cat: NotifCategory) -> Notification {
         Notification {
             id: id.to_string(),
@@ -345,7 +352,7 @@ mod tests {
 
     #[test]
     fn test_add_and_get_notification() {
-        let svc = make_service();
+        let svc = make_notif_service();
         svc.add_notification(notif("n1", "p1", NotifCategory::Content))
             .unwrap();
         let list = svc.get_notifications("p1").unwrap();
@@ -355,7 +362,7 @@ mod tests {
 
     #[test]
     fn test_unread_count() {
-        let svc = make_service();
+        let svc = make_notif_service();
         svc.add_notification(notif("n1", "p1", NotifCategory::Content))
             .unwrap();
         svc.add_notification(notif("n2", "p1", NotifCategory::Reminder))
@@ -367,7 +374,7 @@ mod tests {
 
     #[test]
     fn test_dismiss_notification() {
-        let svc = make_service();
+        let svc = make_notif_service();
         svc.add_notification(notif("n1", "p1", NotifCategory::System))
             .unwrap();
         svc.dismiss_notification("n1").unwrap();
@@ -377,7 +384,7 @@ mod tests {
 
     #[test]
     fn test_category_toggle_prevents_insertion() {
-        let svc = make_service();
+        let svc = make_notif_service();
         svc.set_notif_category_enabled("p1", &NotifCategory::System, false)
             .unwrap();
         svc.add_notification(notif("n1", "p1", NotifCategory::System))
@@ -387,10 +394,10 @@ mod tests {
 
     #[test]
     fn test_kids_profile_blocks_non_allowed_category() {
-        let svc = make_service();
+        let svc = make_notif_service();
         let mut profile = make_profile("kid1", "Kid");
         profile.is_child = true;
-        svc.save_profile(&profile).unwrap();
+        svc.0.save_profile(&profile).unwrap();
 
         // Social not allowed for kids.
         svc.add_notification(notif("n1", "kid1", NotifCategory::Social))
@@ -405,7 +412,7 @@ mod tests {
 
     #[test]
     fn test_notifications_are_per_profile() {
-        let svc = make_service();
+        let svc = make_notif_service();
         svc.add_notification(notif("n1", "p1", NotifCategory::Content))
             .unwrap();
         assert!(svc.get_notifications("p2").unwrap().is_empty());
@@ -413,7 +420,7 @@ mod tests {
 
     #[test]
     fn test_group_notifications_collapses_entries() {
-        let svc = make_service();
+        let svc = make_notif_service();
         for i in 0..3u32 {
             svc.add_notification(notif(&format!("n{i}"), "p1", NotifCategory::Content))
                 .unwrap();

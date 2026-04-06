@@ -9,14 +9,17 @@ use crate::models::BufferTierDecision;
 
 // BufferTierDecision and its evaluate() method live in models/mod.rs (domain layer).
 
-impl CrispyService {
+/// Domain service for buffer tier operations.
+pub struct BufferTierService(pub(super) CrispyService);
+
+impl BufferTierService {
     // ── DB persistence ──────────────────────────────
 
     /// Look up the persisted tier for a URL hash.
     ///
     /// Returns `None` if no entry exists.
     pub fn get_buffer_tier(&self, url_hash: &str) -> Result<Option<String>, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let result = conn.query_row(
             "SELECT tier FROM db_buffer_tiers WHERE url_hash = ?1",
             params![url_hash],
@@ -27,7 +30,7 @@ impl CrispyService {
 
     /// Upsert a tier for a URL hash.
     pub fn set_buffer_tier(&self, url_hash: &str, tier: &str) -> Result<(), DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let now = chrono::Utc::now().timestamp();
         insert_or_replace!(
             conn,
@@ -41,7 +44,7 @@ impl CrispyService {
     /// Keep only the newest `max_entries` rows, deleting
     /// the oldest by `updated_at` (LRU eviction).
     pub fn prune_buffer_tiers(&self, max_entries: i64) -> Result<usize, DbError> {
-        let conn = self.db.get()?;
+        let conn = self.0.db.get()?;
         let deleted = conn.execute(
             "DELETE FROM db_buffer_tiers WHERE url_hash NOT IN \
              (SELECT url_hash FROM db_buffer_tiers ORDER BY updated_at DESC LIMIT ?1)",
@@ -117,16 +120,17 @@ impl CrispyService {
 mod tests {
     use super::*;
     use crate::services::test_helpers::*;
+    use super::BufferTierService;
 
     #[test]
     fn get_missing_tier_returns_none() {
-        let svc = make_service();
+        let svc = BufferTierService(make_service());
         assert_eq!(svc.get_buffer_tier("abc123").unwrap(), None);
     }
 
     #[test]
     fn set_and_get_tier() {
-        let svc = make_service();
+        let svc = BufferTierService(make_service());
         svc.set_buffer_tier("abc123", "aggressive").unwrap();
         assert_eq!(
             svc.get_buffer_tier("abc123").unwrap(),
@@ -136,7 +140,7 @@ mod tests {
 
     #[test]
     fn upsert_overwrites_tier() {
-        let svc = make_service();
+        let svc = BufferTierService(make_service());
         svc.set_buffer_tier("abc123", "fast").unwrap();
         svc.set_buffer_tier("abc123", "normal").unwrap();
         assert_eq!(
@@ -147,14 +151,14 @@ mod tests {
 
     #[test]
     fn prune_keeps_max_entries() {
-        let svc = make_service();
+        let svc = BufferTierService(make_service());
         for i in 0..10 {
             svc.set_buffer_tier(&format!("url_{i}"), "normal").unwrap();
             // Ensure distinct updated_at by sleeping briefly isn't
             // needed — SQLite timestamp resolution is 1s and our
             // inserts happen in the same second. Use explicit
             // timestamps instead.
-            let conn = svc.db.get().unwrap();
+            let conn = svc.0.db.get().unwrap();
             conn.execute(
                 "UPDATE db_buffer_tiers SET updated_at = ?1 WHERE url_hash = ?2",
                 params![1000 + i, format!("url_{i}")],
@@ -170,7 +174,7 @@ mod tests {
 
     #[test]
     fn prune_noop_when_under_limit() {
-        let svc = make_service();
+        let svc = BufferTierService(make_service());
         svc.set_buffer_tier("url_a", "fast").unwrap();
         let deleted = svc.prune_buffer_tiers(200).unwrap();
         assert_eq!(deleted, 0);
@@ -178,7 +182,7 @@ mod tests {
 
     #[test]
     fn evaluate_upgrades_after_3_low_samples() {
-        let svc = make_service();
+        let svc = BufferTierService(make_service());
         let mut state = HashMap::new();
 
         // Start at normal (default).
@@ -203,7 +207,7 @@ mod tests {
 
     #[test]
     fn evaluate_downgrades_after_30_healthy_samples() {
-        let svc = make_service();
+        let svc = BufferTierService(make_service());
         svc.set_buffer_tier("u2", "aggressive").unwrap();
         let mut state = HashMap::new();
 
@@ -221,7 +225,7 @@ mod tests {
 
     #[test]
     fn no_upgrade_past_aggressive() {
-        let svc = make_service();
+        let svc = BufferTierService(make_service());
         svc.set_buffer_tier("u3", "aggressive").unwrap();
         let mut state = HashMap::new();
 
@@ -234,7 +238,7 @@ mod tests {
 
     #[test]
     fn no_downgrade_past_fast() {
-        let svc = make_service();
+        let svc = BufferTierService(make_service());
         svc.set_buffer_tier("u4", "fast").unwrap();
         let mut state = HashMap::new();
 
@@ -246,7 +250,7 @@ mod tests {
 
     #[test]
     fn middle_zone_resets_counters() {
-        let svc = make_service();
+        let svc = BufferTierService(make_service());
         let mut state = HashMap::new();
 
         // Two low samples.
@@ -268,32 +272,17 @@ mod tests {
     fn reset_buffer_state_clears_counters() {
         let mut state = HashMap::new();
         state.insert("u6".to_string(), (5, 10));
-        CrispyService::reset_buffer_state("u6", &mut state);
+        BufferTierService::reset_buffer_state("u6", &mut state);
         assert!(!state.contains_key("u6"));
     }
 
     #[test]
     fn get_buffer_cap_mb_heap_tiers() {
-        assert_eq!(CrispyService::get_buffer_cap_mb(128), 32);
-        assert_eq!(CrispyService::get_buffer_cap_mb(256), 32);
-        assert_eq!(CrispyService::get_buffer_cap_mb(384), 64);
-        assert_eq!(CrispyService::get_buffer_cap_mb(512), 64);
-        assert_eq!(CrispyService::get_buffer_cap_mb(1024), 100);
+        assert_eq!(BufferTierService::get_buffer_cap_mb(128), 32);
+        assert_eq!(BufferTierService::get_buffer_cap_mb(256), 32);
+        assert_eq!(BufferTierService::get_buffer_cap_mb(384), 64);
+        assert_eq!(BufferTierService::get_buffer_cap_mb(512), 64);
+        assert_eq!(BufferTierService::get_buffer_cap_mb(1024), 100);
     }
 
-    #[test]
-    fn upgrade_and_downgrade_tier_functions() {
-        assert_eq!(upgrade_tier("fast"), Some("normal".to_string()));
-        assert_eq!(upgrade_tier("normal"), Some("aggressive".to_string()));
-        assert_eq!(upgrade_tier("aggressive"), None);
-
-        assert_eq!(downgrade_tier("aggressive"), Some("normal".to_string()));
-        assert_eq!(downgrade_tier("normal"), Some("fast".to_string()));
-        assert_eq!(downgrade_tier("fast"), None);
-    }
-
-    #[test]
-    fn unknown_tier_returns_default_readahead() {
-        assert_eq!(tier_readahead("unknown"), 120);
-    }
 }

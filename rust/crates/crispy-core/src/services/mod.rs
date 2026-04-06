@@ -9,7 +9,8 @@ use std::sync::{Arc, Mutex};
 use chrono::NaiveDateTime;
 use rusqlite::params;
 
-use crate::database::{Database, DbError};
+use crate::database::{optional, Database, DbError};
+use crate::insert_or_replace;
 use crate::events::{DataChangeEvent, EventCallback};
 
 pub mod activity_log;
@@ -323,6 +324,46 @@ impl CrispyService {
         }
     }
 
+    // ── Settings (KV Store) ─────────────────────────
+    // Shared infrastructure used by multiple domain services.
+
+    /// Get a setting value by key.
+    pub fn get_setting(&self, key: &str) -> Result<Option<String>, DbError> {
+        let conn = self.db.get()?;
+        let result = conn.query_row(
+            "SELECT value FROM db_settings
+             WHERE key = ?1",
+            params![key],
+            |row| row.get(0),
+        );
+        optional(result)
+    }
+
+    /// Set a setting value.
+    pub fn set_setting(&self, key: &str, value: &str) -> Result<(), DbError> {
+        let conn = self.db.get()?;
+        insert_or_replace!(
+            conn,
+            "db_settings",
+            ["key", "value"],
+            params![key, value],
+        )?;
+        self.emit(DataChangeEvent::SettingsUpdated {
+            key: key.to_string(),
+        });
+        Ok(())
+    }
+
+    /// Remove a setting by key.
+    pub fn remove_setting(&self, key: &str) -> Result<(), DbError> {
+        let conn = self.db.get()?;
+        conn.execute("DELETE FROM db_settings WHERE key = ?1", params![key])?;
+        self.emit(DataChangeEvent::SettingsUpdated {
+            key: key.to_string(),
+        });
+        Ok(())
+    }
+
     /// Persist a full sync batch (channels + VOD) atomically.
     ///
     /// All four write operations — upsert channels, prune stale channels,
@@ -350,14 +391,14 @@ impl CrispyService {
             let conn = self.db.get()?;
             let tx = conn.unchecked_transaction()?;
 
-            Self::save_channels_inner(&tx, channels)?;
+            channels::ChannelService::save_channels_inner(&tx, channels)?;
             delete_stale_by_source_conn(
                 &tx,
                 crate::database::TABLE_CHANNELS,
                 source_id,
                 sync_started_at,
             )?;
-            Self::save_vod_items_inner(&tx, vod_items)?;
+            vod::VodService::save_vod_items_inner(&tx, vod_items)?;
             delete_stale_by_source_conn(
                 &tx,
                 crate::database::TABLE_MOVIES,
@@ -419,6 +460,265 @@ impl CrispyService {
         drop(_guard);
         self.emit(DataChangeEvent::BulkDataRefresh);
         result
+    }
+}
+
+// ── Delegating impls (forward to domain service newtypes) ─────────────────────
+//
+// These methods keep all non-refactored callers compiling while the migration
+// to domain service newtypes is in progress.  Once every caller has been
+// updated (tasks #21 / #22) these can be removed.
+
+impl CrispyService {
+    // ── SourceService delegation ──────────────────────
+    pub fn get_sources(&self) -> Result<Vec<crate::models::Source>, crate::database::DbError> {
+        sources::SourceService(self.clone()).get_sources()
+    }
+    pub fn get_source(&self, id: &str) -> Result<Option<crate::models::Source>, crate::database::DbError> {
+        sources::SourceService(self.clone()).get_source(id)
+    }
+    pub fn save_source(&self, source: &crate::models::Source) -> Result<(), crate::database::DbError> {
+        sources::SourceService(self.clone()).save_source(source)
+    }
+    pub fn delete_source(&self, id: &str) -> Result<(), crate::database::DbError> {
+        sources::SourceService(self.clone()).delete_source(id)
+    }
+    pub fn reorder_sources(&self, source_ids: &[String]) -> Result<(), crate::database::DbError> {
+        sources::SourceService(self.clone()).reorder_sources(source_ids)
+    }
+    pub fn get_source_stats(&self) -> Result<Vec<crate::models::SourceStats>, crate::database::DbError> {
+        sources::SourceService(self.clone()).get_source_stats()
+    }
+    pub fn update_source_sync_status(
+        &self,
+        id: &str,
+        status: &str,
+        error: Option<&str>,
+        sync_time: Option<chrono::NaiveDateTime>,
+    ) -> Result<(), crate::database::DbError> {
+        sources::SourceService(self.clone()).update_source_sync_status(id, status, error, sync_time)
+    }
+
+    // ── ChannelService delegation ─────────────────────
+    pub fn save_channels(&self, channels: &[crate::models::Channel]) -> Result<usize, crate::database::DbError> {
+        channels::ChannelService(self.clone()).save_channels(channels)
+    }
+    pub fn load_channels(&self) -> Result<Vec<crate::models::Channel>, crate::database::DbError> {
+        channels::ChannelService(self.clone()).load_channels()
+    }
+    pub fn get_channels_by_sources(&self, source_ids: &[String]) -> Result<Vec<crate::models::Channel>, crate::database::DbError> {
+        channels::ChannelService(self.clone()).get_channels_by_sources(source_ids)
+    }
+    pub fn get_channels_by_ids(&self, ids: &[String]) -> Result<Vec<crate::models::Channel>, crate::database::DbError> {
+        channels::ChannelService(self.clone()).get_channels_by_ids(ids)
+    }
+    pub fn delete_removed_channels(&self, source_id: &str, keep_ids: &[String]) -> Result<usize, crate::database::DbError> {
+        channels::ChannelService(self.clone()).delete_removed_channels(source_id, keep_ids)
+    }
+    pub fn get_favorites(&self, profile_id: &str) -> Result<Vec<String>, crate::database::DbError> {
+        channels::ChannelService(self.clone()).get_favorites(profile_id)
+    }
+    pub fn add_favorite(&self, profile_id: &str, channel_id: &str) -> Result<(), crate::database::DbError> {
+        channels::ChannelService(self.clone()).add_favorite(profile_id, channel_id)
+    }
+    pub fn remove_favorite(&self, profile_id: &str, channel_id: &str) -> Result<(), crate::database::DbError> {
+        channels::ChannelService(self.clone()).remove_favorite(profile_id, channel_id)
+    }
+
+    // ── VodService delegation ─────────────────────────
+    pub fn save_vod_items(&self, items: &[crate::models::VodItem]) -> Result<usize, crate::database::DbError> {
+        vod::VodService(self.clone()).save_vod_items(items)
+    }
+    pub fn load_vod_items(&self) -> Result<Vec<crate::models::VodItem>, crate::database::DbError> {
+        vod::VodService(self.clone()).load_vod_items()
+    }
+    pub fn get_vod_by_sources(&self, source_ids: &[String]) -> Result<Vec<crate::models::VodItem>, crate::database::DbError> {
+        vod::VodService(self.clone()).get_vod_by_sources(source_ids)
+    }
+    pub fn get_filtered_vod(
+        &self,
+        source_ids: &[String],
+        item_type: Option<&str>,
+        category: Option<&str>,
+        query: Option<&str>,
+        sort_by: &str,
+    ) -> Result<Vec<crate::models::VodItem>, crate::database::DbError> {
+        vod::VodService(self.clone()).get_filtered_vod(source_ids, item_type, category, query, sort_by)
+    }
+    pub fn find_vod_alternatives(
+        &self,
+        name: &str,
+        year: Option<i32>,
+        exclude_id: &str,
+        limit: usize,
+    ) -> Result<Vec<crate::models::VodItem>, crate::database::DbError> {
+        vod::VodService(self.clone()).find_vod_alternatives(name, year, exclude_id, limit)
+    }
+    pub fn delete_removed_vod_items(&self, source_id: &str, keep_ids: &[String]) -> Result<usize, crate::database::DbError> {
+        vod::VodService(self.clone()).delete_removed_vod_items(source_id, keep_ids)
+    }
+    pub fn get_vod_favorites(&self, profile_id: &str) -> Result<Vec<String>, crate::database::DbError> {
+        vod::VodService(self.clone()).get_vod_favorites(profile_id)
+    }
+    pub fn add_vod_favorite(&self, profile_id: &str, vod_item_id: &str) -> Result<(), crate::database::DbError> {
+        vod::VodService(self.clone()).add_vod_favorite(profile_id, vod_item_id)
+    }
+    pub fn remove_vod_favorite(&self, profile_id: &str, vod_item_id: &str) -> Result<(), crate::database::DbError> {
+        vod::VodService(self.clone()).remove_vod_favorite(profile_id, vod_item_id)
+    }
+
+    // ── EpgService delegation ─────────────────────────
+    pub fn save_epg_entries(
+        &self,
+        entries: &std::collections::HashMap<String, Vec<crate::models::EpgEntry>>,
+    ) -> Result<usize, crate::database::DbError> {
+        epg::EpgService(self.clone()).save_epg_entries(entries)
+    }
+    pub fn load_epg_entries(&self) -> Result<std::collections::HashMap<String, Vec<crate::models::EpgEntry>>, crate::database::DbError> {
+        epg::EpgService(self.clone()).load_epg_entries()
+    }
+    pub fn get_epgs_for_channels(
+        &self,
+        channel_ids: &[String],
+        start_time: i64,
+        end_time: i64,
+    ) -> Result<std::collections::HashMap<String, Vec<crate::models::EpgEntry>>, crate::database::DbError> {
+        epg::EpgService(self.clone()).get_epgs_for_channels(channel_ids, start_time, end_time)
+    }
+    pub fn get_epg_by_sources(
+        &self,
+        source_ids: &[String],
+    ) -> Result<std::collections::HashMap<String, Vec<crate::models::EpgEntry>>, crate::database::DbError> {
+        epg::EpgService(self.clone()).get_epg_by_sources(source_ids)
+    }
+    pub fn generate_placeholders_for_channels(
+        &self,
+        channels: &[crate::models::Channel],
+    ) -> Result<usize, crate::database::DbError> {
+        epg::EpgService(self.clone()).generate_placeholders_for_channels(channels)
+    }
+    pub fn get_real_epg_coverage_end(&self, channel_id: &str) -> Result<Option<i64>, crate::database::DbError> {
+        epg::EpgService(self.clone()).get_real_epg_coverage_end(channel_id)
+    }
+    pub fn has_real_epg_coverage(
+        &self,
+        channel_id: &str,
+        start_time: i64,
+        end_time: i64,
+    ) -> Result<bool, crate::database::DbError> {
+        epg::EpgService(self.clone()).has_real_epg_coverage(channel_id, start_time, end_time)
+    }
+    pub fn evict_stale_epg(&self, days: i64) -> Result<usize, crate::database::DbError> {
+        epg::EpgService(self.clone()).evict_stale_epg(days)
+    }
+    pub fn clear_epg_entries(&self) -> Result<(), crate::database::DbError> {
+        epg::EpgService(self.clone()).clear_epg_entries()
+    }
+
+    // ── ProfileService delegation ─────────────────────
+    pub fn save_profile(&self, profile: &crate::models::UserProfile) -> Result<(), crate::database::DbError> {
+        profiles::ProfileService(self.clone()).save_profile(profile)
+    }
+    pub fn delete_profile(&self, id: &str) -> Result<(), crate::database::DbError> {
+        profiles::ProfileService(self.clone()).delete_profile(id)
+    }
+    pub fn load_profiles(&self) -> Result<Vec<crate::models::UserProfile>, crate::database::DbError> {
+        profiles::ProfileService(self.clone()).load_profiles()
+    }
+    pub fn grant_source_access(&self, profile_id: &str, source_id: &str) -> Result<(), crate::database::DbError> {
+        profiles::ProfileService(self.clone()).grant_source_access(profile_id, source_id)
+    }
+    pub fn revoke_source_access(&self, profile_id: &str, source_id: &str) -> Result<(), crate::database::DbError> {
+        profiles::ProfileService(self.clone()).revoke_source_access(profile_id, source_id)
+    }
+    pub fn get_source_access(&self, profile_id: &str) -> Result<Vec<String>, crate::database::DbError> {
+        profiles::ProfileService(self.clone()).get_source_access(profile_id)
+    }
+    pub fn set_source_access(&self, profile_id: &str, source_ids: &[String]) -> Result<(), crate::database::DbError> {
+        profiles::ProfileService(self.clone()).set_source_access(profile_id, source_ids)
+    }
+    pub fn save_channel_order(
+        &self,
+        profile_id: &str,
+        group_name: &str,
+        channel_ids: &[String],
+    ) -> Result<(), crate::database::DbError> {
+        profiles::ProfileService(self.clone()).save_channel_order(profile_id, group_name, channel_ids)
+    }
+    pub fn load_channel_order(
+        &self,
+        profile_id: &str,
+        group_name: &str,
+    ) -> Result<Option<std::collections::HashMap<String, i32>>, crate::database::DbError> {
+        profiles::ProfileService(self.clone()).load_channel_order(profile_id, group_name)
+    }
+    pub fn reset_channel_order(&self, profile_id: &str, group_name: &str) -> Result<(), crate::database::DbError> {
+        profiles::ProfileService(self.clone()).reset_channel_order(profile_id, group_name)
+    }
+
+    // ── DvrService delegation ─────────────────────────
+    pub fn save_recording(&self, rec: &crate::models::Recording) -> Result<(), crate::database::DbError> {
+        dvr::DvrService(self.clone()).save_recording(rec)
+    }
+    pub fn load_recordings(&self) -> Result<Vec<crate::models::Recording>, crate::database::DbError> {
+        dvr::DvrService(self.clone()).load_recordings()
+    }
+    pub fn update_recording(&self, rec: &crate::models::Recording) -> Result<(), crate::database::DbError> {
+        dvr::DvrService(self.clone()).update_recording(rec)
+    }
+    pub fn delete_recording(&self, id: &str) -> Result<(), crate::database::DbError> {
+        dvr::DvrService(self.clone()).delete_recording(id)
+    }
+    pub fn save_storage_backend(&self, backend: &crate::models::StorageBackend) -> Result<(), crate::database::DbError> {
+        dvr::DvrService(self.clone()).save_storage_backend(backend)
+    }
+    pub fn load_storage_backends(&self) -> Result<Vec<crate::models::StorageBackend>, crate::database::DbError> {
+        dvr::DvrService(self.clone()).load_storage_backends()
+    }
+    pub fn delete_storage_backend(&self, id: &str) -> Result<(), crate::database::DbError> {
+        dvr::DvrService(self.clone()).delete_storage_backend(id)
+    }
+    pub fn save_transfer_task(&self, task: &crate::models::TransferTask) -> Result<(), crate::database::DbError> {
+        dvr::DvrService(self.clone()).save_transfer_task(task)
+    }
+    pub fn load_transfer_tasks(&self) -> Result<Vec<crate::models::TransferTask>, crate::database::DbError> {
+        dvr::DvrService(self.clone()).load_transfer_tasks()
+    }
+    pub fn update_transfer_task(&self, task: &crate::models::TransferTask) -> Result<(), crate::database::DbError> {
+        dvr::DvrService(self.clone()).update_transfer_task(task)
+    }
+    pub fn delete_transfer_task(&self, id: &str) -> Result<(), crate::database::DbError> {
+        dvr::DvrService(self.clone()).delete_transfer_task(id)
+    }
+
+    // ── HistoryService delegation ─────────────────────
+    pub fn save_watch_history(&self, entry: &crate::models::WatchHistory) -> Result<(), crate::database::DbError> {
+        history::HistoryService(self.clone()).save_watch_history(entry)
+    }
+    pub fn load_watch_history(&self) -> Result<Vec<crate::models::WatchHistory>, crate::database::DbError> {
+        history::HistoryService(self.clone()).load_watch_history()
+    }
+    pub fn compute_episode_progress_from_db(&self, series_id: &str) -> Result<String, crate::database::DbError> {
+        history::HistoryService(self.clone()).compute_episode_progress_from_db(series_id)
+    }
+    pub fn delete_watch_history(&self, id: &str) -> Result<(), crate::database::DbError> {
+        history::HistoryService(self.clone()).delete_watch_history(id)
+    }
+    pub fn load_watch_history_for_profile(&self, profile_id: &str) -> Result<Vec<crate::models::WatchHistory>, crate::database::DbError> {
+        history::HistoryService(self.clone()).load_watch_history_for_profile(profile_id)
+    }
+
+    // ── BulkService delegation ────────────────────────
+    pub fn clear_all_watch_history(&self) -> Result<usize, crate::database::DbError> {
+        bulk::BulkService(self.clone()).clear_all_watch_history()
+    }
+
+    // ── MiscService delegation ────────────────────────
+    pub fn load_search_history(&self) -> Result<Vec<crate::models::SearchHistory>, crate::database::DbError> {
+        misc::MiscService(self.clone()).load_search_history()
+    }
+    pub fn save_search_entry(&self, entry: &crate::models::SearchHistory) -> Result<(), crate::database::DbError> {
+        misc::MiscService(self.clone()).save_search_entry(entry)
     }
 }
 
