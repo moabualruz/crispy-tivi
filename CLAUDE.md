@@ -17,11 +17,18 @@ and sync. Flutter calls it via `rust/crates/crispy-ffi/` (dart:ffi bridge).
 ### Rust Conventions
 - **Edition:** 2024. **Naming:** `snake_case` functions/vars, `PascalCase` types
 - **Error handling:** `thiserror` for library, `anyhow` for binary
-- **Pre-commit:** `cd rust && cargo fmt --all && cargo clippy --workspace -- -D warnings`
+- **Lints:** Workspace-level clippy lints in `rust/Cargo.toml` — all crates inherit via `[lints] workspace = true`
 - **Tests:** `cargo test -p crispy-core` — ≥90% coverage target
 - **Security:** AES-256-GCM credential encryption, Argon2id PIN hashing, parameterized SQL only
 
-### Key Rust Modules
+### Quality Commands
+```bash
+make check    # Full check: Rust (fmt+clippy+test) + Flutter (format+analyze+test)
+make fix      # Auto-fix all fixable issues in both stacks
+make hooks    # Install pre-commit hook (.githooks/pre-commit)
+```
+
+### Key Rust Modules (crispy-core)
 | Module | Purpose |
 |--------|---------|
 | `parsers/` | M3U, Xtream, Stalker, EPG (XMLTV) parsers |
@@ -29,6 +36,23 @@ and sync. Flutter calls it via `rust/crates/crispy-ffi/` (dart:ffi bridge).
 | `database/` | rusqlite + migration runner |
 | `algorithms/` | crypto (AES-GCM), pin (Argon2id), url_normalize, cloud_sync |
 | `http_resilience.rs` | Retry queue + circuit breaker |
+
+### Rust Workspace Crates
+| Crate | Purpose |
+|-------|---------|
+| `crispy-core` | Business logic, DB, services, algorithms |
+| `crispy-ffi` | dart:ffi bridge (flutter_rust_bridge) |
+| `crispy-server` | Web backend server |
+| `crispy-m3u` | M3U playlist parser |
+| `crispy-xtream` | Xtream Codes API client |
+| `crispy-stalker` | Stalker portal client |
+| `crispy-xmltv` | XMLTV/EPG parser |
+| `crispy-iptv-types` | Shared IPTV type definitions |
+| `crispy-iptv-tools` | IPTV utility functions |
+| `crispy-media-probe` | Media stream probing |
+| `crispy-stream-checker` | Stream availability checker |
+| `crispy-catchup` | Catch-up TV support |
+| `crispy-ui` | Rust-side UI helpers |
 
 ## Design System — "Cinematic Utility" (MANDATORY)
 
@@ -162,11 +186,11 @@ curve: CrispyAnimation.enterCurve,
 
 ## Versioning Scheme
 
-Current version: **0.1.1** (alpha).
+Current version: **0.1.0-alpha**.
 
 | Phase      | Version Range | Rule                                                      |
 | ---------- | ------------- | --------------------------------------------------------- |
-| Alpha      | `0.1.X`       | Increment last digit each release (`0.1.1` → `0.1.2` → …) |
+| Alpha      | `0.1.X`       | Increment last digit each release (`0.1.0` → `0.1.1` → …) |
 | Beta       | `0.2.0`       | Jump to `0.2.0` when entering beta                        |
 | Production | `1.0.0`       | First stable release                                      |
 | Post-1.0   | semver        | `MAJOR.MINOR.PATCH` per [semver 2.0](https://semver.org/) |
@@ -192,10 +216,10 @@ Version must be updated in **all three** locations simultaneously:
 | Theme tokens               | `lib/core/theme/app_theme.dart`           |
 | Breakpoints                | `lib/core/widgets/responsive_layout.dart` |
 | Failure types              | `lib/core/failures/failure.dart`          |
-| **Features**               |                                           |
-| IPTV feature               | `lib/features/iptv/`                      |
-| Player feature             | `lib/features/player/`                    |
-| Settings                   | `lib/features/settings/`                  |
+| **Features**               | `lib/features/` (20 dirs)                 |
+| Key features               | `iptv/`, `player/`, `epg/`, `vod/`, `settings/`, `onboarding/`, `profiles/`, `home/`, `search/` |
+| Media features             | `media_servers/`, `casting/`, `airplay/`, `multiview/`, `dvr/` |
+| Social/smart features      | `favorites/`, `recommendations/`, `notifications/`, `voice_search/`, `parental/`, `cloud_sync/` |
 
 ## Command Shortcuts
 
@@ -446,33 +470,10 @@ dart_output: lib/src/rust
    (String, i64, bool) and JSON strings for complex structs — avoid
    custom Rust types in FFI signatures (they require extra FRB config)
 
-## Before Starting Any Task
-
-1. **Read `.ai/docs/project-specs/ui_ux_spec.md`** — Verify feature exists in matrix, check status.
-2. **Read `.ai/docs/project-specs/design_system.md`** — Use existing tokens, don't invent new ones.
-3. **Read `.ai/docs/project-specs/conversion_plan.md`** — Understand current roadmap step.
-4. **Read `.ai/docs/project-specs/ux_workflows.md`** — Understand navigation flows for the screen.
-5. **Check feature status** — Mark "In Progress" if starting work.
-6. Check `lib/core/theme/` for existing tokens.
-7. Check `lib/core/failures/` for existing error types.
-8. Run `flutter test` after every change.
-
-## After Finishing Any Task
-
-1. **Update `.ai/docs/project-specs/ui_ux_spec.md`** — Mark feature status (✅ Done), note any
-   deviations from spec.
-2. **Update `.ai/docs/project-specs/design_system.md`** — Add any new tokens created.
-3. **Update `.ai/docs/project-specs/conversion_plan.md`** — Mark completed roadmap items.
-4. **Add implementation notes** — Document key decisions below feature in spec.
-5. Run `flutter test` and `flutter analyze` — zero failures, zero issues.
-6. **Run formatters** — `cargo fmt --all` (in `rust/`) and
-   `dart format lib/ test/` before committing.
-
 ## Documentation-First Workflow
 
-> **CRITICAL**: Documentation is the source of truth. Code implements docs,
-> not the other way around. **ALWAYS** read docs BEFORE coding and update
-> docs AFTER coding.
+> Documentation is the source of truth. Code implements docs, not the reverse.
+> Read docs BEFORE coding, update docs AFTER coding.
 
 ### Pre-Task Checklist (MANDATORY)
 
@@ -483,6 +484,7 @@ Before writing ANY code:
 - [ ] UI tokens defined in `.ai/docs/project-specs/design_system.md` (use existing, don't invent)
 - [ ] Navigation flow documented in `.ai/docs/project-specs/ux_workflows.md`
 - [ ] Roadmap status checked in `.ai/docs/project-specs/conversion_plan.md`
+- [ ] Existing tokens checked in `lib/core/theme/`, error types in `lib/core/failures/`
 - [ ] Status marked as "In Progress" in ui_ux_spec.md before coding
 
 ### Post-Task Checklist (MANDATORY)
@@ -610,9 +612,9 @@ Phase 5 (parallel):  [QA Engineer] + [Doc Sync] + [DevOps]
 Use this in all sub-agent prompts for this project:
 
 ```text
-Context: CrispyTivi, Flutter/Dart, Clean Arch + Riverpod + Drift.
+Context: CrispyTivi, Flutter/Dart, Clean Arch + Riverpod + sqflite/rusqlite.
 80 char lines, trailing commas, design tokens from lib/core/theme/.
-Drift DB v18. 506+ tests. Analyzer must stay at 0 errors.
+sqflite + rusqlite DB. 3600+ tests. Analyzer must stay at 0 errors.
 ```
 
 ## Cross-Agent Consistency
@@ -666,7 +668,7 @@ When working on ANY feature or fix, follow this loop:
 
 | Layer       | Command                                                | What it tests             |
 | ----------- | ------------------------------------------------------ | ------------------------- |
-| Unit/Widget | `flutter test`                                         | 378+ unit/widget tests    |
+| Unit/Widget | `flutter test`                                         | 3600+ unit/widget tests   |
 | Integration | `flutter test integration_test/<file> -d windows`      | Single flow on Windows    |
 | Browser     | `cd e2e/playwright && npx playwright test --workers=1` | 4 viewports × all flows   |
 | Visual      | `flutter test test/golden/ --update-goldens`           | Generate baselines        |

@@ -6,7 +6,8 @@
         build-linux build-android build-macos \
         build-ios build-web build-server \
         release-windows release-linux release-android release-web \
-        rust-test rust-build codegen clean
+        rust-test rust-build codegen clean \
+        check fix rust-check rust-fix flutter-check flutter-fix
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) \
@@ -32,6 +33,30 @@ hooks: ## Install pre-commit hook (fmt + clippy + analyze)
 	@echo "  rustup target add x86_64-apple-darwin"
 	@echo "  rustup target add aarch64-apple-ios"
 	@echo "  cargo install cargo-ndk"
+
+# ── Quality ────────────────────────────────────────
+
+check: rust-check flutter-check ## Full check: Rust (fmt+clippy+test) + Flutter (format+analyze+test)
+
+fix: rust-fix flutter-fix ## Auto-fix all fixable issues in both stacks
+
+rust-check: ## Rust: fmt check + clippy + test
+	cd rust && cargo fmt --all -- --check
+	cd rust && cargo clippy --workspace -- -D warnings
+	cd rust && cargo test --workspace
+
+rust-fix: ## Rust: auto-format + clippy fix
+	cd rust && cargo fmt --all
+	cd rust && cargo clippy --workspace --fix --allow-dirty --allow-staged -- -D warnings
+
+flutter-check: ## Flutter: format check + analyze + test
+	dart format --set-exit-if-changed lib/ test/
+	flutter analyze
+	flutter test
+
+flutter-fix: ## Flutter: auto-format + dart fix
+	dart format lib/ test/
+	dart fix --apply
 
 # ── Testing ────────────────────────────────────────
 

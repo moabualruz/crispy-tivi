@@ -23,6 +23,22 @@ license = "CC-BY-NC-SA-4.0"
 [workspace.lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
 
+[workspace.lints.clippy]
+# Correctness & safety
+enum_glob_use          = "warn"
+ptr_as_ptr             = "warn"
+# Style & readability
+cloned_instead_of_copied = "warn"
+flat_map_option        = "warn"
+semicolon_if_nothing_returned = "warn"
+unnested_or_patterns   = "warn"
+unused_self            = "warn"
+# Perf
+implicit_clone         = "warn"
+inefficient_to_string  = "warn"
+# Note: unwrap_used/expect_used intentionally omitted — binary + FFI crates need them.
+# Use `#[allow(clippy::unwrap_used)]` sparingly in library code.
+
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
