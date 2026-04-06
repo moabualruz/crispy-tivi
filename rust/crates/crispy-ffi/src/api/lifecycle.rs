@@ -9,6 +9,7 @@ use crispy_core::services::ServiceContext;
 /// Installs a custom panic hook that logs instead of aborting,
 /// keeping the app alive when a Rust thread panics.
 pub fn init_backend(db_path: String) -> Result<()> {
+    crispy_core::profiling::log_memory_usage("init_backend:start");
     // Install graceful panic hook — log the panic and continue
     // instead of aborting the process. This prevents Rust panics
     // from crashing the entire Flutter app.
@@ -48,6 +49,7 @@ pub fn init_backend(db_path: String) -> Result<()> {
         }
     });
 
+    crispy_core::profiling::log_memory_usage("init_backend:done");
     Ok(())
 }
 

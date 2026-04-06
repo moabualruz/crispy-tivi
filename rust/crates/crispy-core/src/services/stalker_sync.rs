@@ -14,8 +14,8 @@ use crate::algorithms::normalize::{mac_to_device_id, validate_mac_address};
 use crate::http_client::{get_fast_client, get_shared_client};
 use crate::models::SyncReport;
 use crate::parsers::stalker;
-use crate::services::{ServiceContext, SourceService};
 use crate::services::url_validator::validate_url;
+use crate::services::{ServiceContext, SourceService};
 use crate::sync_progress::emit_progress;
 
 // ── Constants ────────────────────────────────────────

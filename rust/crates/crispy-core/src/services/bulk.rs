@@ -114,9 +114,9 @@ impl BulkService {
 
 #[cfg(test)]
 mod tests {
+    use super::BulkService;
     use crate::database::DbError;
     use crate::services::test_helpers::*;
-    use super::BulkService;
 
     #[test]
     fn update_vod_favorite_emits_event() {
@@ -146,20 +146,22 @@ mod tests {
         use crate::models::SearchHistory;
         use crate::services::MiscService;
         let svc = BulkService(make_service());
-        MiscService(svc.0.clone()).save_search_entry(&SearchHistory {
-            id: "s1".to_string(),
-            query: "News".to_string(),
-            searched_at: parse_dt("2025-01-15 12:00:00"),
-            result_count: 1,
-        })
-        .unwrap();
-        MiscService(svc.0.clone()).save_search_entry(&SearchHistory {
-            id: "s2".to_string(),
-            query: "sports".to_string(),
-            searched_at: parse_dt("2025-01-15 12:00:00"),
-            result_count: 1,
-        })
-        .unwrap();
+        MiscService(svc.0.clone())
+            .save_search_entry(&SearchHistory {
+                id: "s1".to_string(),
+                query: "News".to_string(),
+                searched_at: parse_dt("2025-01-15 12:00:00"),
+                result_count: 1,
+            })
+            .unwrap();
+        MiscService(svc.0.clone())
+            .save_search_entry(&SearchHistory {
+                id: "s2".to_string(),
+                query: "sports".to_string(),
+                searched_at: parse_dt("2025-01-15 12:00:00"),
+                result_count: 1,
+            })
+            .unwrap();
 
         let deleted = svc.delete_search_by_query("  news  ").unwrap();
         assert_eq!(deleted, 1);
@@ -185,10 +187,12 @@ mod tests {
 
         let deleted = svc.clear_all_watch_history().unwrap();
         assert_eq!(deleted, 3);
-        assert!(HistoryService(svc.0.clone())
-            .load_watch_history()
-            .unwrap()
-            .is_empty());
+        assert!(
+            HistoryService(svc.0.clone())
+                .load_watch_history()
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
@@ -210,10 +214,12 @@ mod tests {
 
         svc.clear_all().unwrap();
 
-        assert!(ChannelService(svc.0.clone())
-            .load_channels()
-            .unwrap()
-            .is_empty());
+        assert!(
+            ChannelService(svc.0.clone())
+                .load_channels()
+                .unwrap()
+                .is_empty()
+        );
         assert_eq!(svc.0.get_setting("k").unwrap(), None,);
     }
 

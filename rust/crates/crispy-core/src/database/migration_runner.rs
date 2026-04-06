@@ -24,7 +24,7 @@ use super::DbError;
 ///
 /// When adding a new migration file, update this constant to match the
 /// new `PRAGMA user_version` value set by that file.
-pub const LATEST_VERSION: u32 = 38;
+pub const LATEST_VERSION: u32 = 39;
 
 /// Ordered list of `(target_user_version, sql)` pairs.
 ///
@@ -42,6 +42,10 @@ static MIGRATIONS: &[(u32, &str)] = &[
     //        constraints, indexes.  Absorbs former 001-010.
     (36, include_str!("migrations/001_initial_schema.sql")),
     (37, include_str!("migrations/002_add_xtream_stream_id.sql")),
+    (
+        39,
+        include_str!("migrations/003_add_epg_channels_display_index.sql"),
+    ),
 ];
 
 /// Run all pending migrations against `conn`.
@@ -432,6 +436,7 @@ mod tests {
             "idx_channels_tvg",
             "idx_epg_channel",
             "idx_epg_channel_time",
+            "idx_epg_channels_display",
             "idx_epg_channels_source",
             "idx_epg_real_coverage",
             "idx_epg_source",

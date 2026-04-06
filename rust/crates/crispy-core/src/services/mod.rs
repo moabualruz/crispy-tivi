@@ -9,9 +9,9 @@ use std::sync::{Arc, Mutex};
 use chrono::NaiveDateTime;
 use rusqlite::params;
 
-use crate::database::{optional, Database, DbError};
-use crate::insert_or_replace;
+use crate::database::{Database, DbError, optional};
 use crate::events::{DataChangeEvent, EventCallback};
+use crate::insert_or_replace;
 
 pub mod activity_log;
 pub mod airplay_service;
@@ -367,12 +367,7 @@ impl ServiceContext {
     /// Set a setting value.
     pub fn set_setting(&self, key: &str, value: &str) -> Result<(), DbError> {
         let conn = self.db.get()?;
-        insert_or_replace!(
-            conn,
-            "db_settings",
-            ["key", "value"],
-            params![key, value],
-        )?;
+        insert_or_replace!(conn, "db_settings", ["key", "value"], params![key, value],)?;
         self.emit(DataChangeEvent::SettingsUpdated {
             key: key.to_string(),
         });
@@ -409,6 +404,8 @@ impl ServiceContext {
         vod_items: &[crate::models::VodItem],
         sync_started_at: i64,
     ) -> Result<(), crate::database::DbError> {
+        crate::perf_scope!("save_sync_data");
+        crate::profiling::log_memory_usage("save_sync_data:start");
         // Serialise concurrent syncs for the duration of the transaction.
         let _sync_guard = self.sync_mutex.lock().unwrap_or_else(|e| e.into_inner());
 
@@ -462,6 +459,7 @@ impl ServiceContext {
             let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
         }
 
+        crate::profiling::log_memory_usage("save_sync_data:end");
         Ok(())
     }
 
@@ -487,7 +485,6 @@ impl ServiceContext {
         result
     }
 }
-
 
 #[cfg(test)]
 mod helper_tests {

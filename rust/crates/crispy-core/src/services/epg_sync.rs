@@ -7,7 +7,7 @@
 //! Includes a 4-hour cooldown per EPG URL to prevent redundant
 //! network traffic. Callers can bypass via `force: true`.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::io::{BufReader, Cursor, Read};
 use std::sync::Arc;
@@ -21,10 +21,10 @@ use sha2::{Digest, Sha256};
 use tokio::sync::Semaphore;
 
 use crate::events::DataChangeEvent;
-use crate::insert_or_replace;
 use crate::http_client::shared_client;
+use crate::insert_or_replace;
 use crate::models::{Channel, EpgEntry};
-use crate::parsers::epg::{EpgChannel, ParsedEpg};
+use crate::parsers::epg::ParsedEpg;
 use crate::services::{EpgService, ServiceContext, build_in_placeholders, str_params};
 
 /// Minimum interval between EPG refreshes for the same URL (4 hours).
@@ -83,15 +83,34 @@ pub async fn fetch_and_save_xmltv_epg(
         return Ok(0);
     }
 
-    // E2: Save XMLTV <channel> definitions to db_epg_channels.
-    if !parsed.channels.is_empty() {
-        save_epg_channels(service, &parsed.channels, source_id.as_deref())
-            .context("Failed to save XMLTV channel definitions")?;
+    let known_xmltv_ids: HashSet<String> = parsed
+        .channels
+        .iter()
+        .map(|channel| channel.xmltv_id.clone())
+        .chain(
+            parsed
+                .entries
+                .iter()
+                .map(|entry| entry.epg_channel_id.clone()),
+        )
+        .collect();
 
-        // E4: Resolve epg_channel_id for db_channels that are still unmapped,
-        // using display-name matching against the just-saved db_epg_channels rows.
-        resolve_epg_channel_ids(service, source_id.as_deref())
-            .context("Failed to resolve EPG channel IDs")?;
+    // E2/E4: Persist XMLTV <channel> definitions and resolve local channel
+    // mappings for this source before inserting programme rows.
+    if let Some(source_id) = source_id.as_deref()
+        && !source_id.trim().is_empty()
+    {
+        if !parsed.channels.is_empty() {
+            EpgService(service.clone())
+                .save_epg_channels(&parsed.channels, source_id)
+                .context("Failed to save XMLTV channel definitions")?;
+        }
+
+        if !known_xmltv_ids.is_empty() {
+            EpgService(service.clone())
+                .resolve_epg_channel_ids(source_id, &known_xmltv_ids)
+                .context("Failed to resolve EPG channel IDs")?;
+        }
     }
 
     // Group programme entries by XMLTV channel ID for bulk insert.
@@ -466,76 +485,6 @@ impl Read for StreamChunkReader {
     }
 }
 
-// ── EPG Channel Helpers ───────────────────────────
-
-/// Persist XMLTV `<channel>` definitions to `db_epg_channels`.
-///
-/// Uses `INSERT OR REPLACE` keyed on `(xmltv_id, source_id)` so
-/// re-running a sync always reflects the latest channel metadata
-/// from the XMLTV feed.
-fn save_epg_channels(
-    service: &ServiceContext,
-    channels: &[EpgChannel],
-    source_id: Option<&str>,
-) -> Result<()> {
-    if channels.is_empty() {
-        return Ok(());
-    }
-    let sid = source_id.unwrap_or("");
-    let conn = service.db.get()?;
-    let tx = conn.unchecked_transaction()?;
-    for ch in channels {
-        insert_or_replace!(tx, "db_epg_channels",
-            ["xmltv_id", "source_id", "display_name", "icon_url"],
-            params![ch.xmltv_id, sid, ch.display_name, ch.icon_url]
-        )?;
-    }
-    tx.commit()?;
-    tracing::debug!(
-        "[epg_sync] saved {} XMLTV channel definitions (source={})",
-        channels.len(),
-        sid,
-    );
-    Ok(())
-}
-
-/// Resolve `db_channels.epg_channel_id` for channels that have no
-/// mapping yet, by matching `db_epg_channels.display_name` against
-/// `db_channels.name` or `db_channels.tvg_name`.
-///
-/// Only channels with a NULL or empty `epg_channel_id` are updated,
-/// so manually-assigned mappings are never overwritten.
-fn resolve_epg_channel_ids(service: &ServiceContext, source_id: Option<&str>) -> Result<()> {
-    let conn = service.db.get()?;
-    let sid = source_id.unwrap_or("");
-    let updated = conn.execute(
-        "UPDATE db_channels
-         SET epg_channel_id = (
-             SELECT ec.xmltv_id
-             FROM db_epg_channels ec
-             WHERE ec.source_id = ?1
-               AND (ec.display_name = db_channels.name
-                    OR ec.display_name = db_channels.tvg_name)
-             LIMIT 1
-         )
-         WHERE (epg_channel_id IS NULL OR epg_channel_id = '')
-           AND EXISTS (
-               SELECT 1 FROM db_epg_channels ec2
-               WHERE ec2.source_id = ?1
-                 AND (ec2.display_name = db_channels.name
-                      OR ec2.display_name = db_channels.tvg_name)
-           )",
-        params![sid],
-    )?;
-    if updated > 0 {
-        tracing::info!(
-            "[epg_sync] resolved epg_channel_id for {} channels via display-name match",
-            updated,
-        );
-    }
-    Ok(())
-}
-
 // ── Cooldown Helpers ──────────────────────────────
 
 fn header_value(headers: &HeaderMap, name: reqwest::header::HeaderName) -> Option<String> {
@@ -741,10 +690,7 @@ fn read_sync_setting(service: &ServiceContext, key: &str) -> Option<String> {
 
 fn write_sync_setting(service: &ServiceContext, key: &str, value: &str) -> Result<()> {
     let conn = service.db.get()?;
-    insert_or_replace!(conn, "db_settings",
-        ["key", "value"],
-        params![key, value]
-    )?;
+    insert_or_replace!(conn, "db_settings", ["key", "value"], params![key, value])?;
     Ok(())
 }
 

@@ -335,11 +335,10 @@ impl TransferRepository for DvrService {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::DvrService;
+    use super::*;
     use crate::services::test_helpers::*;
 
     /// Create a service with fixtures and seed channel "ch1" for recording FK.

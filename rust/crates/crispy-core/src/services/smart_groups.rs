@@ -389,10 +389,10 @@ impl SmartGroupService {
 
 #[cfg(test)]
 mod tests {
+    use super::SmartGroupService;
     use crate::insert_or_replace;
     use crate::services::channels::ChannelService;
     use crate::services::test_helpers::*;
-    use super::SmartGroupService;
 
     #[test]
     fn smart_group_crud() {
@@ -614,13 +614,7 @@ mod tests {
     }
 
     /// Helper to insert a channel for testing.
-    fn insert_channel(
-        svc: &SmartGroupService,
-        id: &str,
-        name: &str,
-        url: &str,
-        source_id: &str,
-    ) {
+    fn insert_channel(svc: &SmartGroupService, id: &str, name: &str, url: &str, source_id: &str) {
         let conn = svc.0.db.get().unwrap();
         insert_or_replace!(
             conn,

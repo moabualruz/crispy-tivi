@@ -87,7 +87,11 @@ pub fn add_favorite_category(
     category_type: String,
     category_name: String,
 ) -> Result<()> {
-    Ok(CategoryService(ctx()?).add_favorite_category(&profile_id, &category_type, &category_name)?)
+    Ok(CategoryService(ctx()?).add_favorite_category(
+        &profile_id,
+        &category_type,
+        &category_name,
+    )?)
 }
 
 /// Remove a category from profile favourites.
@@ -96,10 +100,11 @@ pub fn remove_favorite_category(
     category_type: String,
     category_name: String,
 ) -> Result<()> {
-    Ok(
-        CategoryService(ctx()?)
-            .remove_favorite_category(&profile_id, &category_type, &category_name)?,
-    )
+    Ok(CategoryService(ctx()?).remove_favorite_category(
+        &profile_id,
+        &category_type,
+        &category_name,
+    )?)
 }
 
 // ── Channel Order ────────────────────────────────────

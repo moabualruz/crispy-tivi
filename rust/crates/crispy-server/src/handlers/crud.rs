@@ -6,13 +6,13 @@ use anyhow::{Context, Result, anyhow};
 use serde_json::{Value, json};
 
 use crispy_core::models::*;
+use crispy_core::services::logo_resolver::LogoService;
 use crispy_core::services::{
     BookmarkService, BulkService, CategoryService, ChannelService, DvrService, EpgMappingService,
     EpgService, HistoryService, MiscService, ProfileService, ReminderService, ServiceContext,
     SettingsService, SmartGroupService, SourceService, StreamHealthService, VodService,
     WatchlistService,
 };
-use crispy_core::services::logo_resolver::LogoService;
 
 use super::{get_i64, get_str, get_str_opt, get_str_vec, svc_call, svc_data, svc_ok, ts_to_dt};
 
@@ -121,12 +121,22 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
         "addWatchlistItem" => (|| {
             let pid = get_str(args, "profileId")?;
             let vid = get_str(args, "vodItemId")?;
-            svc_ok!(WatchlistService(svc.clone()), add_watchlist_item, &pid, &vid)
+            svc_ok!(
+                WatchlistService(svc.clone()),
+                add_watchlist_item,
+                &pid,
+                &vid
+            )
         })(),
         "removeWatchlistItem" => (|| {
             let pid = get_str(args, "profileId")?;
             let vid = get_str(args, "vodItemId")?;
-            svc_ok!(WatchlistService(svc.clone()), remove_watchlist_item, &pid, &vid)
+            svc_ok!(
+                WatchlistService(svc.clone()),
+                remove_watchlist_item,
+                &pid,
+                &vid
+            )
         })(),
 
         // ── Categories ─────────────────────────
@@ -149,19 +159,36 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
         "getFavoriteCategories" => (|| {
             let pid = get_str(args, "profileId")?;
             let ct = get_str(args, "categoryType")?;
-            svc_data!(CategoryService(svc.clone()), get_favorite_categories, &pid, &ct)
+            svc_data!(
+                CategoryService(svc.clone()),
+                get_favorite_categories,
+                &pid,
+                &ct
+            )
         })(),
         "addFavoriteCategory" => (|| {
             let pid = get_str(args, "profileId")?;
             let ct = get_str(args, "categoryType")?;
             let cn = get_str(args, "categoryName")?;
-            svc_ok!(CategoryService(svc.clone()), add_favorite_category, &pid, &ct, &cn)
+            svc_ok!(
+                CategoryService(svc.clone()),
+                add_favorite_category,
+                &pid,
+                &ct,
+                &cn
+            )
         })(),
         "removeFavoriteCategory" => (|| {
             let pid = get_str(args, "profileId")?;
             let ct = get_str(args, "categoryType")?;
             let cn = get_str(args, "categoryName")?;
-            svc_ok!(CategoryService(svc.clone()), remove_favorite_category, &pid, &ct, &cn)
+            svc_ok!(
+                CategoryService(svc.clone()),
+                remove_favorite_category,
+                &pid,
+                &ct,
+                &cn
+            )
         })(),
 
         // ── Profiles ───────────────────────────
@@ -193,7 +220,12 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
         "revokeSourceAccess" => (|| {
             let pid = get_str(args, "profileId")?;
             let sid = get_str(args, "sourceId")?;
-            svc_ok!(ProfileService(svc.clone()), revoke_source_access, &pid, &sid)
+            svc_ok!(
+                ProfileService(svc.clone()),
+                revoke_source_access,
+                &pid,
+                &sid
+            )
         })(),
         "setSourceAccess" => (|| {
             let pid = get_str(args, "profileId")?;
@@ -206,7 +238,13 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
             let pid = get_str(args, "profileId")?;
             let gn = get_str(args, "groupName")?;
             let cids = get_str_vec(args, "channelIds")?;
-            svc_ok!(ProfileService(svc.clone()), save_channel_order, &pid, &gn, &cids)
+            svc_ok!(
+                ProfileService(svc.clone()),
+                save_channel_order,
+                &pid,
+                &gn,
+                &cids
+            )
         })(),
         "loadChannelOrder" => (|| {
             let pid = get_str(args, "profileId")?;
@@ -323,11 +361,19 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
         "getEpgMappings" => svc_data!(EpgMappingService(svc.clone()), get_epg_mappings),
         "lockEpgMapping" => (|| {
             let channel_id = get_str(args, "channelId")?;
-            svc_ok!(EpgMappingService(svc.clone()), lock_epg_mapping, &channel_id)
+            svc_ok!(
+                EpgMappingService(svc.clone()),
+                lock_epg_mapping,
+                &channel_id
+            )
         })(),
         "deleteEpgMapping" => (|| {
             let channel_id = get_str(args, "channelId")?;
-            svc_ok!(EpgMappingService(svc.clone()), delete_epg_mapping, &channel_id)
+            svc_ok!(
+                EpgMappingService(svc.clone()),
+                delete_epg_mapping,
+                &channel_id
+            )
         })(),
         "getPendingEpgSuggestions" => {
             svc_data!(EpgMappingService(svc.clone()), get_pending_epg_suggestions)
@@ -338,7 +384,12 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
                 .get("is247")
                 .and_then(serde_json::Value::as_bool)
                 .ok_or_else(|| anyhow!("Missing is247"))?;
-            svc_ok!(EpgMappingService(svc.clone()), set_channel_247, &channel_id, is_247)
+            svc_ok!(
+                EpgMappingService(svc.clone()),
+                set_channel_247,
+                &channel_id,
+                is_247
+            )
         })(),
 
         // ── Watch History ──────────────────────
@@ -643,7 +694,11 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
         })(),
         "getCategoriesBySources" => (|| {
             let ids = get_str_vec(args, "sourceIds")?;
-            svc_data!(CategoryService(svc.clone()), get_categories_by_sources, &ids)
+            svc_data!(
+                CategoryService(svc.clone()),
+                get_categories_by_sources,
+                &ids
+            )
         })(),
         "getSourceStats" => svc_data!(SourceService(svc.clone()), get_source_stats),
 
@@ -657,7 +712,12 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
                 .get("isFavorite")
                 .and_then(serde_json::Value::as_bool)
                 .ok_or_else(|| anyhow!("Missing bool: isFavorite"))?;
-            svc_ok!(BulkService(svc.clone()), update_vod_favorite, &item_id, is_fav)
+            svc_ok!(
+                BulkService(svc.clone()),
+                update_vod_favorite,
+                &item_id,
+                is_fav
+            )
         })(),
         "getProfilesForSource" => (|| {
             let sid = get_str(args, "sourceId")?;
@@ -755,7 +815,11 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
         // ── Stream Health ─────────────────────────
         "recordStreamStall" => (|| {
             let url_hash = get_str(args, "urlHash")?;
-            svc_ok!(StreamHealthService(svc.clone()), record_stream_stall, &url_hash)
+            svc_ok!(
+                StreamHealthService(svc.clone()),
+                record_stream_stall,
+                &url_hash
+            )
         })(),
         "recordBufferSample" => (|| {
             let url_hash = get_str(args, "urlHash")?;
@@ -763,16 +827,30 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
                 .get("value")
                 .and_then(serde_json::Value::as_f64)
                 .ok_or_else(|| anyhow!("Missing f64 arg: value"))?;
-            svc_ok!(StreamHealthService(svc.clone()), record_buffer_sample, &url_hash, value)
+            svc_ok!(
+                StreamHealthService(svc.clone()),
+                record_buffer_sample,
+                &url_hash,
+                value
+            )
         })(),
         "recordTtff" => (|| {
             let url_hash = get_str(args, "urlHash")?;
             let ttff_ms = get_i64(args, "ttffMs")?;
-            svc_ok!(StreamHealthService(svc.clone()), record_ttff, &url_hash, ttff_ms)
+            svc_ok!(
+                StreamHealthService(svc.clone()),
+                record_ttff,
+                &url_hash,
+                ttff_ms
+            )
         })(),
         "getStreamHealthScore" => (|| {
             let url_hash = get_str(args, "urlHash")?;
-            let score = svc_call!(StreamHealthService(svc.clone()), get_stream_health_score, &url_hash)?;
+            let score = svc_call!(
+                StreamHealthService(svc.clone()),
+                get_stream_health_score,
+                &url_hash
+            )?;
             Ok(json!({"data": score}))
         })(),
         "pruneStreamHealth" => (|| {
@@ -835,7 +913,11 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
         })(),
         "deleteSmartGroup" => (|| {
             let group_id = get_str(args, "groupId")?;
-            svc_ok!(SmartGroupService(svc.clone()), delete_smart_group, &group_id)
+            svc_ok!(
+                SmartGroupService(svc.clone()),
+                delete_smart_group,
+                &group_id
+            )
         })(),
         "renameSmartGroup" => (|| {
             let group_id = get_str(args, "groupId")?;
@@ -890,7 +972,10 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
             Ok(json!({"data": json}))
         })(),
         "detectSmartGroupCandidates" => {
-            svc_data!(SmartGroupService(svc.clone()), detect_smart_group_candidates)
+            svc_data!(
+                SmartGroupService(svc.clone()),
+                detect_smart_group_candidates
+            )
         }
 
         _ => return None,

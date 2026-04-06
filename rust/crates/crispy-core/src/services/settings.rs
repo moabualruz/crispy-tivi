@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use rusqlite::params;
 
 use super::{ServiceContext, dt_to_ts, ts_to_dt};
-use crate::database::{optional, DbError};
+use crate::database::{DbError, optional};
 use crate::errors::DomainError;
 use crate::traits::SettingsRepository;
 
@@ -48,18 +48,11 @@ impl SettingsRepository for SettingsService {
         Ok(self.0.remove_setting(key)?)
     }
 
-    fn set_last_sync_time(
-        &self,
-        source_id: &str,
-        time: NaiveDateTime,
-    ) -> Result<(), DomainError> {
+    fn set_last_sync_time(&self, source_id: &str, time: NaiveDateTime) -> Result<(), DomainError> {
         Ok(self.set_last_sync_time(source_id, time)?)
     }
 
-    fn get_last_sync_time(
-        &self,
-        source_id: &str,
-    ) -> Result<Option<NaiveDateTime>, DomainError> {
+    fn get_last_sync_time(&self, source_id: &str) -> Result<Option<NaiveDateTime>, DomainError> {
         Ok(self.get_last_sync_time(source_id)?)
     }
 }

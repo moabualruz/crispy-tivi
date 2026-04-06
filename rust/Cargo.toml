@@ -90,3 +90,4 @@ smallvec = { version = "1", features = ["serde"] }
 flate2 = "1"
 xz2 = "0.1"
 md-5 = "0.10"
+memory-stats = "1.2"

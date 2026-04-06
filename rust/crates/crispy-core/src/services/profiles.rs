@@ -6,8 +6,8 @@ use super::{ServiceContext, bool_to_int, int_to_bool};
 use crate::database::DbError;
 use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
-use crate::models::UserProfile;
 use crate::insert_or_replace;
+use crate::models::UserProfile;
 use crate::traits::ProfileRepository;
 
 /// Domain service for profile operations.
@@ -294,19 +294,11 @@ impl ProfileRepository for ProfileService {
         Ok(self.load_profiles()?)
     }
 
-    fn grant_source_access(
-        &self,
-        profile_id: &str,
-        source_id: &str,
-    ) -> Result<(), DomainError> {
+    fn grant_source_access(&self, profile_id: &str, source_id: &str) -> Result<(), DomainError> {
         Ok(self.grant_source_access(profile_id, source_id)?)
     }
 
-    fn revoke_source_access(
-        &self,
-        profile_id: &str,
-        source_id: &str,
-    ) -> Result<(), DomainError> {
+    fn revoke_source_access(&self, profile_id: &str, source_id: &str) -> Result<(), DomainError> {
         Ok(self.revoke_source_access(profile_id, source_id)?)
     }
 
@@ -339,11 +331,7 @@ impl ProfileRepository for ProfileService {
         Ok(self.load_channel_order(profile_id, group_name)?)
     }
 
-    fn reset_channel_order(
-        &self,
-        profile_id: &str,
-        group_name: &str,
-    ) -> Result<(), DomainError> {
+    fn reset_channel_order(&self, profile_id: &str, group_name: &str) -> Result<(), DomainError> {
         Ok(self.reset_channel_order(profile_id, group_name)?)
     }
 }

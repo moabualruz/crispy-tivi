@@ -43,8 +43,7 @@ pub fn reorder_smart_group_members(
     ordered_channel_ids_json: String,
 ) -> Result<()> {
     into_anyhow(
-        SmartGroupService(ctx()?)
-            .reorder_smart_group_members(&group_id, &ordered_channel_ids_json),
+        SmartGroupService(ctx()?).reorder_smart_group_members(&group_id, &ordered_channel_ids_json),
     )
 }
 

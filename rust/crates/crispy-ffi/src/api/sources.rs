@@ -49,5 +49,10 @@ pub fn update_source_sync_status(
     let sync_time = sync_time_ms
         .and_then(|ms| chrono::DateTime::from_timestamp(ms / 1000, 0))
         .map(|dt| dt.naive_utc());
-    Ok(SourceService(ctx()?).update_source_sync_status(&id, &status, error.as_deref(), sync_time)?)
+    Ok(SourceService(ctx()?).update_source_sync_status(
+        &id,
+        &status,
+        error.as_deref(),
+        sync_time,
+    )?)
 }

@@ -220,11 +220,21 @@ fn parse_channel_element(
                     icon_url = get_attr(e, b"src").filter(|s| !s.is_empty());
                 }
             }
+            Ok(Event::Start(ref e)) if e.name().as_ref() == b"icon" => {
+                if icon_url.is_none() {
+                    icon_url = get_attr(e, b"src").filter(|s| !s.is_empty());
+                }
+                let _ = reader.read_to_end(e.name());
+            }
             Ok(Event::End(ref e)) if e.name().as_ref() == b"channel" => break,
             Ok(Event::Eof) => break,
             Err(_) => break,
             _ => {}
         }
+    }
+
+    if display_name.is_empty() {
+        return None;
     }
 
     Some(EpgChannel {
@@ -810,6 +820,16 @@ mod tests {
                 chrono::NaiveTime::from_hms_opt(6, 0, 0,).unwrap(),
             ),
         );
+    }
+
+    #[test]
+    fn parse_epg_full_collects_channels_and_entries() {
+        let parsed = parse_epg_full(SAMPLE_XMLTV);
+        assert_eq!(parsed.channels.len(), 2);
+        assert_eq!(parsed.entries.len(), 2);
+        assert_eq!(parsed.channels[0].xmltv_id, "bbc1");
+        assert_eq!(parsed.channels[0].display_name, "BBC One");
+        assert!(parsed.channels[0].icon_url.is_none());
     }
 
     #[test]

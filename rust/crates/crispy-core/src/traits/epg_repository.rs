@@ -24,10 +24,7 @@ pub trait EpgRepository {
         &self,
         channels: &[Channel],
     ) -> Result<usize, DomainError>;
-    fn get_real_epg_coverage_end(
-        &self,
-        channel_id: &str,
-    ) -> Result<Option<i64>, DomainError>;
+    fn get_real_epg_coverage_end(&self, channel_id: &str) -> Result<Option<i64>, DomainError>;
     fn has_real_epg_coverage(
         &self,
         channel_id: &str,

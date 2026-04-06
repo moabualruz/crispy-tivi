@@ -166,8 +166,8 @@ impl CategoryService {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::services::test_helpers::*;
     use super::CategoryService;
+    use crate::services::test_helpers::*;
 
     #[test]
     fn categories_crud() {

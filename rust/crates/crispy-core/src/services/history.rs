@@ -4,8 +4,8 @@ use super::{ServiceContext, dt_to_ts, ts_to_dt};
 use crate::database::DbError;
 use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
-use crate::models::{EpisodeProgress, WatchHistory};
 use crate::insert_or_replace;
+use crate::models::{EpisodeProgress, WatchHistory};
 use crate::traits::HistoryRepository;
 
 fn watch_history_from_row(row: &Row) -> rusqlite::Result<WatchHistory> {
@@ -192,10 +192,7 @@ impl HistoryRepository for HistoryService {
         Ok(self.load_watch_history_for_profile(profile_id)?)
     }
 
-    fn compute_episode_progress_from_db(
-        &self,
-        series_id: &str,
-    ) -> Result<String, DomainError> {
+    fn compute_episode_progress_from_db(&self, series_id: &str) -> Result<String, DomainError> {
         Ok(self.compute_episode_progress_from_db(series_id)?)
     }
 
@@ -206,8 +203,8 @@ impl HistoryRepository for HistoryService {
 
 #[cfg(test)]
 mod tests {
-    use crate::services::test_helpers::*;
     use super::HistoryService;
+    use crate::services::test_helpers::*;
 
     #[test]
     fn save_and_load_watch_history() {

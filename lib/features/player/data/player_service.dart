@@ -295,6 +295,7 @@ class PlayerService extends PlayerServiceBase
       }
 
       extras['hwdec'] = _hwdecMode;
+      extras['vo'] = 'gpu';
       debugPrint('PlayerService: hwdec=$_hwdecMode');
 
       if (_maxVolume > 100) {

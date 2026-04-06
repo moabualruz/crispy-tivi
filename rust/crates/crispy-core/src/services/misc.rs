@@ -3,8 +3,8 @@ use rusqlite::{Row, params};
 use super::{ServiceContext, dt_to_ts, ts_to_dt};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
-use crate::models::{SavedLayout, SearchHistory};
 use crate::insert_or_replace;
+use crate::models::{SavedLayout, SearchHistory};
 
 fn saved_layout_from_row(row: &Row) -> rusqlite::Result<SavedLayout> {
     Ok(SavedLayout {
@@ -165,8 +165,8 @@ impl MiscService {
 
 #[cfg(test)]
 mod tests {
-    use crate::services::test_helpers::*;
     use super::MiscService;
+    use crate::services::test_helpers::*;
 
     fn make_saved_layout(id: &str, name: &str) -> crate::models::SavedLayout {
         crate::models::SavedLayout {

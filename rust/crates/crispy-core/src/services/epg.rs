@@ -3,11 +3,12 @@ use std::collections::{HashMap, HashSet};
 use rusqlite::params;
 
 use super::{ServiceContext, bool_to_int, dt_to_ts, str_params, ts_to_dt};
-use crate::database::{optional, DbError};
-use crate::errors::DomainError;
 use crate::database::row_helpers::RowExt;
+use crate::database::{DbError, optional};
+use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
 use crate::models::EpgEntry;
+use crate::parsers::epg::EpgChannel;
 use crate::traits::EpgRepository;
 
 /// Domain service for EPG operations.
@@ -23,6 +24,10 @@ const EPG_SELECT_COLS: &str = "\
     credits_json, \
     language, country, \
     is_rerun, is_new, is_premiere, length_minutes";
+
+const CHANNEL_NAME_SUFFIXES: [&str; 10] = [
+    " hd", " sd", " fhd", " 4k", " uhd", " low", " mini", " hevc", " h265", " h.265",
+];
 
 /// Map a database row (matching [`EPG_SELECT_COLS`] order) to an
 /// [`EpgEntry`].
@@ -55,8 +60,180 @@ fn epg_entry_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<EpgEntry> {
     })
 }
 
+pub(crate) fn normalize_channel_name(name: &str) -> String {
+    let mut normalized = name.trim().to_lowercase();
+
+    loop {
+        let mut stripped = false;
+        for suffix in CHANNEL_NAME_SUFFIXES {
+            if normalized.ends_with(suffix) {
+                normalized = normalized[..normalized.len() - suffix.len()]
+                    .trim()
+                    .to_string();
+                stripped = true;
+                break;
+            }
+        }
+        if !stripped {
+            return normalized;
+        }
+    }
+}
+
 impl EpgService {
     // ── EPG ─────────────────────────────────────────
+
+    /// Save XMLTV `<channel>` metadata for a source.
+    pub fn save_epg_channels(
+        &self,
+        channels: &[EpgChannel],
+        source_id: &str,
+    ) -> Result<usize, DbError> {
+        let source_id = source_id.trim();
+        if channels.is_empty() || source_id.is_empty() {
+            return Ok(0);
+        }
+
+        let conn = self.0.db.get()?;
+        let tx = conn.unchecked_transaction()?;
+        let mut saved = 0usize;
+
+        for channel in channels {
+            let xmltv_id = channel.xmltv_id.trim();
+            let display_name = channel.display_name.trim();
+            if xmltv_id.is_empty() || display_name.is_empty() {
+                continue;
+            }
+
+            saved += tx.execute(
+                "INSERT OR REPLACE INTO db_epg_channels (
+                    xmltv_id, display_name, icon_url, source_id
+                 ) VALUES (?1, ?2, ?3, ?4)",
+                params![xmltv_id, display_name, channel.icon_url, source_id],
+            )?;
+        }
+
+        tx.commit()?;
+        Ok(saved)
+    }
+
+    /// Resolve `db_channels.epg_channel_id` for unmapped channels in a source.
+    ///
+    /// Resolution order:
+    /// 1. exact `tvg_id`
+    /// 2. normalized name bridge via `db_epg_channels.display_name`
+    /// 3. `xtream_stream_id` fallback
+    pub fn resolve_epg_channel_ids(
+        &self,
+        source_id: &str,
+        known_xmltv_ids: &HashSet<String>,
+    ) -> Result<usize, DbError> {
+        let source_id = source_id.trim();
+        if source_id.is_empty() || known_xmltv_ids.is_empty() {
+            return Ok(0);
+        }
+
+        let conn = self.0.db.get()?;
+
+        #[derive(Debug)]
+        struct ChannelRow {
+            id: String,
+            name: String,
+            tvg_name: Option<String>,
+            tvg_id: Option<String>,
+            xtream_stream_id: Option<String>,
+        }
+
+        let mut channels_stmt = conn.prepare(
+            "SELECT id, name, tvg_name, tvg_id, xtream_stream_id
+             FROM db_channels
+             WHERE source_id = ?1
+               AND (epg_channel_id IS NULL OR epg_channel_id = '')",
+        )?;
+        let channels: Vec<ChannelRow> = channels_stmt
+            .query_map(params![source_id], |row| {
+                Ok(ChannelRow {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    tvg_name: row.get(2)?,
+                    tvg_id: row.get(3)?,
+                    xtream_stream_id: row.get(4)?,
+                })
+            })?
+            .collect::<rusqlite::Result<_>>()?;
+
+        if channels.is_empty() {
+            return Ok(0);
+        }
+
+        let mut bridge_stmt = conn.prepare(
+            "SELECT xmltv_id, display_name
+             FROM db_epg_channels
+             WHERE source_id = ?1
+               AND display_name IS NOT NULL
+               AND TRIM(display_name) != ''",
+        )?;
+        let mut normalized_bridge: HashMap<String, String> = HashMap::new();
+        let bridge_rows = bridge_stmt.query_map(params![source_id], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        for row in bridge_rows {
+            let (xmltv_id, display_name) = row?;
+            normalized_bridge
+                .entry(normalize_channel_name(&display_name))
+                .or_insert(xmltv_id);
+        }
+
+        let tx = conn.unchecked_transaction()?;
+        let mut updated = 0usize;
+
+        for channel in &channels {
+            let exact_tvg = channel
+                .tvg_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .filter(|value| known_xmltv_ids.contains(*value))
+                .map(str::to_string);
+
+            let bridged_name = exact_tvg.or_else(|| {
+                [Some(channel.name.as_str()), channel.tvg_name.as_deref()]
+                    .into_iter()
+                    .flatten()
+                    .find_map(|candidate| {
+                        let normalized = normalize_channel_name(candidate);
+                        if normalized.is_empty() {
+                            None
+                        } else {
+                            normalized_bridge.get(&normalized).cloned()
+                        }
+                    })
+            });
+
+            let resolved = bridged_name.or_else(|| {
+                channel
+                    .xtream_stream_id
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .filter(|value| known_xmltv_ids.contains(*value))
+                    .map(str::to_string)
+            });
+
+            if let Some(epg_channel_id) = resolved {
+                updated += tx.execute(
+                    "UPDATE db_channels
+                     SET epg_channel_id = ?1
+                     WHERE id = ?2
+                       AND (epg_channel_id IS NULL OR epg_channel_id = '')",
+                    params![epg_channel_id, channel.id],
+                )?;
+            }
+        }
+
+        tx.commit()?;
+        Ok(updated)
+    }
 
     /// Batch upsert EPG entries grouped by channel.
     ///
@@ -72,6 +249,8 @@ impl EpgService {
         &self,
         entries: &HashMap<String, Vec<EpgEntry>>,
     ) -> Result<usize, DbError> {
+        crate::perf_scope!("save_epg_entries");
+        crate::profiling::log_memory_usage("save_epg_entries:start");
         let conn = self.0.db.get()?;
         let tx = conn.unchecked_transaction()?;
 
@@ -227,6 +406,7 @@ impl EpgService {
         start_time: i64,
         end_time: i64,
     ) -> Result<HashMap<String, Vec<EpgEntry>>, DbError> {
+        crate::perf_scope!("get_epgs_for_channels");
         let conn = self.0.db.get()?;
         if channel_ids.is_empty() {
             return Ok(HashMap::new());
@@ -236,7 +416,7 @@ impl EpgService {
         let ch_placeholders: Vec<String> =
             (1..=channel_ids.len()).map(|i| format!("?{i}")).collect();
         let ch_query = format!(
-            "SELECT id, epg_channel_id, tvg_id, xtream_stream_id, name, tvg_name \
+            "SELECT id, source_id, epg_channel_id, tvg_id, xtream_stream_id, name, tvg_name \
              FROM db_channels WHERE id IN ({})",
             ch_placeholders.join(", ")
         );
@@ -248,6 +428,7 @@ impl EpgService {
 
         struct ChannelRow {
             id: String,
+            source_id: Option<String>,
             epg_channel_id: Option<String>,
             tvg_id: Option<String>,
             xtream_stream_id: Option<String>,
@@ -259,11 +440,12 @@ impl EpgService {
             .query_map(ch_params.as_slice(), |row| {
                 Ok(ChannelRow {
                     id: row.get(0)?,
-                    epg_channel_id: row.get(1)?,
-                    tvg_id: row.get(2)?,
-                    xtream_stream_id: row.get(3)?,
-                    name: row.get(4)?,
-                    tvg_name: row.get(5)?,
+                    source_id: row.get(1)?,
+                    epg_channel_id: row.get(2)?,
+                    tvg_id: row.get(3)?,
+                    xtream_stream_id: row.get(4)?,
+                    name: row.get(5)?,
+                    tvg_name: row.get(6)?,
                 })
             })?
             .collect::<rusqlite::Result<_>>()?;
@@ -273,40 +455,40 @@ impl EpgService {
         }
 
         // ── Step 2: name-based lookup via db_epg_channels ─────────────
-        // Collect all (name, tvg_name) pairs so we can do a single batch query.
-        let mut lookup_names: Vec<String> = Vec::new();
-        for ch in &ch_rows {
-            lookup_names.push(ch.name.clone());
-            if let Some(ref tvg) = ch.tvg_name
-                && !tvg.is_empty()
-            {
-                lookup_names.push(tvg.clone());
-            }
-        }
-        lookup_names.sort();
-        lookup_names.dedup();
+        let source_ids: Vec<String> = ch_rows
+            .iter()
+            .filter_map(|ch| ch.source_id.clone())
+            .filter(|source_id| !source_id.trim().is_empty())
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect();
 
-        // display_name → xmltv_id
-        let mut display_name_to_xmltv: HashMap<String, String> = HashMap::new();
-        if !lookup_names.is_empty() {
-            let name_phs: Vec<String> = (1..=lookup_names.len()).map(|i| format!("?{i}")).collect();
-            let name_query = format!(
-                "SELECT display_name, xmltv_id FROM db_epg_channels \
-                 WHERE display_name IN ({}) GROUP BY display_name",
-                name_phs.join(", ")
+        let mut normalized_display_to_xmltv: HashMap<(String, String), String> = HashMap::new();
+        if !source_ids.is_empty() {
+            let source_placeholders: Vec<String> =
+                (1..=source_ids.len()).map(|i| format!("?{i}")).collect();
+            let bridge_query = format!(
+                "SELECT source_id, display_name, xmltv_id
+                 FROM db_epg_channels
+                 WHERE source_id IN ({})
+                   AND display_name IS NOT NULL
+                   AND TRIM(display_name) != ''",
+                source_placeholders.join(", ")
             );
-            let mut name_stmt = conn.prepare(&name_query)?;
-            let mut name_params: Vec<&dyn rusqlite::types::ToSql> =
-                Vec::with_capacity(lookup_names.len());
-            for n in &lookup_names {
-                name_params.push(n as &dyn rusqlite::types::ToSql);
-            }
-            let name_rows = name_stmt.query_map(name_params.as_slice(), |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            let mut bridge_stmt = conn.prepare(&bridge_query)?;
+            let bridge_params = str_params(&source_ids);
+            let bridge_rows = bridge_stmt.query_map(bridge_params.as_slice(), |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
             })?;
-            for r in name_rows {
-                let (display, xmltv) = r?;
-                display_name_to_xmltv.entry(display).or_insert(xmltv);
+            for row in bridge_rows {
+                let (source_id, display_name, xmltv_id) = row?;
+                normalized_display_to_xmltv
+                    .entry((source_id, normalize_channel_name(&display_name)))
+                    .or_insert(xmltv_id);
             }
         }
 
@@ -330,20 +512,26 @@ impl EpgService {
             {
                 keys.push(tvg.clone());
             }
+            // Name-based fallback via db_epg_channels
+            if let Some(source_id) = ch.source_id.as_deref() {
+                let channel_names = [Some(ch.name.as_str()), ch.tvg_name.as_deref()];
+                for channel_name in channel_names.into_iter().flatten() {
+                    let normalized = normalize_channel_name(channel_name);
+                    if normalized.is_empty() {
+                        continue;
+                    }
+                    if let Some(xmltv_id) =
+                        normalized_display_to_xmltv.get(&(source_id.to_string(), normalized))
+                    {
+                        keys.push(xmltv_id.clone());
+                    }
+                }
+            }
             // Xtream numeric stream id
             if let Some(ref xid) = ch.xtream_stream_id
                 && non_empty(xid)
             {
                 keys.push(xid.clone());
-            }
-            // Name-based fallback via db_epg_channels
-            if let Some(xmltv_id) = display_name_to_xmltv.get(&ch.name) {
-                keys.push(xmltv_id.clone());
-            }
-            if let Some(ref tvg_name) = ch.tvg_name
-                && let Some(xmltv_id) = display_name_to_xmltv.get(tvg_name)
-            {
-                keys.push(xmltv_id.clone());
             }
 
             keys.sort();
@@ -451,60 +639,11 @@ impl EpgService {
     /// Returns the number of placeholder entries inserted.
     pub fn generate_placeholders_for_channels(
         &self,
-        channels: &[crate::models::Channel],
+        _channels: &[crate::models::Channel],
     ) -> Result<usize, DbError> {
-        let now = chrono::Utc::now();
-        let today_start = now
-            .date_naive()
-            .and_hms_opt(0, 0, 0)
-            .unwrap_or(now.naive_utc());
-
-        // Find channels that already have ANY entries (real or placeholder)
-        // in the next 24 hours. Single batch query.
-        let channel_ids: Vec<String> = channels.iter().map(|ch| ch.id.clone()).collect();
-        let start_ts = today_start.and_utc().timestamp();
-        let end_ts = start_ts + 7 * 86_400;
-
-        let existing = self.get_epgs_for_channels(&channel_ids, start_ts, end_ts)?;
-        let has_data: HashSet<&str> = existing
-            .iter()
-            .filter(|(_, entries)| !entries.is_empty())
-            .map(|(id, _)| id.as_str())
-            .collect();
-
-        // Generate placeholders for channels with no coverage.
-        let mut placeholder_map: HashMap<String, Vec<EpgEntry>> = HashMap::new();
-        for ch in channels {
-            if has_data.contains(ch.id.as_str()) {
-                continue;
-            }
-            let mut entries = Vec::with_capacity(7);
-            for day in 0..7 {
-                let day_start = today_start + chrono::Duration::days(day);
-                let day_end = day_start + chrono::Duration::days(1);
-                entries.push(EpgEntry {
-                    epg_channel_id: ch.id.clone(),
-                    title: ch.name.clone(),
-                    start_time: day_start,
-                    end_time: day_end,
-                    source_id: Some(Self::PLACEHOLDER_SOURCE.to_string()),
-                    ..EpgEntry::default()
-                });
-            }
-            placeholder_map.insert(ch.id.clone(), entries);
-        }
-
-        if placeholder_map.is_empty() {
-            return Ok(0);
-        }
-
-        let count = self.save_epg_entries(&placeholder_map)?;
-        tracing::info!(
-            "Generated {} placeholder EPG entries for {} channels",
-            count,
-            placeholder_map.len(),
-        );
-        Ok(count)
+        // Placeholder generation removed — 91K fake rows wasted DB space and memory.
+        // Real EPG data comes from XMLTV parsing; channels without EPG simply show "No data".
+        Ok(0)
     }
 
     /// Check the latest real (non-placeholder) EPG coverage end time
@@ -598,10 +737,7 @@ impl EpgRepository for EpgService {
         Ok(self.generate_placeholders_for_channels(channels)?)
     }
 
-    fn get_real_epg_coverage_end(
-        &self,
-        channel_id: &str,
-    ) -> Result<Option<i64>, DomainError> {
+    fn get_real_epg_coverage_end(&self, channel_id: &str) -> Result<Option<i64>, DomainError> {
         Ok(self.get_real_epg_coverage_end(channel_id)?)
     }
 
@@ -625,9 +761,96 @@ impl EpgRepository for EpgService {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::EpgService;
+    use super::*;
+    use crate::parsers::epg::EpgChannel;
     use crate::services::test_helpers::*;
+
+    #[test]
+    fn normalize_channel_name_strips_known_suffixes() {
+        assert_eq!(normalize_channel_name("AD Sport 1 HD"), "ad sport 1");
+    }
+
+    #[test]
+    fn save_epg_channels_persists_rows() {
+        let svc = EpgService(make_service_with_fixtures());
+        let saved = svc
+            .save_epg_channels(
+                &[EpgChannel {
+                    xmltv_id: "12164".to_string(),
+                    display_name: "Al Arabiya".to_string(),
+                    icon_url: Some("http://example.com/logo.png".to_string()),
+                }],
+                "src_a",
+            )
+            .unwrap();
+        assert_eq!(saved, 1);
+
+        let conn = svc.0.db.get().unwrap();
+        let row = conn
+            .query_row(
+                "SELECT xmltv_id, display_name, icon_url, source_id
+                 FROM db_epg_channels
+                 WHERE xmltv_id = ?1 AND source_id = ?2",
+                params!["12164", "src_a"],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                        row.get::<_, String>(3)?,
+                    ))
+                },
+            )
+            .unwrap();
+        assert_eq!(row.0, "12164");
+        assert_eq!(row.1, "Al Arabiya");
+        assert_eq!(row.2.as_deref(), Some("http://example.com/logo.png"));
+        assert_eq!(row.3, "src_a");
+    }
+
+    #[test]
+    fn resolve_epg_channel_ids_prefers_name_bridge_before_xtream_fallback() {
+        let base = make_service_with_fixtures();
+        let mut channel = make_channel("ch1", "AD Sport 1 HD");
+        channel.source_id = Some("src_a".to_string());
+        channel.xtream_stream_id = Some("xtream_fallback".to_string());
+        crate::services::ChannelService(base.clone())
+            .save_channels(&[channel])
+            .unwrap();
+
+        let svc = EpgService(base);
+        svc.save_epg_channels(
+            &[EpgChannel {
+                xmltv_id: "bridge_xmltv".to_string(),
+                display_name: "AD Sport 1".to_string(),
+                icon_url: None,
+            }],
+            "src_a",
+        )
+        .unwrap();
+
+        let updated = svc
+            .resolve_epg_channel_ids(
+                "src_a",
+                &HashSet::from(["bridge_xmltv".to_string(), "xtream_fallback".to_string()]),
+            )
+            .unwrap();
+        assert_eq!(updated, 1);
+
+        let resolved = svc
+            .0
+            .db
+            .get()
+            .unwrap()
+            .query_row(
+                "SELECT epg_channel_id FROM db_channels WHERE id = ?1",
+                params!["ch1"],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .unwrap();
+        assert_eq!(resolved.as_deref(), Some("bridge_xmltv"));
+    }
 
     #[test]
     fn save_and_load_epg_entries() {

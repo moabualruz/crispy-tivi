@@ -57,6 +57,7 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
         final remaining =
             (widget.countdownSeconds * (1.0 - controller.value)).ceil();
         if (remaining != _secondsRemaining) {
+          if (!mounted) return;
           setState(() => _secondsRemaining = remaining);
         }
       });

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rusqlite::params;
 
 use super::ServiceContext;
-use crate::database::{optional, DbError};
+use crate::database::{DbError, optional};
 use crate::insert_or_replace;
 use crate::models::BufferTierDecision;
 
@@ -115,12 +115,11 @@ impl BufferTierService {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
+    use super::BufferTierService;
     use super::*;
     use crate::services::test_helpers::*;
-    use super::BufferTierService;
 
     #[test]
     fn get_missing_tier_returns_none() {
@@ -284,5 +283,4 @@ mod tests {
         assert_eq!(BufferTierService::get_buffer_cap_mb(512), 64);
         assert_eq!(BufferTierService::get_buffer_cap_mb(1024), 100);
     }
-
 }

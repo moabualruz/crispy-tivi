@@ -2305,7 +2305,10 @@ impl EpisodeProgress {
             }
         }
 
-        Self { progress_map, last_watched_url: latest_url }
+        Self {
+            progress_map,
+            last_watched_url: latest_url,
+        }
     }
 
     /// Serialize to JSON string for FFI transport.
@@ -2420,6 +2423,10 @@ impl BufferTierDecision {
         }
 
         let readahead_secs = tier_readahead(&tier);
-        Self { tier, changed, readahead_secs }
+        Self {
+            tier,
+            changed,
+            readahead_secs,
+        }
     }
 }

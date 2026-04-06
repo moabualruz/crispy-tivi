@@ -403,10 +403,7 @@ async fn main() {
         let _ = tx_clone.send(json);
     }));
 
-    let state = AppState {
-        ctx,
-        event_tx,
-    };
+    let state = AppState { ctx, event_tx };
 
     let cors = build_cors_layer();
 

@@ -64,11 +64,8 @@ pub(super) static EPG_FACADE: OnceLock<EpgFacade> = OnceLock::new();
 
 /// Get a clone of the service context or error if not initialized.
 pub(super) fn ctx() -> Result<ServiceContext> {
-    CTX.get()
-        .cloned()
-        .ok_or_else(|| anyhow!("Not initialized"))
+    CTX.get().cloned().ok_or_else(|| anyhow!("Not initialized"))
 }
-
 
 /// Get the EPG facade, initializing it from the context if needed.
 pub(super) fn epg() -> Result<EpgFacade> {

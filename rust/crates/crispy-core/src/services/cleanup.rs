@@ -224,10 +224,12 @@ mod tests {
             .save_source(&make_source("active_src", "Active", "m3u"))
             .unwrap();
         run_startup_cleanup(&svc).unwrap();
-        assert!(crate::services::SourceService(svc.clone())
-            .get_source("active_src")
-            .unwrap()
-            .is_some());
+        assert!(
+            crate::services::SourceService(svc.clone())
+                .get_source("active_src")
+                .unwrap()
+                .is_some()
+        );
     }
 
     #[test]

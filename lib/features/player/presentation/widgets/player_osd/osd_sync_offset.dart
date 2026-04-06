@@ -46,11 +46,13 @@ class _SyncOffsetDialogState extends ConsumerState<SyncOffsetDialog> {
   }
 
   void _applyAudioOffset(double ms) {
+    if (!mounted) return;
     setState(() => _audioOffsetMs = ms);
     _player.setProperty('audio-delay', (ms / 1000).toString());
   }
 
   void _applySubOffset(double ms) {
+    if (!mounted) return;
     setState(() => _subOffsetMs = ms);
     _player.setProperty('sub-delay', (ms / 1000).toString());
   }

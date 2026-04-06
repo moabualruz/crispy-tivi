@@ -390,7 +390,8 @@ fn test_save_source_upserts_when_same_id_saved_twice() {
     let svc = make_svc();
     let ssvc = SourceService(svc.clone());
     let before = ssvc.get_sources().unwrap().len();
-    ssvc.save_source(&source("upsert_test", "Original")).unwrap();
+    ssvc.save_source(&source("upsert_test", "Original"))
+        .unwrap();
 
     let mut s2 = source("upsert_test", "Renamed");
     s2.source_type = crispy_core::value_objects::SourceType::Xtream;
@@ -478,9 +479,7 @@ fn test_get_channels_by_sources_returns_only_matching_source_when_multiple_sourc
     ])
     .unwrap();
 
-    let result = csvc
-        .get_channels_by_sources(&["srcA".to_string()])
-        .unwrap();
+    let result = csvc.get_channels_by_sources(&["srcA".to_string()]).unwrap();
 
     assert_eq!(result.len(), 2);
     let ids: Vec<&str> = result.iter().map(|c| c.id.as_str()).collect();

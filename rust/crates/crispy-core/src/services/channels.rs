@@ -2,10 +2,10 @@ use rusqlite::{Row, params};
 
 use super::{ServiceContext, bool_to_int, build_in_placeholders, opt_dt_to_ts, str_params};
 use crate::database::DbError;
-use crate::errors::DomainError;
-use crate::insert_or_replace;
 use crate::database::row_helpers::RowExt;
+use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
+use crate::insert_or_replace;
 use crate::models::Channel;
 use crate::models::columns::CHANNEL_COLUMNS;
 use crate::traits::ChannelRepository;
@@ -186,6 +186,8 @@ impl ChannelService {
 
     /// Batch upsert channels. Returns count inserted.
     pub fn save_channels(&self, channels: &[Channel]) -> Result<usize, DbError> {
+        crate::perf_scope!("save_channels");
+        crate::profiling::log_memory_usage("save_channels:start");
         let conn = self.0.db.get()?;
         let tx = conn.unchecked_transaction()?;
         let count = Self::save_channels_inner(&tx, channels)?;
@@ -202,6 +204,7 @@ impl ChannelService {
 
     /// Load all channels.
     pub fn load_channels(&self) -> Result<Vec<Channel>, DbError> {
+        crate::perf_scope!("load_channels");
         let conn = self.0.db.get()?;
         let mut stmt = conn.prepare(&format!("SELECT {CHANNEL_COLUMNS} FROM db_channels",))?;
         let rows = stmt.query_map([], channel_from_row)?;
@@ -286,7 +289,9 @@ impl ChannelService {
     pub fn add_favorite(&self, profile_id: &str, channel_id: &str) -> Result<(), DbError> {
         let conn = self.0.db.get()?;
         let now = chrono::Utc::now().timestamp();
-        insert_or_replace!(conn, "db_user_favorites",
+        insert_or_replace!(
+            conn,
+            "db_user_favorites",
             ["profile_id", "channel_id", "added_at"],
             params![profile_id, channel_id, now]
         )?;
@@ -323,10 +328,7 @@ impl ChannelRepository for ChannelService {
         Ok(self.load_channels()?)
     }
 
-    fn get_channels_by_sources(
-        &self,
-        source_ids: &[String],
-    ) -> Result<Vec<Channel>, DomainError> {
+    fn get_channels_by_sources(&self, source_ids: &[String]) -> Result<Vec<Channel>, DomainError> {
         Ok(self.get_channels_by_sources(source_ids)?)
     }
 
@@ -350,11 +352,7 @@ impl ChannelRepository for ChannelService {
         Ok(self.add_favorite(profile_id, channel_id)?)
     }
 
-    fn remove_favorite(
-        &self,
-        profile_id: &str,
-        channel_id: &str,
-    ) -> Result<(), DomainError> {
+    fn remove_favorite(&self, profile_id: &str, channel_id: &str) -> Result<(), DomainError> {
         Ok(self.remove_favorite(profile_id, channel_id)?)
     }
 }

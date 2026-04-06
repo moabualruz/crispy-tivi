@@ -1,9 +1,9 @@
 use rusqlite::params;
 
-use crate::insert_or_replace;
 use super::{ServiceContext, vod::vod_item_from_row};
 use crate::database::DbError;
 use crate::events::DataChangeEvent;
+use crate::insert_or_replace;
 use crate::models::VodItem;
 
 /// Domain service for watchlist operations.
@@ -64,8 +64,8 @@ impl WatchlistService {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::WatchlistService;
+    use super::*;
     use crate::services::test_helpers::{make_profile, make_service, make_source, make_vod_item};
 
     /// Create a service with profile and source pre-seeded.

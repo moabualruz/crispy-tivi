@@ -2,8 +2,8 @@ use rusqlite::{Row, params};
 
 use super::{ServiceContext, bool_to_int, int_to_bool};
 use crate::database::DbError;
-use crate::models::EpgMapping;
 use crate::insert_or_replace;
+use crate::models::EpgMapping;
 
 fn epg_mapping_from_row(row: &Row) -> rusqlite::Result<EpgMapping> {
     Ok(EpgMapping {
@@ -113,10 +113,10 @@ impl EpgMappingService {
 
 #[cfg(test)]
 mod tests {
+    use super::EpgMappingService;
     use super::*;
     use crate::services::test_helpers::*;
     use crate::value_objects::MatchMethod;
-    use super::EpgMappingService;
 
     #[test]
     fn save_and_get_mapping() {

@@ -3,7 +3,7 @@ use rusqlite::params;
 use super::{ServiceContext, bool_to_int, dt_to_ts, opt_dt_to_ts};
 use crate::algorithms::crypto::{decrypt_field, encrypt_field, get_or_create_encryption_key};
 use crate::database::row_helpers::RowExt;
-use crate::database::{optional, DbError, TABLE_CHANNELS, TABLE_MOVIES, TABLE_SOURCES};
+use crate::database::{DbError, TABLE_CHANNELS, TABLE_MOVIES, TABLE_SOURCES, optional};
 use crate::errors::{CrispyError, DomainError};
 use crate::events::DataChangeEvent;
 use crate::insert_or_replace;
@@ -210,13 +210,31 @@ impl SourceService {
             conn,
             TABLE_SOURCES,
             [
-                "id", "name", "source_type", "url", "username", "password",
-                "access_token", "device_id", "user_id", "mac_address",
-                "epg_url", "user_agent", "refresh_interval_minutes",
-                "accept_self_signed", "enabled", "sort_order",
-                "last_sync_time", "last_sync_status", "last_sync_error",
-                "created_at", "updated_at", "credentials_encrypted",
-                "deleted_at", "epg_etag", "epg_last_modified",
+                "id",
+                "name",
+                "source_type",
+                "url",
+                "username",
+                "password",
+                "access_token",
+                "device_id",
+                "user_id",
+                "mac_address",
+                "epg_url",
+                "user_agent",
+                "refresh_interval_minutes",
+                "accept_self_signed",
+                "enabled",
+                "sort_order",
+                "last_sync_time",
+                "last_sync_status",
+                "last_sync_error",
+                "created_at",
+                "updated_at",
+                "credentials_encrypted",
+                "deleted_at",
+                "epg_etag",
+                "epg_last_modified",
             ],
             params![
                 source.id,

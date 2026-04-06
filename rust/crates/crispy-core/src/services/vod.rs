@@ -4,8 +4,8 @@ use super::{ServiceContext, bool_to_int, build_in_placeholders, opt_dt_to_ts, st
 use crate::database::row_helpers::RowExt;
 use crate::database::{DbError, TABLE_MOVIES};
 use crate::errors::DomainError;
-use crate::insert_or_replace;
 use crate::events::DataChangeEvent;
+use crate::insert_or_replace;
 use crate::models::VodItem;
 use crate::models::columns::{VOD_COLUMNS, VOD_COLUMNS_V};
 use crate::traits::VodRepository;
@@ -140,6 +140,8 @@ impl VodService {
     /// This is a backward-compatibility shim: parsers still produce
     /// VodItem structs which are mapped to db_movies rows.
     pub fn save_vod_items(&self, items: &[VodItem]) -> Result<usize, DbError> {
+        crate::perf_scope!("save_vod_items");
+        crate::profiling::log_memory_usage("save_vod_items:start");
         let conn = self.0.db.get()?;
         let tx = conn.unchecked_transaction()?;
         let count = Self::save_vod_items_inner(&tx, items)?;
@@ -292,7 +294,9 @@ impl VodService {
     pub fn add_vod_favorite(&self, profile_id: &str, vod_item_id: &str) -> Result<(), DbError> {
         let conn = self.0.db.get()?;
         let now = chrono::Utc::now().timestamp();
-        insert_or_replace!(conn, "db_vod_favorites",
+        insert_or_replace!(
+            conn,
+            "db_vod_favorites",
             ["profile_id", "content_id", "content_type", "added_at"],
             params![profile_id, vod_item_id, "movie", now]
         )?;
@@ -329,10 +333,7 @@ impl VodRepository for VodService {
         Ok(self.load_vod_items()?)
     }
 
-    fn get_vod_by_sources(
-        &self,
-        source_ids: &[String],
-    ) -> Result<Vec<VodItem>, DomainError> {
+    fn get_vod_by_sources(&self, source_ids: &[String]) -> Result<Vec<VodItem>, DomainError> {
         Ok(self.get_vod_by_sources(source_ids)?)
     }
 
@@ -369,19 +370,11 @@ impl VodRepository for VodService {
         Ok(self.get_vod_favorites(profile_id)?)
     }
 
-    fn add_vod_favorite(
-        &self,
-        profile_id: &str,
-        vod_item_id: &str,
-    ) -> Result<(), DomainError> {
+    fn add_vod_favorite(&self, profile_id: &str, vod_item_id: &str) -> Result<(), DomainError> {
         Ok(self.add_vod_favorite(profile_id, vod_item_id)?)
     }
 
-    fn remove_vod_favorite(
-        &self,
-        profile_id: &str,
-        vod_item_id: &str,
-    ) -> Result<(), DomainError> {
+    fn remove_vod_favorite(&self, profile_id: &str, vod_item_id: &str) -> Result<(), DomainError> {
         Ok(self.remove_vod_favorite(profile_id, vod_item_id)?)
     }
 }

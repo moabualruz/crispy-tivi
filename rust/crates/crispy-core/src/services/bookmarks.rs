@@ -1,10 +1,10 @@
 use rusqlite::{Row, params};
 
-use crate::insert_or_replace;
 use super::{ServiceContext, dt_to_ts, ts_to_dt};
 use crate::database::DbError;
 use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
+use crate::insert_or_replace;
 use crate::models::Bookmark;
 use crate::traits::BookmarkRepository;
 
@@ -51,7 +51,14 @@ impl BookmarkService {
         insert_or_replace!(
             conn,
             "db_bookmarks",
-            ["id", "content_id", "content_type", "position_ms", "label", "created_at"],
+            [
+                "id",
+                "content_id",
+                "content_type",
+                "position_ms",
+                "label",
+                "created_at"
+            ],
             params![
                 bookmark.id,
                 bookmark.content_id,
@@ -110,8 +117,8 @@ impl BookmarkRepository for BookmarkService {
 
 #[cfg(test)]
 mod tests {
-    use crate::services::test_helpers::*;
     use super::BookmarkService;
+    use crate::services::test_helpers::*;
 
     fn make_bookmark(id: &str, content_id: &str, position_ms: i64) -> crate::models::Bookmark {
         let dt = parse_dt("2025-01-15 12:00:00");

@@ -1,5 +1,5 @@
 use super::{ctx, epg, from_json, into_anyhow, json_result};
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use crispy_core::models::{Channel, EpgEntry};
 use crispy_core::services::{EpgMappingService, EpgService};
 use std::collections::HashMap;

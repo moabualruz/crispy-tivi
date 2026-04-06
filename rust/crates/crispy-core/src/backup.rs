@@ -120,7 +120,9 @@ pub fn export_backup(ctx: &ServiceContext) -> Result<String, String> {
     // 2. Favourites per profile
     let mut favorites: HashMap<String, Vec<String>> = HashMap::new();
     for p in &profiles {
-        let fav_ids = channel_svc.get_favorites(&p.id).map_err(|e| e.to_string())?;
+        let fav_ids = channel_svc
+            .get_favorites(&p.id)
+            .map_err(|e| e.to_string())?;
         if !fav_ids.is_empty() {
             favorites.insert(p.id.clone(), fav_ids);
         }
@@ -129,7 +131,9 @@ pub fn export_backup(ctx: &ServiceContext) -> Result<String, String> {
     // 3. Source access per profile
     let mut source_access: HashMap<String, Vec<String>> = HashMap::new();
     for p in &profiles {
-        let sids = profile_svc.get_source_access(&p.id).map_err(|e| e.to_string())?;
+        let sids = profile_svc
+            .get_source_access(&p.id)
+            .map_err(|e| e.to_string())?;
         if !sids.is_empty() {
             source_access.insert(p.id.clone(), sids);
         }
@@ -148,7 +152,9 @@ pub fn export_backup(ctx: &ServiceContext) -> Result<String, String> {
     }
 
     // 6. Watch history
-    let watch_history = history_svc.load_watch_history().map_err(|e| e.to_string())?;
+    let watch_history = history_svc
+        .load_watch_history()
+        .map_err(|e| e.to_string())?;
     let wh_values: Vec<Value> = watch_history
         .iter()
         .filter_map(|e| serde_json::to_value(e).ok())
@@ -250,7 +256,10 @@ pub fn import_backup(ctx: &ServiceContext, json: &str) -> Result<BackupSummary, 
 
     // 3. Source access
     for (profile_id, source_ids) in &data.source_access {
-        if profile_svc.set_source_access(profile_id, source_ids).is_ok() {
+        if profile_svc
+            .set_source_access(profile_id, source_ids)
+            .is_ok()
+        {
             summary.source_access += source_ids.len() as i32;
         }
     }
@@ -665,7 +674,9 @@ mod tests {
 
         // Storage backend
         let backend = make_storage_backend("sb1");
-        DvrService(src.clone()).save_storage_backend(&backend).unwrap();
+        DvrService(src.clone())
+            .save_storage_backend(&backend)
+            .unwrap();
 
         // ── Export ──────────────────────────────────
         let json = export_backup(&src).unwrap();
@@ -769,8 +780,12 @@ mod tests {
                 make_channel("ch2", "BBC", None),
             ])
             .unwrap();
-        ChannelService(src.clone()).add_favorite("p1", "ch1").unwrap();
-        ChannelService(src.clone()).add_favorite("p1", "ch2").unwrap();
+        ChannelService(src.clone())
+            .add_favorite("p1", "ch1")
+            .unwrap();
+        ChannelService(src.clone())
+            .add_favorite("p1", "ch2")
+            .unwrap();
 
         let json = export_backup(&src).unwrap();
         let parsed: BackupData = serde_json::from_str(&json).unwrap();

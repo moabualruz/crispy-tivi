@@ -9,9 +9,6 @@ pub trait HistoryRepository {
         &self,
         profile_id: &str,
     ) -> Result<Vec<WatchHistory>, DomainError>;
-    fn compute_episode_progress_from_db(
-        &self,
-        series_id: &str,
-    ) -> Result<String, DomainError>;
+    fn compute_episode_progress_from_db(&self, series_id: &str) -> Result<String, DomainError>;
     fn delete_watch_history(&self, id: &str) -> Result<(), DomainError>;
 }

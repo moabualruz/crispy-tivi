@@ -1,5 +1,5 @@
 use super::{ctx, from_json};
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use crispy_core::models::{SavedLayout, SearchHistory};
 use crispy_core::services::logo_resolver::LogoService;
 use crispy_core::services::{BulkService, MiscService, SettingsService};

@@ -695,7 +695,11 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
         })(),
         "computeEpisodeProgressFromDb" => (|| {
             let series_id = get_str(args, "seriesId")?;
-            svc_data!(HistoryService(svc.clone()), compute_episode_progress_from_db, &series_id)
+            svc_data!(
+                HistoryService(svc.clone()),
+                compute_episode_progress_from_db,
+                &series_id
+            )
         })(),
         "filterVodByContentRating" => (|| {
             let items = get_str(args, "itemsJson")?;

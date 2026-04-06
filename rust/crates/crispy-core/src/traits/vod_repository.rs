@@ -5,10 +5,7 @@ use crate::models::VodItem;
 pub trait VodRepository {
     fn save_vod_items(&self, items: &[VodItem]) -> Result<usize, DomainError>;
     fn load_vod_items(&self) -> Result<Vec<VodItem>, DomainError>;
-    fn get_vod_by_sources(
-        &self,
-        source_ids: &[String],
-    ) -> Result<Vec<VodItem>, DomainError>;
+    fn get_vod_by_sources(&self, source_ids: &[String]) -> Result<Vec<VodItem>, DomainError>;
     fn get_filtered_vod(
         &self,
         source_ids: &[String],
@@ -30,14 +27,6 @@ pub trait VodRepository {
         keep_ids: &[String],
     ) -> Result<usize, DomainError>;
     fn get_vod_favorites(&self, profile_id: &str) -> Result<Vec<String>, DomainError>;
-    fn add_vod_favorite(
-        &self,
-        profile_id: &str,
-        vod_item_id: &str,
-    ) -> Result<(), DomainError>;
-    fn remove_vod_favorite(
-        &self,
-        profile_id: &str,
-        vod_item_id: &str,
-    ) -> Result<(), DomainError>;
+    fn add_vod_favorite(&self, profile_id: &str, vod_item_id: &str) -> Result<(), DomainError>;
+    fn remove_vod_favorite(&self, profile_id: &str, vod_item_id: &str) -> Result<(), DomainError>;
 }

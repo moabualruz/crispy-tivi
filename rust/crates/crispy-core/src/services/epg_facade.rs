@@ -100,8 +100,11 @@ impl EpgFacade {
         end_time: i64,
     ) -> Result<HashMap<String, Vec<EpgEntry>>> {
         // Query SQLite for all channels at once.
-        let result = EpgService(self.service.clone())
-            .get_epgs_for_channels(epg_channel_ids, start_time, end_time)?;
+        let result = EpgService(self.service.clone()).get_epgs_for_channels(
+            epg_channel_ids,
+            start_time,
+            end_time,
+        )?;
 
         // Identify channels with no EPG in SQLite.
         let l2_misses: Vec<String> = epg_channel_ids
@@ -204,8 +207,11 @@ impl EpgFacade {
     fn get_from_sqlite(&self, epg_channel_id: &str, count: usize) -> Result<Vec<EpgEntry>> {
         let now = chrono::Utc::now().timestamp();
         let end = now + 86_400;
-        let result = EpgService(self.service.clone())
-            .get_epgs_for_channels(&[epg_channel_id.to_string()], now, end)?;
+        let result = EpgService(self.service.clone()).get_epgs_for_channels(
+            &[epg_channel_id.to_string()],
+            now,
+            end,
+        )?;
         let mut entries = result.get(epg_channel_id).cloned().unwrap_or_default();
         entries.sort_by_key(|e| e.start_time);
         entries.truncate(count);

@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::upsert;
 
-use crate::database::{optional, Database, DbError};
+use crate::database::{Database, DbError, optional};
 
 // ── DDL ──────────────────────────────────────────────────
 

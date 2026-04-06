@@ -1,10 +1,10 @@
 use rusqlite::{Row, params};
 
-use crate::insert_or_replace;
 use super::{ServiceContext, bool_to_int, dt_to_ts, int_to_bool, ts_to_dt};
 use crate::database::DbError;
 use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
+use crate::insert_or_replace;
 use crate::models::Reminder;
 use crate::traits::ReminderRepository;
 
@@ -136,8 +136,8 @@ impl ReminderRepository for ReminderService {
 
 #[cfg(test)]
 mod tests {
-    use crate::services::test_helpers::*;
     use super::ReminderService;
+    use crate::services::test_helpers::*;
 
     fn make_reminder(id: &str, fired: bool) -> crate::models::Reminder {
         let dt = parse_dt("2025-01-15 12:00:00");

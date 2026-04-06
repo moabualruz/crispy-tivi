@@ -20,6 +20,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/crispy_animation.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/utils/device_form_factor.dart';
+import 'core/utils/perf_monitor.dart';
 import 'core/utils/input_mode_notifier.dart';
 import 'core/data/cache_service.dart';
 import 'core/data/event_driven_invalidator.dart';
@@ -282,6 +283,9 @@ Future<void> main() async {
       child: const CrispyTiviApp(),
     ),
   );
+
+  // Start CPU/RAM/frame-timing monitor (debug/profile only).
+  PerfMonitor.instance.start();
 }
 
 /// Root application widget.

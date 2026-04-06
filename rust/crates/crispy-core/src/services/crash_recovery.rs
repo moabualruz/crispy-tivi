@@ -8,7 +8,7 @@
 //! DB triggers notification via the callback passed to
 //! `check_db_integrity`.
 
-use crate::database::{optional_or, Database, DbError};
+use crate::database::{Database, DbError, optional_or};
 use rusqlite::params;
 
 // ── RecoveryState ─────────────────────────────────────────────────────────────

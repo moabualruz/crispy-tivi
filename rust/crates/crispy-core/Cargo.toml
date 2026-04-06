@@ -44,6 +44,7 @@ unic-langid.workspace = true
 moka.workspace = true
 singleflight-async.workspace = true
 quick-xml.workspace = true
+memory-stats = { workspace = true }
 
 # Crispy IPTV crates
 crispy-iptv-types = { path = "../crispy-iptv-types" }

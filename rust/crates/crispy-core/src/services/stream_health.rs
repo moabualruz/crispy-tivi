@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rusqlite::params;
 
 use super::ServiceContext;
-use crate::database::{optional, DbError};
+use crate::database::{DbError, optional};
 
 // ── Failover thresholds ─────────────────────────────
 
@@ -126,9 +126,17 @@ impl StreamHealthService {
         );
 
         Ok(optional(result)?
-            .map(|(stall_count, buffer_sum, buffer_samples, ttff_ms, last_seen)| {
-                compute_health_score(stall_count, buffer_sum, buffer_samples, ttff_ms, last_seen)
-            })
+            .map(
+                |(stall_count, buffer_sum, buffer_samples, ttff_ms, last_seen)| {
+                    compute_health_score(
+                        stall_count,
+                        buffer_sum,
+                        buffer_samples,
+                        ttff_ms,
+                        last_seen,
+                    )
+                },
+            )
             .unwrap_or(0.5))
     }
 
@@ -240,9 +248,9 @@ fn compute_health_score(
 
 #[cfg(test)]
 mod tests {
+    use super::StreamHealthService;
     use super::*;
     use crate::services::test_helpers::*;
-    use super::StreamHealthService;
 
     #[test]
     fn record_stall_creates_entry() {

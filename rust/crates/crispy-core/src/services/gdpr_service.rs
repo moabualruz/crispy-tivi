@@ -202,7 +202,9 @@ mod tests {
     fn test_export_returns_profile_data() {
         let svc = open_svc();
         let profile = make_profile("p1", "Alice");
-        ProfileService(svc.0.clone()).save_profile(&profile).unwrap();
+        ProfileService(svc.0.clone())
+            .save_profile(&profile)
+            .unwrap();
 
         let export = svc.export_user_data("p1").unwrap();
         assert_eq!(export.profile.id, "p1");
@@ -214,8 +216,12 @@ mod tests {
     #[test]
     fn test_export_watch_history_filtered_to_profile() {
         let svc = open_svc();
-        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
-        ProfileService(svc.0.clone()).save_profile(&make_profile("p2", "Bob")).unwrap();
+        ProfileService(svc.0.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
+        ProfileService(svc.0.clone())
+            .save_profile(&make_profile("p2", "Bob"))
+            .unwrap();
 
         let entry_alice = crate::models::WatchHistory {
             id: "wh1".to_string(),
@@ -235,12 +241,16 @@ mod tests {
             profile_id: Some("p1".to_string()),
             source_id: None,
         };
-        HistoryService(svc.0.clone()).save_watch_history(&entry_alice).unwrap();
+        HistoryService(svc.0.clone())
+            .save_watch_history(&entry_alice)
+            .unwrap();
 
         let mut entry_bob = entry_alice.clone();
         entry_bob.id = "wh2".to_string();
         entry_bob.profile_id = Some("p2".to_string());
-        HistoryService(svc.0.clone()).save_watch_history(&entry_bob).unwrap();
+        HistoryService(svc.0.clone())
+            .save_watch_history(&entry_bob)
+            .unwrap();
 
         let export = svc.export_user_data("p1").unwrap();
         assert_eq!(export.watch_history.len(), 1);
@@ -250,7 +260,9 @@ mod tests {
     #[test]
     fn test_export_empty_watchlist_when_none_added() {
         let svc = open_svc();
-        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
         let export = svc.export_user_data("p1").unwrap();
         assert!(export.watchlist_ids.is_empty());
     }
@@ -258,7 +270,9 @@ mod tests {
     #[test]
     fn test_export_sources_only_accessible_ones() {
         let svc = open_svc();
-        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
 
         let src = crate::models::Source {
             id: "src1".to_string(),
@@ -288,7 +302,9 @@ mod tests {
             epg_last_modified: None,
         };
         SourceService(svc.0.clone()).save_source(&src).unwrap();
-        ProfileService(svc.0.clone()).grant_source_access("p1", "src1").unwrap();
+        ProfileService(svc.0.clone())
+            .grant_source_access("p1", "src1")
+            .unwrap();
 
         let export = svc.export_user_data("p1").unwrap();
         assert_eq!(export.sources.len(), 1);
@@ -301,8 +317,12 @@ mod tests {
     #[test]
     fn test_export_settings_included() {
         let svc = open_svc();
-        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
-        SettingsService(svc.0.clone()).set_setting("theme", "dark").unwrap();
+        ProfileService(svc.0.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
+        SettingsService(svc.0.clone())
+            .set_setting("theme", "dark")
+            .unwrap();
 
         let export = svc.export_user_data("p1").unwrap();
         let found = export
@@ -315,7 +335,9 @@ mod tests {
     #[test]
     fn test_export_serialises_to_valid_json() {
         let svc = open_svc();
-        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
         let export = svc.export_user_data("p1").unwrap();
         let json = serde_json::to_string(&export).unwrap();
         assert!(!json.is_empty());
@@ -329,7 +351,9 @@ mod tests {
     #[test]
     fn test_delete_user_data_removes_profile() {
         let svc = open_svc();
-        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
         svc.delete_user_data("p1").unwrap();
 
         let profiles = ProfileService(svc.0.clone()).load_profiles().unwrap();
@@ -339,7 +363,9 @@ mod tests {
     #[test]
     fn test_delete_user_data_cascades_watch_history() {
         let svc = open_svc();
-        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
 
         let entry = crate::models::WatchHistory {
             id: "wh1".to_string(),
@@ -359,7 +385,9 @@ mod tests {
             profile_id: Some("p1".to_string()),
             source_id: None,
         };
-        HistoryService(svc.0.clone()).save_watch_history(&entry).unwrap();
+        HistoryService(svc.0.clone())
+            .save_watch_history(&entry)
+            .unwrap();
         svc.delete_user_data("p1").unwrap();
 
         let history = HistoryService(svc.0.clone()).load_watch_history().unwrap();
@@ -369,8 +397,12 @@ mod tests {
     #[test]
     fn test_delete_user_data_does_not_affect_other_profiles() {
         let svc = open_svc();
-        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
-        ProfileService(svc.0.clone()).save_profile(&make_profile("p2", "Bob")).unwrap();
+        ProfileService(svc.0.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
+        ProfileService(svc.0.clone())
+            .save_profile(&make_profile("p2", "Bob"))
+            .unwrap();
         svc.delete_user_data("p1").unwrap();
 
         let profiles = ProfileService(svc.0.clone()).load_profiles().unwrap();
@@ -380,7 +412,9 @@ mod tests {
     #[test]
     fn test_delete_then_export_returns_not_found() {
         let svc = open_svc();
-        ProfileService(svc.0.clone()).save_profile(&make_profile("p1", "Alice")).unwrap();
+        ProfileService(svc.0.clone())
+            .save_profile(&make_profile("p1", "Alice"))
+            .unwrap();
         svc.delete_user_data("p1").unwrap();
 
         let err = svc.export_user_data("p1").unwrap_err();

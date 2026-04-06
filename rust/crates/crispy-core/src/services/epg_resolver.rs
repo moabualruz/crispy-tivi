@@ -28,7 +28,8 @@ pub async fn resolve_epg_for_channels(
     fetcher: &ThrottledEpgFetcher,
 ) -> Result<HashMap<String, Vec<EpgEntry>>> {
     // Step 1: Check SQLite L2 cache.
-    let cached = EpgService(service.clone()).get_epgs_for_channels(channel_ids, start_time, end_time)?;
+    let cached =
+        EpgService(service.clone()).get_epgs_for_channels(channel_ids, start_time, end_time)?;
 
     // Find channels with no cached data.
     let missing: Vec<String> = channel_ids

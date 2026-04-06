@@ -72,6 +72,7 @@ class _ScreensaverControllerState extends ConsumerState<ScreensaverController> {
   }
 
   void _resetTimer() {
+    if (!mounted) return;
     if (_active) {
       setState(() => _active = false);
     }
@@ -294,6 +295,7 @@ class _ClockDisplayState extends State<_ClockDisplay> {
     _shiftPosition();
     // Update every second for time display, shift position every 60s.
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
       setState(() {});
       if (DateTime.now().second == 0) {
         _shiftPosition();

@@ -85,6 +85,37 @@ class SmartImage extends StatelessWidget {
   /// Max height (px) for the decoded in-memory image cache.
   final int? memCacheHeight;
 
+  int? get _effectiveCacheWidth {
+    if (memCacheWidth != null) return memCacheWidth;
+    switch (imageKind) {
+      case 'logo':
+        return 120;
+      case 'backdrop':
+        return 1280;
+      case 'poster':
+      default:
+        return 360;
+    }
+  }
+
+  int? get _effectiveCacheHeight {
+    if (memCacheHeight != null) return memCacheHeight;
+    final cacheWidth = _effectiveCacheWidth;
+    if (cacheWidth == null) return null;
+    if (placeholderAspectRatio != null && placeholderAspectRatio! > 0) {
+      return (cacheWidth / placeholderAspectRatio!).round();
+    }
+    switch (imageKind) {
+      case 'logo':
+        return cacheWidth;
+      case 'backdrop':
+        return (cacheWidth * 9 / 16).round();
+      case 'poster':
+      default:
+        return (cacheWidth * 3 / 2).round();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (imageUrl != null && imageUrl!.trim().isNotEmpty) {
@@ -97,8 +128,8 @@ class SmartImage extends StatelessWidget {
       return _ResolvedLogoImage(
         title: title,
         fit: fit,
-        memCacheWidth: memCacheWidth,
-        memCacheHeight: memCacheHeight,
+        memCacheWidth: _effectiveCacheWidth,
+        memCacheHeight: _effectiveCacheHeight,
         fallbackBuilder: _buildPlaceholder,
       );
     }
@@ -139,8 +170,8 @@ class SmartImage extends StatelessWidget {
         return Image.memory(
           bytes,
           fit: fit,
-          cacheWidth: memCacheWidth,
-          cacheHeight: memCacheHeight,
+          cacheWidth: _effectiveCacheWidth,
+          cacheHeight: _effectiveCacheHeight,
           errorBuilder: (_, _, _) => _buildPlaceholder(),
         );
       } catch (e) {
@@ -164,8 +195,8 @@ class SmartImage extends StatelessWidget {
     return _NetworkImageWithTimeout(
       url: cleanUrl,
       fit: fit,
-      memCacheWidth: memCacheWidth,
-      memCacheHeight: memCacheHeight,
+      memCacheWidth: _effectiveCacheWidth,
+      memCacheHeight: _effectiveCacheHeight,
       blurHashBytes: _decodeBlurHash(),
       onBuildPlaceholder: _buildPlaceholder,
       onBuildSkeleton: _buildSkeletonLoader,
@@ -186,6 +217,8 @@ class SmartImage extends StatelessWidget {
       return Image.memory(
         bmpBytes,
         fit: fit,
+        cacheWidth: _effectiveCacheWidth,
+        cacheHeight: _effectiveCacheHeight,
         errorBuilder:
             (_, _, _) => GeneratedPlaceholder(title: title, icon: icon),
       );
@@ -271,6 +304,8 @@ class _NetworkImageWithTimeoutState extends State<_NetworkImageWithTimeout> {
           return Image.memory(
             widget.blurHashBytes!,
             fit: widget.fit,
+            cacheWidth: widget.memCacheWidth,
+            cacheHeight: widget.memCacheHeight,
             errorBuilder: (_, _, _) => widget.onBuildSkeleton(),
           );
         }
@@ -278,7 +313,14 @@ class _NetworkImageWithTimeoutState extends State<_NetworkImageWithTimeout> {
       },
       imageBuilder: (context, imageProvider) {
         _loadingTimeout?.cancel();
-        return Image(image: imageProvider, fit: widget.fit);
+        return Image(
+          image: ResizeImage.resizeIfNeeded(
+            widget.memCacheWidth,
+            widget.memCacheHeight,
+            imageProvider,
+          ),
+          fit: widget.fit,
+        );
       },
       errorWidget: (context, url, error) => widget.onBuildPlaceholder(),
     );

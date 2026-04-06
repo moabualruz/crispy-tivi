@@ -3,7 +3,7 @@
 //! Queries the `db_epg_entries` table to determine freshness
 //! and drives pruning of entries older than 14 days.
 
-use crate::database::{optional, Database, DbError};
+use crate::database::{Database, DbError, optional};
 
 /// Maximum age (hours) before EPG data is considered stale.
 const STALE_THRESHOLD_HOURS: i64 = 24;

@@ -265,6 +265,7 @@ mod tests {
             "idx_channels_tvg",
             "idx_epg_channel",
             "idx_epg_channel_time",
+            "idx_epg_channels_display",
             "idx_epg_channels_source",
             "idx_epg_real_coverage",
             "idx_epg_source",
