@@ -114,7 +114,11 @@ pub fn detect_recording_conflict(
 pub fn find_recordings_to_start(recordings: &[Recording], now: NaiveDateTime) -> Vec<String> {
     recordings
         .iter()
-        .filter(|r| r.status == "scheduled" && r.start_time <= now && r.end_time > now)
+        .filter(|r| {
+            r.status == crate::value_objects::RecordingStatus::Scheduled
+                && r.start_time <= now
+                && r.end_time > now
+        })
         .map(|r| r.id.clone())
         .collect()
 }
@@ -184,7 +188,7 @@ mod tests {
             stream_url: None,
             start_time: dt(start),
             end_time: dt(end),
-            status: status.to_string(),
+            status: status.try_into().unwrap_or_default(),
             file_path: None,
             file_size_bytes: None,
             is_recurring,

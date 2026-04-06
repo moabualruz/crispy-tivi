@@ -26,7 +26,7 @@
 // Section: imports
 
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
-use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
 
 // Section: boilerplate
@@ -800,40 +800,41 @@ fn wire__crate__api__app_update__check_for_update_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "check_for_update",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_current_version = <String>::sse_decode(&mut deserializer);
-            let api_repo_url = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::app_update::check_for_update(
-                            api_current_version,
-                            api_repo_url,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "check_for_update",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_current_version = <String>::sse_decode(&mut deserializer);
+                let api_repo_url = <String>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::app_update::check_for_update(
+                                api_current_version,
+                                api_repo_url,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__dvr__classify_file_type_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2796,42 +2797,43 @@ fn wire__crate__api__sync__fetch_stalker_account_info_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "fetch_stalker_account_info",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_mac_address = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::fetch_stalker_account_info(
-                            api_base_url,
-                            api_mac_address,
-                            api_accept_invalid_certs,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "fetch_stalker_account_info",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_mac_address = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::fetch_stalker_account_info(
+                                api_base_url,
+                                api_mac_address,
+                                api_accept_invalid_certs,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__sync__fetch_stalker_profile_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2839,42 +2841,43 @@ fn wire__crate__api__sync__fetch_stalker_profile_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "fetch_stalker_profile",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_mac_address = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::fetch_stalker_profile(
-                            api_base_url,
-                            api_mac_address,
-                            api_accept_invalid_certs,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "fetch_stalker_profile",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_mac_address = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::fetch_stalker_profile(
+                                api_base_url,
+                                api_mac_address,
+                                api_accept_invalid_certs,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__sync__fetch_stalker_series_detail_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2882,46 +2885,47 @@ fn wire__crate__api__sync__fetch_stalker_series_detail_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "fetch_stalker_series_detail",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_mac_address = <String>::sse_decode(&mut deserializer);
-            let api_movie_id = <String>::sse_decode(&mut deserializer);
-            let api_source_id = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::fetch_stalker_series_detail(
-                            api_base_url,
-                            api_mac_address,
-                            api_movie_id,
-                            api_source_id,
-                            api_accept_invalid_certs,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "fetch_stalker_series_detail",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_mac_address = <String>::sse_decode(&mut deserializer);
+                let api_movie_id = <String>::sse_decode(&mut deserializer);
+                let api_source_id = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::fetch_stalker_series_detail(
+                                api_base_url,
+                                api_mac_address,
+                                api_movie_id,
+                                api_source_id,
+                                api_accept_invalid_certs,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__sync__fetch_stalker_vod_detail_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2929,46 +2933,47 @@ fn wire__crate__api__sync__fetch_stalker_vod_detail_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "fetch_stalker_vod_detail",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_mac_address = <String>::sse_decode(&mut deserializer);
-            let api_movie_id = <String>::sse_decode(&mut deserializer);
-            let api_source_id = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::fetch_stalker_vod_detail(
-                            api_base_url,
-                            api_mac_address,
-                            api_movie_id,
-                            api_source_id,
-                            api_accept_invalid_certs,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "fetch_stalker_vod_detail",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_mac_address = <String>::sse_decode(&mut deserializer);
+                let api_movie_id = <String>::sse_decode(&mut deserializer);
+                let api_source_id = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::fetch_stalker_vod_detail(
+                                api_base_url,
+                                api_mac_address,
+                                api_movie_id,
+                                api_source_id,
+                                api_accept_invalid_certs,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__sync__fetch_xtream_account_info_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2976,44 +2981,45 @@ fn wire__crate__api__sync__fetch_xtream_account_info_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "fetch_xtream_account_info",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_username = <String>::sse_decode(&mut deserializer);
-            let api_password = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::fetch_xtream_account_info(
-                            api_base_url,
-                            api_username,
-                            api_password,
-                            api_accept_invalid_certs,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "fetch_xtream_account_info",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_username = <String>::sse_decode(&mut deserializer);
+                let api_password = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::fetch_xtream_account_info(
+                                api_base_url,
+                                api_username,
+                                api_password,
+                                api_accept_invalid_certs,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__algorithms__filter_and_sort_channels_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3974,37 +3980,38 @@ fn wire__crate__api__epg__get_channel_epg_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "get_channel_epg",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_channel_id = <String>::sse_decode(&mut deserializer);
-            let api_count = <usize>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok =
-                            crate::api::epg::get_channel_epg(api_channel_id, api_count).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "get_channel_epg",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_channel_id = <String>::sse_decode(&mut deserializer);
+                let api_count = <usize>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok =
+                                crate::api::epg::get_channel_epg(api_channel_id, api_count).await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__channels__get_channels_by_ids_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4083,42 +4090,43 @@ fn wire__crate__api__epg__get_channels_epg_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "get_channels_epg",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_channel_ids_json = <String>::sse_decode(&mut deserializer);
-            let api_start_time = <i64>::sse_decode(&mut deserializer);
-            let api_end_time = <i64>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::epg::get_channels_epg(
-                            api_channel_ids_json,
-                            api_start_time,
-                            api_end_time,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "get_channels_epg",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_channel_ids_json = <String>::sse_decode(&mut deserializer);
+                let api_start_time = <i64>::sse_decode(&mut deserializer);
+                let api_end_time = <i64>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::epg::get_channels_epg(
+                                api_channel_ids_json,
+                                api_start_time,
+                                api_end_time,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__epg__get_epg_by_sources_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4879,44 +4887,45 @@ fn wire__crate__api__sync__get_stalker_favorites_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "get_stalker_favorites",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_mac_address = <String>::sse_decode(&mut deserializer);
-            let api_stream_type = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::get_stalker_favorites(
-                            api_base_url,
-                            api_mac_address,
-                            api_stream_type,
-                            api_accept_invalid_certs,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "get_stalker_favorites",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_mac_address = <String>::sse_decode(&mut deserializer);
+                let api_stream_type = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::get_stalker_favorites(
+                                api_base_url,
+                                api_mac_address,
+                                api_stream_type,
+                                api_accept_invalid_certs,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__stream_health__get_stream_health_score_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7536,34 +7545,35 @@ fn wire__crate__api__settings__refresh_logo_index_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "refresh_logo_index",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::settings::refresh_logo_index().await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "refresh_logo_index",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::settings::refresh_logo_index().await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__channels__remove_favorite_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8169,46 +8179,47 @@ fn wire__crate__api__sync__resolve_stalker_stream_url_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "resolve_stalker_stream_url",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_mac_address = <String>::sse_decode(&mut deserializer);
-            let api_cmd = <String>::sse_decode(&mut deserializer);
-            let api_stream_type = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::resolve_stalker_stream_url(
-                            api_base_url,
-                            api_mac_address,
-                            api_cmd,
-                            api_stream_type,
-                            api_accept_invalid_certs,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "resolve_stalker_stream_url",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_mac_address = <String>::sse_decode(&mut deserializer);
+                let api_cmd = <String>::sse_decode(&mut deserializer);
+                let api_stream_type = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::resolve_stalker_stream_url(
+                                api_base_url,
+                                api_mac_address,
+                                api_cmd,
+                                api_stream_type,
+                                api_accept_invalid_certs,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__vod__resolve_vod_categories_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9274,48 +9285,49 @@ fn wire__crate__api__sync__set_stalker_favorite_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "set_stalker_favorite",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_mac_address = <String>::sse_decode(&mut deserializer);
-            let api_fav_id = <String>::sse_decode(&mut deserializer);
-            let api_stream_type = <String>::sse_decode(&mut deserializer);
-            let api_remove = <bool>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::set_stalker_favorite(
-                            api_base_url,
-                            api_mac_address,
-                            api_fav_id,
-                            api_stream_type,
-                            api_remove,
-                            api_accept_invalid_certs,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "set_stalker_favorite",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_mac_address = <String>::sse_decode(&mut deserializer);
+                let api_fav_id = <String>::sse_decode(&mut deserializer);
+                let api_stream_type = <String>::sse_decode(&mut deserializer);
+                let api_remove = <bool>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::set_stalker_favorite(
+                                api_base_url,
+                                api_mac_address,
+                                api_fav_id,
+                                api_stream_type,
+                                api_remove,
+                                api_accept_invalid_certs,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__algorithms__sign_s3_request_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9592,44 +9604,45 @@ fn wire__crate__api__sync__stalker_keepalive_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "stalker_keepalive",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_mac_address = <String>::sse_decode(&mut deserializer);
-            let api_cur_play_type = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::stalker_keepalive(
-                            api_base_url,
-                            api_mac_address,
-                            api_cur_play_type,
-                            api_accept_invalid_certs,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "stalker_keepalive",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_mac_address = <String>::sse_decode(&mut deserializer);
+                let api_cur_play_type = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::stalker_keepalive(
+                                api_base_url,
+                                api_mac_address,
+                                api_cur_play_type,
+                                api_accept_invalid_certs,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__lifecycle__subscribe_data_events_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9713,42 +9726,43 @@ fn wire__crate__api__sync__sync_m3u_source_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "sync_m3u_source",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_url = <String>::sse_decode(&mut deserializer);
-            let api_source_id = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::sync_m3u_source(
-                            api_url,
-                            api_source_id,
-                            api_accept_invalid_certs,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "sync_m3u_source",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_url = <String>::sse_decode(&mut deserializer);
+                let api_source_id = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::sync_m3u_source(
+                                api_url,
+                                api_source_id,
+                                api_accept_invalid_certs,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__epg__sync_stalker_epg_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9756,46 +9770,47 @@ fn wire__crate__api__epg__sync_stalker_epg_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "sync_stalker_epg",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_mac = <String>::sse_decode(&mut deserializer);
-            let api_source_id = <String>::sse_decode(&mut deserializer);
-            let api_channels_json = <String>::sse_decode(&mut deserializer);
-            let api_force = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::epg::sync_stalker_epg(
-                            api_base_url,
-                            api_mac,
-                            api_source_id,
-                            api_channels_json,
-                            api_force,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "sync_stalker_epg",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_mac = <String>::sse_decode(&mut deserializer);
+                let api_source_id = <String>::sse_decode(&mut deserializer);
+                let api_channels_json = <String>::sse_decode(&mut deserializer);
+                let api_force = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::epg::sync_stalker_epg(
+                                api_base_url,
+                                api_mac,
+                                api_source_id,
+                                api_channels_json,
+                                api_force,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__sync__sync_stalker_source_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9803,44 +9818,45 @@ fn wire__crate__api__sync__sync_stalker_source_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "sync_stalker_source",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_mac_address = <String>::sse_decode(&mut deserializer);
-            let api_source_id = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::sync_stalker_source(
-                            api_base_url,
-                            api_mac_address,
-                            api_source_id,
-                            api_accept_invalid_certs,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "sync_stalker_source",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_mac_address = <String>::sse_decode(&mut deserializer);
+                let api_source_id = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::sync_stalker_source(
+                                api_base_url,
+                                api_mac_address,
+                                api_source_id,
+                                api_accept_invalid_certs,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__epg__sync_xmltv_epg_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9848,39 +9864,40 @@ fn wire__crate__api__epg__sync_xmltv_epg_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "sync_xmltv_epg",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_url = <String>::sse_decode(&mut deserializer);
-            let api_source_id = <String>::sse_decode(&mut deserializer);
-            let api_force = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok =
-                            crate::api::epg::sync_xmltv_epg(api_url, api_source_id, api_force)
-                                .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "sync_xmltv_epg",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_url = <String>::sse_decode(&mut deserializer);
+                let api_source_id = <String>::sse_decode(&mut deserializer);
+                let api_force = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok =
+                                crate::api::epg::sync_xmltv_epg(api_url, api_source_id, api_force)
+                                    .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__epg__sync_xtream_epg_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9888,48 +9905,49 @@ fn wire__crate__api__epg__sync_xtream_epg_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "sync_xtream_epg",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_username = <String>::sse_decode(&mut deserializer);
-            let api_password = <String>::sse_decode(&mut deserializer);
-            let api_source_id = <String>::sse_decode(&mut deserializer);
-            let api_channels_json = <String>::sse_decode(&mut deserializer);
-            let api_force = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::epg::sync_xtream_epg(
-                            api_base_url,
-                            api_username,
-                            api_password,
-                            api_source_id,
-                            api_channels_json,
-                            api_force,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "sync_xtream_epg",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_username = <String>::sse_decode(&mut deserializer);
+                let api_password = <String>::sse_decode(&mut deserializer);
+                let api_source_id = <String>::sse_decode(&mut deserializer);
+                let api_channels_json = <String>::sse_decode(&mut deserializer);
+                let api_force = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::epg::sync_xtream_epg(
+                                api_base_url,
+                                api_username,
+                                api_password,
+                                api_source_id,
+                                api_channels_json,
+                                api_force,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__sync__sync_xtream_source_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9937,48 +9955,49 @@ fn wire__crate__api__sync__sync_xtream_source_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "sync_xtream_source",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_username = <String>::sse_decode(&mut deserializer);
-            let api_password = <String>::sse_decode(&mut deserializer);
-            let api_source_id = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            let api_enrich_vod_on_sync = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::sync_xtream_source(
-                            api_base_url,
-                            api_username,
-                            api_password,
-                            api_source_id,
-                            api_accept_invalid_certs,
-                            api_enrich_vod_on_sync,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "sync_xtream_source",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_username = <String>::sse_decode(&mut deserializer);
+                let api_password = <String>::sse_decode(&mut deserializer);
+                let api_source_id = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                let api_enrich_vod_on_sync = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::sync_xtream_source(
+                                api_base_url,
+                                api_username,
+                                api_password,
+                                api_source_id,
+                                api_accept_invalid_certs,
+                                api_enrich_vod_on_sync,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__algorithms__try_base64_decode_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -10198,38 +10217,39 @@ fn wire__crate__api__sync__verify_m3u_url_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "verify_m3u_url",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_url = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok =
-                            crate::api::sync::verify_m3u_url(api_url, api_accept_invalid_certs)
-                                .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "verify_m3u_url",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_url = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok =
+                                crate::api::sync::verify_m3u_url(api_url, api_accept_invalid_certs)
+                                    .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__algorithms__verify_pin_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -10271,42 +10291,43 @@ fn wire__crate__api__sync__verify_stalker_portal_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "verify_stalker_portal",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_mac_address = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::verify_stalker_portal(
-                            api_base_url,
-                            api_mac_address,
-                            api_accept_invalid_certs,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "verify_stalker_portal",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_mac_address = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::verify_stalker_portal(
+                                api_base_url,
+                                api_mac_address,
+                                api_accept_invalid_certs,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__sync__verify_xtream_credentials_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -10314,44 +10335,45 @@ fn wire__crate__api__sync__verify_xtream_credentials_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "verify_xtream_credentials",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_url = <String>::sse_decode(&mut deserializer);
-            let api_username = <String>::sse_decode(&mut deserializer);
-            let api_password = <String>::sse_decode(&mut deserializer);
-            let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::sync::verify_xtream_credentials(
-                            api_base_url,
-                            api_username,
-                            api_password,
-                            api_accept_invalid_certs,
-                        )
-                        .await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    );
+    FLUTTER_RUST_BRIDGE_HANDLER
+        .wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+            flutter_rust_bridge::for_generated::TaskInfo {
+                debug_name: "verify_xtream_credentials",
+                port: Some(port_),
+                mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+            },
+            move || {
+                let message = unsafe {
+                    flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                        ptr_,
+                        rust_vec_len_,
+                        data_len_,
+                    )
+                };
+                let mut deserializer =
+                    flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+                let api_base_url = <String>::sse_decode(&mut deserializer);
+                let api_username = <String>::sse_decode(&mut deserializer);
+                let api_password = <String>::sse_decode(&mut deserializer);
+                let api_accept_invalid_certs = <bool>::sse_decode(&mut deserializer);
+                deserializer.end();
+                move |context| async move {
+                    transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                        (move || async move {
+                            let output_ok = crate::api::sync::verify_xtream_credentials(
+                                api_base_url,
+                                api_username,
+                                api_password,
+                                api_accept_invalid_certs,
+                            )
+                            .await?;
+                            Ok(output_ok)
+                        })()
+                        .await,
+                    )
+                }
+            },
+        );
 }
 fn wire__crate__api__algorithms__vod_badge_kind_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -10564,7 +10586,12 @@ fn pde_ffi_dispatcher_primary_impl(
         7 => wire__crate__api__display__afr_switch_mode_impl(port, ptr, rust_vec_len, data_len),
         9 => wire__crate__api__epg__build_catchup_url_impl(port, ptr, rust_vec_len, data_len),
         10 => {
-            wire__crate__api__algorithms__build_category_map_impl(port, ptr, rust_vec_len, data_len);
+            wire__crate__api__algorithms__build_category_map_impl(
+                port,
+                ptr,
+                rust_vec_len,
+                data_len,
+            );
         }
         13 => wire__crate__api__algorithms__build_type_categories_impl(
             port,
@@ -10585,7 +10612,12 @@ fn pde_ffi_dispatcher_primary_impl(
         27 => wire__crate__api__epg__clear_epg_entries_impl(port, ptr, rust_vec_len, data_len),
         28 => wire__crate__api__dvr__clear_fired_reminders_impl(port, ptr, rust_vec_len, data_len),
         29 => {
-            wire__crate__api__settings__clear_search_history_impl(port, ptr, rust_vec_len, data_len);
+            wire__crate__api__settings__clear_search_history_impl(
+                port,
+                ptr,
+                rust_vec_len,
+                data_len,
+            );
         }
         31 => {
             wire__crate__api__vod__compute_episode_progress_impl(port, ptr, rust_vec_len, data_len);
@@ -10609,7 +10641,12 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         35 => {
-            wire__crate__api__dvr__compute_storage_breakdown_impl(port, ptr, rust_vec_len, data_len);
+            wire__crate__api__dvr__compute_storage_breakdown_impl(
+                port,
+                ptr,
+                rust_vec_len,
+                data_len,
+            );
         }
         38 => wire__crate__api__smart_groups__create_smart_group_impl(
             port,
@@ -10667,7 +10704,12 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         60 => wire__crate__api__settings__detect_gpu_impl(port, ptr, rust_vec_len, data_len),
         61 => {
-            wire__crate__api__dvr__detect_recording_conflict_impl(port, ptr, rust_vec_len, data_len);
+            wire__crate__api__dvr__detect_recording_conflict_impl(
+                port,
+                ptr,
+                rust_vec_len,
+                data_len,
+            );
         }
         62 => wire__crate__api__smart_groups__detect_smart_group_candidates_impl(
             port,
@@ -10683,7 +10725,12 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         66 => wire__crate__api__epg__epg_hot_cache_size_impl(port, ptr, rust_vec_len, data_len),
         68 => {
-            wire__crate__api__buffer__evaluate_buffer_sample_impl(port, ptr, rust_vec_len, data_len);
+            wire__crate__api__buffer__evaluate_buffer_sample_impl(
+                port,
+                ptr,
+                rust_vec_len,
+                data_len,
+            );
         }
         69 => wire__crate__api__stream_health__evaluate_failover_event_impl(
             port,
@@ -10731,7 +10778,12 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         80 => {
-            wire__crate__api__sync__fetch_stalker_vod_detail_impl(port, ptr, rust_vec_len, data_len);
+            wire__crate__api__sync__fetch_stalker_vod_detail_impl(
+                port,
+                ptr,
+                rust_vec_len,
+                data_len,
+            );
         }
         81 => wire__crate__api__sync__fetch_xtream_account_info_impl(
             port,
@@ -10746,7 +10798,12 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         83 => {
-            wire__crate__api__vod__filter_and_sort_vod_items_impl(port, ptr, rust_vec_len, data_len);
+            wire__crate__api__vod__filter_and_sort_vod_items_impl(
+                port,
+                ptr,
+                rust_vec_len,
+                data_len,
+            );
         }
         84 => wire__crate__api__algorithms__filter_by_cw_status_impl(
             port,
@@ -10904,7 +10961,12 @@ fn pde_ffi_dispatcher_primary_impl(
         136 => wire__crate__api__vod__get_vod_by_sources_impl(port, ptr, rust_vec_len, data_len),
         137 => wire__crate__api__vod__get_vod_favorites_impl(port, ptr, rust_vec_len, data_len),
         138 => {
-            wire__crate__api__watchlist__get_watchlist_items_impl(port, ptr, rust_vec_len, data_len);
+            wire__crate__api__watchlist__get_watchlist_items_impl(
+                port,
+                ptr,
+                rust_vec_len,
+                data_len,
+            );
         }
         139 => {
             wire__crate__api__profiles__grant_source_access_impl(port, ptr, rust_vec_len, data_len);
@@ -10945,7 +11007,12 @@ fn pde_ffi_dispatcher_primary_impl(
         167 => wire__crate__api__dvr__mark_reminder_fired_impl(port, ptr, rust_vec_len, data_len),
         168 => wire__crate__api__epg__match_epg_to_channels_impl(port, ptr, rust_vec_len, data_len),
         169 => {
-            wire__crate__api__epg__match_epg_with_confidence_impl(port, ptr, rust_vec_len, data_len);
+            wire__crate__api__epg__match_epg_with_confidence_impl(
+                port,
+                ptr,
+                rust_vec_len,
+                data_len,
+            );
         }
         171 => wire__crate__api__algorithms__merge_cloud_backups_impl(
             port,
@@ -10978,7 +11045,12 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         186 => {
-            wire__crate__api__parsers__parse_s3_list_objects_impl(port, ptr, rust_vec_len, data_len);
+            wire__crate__api__parsers__parse_s3_list_objects_impl(
+                port,
+                ptr,
+                rust_vec_len,
+                data_len,
+            );
         }
         187 => wire__crate__api__parsers__parse_series_impl(port, ptr, rust_vec_len, data_len),
         188 => wire__crate__api__parsers__parse_stalker_categories_impl(
@@ -11117,7 +11189,12 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         220 => {
-            wire__crate__api__settings__resolve_channel_logo_impl(port, ptr, rust_vec_len, data_len);
+            wire__crate__api__settings__resolve_channel_logo_impl(
+                port,
+                ptr,
+                rust_vec_len,
+                data_len,
+            );
         }
         221 => {
             wire__crate__api__settings__resolve_logos_batch_impl(port, ptr, rust_vec_len, data_len);
@@ -11138,7 +11215,12 @@ fn pde_ffi_dispatcher_primary_impl(
             wire__crate__api__vod__resolve_vod_categories_impl(port, ptr, rust_vec_len, data_len);
         }
         226 => {
-            wire__crate__api__profiles__revoke_source_access_impl(port, ptr, rust_vec_len, data_len);
+            wire__crate__api__profiles__revoke_source_access_impl(
+                port,
+                ptr,
+                rust_vec_len,
+                data_len,
+            );
         }
         228 => wire__crate__api__bookmarks__save_bookmark_impl(port, ptr, rust_vec_len, data_len),
         229 => wire__crate__api__channels__save_categories_impl(port, ptr, rust_vec_len, data_len),
@@ -11482,7 +11564,7 @@ mod io {
     use flutter_rust_bridge::for_generated::byteorder::{
         NativeEndian, ReadBytesExt, WriteBytesExt,
     };
-    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate
@@ -11506,7 +11588,7 @@ mod web {
     };
     use flutter_rust_bridge::for_generated::wasm_bindgen;
     use flutter_rust_bridge::for_generated::wasm_bindgen::prelude::*;
-    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate

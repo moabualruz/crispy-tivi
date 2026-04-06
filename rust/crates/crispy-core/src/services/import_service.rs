@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::models::Source;
+use crate::value_objects::SourceType;
 
 // ── Error ─────────────────────────────────────────────────────────────────────
 
@@ -23,11 +24,11 @@ pub enum ImportError {
     MissingField(&'static str),
 }
 
-// ── Source type string constants ──────────────────────────────────────────────
+// ── Source type constants ─────────────────────────────────────────────────────
 
-const SOURCE_TYPE_M3U: &str = "m3u";
-const SOURCE_TYPE_XTREAM: &str = "xtream_codes";
-const SOURCE_TYPE_STALKER: &str = "stalker_portal";
+const SOURCE_TYPE_M3U: SourceType = SourceType::M3u;
+const SOURCE_TYPE_XTREAM: SourceType = SourceType::Xtream;
+const SOURCE_TYPE_STALKER: SourceType = SourceType::Stalker;
 
 // ── TiviMate backup format ────────────────────────────────────────────────────
 //
@@ -183,20 +184,20 @@ fn convert_tivimate_playlist(
             if playlist.server.is_empty() {
                 return Err(ImportError::MissingField("server"));
             }
-            (SOURCE_TYPE_XTREAM.to_string(), playlist.server.clone())
+            (SOURCE_TYPE_XTREAM, playlist.server.clone())
         }
         "stalker" | "stalker_portal" => {
             if playlist.server.is_empty() {
                 return Err(ImportError::MissingField("server"));
             }
-            (SOURCE_TYPE_STALKER.to_string(), playlist.server.clone())
+            (SOURCE_TYPE_STALKER, playlist.server.clone())
         }
         _ => {
             // Default: M3U
             if playlist.url.is_empty() {
                 return Err(ImportError::MissingField("url"));
             }
-            (SOURCE_TYPE_M3U.to_string(), playlist.url.clone())
+            (SOURCE_TYPE_M3U, playlist.url.clone())
         }
     };
 
@@ -244,14 +245,14 @@ fn convert_smarters_account(
             if account.host.is_empty() {
                 return Err(ImportError::MissingField("host"));
             }
-            (SOURCE_TYPE_XTREAM.to_string(), account.host.clone())
+            (SOURCE_TYPE_XTREAM, account.host.clone())
         }
         _ => {
             // Default: M3U
             if account.url.is_empty() {
                 return Err(ImportError::MissingField("url"));
             }
-            (SOURCE_TYPE_M3U.to_string(), account.url.clone())
+            (SOURCE_TYPE_M3U, account.url.clone())
         }
     };
 
@@ -270,7 +271,7 @@ fn convert_smarters_account(
 /// Build a `Source` with import defaults. UUID v4 is generated for the id.
 fn make_source(
     name: String,
-    source_type: String,
+    source_type: SourceType,
     url: String,
     username: Option<String>,
     password: Option<String>,

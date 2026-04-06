@@ -57,9 +57,7 @@ pub fn run_startup_cleanup(service: &CrispyService) -> Result<()> {
             rusqlite::params![cutoff],
         )?;
         if deleted > 0 {
-            eprintln!(
-                "[cleanup] hard-deleted {deleted} expired soft-deleted source(s)"
-            );
+            eprintln!("[cleanup] hard-deleted {deleted} expired soft-deleted source(s)");
         }
         total_deleted += deleted;
     }

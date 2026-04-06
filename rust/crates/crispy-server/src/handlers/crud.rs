@@ -781,8 +781,14 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
 
         "decodeBlurHash" => (|| {
             let hash = get_str(args, "hash")?;
-            let width = args.get("width").and_then(serde_json::Value::as_u64).unwrap_or(16) as u32;
-            let height = args.get("height").and_then(serde_json::Value::as_u64).unwrap_or(16) as u32;
+            let width = args
+                .get("width")
+                .and_then(serde_json::Value::as_u64)
+                .unwrap_or(16) as u32;
+            let height = args
+                .get("height")
+                .and_then(serde_json::Value::as_u64)
+                .unwrap_or(16) as u32;
             let bmp =
                 crispy_core::services::logo_resolver::decode_blurhash_to_bmp(&hash, width, height)
                     .map_err(|e| anyhow!("{e}"))?;
@@ -813,7 +819,10 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let group_id = get_str(args, "groupId")?;
             let channel_id = get_str(args, "channelId")?;
             let source_id = get_str(args, "sourceId")?;
-            let priority = args.get("priority").and_then(serde_json::Value::as_i64).unwrap_or(0) as i32;
+            let priority = args
+                .get("priority")
+                .and_then(serde_json::Value::as_i64)
+                .unwrap_or(0) as i32;
             svc.add_smart_group_member(&group_id, &channel_id, &source_id, priority)
                 .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true}))

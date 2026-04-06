@@ -34,7 +34,7 @@ impl CrispyService {
                 rec.stream_url,
                 dt_to_ts(&rec.start_time),
                 dt_to_ts(&rec.end_time),
-                rec.status,
+                rec.status.as_str(),
                 rec.file_path,
                 rec.file_size_bytes,
                 bool_to_int(rec.is_recurring),
@@ -75,7 +75,11 @@ impl CrispyService {
                 stream_url: row.get(5)?,
                 start_time: ts_to_dt(row.get(6)?),
                 end_time: ts_to_dt(row.get(7)?),
-                status: row.get(8)?,
+                status: row
+                    .get::<_, String>(8)?
+                    .as_str()
+                    .try_into()
+                    .unwrap_or_default(),
                 file_path: row.get(9)?,
                 file_size_bytes: row.get(10)?,
                 is_recurring: int_to_bool(row.get(11)?),
@@ -271,7 +275,7 @@ mod tests {
             stream_url: Some("http://stream".to_string()),
             start_time: dt,
             end_time: dt_end,
-            status: "scheduled".to_string(),
+            status: crate::value_objects::RecordingStatus::Scheduled,
             file_path: None,
             file_size_bytes: None,
             is_recurring: false,
@@ -330,12 +334,15 @@ mod tests {
         let mut rec = make_recording("rec1");
         svc.save_recording(&rec).unwrap();
 
-        rec.status = "completed".to_string();
+        rec.status = crate::value_objects::RecordingStatus::Completed;
         svc.update_recording(&rec).unwrap();
 
         let loaded = svc.load_recordings().unwrap();
         assert_eq!(loaded.len(), 1);
-        assert_eq!(loaded[0].status, "completed");
+        assert_eq!(
+            loaded[0].status,
+            crate::value_objects::RecordingStatus::Completed
+        );
     }
 
     #[test]

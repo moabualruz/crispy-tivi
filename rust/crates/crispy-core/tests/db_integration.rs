@@ -52,7 +52,7 @@ fn source(id: &str, name: &str) -> Source {
     Source {
         id: id.to_string(),
         name: name.to_string(),
-        source_type: "m3u".to_string(),
+        source_type: crispy_core::value_objects::SourceType::M3u,
         url: format!("http://example.com/{id}.m3u"),
         username: None,
         password: None,
@@ -373,7 +373,7 @@ fn test_save_source_upserts_when_same_id_saved_twice() {
     svc.save_source(&source("upsert_test", "Original")).unwrap();
 
     let mut s2 = source("upsert_test", "Renamed");
-    s2.source_type = "xtream".to_string();
+    s2.source_type = crispy_core::value_objects::SourceType::Xtream;
     svc.save_source(&s2).unwrap();
 
     let all = svc.get_sources().unwrap();
@@ -384,7 +384,10 @@ fn test_save_source_upserts_when_same_id_saved_twice() {
     );
     let loaded = svc.get_source("upsert_test").unwrap().unwrap();
     assert_eq!(loaded.name, "Renamed");
-    assert_eq!(loaded.source_type, "xtream");
+    assert_eq!(
+        loaded.source_type,
+        crispy_core::value_objects::SourceType::Xtream
+    );
 }
 
 /// Deleting a source removes only its channels; channels from other sources survive.

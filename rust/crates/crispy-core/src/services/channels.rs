@@ -148,49 +148,47 @@ impl CrispyService {
         )?;
         let mut count = 0usize;
         for ch in channels {
-            stmt.execute(
-                params![
-                    ch.id,
-                    ch.native_id,
-                    ch.name,
-                    ch.stream_url,
-                    ch.number,
-                    ch.channel_group,
-                    ch.logo_url,
-                    ch.tvg_id,
-                    ch.xtream_stream_id,
-                    ch.epg_channel_id,
-                    ch.tvg_name,
-                    bool_to_int(ch.is_favorite),
-                    ch.user_agent,
-                    bool_to_int(ch.has_catchup),
-                    ch.catchup_days,
-                    ch.catchup_type,
-                    ch.catchup_source,
-                    ch.source_id,
-                    opt_dt_to_ts(&ch.added_at),
-                    opt_dt_to_ts(&ch.updated_at),
-                    bool_to_int(ch.is_247),
-                    ch.tvg_shift,
-                    ch.tvg_language,
-                    ch.tvg_country,
-                    ch.parent_code,
-                    bool_to_int(ch.is_radio),
-                    ch.tvg_rec,
-                    bool_to_int(ch.is_adult),
-                    ch.custom_sid,
-                    ch.direct_source,
-                    ch.stalker_cmd,
-                    ch.resolved_url,
-                    ch.resolved_at,
-                    ch.tvg_url,
-                    ch.stream_properties_json,
-                    ch.vlc_options_json,
-                    ch.timeshift,
-                    ch.stream_type,
-                    ch.thumbnail_url,
-                ],
-            )?;
+            stmt.execute(params![
+                ch.id,
+                ch.native_id,
+                ch.name,
+                ch.stream_url,
+                ch.number,
+                ch.channel_group,
+                ch.logo_url,
+                ch.tvg_id,
+                ch.xtream_stream_id,
+                ch.epg_channel_id,
+                ch.tvg_name,
+                bool_to_int(ch.is_favorite),
+                ch.user_agent,
+                bool_to_int(ch.has_catchup),
+                ch.catchup_days,
+                ch.catchup_type,
+                ch.catchup_source,
+                ch.source_id,
+                opt_dt_to_ts(&ch.added_at),
+                opt_dt_to_ts(&ch.updated_at),
+                bool_to_int(ch.is_247),
+                ch.tvg_shift,
+                ch.tvg_language,
+                ch.tvg_country,
+                ch.parent_code,
+                bool_to_int(ch.is_radio),
+                ch.tvg_rec,
+                bool_to_int(ch.is_adult),
+                ch.custom_sid,
+                ch.direct_source,
+                ch.stalker_cmd,
+                ch.resolved_url,
+                ch.resolved_at,
+                ch.tvg_url,
+                ch.stream_properties_json,
+                ch.vlc_options_json,
+                ch.timeshift,
+                ch.stream_type,
+                ch.thumbnail_url,
+            ])?;
             count += 1;
         }
         #[cfg(debug_assertions)]
@@ -429,7 +427,8 @@ mod tests {
         // source_id must be non-NULL so the (source_id, native_id) conflict
         // key triggers on the second save instead of hitting the PK constraint.
         // A matching source row must exist first to satisfy the FK constraint.
-        svc.save_source(&make_source("src1", "Source 1", "m3u")).unwrap();
+        svc.save_source(&make_source("src1", "Source 1", "m3u"))
+            .unwrap();
         let mut ch = make_channel("ch1", "Original");
         ch.source_id = Some("src1".to_string());
         svc.save_channels(&[ch.clone()]).unwrap();

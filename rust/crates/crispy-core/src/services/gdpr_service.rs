@@ -143,7 +143,7 @@ fn redact_source(s: Source) -> GdprSource {
     GdprSource {
         id: s.id,
         name: s.name,
-        source_type: s.source_type,
+        source_type: s.source_type.to_string(),
         url: s.url,
         username: s.username,
         epg_url: s.epg_url,
@@ -251,7 +251,7 @@ mod tests {
         let src = crate::models::Source {
             id: "src1".to_string(),
             name: "My IPTV".to_string(),
-            source_type: "m3u".to_string(),
+            source_type: crate::value_objects::SourceType::M3u,
             url: "http://example.com/list.m3u".to_string(),
             username: Some("user".to_string()),
             password: Some("secret".to_string()),

@@ -146,7 +146,7 @@ pub fn make_source(id: &str, name: &str, source_type: &str) -> Source {
     Source {
         id: id.to_string(),
         name: name.to_string(),
-        source_type: source_type.to_string(),
+        source_type: crate::value_objects::SourceType::try_from(source_type).unwrap_or_default(),
         url: format!("http://example.com/{id}"),
         username: None,
         password: None,

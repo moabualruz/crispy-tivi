@@ -154,33 +154,31 @@ impl CrispyService {
         let mut count = 0usize;
         for v in items {
             let source_id = v.source_id.clone().unwrap_or_default();
-            stmt.execute(
-                params![
-                    v.id,
-                    source_id,
-                    v.native_id,
-                    v.name,
-                    v.original_name,
-                    v.poster_url,
-                    v.backdrop_url,
-                    v.description,
-                    v.stream_url,
-                    v.ext,
-                    v.year,
-                    v.duration,
-                    v.rating,
-                    v.rating_5based,
-                    v.content_rating,
-                    v.genre,
-                    v.youtube_trailer,
-                    v.tmdb_id,
-                    v.cast,
-                    v.director,
-                    bool_to_int(v.is_adult),
-                    opt_dt_to_ts(&v.added_at),
-                    opt_dt_to_ts(&v.updated_at),
-                ],
-            )?;
+            stmt.execute(params![
+                v.id,
+                source_id,
+                v.native_id,
+                v.name,
+                v.original_name,
+                v.poster_url,
+                v.backdrop_url,
+                v.description,
+                v.stream_url,
+                v.ext,
+                v.year,
+                v.duration,
+                v.rating,
+                v.rating_5based,
+                v.content_rating,
+                v.genre,
+                v.youtube_trailer,
+                v.tmdb_id,
+                v.cast,
+                v.director,
+                bool_to_int(v.is_adult),
+                opt_dt_to_ts(&v.added_at),
+                opt_dt_to_ts(&v.updated_at),
+            ])?;
             count += 1;
         }
         #[cfg(debug_assertions)]
@@ -319,12 +317,7 @@ impl CrispyService {
     ) -> Result<usize, DbError> {
         let conn = self.db.get()?;
         let tx = conn.unchecked_transaction()?;
-        let deleted = super::delete_removed_by_source_conn(
-            &tx,
-            TABLE_MOVIES,
-            source_id,
-            keep_ids,
-        )?;
+        let deleted = super::delete_removed_by_source_conn(&tx, TABLE_MOVIES, source_id, keep_ids)?;
         tx.commit()?;
         self.emit(DataChangeEvent::VodUpdated {
             source_id: source_id.to_string(),

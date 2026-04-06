@@ -1117,7 +1117,7 @@ pub struct Source {
     /// Human-readable source name.
     pub name: String,
     /// Source type discriminator.
-    pub source_type: String,
+    pub source_type: crate::value_objects::SourceType,
     /// Server/playlist URL.
     pub url: String,
     /// Username (Xtream).
@@ -1192,27 +1192,27 @@ pub struct Source {
 impl Source {
     /// Returns true if this source is an Xtream Codes provider.
     pub fn is_xtream(&self) -> bool {
-        self.source_type == "xtream"
+        self.source_type == crate::value_objects::SourceType::Xtream
     }
 
     /// Returns true if this source is a Stalker portal.
     pub fn is_stalker(&self) -> bool {
-        self.source_type == "stalker"
+        self.source_type == crate::value_objects::SourceType::Stalker
     }
 
     /// Returns true if this source is an M3U playlist.
     pub fn is_m3u(&self) -> bool {
-        self.source_type == "m3u"
+        self.source_type == crate::value_objects::SourceType::M3u
     }
 
     /// Returns true if this source requires username/password or MAC credentials.
     pub fn uses_credentials(&self) -> bool {
-        self.is_xtream() || self.is_stalker()
+        self.source_type.uses_credentials()
     }
 
     /// Returns true if this source is a media server (Plex, Emby, or Jellyfin).
     pub fn is_media_server(&self) -> bool {
-        matches!(self.source_type.as_str(), "plex" | "emby" | "jellyfin")
+        self.source_type.uses_token()
     }
 }
 
@@ -1337,9 +1337,8 @@ pub struct Recording {
     pub start_time: NaiveDateTime,
     /// Scheduled/actual end time.
     pub end_time: NaiveDateTime,
-    /// Recording status: "scheduled", "recording",
-    /// "completed", or "failed".
-    pub status: String,
+    /// Recording lifecycle state.
+    pub status: crate::value_objects::RecordingStatus,
     /// Local file path of the recorded file.
     #[serde(default)]
     pub file_path: Option<String>,
@@ -1374,12 +1373,12 @@ fn default_true() -> bool {
 impl Recording {
     /// Returns true if this recording is currently in progress.
     pub fn is_active(&self) -> bool {
-        self.status == "recording"
+        self.status == crate::value_objects::RecordingStatus::Recording
     }
 
     /// Returns true if this recording has finished successfully.
     pub fn is_completed(&self) -> bool {
-        self.status == "completed"
+        self.status == crate::value_objects::RecordingStatus::Completed
     }
 }
 
@@ -1782,7 +1781,7 @@ mod tests {
             stream_url: None,
             start_time: now,
             end_time: now,
-            status: "scheduled".to_string(),
+            status: crate::value_objects::RecordingStatus::Scheduled,
             file_path: None,
             file_size_bytes: None,
             is_recurring: false,
@@ -1808,7 +1807,7 @@ mod tests {
             stream_url: Some("http://s".to_string()),
             start_time: now,
             end_time: now,
-            status: "completed".to_string(),
+            status: crate::value_objects::RecordingStatus::Completed,
             file_path: Some("/recordings/news.ts".to_string()),
             file_size_bytes: Some(1_048_576),
             is_recurring: false,
@@ -1818,7 +1817,7 @@ mod tests {
             remote_backend_id: None,
             remote_path: None,
         };
-        assert_eq!(r.status, "completed");
+        assert_eq!(r.status, crate::value_objects::RecordingStatus::Completed);
         assert_eq!(r.file_size_bytes, Some(1_048_576));
     }
 

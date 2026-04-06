@@ -13,7 +13,9 @@ use crispy_core::models::Channel;
 static FAILOVER_STATE: Mutex<Option<HashMap<String, (u32, u32)>>> = Mutex::new(None);
 
 fn failover_map() -> std::sync::MutexGuard<'static, Option<HashMap<String, (u32, u32)>>> {
-    let mut guard = FAILOVER_STATE.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let mut guard = FAILOVER_STATE
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     if guard.is_none() {
         *guard = Some(HashMap::new());
     }

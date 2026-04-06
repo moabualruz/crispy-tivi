@@ -126,13 +126,13 @@ impl ThrottledEpgFetcher {
             let provider_id = channel.provider_channel_id.clone();
 
             let handle = tokio::spawn(async move {
-                let entries = match src.source_type.as_str() {
-                    "xtream" => {
+                let entries = match src.source_type {
+                    crate::value_objects::SourceType::Xtream => {
                         fetcher
                             .fetch_xtream_channel(&src, &cid, provider_id.as_deref())
                             .await
                     }
-                    "stalker" => {
+                    crate::value_objects::SourceType::Stalker => {
                         fetcher
                             .fetch_stalker_channel(&src, &cid, provider_id.as_deref())
                             .await

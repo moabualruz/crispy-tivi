@@ -887,7 +887,10 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             Ok(json!({"data": result}))
         })(),
         "vodBadgeKind" => (|| {
-            let year = args.get("year").and_then(serde_json::Value::as_i64).map(|v| v as i32);
+            let year = args
+                .get("year")
+                .and_then(serde_json::Value::as_i64)
+                .map(|v| v as i32);
             let added_at = args.get("addedAtMs").and_then(serde_json::Value::as_i64);
             let now_ms = get_i64(args, "nowMs")?;
             let result =

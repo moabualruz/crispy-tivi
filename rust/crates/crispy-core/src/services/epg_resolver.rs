@@ -41,8 +41,8 @@ pub async fn resolve_epg_for_channels(
     }
 
     // Step 2: Fetch missing channels via per-channel API.
-    let fetched = match source.source_type.as_str() {
-        "xtream" | "stalker" => {
+    let fetched = match source.source_type {
+        crate::value_objects::SourceType::Xtream | crate::value_objects::SourceType::Stalker => {
             let requests = build_epg_requests(service, source, &missing)?;
             fetcher.fetch_batch(source, &requests).await
         }
@@ -77,11 +77,13 @@ fn build_epg_requests(
     Ok(channel_ids
         .iter()
         .map(|channel_id| {
-            let provider_channel_id = match source.source_type.as_str() {
-                "xtream" => by_id
+            let provider_channel_id = match source.source_type {
+                crate::value_objects::SourceType::Xtream => by_id
                     .remove(channel_id)
                     .and_then(|channel| channel.xtream_stream_id),
-                "stalker" => by_id.remove(channel_id).map(|channel| channel.native_id),
+                crate::value_objects::SourceType::Stalker => {
+                    by_id.remove(channel_id).map(|channel| channel.native_id)
+                }
                 _ => None,
             };
 

@@ -465,7 +465,7 @@ mod tests {
         let src = Source {
             id: id.to_string(),
             name: format!("Source {id}"),
-            source_type: "m3u".to_string(),
+            source_type: crate::value_objects::SourceType::M3u,
             url: format!("http://example.com/{id}"),
             username: None,
             password: None,
@@ -576,7 +576,7 @@ mod tests {
             stream_url: Some("http://example.com/cnn".to_string()),
             start_time: dt,
             end_time: dt_end,
-            status: "completed".to_string(),
+            status: crate::value_objects::RecordingStatus::Completed,
             file_path: Some("/tmp/rec.ts".to_string()),
             file_size_bytes: Some(1024000),
             is_recurring: false,

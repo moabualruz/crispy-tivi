@@ -206,9 +206,7 @@ pub(super) fn delete_removed_by_source_conn(
         .map(|(i, _)| format!("?{}", i + 2))
         .collect::<Vec<_>>()
         .join(", ");
-    let sql = format!(
-        "DELETE FROM {table} WHERE source_id = ?1 AND id NOT IN ({placeholders})"
-    );
+    let sql = format!("DELETE FROM {table} WHERE source_id = ?1 AND id NOT IN ({placeholders})");
     let mut stmt = conn.prepare(&sql)?;
     let mut params_vec: Vec<&dyn rusqlite::types::ToSql> = vec![&source_id];
     for id in keep_ids {

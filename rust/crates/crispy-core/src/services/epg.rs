@@ -235,8 +235,7 @@ impl CrispyService {
             ch_placeholders.join(", ")
         );
         let mut ch_stmt = conn.prepare(&ch_query)?;
-        let mut ch_params: Vec<&dyn rusqlite::types::ToSql> =
-            Vec::with_capacity(channel_ids.len());
+        let mut ch_params: Vec<&dyn rusqlite::types::ToSql> = Vec::with_capacity(channel_ids.len());
         for id in channel_ids {
             ch_params.push(id as &dyn rusqlite::types::ToSql);
         }
@@ -273,9 +272,10 @@ impl CrispyService {
         for ch in &ch_rows {
             lookup_names.push(ch.name.clone());
             if let Some(ref tvg) = ch.tvg_name
-                && !tvg.is_empty() {
-                    lookup_names.push(tvg.clone());
-                }
+                && !tvg.is_empty()
+            {
+                lookup_names.push(tvg.clone());
+            }
         }
         lookup_names.sort();
         lookup_names.dedup();
@@ -283,8 +283,7 @@ impl CrispyService {
         // display_name → xmltv_id
         let mut display_name_to_xmltv: HashMap<String, String> = HashMap::new();
         if !lookup_names.is_empty() {
-            let name_phs: Vec<String> =
-                (1..=lookup_names.len()).map(|i| format!("?{i}")).collect();
+            let name_phs: Vec<String> = (1..=lookup_names.len()).map(|i| format!("?{i}")).collect();
             let name_query = format!(
                 "SELECT display_name, xmltv_id FROM db_epg_channels \
                  WHERE display_name IN ({}) GROUP BY display_name",
@@ -315,27 +314,31 @@ impl CrispyService {
 
             // Highest priority: pre-resolved epg_channel_id (E4)
             if let Some(ref eid) = ch.epg_channel_id
-                && non_empty(eid) {
-                    keys.push(eid.clone());
-                }
+                && non_empty(eid)
+            {
+                keys.push(eid.clone());
+            }
             // tvg_id from M3U/Xtream metadata
             if let Some(ref tvg) = ch.tvg_id
-                && non_empty(tvg) {
-                    keys.push(tvg.clone());
-                }
+                && non_empty(tvg)
+            {
+                keys.push(tvg.clone());
+            }
             // Xtream numeric stream id
             if let Some(ref xid) = ch.xtream_stream_id
-                && non_empty(xid) {
-                    keys.push(xid.clone());
-                }
+                && non_empty(xid)
+            {
+                keys.push(xid.clone());
+            }
             // Name-based fallback via db_epg_channels
             if let Some(xmltv_id) = display_name_to_xmltv.get(&ch.name) {
                 keys.push(xmltv_id.clone());
             }
             if let Some(ref tvg_name) = ch.tvg_name
-                && let Some(xmltv_id) = display_name_to_xmltv.get(tvg_name) {
-                    keys.push(xmltv_id.clone());
-                }
+                && let Some(xmltv_id) = display_name_to_xmltv.get(tvg_name)
+            {
+                keys.push(xmltv_id.clone());
+            }
 
             keys.sort();
             keys.dedup();
@@ -354,8 +357,7 @@ impl CrispyService {
 
         // ── Step 4: query EPG entries for all resolved XMLTV IDs ─────
         let xmltv_ids: Vec<String> = xmltv_to_channels.keys().cloned().collect();
-        let placeholders: Vec<String> =
-            (1..=xmltv_ids.len()).map(|i| format!("?{i}")).collect();
+        let placeholders: Vec<String> = (1..=xmltv_ids.len()).map(|i| format!("?{i}")).collect();
         let start_p = xmltv_ids.len() + 1;
         let end_p = xmltv_ids.len() + 2;
         let query = format!(
@@ -371,8 +373,7 @@ impl CrispyService {
         );
 
         let mut stmt = conn.prepare(&query)?;
-        let mut params: Vec<&dyn rusqlite::types::ToSql> =
-            Vec::with_capacity(xmltv_ids.len() + 2);
+        let mut params: Vec<&dyn rusqlite::types::ToSql> = Vec::with_capacity(xmltv_ids.len() + 2);
         for key in &xmltv_ids {
             params.push(key as &dyn rusqlite::types::ToSql);
         }

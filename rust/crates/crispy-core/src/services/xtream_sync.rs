@@ -273,12 +273,18 @@ async fn download_m3u_to_temp_table(
             let group = extract_m3u_attr(trimmed, "group-title");
             let catchup_type = extract_m3u_attr(trimmed, "catchup");
             let catchup_source = extract_m3u_attr(trimmed, "catchup-source");
-            let catchup_days = extract_m3u_attr(trimmed, "catchup-days")
-                .and_then(|s| s.parse::<i64>().ok());
+            let catchup_days =
+                extract_m3u_attr(trimmed, "catchup-days").and_then(|s| s.parse::<i64>().ok());
             let tvg_language = extract_m3u_attr(trimmed, "tvg-language");
             let tvg_shift = extract_m3u_attr(trimmed, "tvg-shift");
             let is_radio = extract_m3u_attr(trimmed, "radio")
-                .map(|v| if v.eq_ignore_ascii_case("true") || v == "1" { 1i64 } else { 0i64 })
+                .map(|v| {
+                    if v.eq_ignore_ascii_case("true") || v == "1" {
+                        1i64
+                    } else {
+                        0i64
+                    }
+                })
                 .unwrap_or(0i64);
             current_extinf = Some((
                 tvg_id,
@@ -295,7 +301,20 @@ async fn download_m3u_to_temp_table(
             ));
         } else if !trimmed.is_empty() && !trimmed.starts_with('#') {
             // URL line — pair with previous #EXTINF
-            if let Some((tvg_id, name, logo, group, catchup_type, catchup_source, catchup_days, tvg_name, tvg_language, tvg_shift, is_radio)) = current_extinf.take() {
+            if let Some((
+                tvg_id,
+                name,
+                logo,
+                group,
+                catchup_type,
+                catchup_source,
+                catchup_days,
+                tvg_name,
+                tvg_language,
+                tvg_shift,
+                is_radio,
+            )) = current_extinf.take()
+            {
                 let norm = normalize_url(trimmed);
                 if !norm.is_empty() {
                     if let Err(e) = conn.execute(
@@ -305,9 +324,18 @@ async fn download_m3u_to_temp_table(
                           tvg_name, tvg_language, tvg_shift, is_radio)
                          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
                         rusqlite::params![
-                            norm, tvg_id, name, logo, group,
-                            catchup_type, catchup_source, catchup_days,
-                            tvg_name, tvg_language, tvg_shift, is_radio
+                            norm,
+                            tvg_id,
+                            name,
+                            logo,
+                            group,
+                            catchup_type,
+                            catchup_source,
+                            catchup_days,
+                            tvg_name,
+                            tvg_language,
+                            tvg_shift,
+                            is_radio
                         ],
                     ) {
                         tracing::debug!(error = %e, "temp table insert skipped");
@@ -329,10 +357,7 @@ async fn download_m3u_to_temp_table(
 
 /// Apply tvg_id and metadata from the M3U temp table to Xtream channels.
 /// Matches by normalized stream URL.
-fn apply_m3u_metadata_from_temp_table(
-    service: &CrispyService,
-    channels: &mut [Channel],
-) {
+fn apply_m3u_metadata_from_temp_table(service: &CrispyService, channels: &mut [Channel]) {
     let conn = match service.db.get() {
         Ok(c) => c,
         Err(_) => return,
@@ -355,22 +380,32 @@ fn apply_m3u_metadata_from_temp_table(
         }
         if let Ok(row) = stmt.query_row(rusqlite::params![norm], |row| {
             Ok((
-                row.get::<_, Option<String>>(0)?,  // tvg_id
-                row.get::<_, Option<String>>(1)?,  // name
-                row.get::<_, Option<String>>(2)?,  // logo
-                row.get::<_, Option<String>>(3)?,  // group_title
-                row.get::<_, Option<String>>(4)?,  // catchup_type
-                row.get::<_, Option<String>>(5)?,  // catchup_source
-                row.get::<_, Option<i32>>(6)?,     // catchup_days
-                row.get::<_, Option<String>>(7)?,  // tvg_name
-                row.get::<_, Option<String>>(8)?,  // tvg_language
-                row.get::<_, Option<String>>(9)?,  // tvg_shift
-                row.get::<_, Option<i64>>(10)?,    // is_radio
+                row.get::<_, Option<String>>(0)?, // tvg_id
+                row.get::<_, Option<String>>(1)?, // name
+                row.get::<_, Option<String>>(2)?, // logo
+                row.get::<_, Option<String>>(3)?, // group_title
+                row.get::<_, Option<String>>(4)?, // catchup_type
+                row.get::<_, Option<String>>(5)?, // catchup_source
+                row.get::<_, Option<i32>>(6)?,    // catchup_days
+                row.get::<_, Option<String>>(7)?, // tvg_name
+                row.get::<_, Option<String>>(8)?, // tvg_language
+                row.get::<_, Option<String>>(9)?, // tvg_shift
+                row.get::<_, Option<i64>>(10)?,   // is_radio
             ))
         }) {
-            let (tvg_id, _name, logo, _group,
-                 catchup_type, catchup_source, catchup_days,
-                 tvg_name, tvg_language, tvg_shift, is_radio) = row;
+            let (
+                tvg_id,
+                _name,
+                logo,
+                _group,
+                catchup_type,
+                catchup_source,
+                catchup_days,
+                tvg_name,
+                tvg_language,
+                tvg_shift,
+                is_radio,
+            ) = row;
 
             // Only set tvg_id if channel doesn't already have one from Xtream API.
             if ch.tvg_id.as_ref().is_none_or(|t| t.is_empty()) {
@@ -386,22 +421,25 @@ fn apply_m3u_metadata_from_temp_table(
             // Enrich catchup fields if not already provided by Xtream API.
             if !ch.has_catchup
                 && let Some(ct) = catchup_type
-                    && !ct.is_empty() {
-                        ch.catchup_type = Some(ct);
-                        if let Some(days) = catchup_days
-                            && days > 0 {
-                                ch.catchup_days = days;
-                                ch.has_catchup = true;
-                            }
-                    }
+                && !ct.is_empty()
+            {
+                ch.catchup_type = Some(ct);
+                if let Some(days) = catchup_days
+                    && days > 0
+                {
+                    ch.catchup_days = days;
+                    ch.has_catchup = true;
+                }
+            }
             if ch.catchup_source.as_ref().is_none_or(|s| s.is_empty()) {
                 ch.catchup_source = catchup_source;
             }
             if ch.catchup_days == 0
                 && let Some(days) = catchup_days
-                    && days > 0 {
-                        ch.catchup_days = days;
-                    }
+                && days > 0
+            {
+                ch.catchup_days = days;
+            }
             // Enrich tvg_name if missing.
             if ch.tvg_name.as_ref().is_none_or(|s| s.is_empty()) {
                 ch.tvg_name = tvg_name;
@@ -416,9 +454,10 @@ fn apply_m3u_metadata_from_temp_table(
             }
             // Always apply is_radio from M3U (Xtream API doesn't provide this).
             if let Some(flag) = is_radio
-                && flag != 0 {
-                    ch.is_radio = true;
-                }
+                && flag != 0
+            {
+                ch.is_radio = true;
+            }
         }
     }
 }
@@ -480,11 +519,7 @@ pub async fn sync_xtream_source(
         accept_invalid_certs,
     )
     .await;
-    tracing::debug!(
-        source_id,
-        m3u_count,
-        "M3U channels loaded into temp table"
-    );
+    tracing::debug!(source_id, m3u_count, "M3U channels loaded into temp table");
 
     emit_progress(source_id, "categories", 0.05, "Fetching categories");
 
@@ -916,5 +951,4 @@ mod tests {
             "expected Sports group"
         );
     }
-
 }

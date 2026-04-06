@@ -52,7 +52,11 @@ fn row_to_source(row: &rusqlite::Row<'_>) -> rusqlite::Result<Source> {
     Ok(Source {
         id: row.get(0)?,
         name: row.get(1)?,
-        source_type: row.get(2)?,
+        source_type: row
+            .get::<_, String>(2)?
+            .as_str()
+            .try_into()
+            .unwrap_or_default(),
         url: row.get(3)?,
         username: row.get(4)?,
         password: row.get(5)?,
@@ -214,7 +218,7 @@ impl CrispyService {
             params![
                 source.id,
                 source.name,
-                source.source_type,
+                source.source_type.as_str(),
                 source.url,
                 source.username,
                 source.password,
@@ -409,7 +413,7 @@ mod tests {
         // Get by ID.
         let loaded = svc.get_source("src1").unwrap().unwrap();
         assert_eq!(loaded.name, "My IPTV");
-        assert_eq!(loaded.source_type, "xtream");
+        assert_eq!(loaded.source_type, crate::value_objects::SourceType::Xtream);
         assert_eq!(loaded.refresh_interval_minutes, 60);
         assert!(loaded.enabled);
 

@@ -1020,13 +1020,15 @@ fn parse_paginated<T>(
 /// Extract a string field from a JSON value, handling both string and number types.
 fn json_str(v: &Value, key: &str) -> Option<String> {
     v.get(key).and_then(|val| {
-        val.as_str().map(std::string::ToString::to_string).or_else(|| {
-            if val.is_number() {
-                Some(val.to_string())
-            } else {
-                None
-            }
-        })
+        val.as_str()
+            .map(std::string::ToString::to_string)
+            .or_else(|| {
+                if val.is_number() {
+                    Some(val.to_string())
+                } else {
+                    None
+                }
+            })
     })
 }
 

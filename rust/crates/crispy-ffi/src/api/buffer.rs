@@ -12,7 +12,9 @@ use anyhow::Result;
 static BUFFER_STATE: Mutex<Option<HashMap<String, (u32, u32)>>> = Mutex::new(None);
 
 fn state_map() -> std::sync::MutexGuard<'static, Option<HashMap<String, (u32, u32)>>> {
-    let mut guard = BUFFER_STATE.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let mut guard = BUFFER_STATE
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     if guard.is_none() {
         *guard = Some(HashMap::new());
     }
