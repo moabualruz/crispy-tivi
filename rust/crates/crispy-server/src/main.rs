@@ -376,7 +376,7 @@ fn resolve_port() -> u16 {
         && let Some(port) = json
             .get("api")
             .and_then(|a| a.get("backendPort"))
-            .and_then(|p| p.as_u64())
+            .and_then(serde_json::Value::as_u64)
     {
         return port as u16;
     }

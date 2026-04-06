@@ -38,7 +38,7 @@ pub fn detect_resolution(
     // Combine all text sources for scanning.
     let attr_text: String = attributes
         .values()
-        .map(|v| v.as_str())
+        .map(std::string::String::as_str)
         .collect::<Vec<_>>()
         .join(" ");
 

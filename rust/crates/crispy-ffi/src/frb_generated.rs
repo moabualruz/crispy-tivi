@@ -80,7 +80,7 @@ fn wire__crate__api__channels__add_favorite_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__add_favorite_category_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -121,7 +121,7 @@ fn wire__crate__api__channels__add_favorite_category_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__smart_groups__add_smart_group_member_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -164,7 +164,7 @@ fn wire__crate__api__smart_groups__add_smart_group_member_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__add_vod_favorite_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -201,7 +201,7 @@ fn wire__crate__api__vod__add_vod_favorite_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__watchlist__add_watchlist_item_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -240,7 +240,7 @@ fn wire__crate__api__watchlist__add_watchlist_item_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__display__afr_restore_mode_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -274,7 +274,7 @@ fn wire__crate__api__display__afr_restore_mode_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__display__afr_switch_mode_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -309,7 +309,7 @@ fn wire__crate__api__display__afr_switch_mode_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__apply_timezone_offset_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -383,7 +383,7 @@ fn wire__crate__api__epg__build_catchup_url_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__build_category_map_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -419,7 +419,7 @@ fn wire__crate__api__algorithms__build_category_map_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__build_search_categories_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -523,7 +523,7 @@ fn wire__crate__api__algorithms__build_type_categories_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__build_vod_category_map_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -558,7 +558,7 @@ fn wire__crate__api__vod__build_vod_category_map_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__build_xtream_action_url_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -833,7 +833,7 @@ fn wire__crate__api__app_update__check_for_update_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__classify_file_type_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -898,7 +898,7 @@ fn wire__crate__api__settings__clear_all_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__clear_all_watch_history_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -932,7 +932,7 @@ fn wire__crate__api__dvr__clear_all_watch_history_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__bookmarks__clear_bookmarks_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -967,7 +967,7 @@ fn wire__crate__api__bookmarks__clear_bookmarks_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__clear_epg_caches_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1001,7 +1001,7 @@ fn wire__crate__api__epg__clear_epg_caches_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__clear_epg_entries_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1035,7 +1035,7 @@ fn wire__crate__api__epg__clear_epg_entries_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__clear_fired_reminders_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1069,7 +1069,7 @@ fn wire__crate__api__dvr__clear_fired_reminders_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__clear_search_history_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1103,7 +1103,7 @@ fn wire__crate__api__settings__clear_search_history_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__completion_threshold_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -1169,7 +1169,7 @@ fn wire__crate__api__vod__compute_episode_progress_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__compute_episode_progress_from_db_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1205,7 +1205,7 @@ fn wire__crate__api__vod__compute_episode_progress_from_db_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__compute_profile_stats_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1241,7 +1241,7 @@ fn wire__crate__api__algorithms__compute_profile_stats_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__compute_recommendations_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1290,7 +1290,7 @@ fn wire__crate__api__algorithms__compute_recommendations_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__compute_storage_breakdown_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1326,7 +1326,7 @@ fn wire__crate__api__dvr__compute_storage_breakdown_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__compute_watch_streak_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -1430,7 +1430,7 @@ fn wire__crate__api__smart_groups__create_smart_group_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__lifecycle__crispy_version_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -1563,7 +1563,7 @@ fn wire__crate__api__bookmarks__delete_bookmark_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__delete_epg_mapping_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1598,7 +1598,7 @@ fn wire__crate__api__epg__delete_epg_mapping_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__profiles__delete_profile_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1633,7 +1633,7 @@ fn wire__crate__api__profiles__delete_profile_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__delete_recording_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1668,7 +1668,7 @@ fn wire__crate__api__dvr__delete_recording_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__delete_reminder_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1703,7 +1703,7 @@ fn wire__crate__api__dvr__delete_reminder_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__delete_removed_channels_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1742,7 +1742,7 @@ fn wire__crate__api__channels__delete_removed_channels_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__delete_removed_vod_items_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1779,7 +1779,7 @@ fn wire__crate__api__vod__delete_removed_vod_items_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__delete_saved_layout_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1814,7 +1814,7 @@ fn wire__crate__api__settings__delete_saved_layout_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__delete_search_by_query_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1849,7 +1849,7 @@ fn wire__crate__api__settings__delete_search_by_query_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__delete_search_entry_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1884,7 +1884,7 @@ fn wire__crate__api__settings__delete_search_entry_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__smart_groups__delete_smart_group_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1919,7 +1919,7 @@ fn wire__crate__api__smart_groups__delete_smart_group_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sources__delete_source_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1954,7 +1954,7 @@ fn wire__crate__api__sources__delete_source_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__delete_storage_backend_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1989,7 +1989,7 @@ fn wire__crate__api__dvr__delete_storage_backend_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__delete_transfer_task_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2024,7 +2024,7 @@ fn wire__crate__api__dvr__delete_transfer_task_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__delete_watch_history_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2059,7 +2059,7 @@ fn wire__crate__api__dvr__delete_watch_history_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__derive_watch_history_id_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2128,7 +2128,7 @@ fn wire__crate__api__algorithms__deserialize_recommendation_sections_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__detect_duplicate_channels_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2164,7 +2164,7 @@ fn wire__crate__api__algorithms__detect_duplicate_channels_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__detect_gpu_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2198,7 +2198,7 @@ fn wire__crate__api__settings__detect_gpu_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__detect_recording_conflict_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2243,7 +2243,7 @@ fn wire__crate__api__dvr__detect_recording_conflict_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__smart_groups__detect_smart_group_candidates_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2277,7 +2277,7 @@ fn wire__crate__api__smart_groups__detect_smart_group_candidates_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__determine_sync_direction_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2395,7 +2395,7 @@ fn wire__crate__api__algorithms__enrich_search_results_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__epg_hot_cache_size_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2429,7 +2429,7 @@ fn wire__crate__api__epg__epg_hot_cache_size_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__episode_count_by_season_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2500,7 +2500,7 @@ fn wire__crate__api__buffer__evaluate_buffer_sample_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__stream_health__evaluate_failover_event_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2541,7 +2541,7 @@ fn wire__crate__api__stream_health__evaluate_failover_event_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__evict_stale_epg_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2576,7 +2576,7 @@ fn wire__crate__api__epg__evict_stale_epg_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__expand_recurring_recordings_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2615,7 +2615,7 @@ fn wire__crate__api__dvr__expand_recurring_recordings_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__export_backup_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2649,7 +2649,7 @@ fn wire__crate__api__settings__export_backup_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__stream_health__extract_call_sign_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2716,7 +2716,7 @@ fn wire__crate__api__parsers__extract_epg_channel_names_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__extract_sorted_groups_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2752,7 +2752,7 @@ fn wire__crate__api__channels__extract_sorted_groups_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__extract_sorted_vod_categories_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2788,7 +2788,7 @@ fn wire__crate__api__vod__extract_sorted_vod_categories_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__fetch_stalker_account_info_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2831,7 +2831,7 @@ fn wire__crate__api__sync__fetch_stalker_account_info_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__fetch_stalker_profile_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2874,7 +2874,7 @@ fn wire__crate__api__sync__fetch_stalker_profile_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__fetch_stalker_series_detail_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2921,7 +2921,7 @@ fn wire__crate__api__sync__fetch_stalker_series_detail_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__fetch_stalker_vod_detail_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -2968,7 +2968,7 @@ fn wire__crate__api__sync__fetch_stalker_vod_detail_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__fetch_xtream_account_info_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3013,7 +3013,7 @@ fn wire__crate__api__sync__fetch_xtream_account_info_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__filter_and_sort_channels_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3051,7 +3051,7 @@ fn wire__crate__api__algorithms__filter_and_sort_channels_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__filter_and_sort_vod_items_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3094,7 +3094,7 @@ fn wire__crate__api__vod__filter_and_sort_vod_items_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__filter_by_cw_status_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3130,7 +3130,7 @@ fn wire__crate__api__algorithms__filter_by_cw_status_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__filter_channels_by_source_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3170,7 +3170,7 @@ fn wire__crate__api__channels__filter_channels_by_source_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__filter_continue_watching_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3211,7 +3211,7 @@ fn wire__crate__api__dvr__filter_continue_watching_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__filter_continue_watching_positions_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3249,7 +3249,7 @@ fn wire__crate__api__algorithms__filter_continue_watching_positions_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__filter_cross_device_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3290,7 +3290,7 @@ fn wire__crate__api__dvr__filter_cross_device_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__filter_dvr_recordings_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3327,7 +3327,7 @@ fn wire__crate__api__dvr__filter_dvr_recordings_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__filter_recently_added_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3367,7 +3367,7 @@ fn wire__crate__api__algorithms__filter_recently_added_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__filter_top_vod_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3404,7 +3404,7 @@ fn wire__crate__api__vod__filter_top_vod_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__filter_upcoming_programs_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3448,7 +3448,7 @@ fn wire__crate__api__epg__filter_upcoming_programs_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__filter_vod_by_content_rating_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3486,7 +3486,7 @@ fn wire__crate__api__vod__filter_vod_by_content_rating_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__find_group_for_channel_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3525,7 +3525,7 @@ fn wire__crate__api__channels__find_group_for_channel_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__find_vod_alternatives_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3568,7 +3568,7 @@ fn wire__crate__api__vod__find_vod_alternatives_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__format_duration_minutes_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -3787,7 +3787,7 @@ fn wire__crate__api__algorithms__generate_presigned_url_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__get_all_duplicate_ids_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3823,7 +3823,7 @@ fn wire__crate__api__algorithms__get_all_duplicate_ids_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__get_bif_thumbnail_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3864,7 +3864,7 @@ fn wire__crate__api__parsers__get_bif_thumbnail_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__buffer__get_buffer_cap_mb_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -3930,7 +3930,7 @@ fn wire__crate__api__buffer__get_buffer_tier_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__get_categories_by_sources_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -3966,7 +3966,7 @@ fn wire__crate__api__channels__get_categories_by_sources_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__get_channel_epg_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4004,7 +4004,7 @@ fn wire__crate__api__epg__get_channel_epg_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__get_channels_by_ids_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4039,7 +4039,7 @@ fn wire__crate__api__channels__get_channels_by_ids_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__get_channels_by_sources_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4075,7 +4075,7 @@ fn wire__crate__api__channels__get_channels_by_sources_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__get_channels_epg_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4118,7 +4118,7 @@ fn wire__crate__api__epg__get_channels_epg_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__get_epg_by_sources_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4153,7 +4153,7 @@ fn wire__crate__api__epg__get_epg_by_sources_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__get_epg_mappings_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4187,7 +4187,7 @@ fn wire__crate__api__epg__get_epg_mappings_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__get_epgs_for_channels_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4228,7 +4228,7 @@ fn wire__crate__api__epg__get_epgs_for_channels_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__get_favorite_categories_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4267,7 +4267,7 @@ fn wire__crate__api__channels__get_favorite_categories_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__get_favorites_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4302,7 +4302,7 @@ fn wire__crate__api__channels__get_favorites_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__get_filtered_vod_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4347,7 +4347,7 @@ fn wire__crate__api__vod__get_filtered_vod_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__get_last_sync_time_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4382,7 +4382,7 @@ fn wire__crate__api__settings__get_last_sync_time_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__get_pending_epg_suggestions_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4416,7 +4416,7 @@ fn wire__crate__api__epg__get_pending_epg_suggestions_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__app_update__get_platform_asset_url_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -4485,7 +4485,7 @@ fn wire__crate__api__profiles__get_profiles_for_source_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__get_recording_markers_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4520,7 +4520,7 @@ fn wire__crate__api__dvr__get_recording_markers_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__get_recordings_to_start_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4557,7 +4557,7 @@ fn wire__crate__api__dvr__get_recordings_to_start_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__get_saved_layout_by_id_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4592,7 +4592,7 @@ fn wire__crate__api__settings__get_saved_layout_by_id_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__get_setting_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4627,7 +4627,7 @@ fn wire__crate__api__settings__get_setting_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__smart_groups__get_smart_group_alternatives_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4663,7 +4663,7 @@ fn wire__crate__api__smart_groups__get_smart_group_alternatives_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__smart_groups__get_smart_group_for_channel_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4699,7 +4699,7 @@ fn wire__crate__api__smart_groups__get_smart_group_for_channel_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__smart_groups__get_smart_groups_json_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4733,7 +4733,7 @@ fn wire__crate__api__smart_groups__get_smart_groups_json_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sources__get_source_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4768,7 +4768,7 @@ fn wire__crate__api__sources__get_source_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__profiles__get_source_access_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4803,7 +4803,7 @@ fn wire__crate__api__profiles__get_source_access_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sources__get_source_stats_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4837,7 +4837,7 @@ fn wire__crate__api__sources__get_source_stats_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sources__get_sources_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4871,7 +4871,7 @@ fn wire__crate__api__sources__get_sources_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__get_stalker_favorites_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4916,7 +4916,7 @@ fn wire__crate__api__sync__get_stalker_favorites_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__stream_health__get_stream_health_score_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4952,7 +4952,7 @@ fn wire__crate__api__stream_health__get_stream_health_score_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__stream_health__get_stream_health_scores_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -4989,7 +4989,7 @@ fn wire__crate__api__stream_health__get_stream_health_scores_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__get_timezone_offset_minutes_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -5057,7 +5057,7 @@ fn wire__crate__api__vod__get_vod_by_sources_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__get_vod_favorites_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5092,7 +5092,7 @@ fn wire__crate__api__vod__get_vod_favorites_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__watchlist__get_watchlist_items_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5127,7 +5127,7 @@ fn wire__crate__api__watchlist__get_watchlist_items_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__profiles__grant_source_access_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5166,7 +5166,7 @@ fn wire__crate__api__profiles__grant_source_access_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__group_search_results_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5208,7 +5208,7 @@ fn wire__crate__api__algorithms__group_search_results_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__guess_logo_domains_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -5304,7 +5304,7 @@ fn wire__crate__api__settings__import_backup_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__lifecycle__init_backend_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5339,7 +5339,7 @@ fn wire__crate__api__lifecycle__init_backend_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__invalidate_epg_cache_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5374,7 +5374,7 @@ fn wire__crate__api__epg__invalidate_epg_cache_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__is_duplicate_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -5507,7 +5507,7 @@ fn wire__crate__api__settings__is_logo_index_stale_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__bookmarks__load_bookmarks_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5542,7 +5542,7 @@ fn wire__crate__api__bookmarks__load_bookmarks_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__load_categories_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5576,7 +5576,7 @@ fn wire__crate__api__channels__load_categories_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__load_channel_order_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5615,7 +5615,7 @@ fn wire__crate__api__channels__load_channel_order_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__load_channels_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5649,7 +5649,7 @@ fn wire__crate__api__channels__load_channels_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__load_epg_entries_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5683,7 +5683,7 @@ fn wire__crate__api__epg__load_epg_entries_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__profiles__load_profiles_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5717,7 +5717,7 @@ fn wire__crate__api__profiles__load_profiles_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__load_recordings_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5751,7 +5751,7 @@ fn wire__crate__api__dvr__load_recordings_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__load_reminders_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5785,7 +5785,7 @@ fn wire__crate__api__dvr__load_reminders_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__load_saved_layouts_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5819,7 +5819,7 @@ fn wire__crate__api__settings__load_saved_layouts_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__load_search_history_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5853,7 +5853,7 @@ fn wire__crate__api__settings__load_search_history_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__load_storage_backends_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5887,7 +5887,7 @@ fn wire__crate__api__dvr__load_storage_backends_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__load_transfer_tasks_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5921,7 +5921,7 @@ fn wire__crate__api__dvr__load_transfer_tasks_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__load_vod_items_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5955,7 +5955,7 @@ fn wire__crate__api__vod__load_vod_items_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__load_watch_history_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -5989,7 +5989,7 @@ fn wire__crate__api__dvr__load_watch_history_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__lock_epg_mapping_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6024,7 +6024,7 @@ fn wire__crate__api__epg__lock_epg_mapping_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__lock_remaining_ms_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -6124,7 +6124,7 @@ fn wire__crate__api__dvr__mark_reminder_fired_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__match_epg_to_channels_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6165,7 +6165,7 @@ fn wire__crate__api__epg__match_epg_to_channels_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__match_epg_with_confidence_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6206,7 +6206,7 @@ fn wire__crate__api__epg__match_epg_with_confidence_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__match_group_icon_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -6278,7 +6278,7 @@ fn wire__crate__api__algorithms__merge_cloud_backups_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__merge_dedup_sort_history_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6314,7 +6314,7 @@ fn wire__crate__api__algorithms__merge_dedup_sort_history_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__merge_epg_matched_channels_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6356,7 +6356,7 @@ fn wire__crate__api__algorithms__merge_epg_matched_channels_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__merge_epg_window_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6393,7 +6393,7 @@ fn wire__crate__api__epg__merge_epg_window_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__next_episode_threshold_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -6582,7 +6582,7 @@ fn wire__crate__api__parsers__parse_bif_index_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_epg_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6617,7 +6617,7 @@ fn wire__crate__api__parsers__parse_epg_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_episodes_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6662,7 +6662,7 @@ fn wire__crate__api__parsers__parse_episodes_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_m3u_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6697,7 +6697,7 @@ fn wire__crate__api__parsers__parse_m3u_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_m3u_vod_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6734,7 +6734,7 @@ fn wire__crate__api__parsers__parse_m3u_vod_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__parse_recommendation_sections_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6771,7 +6771,7 @@ fn wire__crate__api__algorithms__parse_recommendation_sections_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_s3_list_objects_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6806,7 +6806,7 @@ fn wire__crate__api__parsers__parse_s3_list_objects_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_series_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6842,7 +6842,7 @@ fn wire__crate__api__parsers__parse_series_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_stalker_categories_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6877,7 +6877,7 @@ fn wire__crate__api__parsers__parse_stalker_categories_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_stalker_channels_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6912,7 +6912,7 @@ fn wire__crate__api__parsers__parse_stalker_channels_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_stalker_create_link_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6949,7 +6949,7 @@ fn wire__crate__api__parsers__parse_stalker_create_link_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_stalker_epg_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -6986,7 +6986,7 @@ fn wire__crate__api__parsers__parse_stalker_epg_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_stalker_live_streams_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7027,7 +7027,7 @@ fn wire__crate__api__parsers__parse_stalker_live_streams_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_stalker_vod_items_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7070,7 +7070,7 @@ fn wire__crate__api__parsers__parse_stalker_vod_items_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_stalker_vod_result_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7105,7 +7105,7 @@ fn wire__crate__api__parsers__parse_stalker_vod_result_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_vod_streams_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7150,7 +7150,7 @@ fn wire__crate__api__parsers__parse_vod_streams_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_vtt_thumbnails_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7187,7 +7187,7 @@ fn wire__crate__api__parsers__parse_vtt_thumbnails_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_xtream_categories_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7222,7 +7222,7 @@ fn wire__crate__api__parsers__parse_xtream_categories_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__parsers__parse_xtream_live_streams_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7265,7 +7265,7 @@ fn wire__crate__api__parsers__parse_xtream_live_streams_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__parse_xtream_short_epg_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7304,7 +7304,7 @@ fn wire__crate__api__epg__parse_xtream_short_epg_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__buffer__prune_buffer_tiers_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7339,7 +7339,7 @@ fn wire__crate__api__buffer__prune_buffer_tiers_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__stream_health__prune_stream_health_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7375,7 +7375,7 @@ fn wire__crate__api__stream_health__prune_stream_health_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__stream_health__rank_stream_alternatives_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7416,7 +7416,7 @@ fn wire__crate__api__stream_health__rank_stream_alternatives_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__stream_health__record_buffer_sample_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7455,7 +7455,7 @@ fn wire__crate__api__stream_health__record_buffer_sample_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__stream_health__record_stream_stall_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7491,7 +7491,7 @@ fn wire__crate__api__stream_health__record_stream_stall_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__stream_health__record_ttff_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7528,7 +7528,7 @@ fn wire__crate__api__stream_health__record_ttff_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__refresh_logo_index_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7563,7 +7563,7 @@ fn wire__crate__api__settings__refresh_logo_index_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__remove_favorite_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7600,7 +7600,7 @@ fn wire__crate__api__channels__remove_favorite_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__remove_favorite_category_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7641,7 +7641,7 @@ fn wire__crate__api__channels__remove_favorite_category_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__remove_setting_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7676,7 +7676,7 @@ fn wire__crate__api__settings__remove_setting_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__smart_groups__remove_smart_group_member_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7715,7 +7715,7 @@ fn wire__crate__api__smart_groups__remove_smart_group_member_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__remove_vod_favorite_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7752,7 +7752,7 @@ fn wire__crate__api__vod__remove_vod_favorite_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__watchlist__remove_watchlist_item_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7791,7 +7791,7 @@ fn wire__crate__api__watchlist__remove_watchlist_item_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__smart_groups__rename_smart_group_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7828,7 +7828,7 @@ fn wire__crate__api__smart_groups__rename_smart_group_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__smart_groups__reorder_smart_group_members_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7867,7 +7867,7 @@ fn wire__crate__api__smart_groups__reorder_smart_group_members_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sources__reorder_sources_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7902,7 +7902,7 @@ fn wire__crate__api__sources__reorder_sources_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__buffer__reset_buffer_state_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7937,7 +7937,7 @@ fn wire__crate__api__buffer__reset_buffer_state_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__reset_channel_order_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7976,7 +7976,7 @@ fn wire__crate__api__channels__reset_channel_order_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__stream_health__reset_failover_state_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8012,7 +8012,7 @@ fn wire__crate__api__stream_health__reset_failover_state_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__resolve_channel_categories_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8051,7 +8051,7 @@ fn wire__crate__api__channels__resolve_channel_categories_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__resolve_channel_logo_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8086,7 +8086,7 @@ fn wire__crate__api__settings__resolve_channel_logo_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__resolve_logos_batch_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8121,7 +8121,7 @@ fn wire__crate__api__settings__resolve_logos_batch_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__resolve_next_episodes_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8161,7 +8161,7 @@ fn wire__crate__api__algorithms__resolve_next_episodes_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__resolve_stalker_stream_url_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8208,7 +8208,7 @@ fn wire__crate__api__sync__resolve_stalker_stream_url_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__resolve_vod_categories_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8247,7 +8247,7 @@ fn wire__crate__api__vod__resolve_vod_categories_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__resolve_vod_quality_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -8320,7 +8320,7 @@ fn wire__crate__api__profiles__revoke_source_access_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__sanitize_filename_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -8385,7 +8385,7 @@ fn wire__crate__api__bookmarks__save_bookmark_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__save_categories_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8422,7 +8422,7 @@ fn wire__crate__api__channels__save_categories_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__save_channel_order_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8463,7 +8463,7 @@ fn wire__crate__api__channels__save_channel_order_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__channels__save_channels_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8498,7 +8498,7 @@ fn wire__crate__api__channels__save_channels_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__save_epg_entries_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8533,7 +8533,7 @@ fn wire__crate__api__epg__save_epg_entries_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__save_epg_mapping_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8568,7 +8568,7 @@ fn wire__crate__api__epg__save_epg_mapping_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__profiles__save_profile_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8603,7 +8603,7 @@ fn wire__crate__api__profiles__save_profile_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__save_recording_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8638,7 +8638,7 @@ fn wire__crate__api__dvr__save_recording_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__save_reminder_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8673,7 +8673,7 @@ fn wire__crate__api__dvr__save_reminder_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__save_saved_layout_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8708,7 +8708,7 @@ fn wire__crate__api__settings__save_saved_layout_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__save_search_entry_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8743,7 +8743,7 @@ fn wire__crate__api__settings__save_search_entry_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sources__save_source_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8778,7 +8778,7 @@ fn wire__crate__api__sources__save_source_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__save_storage_backend_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8813,7 +8813,7 @@ fn wire__crate__api__dvr__save_storage_backend_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__save_transfer_task_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8848,7 +8848,7 @@ fn wire__crate__api__dvr__save_transfer_task_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__save_vod_items_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8883,7 +8883,7 @@ fn wire__crate__api__vod__save_vod_items_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__save_watch_history_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8918,7 +8918,7 @@ fn wire__crate__api__dvr__save_watch_history_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__search_channels_by_live_program_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -8959,7 +8959,7 @@ fn wire__crate__api__algorithms__search_channels_by_live_program_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__search_content_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9004,7 +9004,7 @@ fn wire__crate__api__algorithms__search_content_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__series_ids_with_new_episodes_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9044,7 +9044,7 @@ fn wire__crate__api__algorithms__series_ids_with_new_episodes_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__buffer__set_buffer_tier_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9081,7 +9081,7 @@ fn wire__crate__api__buffer__set_buffer_tier_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__set_channel_247_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9118,7 +9118,7 @@ fn wire__crate__api__epg__set_channel_247_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__set_last_sync_time_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9155,7 +9155,7 @@ fn wire__crate__api__settings__set_last_sync_time_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__settings__set_nested_value_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -9227,7 +9227,7 @@ fn wire__crate__api__settings__set_setting_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__profiles__set_source_access_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9266,7 +9266,7 @@ fn wire__crate__api__profiles__set_source_access_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__set_stalker_favorite_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9315,7 +9315,7 @@ fn wire__crate__api__sync__set_stalker_favorite_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__sign_s3_request_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9366,7 +9366,7 @@ fn wire__crate__api__algorithms__sign_s3_request_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__similar_vod_items_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9406,7 +9406,7 @@ fn wire__crate__api__algorithms__similar_vod_items_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__sort_categories_with_favorites_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -9476,7 +9476,7 @@ fn wire__crate__api__channels__sort_channels_json_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__sort_favorites_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -9547,7 +9547,7 @@ fn wire__crate__api__dvr__sort_remote_files_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__sort_vod_items_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9584,7 +9584,7 @@ fn wire__crate__api__vod__sort_vod_items_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__stalker_keepalive_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9629,7 +9629,7 @@ fn wire__crate__api__sync__stalker_keepalive_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__lifecycle__subscribe_data_events_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9667,7 +9667,7 @@ fn wire__crate__api__lifecycle__subscribe_data_events_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__subscribe_sync_progress_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9705,7 +9705,7 @@ fn wire__crate__api__sync__subscribe_sync_progress_impl(
                 })())
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__sync_m3u_source_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9748,7 +9748,7 @@ fn wire__crate__api__sync__sync_m3u_source_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__sync_stalker_epg_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9795,7 +9795,7 @@ fn wire__crate__api__epg__sync_stalker_epg_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__sync_stalker_source_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9840,7 +9840,7 @@ fn wire__crate__api__sync__sync_stalker_source_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__sync_xmltv_epg_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9880,7 +9880,7 @@ fn wire__crate__api__epg__sync_xmltv_epg_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__epg__sync_xtream_epg_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9929,7 +9929,7 @@ fn wire__crate__api__epg__sync_xtream_epg_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__sync_xtream_source_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -9978,7 +9978,7 @@ fn wire__crate__api__sync__sync_xtream_source_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__try_base64_decode_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -10044,7 +10044,7 @@ fn wire__crate__api__dvr__update_recording_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sources__update_source_sync_status_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -10087,7 +10087,7 @@ fn wire__crate__api__sources__update_source_sync_status_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__dvr__update_transfer_task_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -10122,7 +10122,7 @@ fn wire__crate__api__dvr__update_transfer_task_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__vod__update_vod_favorite_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -10159,7 +10159,7 @@ fn wire__crate__api__vod__update_vod_favorite_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__validate_mac_address_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -10229,7 +10229,7 @@ fn wire__crate__api__sync__verify_m3u_url_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__verify_pin_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -10306,7 +10306,7 @@ fn wire__crate__api__sync__verify_stalker_portal_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__sync__verify_xtream_credentials_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -10351,7 +10351,7 @@ fn wire__crate__api__sync__verify_xtream_credentials_impl(
                 )
             }
         },
-    )
+    );
 }
 fn wire__crate__api__algorithms__vod_badge_kind_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -10558,13 +10558,13 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         4 => wire__crate__api__vod__add_vod_favorite_impl(port, ptr, rust_vec_len, data_len),
         5 => {
-            wire__crate__api__watchlist__add_watchlist_item_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__watchlist__add_watchlist_item_impl(port, ptr, rust_vec_len, data_len);
         }
         6 => wire__crate__api__display__afr_restore_mode_impl(port, ptr, rust_vec_len, data_len),
         7 => wire__crate__api__display__afr_switch_mode_impl(port, ptr, rust_vec_len, data_len),
         9 => wire__crate__api__epg__build_catchup_url_impl(port, ptr, rust_vec_len, data_len),
         10 => {
-            wire__crate__api__algorithms__build_category_map_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__algorithms__build_category_map_impl(port, ptr, rust_vec_len, data_len);
         }
         13 => wire__crate__api__algorithms__build_type_categories_impl(
             port,
@@ -10574,21 +10574,21 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         14 => wire__crate__api__vod__build_vod_category_map_impl(port, ptr, rust_vec_len, data_len),
         21 => {
-            wire__crate__api__app_update__check_for_update_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__app_update__check_for_update_impl(port, ptr, rust_vec_len, data_len);
         }
         23 => wire__crate__api__settings__clear_all_impl(port, ptr, rust_vec_len, data_len),
         24 => {
-            wire__crate__api__dvr__clear_all_watch_history_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__dvr__clear_all_watch_history_impl(port, ptr, rust_vec_len, data_len);
         }
         25 => wire__crate__api__bookmarks__clear_bookmarks_impl(port, ptr, rust_vec_len, data_len),
         26 => wire__crate__api__epg__clear_epg_caches_impl(port, ptr, rust_vec_len, data_len),
         27 => wire__crate__api__epg__clear_epg_entries_impl(port, ptr, rust_vec_len, data_len),
         28 => wire__crate__api__dvr__clear_fired_reminders_impl(port, ptr, rust_vec_len, data_len),
         29 => {
-            wire__crate__api__settings__clear_search_history_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__settings__clear_search_history_impl(port, ptr, rust_vec_len, data_len);
         }
         31 => {
-            wire__crate__api__vod__compute_episode_progress_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__vod__compute_episode_progress_impl(port, ptr, rust_vec_len, data_len);
         }
         32 => wire__crate__api__vod__compute_episode_progress_from_db_impl(
             port,
@@ -10609,7 +10609,7 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         35 => {
-            wire__crate__api__dvr__compute_storage_breakdown_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__dvr__compute_storage_breakdown_impl(port, ptr, rust_vec_len, data_len);
         }
         38 => wire__crate__api__smart_groups__create_smart_group_impl(
             port,
@@ -10629,10 +10629,10 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         48 => {
-            wire__crate__api__vod__delete_removed_vod_items_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__vod__delete_removed_vod_items_impl(port, ptr, rust_vec_len, data_len);
         }
         49 => {
-            wire__crate__api__settings__delete_saved_layout_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__settings__delete_saved_layout_impl(port, ptr, rust_vec_len, data_len);
         }
         50 => wire__crate__api__settings__delete_search_by_query_impl(
             port,
@@ -10641,7 +10641,7 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         51 => {
-            wire__crate__api__settings__delete_search_entry_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__settings__delete_search_entry_impl(port, ptr, rust_vec_len, data_len);
         }
         52 => wire__crate__api__smart_groups__delete_smart_group_impl(
             port,
@@ -10667,7 +10667,7 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         60 => wire__crate__api__settings__detect_gpu_impl(port, ptr, rust_vec_len, data_len),
         61 => {
-            wire__crate__api__dvr__detect_recording_conflict_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__dvr__detect_recording_conflict_impl(port, ptr, rust_vec_len, data_len);
         }
         62 => wire__crate__api__smart_groups__detect_smart_group_candidates_impl(
             port,
@@ -10683,7 +10683,7 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         66 => wire__crate__api__epg__epg_hot_cache_size_impl(port, ptr, rust_vec_len, data_len),
         68 => {
-            wire__crate__api__buffer__evaluate_buffer_sample_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__buffer__evaluate_buffer_sample_impl(port, ptr, rust_vec_len, data_len);
         }
         69 => wire__crate__api__stream_health__evaluate_failover_event_impl(
             port,
@@ -10731,7 +10731,7 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         80 => {
-            wire__crate__api__sync__fetch_stalker_vod_detail_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__sync__fetch_stalker_vod_detail_impl(port, ptr, rust_vec_len, data_len);
         }
         81 => wire__crate__api__sync__fetch_xtream_account_info_impl(
             port,
@@ -10746,7 +10746,7 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         83 => {
-            wire__crate__api__vod__filter_and_sort_vod_items_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__vod__filter_and_sort_vod_items_impl(port, ptr, rust_vec_len, data_len);
         }
         84 => wire__crate__api__algorithms__filter_by_cw_status_impl(
             port,
@@ -10761,7 +10761,7 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         86 => {
-            wire__crate__api__dvr__filter_continue_watching_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__dvr__filter_continue_watching_impl(port, ptr, rust_vec_len, data_len);
         }
         87 => wire__crate__api__algorithms__filter_continue_watching_positions_impl(
             port,
@@ -10779,7 +10779,7 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         91 => wire__crate__api__vod__filter_top_vod_impl(port, ptr, rust_vec_len, data_len),
         92 => {
-            wire__crate__api__epg__filter_upcoming_programs_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__epg__filter_upcoming_programs_impl(port, ptr, rust_vec_len, data_len);
         }
         93 => wire__crate__api__vod__filter_vod_by_content_rating_impl(
             port,
@@ -10816,7 +10816,7 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         107 => wire__crate__api__epg__get_channel_epg_impl(port, ptr, rust_vec_len, data_len),
         108 => {
-            wire__crate__api__channels__get_channels_by_ids_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__channels__get_channels_by_ids_impl(port, ptr, rust_vec_len, data_len);
         }
         109 => wire__crate__api__channels__get_channels_by_sources_impl(
             port,
@@ -10837,7 +10837,7 @@ fn pde_ffi_dispatcher_primary_impl(
         115 => wire__crate__api__channels__get_favorites_impl(port, ptr, rust_vec_len, data_len),
         116 => wire__crate__api__vod__get_filtered_vod_impl(port, ptr, rust_vec_len, data_len),
         117 => {
-            wire__crate__api__settings__get_last_sync_time_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__settings__get_last_sync_time_impl(port, ptr, rust_vec_len, data_len);
         }
         118 => wire__crate__api__epg__get_pending_epg_suggestions_impl(
             port,
@@ -10853,7 +10853,7 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         121 => wire__crate__api__dvr__get_recording_markers_impl(port, ptr, rust_vec_len, data_len),
         122 => {
-            wire__crate__api__dvr__get_recordings_to_start_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__dvr__get_recordings_to_start_impl(port, ptr, rust_vec_len, data_len);
         }
         123 => wire__crate__api__settings__get_saved_layout_by_id_impl(
             port,
@@ -10882,12 +10882,12 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         128 => wire__crate__api__sources__get_source_impl(port, ptr, rust_vec_len, data_len),
         129 => {
-            wire__crate__api__profiles__get_source_access_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__profiles__get_source_access_impl(port, ptr, rust_vec_len, data_len);
         }
         130 => wire__crate__api__sources__get_source_stats_impl(port, ptr, rust_vec_len, data_len),
         131 => wire__crate__api__sources__get_sources_impl(port, ptr, rust_vec_len, data_len),
         132 => {
-            wire__crate__api__sync__get_stalker_favorites_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__sync__get_stalker_favorites_impl(port, ptr, rust_vec_len, data_len);
         }
         133 => wire__crate__api__stream_health__get_stream_health_score_impl(
             port,
@@ -10904,10 +10904,10 @@ fn pde_ffi_dispatcher_primary_impl(
         136 => wire__crate__api__vod__get_vod_by_sources_impl(port, ptr, rust_vec_len, data_len),
         137 => wire__crate__api__vod__get_vod_favorites_impl(port, ptr, rust_vec_len, data_len),
         138 => {
-            wire__crate__api__watchlist__get_watchlist_items_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__watchlist__get_watchlist_items_impl(port, ptr, rust_vec_len, data_len);
         }
         139 => {
-            wire__crate__api__profiles__grant_source_access_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__profiles__grant_source_access_impl(port, ptr, rust_vec_len, data_len);
         }
         140 => wire__crate__api__algorithms__group_search_results_impl(
             port,
@@ -10919,12 +10919,12 @@ fn pde_ffi_dispatcher_primary_impl(
         144 => wire__crate__api__lifecycle__init_backend_impl(port, ptr, rust_vec_len, data_len),
         145 => wire__crate__api__epg__invalidate_epg_cache_impl(port, ptr, rust_vec_len, data_len),
         149 => {
-            wire__crate__api__settings__is_logo_index_stale_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__settings__is_logo_index_stale_impl(port, ptr, rust_vec_len, data_len);
         }
         150 => wire__crate__api__bookmarks__load_bookmarks_impl(port, ptr, rust_vec_len, data_len),
         151 => wire__crate__api__channels__load_categories_impl(port, ptr, rust_vec_len, data_len),
         152 => {
-            wire__crate__api__channels__load_channel_order_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__channels__load_channel_order_impl(port, ptr, rust_vec_len, data_len);
         }
         153 => wire__crate__api__channels__load_channels_impl(port, ptr, rust_vec_len, data_len),
         154 => wire__crate__api__epg__load_epg_entries_impl(port, ptr, rust_vec_len, data_len),
@@ -10932,10 +10932,10 @@ fn pde_ffi_dispatcher_primary_impl(
         156 => wire__crate__api__dvr__load_recordings_impl(port, ptr, rust_vec_len, data_len),
         157 => wire__crate__api__dvr__load_reminders_impl(port, ptr, rust_vec_len, data_len),
         158 => {
-            wire__crate__api__settings__load_saved_layouts_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__settings__load_saved_layouts_impl(port, ptr, rust_vec_len, data_len);
         }
         159 => {
-            wire__crate__api__settings__load_search_history_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__settings__load_search_history_impl(port, ptr, rust_vec_len, data_len);
         }
         160 => wire__crate__api__dvr__load_storage_backends_impl(port, ptr, rust_vec_len, data_len),
         161 => wire__crate__api__dvr__load_transfer_tasks_impl(port, ptr, rust_vec_len, data_len),
@@ -10945,7 +10945,7 @@ fn pde_ffi_dispatcher_primary_impl(
         167 => wire__crate__api__dvr__mark_reminder_fired_impl(port, ptr, rust_vec_len, data_len),
         168 => wire__crate__api__epg__match_epg_to_channels_impl(port, ptr, rust_vec_len, data_len),
         169 => {
-            wire__crate__api__epg__match_epg_with_confidence_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__epg__match_epg_with_confidence_impl(port, ptr, rust_vec_len, data_len);
         }
         171 => wire__crate__api__algorithms__merge_cloud_backups_impl(
             port,
@@ -10978,7 +10978,7 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         186 => {
-            wire__crate__api__parsers__parse_s3_list_objects_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__parsers__parse_s3_list_objects_impl(port, ptr, rust_vec_len, data_len);
         }
         187 => wire__crate__api__parsers__parse_series_impl(port, ptr, rust_vec_len, data_len),
         188 => wire__crate__api__parsers__parse_stalker_categories_impl(
@@ -11020,7 +11020,7 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         195 => wire__crate__api__parsers__parse_vod_streams_impl(port, ptr, rust_vec_len, data_len),
         196 => {
-            wire__crate__api__parsers__parse_vtt_thumbnails_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__parsers__parse_vtt_thumbnails_impl(port, ptr, rust_vec_len, data_len);
         }
         197 => wire__crate__api__parsers__parse_xtream_categories_impl(
             port,
@@ -11035,7 +11035,7 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         199 => {
-            wire__crate__api__epg__parse_xtream_short_epg_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__epg__parse_xtream_short_epg_impl(port, ptr, rust_vec_len, data_len);
         }
         200 => wire__crate__api__buffer__prune_buffer_tiers_impl(port, ptr, rust_vec_len, data_len),
         201 => wire__crate__api__stream_health__prune_stream_health_impl(
@@ -11064,7 +11064,7 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         205 => wire__crate__api__stream_health__record_ttff_impl(port, ptr, rust_vec_len, data_len),
         206 => {
-            wire__crate__api__settings__refresh_logo_index_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__settings__refresh_logo_index_impl(port, ptr, rust_vec_len, data_len);
         }
         207 => wire__crate__api__channels__remove_favorite_impl(port, ptr, rust_vec_len, data_len),
         208 => wire__crate__api__channels__remove_favorite_category_impl(
@@ -11102,7 +11102,7 @@ fn pde_ffi_dispatcher_primary_impl(
         215 => wire__crate__api__sources__reorder_sources_impl(port, ptr, rust_vec_len, data_len),
         216 => wire__crate__api__buffer__reset_buffer_state_impl(port, ptr, rust_vec_len, data_len),
         217 => {
-            wire__crate__api__channels__reset_channel_order_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__channels__reset_channel_order_impl(port, ptr, rust_vec_len, data_len);
         }
         218 => wire__crate__api__stream_health__reset_failover_state_impl(
             port,
@@ -11117,10 +11117,10 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         220 => {
-            wire__crate__api__settings__resolve_channel_logo_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__settings__resolve_channel_logo_impl(port, ptr, rust_vec_len, data_len);
         }
         221 => {
-            wire__crate__api__settings__resolve_logos_batch_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__settings__resolve_logos_batch_impl(port, ptr, rust_vec_len, data_len);
         }
         222 => wire__crate__api__algorithms__resolve_next_episodes_impl(
             port,
@@ -11135,15 +11135,15 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         224 => {
-            wire__crate__api__vod__resolve_vod_categories_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__vod__resolve_vod_categories_impl(port, ptr, rust_vec_len, data_len);
         }
         226 => {
-            wire__crate__api__profiles__revoke_source_access_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__profiles__revoke_source_access_impl(port, ptr, rust_vec_len, data_len);
         }
         228 => wire__crate__api__bookmarks__save_bookmark_impl(port, ptr, rust_vec_len, data_len),
         229 => wire__crate__api__channels__save_categories_impl(port, ptr, rust_vec_len, data_len),
         230 => {
-            wire__crate__api__channels__save_channel_order_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__channels__save_channel_order_impl(port, ptr, rust_vec_len, data_len);
         }
         231 => wire__crate__api__channels__save_channels_impl(port, ptr, rust_vec_len, data_len),
         232 => wire__crate__api__epg__save_epg_entries_impl(port, ptr, rust_vec_len, data_len),
@@ -11152,10 +11152,10 @@ fn pde_ffi_dispatcher_primary_impl(
         235 => wire__crate__api__dvr__save_recording_impl(port, ptr, rust_vec_len, data_len),
         236 => wire__crate__api__dvr__save_reminder_impl(port, ptr, rust_vec_len, data_len),
         237 => {
-            wire__crate__api__settings__save_saved_layout_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__settings__save_saved_layout_impl(port, ptr, rust_vec_len, data_len);
         }
         238 => {
-            wire__crate__api__settings__save_search_entry_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__settings__save_search_entry_impl(port, ptr, rust_vec_len, data_len);
         }
         239 => wire__crate__api__sources__save_source_impl(port, ptr, rust_vec_len, data_len),
         240 => wire__crate__api__dvr__save_storage_backend_impl(port, ptr, rust_vec_len, data_len),
@@ -11178,21 +11178,21 @@ fn pde_ffi_dispatcher_primary_impl(
         247 => wire__crate__api__buffer__set_buffer_tier_impl(port, ptr, rust_vec_len, data_len),
         248 => wire__crate__api__epg__set_channel_247_impl(port, ptr, rust_vec_len, data_len),
         249 => {
-            wire__crate__api__settings__set_last_sync_time_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__settings__set_last_sync_time_impl(port, ptr, rust_vec_len, data_len);
         }
         251 => wire__crate__api__settings__set_setting_impl(port, ptr, rust_vec_len, data_len),
         252 => {
-            wire__crate__api__profiles__set_source_access_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__profiles__set_source_access_impl(port, ptr, rust_vec_len, data_len);
         }
         253 => wire__crate__api__sync__set_stalker_favorite_impl(port, ptr, rust_vec_len, data_len),
         254 => {
-            wire__crate__api__algorithms__sign_s3_request_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__algorithms__sign_s3_request_impl(port, ptr, rust_vec_len, data_len);
         }
         255 => {
-            wire__crate__api__algorithms__similar_vod_items_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__algorithms__similar_vod_items_impl(port, ptr, rust_vec_len, data_len);
         }
         257 => {
-            wire__crate__api__channels__sort_channels_json_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__channels__sort_channels_json_impl(port, ptr, rust_vec_len, data_len);
         }
         259 => wire__crate__api__dvr__sort_remote_files_impl(port, ptr, rust_vec_len, data_len),
         260 => wire__crate__api__vod__sort_vod_items_impl(port, ptr, rust_vec_len, data_len),
@@ -11204,7 +11204,7 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         263 => {
-            wire__crate__api__sync__subscribe_sync_progress_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__sync__subscribe_sync_progress_impl(port, ptr, rust_vec_len, data_len);
         }
         264 => wire__crate__api__sync__sync_m3u_source_impl(port, ptr, rust_vec_len, data_len),
         265 => wire__crate__api__epg__sync_stalker_epg_impl(port, ptr, rust_vec_len, data_len),
@@ -11223,7 +11223,7 @@ fn pde_ffi_dispatcher_primary_impl(
         274 => wire__crate__api__vod__update_vod_favorite_impl(port, ptr, rust_vec_len, data_len),
         276 => wire__crate__api__sync__verify_m3u_url_impl(port, ptr, rust_vec_len, data_len),
         278 => {
-            wire__crate__api__sync__verify_stalker_portal_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__sync__verify_stalker_portal_impl(port, ptr, rust_vec_len, data_len);
         }
         279 => wire__crate__api__sync__verify_xtream_credentials_impl(
             port,

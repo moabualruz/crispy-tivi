@@ -74,7 +74,7 @@ pub fn effective_channel_extension(preferred: StreamFormat, allowed_formats: &[S
     // Fall back to first allowed format.
     allowed_formats
         .first()
-        .map(|s| s.as_str())
+        .map(std::string::String::as_str)
         .unwrap_or(pref_ext)
         .to_string()
 }

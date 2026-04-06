@@ -313,7 +313,7 @@ impl StalkerClient {
         let needs_refresh = self
             .session
             .as_ref()
-            .map(|s| s.is_token_expired())
+            .map(super::session::StalkerSession::is_token_expired)
             .unwrap_or(true);
 
         if needs_refresh {
@@ -407,7 +407,7 @@ impl StalkerClient {
             mac: json_str(js, "mac"),
             status: json_str(js, "status").or_else(|| {
                 js.get("status")
-                    .and_then(|v| v.as_u64())
+                    .and_then(serde_json::Value::as_u64)
                     .map(|n| n.to_string())
             }),
             expiration: json_str(js, "expire_billing_date").or_else(|| json_str(js, "phone")),
@@ -605,7 +605,7 @@ impl StalkerClient {
                 let is_season = item.get("is_season");
                 matches!(
                     is_season,
-                    Some(Value::Bool(true)) | Some(Value::Number(_)) | Some(Value::String(_))
+                    Some(Value::Bool(true) | Value::Number(_) | Value::String(_))
                 ) && is_season
                     .map(|v| {
                         v.as_bool().unwrap_or(false)
@@ -832,7 +832,7 @@ impl StalkerClient {
     pub fn is_token_expired(&self) -> bool {
         self.session
             .as_ref()
-            .map(|s| s.is_token_expired())
+            .map(super::session::StalkerSession::is_token_expired)
             .unwrap_or(true)
     }
 
@@ -973,7 +973,7 @@ fn extract_token(body: &Value) -> Result<String, StalkerError> {
     body.get("js")
         .and_then(|js| js.get("token"))
         .and_then(|t| t.as_str())
-        .map(|s| s.to_string())
+        .map(std::string::ToString::to_string)
         .ok_or_else(|| StalkerError::HandshakeFailed(format!("no token in response: {body}")))
 }
 
@@ -986,6 +986,7 @@ fn parse_paginated<T>(
         .get("js")
         .ok_or_else(|| StalkerError::UnexpectedResponse("missing 'js' field".into()))?;
 
+    #[allow(clippy::cast_possible_truncation)]
     let total_items = js
         .get("total_items")
         .and_then(|v| {
@@ -994,6 +995,7 @@ fn parse_paginated<T>(
         })
         .unwrap_or(0) as u32;
 
+    #[allow(clippy::cast_possible_truncation)]
     let max_page_items = js
         .get("max_page_items")
         .and_then(|v| {
@@ -1018,7 +1020,7 @@ fn parse_paginated<T>(
 /// Extract a string field from a JSON value, handling both string and number types.
 fn json_str(v: &Value, key: &str) -> Option<String> {
     v.get(key).and_then(|val| {
-        val.as_str().map(|s| s.to_string()).or_else(|| {
+        val.as_str().map(std::string::ToString::to_string).or_else(|| {
             if val.is_number() {
                 Some(val.to_string())
             } else {
@@ -1032,7 +1034,7 @@ fn json_str(v: &Value, key: &str) -> Option<String> {
 fn json_u32(v: &Value, key: &str) -> Option<u32> {
     v.get(key).and_then(|val| {
         val.as_u64()
-            .map(|n| n as u32)
+            .and_then(|n| u32::try_from(n).ok())
             .or_else(|| val.as_str().and_then(|s| s.parse().ok()))
     })
 }
@@ -1141,9 +1143,8 @@ fn parse_category(v: &Value) -> StalkerCategory {
 /// Python `Epg.py`: `_extract_items` + `_normalize_items`
 /// Handles both `get_short_epg` and `get_epg_info` response formats.
 fn parse_epg_response(body: &Value) -> Vec<StalkerEpgEntry> {
-    let js = match body.get("js") {
-        Some(v) => v,
-        None => return Vec::new(),
+    let Some(js) = body.get("js") else {
+        return Vec::new();
     };
 
     // Extract items — can be in js directly (as array), js.epg, or js.data

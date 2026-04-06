@@ -129,14 +129,14 @@ impl Default for EpgHotCache {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::NaiveDateTime;
+    use chrono::DateTime;
 
     fn make_entry(channel: &str, title: &str, start_ts: i64, end_ts: i64) -> EpgEntry {
         EpgEntry {
             epg_channel_id: channel.to_string(),
             title: title.to_string(),
-            start_time: NaiveDateTime::from_timestamp_opt(start_ts, 0).unwrap(),
-            end_time: NaiveDateTime::from_timestamp_opt(end_ts, 0).unwrap(),
+            start_time: DateTime::from_timestamp(start_ts, 0).unwrap().naive_utc(),
+            end_time: DateTime::from_timestamp(end_ts, 0).unwrap().naive_utc(),
             ..EpgEntry::default()
         }
     }

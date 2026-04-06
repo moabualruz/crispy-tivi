@@ -258,7 +258,7 @@ impl Iterator for M3uEntryIter<'_> {
 
             if let Some(rest) = line.strip_prefix("#EXTINF:") {
                 // If we have a pending entry with a URL, yield it first.
-                let to_yield = self.current_entry.take().filter(|e| e.has_url());
+                let to_yield = self.current_entry.take().filter(super::types::M3uEntry::has_url);
 
                 let mut entry = M3uEntry::default();
                 parse_extinf(rest, &mut entry);

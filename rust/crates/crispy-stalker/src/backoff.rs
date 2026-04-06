@@ -41,7 +41,9 @@ impl BackoffConfig {
             return Duration::ZERO;
         }
         let multiplier = 2u64.saturating_pow(attempt - 1);
-        let delay = self.backoff_factor.saturating_mul(multiplier as u32);
+        #[allow(clippy::cast_possible_truncation)]
+        let capped = multiplier.min(u64::from(u32::MAX)) as u32;
+        let delay = self.backoff_factor.saturating_mul(capped);
         delay.min(self.max_backoff)
     }
 

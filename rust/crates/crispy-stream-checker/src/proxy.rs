@@ -101,7 +101,7 @@ fn try_parse_json(content: &str) -> Option<Vec<String>> {
 fn parse_plain_text(content: &str) -> Vec<String> {
     content
         .lines()
-        .map(|line| line.trim())
+        .map(str::trim)
         .filter(|line| !line.is_empty() && !line.starts_with('#'))
         .map(String::from)
         .collect()

@@ -95,7 +95,7 @@ pub fn select_best_variant_from_content(content: &str, base_url: &str) -> Option
         // Translated from Python: pick variant with highest quality_score
         variants
             .into_iter()
-            .max_by_key(|v| v.quality_score())
+            .max_by_key(super::types::HlsVariant::quality_score)
             .map(|v| v.url)
     } else {
         first_url
@@ -269,9 +269,8 @@ fn parse_tag_attributes(tag_line: &str) -> Attributes {
 ///
 /// Translated from Python `parse_resolution_pixels`.
 fn parse_resolution_attr(attrs: &Attributes) -> (Option<u32>, Option<u32>) {
-    let res_str = match attrs.get("RESOLUTION") {
-        Some(s) => s,
-        None => return (None, None),
+    let Some(res_str) = attrs.get("RESOLUTION") else {
+        return (None, None);
     };
 
     let re = Regex::new(r"(?i)^\s*(\d+)\s*x\s*(\d+)\s*$").expect("valid regex");

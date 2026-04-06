@@ -319,7 +319,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let channel_id = get_str(args, "channelId")?;
             let is_247 = args
                 .get("is247")
-                .and_then(|v| v.as_bool())
+                .and_then(serde_json::Value::as_bool)
                 .ok_or_else(|| anyhow!("Missing is247"))?;
             svc_ok!(svc, set_channel_247, &channel_id, is_247)
         })(),
@@ -515,7 +515,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let password = get_str(args, "password")?;
             let accept_invalid_certs = args
                 .get("acceptInvalidCerts")
-                .and_then(|v| v.as_bool())
+                .and_then(serde_json::Value::as_bool)
                 .unwrap_or(false);
             let ok = tokio::runtime::Handle::current()
                 .block_on(
@@ -536,11 +536,11 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let source_id = get_str(args, "sourceId")?;
             let accept_invalid_certs = args
                 .get("acceptInvalidCerts")
-                .and_then(|v| v.as_bool())
+                .and_then(serde_json::Value::as_bool)
                 .unwrap_or(false);
             let enrich_vod_on_sync = args
                 .get("enrichVodOnSync")
-                .and_then(|v| v.as_bool())
+                .and_then(serde_json::Value::as_bool)
                 .unwrap_or(false);
             let report = tokio::runtime::Handle::current()
                 .block_on(crispy_core::services::xtream_sync::sync_xtream_source(
@@ -560,7 +560,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let source_id = get_str(args, "sourceId")?;
             let accept_invalid_certs = args
                 .get("acceptInvalidCerts")
-                .and_then(|v| v.as_bool())
+                .and_then(serde_json::Value::as_bool)
                 .unwrap_or(false);
             let report = tokio::runtime::Handle::current()
                 .block_on(crispy_core::services::m3u_sync::sync_m3u_source(
@@ -577,7 +577,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let mac_address = get_str(args, "macAddress")?;
             let accept_invalid_certs = args
                 .get("acceptInvalidCerts")
-                .and_then(|v| v.as_bool())
+                .and_then(serde_json::Value::as_bool)
                 .unwrap_or(false);
             let ok = tokio::runtime::Handle::current()
                 .block_on(crispy_core::services::stalker_sync::verify_stalker_portal(
@@ -594,7 +594,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let source_id = get_str(args, "sourceId")?;
             let accept_invalid_certs = args
                 .get("acceptInvalidCerts")
-                .and_then(|v| v.as_bool())
+                .and_then(serde_json::Value::as_bool)
                 .unwrap_or(false);
             let report = tokio::runtime::Handle::current()
                 .block_on(crispy_core::services::stalker_sync::sync_stalker_source(
@@ -635,7 +635,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let item_id = get_str(args, "itemId")?;
             let is_fav = args
                 .get("isFavorite")
-                .and_then(|v| v.as_bool())
+                .and_then(serde_json::Value::as_bool)
                 .ok_or_else(|| anyhow!("Missing bool: isFavorite"))?;
             svc_ok!(svc, update_vod_favorite, &item_id, is_fav)
         })(),
@@ -699,7 +699,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let error = get_str_opt(args, "error")?;
             let sync_time = args
                 .get("syncTime")
-                .and_then(|v| v.as_i64())
+                .and_then(serde_json::Value::as_i64)
                 .and_then(|ts| chrono::DateTime::from_timestamp(ts, 0))
                 .map(|dt| dt.naive_utc());
             svc.update_source_sync_status(&id, &status, error.as_deref(), sync_time)
@@ -736,7 +736,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let url_hash = get_str(args, "urlHash")?;
             let value = args
                 .get("value")
-                .and_then(|v| v.as_f64())
+                .and_then(serde_json::Value::as_f64)
                 .ok_or_else(|| anyhow!("Missing f64 arg: value"))?;
             svc_ok!(svc, record_buffer_sample, &url_hash, value)
         })(),
@@ -781,8 +781,8 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
 
         "decodeBlurHash" => (|| {
             let hash = get_str(args, "hash")?;
-            let width = args.get("width").and_then(|v| v.as_u64()).unwrap_or(16) as u32;
-            let height = args.get("height").and_then(|v| v.as_u64()).unwrap_or(16) as u32;
+            let width = args.get("width").and_then(serde_json::Value::as_u64).unwrap_or(16) as u32;
+            let height = args.get("height").and_then(serde_json::Value::as_u64).unwrap_or(16) as u32;
             let bmp =
                 crispy_core::services::logo_resolver::decode_blurhash_to_bmp(&hash, width, height)
                     .map_err(|e| anyhow!("{e}"))?;
@@ -813,7 +813,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let group_id = get_str(args, "groupId")?;
             let channel_id = get_str(args, "channelId")?;
             let source_id = get_str(args, "sourceId")?;
-            let priority = args.get("priority").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+            let priority = args.get("priority").and_then(serde_json::Value::as_i64).unwrap_or(0) as i32;
             svc.add_smart_group_member(&group_id, &channel_id, &source_id, priority)
                 .map_err(|e| anyhow!("{e}"))?;
             Ok(json!({"ok": true}))

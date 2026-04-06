@@ -272,11 +272,10 @@ impl CrispyService {
         let mut lookup_names: Vec<String> = Vec::new();
         for ch in &ch_rows {
             lookup_names.push(ch.name.clone());
-            if let Some(ref tvg) = ch.tvg_name {
-                if !tvg.is_empty() {
+            if let Some(ref tvg) = ch.tvg_name
+                && !tvg.is_empty() {
                     lookup_names.push(tvg.clone());
                 }
-            }
         }
         lookup_names.sort();
         lookup_names.dedup();
@@ -315,32 +314,28 @@ impl CrispyService {
             let mut keys: Vec<String> = Vec::new();
 
             // Highest priority: pre-resolved epg_channel_id (E4)
-            if let Some(ref eid) = ch.epg_channel_id {
-                if non_empty(eid) {
+            if let Some(ref eid) = ch.epg_channel_id
+                && non_empty(eid) {
                     keys.push(eid.clone());
                 }
-            }
             // tvg_id from M3U/Xtream metadata
-            if let Some(ref tvg) = ch.tvg_id {
-                if non_empty(tvg) {
+            if let Some(ref tvg) = ch.tvg_id
+                && non_empty(tvg) {
                     keys.push(tvg.clone());
                 }
-            }
             // Xtream numeric stream id
-            if let Some(ref xid) = ch.xtream_stream_id {
-                if non_empty(xid) {
+            if let Some(ref xid) = ch.xtream_stream_id
+                && non_empty(xid) {
                     keys.push(xid.clone());
                 }
-            }
             // Name-based fallback via db_epg_channels
             if let Some(xmltv_id) = display_name_to_xmltv.get(&ch.name) {
                 keys.push(xmltv_id.clone());
             }
-            if let Some(ref tvg_name) = ch.tvg_name {
-                if let Some(xmltv_id) = display_name_to_xmltv.get(tvg_name) {
+            if let Some(ref tvg_name) = ch.tvg_name
+                && let Some(xmltv_id) = display_name_to_xmltv.get(tvg_name) {
                     keys.push(xmltv_id.clone());
                 }
-            }
 
             keys.sort();
             keys.dedup();

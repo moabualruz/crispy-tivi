@@ -578,7 +578,7 @@ fn read_text_content<R: BufRead>(reader: &mut Reader<R>) -> Result<String, Xmltv
 fn get_attr(e: &BytesStart<'_>, key: &[u8]) -> Option<String> {
     for attr in e.attributes().flatten() {
         if attr.key.as_ref() == key {
-            return attr.unescape_value().ok().map(|v| v.into_owned());
+            return attr.unescape_value().ok().map(std::borrow::Cow::into_owned);
         }
     }
     None

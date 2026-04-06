@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use crate::algorithms::normalize::EPG_FORMAT;
-use crate::models::{Channel, Movie, Source, UserProfile, VodItem, WatchHistory};
+use crate::models::{Channel, EpgEntry, Movie, Source, UserProfile, VodItem, WatchHistory};
 use crate::services::CrispyService;
 
 /// Open a fresh in-memory service for testing.
@@ -189,6 +191,42 @@ pub fn make_watch_entry(id: &str, name: &str) -> WatchHistory {
         profile_id: None,
         source_id: None,
     }
+}
+
+/// Create a source and persist it. Convenience for tests that need a valid
+/// source FK before inserting channels or EPG entries.
+pub fn make_source_and_save(svc: &CrispyService, id: &str) {
+    svc.save_source(&make_source(id, id, "m3u"))
+        .expect("save test source");
+}
+
+/// Insert a single EPG entry directly into the service's SQLite store.
+/// `start_offset` and `end_offset` are seconds relative to Unix epoch 0 for
+/// determinism (tests should not depend on the current wall clock).
+pub fn insert_test_epg_entry(
+    svc: &CrispyService,
+    epg_channel_id: &str,
+    source_id: &str,
+    title: &str,
+    start_offset: i64,
+    end_offset: i64,
+) {
+    use chrono::DateTime;
+    let entry = EpgEntry {
+        epg_channel_id: epg_channel_id.to_string(),
+        title: title.to_string(),
+        start_time: DateTime::from_timestamp(start_offset, 0)
+            .expect("valid start timestamp")
+            .naive_utc(),
+        end_time: DateTime::from_timestamp(end_offset, 0)
+            .expect("valid end timestamp")
+            .naive_utc(),
+        source_id: Some(source_id.to_string()),
+        ..EpgEntry::default()
+    };
+    let mut map = HashMap::new();
+    map.insert(epg_channel_id.to_string(), vec![entry]);
+    svc.save_epg_entries(&map).expect("save test epg entry");
 }
 
 pub fn make_episode_entry(

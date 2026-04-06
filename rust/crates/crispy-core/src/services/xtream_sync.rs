@@ -13,7 +13,6 @@
 //! auto-cleaned on connection close) after the mapping step.
 //! M3U channels are never persisted to `db_channels`.
 
-use std::collections::HashMap;
 use std::time::Duration;
 
 use crate::algorithms::categories;
@@ -374,46 +373,41 @@ fn apply_m3u_metadata_from_temp_table(
                  tvg_name, tvg_language, tvg_shift, is_radio) = row;
 
             // Only set tvg_id if channel doesn't already have one from Xtream API.
-            if ch.tvg_id.as_ref().map_or(true, |t| t.is_empty()) {
+            if ch.tvg_id.as_ref().is_none_or(|t| t.is_empty()) {
                 ch.tvg_id = tvg_id;
             }
             // Enrich logo if missing.
-            if ch.logo_url.as_ref().map_or(true, |l| l.is_empty()) {
+            if ch.logo_url.as_ref().is_none_or(|l| l.is_empty()) {
                 ch.logo_url = logo;
             }
             // group_title from M3U is not stored on Channel directly —
             // Xtream API provides category_id which is resolved separately.
 
             // Enrich catchup fields if not already provided by Xtream API.
-            if !ch.has_catchup {
-                if let Some(ct) = catchup_type {
-                    if !ct.is_empty() {
+            if !ch.has_catchup
+                && let Some(ct) = catchup_type
+                    && !ct.is_empty() {
                         ch.catchup_type = Some(ct);
-                        if let Some(days) = catchup_days {
-                            if days > 0 {
+                        if let Some(days) = catchup_days
+                            && days > 0 {
                                 ch.catchup_days = days;
                                 ch.has_catchup = true;
                             }
-                        }
                     }
-                }
-            }
-            if ch.catchup_source.as_ref().map_or(true, |s| s.is_empty()) {
+            if ch.catchup_source.as_ref().is_none_or(|s| s.is_empty()) {
                 ch.catchup_source = catchup_source;
             }
-            if ch.catchup_days == 0 {
-                if let Some(days) = catchup_days {
-                    if days > 0 {
+            if ch.catchup_days == 0
+                && let Some(days) = catchup_days
+                    && days > 0 {
                         ch.catchup_days = days;
                     }
-                }
-            }
             // Enrich tvg_name if missing.
-            if ch.tvg_name.as_ref().map_or(true, |s| s.is_empty()) {
+            if ch.tvg_name.as_ref().is_none_or(|s| s.is_empty()) {
                 ch.tvg_name = tvg_name;
             }
             // Enrich tvg_language if missing.
-            if ch.tvg_language.as_ref().map_or(true, |s| s.is_empty()) {
+            if ch.tvg_language.as_ref().is_none_or(|s| s.is_empty()) {
                 ch.tvg_language = tvg_language;
             }
             // Enrich tvg_shift if missing.
@@ -421,11 +415,10 @@ fn apply_m3u_metadata_from_temp_table(
                 ch.tvg_shift = tvg_shift.and_then(|s| s.parse::<f64>().ok());
             }
             // Always apply is_radio from M3U (Xtream API doesn't provide this).
-            if let Some(flag) = is_radio {
-                if flag != 0 {
+            if let Some(flag) = is_radio
+                && flag != 0 {
                     ch.is_radio = true;
                 }
-            }
         }
     }
 }
@@ -451,25 +444,6 @@ fn extract_m3u_attr(line: &str, attr_name: &str) -> Option<String> {
 /// Apply tvg_id values from the M3U map to Xtream channels.
 ///
 /// For each channel, normalises its stream URL and looks it up in
-/// `tvg_map`.  Only sets `tvg_id` when the channel has none or an
-/// empty one, so a value already provided by the Xtream API
-/// (e.g. `epg_channel_id`) is not overwritten.
-fn apply_tvg_ids(channels: &mut Vec<Channel>, tvg_map: &HashMap<String, String>) {
-    if tvg_map.is_empty() {
-        return;
-    }
-    for ch in channels.iter_mut() {
-        let has_tvg_id = ch.tvg_id.as_deref().is_some_and(|s| !s.is_empty());
-        if has_tvg_id {
-            continue;
-        }
-        let norm = normalize_url(&ch.stream_url);
-        if let Some(tvg_id) = tvg_map.get(&norm) {
-            ch.tvg_id = Some(tvg_id.clone());
-        }
-    }
-}
-
 /// Full Xtream source sync: categories, live streams, VOD, series.
 ///
 /// Fetches all data from the Xtream server, parses it, resolves
@@ -943,59 +917,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn apply_tvg_ids_sets_tvg_id_from_normalised_url_match() {
-        let mut ch = make_channel("xt-42", "BBC API");
-        ch.stream_url = "HTTP://example.com/live/test/test/42.ts?token=abc".to_string();
-        ch.tvg_id = None;
-
-        let mut map = HashMap::new();
-        // Insert with the normalised form of the URL (lowercase, no token).
-        let norm = normalize_url("HTTP://example.com/live/test/test/42.ts?token=abc");
-        map.insert(norm, "bbc.xmltv".to_string());
-
-        let mut channels = vec![ch];
-        apply_tvg_ids(&mut channels, &map);
-
-        assert_eq!(
-            channels[0].tvg_id.as_deref(),
-            Some("bbc.xmltv"),
-            "tvg_id should be populated from the map"
-        );
-    }
-
-    #[test]
-    fn apply_tvg_ids_does_not_overwrite_existing_tvg_id() {
-        let mut ch = make_channel("xt-99", "CNN");
-        ch.stream_url = "http://example.com/live/u/p/99.ts".to_string();
-        ch.tvg_id = Some("cnn.existing".to_string());
-
-        let mut map = HashMap::new();
-        map.insert(normalize_url(&ch.stream_url), "cnn.from_m3u".to_string());
-
-        let mut channels = vec![ch];
-        apply_tvg_ids(&mut channels, &map);
-
-        assert_eq!(
-            channels[0].tvg_id.as_deref(),
-            Some("cnn.existing"),
-            "existing tvg_id must not be overwritten"
-        );
-    }
-
-    #[test]
-    fn apply_tvg_ids_skips_channels_with_no_map_entry() {
-        let mut ch = make_channel("xt-1", "Unknown");
-        ch.stream_url = "http://example.com/live/u/p/1.ts".to_string();
-        ch.tvg_id = None;
-
-        let map: HashMap<String, String> = HashMap::new();
-        let mut channels = vec![ch];
-        apply_tvg_ids(&mut channels, &map);
-
-        assert!(
-            channels[0].tvg_id.is_none(),
-            "tvg_id should remain None when map has no entry"
-        );
-    }
 }

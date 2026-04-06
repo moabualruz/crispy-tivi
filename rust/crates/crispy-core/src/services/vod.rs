@@ -251,7 +251,7 @@ impl CrispyService {
             let placeholders = build_in_placeholders(source_ids.len());
             sql.push_str(&format!(" AND source_id IN ({})", placeholders));
             for id in source_ids {
-                params.push(Box::new(id.to_string()));
+                params.push(Box::new(id.clone()));
             }
             param_idx += source_ids.len();
         }

@@ -154,7 +154,7 @@ fn parse_int_and_increment(s: &str) -> Option<u32> {
     if n < 0 {
         return None;
     }
-    Some((n + 1) as u32)
+    u32::try_from(n + 1).ok()
 }
 
 /// Parse part number string like "2/3" or bare "2".
@@ -176,7 +176,7 @@ fn parse_part_number(s: &str) -> (Option<u32>, Option<u32>) {
             && num >= 0
             && den > 0
         {
-            return (Some((num + 1) as u32), Some(den as u32));
+            return (u32::try_from(num + 1).ok(), u32::try_from(den).ok());
         }
     }
 

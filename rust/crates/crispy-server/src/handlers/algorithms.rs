@@ -630,7 +630,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let ts = get_i64(args, "timestampMs")?;
             let offset = args
                 .get("offsetHours")
-                .and_then(|v| v.as_f64())
+                .and_then(serde_json::Value::as_f64)
                 .ok_or_else(|| anyhow!("Missing f64: offsetHours"))?;
             let result = crispy_core::algorithms::timezone::format_epg_time(ts, offset);
             Ok(json!({"data": result}))
@@ -639,7 +639,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let ts = get_i64(args, "timestampMs")?;
             let offset = args
                 .get("offsetHours")
-                .and_then(|v| v.as_f64())
+                .and_then(serde_json::Value::as_f64)
                 .ok_or_else(|| anyhow!("Missing f64: offsetHours"))?;
             let result = crispy_core::algorithms::timezone::format_epg_datetime(ts, offset);
             Ok(json!({"data": result}))
@@ -753,7 +753,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let sources = get_str(args, "accessibleSourceIdsJson")?;
             let is_admin = args
                 .get("isAdmin")
-                .and_then(|v| v.as_bool())
+                .and_then(serde_json::Value::as_bool)
                 .unwrap_or(false);
             let result = crispy_core::algorithms::source_filter::filter_channels_by_source(
                 &channels, &sources, is_admin,
@@ -874,7 +874,7 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             let vod_items = get_str(args, "vodItemsJson")?;
             let threshold = args
                 .get("threshold")
-                .and_then(|v| v.as_f64())
+                .and_then(serde_json::Value::as_f64)
                 .ok_or_else(|| anyhow!("Missing f64: threshold"))?;
             let result = crispy_core::algorithms::watch_history::resolve_next_episodes(
                 &entries, &vod_items, threshold,
@@ -887,8 +887,8 @@ pub(super) fn handle(svc: &CrispyService, cmd: &str, args: &Value) -> Option<Res
             Ok(json!({"data": result}))
         })(),
         "vodBadgeKind" => (|| {
-            let year = args.get("year").and_then(|v| v.as_i64()).map(|v| v as i32);
-            let added_at = args.get("addedAtMs").and_then(|v| v.as_i64());
+            let year = args.get("year").and_then(serde_json::Value::as_i64).map(|v| v as i32);
+            let added_at = args.get("addedAtMs").and_then(serde_json::Value::as_i64);
             let now_ms = get_i64(args, "nowMs")?;
             let result =
                 crispy_core::algorithms::watch_history::vod_badge_kind(year, added_at, now_ms);

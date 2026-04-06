@@ -152,7 +152,7 @@ fn parse_chno(chno: Option<&str>) -> u64 {
 /// from `iptvtools/models.py::__custom_sort` which uses `re.sub(r"\D", "")`.
 fn parse_tvg_id_numeric(id: Option<&str>) -> Option<u64> {
     let id = id?;
-    let digits: String = id.chars().filter(|c| c.is_ascii_digit()).collect();
+    let digits: String = id.chars().filter(char::is_ascii_digit).collect();
     if digits.is_empty() {
         return None;
     }

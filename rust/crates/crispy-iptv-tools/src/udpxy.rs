@@ -10,14 +10,11 @@ const MULTICAST_SCHEMES: &[&str] = &["udp", "rtp"];
 
 /// Check if a URL uses a multicast scheme (`udp://` or `rtp://`).
 pub fn is_multicast(url: &str) -> bool {
-    let parsed = match Url::parse(url) {
-        Ok(u) => u,
+    let Ok(parsed) = Url::parse(url) else {
         // The `url` crate may reject bare `udp://` URLs. Fall back to
         // prefix-based detection for robustness.
-        Err(_) => {
-            let lower = url.to_ascii_lowercase();
-            return lower.starts_with("udp://") || lower.starts_with("rtp://");
-        }
+        let lower = url.to_ascii_lowercase();
+        return lower.starts_with("udp://") || lower.starts_with("rtp://");
     };
     MULTICAST_SCHEMES.contains(&parsed.scheme())
 }

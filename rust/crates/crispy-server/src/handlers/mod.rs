@@ -77,7 +77,7 @@ use crispy_core::services::CrispyService;
 pub(super) fn get_str(args: &Value, key: &str) -> Result<String> {
     args.get(key)
         .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
+        .map(std::string::ToString::to_string)
         .ok_or_else(|| anyhow!("Missing string arg: {key}"))
 }
 
@@ -96,7 +96,7 @@ pub(super) fn get_str_opt(args: &Value, key: &str) -> Result<Option<String>> {
 /// Extract a required i64 from `args`.
 pub(super) fn get_i64(args: &Value, key: &str) -> Result<i64> {
     args.get(key)
-        .and_then(|v| v.as_i64())
+        .and_then(serde_json::Value::as_i64)
         .ok_or_else(|| anyhow!("Missing i64 arg: {key}"))
 }
 
@@ -109,7 +109,7 @@ pub(super) fn get_str_vec(args: &Value, key: &str) -> Result<Vec<String>> {
     arr.iter()
         .map(|v| {
             v.as_str()
-                .map(|s| s.to_string())
+                .map(std::string::ToString::to_string)
                 .ok_or_else(|| anyhow!("{key} contains non-string"))
         })
         .collect()

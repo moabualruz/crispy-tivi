@@ -50,9 +50,8 @@ pub fn write(playlist: &M3uPlaylist) -> String {
     // Channel entries.
     for entry in &playlist.entries {
         // Skip entries without a URL (matches TS behavior).
-        let url = match entry.url.as_deref() {
-            Some(u) => u,
-            None => continue,
+        let Some(url) = entry.url.as_deref() else {
+            continue;
         };
 
         out.push_str("\n#EXTINF:");
@@ -62,6 +61,7 @@ pub fn write(playlist: &M3uPlaylist) -> String {
             Some(d) => {
                 // Write integer if it's a whole number, float otherwise.
                 if d.fract() == 0.0 {
+                    #[allow(clippy::cast_possible_truncation)]
                     write_int(&mut out, d as i64);
                 } else {
                     out.push_str(&d.to_string());

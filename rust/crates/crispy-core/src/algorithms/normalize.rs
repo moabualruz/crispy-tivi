@@ -61,7 +61,7 @@ pub fn normalize_url(url: &str) -> String {
 /// valid base64.
 pub fn try_base64_decode(value: &str) -> String {
     // Skip values that look like XML or contain spaces.
-    if value.contains(' ') || value.contains('<') || value.len() < 8 || value.len() % 4 != 0 {
+    if value.contains(' ') || value.contains('<') || value.len() < 8 || !value.len().is_multiple_of(4) {
         return value.to_string();
     }
 

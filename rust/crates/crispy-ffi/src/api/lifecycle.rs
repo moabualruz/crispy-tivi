@@ -42,9 +42,7 @@ pub fn init_backend(db_path: String) -> Result<()> {
     // Run startup cleanup on a background thread so it never blocks app startup.
     // Uses super::svc() to get a reference to the already-initialized SERVICE.
     std::thread::spawn(|| {
-        if let Err(e) = super::svc()
-            .map_err(anyhow::Error::from)
-            .and_then(|s| crispy_core::services::cleanup::run_startup_cleanup(&s))
+        if let Err(e) = super::svc().and_then(|s| crispy_core::services::cleanup::run_startup_cleanup(&s))
         {
             eprintln!("[lifecycle] startup cleanup warning (non-fatal): {e}");
         }

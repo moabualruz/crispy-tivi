@@ -276,9 +276,8 @@ fn format_time_named(name: &str, dt: &DateTime<Local>, url: &mut String, has_var
         format!("{{{name}:")
     };
 
-    let found = match url.find(&qualifier) {
-        Some(pos) => pos,
-        None => return,
+    let Some(found) = url.find(&qualifier) else {
+        return;
     };
 
     let start = found + qualifier.len();
