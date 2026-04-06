@@ -44,7 +44,7 @@ class PlexApiClient {
       );
 
       final container = PlexMediaContainer.fromJson(
-        response.data['MediaContainer'],
+        response.data['MediaContainer'] as Map<String, dynamic>,
       );
 
       return PlexServer(
@@ -80,7 +80,7 @@ class PlexApiClient {
       );
 
       final container = PlexMediaContainer.fromJson(
-        response.data['MediaContainer'],
+        response.data['MediaContainer'] as Map<String, dynamic>,
       );
       return container.directory ?? [];
     } on DioException catch (e) {
@@ -110,7 +110,7 @@ class PlexApiClient {
       );
 
       final container = PlexMediaContainer.fromJson(
-        response.data['MediaContainer'],
+        response.data['MediaContainer'] as Map<String, dynamic>,
       );
       return container.metadata ?? [];
     } on DioException catch (e) {
@@ -154,7 +154,7 @@ class PlexApiClient {
       );
 
       final container = PlexMediaContainer.fromJson(
-        response.data['MediaContainer'],
+        response.data['MediaContainer'] as Map<String, dynamic>,
       );
       final items = container.metadata ?? [];
       return PaginatedResult<PlexMetadata>(
@@ -201,7 +201,7 @@ class PlexApiClient {
       );
 
       final container = PlexMediaContainer.fromJson(
-        response.data['MediaContainer'],
+        response.data['MediaContainer'] as Map<String, dynamic>,
       );
       final items = container.metadata ?? [];
       return PaginatedResult<PlexMetadata>(
@@ -238,7 +238,7 @@ class PlexApiClient {
       );
 
       final container = PlexMediaContainer.fromJson(
-        response.data['MediaContainer'],
+        response.data['MediaContainer'] as Map<String, dynamic>,
       );
 
       final metadataList = container.metadata;
@@ -293,7 +293,7 @@ class PlexApiClient {
       );
 
       final container = PlexMediaContainer.fromJson(
-        response.data['MediaContainer'],
+        response.data['MediaContainer'] as Map<String, dynamic>,
       );
       return container.metadata ?? [];
     } on DioException catch (e) {
@@ -362,7 +362,7 @@ class PlexApiClient {
       );
 
       PlexMediaContainer.fromJson(
-        response.data['MediaContainer'],
+        response.data['MediaContainer'] as Map<String, dynamic>,
       ); // Hubs search structure is complex
       // Actually /hubs/search returns MediaContainer -> Hub -> Metadata
       // My DTO doesn't support 'Hub' field yet.
@@ -373,14 +373,14 @@ class PlexApiClient {
       // Let's assume I'll add Hub to DTO or ignore search for now in strict mode.
 
       // Let's do a quick manual parse for Hubs to respect the DTO pattern
-      final hubs = response.data['MediaContainer']['Hub'] as List<dynamic>?;
+      final hubs = (response.data['MediaContainer'] as Map<String, dynamic>)['Hub'] as List<dynamic>?;
       if (hubs == null) return [];
 
       final results = <PlexMetadata>[];
       for (final hub in hubs) {
         final metadata = hub['Metadata'] as List<dynamic>?;
         if (metadata != null) {
-          results.addAll(metadata.map((e) => PlexMetadata.fromJson(e)));
+          results.addAll(metadata.map((e) => PlexMetadata.fromJson(e as Map<String, dynamic>)));
         }
       }
 

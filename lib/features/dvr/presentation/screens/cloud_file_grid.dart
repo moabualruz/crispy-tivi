@@ -687,7 +687,7 @@ class CloudFilterChipBar extends ConsumerWidget {
 ///
 /// FE-CB-08: Actual file_picker integration replacing the stub.
 Future<List<String>?> pickFilesToUpload() async {
-  final result = await FilePicker.platform.pickFiles(allowMultiple: true);
+  final result = await FilePicker.pickFiles(allowMultiple: true);
   if (result != null) {
     return result.paths.whereType<String>().toList();
   }

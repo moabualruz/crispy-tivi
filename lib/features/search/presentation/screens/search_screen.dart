@@ -11,6 +11,8 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/widgets/screen_template.dart';
 import '../../../../core/widgets/tv_color_button_legend.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
+import '../../../iptv/domain/entities/epg_entry.dart';
+import '../../domain/entities/search_history_entry.dart';
 import '../../../favorites/presentation/providers/favorites_controller.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/presentation/providers/channel_providers.dart';
@@ -178,7 +180,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
     epgNotifier.setFocusedTime((entry as dynamic).startTime as DateTime);
     if (entry != null) {
-      epgNotifier.selectEntry(entry as dynamic);
+      epgNotifier.selectEntry(entry as EpgEntry?);
     }
     context.push(AppRoutes.epg);
   }
@@ -312,7 +314,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ref.read(searchControllerProvider.notifier).clearFilters();
               },
               onSelectRecent: (entry) {
-                _searchController.text = entry.query;
+                _searchController.text = (entry as SearchHistoryEntry).query;
                 ref
                     .read(searchControllerProvider.notifier)
                     .selectRecentSearch(entry);
@@ -349,7 +351,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ref.read(searchControllerProvider.notifier).clearFilters();
               },
               onSelectRecent: (entry) {
-                _searchController.text = entry.query;
+                _searchController.text = (entry as SearchHistoryEntry).query;
                 ref
                     .read(searchControllerProvider.notifier)
                     .selectRecentSearch(entry);

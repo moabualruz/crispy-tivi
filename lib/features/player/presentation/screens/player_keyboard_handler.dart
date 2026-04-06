@@ -424,7 +424,7 @@ int? _digitFromKey(LogicalKeyboardKey key) {
 /// Cycles playback speed: 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 4.0
 void _adjustSpeed(dynamic service, int direction) {
   const speeds = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 4.0];
-  final current = service.state.speed;
+  final current = service.state.speed as num;
   var idx = speeds.indexWhere((s) => s >= current);
   if (idx < 0) idx = speeds.length - 1;
   idx = (idx + direction).clamp(0, speeds.length - 1);

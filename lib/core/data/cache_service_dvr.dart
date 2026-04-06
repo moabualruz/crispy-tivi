@@ -29,7 +29,7 @@ mixin _CacheDvrMixin on _CacheServiceBase {
   /// Get commercial markers for a given recording by ID.
   Future<List<CommercialMarker>> getRecordingMarkers(String recordingId) async {
     final jsonStr = await _backend.getRecordingMarkers(recordingId);
-    final List<dynamic> list = jsonDecode(jsonStr);
+    final List<dynamic> list = jsonDecode(jsonStr) as List<dynamic>;
     return list
         .map(
           (m) => CommercialMarker(

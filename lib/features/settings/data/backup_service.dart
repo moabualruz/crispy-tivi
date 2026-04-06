@@ -81,7 +81,7 @@ class BackupService {
     final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
     final fileName = 'crispy_tivi_backup_$timestamp.json';
 
-    final result = await FilePicker.platform.saveFile(
+    final result = await FilePicker.saveFile(
       dialogTitle: 'Save Backup',
       fileName: fileName,
       type: FileType.custom,
@@ -94,7 +94,7 @@ class BackupService {
 
   /// Imports backup from a user-selected file.
   Future<BackupSummary?> importFromFile() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       dialogTitle: 'Select Backup File',
       type: FileType.custom,
       allowedExtensions: ['json'],
