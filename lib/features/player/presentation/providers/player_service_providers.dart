@@ -14,7 +14,7 @@ export '../../data/watch_history_service.dart'
         WatchHistoryEntry,
         watchHistoryServiceProvider,
         watchProgressProvider;
-export '../../data/web_video_bridge_web.dart' show escapeJs;
+export '../../data/web_video_bridge.dart' show escapeJs;
 export '../../data/segment_skip_codec.dart'
     show decodeSegmentSkipConfig, encodeSegmentSkipConfig;
 export '../../data/thumbnail_service.dart'

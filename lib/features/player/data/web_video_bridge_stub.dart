@@ -1,3 +1,7 @@
+/// Stub escapeJs for native platforms — never called, only here
+/// so the conditional export compiles on all targets.
+String escapeJs(String value) => value;
+
 /// Stub [WebVideoBridge] for native platforms.
 ///
 /// All methods are no-ops. This class is never used on
