@@ -10,15 +10,11 @@ import '../../../../core/domain/entities/media_item.dart';
 import '../../../../core/domain/entities/media_type.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../../core/domain/media_source.dart';
-import '../../../media_servers/plex/data/datasources/plex_api_client.dart';
 import '../../../media_servers/plex/domain/plex_source.dart';
-import '../../../media_servers/shared/data/media_server_api_client.dart';
-import '../../../media_servers/shared/data/media_server_dio_factory.dart';
-import '../../../media_servers/shared/data/media_server_source.dart';
+import '../../../media_servers/shared/presentation/providers/media_server_service_providers.dart';
 import '../../../media_servers/shared/utils/media_item_vod_adapter.dart';
 import '../../../media_servers/shared/utils/media_server_auth.dart';
 import '../../../vod/domain/entities/vod_item.dart';
-import '../../data/sync_report_codec.dart';
 
 /// Syncs media server (Plex/Emby/Jellyfin) libraries into the
 /// unified Rust VOD database.

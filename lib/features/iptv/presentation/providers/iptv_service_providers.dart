@@ -10,3 +10,4 @@ export '../../../favorites/data/favorites_history_service.dart'
         FavoritesHistoryService,
         FavoritesHistoryState,
         favoritesHistoryProvider;
+export '../../data/sync_report_codec.dart' show SyncReport, decodeSyncReport;
