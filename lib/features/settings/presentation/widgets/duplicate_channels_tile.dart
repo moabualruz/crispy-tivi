@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../iptv/application/duplicate_detection_service.dart';
+import '../../../iptv/presentation/providers/duplicate_detection_service.dart';
 import 'settings_shared_widgets.dart';
 import 'source_manage_dialogs.dart';
 

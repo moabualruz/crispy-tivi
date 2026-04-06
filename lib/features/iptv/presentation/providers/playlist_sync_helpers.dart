@@ -10,7 +10,7 @@ import '../../../vod/presentation/providers/vod_favorites_provider.dart';
 import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../domain/entities/channel.dart';
 import 'channel_providers.dart';
-import '../../application/duplicate_detection_service.dart';
+import 'duplicate_detection_service.dart';
 import 'iptv_service_providers.dart';
 import 'playlist_sync_service.dart';
 

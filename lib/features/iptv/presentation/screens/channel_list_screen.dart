@@ -17,7 +17,7 @@ import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../../../core/widgets/screen_template.dart';
-import '../../application/duplicate_detection_service.dart';
+import '../providers/duplicate_detection_service.dart';
 import '../providers/playlist_sync_service.dart';
 import '../../domain/entities/channel.dart';
 import '../providers/channel_providers.dart';

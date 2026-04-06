@@ -8,7 +8,7 @@ import 'package:crispy_tivi/core/domain/entities/media_item.dart';
 import 'package:crispy_tivi/core/domain/entities/media_type.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/core/domain/media_source.dart';
-import 'package:crispy_tivi/features/iptv/application/media_server_sync.dart';
+import 'package:crispy_tivi/features/iptv/presentation/providers/media_server_sync.dart';
 import 'package:crispy_tivi/features/media_servers/plex/data/datasources/plex_api_client.dart';
 import 'package:crispy_tivi/features/media_servers/plex/data/models/plex_metadata.dart';
 import 'package:crispy_tivi/features/media_servers/plex/domain/entities/plex_server.dart';

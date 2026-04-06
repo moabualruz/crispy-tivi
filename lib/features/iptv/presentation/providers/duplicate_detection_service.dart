@@ -1,10 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/data/cache_service.dart';
-import '../../../core/data/crispy_backend.dart';
-import '../data/duplicate_group_codec.dart';
-import '../domain/entities/channel.dart';
-import '../domain/entities/duplicate_group.dart';
+import 'iptv_service_providers.dart';
+import '../../data/duplicate_group_codec.dart';
+import '../../domain/entities/channel.dart';
+import '../../domain/entities/duplicate_group.dart';
 
 /// Service for detecting duplicate channels across
 /// sources by delegating to the Rust backend.

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../application/duplicate_detection_service.dart';
+import '../providers/duplicate_detection_service.dart';
 import '../../domain/entities/channel.dart';
 import 'channel_list_item.dart';
 

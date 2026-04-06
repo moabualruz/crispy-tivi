@@ -5,7 +5,7 @@ import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/date_format_utils.dart';
 import '../../../player/presentation/providers/player_providers.dart';
-import '../../application/duplicate_detection_service.dart';
+import '../providers/duplicate_detection_service.dart';
 import '../../domain/entities/channel.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../providers/channel_providers.dart';

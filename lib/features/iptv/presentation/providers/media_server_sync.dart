@@ -3,22 +3,22 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../config/settings_notifier.dart';
-import '../../../core/constants.dart';
-import '../../../core/data/cache_service.dart';
-import '../../../core/domain/entities/media_item.dart';
-import '../../../core/domain/entities/media_type.dart';
-import '../../../core/domain/entities/playlist_source.dart';
-import '../../../core/domain/media_source.dart';
-import '../../media_servers/plex/data/datasources/plex_api_client.dart';
-import '../../media_servers/plex/domain/plex_source.dart';
-import '../../media_servers/shared/data/media_server_api_client.dart';
-import '../../media_servers/shared/data/media_server_dio_factory.dart';
-import '../../media_servers/shared/data/media_server_source.dart';
-import '../../media_servers/shared/utils/media_item_vod_adapter.dart';
-import '../../media_servers/shared/utils/media_server_auth.dart';
-import '../../vod/domain/entities/vod_item.dart';
-import '../data/sync_report_codec.dart';
+import '../../../../config/settings_notifier.dart';
+import '../../../../core/constants.dart';
+import 'iptv_service_providers.dart';
+import '../../../../core/domain/entities/media_item.dart';
+import '../../../../core/domain/entities/media_type.dart';
+import '../../../../core/domain/entities/playlist_source.dart';
+import '../../../../core/domain/media_source.dart';
+import '../../../media_servers/plex/data/datasources/plex_api_client.dart';
+import '../../../media_servers/plex/domain/plex_source.dart';
+import '../../../media_servers/shared/data/media_server_api_client.dart';
+import '../../../media_servers/shared/data/media_server_dio_factory.dart';
+import '../../../media_servers/shared/data/media_server_source.dart';
+import '../../../media_servers/shared/utils/media_item_vod_adapter.dart';
+import '../../../media_servers/shared/utils/media_server_auth.dart';
+import '../../../vod/domain/entities/vod_item.dart';
+import '../../data/sync_report_codec.dart';
 
 /// Syncs media server (Plex/Emby/Jellyfin) libraries into the
 /// unified Rust VOD database.
@@ -214,15 +214,12 @@ class MediaServerSyncService {
 
     final allVodItems = <VodItem>[];
     final allCategories = <String>[];
-
     // 2. For each library, paginate all items.
     for (final library in vodLibraries) {
       final category = '${source.name} > ${library.name}';
       allCategories.add(category);
-
       var startIndex = 0;
       var hasMore = true;
-
       while (hasMore) {
         final page = await withRetry(() => fetchPage(library.id, startIndex));
 
@@ -282,10 +279,8 @@ class MediaServerSyncService {
     );
   }
 
-  /// Retries [fn] up to [maxAttempts] times for transient server errors.
-  ///
-  /// Only retries on 5xx status codes and timeouts. Client errors (4xx)
-  /// are rethrown immediately. Uses exponential backoff between attempts.
+  /// Retries [fn] up to [maxAttempts] times for transient server errors
+  /// (5xx, timeouts). Client errors (4xx) rethrown immediately.
   @visibleForTesting
   static Future<T> withRetry<T>(
     Future<T> Function() fn, {

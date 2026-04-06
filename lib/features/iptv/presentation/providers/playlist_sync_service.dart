@@ -7,7 +7,7 @@ import '../../../../config/settings_notifier.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../favorites/data/stalker_favorites_service.dart';
 import '../../../vod/presentation/providers/vod_providers.dart';
-import '../../application/media_server_sync.dart';
+import 'media_server_sync.dart';
 import 'iptv_service_providers.dart';
 import 'playlist_epg_helper.dart';
 import 'playlist_sync_helpers.dart';

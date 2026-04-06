@@ -1,6 +1,6 @@
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../data/sync_report_codec.dart';
-import '../../application/media_server_sync.dart';
+import 'media_server_sync.dart';
 import 'iptv_service_providers.dart';
 
 export '../../data/sync_report_codec.dart' show SyncReport;
