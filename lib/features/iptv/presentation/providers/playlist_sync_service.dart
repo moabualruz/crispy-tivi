@@ -7,6 +7,7 @@ import '../../../../config/settings_notifier.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../favorites/presentation/providers/favorites_service_providers.dart'
     show stalkerFavoritesServiceProvider;
+import 'channel_providers.dart' show channelListProvider;
 import 'media_server_sync.dart';
 import 'iptv_service_providers.dart';
 import 'playlist_epg_helper.dart';
@@ -136,18 +137,29 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       // Schedule next deferred sync.
       _scheduleDeferredSync(interval);
 
-      // 5. Reload from cache (Rust already saved to DB).
+      // 5. Load channels into UI immediately (single DB query,
+      //    no provider invalidation yet — avoids connection
+      //    contention with the heavy EPG sync below).
       if (!_ref.mounted) return 0;
       if (totalChannels > 0) {
-        await reloadChannelList();
+        debugPrint('PlaylistSync: loading channels into UI…');
+        await ref.read(channelListProvider.notifier).refreshFromBackend();
+        syncSourceNames();
       }
+
+      // 6. Fetch EPG (heavy — 74K+ inserts, holds a DB connection).
+      //    Runs BEFORE provider invalidation to avoid pool exhaustion.
+      await fetchEpg();
+
+      // 7. NOW invalidate paginated providers — EPG sync is done,
+      //    DB connections are free for the cascading re-queries.
       if (!_ref.mounted) return 0;
+      if (totalChannels > 0) {
+        invalidateChannelPaginatedProviders();
+      }
       if (totalVod > 0) {
         invalidateVodPaginatedProviders();
       }
-
-      // 6. Fetch EPG after successful sync.
-      await fetchEpg();
 
       // 7. Sync Stalker server-side favorites to local DB.
       if (!_ref.mounted) return totalChannels;

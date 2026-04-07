@@ -155,14 +155,13 @@ impl From<crispy_xtream::types::XtreamChannel> for Channel {
 
         let number = xc.num.map(|n| n as i32);
 
-        // Xtream providers often put internal numeric IDs in epg_channel_id
-        // (e.g. "374694") which are NOT valid XMLTV channel IDs and cause
-        // wrong EPG matches. Only accept non-numeric epg_channel_id values
-        // (real XMLTV IDs look like "bbc1.uk", "CNN.us", "AdSports1.ae").
+        // Accept epg_channel_id from the Xtream API as-is — it maps to
+        // the XMLTV <channel> id and may be numeric ("456660") or a
+        // dotted name ("bbc1.uk"). Do NOT fall back to stream_id.
         let epg_channel_id = xc
             .epg_channel_id
             .clone()
-            .filter(|s| !s.is_empty() && !s.chars().all(|c| c.is_ascii_digit()));
+            .filter(|s| !s.is_empty());
 
         // tvg_id follows epg_channel_id — None when no valid EPG ID exists.
         let tvg_id = epg_channel_id.clone();

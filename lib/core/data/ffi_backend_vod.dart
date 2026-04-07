@@ -64,7 +64,7 @@ mixin _FfiVodMixin on _FfiBackendBase {
       category: category,
       query: query,
     );
-    return result;
+    return result.toInt();
   }
 
   Future<String> getVodCategories(

@@ -19,7 +19,7 @@ import 'package:crispy_tivi/features/profiles/domain/entities/'
 import 'package:crispy_tivi/features/vod/domain/entities/'
     'vod_item.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/'
-    'vod_providers.dart';
+    'vod_paginated_providers.dart';
 
 // ── Mocks ──────────────────────────────────────────
 
@@ -78,14 +78,6 @@ VodItem _vodItem({
     year: year,
     backdropUrl: backdropUrl,
   );
-}
-
-class _MockVodNotifier extends VodNotifier {
-  final VodState _initial;
-  _MockVodNotifier(this._initial);
-
-  @override
-  VodState build() => _initial;
 }
 
 void main() {
@@ -323,54 +315,55 @@ void main() {
   // ══════════════════════════════════════════════════
 
   group('latestVodProvider', () {
-    ProviderContainer createVodContainer(VodState state) {
+    ProviderContainer createVodContainer(List<VodItem> items) {
       final c = ProviderContainer(
-        overrides: [vodProvider.overrideWith(() => _MockVodNotifier(state))],
+        overrides: [
+          vodPagePaginatedProvider(
+            const VodPageRequest(sort: 'added_desc'),
+          ).overrideWith((ref) async => items),
+        ],
       );
       addTearDown(c.dispose);
       return c;
     }
 
-    test('returns empty list when no VOD items', () {
-      final container = createVodContainer(VodState());
-      final result = container.read(latestVodProvider);
+    test('returns empty list when no VOD items', () async {
+      final container = createVodContainer(const []);
+      final result = await container.read(latestVodProvider.future);
 
       expect(result, isEmpty);
     });
 
-    test('returns first 10 items from VOD state', () {
+    test('returns first 10 items from paginated VOD state', () async {
       final items = List.generate(
         15,
         (i) => _vodItem(id: 'v$i', name: 'Movie $i'),
       );
 
-      final container = createVodContainer(VodState(items: items));
-      final result = container.read(latestVodProvider);
+      final container = createVodContainer(items);
+      final result = await container.read(latestVodProvider.future);
 
-      // Fallback path: no addedAt timestamps, so provider uses
-      // items.reversed.take(10) — newest imports are at the end
-      // of the playlist, so reversed gives v14..v5.
       expect(result.length, 10);
-      expect(result.first.id, 'v14');
-      expect(result.last.id, 'v5');
+      expect(result.first.id, 'v0');
+      expect(result.last.id, 'v9');
     });
 
-    test('returns all items when fewer than 10', () {
+    test('returns all items when fewer than 10', () async {
       final items = [
         _vodItem(id: 'v1'),
         _vodItem(id: 'v2', name: 'Movie 2'),
         _vodItem(id: 'v3', name: 'Movie 3'),
       ];
 
-      final container = createVodContainer(VodState(items: items));
-      final result = container.read(latestVodProvider);
+      final container = createVodContainer(items);
+      final result = await container.read(latestVodProvider.future);
 
       expect(result.length, 3);
     });
 
-    test('returns exactly 1 item when only 1 exists', () {
-      final container = createVodContainer(VodState(items: [_vodItem()]));
-      final result = container.read(latestVodProvider);
+    test('returns exactly 1 item when only 1 exists', () async {
+      final container = createVodContainer([_vodItem()]);
+      final result = await container.read(latestVodProvider.future);
 
       expect(result.length, 1);
       expect(result.first.id, 'v1');
@@ -382,10 +375,12 @@ void main() {
   // ══════════════════════════════════════════════════
 
   group('top10VodProvider', () {
-    ProviderContainer createVodContainer(VodState state) {
+    ProviderContainer createVodContainer(List<VodItem> items) {
       final c = ProviderContainer(
         overrides: [
-          vodProvider.overrideWith(() => _MockVodNotifier(state)),
+          vodPagePaginatedProvider(
+            const VodPageRequest(sort: 'rating_desc'),
+          ).overrideWith((ref) async => items),
           crispyBackendProvider.overrideWithValue(MemoryBackend()),
         ],
       );
@@ -394,7 +389,7 @@ void main() {
     }
 
     test('returns empty list when no VOD items', () async {
-      final container = createVodContainer(VodState());
+      final container = createVodContainer(const []);
       await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
@@ -410,7 +405,7 @@ void main() {
         _vodItem(id: 'v5', rating: '5.5', posterUrl: 'http://test.com/p5.jpg'),
       ];
 
-      final container = createVodContainer(VodState(items: items));
+      final container = createVodContainer(items);
       await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
@@ -434,7 +429,7 @@ void main() {
         _vodItem(id: 'v4', year: 2025, posterUrl: 'http://test.com/p4.jpg'),
       ];
 
-      final container = createVodContainer(VodState(items: items));
+      final container = createVodContainer(items);
       await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
@@ -456,7 +451,7 @@ void main() {
         _vodItem(id: 'v6', rating: '4.0', posterUrl: 'http://test.com/p6.jpg'),
       ];
 
-      final container = createVodContainer(VodState(items: items));
+      final container = createVodContainer(items);
       await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
@@ -475,7 +470,7 @@ void main() {
         _vodItem(id: 'v6', rating: '4.0', posterUrl: 'http://test.com/p6.jpg'),
       ];
 
-      final container = createVodContainer(VodState(items: items));
+      final container = createVodContainer(items);
       await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
@@ -492,7 +487,7 @@ void main() {
         ),
       );
 
-      final container = createVodContainer(VodState(items: items));
+      final container = createVodContainer(items);
       await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
@@ -514,7 +509,7 @@ void main() {
         _vodItem(id: 'v5', rating: '6.0', posterUrl: 'http://test.com/p5.jpg'),
       ];
 
-      final container = createVodContainer(VodState(items: items));
+      final container = createVodContainer(items);
       await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 
@@ -533,7 +528,7 @@ void main() {
         _vodItem(id: 'v3', year: 2025, posterUrl: 'http://test.com/p3.jpg'),
       ];
 
-      final container = createVodContainer(VodState(items: items));
+      final container = createVodContainer(items);
       await container.read(top10VodAsyncProvider.future);
       final result = container.read(top10VodProvider);
 

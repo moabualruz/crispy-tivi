@@ -105,7 +105,6 @@ class _RailNavWidgetState extends ConsumerState<RailNavWidget> {
 
   @override
   void dispose() {
-    _escalation.setRailNode(null);
     _railFocusScope.removeListener(_onFocusChange);
     _railFocusScope.dispose();
     super.dispose();

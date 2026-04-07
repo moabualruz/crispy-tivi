@@ -61,12 +61,14 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
   }
 
   // T03: Use paginated provider for series categories (SQL-level, no full load).
+  // Cap to top 30 by count — 1500+ genre pills is unusable.
   List<String> get _seriesCategories {
     final async = ref.watch(vodCategoriesPaginatedProvider('series'));
-    return (async.asData?.value ?? const <({String name, int count})>[])
+    final all = (async.asData?.value ?? const <({String name, int count})>[])
         .where((c) => c.count > 0)
-        .map((c) => c.name)
-        .toList();
+        .toList()
+      ..sort((a, b) => b.count.compareTo(a.count));
+    return all.take(30).map((c) => c.name).toList();
   }
 
   /// Wraps [child] in [RefreshIndicator] on mobile/tablet.
@@ -280,16 +282,27 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
     );
   }
 
+  /// Cap swimlane rows to avoid 1500+ concurrent widget builds.
+  static const _kMaxSwimlaneCategories = 20;
+
   Widget _buildCategorySwimlanes(
     List<String> seriesCategories,
     List<VodItem> allSeries,
   ) {
-    // T08: pre-filter categories that have no items so the sliver builder
-    // never receives an empty group.
+    // Pre-filter to non-empty categories, sort by count desc, cap.
+    final categoryCounts = <String, int>{};
+    for (final s in allSeries) {
+      if (s.category != null) {
+        categoryCounts[s.category!] = (categoryCounts[s.category!] ?? 0) + 1;
+      }
+    }
     final nonEmptyCategories =
         seriesCategories
-            .where((cat) => allSeries.any((s) => s.category == cat))
-            .toList();
+            .where((cat) => (categoryCounts[cat] ?? 0) > 0)
+            .toList()
+          ..sort((a, b) =>
+              (categoryCounts[b] ?? 0).compareTo(categoryCounts[a] ?? 0));
+    final capped = nonEmptyCategories.take(_kMaxSwimlaneCategories).toList();
 
     // Resolve new-episodes set once for all swimlanes.
     final newEpisodesIds = ref.watch(seriesWithNewEpisodesProvider);
@@ -298,7 +311,7 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
 
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
-        final category = nonEmptyCategories[index];
+        final category = capped[index];
         final categorySeries =
             allSeries.where((s) => s.category == category).toList();
 
@@ -309,7 +322,7 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
           isTitleBadge: true,
           badgeBuilder: newEpisodeBadge,
         );
-      }, childCount: nonEmptyCategories.length),
+      }, childCount: capped.length),
     );
   }
 }

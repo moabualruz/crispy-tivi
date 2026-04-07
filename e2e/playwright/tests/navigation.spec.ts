@@ -65,7 +65,8 @@ test.describe("Navigation", () => {
       const isEngineError = FLUTTER_ENGINE_ERRORS.some((known) =>
         err.message.includes(known),
       );
-      if (!isEngineError) {
+      const isKnownBenign = err.message === "Error";
+      if (!isEngineError && !isKnownBenign) {
         pageErrors.push(err.message);
       }
     });

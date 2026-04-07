@@ -16,7 +16,10 @@ export 'epg_state.dart';
 /// Manages EPG grid state.
 class EpgNotifier extends Notifier<EpgState> {
   static const _viewportHalfWindow = Duration(hours: 3);
-  static const _viewportChannelLimit = 40;
+  /// Max channels per EPG fetch. Set high for initial load to catch
+  /// all channels with EPG data; the Rust facade efficiently filters
+  /// via SQL. The UI grid virtualizes — only visible rows render.
+  static const _viewportChannelLimit = 500;
   static const _retentionBuffer = Duration(hours: 1);
 
   bool _hasViewportFetch = false;
@@ -135,11 +138,8 @@ class EpgNotifier extends Notifier<EpgState> {
     await fetchEpgWindow(start, end);
   }
 
-  /// Fetches an EPG window tailored to the currently filtered channels.
-  Future<void> fetchEpgWindow(
-    DateTime requestedStart,
-    DateTime requestedEnd,
-  ) async {
+  /// Fetches EPG for currently filtered channels within ±3h of focus.
+  Future<void> fetchEpgWindow(DateTime requestedStart, DateTime requestedEnd) async {
     await _ensureChannelsLoaded();
 
     final requestedDuration = requestedEnd.difference(requestedStart);
@@ -152,8 +152,7 @@ class EpgNotifier extends Notifier<EpgState> {
     _hasViewportFetch = true;
     state = state.copyWith(isLoading: true);
 
-    final channelIds =
-        channelsToFetch.map((c) => state.epgOverrides[c.id] ?? c.id).toList();
+    final channelIds = channelsToFetch.map((c) => c.id).toSet().toList();
     final retainedKeys = _retainedEntryKeys(channelsToFetch);
 
     try {
@@ -245,20 +244,16 @@ class EpgNotifier extends Notifier<EpgState> {
 
   /// Selects an EPG entry (shown in info panel).
   void selectEntry(EpgEntry? entry) {
-    if (entry == null) {
-      state = state.copyWith(clearSelectedEntry: true);
-    } else {
-      state = state.copyWith(selectedEntry: entry);
-    }
+    state = entry == null
+        ? state.copyWith(clearSelectedEntry: true)
+        : state.copyWith(selectedEntry: entry);
   }
 
   /// Filter by group (null = show all).
   void selectGroup(String? group) {
-    if (group == null) {
-      state = state.copyWith(clearGroup: true);
-    } else {
-      state = state.copyWith(selectedGroup: group);
-    }
+    state = group == null
+        ? state.copyWith(clearGroup: true)
+        : state.copyWith(selectedGroup: group);
     if (_hasViewportFetch) {
       unawaited(_refreshViewportAroundFocus());
     }

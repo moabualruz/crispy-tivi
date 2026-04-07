@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -16,6 +17,10 @@ void main() {
   // Global integration test binding to support flutter driver
   // execution locally and on device.
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final originalErrorWidgetBuilder = ErrorWidget.builder;
+  final originalFlutterErrorHandler = FlutterError.onError;
+  final originalPlatformErrorHandler =
+      WidgetsBinding.instance.platformDispatcher.onError;
 
   // Suppress connectivity_plus errors on Windows integration tests by mocking the event channel listen method
   final binding = TestDefaultBinaryMessengerBinding.instance;
@@ -34,6 +39,13 @@ void main() {
   setUpAll(() async {
     await FfiTestHelper.ensureTestIsolation();
     await FfiTestHelper.seedTestSource();
+  });
+
+  tearDown(() {
+    ErrorWidget.builder = originalErrorWidgetBuilder;
+    FlutterError.onError = originalFlutterErrorHandler;
+    WidgetsBinding.instance.platformDispatcher.onError =
+        originalPlatformErrorHandler;
   });
 
   // Master Runner Logic

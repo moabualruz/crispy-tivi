@@ -94,11 +94,8 @@ class EpgState {
     if (showEpgOnly) {
       result =
           result.where((c) {
-            final effectiveId = epgOverrides[c.id] ?? c.id;
-            final channelEntries = entries[effectiveId];
-            if (channelEntries == null || channelEntries.isEmpty) return false;
-            // Exclude channels with ONLY placeholder entries.
-            // Placeholders have sourceId == '_placeholder'.
+            final channelEntries = entriesForChannel(c.id);
+            if (channelEntries.isEmpty) return false;
             return channelEntries.any((e) => e.sourceId != '_placeholder');
           }).toList();
     }
@@ -107,12 +104,19 @@ class EpgState {
 
   /// Returns entries for a specific channel.
   ///
-  /// Checks [epgOverrides] first — if the channel has a
-  /// manual EPG assignment, returns entries for the target.
+  /// Lookup priority: epgOverride → channelId → nativeId → tvgId.
+  /// EPG entries are keyed by nativeId (Xtream stream_id) after
+  /// the fetchEpgWindow fix, so the nativeId fallback is critical.
   List<EpgEntry> entriesForChannel(String channelId) {
     final effectiveId = epgOverrides[channelId] ?? channelId;
     final direct = entries[effectiveId];
     if (direct != null && direct.isNotEmpty) return direct;
+    // Try nativeId (Xtream stream_id — matches EPG epg_channel_id).
+    final channel = channels.where((c) => c.id == channelId).firstOrNull;
+    if (channel?.nativeId != null && channel!.nativeId!.isNotEmpty) {
+      final byNative = entries[channel.nativeId];
+      if (byNative != null && byNative.isNotEmpty) return byNative;
+    }
     final tvgId = tvgIdIndex[channelId];
     if (tvgId != null && tvgId.isNotEmpty) {
       return entries[tvgId] ?? const [];

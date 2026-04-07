@@ -12,8 +12,9 @@ import '../../../../core/widgets/app_bar_search_button.dart';
 import '../../../../core/widgets/screen_template.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../iptv/presentation/providers/playlist_sync_service.dart';
-import '../../../vod/presentation/providers/vod_providers.dart';
+import '../../../vod/domain/entities/vod_item.dart';
 import '../../../vod/presentation/widgets/vod_hero_banner.dart';
+import '../providers/home_providers.dart';
 import '../widgets/home_sections.dart';
 import '../widgets/home_tv_layout.dart';
 import '../widgets/my_list_section.dart';
@@ -29,7 +30,9 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final featuredItems = ref.watch(vodProvider.select((s) => s.featured));
+    final featuredItems = ref.watch(
+      featuredVodProvider,
+    ).maybeWhen(data: (items) => items, orElse: () => const <VodItem>[]);
 
     return Scaffold(
       key: TestKeys.homeScreen,

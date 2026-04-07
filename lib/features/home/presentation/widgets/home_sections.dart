@@ -471,7 +471,10 @@ class HomeLatestVodSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final latest = ref.watch(latestVodProvider);
+    final latest = ref.watch(latestVodProvider).maybeWhen(
+      data: (items) => items,
+      orElse: () => const <VodItem>[],
+    );
 
     if (latest.isEmpty) return const SizedBox.shrink();
 

@@ -23,6 +23,7 @@ mixin PlaylistEpgHelper {
   /// directly persisting right into the SQLite database.
   Future<void> fetchEpg({bool force = false}) async {
     try {
+      if (!ref.mounted) return;
       final settings = ref.read(settingsNotifierProvider).value;
       if (settings == null) return;
 
@@ -46,6 +47,7 @@ mixin PlaylistEpgHelper {
         debugPrint(
           'PlaylistSync: no EPG URLs or compatible sources configured',
         );
+        if (!ref.mounted) return;
         ref
             .read(epgProvider.notifier)
             .setFetchResult('No EPG sources configured', success: false);
@@ -53,6 +55,7 @@ mixin PlaylistEpgHelper {
       }
 
       // Signal loading start.
+      if (!ref.mounted) return;
       ref.read(epgProvider.notifier).setLoading();
 
       final backend = ref.read(crispyBackendProvider);
@@ -74,16 +77,19 @@ mixin PlaylistEpgHelper {
             'PlaylistSync: XMLTV EPG sync failed for ${entry.key}: $e',
           );
         }
+        if (!ref.mounted) return;
       }
 
       // Pass 2: Xtream short EPG for unfilled.
       await _fetchAllXtreamEpg(sources: settings.sources, force: force);
+      if (!ref.mounted) return;
 
       // Pass 3: Stalker short EPG for unfilled.
       await _fetchAllStalkerEpg(
         sources: settings.sources,
         force: force,
       );
+      if (!ref.mounted) return;
 
       // Rust has persisted everything to DB. Refresh
       // the UI's current day window without wiping
@@ -109,10 +115,12 @@ mixin PlaylistEpgHelper {
       final start = DateTime(now.year, now.month, now.day);
       final end = start.add(const Duration(days: 1));
       await notifier.fetchEpgWindow(start, end);
+      if (!ref.mounted) return;
 
       notifier.setFetchResult('EPG sync complete and timeline refreshed');
     } catch (e) {
       debugPrint('PlaylistSync: EPG pipeline error: $e');
+      if (!ref.mounted) return;
       ref
           .read(epgProvider.notifier)
           .setFetchResult('EPG fetch failed: $e', success: false);
@@ -131,6 +139,7 @@ mixin PlaylistEpgHelper {
 
     final backend = ref.read(crispyBackendProvider);
     for (final src in xtreamSources) {
+      if (!ref.mounted) return;
       if (src.username != null && src.password != null) {
         try {
           debugPrint('PlaylistSync: syncing Xtream EPG for source ${src.id}');
@@ -163,6 +172,7 @@ mixin PlaylistEpgHelper {
     final backend = ref.read(crispyBackendProvider);
     final cache = ref.read(cacheServiceProvider);
     for (final src in stalkerSources) {
+      if (!ref.mounted) return;
       if (src.macAddress != null && src.macAddress!.isNotEmpty) {
         try {
           debugPrint('PlaylistSync: syncing Stalker EPG for source ${src.id}');

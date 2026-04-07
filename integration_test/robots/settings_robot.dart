@@ -11,12 +11,18 @@ class SettingsRobot {
   Finder get settingsScreen => find.byKey(TestKeys.settingsScreen);
 
   Future<void> waitForSettings() async {
-    await tester.pumpUntilFound(settingsScreen);
-    await tester.pumpUntilFound(find.byType(TabBarView));
+    await tester.pumpUntilFound(
+      settingsScreen,
+      timeout: const Duration(seconds: 60),
+    );
+    await tester.pumpUntilFound(
+      find.byType(TabBarView),
+      timeout: const Duration(seconds: 60),
+    );
     // Wait until the General tab's actual content is rendered (not the
     // shimmer placeholder).  On slower devices, settingsAsync may take
     // a while to resolve.
-    for (int i = 0; i < 60; i++) {
+    for (int i = 0; i < 150; i++) {
       await tester.pump(const Duration(milliseconds: 200));
       if (_hasTabContent('General')) break;
     }
@@ -29,23 +35,49 @@ class SettingsRobot {
   );
 
   Future<void> _scrollIntoView(Finder finder) async {
-    // Settings tabs use ListView (not ListView.builder), so all items
-    // exist in the widget tree even when off-screen.  We just need to
-    // wait for the tab content to render, then ensureVisible scrolls
-    // the item on-screen.  This avoids dragUntilVisible which has
-    // race conditions on slower devices (Android emulators).
-    for (int i = 0; i < 80; i++) {
+    final listView = find.descendant(
+      of: settingsScreen,
+      matching: find.byType(ListView),
+    );
+    final scrollable = find.descendant(
+      of: settingsScreen,
+      matching: find.byType(Scrollable),
+    );
+
+    for (int i = 0; i < 300; i++) {
       await tester.pump(const Duration(milliseconds: 100));
       if (tester.any(finder)) {
         await tester.ensureVisible(finder);
         await tester.pump(const Duration(milliseconds: 500));
         return;
       }
+
+      if (tester.any(listView)) {
+        await tester.drag(listView.first, const Offset(0, -250));
+      } else if (tester.any(scrollable)) {
+        await tester.drag(scrollable.first, const Offset(0, -250));
+      }
     }
+
+    final visibleTexts =
+        tester
+            .widgetList<Text>(
+              find.descendant(
+                of: settingsScreen,
+                matching: find.byType(Text),
+                skipOffstage: false,
+              ),
+            )
+            .map((text) => text.data)
+            .whereType<String>()
+            .where((text) => text.trim().isNotEmpty)
+            .toSet()
+            .take(80)
+            .join(' | ');
 
     throw StateError(
       'Widget "${finder.describeMatch(Plurality.many)}" not found in settings screen '
-      'after 8 seconds of pumping',
+      'after 30 seconds of pumping. Visible texts: $visibleTexts',
     );
   }
 
@@ -81,6 +113,16 @@ class SettingsRobot {
 
   /// Switches to a settings category tab by label.
   Future<void> tapTab(String label) async {
+    final fallbackIndex = switch (label) {
+      'General' => 0,
+      'Sources' => 1,
+      'Playback' => 2,
+      'Data' => 3,
+      'Advanced' => 4,
+      'About' => 5,
+      _ => -1,
+    };
+
     for (int attempt = 0; attempt < 3; attempt++) {
       await tester.pumpUntilFound(find.byType(TabBar));
 
@@ -100,6 +142,7 @@ class SettingsRobot {
           break;
         }
       }
+      if (targetIndex == -1) targetIndex = fallbackIndex;
       if (targetIndex == -1) {
         throw StateError('Tab "$label" not found in TabBar');
       }
@@ -161,7 +204,9 @@ class SettingsRobot {
     switch (label) {
       case 'General':
         return tester.any(find.text('Auto-resume last channel')) ||
-            tester.any(find.text('Theme Base'));
+            tester.any(find.text('Default screen after login')) ||
+            tester.any(find.text('Theme Base')) ||
+            tester.any(find.text('Live TV'));
       case 'Playback':
         return tester.any(find.text('Auto Frame Rate')) ||
             tester.any(find.text('Hardware Decoding'));

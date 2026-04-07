@@ -215,9 +215,13 @@ impl VodService {
         }
 
         if let Some(cat) = category {
-            sql.push_str(&format!(" AND genre = ?{}", param_idx));
-            params.push(Box::new(cat.to_string()));
-            param_idx += 1;
+            if cat == "Uncategorized" {
+                sql.push_str(" AND (genre IS NULL OR genre = '')");
+            } else {
+                sql.push_str(&format!(" AND genre = ?{}", param_idx));
+                params.push(Box::new(cat.to_string()));
+                param_idx += 1;
+            }
         }
 
         if let Some(q) = query
@@ -271,9 +275,13 @@ impl VodService {
         }
 
         if let Some(cat) = category {
-            sql.push_str(&format!(" AND genre = ?{}", param_idx));
-            params.push(Box::new(cat.to_string()));
-            param_idx += 1;
+            if cat == "Uncategorized" {
+                sql.push_str(" AND (genre IS NULL OR genre = '')");
+            } else {
+                sql.push_str(&format!(" AND genre = ?{}", param_idx));
+                params.push(Box::new(cat.to_string()));
+                param_idx += 1;
+            }
         }
 
         if let Some(q) = query
@@ -334,9 +342,13 @@ impl VodService {
         }
 
         if let Some(cat) = category {
-            sql.push_str(&format!(" AND genre = ?{}", param_idx));
-            params.push(Box::new(cat.to_string()));
-            param_idx += 1;
+            if cat == "Uncategorized" {
+                sql.push_str(" AND (genre IS NULL OR genre = '')");
+            } else {
+                sql.push_str(&format!(" AND genre = ?{}", param_idx));
+                params.push(Box::new(cat.to_string()));
+                param_idx += 1;
+            }
         }
 
         if let Some(q) = query

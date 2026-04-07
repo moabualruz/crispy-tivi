@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
+import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../profiles/presentation/providers/profile_service_providers.dart'
     show accessibleSourcesProvider;
 import '../../../vod/presentation/providers/vod_paginated_providers.dart';
@@ -57,16 +58,10 @@ mixin PlaylistSyncHelpers {
   Future<void> loadFromCache() async {
     final sw = Stopwatch()..start();
     debugPrint('PlaylistSync: loading from cache…');
-    // final channels = await cache.loadChannels();
-    // final vods = await cache.loadVodItems();
-    debugPrint('PlaylistSync: skipping bulk load — using paginated providers');
+    await ref.read(channelListProvider.notifier).refreshFromBackend();
     syncSourceNames();
-
     sw.stop();
-    debugPrint(
-      'PlaylistSync: cache → UI complete in '
-      '${sw.elapsedMilliseconds}ms',
-    );
+    debugPrint('PlaylistSync: cache → UI complete in ${sw.elapsedMilliseconds}ms');
   }
 
   /// Reloads channels from cache into the UI notifier.
@@ -74,11 +69,22 @@ mixin PlaylistSyncHelpers {
   /// Applies source access filtering based on the
   /// current profile's permissions.
   Future<void> reloadChannelList() async {
-    debugPrint(
-      'PlaylistSync: skipping bulk channel reload — using paginated providers',
-    );
+    debugPrint('PlaylistSync: reloading channel list from DB…');
     invalidateChannelPaginatedProviders();
+    await ref.read(channelListProvider.notifier).refreshFromBackend();
     syncSourceNames();
+    // Populate EPG with all channels for the guide
+    final channels = ref.read(channelListProvider).channels;
+    if (channels.isNotEmpty) {
+      final overrides =
+          ref.read(settingsNotifierProvider).value?.epgOverrides ?? {};
+      ref
+          .read(epgProvider.notifier)
+          .updateChannels(channels: channels, epgOverrides: overrides);
+      debugPrint(
+        'PlaylistSync: synced ${channels.length} channels to EPG notifier',
+      );
+    }
   }
 
   /// Syncs playlist source names to the channel list

@@ -6,13 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:crispy_tivi/config/config_service.dart';
 import 'package:crispy_tivi/config/settings_notifier.dart';
-import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/crispy_backend.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/core/testing/test_keys.dart';
 import 'package:crispy_tivi/core/navigation/app_router.dart';
 import 'package:crispy_tivi/core/theme/app_theme.dart';
 import 'package:crispy_tivi/core/theme/theme_provider.dart';
+import 'package:crispy_tivi/l10n/app_localizations.dart';
 import 'package:crispy_tivi/features/epg/presentation/providers/epg_providers.dart';
 import 'package:crispy_tivi/features/iptv/presentation/providers/playlist_sync_service.dart';
 import 'package:crispy_tivi/features/iptv/domain/entities/epg_entry.dart';
@@ -20,7 +20,6 @@ import 'package:crispy_tivi/features/onboarding/presentation/providers/onboardin
 import 'package:crispy_tivi/features/profiles/domain/entities/user_profile.dart';
 import 'package:crispy_tivi/features/settings/presentation/providers/pin_lockout_provider.dart';
 import 'package:crispy_tivi/features/iptv/presentation/providers/channel_providers.dart';
-import 'package:crispy_tivi/features/player/data/player_service.dart';
 import 'package:crispy_tivi/features/player/domain/entities/playback_state.dart';
 import 'package:crispy_tivi/features/player/presentation/providers/player_providers.dart';
 import 'package:crispy_tivi/features/voice_search/data/services/speech_service.dart';
@@ -220,6 +219,7 @@ Widget createTestApp({
   CacheService? cache,
   OnboardingNotifier Function()? onboardingNotifierOverride,
   PinLockoutNotifier Function()? pinLockoutNotifierOverride,
+  String? initialRoute,
 }) {
   final testBackend = backend ?? MemoryBackend();
   final testCache = cache ?? CacheService(testBackend);
@@ -264,7 +264,7 @@ Widget createTestApp({
       if (pinLockoutNotifierOverride != null)
         pinLockoutProvider.overrideWith(pinLockoutNotifierOverride),
     ],
-    child: const _IntegrationTestApp(),
+    child: _IntegrationTestApp(initialRoute: initialRoute),
   );
 }
 
@@ -393,7 +393,9 @@ void expectTabExists(String label) {
 /// Mirrors [CrispyTiviApp] including the startup
 /// `syncAll()` call that populates channels and VODs.
 class _IntegrationTestApp extends ConsumerStatefulWidget {
-  const _IntegrationTestApp();
+  const _IntegrationTestApp({this.initialRoute});
+
+  final String? initialRoute;
 
   @override
   ConsumerState<_IntegrationTestApp> createState() =>
@@ -406,8 +408,11 @@ class _IntegrationTestAppState extends ConsumerState<_IntegrationTestApp> {
     super.initState();
     // Mirror CrispyTiviApp: trigger sync on startup
     // so FakeSyncService populates channels + VODs.
-    Future.microtask(() {
-      ref.read(playlistSyncServiceProvider).syncAll();
+    Future.microtask(() async {
+      await ref.read(playlistSyncServiceProvider).syncAll();
+      final initialRoute = widget.initialRoute;
+      if (!mounted || initialRoute == null) return;
+      ref.read(goRouterProvider).go(initialRoute);
     });
   }
 
@@ -442,6 +447,9 @@ class _IntegrationTestAppState extends ConsumerState<_IntegrationTestApp> {
           theme: themedData,
           darkTheme: themedData,
           themeMode: ThemeMode.dark,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
           routerConfig: router,
         );
       },

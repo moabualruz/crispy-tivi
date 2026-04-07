@@ -64,7 +64,7 @@ mixin _FfiChannelsMixin on _FfiBackendBase {
       sourceIdsJson: sourceIdsJson,
       group: group,
     );
-    return result;
+    return result.toInt();
   }
 
   Future<List<String>> getChannelIdsForGroup(

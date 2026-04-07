@@ -107,6 +107,23 @@ class EnhancedSearchResultCard extends StatelessWidget {
           ? DurationFormatter.humanShortMs(item.durationMs)
           : null;
 
+  String get _semanticTypeLabel {
+    switch (item.type) {
+      case MediaType.channel:
+        return 'channel';
+      case MediaType.movie:
+        return 'movie';
+      case MediaType.series:
+        return 'series';
+      case MediaType.episode:
+        return 'episode';
+      case MediaType.folder:
+        return 'folder';
+      default:
+        return 'result';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -122,6 +139,7 @@ class EnhancedSearchResultCard extends StatelessWidget {
 
     return FocusWrapper(
       onSelect: onTap,
+      semanticLabel: '$_semanticTypeLabel result ${item.name}',
       borderRadius: CrispyRadius.md,
       scaleFactor: CrispyAnimation.hoverScale,
       padding: EdgeInsets.zero,
