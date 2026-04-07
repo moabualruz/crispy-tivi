@@ -20,6 +20,7 @@ import '../../../iptv/presentation/providers/playlist_sync_service.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../domain/entities/vod_item.dart';
 import '../mixins/vod_sortable_browser_mixin.dart';
+import '../providers/vod_paginated_providers.dart';
 import '../providers/vod_providers.dart';
 import '../widgets/vod_browser_shell.dart';
 import '../widgets/continue_watching_section.dart';
@@ -65,10 +66,14 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
   List<VodItem> get _favorites =>
       _allFilteredSeries.where((s) => s.isFavorite).toList();
 
-  // T03: Use pre-computed VodState.seriesCategories instead of re-computing
-  // from filteredSeriesProvider on every build.
-  List<String> get _seriesCategories =>
-      ref.watch(vodProvider.select((s) => s.seriesCategories));
+  // T03: Use paginated provider for series categories (SQL-level, no full load).
+  List<String> get _seriesCategories {
+    final async = ref.watch(vodCategoriesPaginatedProvider('series'));
+    return (async.asData?.value ?? const <({String name, int count})>[])
+        .where((c) => c.count > 0)
+        .map((c) => c.name)
+        .toList();
+  }
 
   /// Wraps [child] in [RefreshIndicator] on mobile/tablet.
   Widget _wrapRefresh(Widget child) {
@@ -109,7 +114,10 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
       emptyIcon: Icons.tv_off,
       emptyTitle: context.l10n.vodNoItems,
       emptyDescription: 'Add a playlist source in Settings',
-      onRetry: () => ref.invalidate(vodProvider),
+      onRetry: () {
+        ref.invalidate(vodProvider);
+        ref.invalidate(vodCategoriesPaginatedProvider('series'));
+      },
       child: Scaffold(
         key: TestKeys.seriesBrowserScreen,
         appBar: AppBar(

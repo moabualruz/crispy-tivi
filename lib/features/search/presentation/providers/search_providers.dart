@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/cache_service.dart';
 import '../../../../core/providers/source_filter_provider.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../iptv/presentation/providers/channel_providers.dart';
 import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../domain/entities/grouped_search_results.dart';
-import '../../domain/entities/search_filter.dart';
 import '../../domain/entities/search_history_entry.dart';
 import '../../domain/entities/search_state.dart';
 import 'search_repository_providers.dart';
@@ -122,32 +122,24 @@ class SearchNotifier extends Notifier<SearchState> {
   Future<void> _executeSearch(String query, int generation) async {
     const sources = <Never>[];
     final effectiveSourceIds = ref.read(effectiveSourceIdsProvider);
-    final allVodItems = ref.read(vodProvider).items;
     final epgEntries = ref.read(epgProvider).entries;
-    final allChannels = ref.read(channelListProvider).channels;
+    final cacheService = ref.read(cacheServiceProvider);
 
-    final vodItems =
-        effectiveSourceIds.isEmpty
-            ? allVodItems
-            : allVodItems
-                .where(
-                  (i) =>
-                      i.sourceId != null &&
-                      effectiveSourceIds.contains(i.sourceId),
-                )
-                .toList();
-    final channels =
-        effectiveSourceIds.isEmpty
-            ? allChannels
-            : allChannels
-                .where(
-                  (ch) =>
-                      ch.sourceId != null &&
-                      effectiveSourceIds.contains(ch.sourceId),
-                )
-                .toList();
+    // SQL-level search: max 50 results per type, no full in-memory load.
+    final channels = await cacheService.searchChannels(
+      query: query,
+      sourceIds: effectiveSourceIds,
+      offset: 0,
+      limit: 50,
+    );
+    final vodItems = await cacheService.searchVod(
+      query: query,
+      sourceIds: effectiveSourceIds,
+      offset: 0,
+      limit: 50,
+    );
 
-    final startedWithNoLocalData = vodItems.isEmpty && channels.isEmpty;
+    if (generation != _searchGeneration) return;
 
     try {
       final results = await ref
@@ -162,36 +154,6 @@ class SearchNotifier extends Notifier<SearchState> {
           );
 
       if (generation != _searchGeneration) return;
-
-      if (results.isEmpty && startedWithNoLocalData) {
-        final freshEffective = ref.read(effectiveSourceIdsProvider);
-        final freshAllVod = ref.read(vodProvider).items;
-        final freshAllChannels = ref.read(channelListProvider).channels;
-        final freshVod =
-            freshEffective.isEmpty
-                ? freshAllVod
-                : freshAllVod
-                    .where(
-                      (i) =>
-                          i.sourceId != null &&
-                          freshEffective.contains(i.sourceId),
-                    )
-                    .toList();
-        final freshChannels =
-            freshEffective.isEmpty
-                ? freshAllChannels
-                : freshAllChannels
-                    .where(
-                      (ch) =>
-                          ch.sourceId != null &&
-                          freshEffective.contains(ch.sourceId),
-                    )
-                    .toList();
-        if (freshVod.isNotEmpty || freshChannels.isNotEmpty) {
-          await _executeSearch(query, generation);
-          return;
-        }
-      }
 
       state = state.copyWith(results: results, isLoading: false);
 
@@ -208,12 +170,12 @@ class SearchNotifier extends Notifier<SearchState> {
           thumbnailUrl = results.series.first.logoUrl;
           resultType = SearchHistoryResultType.vod;
         }
-        _saveToHistory(
+        unawaited(_saveToHistory(
           query,
           results.totalCount,
           thumbnailUrl: thumbnailUrl,
           resultType: resultType,
-        );
+        ));
       }
     } catch (e) {
       if (generation != _searchGeneration) return;
