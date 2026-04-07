@@ -34,7 +34,7 @@ class EpgNotifier extends Notifier<EpgState> {
     Map<String, List<EpgEntry>> entries = const {},
     Map<String, String>? epgOverrides,
   }) {
-    final tvgIndex = _buildTvgIndex(channels);
+    final tvgIndex = buildEpgTvgIndex(channels);
     state = state.copyWith(
       channels: channels,
       entries: entries,
@@ -53,24 +53,13 @@ class EpgNotifier extends Notifier<EpgState> {
     required List<Channel> channels,
     Map<String, String>? epgOverrides,
   }) {
-    final tvgIndex = _buildTvgIndex(channels);
+    final tvgIndex = buildEpgTvgIndex(channels);
     state = state.copyWith(
       channels: channels,
       epgOverrides: epgOverrides,
       tvgIdIndex: tvgIndex,
       isLoading: false,
     );
-  }
-
-  static Map<String, String> _buildTvgIndex(List<Channel> channels) {
-    final idx = <String, String>{};
-    for (final ch in channels) {
-      final tvg = ch.tvgId;
-      if (tvg != null && tvg.isNotEmpty) {
-        idx[ch.id] = tvg;
-      }
-    }
-    return idx;
   }
 
   List<Channel> _viewportChannels() {
@@ -91,7 +80,10 @@ class EpgNotifier extends Notifier<EpgState> {
 
     final halfWindow = _viewportChannelLimit ~/ 2;
     final start = math.max(0, selectedIndex - halfWindow);
-    final end = math.min(filteredChannels.length, start + _viewportChannelLimit);
+    final end = math.min(
+      filteredChannels.length,
+      start + _viewportChannelLimit,
+    );
     final adjustedStart = math.max(0, end - _viewportChannelLimit);
     return filteredChannels.sublist(adjustedStart, end);
   }
@@ -144,7 +136,10 @@ class EpgNotifier extends Notifier<EpgState> {
   }
 
   /// Fetches an EPG window tailored to the currently filtered channels.
-  Future<void> fetchEpgWindow(DateTime requestedStart, DateTime requestedEnd) async {
+  Future<void> fetchEpgWindow(
+    DateTime requestedStart,
+    DateTime requestedEnd,
+  ) async {
     await _ensureChannelsLoaded();
 
     final requestedDuration = requestedEnd.difference(requestedStart);
@@ -305,25 +300,3 @@ class EpgNotifier extends Notifier<EpgState> {
 
 /// Global EPG state provider.
 final epgProvider = NotifierProvider<EpgNotifier, EpgState>(EpgNotifier.new);
-
-/// Notifier for the EPG program search query.
-class EpgProgramSearchNotifier extends Notifier<String> {
-  @override
-  String build() => '';
-
-  /// Updates the search query.
-  void setQuery(String query) => state = query;
-
-  /// Clears the search query.
-  void clear() => state = '';
-}
-
-/// Current search query for the EPG program guide.
-///
-/// Updated by [EpgSearchDelegate] when the user types in
-/// the search field. Widgets can watch this to filter or
-/// highlight matching program blocks.
-final epgProgramSearchProvider =
-    NotifierProvider<EpgProgramSearchNotifier, String>(
-      EpgProgramSearchNotifier.new,
-    );

@@ -3,20 +3,16 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
 
-import '../../../../core/data/cache_service.dart';
 import '../../../../core/providers/active_profile_provider.dart';
 import '../../../../core/providers/source_filter_provider.dart';
+import 'iptv_service_providers.dart' show cacheServiceProvider;
 import '../../domain/entities/channel.dart';
 
 const kChannelPageSize = 50;
 
 @immutable
 class ChannelPageRequest {
-  const ChannelPageRequest({
-    this.group,
-    this.page = 0,
-    this.sort = 'name_asc',
-  });
+  const ChannelPageRequest({this.group, this.page = 0, this.sort = 'name_asc'});
 
   final String? group;
   final int page;
@@ -60,8 +56,8 @@ final channelPagePaginatedProvider = FutureProvider.autoDispose
       );
     });
 
-final channelCountPaginatedProvider =
-    FutureProvider.autoDispose.family<int, String?>((ref, group) async {
+final channelCountPaginatedProvider = FutureProvider.autoDispose
+    .family<int, String?>((ref, group) async {
       final sourceIds = ref.watch(effectiveSourceIdsProvider);
       final cache = ref.watch(cacheServiceProvider);
       return cache.getChannelCount(sourceIds: sourceIds, group: group);
@@ -83,8 +79,8 @@ final channelIdsPaginatedProvider = FutureProvider.autoDispose
       );
     });
 
-final channelByIdPaginatedProvider =
-    FutureProvider.autoDispose.family<Channel?, String>((ref, id) async {
+final channelByIdPaginatedProvider = FutureProvider.autoDispose
+    .family<Channel?, String>((ref, id) async {
       final link = ref.keepAlive();
       final timer = Timer(const Duration(seconds: 30), link.close);
       ref.onDispose(timer.cancel);

@@ -21,7 +21,6 @@ import '../../../../core/widgets/grid_focus_traveler.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../../../core/widgets/screen_template.dart';
-import '../../../../core/widgets/skeleton_loader.dart';
 import '../providers/duplicate_detection_service.dart';
 import '../providers/playlist_sync_service.dart';
 import '../../domain/entities/channel.dart';
@@ -30,7 +29,6 @@ import '../providers/channel_providers.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
 import '../widgets/channel_genre_chips_sliver.dart';
 import '../widgets/channel_grid_sliver.dart';
-import '../widgets/channel_grid_item.dart';
 import '../widgets/channel_group_row.dart';
 import '../widgets/channel_list_helpers.dart';
 import '../widgets/channel_recent_strip.dart';
@@ -411,7 +409,7 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
           right: 0,
           top: 0,
           bottom: 0,
-          child: _AlphaJumpBarAdapter(
+          child: AlphaJumpBarAdapter(
             scrollController: _channelScrollController,
             indexOffsets: indexOffsets,
             totalItemCount: totalItemCount,
@@ -763,138 +761,5 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
         final s = ref.read(channelListProvider);
         n.setShowHiddenChannels(!s.showHiddenChannels);
     }
-  }
-}
-
-/// Adapter that converts index-based offsets to pixel offsets
-/// once the scroll controller's max extent is known.
-class _AlphaJumpBarAdapter extends StatefulWidget {
-  final ScrollController scrollController;
-  final Map<String, double> indexOffsets;
-  final int totalItemCount;
-
-  const _AlphaJumpBarAdapter({
-    required this.scrollController,
-    required this.indexOffsets,
-    required this.totalItemCount,
-  });
-
-  @override
-  State<_AlphaJumpBarAdapter> createState() => _AlphaJumpBarAdapterState();
-}
-
-class _AlphaJumpBarAdapterState extends State<_AlphaJumpBarAdapter> {
-  Map<String, double> _pixelOffsets = const {};
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _update());
-    widget.scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void didUpdateWidget(_AlphaJumpBarAdapter old) {
-    super.didUpdateWidget(old);
-    if (old.indexOffsets != widget.indexOffsets ||
-        old.totalItemCount != widget.totalItemCount) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _update());
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.scrollController.removeListener(_onScroll);
-    super.dispose();
-  }
-
-  bool _extentReady = false;
-
-  void _onScroll() {
-    if (!_extentReady && widget.scrollController.hasClients) {
-      _update();
-    }
-  }
-
-  void _update() {
-    if (!widget.scrollController.hasClients) return;
-    final maxExtent = widget.scrollController.position.maxScrollExtent;
-    if (maxExtent <= 0) return;
-    _extentReady = true;
-    final scaled = AlphaJumpBar.scaleOffsets(
-      widget.indexOffsets,
-      maxExtent,
-      widget.totalItemCount,
-    );
-    if (mounted) setState(() => _pixelOffsets = scaled);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlphaJumpBar(
-      controller: widget.scrollController,
-      sectionOffsets: _pixelOffsets,
-      totalItemCount: widget.totalItemCount,
-    );
-  }
-}
-
-extension _AsyncValueValueOrNull<T> on AsyncValue<T> {
-  T? get valueOrNull =>
-      when(data: (value) => value, loading: () => null, error: (_, _) => null);
-}
-
-class ChannelCard extends StatelessWidget {
-  const ChannelCard({
-    super.key,
-    required this.channel,
-    required this.onTap,
-    this.currentProgram,
-    this.isPlaying = false,
-    this.autofocus = false,
-  });
-
-  final Channel channel;
-  final VoidCallback onTap;
-  final String? currentProgram;
-  final bool isPlaying;
-  final bool autofocus;
-
-  @override
-  Widget build(BuildContext context) {
-    return ChannelGridItem(
-      channel: channel,
-      onTap: onTap,
-      currentProgram: currentProgram,
-      isPlaying: isPlaying,
-      autofocus: autofocus,
-    );
-  }
-}
-
-class ChannelCardSkeleton extends StatelessWidget {
-  const ChannelCardSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.all(CrispySpacing.sm),
-      child: const Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Center(
-              child: SkeletonLoader(width: 72, height: 48, borderRadius: 12),
-            ),
-          ),
-          SizedBox(height: CrispySpacing.xs),
-          SkeletonLine(width: 72, height: 10),
-        ],
-      ),
-    );
   }
 }

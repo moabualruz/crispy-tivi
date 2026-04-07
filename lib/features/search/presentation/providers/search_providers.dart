@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/cache_service.dart';
+import 'search_service_providers.dart';
 import '../../../../core/providers/source_filter_provider.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';

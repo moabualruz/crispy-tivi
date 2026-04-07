@@ -242,3 +242,41 @@ class EpgState {
 /// Returns the current time. Override in tests with a
 /// fixed [DateTime] to produce deterministic goldens.
 final epgClockProvider = Provider<DateTime Function()>((_) => DateTime.now);
+
+/// Builds a `channelId → tvgId` index from a channel list.
+///
+/// Extracted here so both [EpgNotifier.loadData] and
+/// [EpgNotifier.updateChannels] share the same logic without
+/// keeping a private static in the notifier file.
+Map<String, String> buildEpgTvgIndex(List<Channel> channels) {
+  final idx = <String, String>{};
+  for (final ch in channels) {
+    final tvg = ch.tvgId;
+    if (tvg != null && tvg.isNotEmpty) {
+      idx[ch.id] = tvg;
+    }
+  }
+  return idx;
+}
+
+/// Notifier for the EPG program search query.
+class EpgProgramSearchNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+
+  /// Updates the search query.
+  void setQuery(String query) => state = query;
+
+  /// Clears the search query.
+  void clear() => state = '';
+}
+
+/// Current search query for the EPG program guide.
+///
+/// Updated by [EpgSearchDelegate] when the user types in
+/// the search field. Widgets can watch this to filter or
+/// highlight matching program blocks.
+final epgProgramSearchProvider =
+    NotifierProvider<EpgProgramSearchNotifier, String>(
+      EpgProgramSearchNotifier.new,
+    );

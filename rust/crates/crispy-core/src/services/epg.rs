@@ -5,6 +5,7 @@ use rusqlite::params;
 use super::{ServiceContext, bool_to_int, dt_to_ts, str_params, ts_to_dt};
 use crate::database::row_helpers::RowExt;
 use crate::database::{DbError, optional};
+use crate::insert_or_replace;
 use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
 use crate::models::EpgEntry;
@@ -105,10 +106,10 @@ impl EpgService {
                 continue;
             }
 
-            saved += tx.execute(
-                "INSERT OR REPLACE INTO db_epg_channels (
-                    xmltv_id, display_name, icon_url, source_id
-                 ) VALUES (?1, ?2, ?3, ?4)",
+            saved += insert_or_replace!(
+                tx,
+                "db_epg_channels",
+                ["xmltv_id", "display_name", "icon_url", "source_id"],
                 params![xmltv_id, display_name, channel.icon_url, source_id],
             )?;
         }
