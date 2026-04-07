@@ -2,6 +2,11 @@ part of 'cache_service.dart';
 
 /// VOD instance methods for [CacheService].
 mixin _CacheVodMixin on _CacheServiceBase {
+  String? _normalizeVodType(String? itemType) {
+    final normalized = itemType?.trim().toLowerCase();
+    return (normalized == null || normalized.isEmpty) ? null : normalized;
+  }
+
   // ── VOD Items ─────────────────────────────────────
 
   /// Save VOD items with delta sync.
@@ -47,9 +52,10 @@ mixin _CacheVodMixin on _CacheServiceBase {
     required int offset,
     required int limit,
   }) async {
+    final normalizedItemType = _normalizeVodType(itemType);
     final resultJson = await _backend.getVodPage(
       jsonEncode(sourceIds),
-      itemType: itemType,
+      itemType: normalizedItemType,
       category: category,
       query: query,
       sort: sort,
@@ -70,7 +76,7 @@ mixin _CacheVodMixin on _CacheServiceBase {
     String? query,
   }) => _backend.getVodCount(
     jsonEncode(sourceIds),
-    itemType: itemType,
+    itemType: _normalizeVodType(itemType),
     category: category,
     query: query,
   );
@@ -82,7 +88,7 @@ mixin _CacheVodMixin on _CacheServiceBase {
   }) async {
     final resultJson = await _backend.getVodCategories(
       jsonEncode(sourceIds),
-      itemType: itemType,
+      itemType: _normalizeVodType(itemType),
     );
     return _decodeNameCountList(resultJson);
   }
@@ -151,7 +157,7 @@ mixin _CacheVodMixin on _CacheServiceBase {
     final sourceIdsJson = jsonEncode(sourceIds);
     final resultJson = await _backend.getFilteredVod(
       sourceIdsJson,
-      itemType: itemType,
+      itemType: _normalizeVodType(itemType),
       category: category,
       query: query,
       sortBy: sortByKey,

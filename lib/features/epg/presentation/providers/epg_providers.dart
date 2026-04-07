@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
+import '../../../../core/providers/source_filter_provider.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../data/epg_json_codec.dart';
@@ -107,6 +108,21 @@ class EpgNotifier extends Notifier<EpgState> {
     return keys;
   }
 
+  Future<void> _ensureChannelsLoaded() async {
+    if (state.channels.isNotEmpty) return;
+
+    final cache = ref.read(cacheServiceProvider);
+    final sourceIds = ref.read(effectiveSourceIdsProvider);
+    final channels =
+        sourceIds.isEmpty
+            ? await cache.loadChannels()
+            : await cache.getChannelsBySources(sourceIds);
+    if (channels.isEmpty) return;
+
+    final overrides = state.epgOverrides;
+    updateChannels(channels: channels, epgOverrides: overrides);
+  }
+
   Future<void> _refreshViewportAroundFocus() async {
     final anchor = state.focusedTime ?? DateTime.now();
     final start = anchor.subtract(_viewportHalfWindow);
@@ -116,6 +132,8 @@ class EpgNotifier extends Notifier<EpgState> {
 
   /// Fetches an EPG window tailored to the currently filtered channels.
   Future<void> fetchEpgWindow(DateTime requestedStart, DateTime requestedEnd) async {
+    await _ensureChannelsLoaded();
+
     final requestedDuration = requestedEnd.difference(requestedStart);
     final anchor = state.focusedTime ?? DateTime.now();
     final start = anchor.subtract(_viewportHalfWindow);

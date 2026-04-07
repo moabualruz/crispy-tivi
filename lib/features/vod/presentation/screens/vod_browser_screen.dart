@@ -36,18 +36,17 @@ class VodBrowserScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isLoading = ref.watch(vodProvider.select((s) => s.isLoading));
-    final error = ref.watch(vodProvider.select((s) => s.error));
     final totalCountAsync = ref.watch(
       vodCountPaginatedProvider(const VodPageRequest(itemType: 'movie')),
     );
     final totalCount = totalCountAsync.asData?.value;
-    final shellError =
-        error ?? totalCountAsync.whenOrNull(error: (err, _) => err.toString());
+    final shellError = totalCountAsync.whenOrNull(
+      error: (err, _) => err.toString(),
+    );
 
     return VodBrowserShell(
       title: context.l10n.vodMovies,
-      isLoading: totalCount == null && (isLoading || totalCountAsync.isLoading),
+      isLoading: totalCountAsync.isLoading,
       error: shellError,
       isEmpty: totalCount == 0,
       emptyIcon: Icons.movie_outlined,

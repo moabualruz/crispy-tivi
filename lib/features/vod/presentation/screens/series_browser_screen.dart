@@ -27,7 +27,6 @@ import '../widgets/continue_watching_section.dart';
 import '../widgets/recently_added_section.dart';
 import '../widgets/series_featured_banner.dart';
 import '../widgets/series_movies_grid.dart';
-import '../widgets/series_tv_layout.dart';
 import '../widgets/vod_search_sort_bar.dart';
 
 /// Top-level Series browser screen (V2 navigation).
@@ -61,11 +60,6 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
     initSortOption();
   }
 
-  List<VodItem> get _allFilteredSeries => ref.watch(filteredSeriesProvider);
-
-  List<VodItem> get _favorites =>
-      _allFilteredSeries.where((s) => s.isFavorite).toList();
-
   // T03: Use paginated provider for series categories (SQL-level, no full load).
   List<String> get _seriesCategories {
     final async = ref.watch(vodCategoriesPaginatedProvider('series'));
@@ -95,27 +89,39 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
 
   @override
   Widget build(BuildContext context) {
-    // T04: surgical selectors — only rebuild when isLoading or error changes.
-    final isLoading = ref.watch(vodProvider.select((s) => s.isLoading));
-    final error = ref.watch(vodProvider.select((s) => s.error));
-    final allSeries = _allFilteredSeries;
+    final totalCountAsync = ref.watch(
+      vodCountPaginatedProvider(const VodPageRequest(itemType: 'series')),
+    );
+    final allSeriesAsync = ref.watch(
+      vodAllPaginatedProvider(const VodPageRequest(itemType: 'series')),
+    );
+    final totalCount = totalCountAsync.asData?.value;
+    final allSeries = allSeriesAsync.asData?.value ?? const <VodItem>[];
+    final shellError =
+        totalCountAsync.whenOrNull(error: (err, _) => err.toString()) ??
+        allSeriesAsync.whenOrNull(error: (err, _) => err.toString());
 
     // Re-sort whenever items, sort option, category, or query change.
     // Guards (isLoading, error, empty) live here so the mixin stays generic.
-    if (!isLoading && error == null && allSeries.isNotEmpty) {
+    if (!totalCountAsync.isLoading && shellError == null && allSeries.isNotEmpty) {
       checkAndRefreshSort(allSeries);
     }
 
     return VodBrowserShell(
       title: context.l10n.vodSeries,
-      isLoading: isLoading,
-      error: error,
-      isEmpty: allSeries.isEmpty,
+      isLoading: totalCountAsync.isLoading || allSeriesAsync.isLoading,
+      error: shellError,
+      isEmpty: totalCount == 0,
       emptyIcon: Icons.tv_off,
       emptyTitle: context.l10n.vodNoItems,
       emptyDescription: 'Add a playlist source in Settings',
       onRetry: () {
-        ref.invalidate(vodProvider);
+        ref.invalidate(
+          vodCountPaginatedProvider(const VodPageRequest(itemType: 'series')),
+        );
+        ref.invalidate(
+          vodAllPaginatedProvider(const VodPageRequest(itemType: 'series')),
+        );
         ref.invalidate(vodCategoriesPaginatedProvider('series'));
       },
       child: Scaffold(
@@ -166,7 +172,7 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
               ),
             },
             compactBody: _buildBody(context, allSeries),
-            largeBody: const SeriesTvLayout(),
+            largeBody: _buildBody(context, allSeries),
           ),
         ),
       ),
@@ -175,6 +181,7 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
 
   Widget _buildBody(BuildContext context, List<VodItem> allSeries) {
     final seriesCategories = _seriesCategories;
+    final favorites = allSeries.where((s) => s.isFavorite).toList();
     final series = sortedItems;
     final isSearchOrCategory =
         selectedCategory != null || searchQuery.isNotEmpty;
@@ -251,12 +258,12 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
             ),
 
           // Favorites
-          if (_favorites.isNotEmpty && !isSearchOrCategory)
+          if (favorites.isNotEmpty && !isSearchOrCategory)
             SliverToBoxAdapter(
               child: VodRow(
                 title: context.l10n.commonFavorites,
                 icon: Icons.star,
-                items: _favorites,
+                items: favorites,
                 badgeBuilder: newEpisodeBadge,
               ),
             ),

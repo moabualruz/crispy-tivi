@@ -92,3 +92,32 @@ final vodSearchPaginatedProvider = FutureProvider.autoDispose
         limit: kVodPageSize,
       );
     });
+
+final vodAllPaginatedProvider = FutureProvider.autoDispose
+    .family<List<VodItem>, VodPageRequest>((ref, request) async {
+      final cacheService = ref.watch(cacheServiceProvider);
+      final sourceIds = ref.watch(effectiveSourceIdsProvider);
+      final totalCount = await cacheService.getVodCount(
+        sourceIds: sourceIds,
+        itemType: request.itemType,
+        category: request.category,
+        query: request.query,
+      );
+      if (totalCount == 0) return const [];
+
+      final items = <VodItem>[];
+      for (var offset = 0; offset < totalCount; offset += kVodPageSize) {
+        final page = await cacheService.getVodPage(
+          sourceIds: sourceIds,
+          itemType: request.itemType,
+          category: request.category,
+          query: request.query,
+          sort: request.sort,
+          offset: offset,
+          limit: kVodPageSize,
+        );
+        if (page.isEmpty) break;
+        items.addAll(page);
+      }
+      return items;
+    });
