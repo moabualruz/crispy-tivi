@@ -3,13 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
-import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../profiles/presentation/providers/profile_service_providers.dart'
     show accessibleSourcesProvider;
-import '../../../vod/domain/entities/vod_item.dart';
+import '../../../vod/presentation/providers/vod_paginated_providers.dart';
 import '../../../vod/presentation/providers/vod_favorites_provider.dart';
-import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../domain/entities/channel.dart';
+import 'channel_paginated_providers.dart';
 import 'channel_providers.dart';
 import 'duplicate_detection_service.dart';
 import 'iptv_service_providers.dart';
@@ -58,98 +57,10 @@ mixin PlaylistSyncHelpers {
   Future<void> loadFromCache() async {
     final sw = Stopwatch()..start();
     debugPrint('PlaylistSync: loading from cache…');
-    final cache = ref.read(cacheServiceProvider);
-
-    // Load each entity independently so partial
-    // success is possible — a corrupt EPG table
-    // shouldn't prevent channels from loading.
-    List<Channel> cachedChannels = [];
-    List<VodItem> cachedVods = [];
-    final errors = <String>[];
-
-    final channelSw = Stopwatch();
-    final vodSw = Stopwatch();
-
-    // TODO(perf): Remove bulk loading once all consumers migrated to
-    // paginated providers. Currently needed for: player zap, duplicate
-    // detection, EPG grid, home screen.
-    await Future.wait([
-      () async {
-        channelSw.start();
-        try {
-          cachedChannels = await cache.loadChannels();
-        } catch (e) {
-          errors.add('channels: $e');
-        }
-        channelSw.stop();
-      }(),
-      () async {
-        vodSw.start();
-        try {
-          cachedVods = await cache.loadVodItems();
-        } catch (e) {
-          errors.add('vods: $e');
-        }
-        vodSw.stop();
-      }(),
-    ]);
-
-    debugPrint(
-      'PlaylistSync: cache read complete in '
-      '${sw.elapsedMilliseconds}ms — '
-      '${cachedChannels.length} channels '
-      '(${channelSw.elapsedMilliseconds}ms), '
-      '${cachedVods.length} VODs '
-      '(${vodSw.elapsedMilliseconds}ms)',
-    );
-
-    if (errors.isNotEmpty) {
-      debugPrint(
-        'PlaylistSync: cache load errors: '
-        '${errors.join('; ')}',
-      );
-    }
-
-    // Filter channels by source access.
-    try {
-      cachedChannels = await filterBySourceAccess(cachedChannels);
-    } catch (e) {
-      debugPrint(
-        'PlaylistSync: source access filter '
-        'error: $e',
-      );
-    }
-
-    if (cachedChannels.isNotEmpty) {
-      final groups = await cache.extractSortedGroups(cachedChannels);
-      ref
-          .read(channelListProvider.notifier)
-          .loadChannels(cachedChannels, groups);
-      syncSourceNames();
-    }
-
-    if (cachedVods.isNotEmpty) {
-      if (ref.exists(vodProvider)) {
-        ref.read(vodProvider.notifier).loadData(cachedVods);
-        // Re-apply profile-scoped favorites — the DB column
-        // may be stale from a prior playlist sync.
-        final favIds = ref.read(vodFavoritesProvider).value;
-        if (favIds != null && favIds.isNotEmpty) {
-          ref.read(vodProvider.notifier).applyFavorites(favIds);
-        }
-      }
-    }
-
-    if (cachedChannels.isNotEmpty) {
-      // Set channels + overrides without wiping
-      // any existing EPG entries.
-      final overrides =
-          ref.read(settingsNotifierProvider).value?.epgOverrides ?? {};
-      ref.read(epgProvider.notifier).updateChannels(
-        channels: cachedChannels,
-        epgOverrides: overrides,
-      );
-    }
+    // final channels = await cache.loadChannels();
+    // final vods = await cache.loadVodItems();
+    debugPrint('PlaylistSync: skipping bulk load — using paginated providers');
+    syncSourceNames();
 
     sw.stop();
     debugPrint(
@@ -163,20 +74,11 @@ mixin PlaylistSyncHelpers {
   /// Applies source access filtering based on the
   /// current profile's permissions.
   Future<void> reloadChannelList() async {
-    final cache = ref.read(cacheServiceProvider);
-    var channels = await cache.loadChannels();
-
-    // Filter by source access.
-    channels = await filterBySourceAccess(channels);
-
-    // Recompute groups from filtered channels.
-    final groups = await cache.extractSortedGroups(channels);
-
-    ref.read(channelListProvider.notifier).loadChannels(channels, groups);
+    debugPrint(
+      'PlaylistSync: skipping bulk channel reload — using paginated providers',
+    );
+    invalidateChannelPaginatedProviders();
     syncSourceNames();
-
-    // Detect duplicate channels after loading.
-    await detectDuplicates(channels);
   }
 
   /// Syncs playlist source names to the channel list
@@ -223,5 +125,23 @@ mixin PlaylistSyncHelpers {
         'URL: $e',
       );
     }
+  }
+
+  void invalidateChannelPaginatedProviders() {
+    ref.invalidate(channelGroupsPaginatedProvider);
+    ref.invalidate(channelCountPaginatedProvider);
+    ref.invalidate(channelPagePaginatedProvider);
+    ref.invalidate(channelIdsPaginatedProvider);
+    ref.invalidate(channelByIdPaginatedProvider);
+    ref.invalidate(channelSearchPaginatedProvider);
+  }
+
+  void invalidateVodPaginatedProviders() {
+    ref.invalidate(vodCategoriesPaginatedProvider);
+    ref.invalidate(vodCountPaginatedProvider);
+    ref.invalidate(vodPagePaginatedProvider);
+    ref.invalidate(vodSearchPaginatedProvider);
+    ref.invalidate(vodAllPaginatedProvider);
+    ref.invalidate(vodFavoritesProvider);
   }
 }

@@ -113,12 +113,25 @@ class EpgNotifier extends Notifier<EpgState> {
 
     final cache = ref.read(cacheServiceProvider);
     final sourceIds = ref.read(effectiveSourceIdsProvider);
-    final channels =
-        sourceIds.isEmpty
-            ? await cache.loadChannels()
-            : await cache.getChannelsBySources(sourceIds);
+    final channels = await cache.getChannelsPage(
+      sourceIds: sourceIds,
+      sort: 'name_asc',
+      offset: 0,
+      limit: _viewportChannelLimit,
+    );
+    final selectedChannelId = state.selectedChannel;
+    if (selectedChannelId != null &&
+        channels.every((channel) => channel.id != selectedChannelId)) {
+      final selectedChannel = await cache.getChannelById(selectedChannelId);
+      if (selectedChannel != null) {
+        channels.insert(0, selectedChannel);
+      }
+    }
     if (channels.isEmpty) return;
 
+    debugPrint(
+      'EpgNotifier: seeded ${channels.length} channels without bulk loading',
+    );
     final overrides = state.epgOverrides;
     updateChannels(channels: channels, epgOverrides: overrides);
   }

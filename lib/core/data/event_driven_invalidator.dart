@@ -16,7 +16,7 @@ import '../../features/profiles/data/profile_service.dart';
 import '../../features/profiles/data/source_access_service.dart';
 import '../../features/vod/presentation/providers/favorite_categories_provider.dart';
 import '../../features/vod/presentation/providers/vod_favorites_provider.dart';
-import '../../features/vod/presentation/providers/vod_providers.dart';
+import '../../features/vod/presentation/providers/vod_paginated_providers.dart';
 import 'data_change_event.dart';
 import 'event_bus_provider.dart';
 
@@ -107,24 +107,13 @@ void _handleEvent(Ref ref, DataChangeEvent event) {
   switch (event) {
     // ── Channels / Playlists ─────────────────────
     case ChannelsUpdated():
-      _safeRefresh(
-        ref.read(channelListProvider.notifier).refreshFromBackend,
-        'ChannelsUpdated/channelList',
-      );
-      ref.invalidate(channelGroupsProvider);
-      ref.invalidate(channelGroupsPaginatedProvider);
+      _invalidateChannelProviders(ref);
 
     case CategoriesUpdated():
-      _safeRefresh(
-        ref.read(channelListProvider.notifier).refreshFromBackend,
-        'CategoriesUpdated/channelList',
-      );
+      _invalidateChannelProviders(ref);
 
     case ChannelOrderChanged():
-      _safeRefresh(
-        ref.read(channelListProvider.notifier).refreshFromBackend,
-        'ChannelOrderChanged/channelList',
-      );
+      _invalidateChannelProviders(ref);
 
     // ── EPG ──────────────────────────────────────
     case EpgUpdated():
@@ -156,10 +145,7 @@ void _handleEvent(Ref ref, DataChangeEvent event) {
 
     // ── VOD ──────────────────────────────────────
     case VodUpdated():
-      _safeRefresh(
-        ref.read(vodProvider.notifier).refreshFromBackend,
-        'VodUpdated/vod',
-      );
+      _invalidateVodProviders(ref);
 
     case VodFavoriteToggled():
       ref.invalidate(vodFavoritesProvider);
@@ -262,13 +248,7 @@ String _eventDescription(DataChangeEvent event) {
 ///
 /// Used for bulk operations (cloud sync, full refresh).
 void _invalidateAllDataProviders(Ref ref) {
-  // Channels — refresh from backend (NotifierProvider).
-  _safeRefresh(
-    ref.read(channelListProvider.notifier).refreshFromBackend,
-    'BulkRefresh/channelList',
-  );
-  ref.invalidate(channelGroupsProvider);
-  ref.invalidate(channelGroupsPaginatedProvider);
+  _invalidateChannelProviders(ref);
 
   // EPG — refresh entries for current window (NotifierProvider).
   _safeRefresh(
@@ -286,12 +266,7 @@ void _invalidateAllDataProviders(Ref ref) {
   ref.invalidate(favoritesControllerProvider);
   ref.invalidate(favoriteChannelsProvider);
 
-  // VOD — refresh from backend (NotifierProvider).
-  _safeRefresh(
-    ref.read(vodProvider.notifier).refreshFromBackend,
-    'BulkRefresh/vod',
-  );
-  ref.invalidate(vodFavoritesProvider);
+  _invalidateVodProviders(ref);
 
   // DVR
   ref.invalidate(dvrServiceProvider);
@@ -305,4 +280,23 @@ void _invalidateAllDataProviders(Ref ref) {
 
   // Layouts
   ref.invalidate(savedLayoutsProvider);
+}
+
+void _invalidateChannelProviders(Ref ref) {
+  ref.invalidate(channelGroupsProvider);
+  ref.invalidate(channelGroupsPaginatedProvider);
+  ref.invalidate(channelCountPaginatedProvider);
+  ref.invalidate(channelPagePaginatedProvider);
+  ref.invalidate(channelIdsPaginatedProvider);
+  ref.invalidate(channelByIdPaginatedProvider);
+  ref.invalidate(channelSearchPaginatedProvider);
+}
+
+void _invalidateVodProviders(Ref ref) {
+  ref.invalidate(vodCategoriesPaginatedProvider);
+  ref.invalidate(vodCountPaginatedProvider);
+  ref.invalidate(vodPagePaginatedProvider);
+  ref.invalidate(vodSearchPaginatedProvider);
+  ref.invalidate(vodAllPaginatedProvider);
+  ref.invalidate(vodFavoritesProvider);
 }

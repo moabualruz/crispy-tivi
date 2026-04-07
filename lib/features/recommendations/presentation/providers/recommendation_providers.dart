@@ -1,8 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../iptv/domain/entities/channel.dart';
-import '../../../vod/domain/entities/vod_item.dart';
-import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../domain/entities/recommendation.dart';
 import 'recommendation_service_providers.dart';
 
@@ -17,26 +15,17 @@ final recommendationEngineProvider = Provider<RecommendationEngine>((ref) {
 /// profile.
 final recommendationSectionsProvider =
     FutureProvider.autoDispose<List<RecommendationSection>>((ref) async {
-      final engine = ref.watch(recommendationEngineProvider);
-
       final profile = ref.watch(
         profileServiceProvider.select((s) => s.asData?.value.activeProfile),
       );
       if (profile == null) return [];
 
-      final items = ref.watch(vodProvider.select((s) => s.items));
-      final allVod = items.where((i) => i.type != VodType.episode).toList();
-
-      final allChannels = ref.watch(_allChannelsProvider);
-      final channels = allChannels.asData?.value ?? <Channel>[];
-
-      // Computation delegated to Rust backend.
-      return engine.generateAll(
-        profileId: profile.id,
-        maxAllowedRating: profile.maxAllowedRating,
-        allVodItems: allVod,
-        allChannels: channels,
+      // TODO(perf): Rebuild recommendations from paginated/channel-specific
+      // queries instead of bulk-loading the full channel and VOD catalogs.
+      debugPrint(
+        'Recommendations: skipping bulk preload until paginated inputs land',
       );
+      return const [];
     });
 
 /// Top picks section only.
@@ -72,12 +61,4 @@ final hasRecommendationsProvider = Provider<bool>((ref) {
       (s) => s.asData?.value.any((sec) => sec.items.isNotEmpty) ?? false,
     ),
   );
-});
-
-/// Internal provider for all channels.
-final _allChannelsProvider = FutureProvider.autoDispose<List<Channel>>((
-  ref,
-) async {
-  final cache = ref.watch(cacheServiceProvider);
-  return cache.loadChannels();
 });

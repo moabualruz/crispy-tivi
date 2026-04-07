@@ -7,8 +7,8 @@ import '../../../../core/data/cache_service.dart';
 import '../../../../core/providers/source_filter_provider.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
-import '../../../iptv/presentation/providers/channel_providers.dart';
-import '../../../vod/presentation/providers/vod_providers.dart';
+import '../../../iptv/presentation/providers/channel_paginated_providers.dart';
+import '../../../vod/presentation/providers/vod_paginated_providers.dart';
 import '../../domain/entities/grouped_search_results.dart';
 import '../../domain/entities/search_history_entry.dart';
 import '../../domain/entities/search_state.dart';
@@ -35,30 +35,26 @@ class SearchNotifier extends Notifier<SearchState> {
   @override
   SearchState build() {
     _loadHistory();
+    ref.watch(effectiveSourceIdsProvider);
 
-    // React to VOD and channel data changes so
-    // categories populate once data arrives, and
-    // re-run any active search when data loads.
-    ref.listen(vodProvider, (prev, next) {
-      _loadCategories();
-      if (state.hasQuery &&
-          !state.isLoading &&
-          state.results.isEmpty &&
-          next.items.isNotEmpty) {
+    void onCatalogUpdated() {
+      unawaited(_loadCategories());
+      if (state.hasQuery && !state.isLoading && state.results.isEmpty) {
         search(state.query);
       }
+    }
+
+    ref.listen(channelGroupsPaginatedProvider, (_, _) {
+      onCatalogUpdated();
     });
-    ref.listen(channelListProvider, (prev, next) {
-      _loadCategories();
-      if (state.hasQuery &&
-          !state.isLoading &&
-          state.results.isEmpty &&
-          next.channels.isNotEmpty) {
-        search(state.query);
-      }
+    ref.listen(vodCategoriesPaginatedProvider('movie'), (_, _) {
+      onCatalogUpdated();
+    });
+    ref.listen(vodCategoriesPaginatedProvider('series'), (_, _) {
+      onCatalogUpdated();
     });
 
-    _loadCategories();
+    unawaited(_loadCategories());
     return const SearchState();
   }
 
@@ -74,22 +70,27 @@ class SearchNotifier extends Notifier<SearchState> {
   }
 
   /// Loads available categories from VOD and IPTV.
-  void _loadCategories() {
+  Future<void> _loadCategories() async {
     try {
-      final vodItems = ref.read(vodProvider).items;
-      final channelState = ref.read(channelListProvider);
+      final channelGroups = await ref.read(channelGroupsPaginatedProvider.future);
+      final movieCategories = await ref.read(
+        vodCategoriesPaginatedProvider('movie').future,
+      );
+      final seriesCategories = await ref.read(
+        vodCategoriesPaginatedProvider('series').future,
+      );
+
       final vodCategories =
-          vodItems
-              .map((i) => i.category)
-              .whereType<String>()
+          [...movieCategories, ...seriesCategories]
+              .map((c) => c.name)
               .where((c) => c.isNotEmpty)
               .toList();
-      final channelGroups =
-          channelState.groups.where((g) => g.isNotEmpty).toList();
+      final channelGroupNames =
+          channelGroups.map((g) => g.name).where((g) => g.isNotEmpty).toList();
 
       final categories = ref
           .read(searchRepositoryProvider)
-          .buildSearchCategories(vodCategories, channelGroups);
+          .buildSearchCategories(vodCategories, channelGroupNames);
       state = state.copyWith(availableCategories: categories);
     } catch (e) {
       debugPrint('SearchNotifier._loadCategories: $e');

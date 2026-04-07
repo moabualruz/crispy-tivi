@@ -7,7 +7,6 @@ import '../../../../config/settings_notifier.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../favorites/presentation/providers/favorites_service_providers.dart'
     show stalkerFavoritesServiceProvider;
-import '../../../vod/presentation/providers/vod_providers.dart';
 import 'media_server_sync.dart';
 import 'iptv_service_providers.dart';
 import 'playlist_epg_helper.dart';
@@ -16,10 +15,10 @@ import 'playlist_sync_utils.dart';
 
 export 'playlist_sync_utils.dart'
     show
-        SyncReport,
+        kDefaultSyncIntervalHours,
         PartitionResult,
         partitionStaleSources,
-        kDefaultSyncIntervalHours;
+        SyncReport;
 
 /// Service that syncs playlist sources → channels
 /// + VODs.
@@ -144,9 +143,7 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       }
       if (!_ref.mounted) return 0;
       if (totalVod > 0) {
-        if (_ref.mounted && _ref.exists(vodProvider)) {
-          _ref.invalidate(vodProvider);
-        }
+        invalidateVodPaginatedProviders();
       }
 
       // 6. Fetch EPG after successful sync.
@@ -195,9 +192,7 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       }
       if (!_ref.mounted) return report;
       if (report.vodCount > 0) {
-        if (_ref.mounted && _ref.exists(vodProvider)) {
-          _ref.invalidate(vodProvider);
-        }
+        invalidateVodPaginatedProviders();
       }
 
       // Fetch EPG after single source sync.

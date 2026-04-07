@@ -127,12 +127,7 @@ class VodNotifier extends Notifier<VodState> {
       if (favIds != null && !_disposed) _syncFavorites(favIds);
     });
 
-    // Auto-fetch if starting fresh.
-    Future.microtask(() {
-      if (!_disposed) refreshFromBackend();
-    });
-
-    return VodState(isLoading: true);
+    return VodState();
   }
 
   void _syncFavorites(Set<String> favIds) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,10 +17,10 @@ import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../domain/entities/search_history_entry.dart';
 import '../../../favorites/presentation/providers/favorites_controller.dart';
 import '../../../iptv/domain/entities/channel.dart';
-import '../../../iptv/presentation/providers/channel_providers.dart';
+import '../../../iptv/presentation/providers/channel_paginated_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../../vod/domain/entities/vod_item.dart';
-import '../../../vod/presentation/providers/vod_providers.dart';
+import '../../../vod/presentation/providers/vod_paginated_providers.dart';
 import '../../../voice_search/presentation/widgets/voice_search_button.dart';
 import 'package:crispy_tivi/l10n/l10n_extension.dart';
 
@@ -196,14 +198,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     // IPTV / Local VOD — play directly
     if (sourceKey.startsWith(SearchSourceKey.iptv)) {
-      ref
-          .read(playbackSessionProvider.notifier)
-          .startPlayback(
-            streamUrl: item.streamUrl ?? '',
-            channelName: item.name,
-            channelLogoUrl: item.logoUrl,
-            isLive: item.type == MediaType.channel,
-          );
+      unawaited(
+        ref.read(playbackSessionProvider.notifier).startPlayback(
+          streamUrl: item.streamUrl ?? '',
+          channelName: item.name,
+          channelLogoUrl: item.logoUrl,
+          isLive: item.type == MediaType.channel,
+        ),
+      );
     }
   }
 
@@ -212,6 +214,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final state = ref.watch(searchControllerProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final hasChannels =
+        (ref.watch(channelCountPaginatedProvider(null)).asData?.value ?? 0) > 0;
+    final hasVod =
+        (ref.watch(
+              vodCountPaginatedProvider(const VodPageRequest()),
+            ).asData?.value ??
+            0) >
+        0;
 
     // S-012: Escape key shortcut — handled at the scaffold level so it fires
     // regardless of which child widget holds focus.
@@ -300,11 +310,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             },
             compactBody: SearchBody(
               state: state,
-              isContentLoaded:
-                  ref.watch(
-                    channelListProvider.select((s) => s.channels.isNotEmpty),
-                  ) ||
-                  ref.watch(vodProvider.select((s) => s.items.isNotEmpty)),
+              isContentLoaded: hasChannels || hasVod,
               onToggleContentType: (type) {
                 ref
                     .read(searchControllerProvider.notifier)
@@ -337,11 +343,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             // content type/source filter chips.
             largeBody: SearchBody(
               state: state,
-              isContentLoaded:
-                  ref.watch(
-                    channelListProvider.select((s) => s.channels.isNotEmpty),
-                  ) ||
-                  ref.watch(vodProvider.select((s) => s.items.isNotEmpty)),
+              isContentLoaded: hasChannels || hasVod,
               onToggleContentType: (type) {
                 ref
                     .read(searchControllerProvider.notifier)

@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/settings_notifier.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
-import '../../domain/entities/channel.dart';
 import 'iptv_service_providers.dart';
 import 'playlist_sync_service.dart';
 
@@ -57,8 +56,6 @@ mixin PlaylistEpgHelper {
       ref.read(epgProvider.notifier).setLoading();
 
       final backend = ref.read(crispyBackendProvider);
-      final cache = ref.read(cacheServiceProvider);
-      final channels = await cache.loadChannels();
 
       // Pass 1: XMLTV EPG Sync (Full async backend operation)
       for (final entry in epgSourceMap.entries) {
@@ -85,7 +82,6 @@ mixin PlaylistEpgHelper {
       // Pass 3: Stalker short EPG for unfilled.
       await _fetchAllStalkerEpg(
         sources: settings.sources,
-        allChannels: channels,
         force: force,
       );
 
@@ -98,8 +94,14 @@ mixin PlaylistEpgHelper {
           ref.read(settingsNotifierProvider).value?.epgOverrides ?? {};
       final notifier = ref.read(epgProvider.notifier);
 
-      // Update channels + overrides, keep entries.
-      notifier.updateChannels(channels: channels, epgOverrides: overrides);
+      final currentChannels = ref.read(epgProvider).channels;
+      if (currentChannels.isNotEmpty) {
+        // Update channels + overrides, keep entries.
+        notifier.updateChannels(
+          channels: currentChannels,
+          epgOverrides: overrides,
+        );
+      }
 
       // Merge today's window from DB into existing
       // entries (additive, no wipe).
@@ -151,7 +153,6 @@ mixin PlaylistEpgHelper {
   /// Delegates to Rust to fetch Stalker short EPGs for Live Channels.
   Future<void> _fetchAllStalkerEpg({
     required List<PlaylistSource> sources,
-    required List<Channel> allChannels,
     required bool force,
   }) async {
     final stalkerSources = sources.where(
@@ -160,15 +161,12 @@ mixin PlaylistEpgHelper {
     if (stalkerSources.isEmpty) return;
 
     final backend = ref.read(crispyBackendProvider);
+    final cache = ref.read(cacheServiceProvider);
     for (final src in stalkerSources) {
       if (src.macAddress != null && src.macAddress!.isNotEmpty) {
         try {
           debugPrint('PlaylistSync: syncing Stalker EPG for source ${src.id}');
-          // Only pass channels belonging to THIS source.
-          final sourceChannels =
-              allChannels
-                  .where((c) => c.sourceId != null && c.sourceId == src.id)
-                  .toList();
+          final sourceChannels = await cache.getChannelsBySources([src.id]);
           if (sourceChannels.isEmpty) continue;
 
           final inserted = await backend.syncStalkerEpg(
