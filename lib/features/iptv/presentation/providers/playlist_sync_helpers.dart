@@ -70,6 +70,9 @@ mixin PlaylistSyncHelpers {
     final channelSw = Stopwatch();
     final vodSw = Stopwatch();
 
+    // TODO(perf): Remove bulk loading once all consumers migrated to
+    // paginated providers. Currently needed for: player zap, duplicate
+    // detection, EPG grid, home screen.
     await Future.wait([
       () async {
         channelSw.start();
@@ -142,17 +145,10 @@ mixin PlaylistSyncHelpers {
       // any existing EPG entries.
       final overrides =
           ref.read(settingsNotifierProvider).value?.epgOverrides ?? {};
-      final notifier = ref.read(epgProvider.notifier);
-      notifier.updateChannels(
+      ref.read(epgProvider.notifier).updateChannels(
         channels: cachedChannels,
         epgOverrides: overrides,
       );
-
-      // Auto-fetch the initial day window.
-      final now = DateTime.now();
-      final start = DateTime(now.year, now.month, now.day);
-      final end = start.add(const Duration(days: 1));
-      notifier.fetchEpgWindow(start, end);
     }
 
     sw.stop();

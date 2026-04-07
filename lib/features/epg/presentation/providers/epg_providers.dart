@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +14,12 @@ export 'epg_state.dart';
 
 /// Manages EPG grid state.
 class EpgNotifier extends Notifier<EpgState> {
+  static const _viewportHalfWindow = Duration(hours: 3);
+  static const _viewportChannelLimit = 40;
+  static const _retentionBuffer = Duration(hours: 1);
+
+  bool _hasViewportFetch = false;
+
   @override
   EpgState build() => const EpgState();
 
@@ -63,25 +72,75 @@ class EpgNotifier extends Notifier<EpgState> {
     return idx;
   }
 
-  /// Fetches an EPG window tailored to the currently filtered channels.
-  Future<void> fetchEpgWindow(DateTime start, DateTime end) async {
-    var channelsToFetch = state.channels;
-    if (state.selectedGroup != null) {
-      channelsToFetch =
-          channelsToFetch.where((c) => c.group == state.selectedGroup).toList();
+  List<Channel> _viewportChannels() {
+    final filteredChannels = state.filteredChannels;
+    if (filteredChannels.isEmpty) return const [];
+
+    final selectedChannelId = state.selectedChannel;
+    if (selectedChannelId == null) {
+      return filteredChannels.take(_viewportChannelLimit).toList();
     }
+
+    final selectedIndex = filteredChannels.indexWhere(
+      (channel) => channel.id == selectedChannelId,
+    );
+    if (selectedIndex < 0) {
+      return filteredChannels.take(_viewportChannelLimit).toList();
+    }
+
+    final halfWindow = _viewportChannelLimit ~/ 2;
+    final start = math.max(0, selectedIndex - halfWindow);
+    final end = math.min(filteredChannels.length, start + _viewportChannelLimit);
+    final adjustedStart = math.max(0, end - _viewportChannelLimit);
+    return filteredChannels.sublist(adjustedStart, end);
+  }
+
+  Set<String> _retainedEntryKeys(List<Channel> channels) {
+    final keys = <String>{};
+    for (final channel in channels) {
+      keys.add(state.epgOverrides[channel.id] ?? channel.id);
+      final tvgId = state.tvgIdIndex[channel.id];
+      if (tvgId != null && tvgId.isNotEmpty) {
+        keys.add(tvgId);
+      }
+    }
+    return keys;
+  }
+
+  Future<void> _refreshViewportAroundFocus() async {
+    final anchor = state.focusedTime ?? DateTime.now();
+    final start = anchor.subtract(_viewportHalfWindow);
+    final end = anchor.add(_viewportHalfWindow);
+    await fetchEpgWindow(start, end);
+  }
+
+  /// Fetches an EPG window tailored to the currently filtered channels.
+  Future<void> fetchEpgWindow(DateTime requestedStart, DateTime requestedEnd) async {
+    final requestedDuration = requestedEnd.difference(requestedStart);
+    final anchor = state.focusedTime ?? DateTime.now();
+    final start = anchor.subtract(_viewportHalfWindow);
+    final end = anchor.add(_viewportHalfWindow);
+    final channelsToFetch = _viewportChannels();
     if (channelsToFetch.isEmpty) return;
 
+    _hasViewportFetch = true;
     state = state.copyWith(isLoading: true);
 
     final channelIds =
         channelsToFetch.map((c) => state.epgOverrides[c.id] ?? c.id).toList();
+    final retainedKeys = _retainedEntryKeys(channelsToFetch);
 
     try {
       final cache = ref.read(cacheServiceProvider);
+      if (requestedDuration > const Duration(hours: 6)) {
+        debugPrint(
+          'EpgNotifier: clamping wide EPG request '
+          '(${requestedDuration.inHours}h) to viewport window',
+        );
+      }
+
       // Use the 3-layer facade: L1 hot cache → L2 SQLite → L3 per-channel API.
-      // This replaces the old bulk-only path that couldn't fetch EPG for
-      // Xtream/Stalker channels with shared tvg_ids.
+      // Always clamp to the active viewport so the guide stays lazy and bounded.
       final newEntries = await cache.getChannelsEpg(channelIds, start, end);
 
       // Serialize both maps to the Rust epoch-ms format, merge via backend.
@@ -93,11 +152,11 @@ class EpgNotifier extends Notifier<EpgState> {
 
       // Evict entries outside the retention window to bound memory.
       // Run after merge so dedup has both old and new data.
-      const retentionBuffer = Duration(hours: 4);
-      final retentionStart = start.subtract(retentionBuffer);
-      final retentionEnd = end.add(retentionBuffer);
+      final retentionStart = start.subtract(_retentionBuffer);
+      final retentionEnd = end.add(_retentionBuffer);
       final trimmed = <String, List<EpgEntry>>{};
       for (final entry in merged.entries) {
+        if (!retainedKeys.contains(entry.key)) continue;
         final kept =
             entry.value
                 .where(
@@ -136,11 +195,8 @@ class EpgNotifier extends Notifier<EpgState> {
   /// [EpgUpdated] fires. Preserves channels and all
   /// UI state — only refreshes the entry map.
   Future<void> refreshEntries() async {
-    if (state.channels.isEmpty) return;
-    final now = state.focusedTime ?? DateTime.now();
-    final start = DateTime(now.year, now.month, now.day);
-    final end = start.add(const Duration(days: 1));
-    await fetchEpgWindow(start, end);
+    if (state.channels.isEmpty || !_hasViewportFetch) return;
+    await _refreshViewportAroundFocus();
   }
 
   /// Updates the EPG override map (from settings).
@@ -156,6 +212,9 @@ class EpgNotifier extends Notifier<EpgState> {
   /// Selects a channel.
   void selectChannel(String channelId) {
     state = state.copyWith(selectedChannel: channelId);
+    if (_hasViewportFetch) {
+      unawaited(_refreshViewportAroundFocus());
+    }
   }
 
   /// Selects an EPG entry (shown in info panel).
@@ -173,6 +232,9 @@ class EpgNotifier extends Notifier<EpgState> {
       state = state.copyWith(clearGroup: true);
     } else {
       state = state.copyWith(selectedGroup: group);
+    }
+    if (_hasViewportFetch) {
+      unawaited(_refreshViewportAroundFocus());
     }
   }
 

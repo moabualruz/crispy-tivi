@@ -8,6 +8,7 @@ import '../../features/dvr/data/dvr_service.dart';
 import '../../features/epg/presentation/providers/epg_providers.dart';
 import '../../features/favorites/presentation/providers/favorites_controller.dart';
 import '../../features/home/presentation/providers/home_providers.dart';
+import '../../features/iptv/presentation/providers/channel_paginated_providers.dart';
 import '../../features/iptv/presentation/providers/channel_providers.dart';
 import '../../features/multiview/presentation/providers/multiview_providers.dart';
 import '../../features/player/data/watch_history_service.dart';
@@ -111,6 +112,7 @@ void _handleEvent(Ref ref, DataChangeEvent event) {
         'ChannelsUpdated/channelList',
       );
       ref.invalidate(channelGroupsProvider);
+      ref.invalidate(channelGroupsPaginatedProvider);
 
     case CategoriesUpdated():
       _safeRefresh(
@@ -266,6 +268,7 @@ void _invalidateAllDataProviders(Ref ref) {
     'BulkRefresh/channelList',
   );
   ref.invalidate(channelGroupsProvider);
+  ref.invalidate(channelGroupsPaginatedProvider);
 
   // EPG — refresh entries for current window (NotifierProvider).
   _safeRefresh(
