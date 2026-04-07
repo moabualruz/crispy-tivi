@@ -40,7 +40,7 @@ pub const CHANNEL_COLUMNS: &str = "id, native_id, name, stream_url, number, \
 ///                                           27  content_rating
 ///                                           28  native_id
 pub const VOD_COLUMNS: &str = "id, name, stream_url, \
-     'movie' AS type, \
+     vod_type AS type, \
      poster_url, backdrop_url, \
      description, rating, year, \
      duration_minutes, genre, NULL AS series_id, \
@@ -54,7 +54,7 @@ pub const VOD_COLUMNS: &str = "id, name, stream_url, \
 
 /// Same as [`VOD_COLUMNS`] but qualified with table alias `v.` for JOIN queries.
 pub const VOD_COLUMNS_V: &str = "v.id, v.name, v.stream_url, \
-     'movie' AS type, \
+     v.vod_type AS type, \
      v.poster_url, v.backdrop_url, \
      v.description, v.rating, v.year, \
      v.duration_minutes, v.genre, NULL AS series_id, \

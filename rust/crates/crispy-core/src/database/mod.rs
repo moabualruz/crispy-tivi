@@ -275,6 +275,7 @@ mod tests {
             "idx_movies_name",
             "idx_movies_native",
             "idx_movies_source",
+            "idx_movies_vod_type",
             "idx_reminders_notify",
             "idx_retry_queue_status_next",
             "idx_seasons_series",

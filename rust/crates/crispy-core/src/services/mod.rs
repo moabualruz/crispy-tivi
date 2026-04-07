@@ -197,6 +197,18 @@ pub(crate) fn build_in_placeholders(count: usize) -> String {
         .join(", ")
 }
 
+/// Build a comma-separated IN-clause placeholder string starting at [start],
+/// e.g. `build_in_placeholders_from(3, 3)` → `"?3, ?4, ?5"`.
+///
+/// Use this instead of [build_in_placeholders] when preceding params have
+/// already consumed indices 1..start-1.
+pub(crate) fn build_in_placeholders_from(start: usize, count: usize) -> String {
+    (start..start + count)
+        .map(|i| format!("?{i}"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 /// Convert a string slice into a `Vec<&dyn ToSql>` for use as
 /// rusqlite IN-clause parameters.
 ///

@@ -1,8 +1,8 @@
 use rusqlite::{Row, params};
 
 use super::{ServiceContext, bool_to_int, build_in_placeholders, opt_dt_to_ts, str_params};
-use crate::database::{DbError, optional};
 use crate::database::row_helpers::RowExt;
+use crate::database::{DbError, optional};
 use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
 use crate::insert_or_replace;
@@ -91,7 +91,9 @@ fn build_channel_filters(
     }
 
     if let Some(group) = group {
-        clauses.push(format!("COALESCE(channel_group, 'Ungrouped') = ?{param_idx}"));
+        clauses.push(format!(
+            "COALESCE(channel_group, 'Ungrouped') = ?{param_idx}"
+        ));
         params.push(Box::new(group.to_string()));
         param_idx += 1;
     }
@@ -309,8 +311,9 @@ impl ChannelService {
                  GROUP BY grp
                  ORDER BY grp",
             )?;
-            let rows =
-                stmt.query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?)))?;
+            let rows = stmt.query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?))
+            })?;
             return Ok(rows.collect::<Result<Vec<_>, _>>()?);
         }
 
@@ -324,8 +327,9 @@ impl ChannelService {
         );
         let mut stmt = conn.prepare(&sql)?;
         let params = str_params(source_ids);
-        let rows =
-            stmt.query_map(params.as_slice(), |row| Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?)))?;
+        let rows = stmt.query_map(params.as_slice(), |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?))
+        })?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
@@ -458,7 +462,8 @@ impl ChannelService {
              JOIN db_user_favorites f ON f.channel_id = c.id
              WHERE f.profile_id = ?1"
         );
-        let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![Box::new(profile_id.to_string())];
+        let mut params: Vec<Box<dyn rusqlite::types::ToSql>> =
+            vec![Box::new(profile_id.to_string())];
 
         if !source_ids.is_empty() {
             let placeholders = (2..source_ids.len() + 2)
@@ -691,10 +696,7 @@ mod tests {
 
         let channels = (0..10)
             .map(|idx| {
-                let mut ch = make_channel(
-                    &format!("ch{idx:02}"),
-                    &format!("Channel {idx:02}"),
-                );
+                let mut ch = make_channel(&format!("ch{idx:02}"), &format!("Channel {idx:02}"));
                 ch.source_id = Some("src_a".to_string());
                 ch
             })

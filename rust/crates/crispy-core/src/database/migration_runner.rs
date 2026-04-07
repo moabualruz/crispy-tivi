@@ -24,7 +24,7 @@ use super::DbError;
 ///
 /// When adding a new migration file, update this constant to match the
 /// new `PRAGMA user_version` value set by that file.
-pub const LATEST_VERSION: u32 = 39;
+pub const LATEST_VERSION: u32 = 40;
 
 /// Ordered list of `(target_user_version, sql)` pairs.
 ///
@@ -46,6 +46,7 @@ static MIGRATIONS: &[(u32, &str)] = &[
         39,
         include_str!("migrations/003_add_epg_channels_display_index.sql"),
     ),
+    (40, include_str!("migrations/004_add_vod_type.sql")),
 ];
 
 /// Run all pending migrations against `conn`.
