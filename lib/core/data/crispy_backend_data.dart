@@ -39,10 +39,7 @@ abstract class _BackendDataMethods {
   });
 
   /// Count channels filtered by source IDs and group.
-  Future<int> getChannelCount(
-    String sourceIdsJson, {
-    String? group,
-  });
+  Future<int> getChannelCount(String sourceIdsJson, {String? group});
 
   /// Load ordered channel IDs for a group filtered by source IDs.
   Future<List<String>> getChannelIdsForGroup(
@@ -112,10 +109,7 @@ abstract class _BackendDataMethods {
   });
 
   /// Load VOD categories with item counts filtered by source IDs and type.
-  Future<String> getVodCategories(
-    String sourceIdsJson, {
-    String? itemType,
-  });
+  Future<String> getVodCategories(String sourceIdsJson, {String? itemType});
 
   /// Search VOD items by query with pagination.
   Future<String> searchVod(

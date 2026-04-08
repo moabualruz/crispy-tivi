@@ -53,10 +53,8 @@ class _PlaybackDiagnosticsState extends ConsumerState<PlaybackDiagnostics> {
     final droppedVo = prop('frame-drop-count');
     final droppedDec = prop('decoder-frame-drop-count');
 
-    final fpsFormatted =
-        double.tryParse(fps)?.toStringAsFixed(1) ?? fps;
-    final hwdecLabel =
-        (hwdec == 'no' || hwdec == '?') ? 'SOFTWARE' : hwdec;
+    final fpsFormatted = double.tryParse(fps)?.toStringAsFixed(1) ?? fps;
+    final hwdecLabel = (hwdec == 'no' || hwdec == '?') ? 'SOFTWARE' : hwdec;
 
     setState(() {
       _stats = {
@@ -95,9 +93,7 @@ class _PlaybackDiagnosticsState extends ConsumerState<PlaybackDiagnostics> {
             (e) => Text(
               '${e.key}: ${e.value}',
               style: TextStyle(
-                color: e.value == 'SOFTWARE'
-                    ? Colors.red
-                    : Colors.greenAccent,
+                color: e.value == 'SOFTWARE' ? Colors.red : Colors.greenAccent,
                 fontSize: 11,
                 fontFamily: 'monospace',
               ),

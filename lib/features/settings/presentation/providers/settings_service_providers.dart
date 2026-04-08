@@ -14,6 +14,5 @@ export '../../data/network_diagnostics_service.dart'
     show DiagStatus, DiagResult, NetworkDiagnosticsService;
 export '../../data/stalker_account_info.dart'
     show StalkerAccountInfo, fetchStalkerAccountInfoFromRef;
-export '../../data/web_sync_service.dart'
-    show webSyncServiceProvider;
+export '../../data/web_sync_service.dart' show webSyncServiceProvider;
 export '../../../player/data/segment_skip_codec.dart';

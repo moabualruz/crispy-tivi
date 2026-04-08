@@ -64,10 +64,11 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
   // Cap to top 30 by count — 1500+ genre pills is unusable.
   List<String> get _seriesCategories {
     final async = ref.watch(vodCategoriesPaginatedProvider('series'));
-    final all = (async.asData?.value ?? const <({String name, int count})>[])
-        .where((c) => c.count > 0)
-        .toList()
-      ..sort((a, b) => b.count.compareTo(a.count));
+    final all =
+        (async.asData?.value ?? const <({String name, int count})>[])
+            .where((c) => c.count > 0)
+            .toList()
+          ..sort((a, b) => b.count.compareTo(a.count));
     return all.take(30).map((c) => c.name).toList();
   }
 
@@ -98,7 +99,8 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
       vodPagePaginatedProvider(const VodPageRequest(itemType: 'series')),
     );
     final totalCount = totalCountAsync.asData?.value;
-    final firstPageSeries = firstPageSeriesAsync.asData?.value ?? const <VodItem>[];
+    final firstPageSeries =
+        firstPageSeriesAsync.asData?.value ?? const <VodItem>[];
     final shellError =
         totalCountAsync.whenOrNull(error: (err, _) => err.toString()) ??
         firstPageSeriesAsync.whenOrNull(error: (err, _) => err.toString());
@@ -335,11 +337,7 @@ class _PaginatedSeriesCategoryRow extends ConsumerWidget {
 }
 
 class _PaginatedSeriesGrid extends ConsumerWidget {
-  const _PaginatedSeriesGrid({
-    required this.sort,
-    this.category,
-    this.query,
-  });
+  const _PaginatedSeriesGrid({required this.sort, this.category, this.query});
 
   final String? category;
   final String? query;

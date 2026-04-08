@@ -28,11 +28,9 @@ SyncReport decodeSyncReport(String json) {
   final map = jsonDecode(json) as Map<String, dynamic>;
   return SyncReport(
     channelsCount: map['channels_count'] as int? ?? 0,
-    channelGroups:
-        (map['channel_groups'] as List?)?.cast<String>() ?? const [],
+    channelGroups: (map['channel_groups'] as List?)?.cast<String>() ?? const [],
     vodCount: map['vod_count'] as int? ?? 0,
-    vodCategories:
-        (map['vod_categories'] as List?)?.cast<String>() ?? const [],
+    vodCategories: (map['vod_categories'] as List?)?.cast<String>() ?? const [],
     epgUrl: map['epg_url'] as String?,
   );
 }

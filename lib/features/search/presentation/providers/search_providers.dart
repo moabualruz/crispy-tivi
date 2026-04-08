@@ -72,7 +72,9 @@ class SearchNotifier extends Notifier<SearchState> {
   /// Loads available categories from VOD and IPTV.
   Future<void> _loadCategories() async {
     try {
-      final channelGroups = await ref.read(channelGroupsPaginatedProvider.future);
+      final channelGroups = await ref.read(
+        channelGroupsPaginatedProvider.future,
+      );
       final movieCategories = await ref.read(
         vodCategoriesPaginatedProvider('movie').future,
       );
@@ -81,10 +83,10 @@ class SearchNotifier extends Notifier<SearchState> {
       );
 
       final vodCategories =
-          [...movieCategories, ...seriesCategories]
-              .map((c) => c.name)
-              .where((c) => c.isNotEmpty)
-              .toList();
+          [
+            ...movieCategories,
+            ...seriesCategories,
+          ].map((c) => c.name).where((c) => c.isNotEmpty).toList();
       final channelGroupNames =
           channelGroups.map((g) => g.name).where((g) => g.isNotEmpty).toList();
 
@@ -171,12 +173,14 @@ class SearchNotifier extends Notifier<SearchState> {
           thumbnailUrl = results.series.first.logoUrl;
           resultType = SearchHistoryResultType.vod;
         }
-        unawaited(_saveToHistory(
-          query,
-          results.totalCount,
-          thumbnailUrl: thumbnailUrl,
-          resultType: resultType,
-        ));
+        unawaited(
+          _saveToHistory(
+            query,
+            results.totalCount,
+            thumbnailUrl: thumbnailUrl,
+            resultType: resultType,
+          ),
+        );
       }
     } catch (e) {
       if (generation != _searchGeneration) return;

@@ -11,6 +11,10 @@ export '../../../../core/data/cache_service.dart'
 export '../../data/dvr_service.dart' show DvrService, dvrServiceProvider;
 export '../../data/dvr_state.dart' show DvrState, ScheduleResult;
 export '../../data/keyword_rule_provider.dart'
-    show KeywordRule, KeywordMatchField, KeywordRuleNotifier, keywordRuleProvider;
+    show
+        KeywordRule,
+        KeywordMatchField,
+        KeywordRuleNotifier,
+        keywordRuleProvider;
 export '../../data/transfer_service.dart'
     show TransferState, storageBackendsProvider, transferServiceProvider;

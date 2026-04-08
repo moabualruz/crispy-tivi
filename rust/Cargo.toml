@@ -83,15 +83,15 @@ xz2 = "0.1"
 md-5 = "0.10"
 memory-stats = "1.2"
 crispy-core = { path = "crates/crispy-core" }
-crispy-catchup = { path = "../rust/shared/crispy-catchup", version = "0.1.1" }
-crispy-iptv-tools = { path = "../rust/shared/crispy-iptv-tools", version = "0.1.1" }
-crispy-iptv-types = { path = "../rust/shared/crispy-iptv-types", version = "0.1.1" }
-crispy-m3u = { path = "../rust/shared/crispy-m3u", version = "0.1.1" }
-crispy-media-probe = { path = "../rust/shared/crispy-media-probe", version = "0.1.1" }
-crispy-stalker = { path = "../rust/shared/crispy-stalker", version = "0.1.1" }
-crispy-stream-checker = { path = "../rust/shared/crispy-stream-checker", version = "0.1.1" }
-crispy-xmltv = { path = "../rust/shared/crispy-xmltv", version = "0.1.1" }
-crispy-xtream = { path = "../rust/shared/crispy-xtream", version = "0.1.1" }
+crispy-catchup = { path = "../rust/shared/crispy-catchup", version = "0.1.2" }
+crispy-iptv-tools = { path = "../rust/shared/crispy-iptv-tools", version = "0.1.2" }
+crispy-iptv-types = { path = "../rust/shared/crispy-iptv-types", version = "0.1.2" }
+crispy-m3u = { path = "../rust/shared/crispy-m3u", version = "0.1.2" }
+crispy-media-probe = { path = "../rust/shared/crispy-media-probe", version = "0.1.2" }
+crispy-stalker = { path = "../rust/shared/crispy-stalker", version = "0.1.2" }
+crispy-stream-checker = { path = "../rust/shared/crispy-stream-checker", version = "0.1.2" }
+crispy-xmltv = { path = "../rust/shared/crispy-xmltv", version = "0.1.2" }
+crispy-xtream = { path = "../rust/shared/crispy-xtream", version = "0.1.2" }
 
 [patch.crates-io]
 crispy-catchup = { path = "../rust/shared/crispy-catchup" }

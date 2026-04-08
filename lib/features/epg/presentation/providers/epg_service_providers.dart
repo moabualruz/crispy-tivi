@@ -11,7 +11,12 @@ export '../../../dvr/data/dvr_state.dart' show ScheduleResult;
 export '../../../iptv/data/services/catchup_url_builder.dart'
     show CatchupUrlBuilder;
 export '../../../notifications/data/notification_service.dart'
-    show NotificationService, NotificationState, notificationServiceProvider,
-        ToastType, AppToast, ProgramReminder;
+    show
+        NotificationService,
+        NotificationState,
+        notificationServiceProvider,
+        ToastType,
+        AppToast,
+        ProgramReminder;
 export '../../../player/data/external_player_service.dart'
     show ExternalPlayer, ExternalPlayerService, externalPlayerServiceProvider;

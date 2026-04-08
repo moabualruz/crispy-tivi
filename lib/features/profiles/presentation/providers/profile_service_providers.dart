@@ -10,5 +10,9 @@ export '../../data/profile_service.dart'
 export '../../../player/data/watch_history_service.dart'
     show WatchHistoryService, watchHistoryServiceProvider;
 export '../../data/source_access_service.dart'
-    show SourceAccessService, SourceAccessState, sourceAccessServiceProvider,
-        hasSourceAccessProvider, accessibleSourcesProvider;
+    show
+        SourceAccessService,
+        SourceAccessState,
+        sourceAccessServiceProvider,
+        hasSourceAccessProvider,
+        accessibleSourcesProvider;

@@ -62,7 +62,9 @@ mixin PlaylistSyncHelpers {
     if (!ref.mounted) return;
     syncSourceNames();
     sw.stop();
-    debugPrint('PlaylistSync: cache → UI complete in ${sw.elapsedMilliseconds}ms');
+    debugPrint(
+      'PlaylistSync: cache → UI complete in ${sw.elapsedMilliseconds}ms',
+    );
   }
 
   /// Reloads channels from cache into the UI notifier.

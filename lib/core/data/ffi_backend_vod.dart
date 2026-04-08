@@ -67,13 +67,11 @@ mixin _FfiVodMixin on _FfiBackendBase {
     return result.toInt();
   }
 
-  Future<String> getVodCategories(
-    String sourceIdsJson, {
-    String? itemType,
-  }) => rust_api.getVodCategories(
-    sourceIdsJson: sourceIdsJson,
-    vodType: itemType,
-  );
+  Future<String> getVodCategories(String sourceIdsJson, {String? itemType}) =>
+      rust_api.getVodCategories(
+        sourceIdsJson: sourceIdsJson,
+        vodType: itemType,
+      );
 
   Future<String> searchVod(
     String query,

@@ -14,34 +14,40 @@ mixin _MemoryChannelsMixin on _MemoryStorage {
     final normalizedGroup = group?.trim();
     final normalizedQuery = query?.trim().toLowerCase();
 
-    return channels.values.where((channel) {
-      final sourceId = channel['source_id'] as String?;
-      if (sourceIdSet.isNotEmpty && !sourceIdSet.contains(sourceId)) {
-        return false;
-      }
+    return channels.values
+        .where((channel) {
+          final sourceId = channel['source_id'] as String?;
+          if (sourceIdSet.isNotEmpty && !sourceIdSet.contains(sourceId)) {
+            return false;
+          }
 
-      if (normalizedGroup != null &&
-          normalizedGroup.isNotEmpty &&
-          (channel['group_title'] as String? ?? channel['group'] as String?) !=
-              normalizedGroup) {
-        return false;
-      }
+          if (normalizedGroup != null &&
+              normalizedGroup.isNotEmpty &&
+              (channel['group_title'] as String? ??
+                      channel['group'] as String?) !=
+                  normalizedGroup) {
+            return false;
+          }
 
-      if (normalizedQuery != null && normalizedQuery.isNotEmpty) {
-        final name = (channel['name'] as String? ?? '').toLowerCase();
-        final tvgId = (channel['tvg_id'] as String? ?? '').toLowerCase();
-        final groupTitle =
-            (channel['group_title'] as String? ?? channel['group'] as String? ?? '')
-                .toLowerCase();
-        if (!name.contains(normalizedQuery) &&
-            !tvgId.contains(normalizedQuery) &&
-            !groupTitle.contains(normalizedQuery)) {
-          return false;
-        }
-      }
+          if (normalizedQuery != null && normalizedQuery.isNotEmpty) {
+            final name = (channel['name'] as String? ?? '').toLowerCase();
+            final tvgId = (channel['tvg_id'] as String? ?? '').toLowerCase();
+            final groupTitle =
+                (channel['group_title'] as String? ??
+                        channel['group'] as String? ??
+                        '')
+                    .toLowerCase();
+            if (!name.contains(normalizedQuery) &&
+                !tvgId.contains(normalizedQuery) &&
+                !groupTitle.contains(normalizedQuery)) {
+              return false;
+            }
+          }
 
-      return true;
-    }).map((channel) => Map<String, dynamic>.from(channel)).toList();
+          return true;
+        })
+        .map((channel) => Map<String, dynamic>.from(channel))
+        .toList();
   }
 
   void _sortChannels(List<Map<String, dynamic>> items, String sort) {
@@ -55,18 +61,16 @@ mixin _MemoryChannelsMixin on _MemoryStorage {
         return;
       case 'number_asc':
         items.sort(
-          (a, b) =>
-              ((a['number'] as num?)?.toInt() ?? 1 << 30).compareTo(
-                (b['number'] as num?)?.toInt() ?? 1 << 30,
-              ),
+          (a, b) => ((a['number'] as num?)?.toInt() ?? 1 << 30).compareTo(
+            (b['number'] as num?)?.toInt() ?? 1 << 30,
+          ),
         );
         return;
       case 'number_desc':
         items.sort(
-          (a, b) =>
-              ((b['number'] as num?)?.toInt() ?? -1).compareTo(
-                (a['number'] as num?)?.toInt() ?? -1,
-              ),
+          (a, b) => ((b['number'] as num?)?.toInt() ?? -1).compareTo(
+            (a['number'] as num?)?.toInt() ?? -1,
+          ),
         );
         return;
       case 'name_asc':
@@ -125,7 +129,9 @@ mixin _MemoryChannelsMixin on _MemoryStorage {
     final counts = <String, int>{};
     for (final channel in _filteredChannels(sourceIds)) {
       final name =
-          (channel['group_title'] as String? ?? channel['group'] as String? ?? '')
+          (channel['group_title'] as String? ??
+                  channel['group'] as String? ??
+                  '')
               .trim();
       if (name.isEmpty) continue;
       counts[name] = (counts[name] ?? 0) + 1;
@@ -135,11 +141,10 @@ mixin _MemoryChannelsMixin on _MemoryStorage {
             .map((entry) => {'name': entry.key, 'count': entry.value})
             .toList()
           ..sort(
-            (a, b) =>
-                categoryBucketCompare(
-                  a['name']! as String,
-                  b['name']! as String,
-                ),
+            (a, b) => categoryBucketCompare(
+              a['name']! as String,
+              b['name']! as String,
+            ),
           );
     return jsonEncode(result);
   }
@@ -161,10 +166,7 @@ mixin _MemoryChannelsMixin on _MemoryStorage {
     return jsonEncode(filtered.sublist(offset, end));
   }
 
-  Future<int> getChannelCount(
-    String sourceIdsJson, {
-    String? group,
-  }) async {
+  Future<int> getChannelCount(String sourceIdsJson, {String? group}) async {
     final sourceIds = (jsonDecode(sourceIdsJson) as List).cast<String>();
     return _filteredChannels(sourceIds, group: group).length;
   }
@@ -185,13 +187,16 @@ mixin _MemoryChannelsMixin on _MemoryStorage {
     return channel == null ? null : Map<String, dynamic>.from(channel);
   }
 
-  Future<String> getFavoriteChannels(String sourceIdsJson, String profileId) async {
+  Future<String> getFavoriteChannels(
+    String sourceIdsJson,
+    String profileId,
+  ) async {
     final sourceIds = (jsonDecode(sourceIdsJson) as List).cast<String>();
     final favoriteIds = favorites[profileId] ?? const <String>{};
     final filtered =
-        _filteredChannels(sourceIds)
-            .where((channel) => favoriteIds.contains(channel['id']))
-            .toList();
+        _filteredChannels(
+          sourceIds,
+        ).where((channel) => favoriteIds.contains(channel['id'])).toList();
     return jsonEncode(filtered);
   }
 

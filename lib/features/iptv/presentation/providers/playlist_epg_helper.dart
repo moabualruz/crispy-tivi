@@ -85,10 +85,7 @@ mixin PlaylistEpgHelper {
       if (!ref.mounted) return;
 
       // Pass 3: Stalker short EPG for unfilled.
-      await _fetchAllStalkerEpg(
-        sources: settings.sources,
-        force: force,
-      );
+      await _fetchAllStalkerEpg(sources: settings.sources, force: force);
       if (!ref.mounted) return;
 
       // Rust has persisted everything to DB. Refresh

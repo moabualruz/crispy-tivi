@@ -151,10 +151,9 @@ final top10VodAsyncProvider = FutureProvider<List<VodItem>>((ref) async {
 /// Delegates to [backend.filterTopVod] via Rust FFI.
 /// Returns the last known value while the async call is in flight.
 final top10VodProvider = Provider<List<VodItem>>((ref) {
-  return ref.watch(top10VodAsyncProvider).maybeWhen(
-    data: (items) => items,
-    orElse: () => const [],
-  );
+  return ref
+      .watch(top10VodAsyncProvider)
+      .maybeWhen(data: (items) => items, orElse: () => const []);
 });
 
 // ── Task 5E: resolveNextEpisodes → backend.resolveNextEpisodes ──
@@ -270,8 +269,7 @@ final upcomingProgramsAsyncProvider = FutureProvider<List<UpcomingProgram>>((
 /// Delegates to [backend.filterUpcomingPrograms] via Rust FFI.
 /// Returns the last known value while the async call is in flight.
 final upcomingProgramsProvider = Provider<List<UpcomingProgram>>((ref) {
-  return ref.watch(upcomingProgramsAsyncProvider).maybeWhen(
-    data: (items) => items,
-    orElse: () => const [],
-  );
+  return ref
+      .watch(upcomingProgramsAsyncProvider)
+      .maybeWhen(data: (items) => items, orElse: () => const []);
 });

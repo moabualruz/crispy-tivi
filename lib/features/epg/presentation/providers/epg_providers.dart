@@ -16,6 +16,7 @@ export 'epg_state.dart';
 /// Manages EPG grid state.
 class EpgNotifier extends Notifier<EpgState> {
   static const _viewportHalfWindow = Duration(hours: 3);
+
   /// Max channels per EPG fetch. Set high for initial load to catch
   /// all channels with EPG data; the Rust facade efficiently filters
   /// via SQL. The UI grid virtualizes — only visible rows render.
@@ -139,7 +140,10 @@ class EpgNotifier extends Notifier<EpgState> {
   }
 
   /// Fetches EPG for currently filtered channels within ±3h of focus.
-  Future<void> fetchEpgWindow(DateTime requestedStart, DateTime requestedEnd) async {
+  Future<void> fetchEpgWindow(
+    DateTime requestedStart,
+    DateTime requestedEnd,
+  ) async {
     await _ensureChannelsLoaded();
 
     final requestedDuration = requestedEnd.difference(requestedStart);
@@ -244,16 +248,18 @@ class EpgNotifier extends Notifier<EpgState> {
 
   /// Selects an EPG entry (shown in info panel).
   void selectEntry(EpgEntry? entry) {
-    state = entry == null
-        ? state.copyWith(clearSelectedEntry: true)
-        : state.copyWith(selectedEntry: entry);
+    state =
+        entry == null
+            ? state.copyWith(clearSelectedEntry: true)
+            : state.copyWith(selectedEntry: entry);
   }
 
   /// Filter by group (null = show all).
   void selectGroup(String? group) {
-    state = group == null
-        ? state.copyWith(clearGroup: true)
-        : state.copyWith(selectedGroup: group);
+    state =
+        group == null
+            ? state.copyWith(clearGroup: true)
+            : state.copyWith(selectedGroup: group);
     if (_hasViewportFetch) {
       unawaited(_refreshViewportAroundFocus());
     }

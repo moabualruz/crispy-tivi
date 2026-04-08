@@ -16,57 +16,60 @@ mixin _MemoryVodMixin on _MemoryStorage {
     final normalizedQuery = query?.trim().toLowerCase();
     final sourceIdSet = sourceIds.toSet();
 
-    return vodItems.values.where((item) {
-      final sourceId = item['source_id'] as String?;
-      if (sourceIdSet.isNotEmpty && !sourceIdSet.contains(sourceId)) {
-        return false;
-      }
-
-      final type = (item['type'] as String? ?? '').trim().toLowerCase();
-      if (normalizedType != null &&
-          normalizedType.isNotEmpty &&
-          type != normalizedType) {
-        return false;
-      }
-
-      final itemCategory = (item['category'] as String?)?.trim();
-      if (normalizedCategory != null && normalizedCategory.isNotEmpty) {
-        if (normalizedCategory == 'Uncategorized') {
-          if (itemCategory != null && itemCategory.isNotEmpty) {
+    return vodItems.values
+        .where((item) {
+          final sourceId = item['source_id'] as String?;
+          if (sourceIdSet.isNotEmpty && !sourceIdSet.contains(sourceId)) {
             return false;
           }
-        } else if (itemCategory != normalizedCategory) {
-          return false;
-        }
-      }
 
-      if (normalizedQuery != null && normalizedQuery.isNotEmpty) {
-        final haystacks = [
-          item['name'],
-          item['description'],
-          item['category'],
-          item['director'],
-        ];
-        final cast = item['cast'];
-        final matchesText = haystacks.any(
-          (value) =>
-              value is String &&
-              value.toLowerCase().contains(normalizedQuery),
-        );
-        final matchesCast =
-            cast is List &&
-            cast.any(
+          final type = (item['type'] as String? ?? '').trim().toLowerCase();
+          if (normalizedType != null &&
+              normalizedType.isNotEmpty &&
+              type != normalizedType) {
+            return false;
+          }
+
+          final itemCategory = (item['category'] as String?)?.trim();
+          if (normalizedCategory != null && normalizedCategory.isNotEmpty) {
+            if (normalizedCategory == 'Uncategorized') {
+              if (itemCategory != null && itemCategory.isNotEmpty) {
+                return false;
+              }
+            } else if (itemCategory != normalizedCategory) {
+              return false;
+            }
+          }
+
+          if (normalizedQuery != null && normalizedQuery.isNotEmpty) {
+            final haystacks = [
+              item['name'],
+              item['description'],
+              item['category'],
+              item['director'],
+            ];
+            final cast = item['cast'];
+            final matchesText = haystacks.any(
               (value) =>
                   value is String &&
                   value.toLowerCase().contains(normalizedQuery),
             );
-        if (!matchesText && !matchesCast) {
-          return false;
-        }
-      }
+            final matchesCast =
+                cast is List &&
+                cast.any(
+                  (value) =>
+                      value is String &&
+                      value.toLowerCase().contains(normalizedQuery),
+                );
+            if (!matchesText && !matchesCast) {
+              return false;
+            }
+          }
 
-      return true;
-    }).map((item) => Map<String, dynamic>.from(item)).toList();
+          return true;
+        })
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
   }
 
   void _sortVodMaps(List<Map<String, dynamic>> items, String sort) {
@@ -213,11 +216,10 @@ mixin _MemoryVodMixin on _MemoryStorage {
             .map((entry) => {'name': entry.key, 'count': entry.value})
             .toList()
           ..sort(
-            (a, b) =>
-                categoryBucketCompare(
-                  a['name']! as String,
-                  b['name']! as String,
-                ),
+            (a, b) => categoryBucketCompare(
+              a['name']! as String,
+              b['name']! as String,
+            ),
           );
     return jsonEncode(result);
   }

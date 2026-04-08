@@ -56,10 +56,7 @@ mixin _FfiChannelsMixin on _FfiBackendBase {
     limit: PlatformInt64Util.from(limit),
   );
 
-  Future<int> getChannelCount(
-    String sourceIdsJson, {
-    String? group,
-  }) async {
+  Future<int> getChannelCount(String sourceIdsJson, {String? group}) async {
     final result = await rust_api.getChannelCount(
       sourceIdsJson: sourceIdsJson,
       group: group,

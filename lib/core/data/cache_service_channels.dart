@@ -296,8 +296,7 @@ List<({String name, int count})> _decodeNameCountList(String json) {
       }
       final map = entry as Map<String, dynamic>;
       return (
-        name:
-            (map['name'] ?? map['group'] ?? map['category'] ?? '') as String,
+        name: (map['name'] ?? map['group'] ?? map['category'] ?? '') as String,
         count: (map['count'] as num?)?.toInt() ?? 0,
       );
     }).toList();

@@ -105,8 +105,7 @@ class PlaybackSessionParams {
   bool get hasSource => streamUrl.isNotEmpty;
 
   /// Whether this session requires HTTP authentication headers.
-  bool get requiresAuth =>
-      headers != null && headers!.isNotEmpty;
+  bool get requiresAuth => headers != null && headers!.isNotEmpty;
 
   /// Convenience getter — the stream type inferred from [mediaType]
   /// or the [isLive] flag.

@@ -199,12 +199,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     // IPTV / Local VOD — play directly
     if (sourceKey.startsWith(SearchSourceKey.iptv)) {
       unawaited(
-        ref.read(playbackSessionProvider.notifier).startPlayback(
-          streamUrl: item.streamUrl ?? '',
-          channelName: item.name,
-          channelLogoUrl: item.logoUrl,
-          isLive: item.type == MediaType.channel,
-        ),
+        ref
+            .read(playbackSessionProvider.notifier)
+            .startPlayback(
+              streamUrl: item.streamUrl ?? '',
+              channelName: item.name,
+              channelLogoUrl: item.logoUrl,
+              isLive: item.type == MediaType.channel,
+            ),
       );
     }
   }
@@ -217,9 +219,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final hasChannels =
         (ref.watch(channelCountPaginatedProvider(null)).asData?.value ?? 0) > 0;
     final hasVod =
-        (ref.watch(
-              vodCountPaginatedProvider(const VodPageRequest()),
-            ).asData?.value ??
+        (ref
+                .watch(vodCountPaginatedProvider(const VodPageRequest()))
+                .asData
+                ?.value ??
             0) >
         0;
 

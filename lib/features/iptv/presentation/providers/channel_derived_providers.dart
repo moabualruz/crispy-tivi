@@ -44,12 +44,14 @@ final _epgAwareChannelListAsyncProvider =
       if (matchedIds.isEmpty) return channelState.filteredChannels;
 
       // Step 2: merge matched channels into base filtered list.
-      return ref.read(channelSearchRepositoryProvider).mergeEpgMatchedChannels(
-        baseChannels: channelState.filteredChannels,
-        allChannels: channelState.channels,
-        matchedIds: matchedIds,
-        epgOverrides: epgState.epgOverrides,
-      );
+      return ref
+          .read(channelSearchRepositoryProvider)
+          .mergeEpgMatchedChannels(
+            baseChannels: channelState.filteredChannels,
+            allChannels: channelState.channels,
+            matchedIds: matchedIds,
+            epgOverrides: epgState.epgOverrides,
+          );
     });
 
 /// EPG-aware channel list provider (FE-TV-05).

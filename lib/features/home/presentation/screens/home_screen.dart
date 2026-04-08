@@ -30,9 +30,9 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final featuredItems = ref.watch(
-      featuredVodProvider,
-    ).maybeWhen(data: (items) => items, orElse: () => const <VodItem>[]);
+    final featuredItems = ref
+        .watch(featuredVodProvider)
+        .maybeWhen(data: (items) => items, orElse: () => const <VodItem>[]);
 
     return Scaffold(
       key: TestKeys.homeScreen,

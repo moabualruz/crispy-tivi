@@ -91,7 +91,9 @@ class _VodMoviesBody extends ConsumerStatefulWidget {
 }
 
 class _VodMoviesBodyState extends ConsumerState<_VodMoviesBody>
-    with AutomaticKeepAliveClientMixin, VodSortableBrowserMixin<_VodMoviesBody> {
+    with
+        AutomaticKeepAliveClientMixin,
+        VodSortableBrowserMixin<_VodMoviesBody> {
   @override
   bool get wantKeepAlive => true;
 
@@ -229,7 +231,9 @@ class _VodMoviesBodyState extends ConsumerState<_VodMoviesBody>
               category: selectedCategory,
               query: query.isEmpty ? null : query,
               sort: currentSort,
-              maxExtent: _density.maxCardExtent(MediaQuery.sizeOf(context).width),
+              maxExtent: _density.maxCardExtent(
+                MediaQuery.sizeOf(context).width,
+              ),
               enableTvSelection: widget.enableTvSelection,
             )
           else
@@ -386,37 +390,41 @@ class _PaginatedVodGrid extends ConsumerWidget {
           mainAxisSpacing: mainSpacing,
           crossAxisSpacing: crossSpacing,
         ),
-        delegate: SliverChildBuilderDelegate((context, index) {
-          final page = index ~/ kVodPageSize;
-          final indexInPage = index % kVodPageSize;
-          final request = VodPageRequest(
-            itemType: itemType,
-            category: category,
-            query: query,
-            sort: sort,
-            page: page,
-          );
-          final pageAsync = ref.watch(vodPagePaginatedProvider(request));
-          return pageAsync.when(
-            data: (items) {
-              if (indexInPage >= items.length) {
-                return const SizedBox.shrink();
-              }
-              final item = items[indexInPage];
-              return VodPosterCard(
-                item: item,
-                onTap:
-                    enableTvSelection
-                        ? () => VodTvSelectionScope.maybeOf(
-                          context,
-                        )?.onItemSelected(item)
-                        : null,
-              );
-            },
-            loading: () => const _VodPosterSkeleton(),
-            error: (_, _) => const SizedBox.shrink(),
-          );
-        }, childCount: itemCount, semanticIndexCallback: (_, index) => index),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final page = index ~/ kVodPageSize;
+            final indexInPage = index % kVodPageSize;
+            final request = VodPageRequest(
+              itemType: itemType,
+              category: category,
+              query: query,
+              sort: sort,
+              page: page,
+            );
+            final pageAsync = ref.watch(vodPagePaginatedProvider(request));
+            return pageAsync.when(
+              data: (items) {
+                if (indexInPage >= items.length) {
+                  return const SizedBox.shrink();
+                }
+                final item = items[indexInPage];
+                return VodPosterCard(
+                  item: item,
+                  onTap:
+                      enableTvSelection
+                          ? () => VodTvSelectionScope.maybeOf(
+                            context,
+                          )?.onItemSelected(item)
+                          : null,
+                );
+              },
+              loading: () => const _VodPosterSkeleton(),
+              error: (_, _) => const SizedBox.shrink(),
+            );
+          },
+          childCount: itemCount,
+          semanticIndexCallback: (_, index) => index,
+        ),
       ),
     );
   }
