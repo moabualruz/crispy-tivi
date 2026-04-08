@@ -313,50 +313,6 @@ fn parse_proxy_target(raw_url: &str) -> Option<Url> {
     Some(parsed)
 }
 
-async fn proxy_target_allowed(target: &Url, security: &SecurityConfig) -> bool {
-    let host = match target.host_str() {
-        Some(host) => normalize_host(host),
-        None => return false,
-    };
-
-    if is_local_host(&host) || security.proxy_denied_hosts.contains(&host) {
-        return false;
-    }
-
-    if let Some(allowed_hosts) = &security.proxy_allowed_hosts
-        && !allowed_hosts.contains(&host)
-    {
-        return false;
-    }
-
-    if security.proxy_allowed_hosts.is_none() && !security.proxy_allow_public_targets {
-        return false;
-    }
-
-    if security.proxy_allow_private_targets {
-        return true;
-    }
-
-    if let Ok(ip) = host.parse::<IpAddr>() {
-        return !is_private_ip(ip);
-    }
-
-    let port = target.port_or_known_default().unwrap_or(80);
-    let Ok(addrs) = tokio::net::lookup_host((host.as_str(), port)).await else {
-        return false;
-    };
-
-    let mut resolved_any = false;
-    for addr in addrs {
-        resolved_any = true;
-        if is_private_ip(addr.ip()) {
-            return false;
-        }
-    }
-
-    resolved_any
-}
-
 fn proxy_path_for_url(absolute_url: &str, token: Option<&str>) -> String {
     let encoded_url =
         percent_encoding::utf8_percent_encode(absolute_url, percent_encoding::NON_ALPHANUMERIC);
@@ -377,6 +333,13 @@ enum ProxyFetchError {
     BadGateway,
 }
 
+#[derive(Clone, Debug)]
+struct ResolvedProxyTarget {
+    url: Url,
+    host: String,
+    resolved_addrs: Vec<SocketAddr>,
+}
+
 fn resolve_proxy_redirect_target(current_url: &Url, location: &str) -> Option<Url> {
     let location = location.trim();
     if location.is_empty() {
@@ -394,17 +357,83 @@ fn proxy_redirect_target(current_url: &Url, headers: &HeaderMap) -> Option<Url> 
         .and_then(|location| resolve_proxy_redirect_target(current_url, location))
 }
 
+async fn resolve_proxy_target(
+    target: &Url,
+    security: &SecurityConfig,
+) -> Option<ResolvedProxyTarget> {
+    let host = match target.host_str() {
+        Some(host) => normalize_host(host),
+        None => return None,
+    };
+
+    if is_local_host(&host) || security.proxy_denied_hosts.contains(&host) {
+        return None;
+    }
+
+    if let Some(allowed_hosts) = &security.proxy_allowed_hosts
+        && !allowed_hosts.contains(&host)
+    {
+        return None;
+    }
+
+    if security.proxy_allowed_hosts.is_none() && !security.proxy_allow_public_targets {
+        return None;
+    }
+
+    let port = target.port_or_known_default().unwrap_or(80);
+    let resolved_addrs = if let Ok(ip) = host.parse::<IpAddr>() {
+        if !security.proxy_allow_private_targets && is_private_ip(ip) {
+            return None;
+        }
+        vec![SocketAddr::new(ip, port)]
+    } else {
+        let Ok(addrs) = tokio::net::lookup_host((host.as_str(), port)).await else {
+            return None;
+        };
+        let resolved_addrs = addrs.collect::<Vec<_>>();
+        if resolved_addrs.is_empty() {
+            return None;
+        }
+        if !security.proxy_allow_private_targets
+            && resolved_addrs.iter().any(|addr| is_private_ip(addr.ip()))
+        {
+            return None;
+        }
+        resolved_addrs
+    };
+
+    Some(ResolvedProxyTarget {
+        url: target.clone(),
+        host,
+        resolved_addrs,
+    })
+}
+
+fn build_proxy_client(target: &ResolvedProxyTarget) -> Result<reqwest::Client, reqwest::Error> {
+    let mut builder = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .redirect(reqwest::redirect::Policy::none())
+        .no_proxy();
+
+    if target.host.parse::<IpAddr>().is_err() {
+        builder = builder.resolve_to_addrs(&target.host, &target.resolved_addrs);
+    }
+
+    builder.build()
+}
+
 async fn fetch_proxy_response(
-    client: &reqwest::Client,
-    initial_target: Url,
+    initial_target: ResolvedProxyTarget,
     security: &SecurityConfig,
 ) -> Result<reqwest::Response, ProxyFetchError> {
     const MAX_PROXY_REDIRECTS: usize = 10;
 
     let mut current_target = initial_target;
     for _ in 0..=MAX_PROXY_REDIRECTS {
+        let client =
+            build_proxy_client(&current_target).map_err(|_| ProxyFetchError::BadGateway)?;
         let response = client
-            .get(current_target.clone())
+            .get(current_target.url.clone())
             .send()
             .await
             .map_err(|_| ProxyFetchError::BadGateway)?;
@@ -417,11 +446,9 @@ async fn fetch_proxy_response(
             return Err(ProxyFetchError::BadGateway);
         };
 
-        if !proxy_target_allowed(&next_target, security).await {
-            return Err(ProxyFetchError::ForbiddenTarget);
-        }
-
-        current_target = next_target;
+        current_target = resolve_proxy_target(&next_target, security)
+            .await
+            .ok_or(ProxyFetchError::ForbiddenTarget)?;
     }
 
     Err(ProxyFetchError::BadGateway)
@@ -457,19 +484,13 @@ async fn cors_proxy(
         return StatusCode::BAD_REQUEST.into_response();
     };
 
-    if !proxy_target_allowed(&target, &state.security).await {
+    let Some(target) = resolve_proxy_target(&target, &state.security).await else {
         return StatusCode::FORBIDDEN.into_response();
-    }
+    };
 
     let proxy_token = provided_token(&headers, params.token.as_deref());
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .redirect(reqwest::redirect::Policy::none())
-        .build()
-        .unwrap_or_default();
-
-    match fetch_proxy_response(&client, target, &state.security).await {
+    match fetch_proxy_response(target, &state.security).await {
         Ok(resp) => {
             let upstream_url = resp.url().clone();
             let content_type = resp
@@ -871,6 +892,7 @@ async fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     fn security_config() -> SecurityConfig {
         SecurityConfig {
@@ -884,6 +906,27 @@ mod tests {
             proxy_allow_public_targets: false,
             proxy_allow_private_targets: false,
         }
+    }
+
+    async fn spawn_test_http_server(
+        response: &'static str,
+    ) -> (SocketAddr, tokio::task::JoinHandle<String>) {
+        let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+            .await
+            .expect("bind test server");
+        let addr = listener.local_addr().expect("server addr");
+        let handle = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.expect("accept");
+            let mut buf = vec![0_u8; 4096];
+            let read = stream.read(&mut buf).await.expect("read request");
+            let request = String::from_utf8_lossy(&buf[..read]).to_string();
+            stream
+                .write_all(response.as_bytes())
+                .await
+                .expect("write response");
+            request
+        });
+        (addr, handle)
     }
 
     #[test]
@@ -988,14 +1031,14 @@ mod tests {
     async fn proxy_rejects_private_ip_targets() {
         let security = security_config();
         let target = Url::parse("http://127.0.0.1/internal").expect("valid URL");
-        assert!(!proxy_target_allowed(&target, &security).await);
+        assert!(resolve_proxy_target(&target, &security).await.is_none());
     }
 
     #[tokio::test]
     async fn proxy_is_disabled_without_allowlist_or_explicit_public_opt_in() {
         let security = security_config();
         let target = Url::parse("http://1.1.1.1/stream").expect("valid URL");
-        assert!(!proxy_target_allowed(&target, &security).await);
+        assert!(resolve_proxy_target(&target, &security).await.is_none());
     }
 
     #[tokio::test]
@@ -1003,7 +1046,7 @@ mod tests {
         let mut security = security_config();
         security.proxy_allowed_hosts = Some(HashSet::from(["1.1.1.1".to_string()]));
         let target = Url::parse("http://1.1.1.1/stream").expect("valid URL");
-        assert!(proxy_target_allowed(&target, &security).await);
+        assert!(resolve_proxy_target(&target, &security).await.is_some());
     }
 
     #[test]
@@ -1021,7 +1064,7 @@ mod tests {
         let current = Url::parse("https://allowed.example/live/playlist.m3u8").expect("valid URL");
         let redirected = resolve_proxy_redirect_target(&current, "https://blocked.example/stream")
             .expect("redirect URL");
-        assert!(!proxy_target_allowed(&redirected, &security).await);
+        assert!(resolve_proxy_target(&redirected, &security).await.is_none());
     }
 
     #[tokio::test]
@@ -1031,7 +1074,45 @@ mod tests {
         let current = Url::parse("https://allowed.example/live/playlist.m3u8").expect("valid URL");
         let redirected = resolve_proxy_redirect_target(&current, "http://127.0.0.1/internal")
             .expect("redirect URL");
-        assert!(!proxy_target_allowed(&redirected, &security).await);
+        assert!(resolve_proxy_target(&redirected, &security).await.is_none());
+    }
+
+    #[tokio::test]
+    async fn fetch_proxy_response_uses_pinned_resolver_addresses() {
+        let (server_addr, request_task) = spawn_test_http_server(
+            "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok",
+        )
+        .await;
+        let target = ResolvedProxyTarget {
+            url: Url::parse(&format!(
+                "http://media.example:{}/stream.ts",
+                server_addr.port()
+            ))
+            .expect("valid URL"),
+            host: "media.example".to_string(),
+            resolved_addrs: vec![server_addr],
+        };
+
+        let response = fetch_proxy_response(target, &security_config())
+            .await
+            .expect("pinned proxy response");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.text().await.expect("body"), "ok");
+
+        let request = request_task.await.expect("captured request");
+        let request = request.to_ascii_lowercase();
+        assert!(
+            request.starts_with("get /stream.ts http/1.1\r\n"),
+            "{request}"
+        );
+        assert!(
+            request.contains(&format!(
+                "\r\nhost: media.example:{}\r\n",
+                server_addr.port()
+            )),
+            "{request}"
+        );
     }
 
     #[test]

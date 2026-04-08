@@ -399,7 +399,13 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
                     let map: serde_json::Map<String, serde_json::Value> =
                         serde_json::from_str(j).context("Invalid params")?;
                     map.into_iter()
-                        .map(|(k, v)| (k, v.as_str().unwrap_or("").to_string()))
+                        .map(|(k, v)| {
+                            let value = match v {
+                                serde_json::Value::String(s) => s,
+                                other => other.to_string(),
+                            };
+                            (k, value)
+                        })
                         .collect()
                 }
                 _ => Vec::new(),

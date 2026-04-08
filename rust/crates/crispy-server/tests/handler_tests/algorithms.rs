@@ -275,6 +275,36 @@ fn build_xtream_action_url() {
 }
 
 #[test]
+fn build_xtream_action_url_preserves_non_string_params() {
+    let svc = make_svc();
+    let resp = send(
+        &svc,
+        &json!({
+            "cmd": "buildXtreamActionUrl",
+            "id": "r1",
+            "args": {
+                "baseUrl": "http://xtream.tv",
+                "username": "user",
+                "password": "pass",
+                "action": "get_live_streams",
+                "paramsJson": serde_json::json!({
+                    "limit": 25,
+                    "include_adult": false,
+                    "cat id": 5,
+                    "search": "one & two",
+                })
+                .to_string(),
+            },
+        }),
+    );
+    let url = resp["data"].as_str().unwrap();
+    assert!(url.contains("limit=25"));
+    assert!(url.contains("include_adult=false"));
+    assert!(url.contains("cat+id=5"));
+    assert!(url.contains("search=one+%26+two"));
+}
+
+#[test]
 fn build_xtream_stream_url() {
     let svc = make_svc();
     let resp = send(
