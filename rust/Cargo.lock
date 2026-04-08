@@ -637,7 +637,7 @@ dependencies = [
 [[package]]
 name = "crispy-iptv-types"
 version = "0.1.1"
-source = "git+https://github.com/moabualruz/crispy-iptv-types?branch=main#3754cbfc27ab305c7050c76af25c7b543459d163"
+source = "git+https://github.com/moabualruz/crispy-iptv-types?branch=main#647c24710da7fcf2acc56a27b0cdefe10ef320d5"
 dependencies = [
  "chrono",
  "compact_str",
