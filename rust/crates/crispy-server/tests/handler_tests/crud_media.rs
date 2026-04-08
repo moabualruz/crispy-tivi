@@ -71,6 +71,45 @@ fn delete_removed_vod_items() {
     assert_eq!(resp["count"], 1);
 }
 
+#[test]
+fn save_vod_items_with_missing_native_id_keeps_distinct_rows() {
+    let svc = make_svc();
+    seed_source(&svc, "src1");
+    let resp = send(
+        &svc,
+        &json!({
+            "cmd": "saveVodItems",
+            "id": "r1",
+            "args": {"items": [
+                {
+                    "id": "v1",
+                    "name": "Movie One",
+                    "stream_url": "http://x/movie1",
+                    "type": "movie",
+                    "source_id": "src1",
+                    "native_id": ""
+                },
+                {
+                    "id": "v2",
+                    "name": "Movie Two",
+                    "stream_url": "http://x/movie2",
+                    "type": "movie",
+                    "source_id": "src1",
+                    "native_id": ""
+                }
+            ]},
+        }),
+    );
+    assert_eq!(resp["ok"], true);
+    assert_eq!(resp["count"], 2);
+
+    let resp = send(&svc, &json!({"cmd": "loadVodItems", "id": "r2"}));
+    let data = resp["data"].as_array().unwrap();
+    assert_eq!(data.len(), 2);
+    assert!(data.iter().any(|item| item["id"] == "v1"));
+    assert!(data.iter().any(|item| item["id"] == "v2"));
+}
+
 // ── CRUD: VOD Favorites ───────────────────────────
 
 #[test]

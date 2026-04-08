@@ -963,6 +963,32 @@ mod tests {
     }
 
     #[test]
+    fn extract_xtream_stream_credentials_from_live_url() {
+        let creds =
+            extract_xtream_stream_credentials("http://tv.example.com:8080/live/user/pass/42.ts")
+                .expect("expected Xtream credentials");
+        assert_eq!(creds.base_url, "http://tv.example.com:8080");
+        assert_eq!(creds.username, "user");
+        assert_eq!(creds.password, "pass");
+    }
+
+    #[test]
+    fn extract_xtream_stream_credentials_decodes_segments() {
+        let creds = extract_xtream_stream_credentials(
+            "https://tv.example.com/live/user%40name/pass%2Fword/42.ts",
+        )
+        .expect("expected Xtream credentials");
+        assert_eq!(creds.base_url, "https://tv.example.com");
+        assert_eq!(creds.username, "user@name");
+        assert_eq!(creds.password, "pass/word");
+    }
+
+    #[test]
+    fn extract_xtream_stream_credentials_rejects_non_xtream_urls() {
+        assert!(extract_xtream_stream_credentials("http://tv.example.com/channel/42.ts").is_none());
+    }
+
+    #[test]
     fn live_stream_parser_encodes_credentials_in_url() {
         let data = vec![make_live_stream(100, "Ch", "ch1", "", "Cat", 0, 0, None)];
         let channels = parse_xtream_live_streams(&data, "http://tv.test", "user@host", "p/w");

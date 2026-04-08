@@ -16,6 +16,46 @@ use crate::traits::VodRepository;
 /// Domain service for VOD operations.
 pub struct VodService(pub ServiceContext);
 
+fn resolved_native_id(item: &VodItem) -> String {
+    let native_id = item.native_id.trim();
+    if !native_id.is_empty() {
+        return native_id.to_string();
+    }
+
+    let mut fallback = format!("fallback:{}:", item.item_type.as_str());
+    if !item.stream_url.trim().is_empty() {
+        fallback.push_str("stream:");
+        fallback.push_str(item.stream_url.trim());
+        return fallback;
+    }
+
+    if let Some(series_id) = item.series_id.as_deref()
+        && !series_id.trim().is_empty()
+    {
+        fallback.push_str("series:");
+        fallback.push_str(series_id.trim());
+        fallback.push(':');
+        fallback.push_str(&item.season_number.unwrap_or_default().to_string());
+        fallback.push(':');
+        fallback.push_str(&item.episode_number.unwrap_or_default().to_string());
+        return fallback;
+    }
+
+    if !item.name.trim().is_empty() {
+        fallback.push_str("name:");
+        fallback.push_str(item.name.trim());
+        if let Some(year) = item.year {
+            fallback.push(':');
+            fallback.push_str(&year.to_string());
+        }
+        return fallback;
+    }
+
+    fallback.push_str("id:");
+    fallback.push_str(item.id.trim());
+    fallback
+}
+
 /// Map a single SQLite row to a `VodItem` (backward compat).
 pub(crate) fn vod_item_from_row(row: &Row) -> rusqlite::Result<VodItem> {
     Ok(VodItem {
@@ -108,10 +148,11 @@ impl VodService {
         let mut count = 0usize;
         for v in items {
             let source_id = v.source_id.clone().unwrap_or_default();
+            let native_id = resolved_native_id(v);
             stmt.execute(params![
                 v.id,
                 source_id,
-                v.native_id,
+                native_id,
                 v.name,
                 v.original_name,
                 v.poster_url,
@@ -611,6 +652,7 @@ impl VodRepository for VodService {
 #[cfg(test)]
 mod tests {
     use super::VodService;
+    use super::resolved_native_id;
     use crate::services::ChannelService;
     use crate::services::test_helpers::*;
 
@@ -633,6 +675,49 @@ mod tests {
         assert_eq!(loaded.len(), 2);
         assert!(loaded.iter().any(|v| v.id == "v1"));
         assert!(loaded.iter().any(|v| v.id == "v2"));
+    }
+
+    #[test]
+    fn resolved_native_id_preserves_explicit_ids() {
+        let item = make_vod_item("v1", "Movie 1");
+        assert_eq!(resolved_native_id(&item), "v1");
+    }
+
+    #[test]
+    fn resolved_native_id_uses_stream_url_when_native_id_missing() {
+        let mut item = make_vod_item("v1", "Movie 1");
+        item.native_id.clear();
+        assert_eq!(
+            resolved_native_id(&item),
+            "fallback:movie:stream:http://example.com/vod/v1"
+        );
+    }
+
+    #[test]
+    fn missing_native_ids_do_not_collapse_same_source_items() {
+        let base = make_service();
+        let src = make_source("src1", "S1", "m3u");
+        crate::services::SourceService(base.clone())
+            .save_source(&src)
+            .unwrap();
+        let svc = VodService(base);
+
+        let mut v1 = make_vod_item("v1", "Movie 1");
+        v1.native_id.clear();
+        v1.source_id = Some("src1".to_string());
+
+        let mut v2 = make_vod_item("v2", "Movie 2");
+        v2.native_id.clear();
+        v2.source_id = Some("src1".to_string());
+        v2.stream_url = "http://example.com/vod/v2-alt".to_string();
+
+        let count = svc.save_vod_items(&[v1, v2]).unwrap();
+        assert_eq!(count, 2);
+
+        let loaded = svc.load_vod_items().unwrap();
+        assert_eq!(loaded.len(), 2);
+        assert!(loaded.iter().any(|item| item.id == "v1"));
+        assert!(loaded.iter().any(|item| item.id == "v2"));
     }
 
     #[test]

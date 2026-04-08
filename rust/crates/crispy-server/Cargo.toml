@@ -16,6 +16,7 @@ reqwest.workspace = true
 percent-encoding.workspace = true
 base64.workspace = true
 tokio-util.workspace = true
+url.workspace = true
 
 [lints]
 workspace = true

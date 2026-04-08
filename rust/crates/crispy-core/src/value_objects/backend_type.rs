@@ -1,10 +1,10 @@
 //! BackendType — storage backend protocol discriminator.
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 /// Discriminates the storage protocol used by a [`crate::models::StorageBackend`].
 ///
 /// Replaces `backend_type: String` in [`crate::models::StorageBackend`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum BackendType {
     /// Local filesystem storage.
@@ -39,11 +39,12 @@ impl std::fmt::Display for BackendType {
 impl TryFrom<&str> for BackendType {
     type Error = String;
     fn try_from(s: &str) -> Result<Self, Self::Error> {
-        match s.to_lowercase().as_str() {
+        let normalized = s.trim().to_lowercase().replace(['-', ' '], "_");
+        match normalized.as_str() {
             "local" => Ok(Self::Local),
             "network_smb" | "smb" => Ok(Self::NetworkSmb),
             "network_nfs" | "nfs" => Ok(Self::NetworkNfs),
-            "cloud" | "s3" | "webdav" | "googledrive" | "ftp" => Ok(Self::Cloud),
+            "cloud" | "s3" | "webdav" | "googledrive" | "google_drive" | "ftp" => Ok(Self::Cloud),
             other => Err(format!("unknown backend type: {other}")),
         }
     }
@@ -53,6 +54,16 @@ impl TryFrom<String> for BackendType {
     type Error = String;
     fn try_from(s: String) -> Result<Self, Self::Error> {
         Self::try_from(s.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for BackendType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let raw = String::deserialize(deserializer)?;
+        Self::try_from(raw).map_err(serde::de::Error::custom)
     }
 }
 

@@ -108,16 +108,19 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
             }
 
             // Try Xtream.
-            let parts: Vec<&str> = channel.stream_url.split('/').collect();
-            if parts.len() >= 6 {
-                let base = format!("{}//{}", parts[0], parts[2],);
-                if let Some(info) = crispy_core::algorithms::catchup::build_xtream_catchup(
-                    &channel, &entry, &base, parts[3], parts[4],
-                ) {
-                    return Ok(json!({
-                        "data": info.archive_url
-                    }));
-                }
+            if let Some(creds) =
+                crispy_core::parsers::xtream::extract_xtream_stream_credentials(&channel.stream_url)
+                && let Some(info) = crispy_core::algorithms::catchup::build_xtream_catchup(
+                    &channel,
+                    &entry,
+                    &creds.base_url,
+                    &creds.username,
+                    &creds.password,
+                )
+            {
+                return Ok(json!({
+                    "data": info.archive_url
+                }));
             }
 
             // Try Stalker fallback.

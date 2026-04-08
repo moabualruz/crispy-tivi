@@ -1,6 +1,7 @@
 //! Algorithm command handler tests.
 
-use serde_json::{Value, json};
+use chrono::Utc;
+use serde_json::json;
 
 use super::{make_svc, send};
 
@@ -314,6 +315,39 @@ fn build_xtream_catchup_url() {
         }),
     );
     assert!(resp["data"].is_string());
+}
+
+#[test]
+fn build_catchup_url_extracts_xtream_credentials_from_stream_url() {
+    let svc = make_svc();
+    let now = Utc::now().timestamp();
+    let channel = json!({
+        "id": "ch1",
+        "native_id": "42",
+        "name": "Xtream Ch",
+        "stream_url": "http://xtream.tv/live/user/pass/42.ts",
+        "xtream_stream_id": "42",
+        "has_catchup": true,
+        "catchup_days": 7,
+        "catchup_type": "xc",
+    });
+
+    let resp = send(
+        &svc,
+        &json!({
+            "cmd": "buildCatchupUrl",
+            "id": "r1",
+            "args": {
+                "channelJson": serde_json::to_string(&channel).unwrap(),
+                "startUtc": now - 3600,
+                "endUtc": now - 1800,
+            },
+        }),
+    );
+
+    let url = resp["data"].as_str().expect("expected catchup URL");
+    assert!(url.contains("/timeshift/user/pass/30/"));
+    assert!(url.ends_with("/42.ts"));
 }
 
 #[test]

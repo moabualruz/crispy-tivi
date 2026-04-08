@@ -3,7 +3,7 @@
 
 use serde_json::json;
 
-use super::{make_svc, seed_source, send};
+use super::{make_svc, send};
 
 // ── CRUD: EPG ─────────────────────────────────────
 
@@ -12,7 +12,7 @@ fn save_and_load_epg_entries() {
     let svc = make_svc();
     let entries = json!({
         "ch1": [{
-            "channel_id": "ch1",
+            "epg_channel_id": "ch1",
             "title": "News",
             "start_time": "2024-01-01T10:00:00",
             "end_time": "2024-01-01T11:00:00",

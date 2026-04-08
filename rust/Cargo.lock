@@ -602,8 +602,10 @@ dependencies = [
  "chrono",
  "crispy-core",
  "flutter_rust_bridge",
+ "percent-encoding",
  "serde",
  "serde_json",
+ "url",
  "windows-sys 0.59.0",
 ]
 
@@ -686,6 +688,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tower-http",
+ "url",
 ]
 
 [[package]]

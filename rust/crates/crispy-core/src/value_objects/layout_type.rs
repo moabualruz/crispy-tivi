@@ -1,10 +1,10 @@
 //! LayoutType — multi-view layout configuration.
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 /// Discriminates the grid layout used in a multi-view saved layout.
 ///
 /// Replaces `layout: String` in [`crate::models::SavedLayout`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum LayoutType {
     /// 2×2 grid (four streams).
@@ -42,11 +42,12 @@ impl std::fmt::Display for LayoutType {
 impl TryFrom<&str> for LayoutType {
     type Error = String;
     fn try_from(s: &str) -> Result<Self, Self::Error> {
-        match s.to_lowercase().as_str() {
-            "grid_2x2" | "quad" | "2x2" => Ok(Self::Grid2x2),
-            "grid_3x3" | "3x3" => Ok(Self::Grid3x3),
+        let normalized = s.trim().to_lowercase().replace(['-', ' '], "_");
+        match normalized.as_str() {
+            "grid_2x2" | "grid2x2" | "quad" | "2x2" | "grid" => Ok(Self::Grid2x2),
+            "grid_3x3" | "grid3x3" | "3x3" => Ok(Self::Grid3x3),
             "pip" | "picture_in_picture" | "pictureinpicture" => Ok(Self::PictureInPicture),
-            "side_by_side" | "sidebyside" | "side-by-side" => Ok(Self::SideBySide),
+            "side_by_side" | "sidebyside" => Ok(Self::SideBySide),
             "custom" => Ok(Self::Custom),
             other => Err(format!("unknown layout type: {other}")),
         }
@@ -57,6 +58,16 @@ impl TryFrom<String> for LayoutType {
     type Error = String;
     fn try_from(s: String) -> Result<Self, Self::Error> {
         Self::try_from(s.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for LayoutType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let raw = String::deserialize(deserializer)?;
+        Self::try_from(raw).map_err(serde::de::Error::custom)
     }
 }
 
@@ -84,6 +95,7 @@ mod tests {
     fn try_from_aliases() {
         assert_eq!(LayoutType::try_from("quad").unwrap(), LayoutType::Grid2x2);
         assert_eq!(LayoutType::try_from("2x2").unwrap(), LayoutType::Grid2x2);
+        assert_eq!(LayoutType::try_from("grid").unwrap(), LayoutType::Grid2x2);
         assert_eq!(
             LayoutType::try_from("pip").unwrap(),
             LayoutType::PictureInPicture

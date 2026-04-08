@@ -1,10 +1,10 @@
 //! TransferStatus — lifecycle state of a file transfer task.
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 /// Lifecycle state of a file transfer task.
 ///
 /// Replaces `status: String` in [`crate::models::TransferTask`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum TransferStatus {
     /// Queued, waiting to start.
@@ -47,7 +47,8 @@ impl std::fmt::Display for TransferStatus {
 impl TryFrom<&str> for TransferStatus {
     type Error = String;
     fn try_from(s: &str) -> Result<Self, Self::Error> {
-        match s.to_lowercase().as_str() {
+        let normalized = s.trim().to_lowercase().replace(['-', ' '], "_");
+        match normalized.as_str() {
             "pending" | "queued" => Ok(Self::Pending),
             "in_progress" | "inprogress" | "active" => Ok(Self::InProgress),
             "completed" | "done" => Ok(Self::Completed),
@@ -62,6 +63,16 @@ impl TryFrom<String> for TransferStatus {
     type Error = String;
     fn try_from(s: String) -> Result<Self, Self::Error> {
         Self::try_from(s.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for TransferStatus {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let raw = String::deserialize(deserializer)?;
+        Self::try_from(raw).map_err(serde::de::Error::custom)
     }
 }
 
