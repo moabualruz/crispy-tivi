@@ -8,6 +8,5 @@ export '../../data/notification_service.dart'
         NotificationState,
         AppToast,
         ToastType,
-        ToastMessage,
         ProgramReminder,
         notificationServiceProvider;

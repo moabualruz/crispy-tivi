@@ -4,7 +4,6 @@ import '../../../../config/settings_notifier.dart';
 import '../../../dvr/domain/utils/dvr_payload.dart';
 import 'vod_service_providers.dart';
 import '../../domain/entities/vod_item.dart';
-import '../../domain/utils/vod_utils.dart';
 import '../widgets/series_episode_fetcher.dart';
 import '../widgets/vod_source_picker.dart';
 import 'vod_derived_providers.dart';

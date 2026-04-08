@@ -6,7 +6,6 @@ import '../../domain/entities/hardware_decoder.dart';
 import '../../../dvr/domain/entities/recording_profile.dart';
 import 'player_providers.dart';
 import 'upscale_providers.dart';
-import 'player_settings_advanced_providers.dart';
 
 export 'player_settings_advanced_providers.dart';
 

@@ -6,7 +6,6 @@ export '../../data/layout_repository_impl.dart' show layoutRepositoryProvider;
 import '../../domain/entities/active_stream.dart';
 import '../../domain/entities/multiview_session.dart';
 import '../../domain/entities/saved_layout.dart';
-import '../../domain/repositories/layout_repository.dart';
 
 /// List of saved layouts (async).
 final savedLayoutsProvider = FutureProvider.autoDispose<List<SavedLayout>>((

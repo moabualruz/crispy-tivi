@@ -4,6 +4,7 @@ export '../../../../core/data/screenshot_service.dart'
     show ScreenshotService, screenshotServiceProvider;
 export '../../../../core/data/cache_service.dart'
     show CacheService, cacheServiceProvider, crispyBackendProvider;
+export '../../../../core/data/crispy_backend.dart' show CrispyBackend;
 export '../../data/afr_service.dart' show AfrService, afrServiceProvider;
 export '../../data/player_service.dart' show PlayerService;
 export '../../data/shader_service.dart'
@@ -11,14 +12,15 @@ export '../../data/shader_service.dart'
 export '../../data/watch_history_service.dart'
     show
         WatchHistoryService,
-        WatchHistoryEntry,
         watchHistoryServiceProvider,
         watchProgressProvider;
+export '../../domain/entities/watch_history_entry.dart' show WatchHistoryEntry;
 export '../../data/web_video_bridge.dart' show escapeJs;
 export '../../data/segment_skip_codec.dart'
     show decodeSegmentSkipConfig, encodeSegmentSkipConfig;
-export '../../data/thumbnail_service.dart'
-    show ThumbnailService, ThumbnailSource, ThumbnailRegion;
+export '../../data/thumbnail_service.dart' show ThumbnailService;
+export '../../domain/entities/thumbnail_sprite.dart'
+    show ThumbnailSource, ThumbnailRegion;
 export '../../data/gpu_json_codec.dart' show GpuJsonCodec;
 export '../../data/upscale_manager.dart' show UpscaleManager;
 export '../../data/stalker_session_service.dart'

@@ -1,6 +1,5 @@
 import '../../domain/entities/search_filter.dart';
 import '../../domain/entities/search_history_entry.dart';
-import '../../domain/entities/search_state.dart';
 import 'search_providers.dart';
 
 /// Filter action extensions for [SearchNotifier].

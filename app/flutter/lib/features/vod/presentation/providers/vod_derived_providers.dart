@@ -1,15 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../config/settings_notifier.dart';
 import '../../data/vod_repository_impl.dart';
-import '../../../dvr/domain/utils/dvr_payload.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../../profiles/data/profile_service.dart';
 import '../../data/episode_progress_codec.dart';
 import '../../domain/entities/vod_item.dart';
 import '../../domain/utils/vod_utils.dart';
 import 'vod_providers.dart';
-import 'vod_series_providers.dart';
 
 export 'vod_series_providers.dart';
 
