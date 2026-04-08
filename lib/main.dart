@@ -97,21 +97,13 @@ double computeUiAutoScale(double logicalHeight, double devicePixelRatio) {
   // platform-agnostic with no OS-specific guards.
   //
   // Below 1440 logical: no scaling — the layout fits naturally.
-  // At 1440 and above: lock the effective layout to 1440 logical
-  // pixels of content. This preserves the same visual density
-  // regardless of display resolution or compositor DPR.
-  //
-  // Examples:
-  // - 655 logical (small window)   → 1.0  (no scale)
-  // - 1080 logical (4K@DPR=2)     → 1.0  (threshold, no scale)
-  // - 1440 logical (1440p@DPR=1)  → 1.33 (locked to 1080 effective)
-  // - 1830 logical (ultrawide@2)  → 1.69 (locked to 1080 effective)
-  // - 2160 logical (4K@DPR=1)     → 2.0  (locked to 1080 effective)
-  if (logicalHeight <= 1080) {
+  // Between 1440 and 2160 logical: scale linearly from 1.0 to 2.0.
+  // Above 2160 logical: continue the same slope.
+  if (logicalHeight <= 1440) {
     return 1.0;
   }
 
-  return logicalHeight / 1080;
+  return 1.0 + ((logicalHeight - 1440) / 720);
 }
 
 /// Returns true when this is the first app instance on desktop.

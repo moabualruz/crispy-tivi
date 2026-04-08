@@ -444,9 +444,10 @@ void main() {
 
         container.read(channelListProvider);
 
-        // Two distinct (type, source) pairs: (ChannelsUpdated, s1)
-        // and (ChannelsUpdated, s2). The duplicate s1 is coalesced.
-        expect(_channelBuilds, equals(countBeforeFire + 2));
+        // `channelListProvider` is a single global cache, so distinct
+        // source updates within one debounce window still collapse to a
+        // single effective rebuild after invalidation.
+        expect(_channelBuilds, equals(countBeforeFire + 1));
       });
 
       test('different event types are all dispatched after debounce', () async {

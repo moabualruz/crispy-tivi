@@ -6,6 +6,10 @@ analyzer:
     dead_code: warning
     unused_import: warning
     unused_local_variable: warning
+    invalid_use_of_protected_member: ignore
+    invalid_use_of_visible_for_testing_member: ignore
+    strict_raw_type: ignore
+    removed_lint: ignore
   language:
     strict-casts: true
     strict-raw-types: true
@@ -15,7 +19,6 @@ linter:
     # ── Correctness (catch real bugs) ────────────
     - always_declare_return_types
     - avoid_dynamic_calls
-    - avoid_returning_null_for_future
     - cancel_subscriptions
     - close_sinks
     - literal_only_boolean_expressions

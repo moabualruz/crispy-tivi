@@ -8,6 +8,7 @@ import 'package:crispy_tivi/features/player/data/watch_history_service.dart';
 import 'package:crispy_tivi/features/recommendations/domain/entities/recommendation.dart';
 import 'package:crispy_tivi/features/recommendations/presentation/providers/recommendation_providers.dart';
 import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
+import 'package:crispy_tivi/features/vod/presentation/providers/vod_paginated_providers.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/vod_favorites_provider.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/vod_providers.dart';
 import 'package:crispy_tivi/features/vod/presentation/screens/vod_browser_screen.dart';
@@ -122,6 +123,19 @@ void main() {
           filteredMoviesProvider.overrideWith(
             (ref) => [mockMovie1, mockMovie2],
           ),
+          vodCountPaginatedProvider(
+            const VodPageRequest(itemType: 'movie'),
+          ).overrideWith((ref) async => 2),
+          vodCategoriesPaginatedProvider(
+            'movie',
+          ).overrideWith((ref) async => [(name: 'Action', count: 2)]),
+          vodPagePaginatedProvider(
+            const VodPageRequest(
+              itemType: 'movie',
+              category: 'Action',
+              sort: 'added_desc',
+            ),
+          ).overrideWith((ref) async => [mockMovie1, mockMovie2]),
           // Avoid CacheService/CrispyBackend via RecommendationEngine.
           vodRecommendationsProvider.overrideWith(
             (ref) => <RecommendationSection>[],
@@ -142,17 +156,11 @@ void main() {
       ),
     );
 
-    final element = tester.element(find.byType(VodBrowserScreen));
-    ProviderScope.containerOf(
-      element,
-    ).read(vodProvider.notifier).loadData([mockMovie1, mockMovie2]);
     await tester.pumpAndSettle();
 
-    // Verify correct widgets are used
-    expect(
-      find.byType(FocusWrapper),
-      findsAtLeastNWidgets(2),
-    ); // One for each movie card
+    expect(find.text('Movie 1'), findsOneWidget);
+    expect(find.text('Movie 2'), findsOneWidget);
+    expect(find.byType(FocusWrapper), findsAtLeastNWidgets(2));
 
     // Initial focus might not be set automatically unless logic does it.
     // In TV apps, usually specific widget requests focus or user presses key.

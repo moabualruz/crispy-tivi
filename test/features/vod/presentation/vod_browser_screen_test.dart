@@ -9,31 +9,20 @@ import 'package:crispy_tivi/features/player/data/watch_history_service.dart';
 import 'package:crispy_tivi/features/player/domain/entities/watch_history_entry.dart';
 import 'package:crispy_tivi/features/recommendations/presentation/providers/recommendation_providers.dart';
 import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
-import 'package:crispy_tivi/features/vod/presentation/providers/vod_providers.dart';
+import 'package:crispy_tivi/features/vod/presentation/providers/vod_paginated_providers.dart';
 import 'package:crispy_tivi/features/vod/presentation/screens/vod_browser_screen.dart';
-
-/// Fake VOD notifier with pre-loaded data for widget tests.
-class _FakeVodNotifier extends VodNotifier {
-  @override
-  VodState build() {
-    return VodState(
-      items: [
-        VodItem(
-          id: 'movie1',
-          name: 'Test Movie',
-          streamUrl: 'http://test',
-          type: VodType.movie,
-          category: 'Action',
-          isFavorite: true,
-        ),
-      ],
-      categories: ['Action'],
-    );
-  }
-}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  const movie = VodItem(
+    id: 'movie1',
+    name: 'Test Movie',
+    streamUrl: 'http://test',
+    type: VodType.movie,
+    category: 'Action',
+    isFavorite: true,
+  );
 
   testWidgets('VodBrowserScreen renders movies-only swimlanes', (tester) async {
     final testBackend = MemoryBackend();
@@ -55,7 +44,19 @@ void main() {
         overrides: [
           crispyBackendProvider.overrideWithValue(testBackend),
           cacheServiceProvider.overrideWithValue(testCache),
-          vodProvider.overrideWith(_FakeVodNotifier.new),
+          vodCountPaginatedProvider(
+            const VodPageRequest(itemType: 'movie'),
+          ).overrideWith((ref) async => 1),
+          vodCategoriesPaginatedProvider(
+            'movie',
+          ).overrideWith((ref) async => [(name: 'Action', count: 1)]),
+          vodPagePaginatedProvider(
+            const VodPageRequest(
+              itemType: 'movie',
+              category: 'Action',
+              sort: 'added_desc',
+            ),
+          ).overrideWith((ref) async => const [movie]),
           continueWatchingMoviesProvider.overrideWith(
             (ref) async => <WatchHistoryEntry>[],
           ),

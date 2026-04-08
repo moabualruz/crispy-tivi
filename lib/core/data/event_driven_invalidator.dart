@@ -283,6 +283,7 @@ void _invalidateAllDataProviders(Ref ref) {
 }
 
 void _invalidateChannelProviders(Ref ref) {
+  ref.invalidate(channelListProvider);
   ref.invalidate(channelGroupsProvider);
   ref.invalidate(channelGroupsPaginatedProvider);
   ref.invalidate(channelCountPaginatedProvider);

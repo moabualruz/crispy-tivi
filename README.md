@@ -136,19 +136,35 @@ lives in Rust. Flutter is a pure UI client.
   WebSocket. No browser storage.
 
 ```text
-rust/crates/
-  crispy-core/     # Business logic + rusqlite (shared)
-  crispy-ffi/      # FFI bridge for native platforms
-  crispy-server/   # WebSocket server for web clients
+rust/
+  crates/          # App-owned Rust crates used only by CrispyTivi
+    crispy-core/   # Business logic + persistence
+    crispy-ffi/    # Native bridge for Flutter
+    crispy-server/ # Web/WebSocket companion server
+  shared/          # Exported first-party Rust crates (separate repos)
 
-lib/               # Flutter UI (Dart)
-  core/
-    data/          # Backend abstraction (FFI or WebSocket)
-    theme/         # Design tokens (spacing, radius, animation)
-    widgets/       # Shared UI components
-    navigation/    # GoRouter, TV focus utilities
-  features/        # 21 feature modules
+lib/               # Flutter application code
+  core/            # Shared app infrastructure
+  features/        # Feature-first UI modules
+  l10n/            # Generated localization bindings
+
+test/              # Dart unit/widget tests
+integration_test/  # Device and end-to-end integration tests
+scripts/           # Build, release, and validation scripts
+docs/              # Repository documentation and screenshots
 ```
+
+## Repository Layout
+
+The repository is intentionally split by ownership and release boundary:
+
+- `lib/`, `test/`, `integration_test/`, and platform folders (`android/`, `ios/`, `linux/`, `macos/`, `windows/`, `web/`) are the Flutter app.
+- `rust/crates/` contains app-internal Rust crates that ship with CrispyTivi.
+- `rust/shared/` contains exported first-party Rust crates tracked as submodules because they are published and versioned independently.
+- `scripts/` contains platform, build, release, and validation automation.
+- `docs/` contains durable repository documentation and screenshot assets.
+
+Local tool state and generated output do not belong in the repository root and are ignored.
 
 ## Tech Stack
 

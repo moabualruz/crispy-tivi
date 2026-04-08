@@ -30,6 +30,13 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/coverage/
+/doc/
+/issues-screenshots/
+/state/
+/third-party/
+/third_party/
+.claire/
 
 # Symbolication related
 app.*.symbols
@@ -103,3 +110,5 @@ PROJECT_INDEX.md
 .omc/
 .omg/
 .omx/
+/rust/.omc/
+/rust/*.log
