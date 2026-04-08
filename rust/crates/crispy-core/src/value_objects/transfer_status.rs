@@ -1,11 +1,10 @@
 //! TransferStatus — lifecycle state of a file transfer task.
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Lifecycle state of a file transfer task.
 ///
 /// Replaces `status: String` in [`crate::models::TransferTask`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Default)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub enum TransferStatus {
     /// Queued, waiting to start.
     #[default]
@@ -41,6 +40,15 @@ impl TransferStatus {
 impl std::fmt::Display for TransferStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for TransferStatus {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
     }
 }
 
@@ -137,5 +145,25 @@ mod tests {
     #[test]
     fn display_matches_as_str() {
         assert_eq!(TransferStatus::Pending.to_string(), "pending");
+    }
+
+    #[test]
+    fn serialize_uses_canonical_values() {
+        assert_eq!(
+            serde_json::to_string(&TransferStatus::InProgress).unwrap(),
+            "\"in_progress\""
+        );
+        assert_eq!(
+            serde_json::to_string(&TransferStatus::Cancelled).unwrap(),
+            "\"cancelled\""
+        );
+    }
+
+    #[test]
+    fn alias_input_re_serializes_canonically() {
+        let parsed: TransferStatus = serde_json::from_str("\"active\"").unwrap();
+
+        assert_eq!(parsed, TransferStatus::InProgress);
+        assert_eq!(serde_json::to_string(&parsed).unwrap(), "\"in_progress\"");
     }
 }

@@ -1,11 +1,10 @@
 //! LayoutType — multi-view layout configuration.
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Discriminates the grid layout used in a multi-view saved layout.
 ///
 /// Replaces `layout: String` in [`crate::models::SavedLayout`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Default)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub enum LayoutType {
     /// 2×2 grid (four streams).
     #[default]
@@ -36,6 +35,15 @@ impl LayoutType {
 impl std::fmt::Display for LayoutType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for LayoutType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
     }
 }
 
@@ -114,5 +122,25 @@ mod tests {
     #[test]
     fn display_matches_as_str() {
         assert_eq!(LayoutType::Grid2x2.to_string(), "grid_2x2");
+    }
+
+    #[test]
+    fn serialize_uses_canonical_values() {
+        assert_eq!(
+            serde_json::to_string(&LayoutType::Grid2x2).unwrap(),
+            "\"grid_2x2\""
+        );
+        assert_eq!(
+            serde_json::to_string(&LayoutType::PictureInPicture).unwrap(),
+            "\"pip\""
+        );
+    }
+
+    #[test]
+    fn alias_input_re_serializes_canonically() {
+        let parsed: LayoutType = serde_json::from_str("\"quad\"").unwrap();
+
+        assert_eq!(parsed, LayoutType::Grid2x2);
+        assert_eq!(serde_json::to_string(&parsed).unwrap(), "\"grid_2x2\"");
     }
 }

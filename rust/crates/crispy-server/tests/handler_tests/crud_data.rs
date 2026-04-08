@@ -281,7 +281,7 @@ fn save_and_load_transfer_tasks() {
         "recording_id": "rec1",
         "backend_id": "sb1",
         "direction": "upload",
-        "status": "queued",
+        "status": "active",
         "created_at": "2024-06-01T10:00:00",
     });
     let resp = send(
@@ -303,6 +303,7 @@ fn save_and_load_transfer_tasks() {
     );
     let data = resp["data"].as_array().unwrap();
     assert_eq!(data.len(), 1);
+    assert_eq!(data[0]["status"], "in_progress");
 }
 
 #[test]

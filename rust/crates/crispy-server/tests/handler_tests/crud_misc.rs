@@ -36,6 +36,7 @@ fn save_and_load_saved_layouts() {
     );
     let data = resp["data"].as_array().unwrap();
     assert_eq!(data.len(), 1);
+    assert_eq!(data[0]["layout"], "grid_2x2");
 }
 
 #[test]
