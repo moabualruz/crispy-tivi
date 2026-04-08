@@ -27,12 +27,12 @@ mixin _WsSettingsMixin on _WsBackendBase {
     String id,
     String status, {
     String? error,
-    int? syncTimeMs,
+    int? syncCompletedAtMs,
   }) => _send('updateSourceSyncStatus', {
     'id': id,
     'status': status,
     if (error != null) 'error': error,
-    if (syncTimeMs != null) 'syncTime': syncTimeMs ~/ 1000,
+    if (syncCompletedAtMs != null) 'syncTime': syncCompletedAtMs ~/ 1000,
   });
 
   Future<String> getSourceStats() async {

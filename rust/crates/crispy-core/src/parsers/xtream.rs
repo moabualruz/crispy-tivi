@@ -10,6 +10,8 @@ use std::collections::HashSet;
 
 use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 use serde_json::Value;
+use url::Url;
+use url::form_urlencoded::Serializer;
 
 use chrono::DateTime;
 
@@ -21,6 +23,17 @@ use crate::utils::image_sanitizer::sanitize_image_url;
 /// interpolation.
 fn encode_credential(value: &str) -> String {
     utf8_percent_encode(value, NON_ALPHANUMERIC).to_string()
+}
+
+/// Parsed credential-bearing Xtream stream URL components.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct XtreamStreamCredentials {
+    /// Canonical API base URL (`scheme://host[:port]`).
+    pub base_url: String,
+    /// Decoded Xtream username.
+    pub username: String,
+    /// Decoded Xtream password.
+    pub password: String,
 }
 
 /// Parse Xtream `get_short_epg` listings into
@@ -101,16 +114,14 @@ pub fn build_xtream_action_url(
     params: &[(String, String)],
 ) -> String {
     let base = normalize_base_url(base_url);
-    let enc_user = encode_credential(username);
-    let enc_pass = encode_credential(password);
-    let mut query = format!(
-        "username={enc_user}\
-         &password={enc_pass}\
-         &action={action}",
-    );
+    let mut serializer = Serializer::new(String::new());
+    serializer.append_pair("username", username);
+    serializer.append_pair("password", password);
+    serializer.append_pair("action", action);
     for (k, v) in params {
-        query.push_str(&format!("&{k}={v}"));
+        serializer.append_pair(k, v);
     }
+    let query = serializer.finish();
     format!("{base}/player_api.php?{query}")
 }
 
@@ -184,6 +195,42 @@ pub fn build_xtream_catchup_url(
         "{base}/timeshift/{enc_user}/{enc_pass}\
          /{duration_minutes}/{start_utc}/{stream_id}.ts",
     )
+}
+
+/// Extract Xtream credentials from a canonical stream URL.
+pub fn extract_xtream_stream_credentials(stream_url: &str) -> Option<XtreamStreamCredentials> {
+    let parsed = Url::parse(stream_url).ok()?;
+    match parsed.scheme() {
+        "http" | "https" => {}
+        _ => return None,
+    }
+
+    let mut segments = parsed.path_segments()?;
+    let stream_type = segments.next()?;
+    if !matches!(stream_type, "live" | "movie" | "series") {
+        return None;
+    }
+
+    let username = percent_encoding::percent_decode_str(segments.next()?)
+        .decode_utf8()
+        .ok()?
+        .into_owned();
+    let password = percent_encoding::percent_decode_str(segments.next()?)
+        .decode_utf8()
+        .ok()?
+        .into_owned();
+
+    let host = parsed.host_str()?;
+    let base_url = match parsed.port() {
+        Some(port) => format!("{}://{}:{port}", parsed.scheme(), host),
+        None => format!("{}://{host}", parsed.scheme()),
+    };
+
+    Some(XtreamStreamCredentials {
+        base_url,
+        username,
+        password,
+    })
 }
 
 // ── Live-Stream & Category Parsers ───────────────
@@ -688,6 +735,23 @@ mod tests {
              &action=get_live_streams\
              &category_id=5",
         );
+    }
+
+    #[test]
+    fn action_url_encodes_query_components() {
+        let url = build_xtream_action_url(
+            "http://example.com",
+            "user",
+            "pass",
+            "get live streams",
+            &[
+                ("cat id".into(), "5".into()),
+                ("search".into(), "one & two".into()),
+            ],
+        );
+        assert!(url.contains("action=get+live+streams"));
+        assert!(url.contains("cat+id=5"));
+        assert!(url.contains("search=one+%26+two"));
     }
 
     #[test]

@@ -200,7 +200,13 @@ pub fn build_xtream_action_url(
         Some(ref j) if !j.is_empty() => {
             let map: serde_json::Map<String, serde_json::Value> = from_json(j)?;
             map.into_iter()
-                .map(|(k, v)| (k, v.as_str().unwrap_or("").to_string()))
+                .map(|(k, v)| {
+                    let value = match v {
+                        serde_json::Value::String(s) => s,
+                        other => other.to_string(),
+                    };
+                    (k, value)
+                })
                 .collect()
         }
         _ => Vec::new(),
@@ -280,4 +286,34 @@ pub fn parse_xtream_categories(json: String) -> Result<String> {
 pub fn parse_s3_list_objects(xml: String) -> Result<String> {
     let objects = crispy_core::parsers::s3::parse_s3_list_objects(&xml);
     Ok(serde_json::to_string(&objects)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_xtream_action_url;
+
+    #[test]
+    fn build_xtream_action_url_preserves_non_string_values() {
+        let url = build_xtream_action_url(
+            "http://example.com".to_string(),
+            "user".to_string(),
+            "pass".to_string(),
+            "get_items".to_string(),
+            Some(
+                serde_json::json!({
+                    "limit": 25,
+                    "include_adult": false,
+                    "cat id": 5,
+                    "search": "one & two",
+                })
+                .to_string(),
+            ),
+        )
+        .expect("url");
+
+        assert!(url.contains("limit=25"));
+        assert!(url.contains("include_adult=false"));
+        assert!(url.contains("cat+id=5"));
+        assert!(url.contains("search=one+%26+two"));
+    }
 }

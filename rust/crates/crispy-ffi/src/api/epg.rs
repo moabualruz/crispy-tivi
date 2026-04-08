@@ -2,7 +2,9 @@ use super::{ctx, epg, from_json, into_anyhow, json_result};
 use anyhow::{Result, anyhow};
 use crispy_core::models::{Channel, EpgEntry};
 use crispy_core::services::{EpgMappingService, EpgService};
+use percent_encoding::percent_decode_str;
 use std::collections::HashMap;
+use url::Url;
 
 /// Load EPG entries as JSON {channel_id: [entries]}.
 pub fn load_epg_entries() -> Result<String> {
@@ -161,15 +163,32 @@ pub fn build_catchup_url(
     }
 
     // Try Xtream (extract creds from stream URL).
-    let parts: Vec<&str> = channel.stream_url.split('/').collect();
-    if parts.len() >= 6 {
-        let base = format!("{}//{}", parts[0], parts[2]);
-        let user = parts[3];
-        let pass = parts[4];
-        if let Some(info) = crispy_core::algorithms::catchup::build_xtream_catchup(
-            &channel, &entry, &base, user, pass,
-        ) {
-            return Ok(Some(info.archive_url));
+    if let Ok(stream_url) = Url::parse(&channel.stream_url) {
+        let mut base = format!(
+            "{}://{}",
+            stream_url.scheme(),
+            stream_url.host_str().unwrap_or_default()
+        );
+        if let Some(port) = stream_url.port() {
+            base.push(':');
+            base.push_str(&port.to_string());
+        }
+
+        if let Some(segments) = stream_url.path_segments() {
+            let parts: Vec<&str> = segments.collect();
+            if parts.len() >= 4 {
+                let user = percent_decode_str(parts[1])
+                    .decode_utf8_lossy()
+                    .into_owned();
+                let pass = percent_decode_str(parts[2])
+                    .decode_utf8_lossy()
+                    .into_owned();
+                if let Some(info) = crispy_core::algorithms::catchup::build_xtream_catchup(
+                    &channel, &entry, &base, &user, &pass,
+                ) {
+                    return Ok(Some(info.archive_url));
+                }
+            }
         }
     }
 
@@ -181,6 +200,37 @@ pub fn build_catchup_url(
     }
 
     Ok(None)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_catchup_url;
+    use crispy_core::models::Channel;
+
+    #[test]
+    fn build_catchup_url_reencodes_xtream_credentials_once() {
+        let channel = Channel {
+            id: "ch1".to_string(),
+            name: "Channel".to_string(),
+            stream_url: "http://example.com/live/user%40host/p%2Fword/42.ts".to_string(),
+            has_catchup: true,
+            catchup_days: 0,
+            xtream_stream_id: Some("42".to_string()),
+            ..Channel::default()
+        };
+
+        let url = build_catchup_url(
+            serde_json::to_string(&channel).expect("channel json"),
+            1_700_000_000,
+            1_700_003_600,
+        )
+        .expect("catchup url")
+        .expect("xtream catchup");
+
+        assert!(url.contains("/timeshift/user%40host/p%2Fword/"));
+        assert!(!url.contains("%2540"));
+        assert!(!url.contains("%252F"));
+    }
 }
 
 /// Parse Xtream short EPG listings.

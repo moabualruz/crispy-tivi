@@ -18,9 +18,8 @@ mixin _FfiDvrMixin on _FfiBackendBase {
     await rust_api.deleteRecording(id: id);
   }
 
-  Future<String> getRecordingMarkers(String recordingId) async {
-    return await rust_api.getRecordingMarkers(recordingId: recordingId);
-  }
+  Future<String> getRecordingMarkers(String recordingId) =>
+      rust_api.getRecordingMarkers(recordingId: recordingId);
 
   // ── Storage Backends ─────────────────────────────
 

@@ -43,7 +43,7 @@ abstract class _BackendStorageMethods {
     String id,
     String status, {
     String? error,
-    int? syncTimeMs,
+    int? syncCompletedAtMs,
   });
 
   /// Get per-source stats (channel count, VOD count).
@@ -210,6 +210,8 @@ abstract class _BackendStorageMethods {
 
   /// Fetch commercial markers for a given recording by ID.
   /// Returns a JSON array of CommercialMarker objects.
+  ///
+  /// Throws until marker extraction is implemented end-to-end.
   Future<String> getRecordingMarkers(String recordingId);
 
   // ── Storage Backends ─────────────────────────────────

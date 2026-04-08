@@ -173,13 +173,13 @@ class CacheService extends _CacheServiceBase
     String id,
     String status, {
     String? error,
-    int? syncTimeMs,
+    int? syncCompletedAtMs,
   }) async {
     await _backend.updateSourceSyncStatus(
       id,
       status,
       error: error,
-      syncTimeMs: syncTimeMs,
+      syncCompletedAtMs: syncCompletedAtMs,
     );
   }
 

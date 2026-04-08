@@ -41,20 +41,22 @@ class MediaServerSyncService {
       };
 
       stopwatch.stop();
+      final completedAtMs = DateTime.now().millisecondsSinceEpoch;
       await cache.updateSourceSyncStatus(
         source.id,
         'success',
-        syncTimeMs: stopwatch.elapsedMilliseconds,
+        syncCompletedAtMs: completedAtMs,
       );
       return report;
     } catch (e, stack) {
       stopwatch.stop();
+      final completedAtMs = DateTime.now().millisecondsSinceEpoch;
       debugPrint('MediaServerSync: ${source.name} sync failed: $e\n$stack');
       await cache.updateSourceSyncStatus(
         source.id,
         'error',
         error: e.toString(),
-        syncTimeMs: stopwatch.elapsedMilliseconds,
+        syncCompletedAtMs: completedAtMs,
       );
       rethrow;
     }

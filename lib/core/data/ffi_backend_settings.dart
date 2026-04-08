@@ -33,12 +33,15 @@ mixin _FfiSettingsMixin on _FfiBackendBase {
     String id,
     String status, {
     String? error,
-    int? syncTimeMs,
+    int? syncCompletedAtMs,
   }) => rust_api.updateSourceSyncStatus(
     id: id,
     status: status,
     error: error,
-    syncTimeMs: syncTimeMs != null ? PlatformInt64Util.from(syncTimeMs) : null,
+    syncTimeMs:
+        syncCompletedAtMs != null
+            ? PlatformInt64Util.from(syncCompletedAtMs)
+            : null,
   );
 
   Future<String> getSourceStats() => rust_api.getSourceStats();

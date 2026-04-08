@@ -46,10 +46,13 @@ pub fn build_xtream_catchup(
     let start_utc = entry.start_time.and_utc().timestamp();
     let duration_minutes = (entry.end_time - entry.start_time).num_minutes();
 
-    let base = base_url.trim_end_matches('/');
-    let url = format!(
-        "{base}/timeshift/{username}/{password}/\
-         {duration_minutes}/{start_utc}/{stream_id}.ts"
+    let url = crate::parsers::xtream::build_xtream_catchup_url(
+        base_url,
+        username,
+        password,
+        stream_id,
+        start_utc,
+        duration_minutes as i32,
     );
 
     Some(CatchupInfo {
@@ -569,6 +572,17 @@ mod tests {
         assert_eq!(info.program_title, "Test Program");
         assert_eq!(info.start_time, entry.start_time);
         assert_eq!(info.end_time, entry.end_time);
+    }
+
+    #[test]
+    fn xtream_encodes_special_credentials() {
+        let ch = xtream_channel();
+        let entry = past_entry(30, 60);
+        let info =
+            build_xtream_catchup(&ch, &entry, "http://example.com", "user@host", "p/w").unwrap();
+        assert!(info.archive_url.contains("/user%40host/"));
+        assert!(info.archive_url.contains("/p%2Fw/"));
+        assert!(!info.archive_url.contains("/user@host/p/w/"));
     }
 
     // ── Catchup validation ──────────────────────────

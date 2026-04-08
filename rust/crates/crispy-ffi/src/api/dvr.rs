@@ -1,5 +1,5 @@
 use super::{ctx, from_json, json_result, ms_to_naive};
-use anyhow::Result;
+use anyhow::{Result, bail};
 use crispy_core::models::{Recording, Reminder, StorageBackend, TransferTask, WatchHistory};
 use crispy_core::services::{BulkService, DvrService, HistoryService, ReminderService};
 
@@ -29,10 +29,7 @@ pub fn delete_recording(id: String) -> Result<()> {
 
 /// Fetch commercial markers for a given recording by ID.
 pub fn get_recording_markers(recording_id: String) -> Result<String> {
-    // FE-DVR-11: Fetch from backend or analysis tool.
-    // For now, return empty JSON array.
-    let _ = recording_id;
-    Ok("[]".to_string())
+    bail!("Recording marker analysis is not implemented for recording `{recording_id}`")
 }
 
 // ── Storage Backends ─────────────────────────────────
@@ -258,4 +255,16 @@ pub fn classify_file_type(filename: String) -> String {
 /// Sort remote files by the given order.
 pub fn sort_remote_files(files_json: String, order: String) -> String {
     crispy_core::algorithms::dvr::sort_remote_files(&files_json, &order)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::get_recording_markers;
+
+    #[test]
+    fn get_recording_markers_is_explicitly_unsupported() {
+        let err = get_recording_markers("rec-1".to_string()).expect_err("markers should fail");
+        assert!(err.to_string().contains("not implemented"));
+        assert!(err.to_string().contains("rec-1"));
+    }
 }

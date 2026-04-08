@@ -20,9 +20,13 @@ mixin _MemoryDvrMixin on _MemoryStorage {
     recordings.remove(id);
   }
 
-  Future<String> getRecordingMarkers(String recordingId) async {
-    return '[]';
-  }
+  Future<String> getRecordingMarkers(
+    String recordingId,
+  ) => Future<String>.error(
+    UnimplementedError(
+      'Recording marker analysis is not implemented for `$recordingId` on MemoryBackend',
+    ),
+  );
 
   // ── Storage Backends ──────────────────────────
 

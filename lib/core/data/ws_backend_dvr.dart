@@ -18,14 +18,13 @@ mixin _WsDvrMixin on _WsBackendBase {
     await _send('deleteRecording', {'id': id});
   }
 
-  Future<String> getRecordingMarkers(String recordingId) async {
-    final response = await _send('getRecordingMarkers', {
-      'recordingId': recordingId,
-    });
-    // Over WebSocket, it's safer to return the stringified list directly or encode it depending on response format.
-    // Ensure we just return it as a json string as that's what's expected.
-    return jsonEncode(response);
-  }
+  Future<String> getRecordingMarkers(
+    String recordingId,
+  ) => Future<String>.error(
+    UnimplementedError(
+      'Recording marker analysis is not implemented for `$recordingId` on WsBackend',
+    ),
+  );
 
   // ── Storage Backends ─────────────────────────────
 

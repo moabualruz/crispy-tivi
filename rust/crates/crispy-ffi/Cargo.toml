@@ -13,6 +13,8 @@ serde_json.workspace = true
 flutter_rust_bridge.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
+percent-encoding.workspace = true
+url.workspace = true
 
 [lints]
 workspace = true

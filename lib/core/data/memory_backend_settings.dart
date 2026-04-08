@@ -48,15 +48,17 @@ mixin _MemorySettingsMixin on _MemoryStorage {
     String id,
     String status, {
     String? error,
-    int? syncTimeMs,
+    int? syncCompletedAtMs,
   }) async {
     final src = sources[id];
     if (src == null) return;
     src['last_sync_status'] = status;
     src['last_sync_error'] = error;
-    if (syncTimeMs != null) {
+    if (syncCompletedAtMs != null) {
       src['last_sync_time'] =
-          DateTime.fromMillisecondsSinceEpoch(syncTimeMs).toIso8601String();
+          DateTime.fromMillisecondsSinceEpoch(
+            syncCompletedAtMs,
+          ).toIso8601String();
     }
   }
 
