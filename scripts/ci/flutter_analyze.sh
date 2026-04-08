@@ -14,9 +14,9 @@ set -e
 
 cat "$OUT_FILE"
 
-errors=$(grep -c ' • error • ' "$OUT_FILE" || true)
-warnings=$(grep -c ' • warning • ' "$OUT_FILE" || true)
-infos=$(grep -c ' • info • ' "$OUT_FILE" || true)
+errors=$(grep -Ec '^[[:space:]]*error • ' "$OUT_FILE" || true)
+warnings=$(grep -Ec '^[[:space:]]*warning • ' "$OUT_FILE" || true)
+infos=$(grep -Ec '^[[:space:]]*info • ' "$OUT_FILE" || true)
 
 echo ""
 echo "Analyzer summary:"
