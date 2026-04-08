@@ -202,37 +202,6 @@ pub fn build_catchup_url(
     Ok(None)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::build_catchup_url;
-    use crispy_core::models::Channel;
-
-    #[test]
-    fn build_catchup_url_reencodes_xtream_credentials_once() {
-        let channel = Channel {
-            id: "ch1".to_string(),
-            name: "Channel".to_string(),
-            stream_url: "http://example.com/live/user%40host/p%2Fword/42.ts".to_string(),
-            has_catchup: true,
-            catchup_days: 0,
-            xtream_stream_id: Some("42".to_string()),
-            ..Channel::default()
-        };
-
-        let url = build_catchup_url(
-            serde_json::to_string(&channel).expect("channel json"),
-            1_700_000_000,
-            1_700_003_600,
-        )
-        .expect("catchup url")
-        .expect("xtream catchup");
-
-        assert!(url.contains("/timeshift/user%40host/p%2Fword/"));
-        assert!(!url.contains("%2540"));
-        assert!(!url.contains("%252F"));
-    }
-}
-
 /// Parse Xtream short EPG listings.
 /// Returns JSON array of EpgEntry objects.
 pub fn parse_xtream_short_epg(listings_json: String, channel_id: String) -> Result<String> {
@@ -364,4 +333,35 @@ pub fn clear_epg_caches() -> Result<()> {
 /// Get the number of channels in the L1 hot cache.
 pub fn epg_hot_cache_size() -> Result<u64> {
     Ok(epg()?.hot_cache_size())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_catchup_url;
+    use crispy_core::models::Channel;
+
+    #[test]
+    fn build_catchup_url_reencodes_xtream_credentials_once() {
+        let channel = Channel {
+            id: "ch1".to_string(),
+            name: "Channel".to_string(),
+            stream_url: "http://example.com/live/user%40host/p%2Fword/42.ts".to_string(),
+            has_catchup: true,
+            catchup_days: 0,
+            xtream_stream_id: Some("42".to_string()),
+            ..Channel::default()
+        };
+
+        let url = build_catchup_url(
+            serde_json::to_string(&channel).expect("channel json"),
+            1_700_000_000,
+            1_700_003_600,
+        )
+        .expect("catchup url")
+        .expect("xtream catchup");
+
+        assert!(url.contains("/timeshift/user%40host/p%2Fword/"));
+        assert!(!url.contains("%2540"));
+        assert!(!url.contains("%252F"));
+    }
 }
