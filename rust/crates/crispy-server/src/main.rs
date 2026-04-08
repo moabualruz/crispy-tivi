@@ -243,21 +243,29 @@ fn provided_token(headers: &HeaderMap, query_token: Option<&str>) -> Option<Stri
         .map(|value| value.to_string())
 }
 
+fn token_matches(
+    headers: &HeaderMap,
+    query_token: Option<&str>,
+    security: &SecurityConfig,
+) -> bool {
+    security
+        .shared_token
+        .as_deref()
+        .zip(provided_token(headers, query_token))
+        .is_some_and(|(expected, provided)| provided == expected)
+}
+
 fn client_is_authorized(
     client_addr: &SocketAddr,
     headers: &HeaderMap,
     query_token: Option<&str>,
     security: &SecurityConfig,
 ) -> bool {
-    if client_addr.ip().is_loopback() {
-        return true;
+    if security.shared_token.is_some() {
+        return token_matches(headers, query_token, security);
     }
 
-    security
-        .shared_token
-        .as_deref()
-        .zip(provided_token(headers, query_token))
-        .is_some_and(|(expected, provided)| provided == expected)
+    client_addr.ip().is_loopback()
 }
 
 fn remote_proxy_allowed(
@@ -266,9 +274,12 @@ fn remote_proxy_allowed(
     query_token: Option<&str>,
     security: &SecurityConfig,
 ) -> bool {
-    client_addr.ip().is_loopback()
-        || (security.proxy_allow_remote_clients
-            && client_is_authorized(client_addr, headers, query_token, security))
+    if client_addr.ip().is_loopback() {
+        return client_is_authorized(client_addr, headers, query_token, security);
+    }
+
+    security.proxy_allow_remote_clients
+        && client_is_authorized(client_addr, headers, query_token, security)
 }
 
 fn is_private_ip(ip: IpAddr) -> bool {
@@ -863,6 +874,27 @@ mod tests {
     }
 
     #[test]
+    fn loopback_clients_require_shared_token_when_configured() {
+        let headers = HeaderMap::new();
+        let client = SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, 4242));
+        assert!(!client_is_authorized(
+            &client,
+            &headers,
+            None,
+            &security_config(),
+        ));
+    }
+
+    #[test]
+    fn loopback_clients_without_shared_token_remain_trusted() {
+        let headers = HeaderMap::new();
+        let client = SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, 4242));
+        let mut security = security_config();
+        security.shared_token = None;
+        assert!(client_is_authorized(&client, &headers, None, &security));
+    }
+
+    #[test]
     fn remote_clients_accept_bearer_token() {
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -874,6 +906,30 @@ mod tests {
             &client,
             &headers,
             None,
+            &security_config(),
+        ));
+    }
+
+    #[test]
+    fn loopback_proxy_clients_require_shared_token_when_configured() {
+        let headers = HeaderMap::new();
+        let client = SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, 4242));
+        assert!(!remote_proxy_allowed(
+            &client,
+            &headers,
+            None,
+            &security_config(),
+        ));
+    }
+
+    #[test]
+    fn loopback_proxy_clients_accept_query_token_when_configured() {
+        let headers = HeaderMap::new();
+        let client = SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, 4242));
+        assert!(remote_proxy_allowed(
+            &client,
+            &headers,
+            Some("secret"),
             &security_config(),
         ));
     }
