@@ -47,13 +47,13 @@ quick-xml.workspace = true
 memory-stats = { workspace = true }
 
 # Crispy IPTV crates
-crispy-iptv-types = { path = "../../../third_party/rust/crispy-iptv-types" }
-crispy-m3u = { path = "../../../third_party/rust/crispy-m3u" }
-crispy-xmltv = { path = "../../../third_party/rust/crispy-xmltv" }
-crispy-xtream = { path = "../../../third_party/rust/crispy-xtream" }
-crispy-stalker = { path = "../../../third_party/rust/crispy-stalker" }
-crispy-stream-checker = { path = "../../../third_party/rust/crispy-stream-checker" }
-crispy-iptv-tools = { path = "../../../third_party/rust/crispy-iptv-tools" }
+crispy-iptv-types.workspace = true
+crispy-m3u.workspace = true
+crispy-xmltv.workspace = true
+crispy-xtream.workspace = true
+crispy-stalker.workspace = true
+crispy-stream-checker.workspace = true
+crispy-iptv-tools.workspace = true
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.58", features = [

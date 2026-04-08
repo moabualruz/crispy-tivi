@@ -1,27 +1,27 @@
 [submodule "third_party/rust/crispy-iptv-types"]
-	path = third_party/rust/crispy-iptv-types
+	path = rust/shared/crispy-iptv-types
 	url = git@github.com:moabualruz/crispy-iptv-types.git
 [submodule "third_party/rust/crispy-m3u"]
-	path = third_party/rust/crispy-m3u
+	path = rust/shared/crispy-m3u
 	url = git@github.com:moabualruz/crispy-m3u.git
 [submodule "third_party/rust/crispy-xmltv"]
-	path = third_party/rust/crispy-xmltv
+	path = rust/shared/crispy-xmltv
 	url = git@github.com:moabualruz/crispy-xmltv.git
 [submodule "third_party/rust/crispy-xtream"]
-	path = third_party/rust/crispy-xtream
+	path = rust/shared/crispy-xtream
 	url = git@github.com:moabualruz/crispy-xtream.git
 [submodule "third_party/rust/crispy-stalker"]
-	path = third_party/rust/crispy-stalker
+	path = rust/shared/crispy-stalker
 	url = git@github.com:moabualruz/crispy-stalker.git
 [submodule "third_party/rust/crispy-stream-checker"]
-	path = third_party/rust/crispy-stream-checker
+	path = rust/shared/crispy-stream-checker
 	url = git@github.com:moabualruz/crispy-stream-checker.git
 [submodule "third_party/rust/crispy-iptv-tools"]
-	path = third_party/rust/crispy-iptv-tools
+	path = rust/shared/crispy-iptv-tools
 	url = git@github.com:moabualruz/crispy-iptv-tools.git
 [submodule "third_party/rust/crispy-catchup"]
-	path = third_party/rust/crispy-catchup
+	path = rust/shared/crispy-catchup
 	url = git@github.com:moabualruz/crispy-catchup.git
 [submodule "third_party/rust/crispy-media-probe"]
-	path = third_party/rust/crispy-media-probe
+	path = rust/shared/crispy-media-probe
 	url = git@github.com:moabualruz/crispy-media-probe.git
