@@ -540,7 +540,6 @@ mod tests {
 
     #[test]
     fn strategy3_prefix_skips_noise() {
-        let idx = test_index();
         // "espn" matches exactly (strategy 1), so test with
         // a name that only prefix-matches.
         let mut idx2 = HashMap::new();

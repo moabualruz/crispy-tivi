@@ -332,7 +332,7 @@ mod tests {
 
     #[test]
     fn test_format_number_ar_decimal_uses_arabic_decimal_sep() {
-        let result = format_number(3.14, "ar");
+        let result = format_number(std::f64::consts::PI, "ar");
         assert!(
             result.contains('٫'),
             "expected Arabic decimal sep, got: {result}"

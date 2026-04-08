@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::algorithms::normalize::EPG_FORMAT;
-use crate::models::{Channel, EpgEntry, Movie, Source, UserProfile, VodItem, WatchHistory};
+use crate::models::{Channel, EpgEntry, Source, UserProfile, VodItem, WatchHistory};
 use crate::value_objects::MediaType;
 
 use super::ServiceContext;
@@ -84,17 +84,6 @@ pub fn make_channel(id: &str, name: &str) -> Channel {
         timeshift: None,
         stream_type: None,
         thumbnail_url: None,
-    }
-}
-
-pub fn make_movie(id: &str, name: &str) -> Movie {
-    Movie {
-        id: id.to_string(),
-        source_id: String::new(),
-        native_id: id.to_string(),
-        name: name.to_string(),
-        stream_url: Some(format!("http://example.com/movie/{id}")),
-        ..Movie::default()
     }
 }
 

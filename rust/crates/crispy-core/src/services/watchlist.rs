@@ -65,7 +65,6 @@ impl WatchlistService {
 #[cfg(test)]
 mod tests {
     use super::WatchlistService;
-    use super::*;
     use crate::services::test_helpers::{make_profile, make_service, make_source, make_vod_item};
 
     /// Create a service with profile and source pre-seeded.

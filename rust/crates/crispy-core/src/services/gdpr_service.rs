@@ -232,7 +232,9 @@ mod tests {
             series_poster_url: None,
             position_ms: 0,
             duration_ms: 0,
-            last_watched: chrono::NaiveDateTime::from_timestamp_opt(1_700_000_000, 0).unwrap(),
+            last_watched: chrono::DateTime::from_timestamp(1_700_000_000, 0)
+                .unwrap()
+                .naive_utc(),
             series_id: None,
             season_number: None,
             episode_number: None,
@@ -376,7 +378,9 @@ mod tests {
             series_poster_url: None,
             position_ms: 0,
             duration_ms: 0,
-            last_watched: chrono::NaiveDateTime::from_timestamp_opt(1_700_000_000, 0).unwrap(),
+            last_watched: chrono::DateTime::from_timestamp(1_700_000_000, 0)
+                .unwrap()
+                .naive_utc(),
             series_id: None,
             season_number: None,
             episode_number: None,

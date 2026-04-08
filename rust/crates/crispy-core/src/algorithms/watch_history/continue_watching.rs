@@ -168,7 +168,6 @@ pub fn filter_by_cw_status(history_json: &str, filter: &str) -> String {
 mod tests {
     use super::*;
     use crate::algorithms::normalize::EPG_FORMAT;
-    use crate::value_objects::MediaType;
     use sha2::{Digest, Sha256};
 
     fn ts(s: &str) -> NaiveDateTime {

@@ -1423,7 +1423,7 @@ mod tests {
         let channels = vec![make_channel("1", "الجزيرة")];
         let results = search_channels(&q, &channels);
         assert!(
-            normalised_name.contains(&q) == !results.is_empty(),
+            normalised_name.contains(&q) != results.is_empty(),
             "search consistency: normalised={normalised_name}, q={q}"
         );
     }

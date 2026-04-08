@@ -136,6 +136,34 @@ pub fn deserialize_full_sections(
         .collect()
 }
 
+fn parse_section(section: &RecommendationSection) -> Result<TypedRecommendationSection, String> {
+    let section_type = parse_section_type(&section.section_type)?;
+
+    let items: Result<Vec<RecommendationItem>, String> = section
+        .items
+        .iter()
+        .map(|r| {
+            let reason_type = parse_section_type(&r.reason)?;
+            Ok(RecommendationItem {
+                id: r.id.clone(),
+                name: r.title.clone(),
+                media_type: r.media_type.clone(),
+                score: r.score,
+                reason_type,
+                reason_text: section.title.clone(),
+                genre: None,
+                source_title: None,
+            })
+        })
+        .collect();
+
+    Ok(TypedRecommendationSection {
+        section_type,
+        title: section.title.clone(),
+        items: items?,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -268,32 +296,4 @@ mod tests {
         let result = deserialize_full_sections(&sections);
         assert!(result.is_err());
     }
-}
-
-fn parse_section(section: &RecommendationSection) -> Result<TypedRecommendationSection, String> {
-    let section_type = parse_section_type(&section.section_type)?;
-
-    let items: Result<Vec<RecommendationItem>, String> = section
-        .items
-        .iter()
-        .map(|r| {
-            let reason_type = parse_section_type(&r.reason)?;
-            Ok(RecommendationItem {
-                id: r.id.clone(),
-                name: r.title.clone(),
-                media_type: r.media_type.clone(),
-                score: r.score,
-                reason_type,
-                reason_text: section.title.clone(),
-                genre: None,
-                source_title: None,
-            })
-        })
-        .collect();
-
-    Ok(TypedRecommendationSection {
-        section_type,
-        title: section.title.clone(),
-        items: items?,
-    })
 }

@@ -190,7 +190,7 @@ impl Movie {
     pub fn has_trailer(&self) -> bool {
         self.youtube_trailer
             .as_deref()
-            .map_or(false, |t| !t.is_empty())
+            .is_some_and(|t| !t.is_empty())
     }
 }
 
@@ -222,7 +222,7 @@ impl Season {
 impl Episode {
     /// Returns true if a non-empty description is present.
     pub fn has_plot(&self) -> bool {
-        self.description.as_deref().map_or(false, |d| !d.is_empty())
+        self.description.as_deref().is_some_and(|d| !d.is_empty())
     }
 
     /// Returns a label like "S01E03" for this episode.
@@ -661,7 +661,7 @@ impl VodItem {
 
     /// Returns true if a non-empty rating is present.
     pub fn has_rating(&self) -> bool {
-        self.rating.as_deref().map_or(false, |r| !r.is_empty())
+        self.rating.as_deref().is_some_and(|r| !r.is_empty())
     }
 
     /// Convert a legacy VodItem to a Movie (for items with type "movie").
@@ -994,7 +994,7 @@ impl EpgEntry {
 
     /// Returns true if a non-empty description is present.
     pub fn has_description(&self) -> bool {
-        self.description.as_deref().map_or(false, |d| !d.is_empty())
+        self.description.as_deref().is_some_and(|d| !d.is_empty())
     }
 }
 
@@ -1103,7 +1103,7 @@ impl UserProfile {
 
     /// Returns true if this profile has a PIN set.
     pub fn has_pin(&self) -> bool {
-        self.pin.as_deref().map_or(false, |p| !p.is_empty())
+        self.pin.as_deref().is_some_and(|p| !p.is_empty())
     }
 }
 
@@ -1740,7 +1740,7 @@ impl XtreamAccountInfo {
         self.exp_date
             .as_deref()
             .and_then(|s| s.parse::<i64>().ok())
-            .map_or(false, |exp| exp < now)
+            .is_some_and(|exp| exp < now)
     }
 
     /// Returns the number of days remaining until expiry, or `None` if unknown.
@@ -1815,7 +1815,7 @@ impl SearchHistory {
 impl Bookmark {
     /// Returns true if a non-empty user label is present.
     pub fn has_note(&self) -> bool {
-        self.label.as_deref().map_or(false, |l| !l.is_empty())
+        self.label.as_deref().is_some_and(|l| !l.is_empty())
     }
 
     /// Returns true if the bookmark position is within `tolerance_ms` of `pos_ms`.
@@ -1902,7 +1902,7 @@ mod tests {
     use chrono::NaiveDateTime;
 
     fn dummy_dt() -> NaiveDateTime {
-        NaiveDateTime::from_timestamp_opt(0, 0).unwrap()
+        chrono::DateTime::from_timestamp(0, 0).unwrap().naive_utc()
     }
 
     // ── SyncReport ──────────────────────────────────

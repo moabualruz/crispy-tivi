@@ -388,6 +388,129 @@ pub(super) fn build_trending(
     }
 }
 
+// ── New for You ──────────────────────────────────────
+
+pub(super) fn build_new_for_you(
+    vod_items: &[VodItem],
+    watched_ids: &HashSet<&str>,
+    genre_affinity: &HashMap<String, f64>,
+    now: NaiveDateTime,
+) -> RecommendationSection {
+    let cutoff = now - chrono::Duration::days(14);
+
+    let mut scored: Vec<Recommendation> = vod_items
+        .iter()
+        .filter(|item| {
+            !watched_ids.contains(item.id.as_str())
+                && item.item_type != MediaType::Episode
+                && item.added_at.map(|a| a > cutoff).unwrap_or(false)
+        })
+        .map(|item| {
+            let cat = normalize_category(item.category.as_deref().unwrap_or(""));
+            let affinity = genre_affinity.get(&cat).copied().unwrap_or(0.0);
+            let num_rating = item
+                .rating
+                .as_deref()
+                .and_then(|r| r.parse::<f64>().ok())
+                .unwrap_or(0.0);
+
+            let score = affinity * 0.7 + (num_rating / 10.0) * 0.3;
+
+            vod_to_recommendation(item, "newForYou", score.clamp(0.0, 1.0))
+        })
+        .collect();
+
+    top_n_by_score(&mut scored, SECTION_SIZE);
+
+    RecommendationSection {
+        title: "New for You".to_string(),
+        section_type: "newForYou".to_string(),
+        items: scored,
+    }
+}
+
+// ── Cold Start ───────────────────────────────────────
+
+pub(super) fn build_cold_start(
+    vod_items: &[VodItem],
+    watched_ids: &HashSet<&str>,
+) -> Vec<RecommendationSection> {
+    let mut sections = Vec::new();
+
+    // Highly Rated.
+    let mut rated: Vec<&VodItem> = vod_items
+        .iter()
+        .filter(|item| {
+            !watched_ids.contains(item.id.as_str())
+                && item.item_type != MediaType::Episode
+                && item
+                    .rating
+                    .as_deref()
+                    .and_then(|r| r.parse::<f64>().ok())
+                    .is_some()
+        })
+        .collect();
+    rated.sort_by(|a, b| {
+        let ra = a
+            .rating
+            .as_deref()
+            .and_then(|r| r.parse::<f64>().ok())
+            .unwrap_or(0.0);
+        let rb = b
+            .rating
+            .as_deref()
+            .and_then(|r| r.parse::<f64>().ok())
+            .unwrap_or(0.0);
+        rb.total_cmp(&ra)
+    });
+    if !rated.is_empty() {
+        sections.push(RecommendationSection {
+            title: "Highly Rated".to_string(),
+            section_type: "highlyRated".to_string(),
+            items: rated
+                .iter()
+                .take(SECTION_SIZE)
+                .map(|v| {
+                    vod_to_recommendation(
+                        v,
+                        "highlyRated",
+                        v.rating
+                            .as_deref()
+                            .and_then(|r| r.parse::<f64>().ok())
+                            .unwrap_or(0.0)
+                            .clamp(0.0, 10.0)
+                            / 10.0,
+                    )
+                })
+                .collect(),
+        });
+    }
+
+    // Recently Added.
+    let mut recent: Vec<&VodItem> = vod_items
+        .iter()
+        .filter(|item| {
+            !watched_ids.contains(item.id.as_str())
+                && item.item_type != MediaType::Episode
+                && item.added_at.is_some()
+        })
+        .collect();
+    recent.sort_by(|a, b| b.added_at.unwrap().cmp(&a.added_at.unwrap()));
+    if !recent.is_empty() {
+        sections.push(RecommendationSection {
+            title: "Recently Added".to_string(),
+            section_type: "recentlyAdded".to_string(),
+            items: recent
+                .iter()
+                .take(SECTION_SIZE)
+                .map(|v| vod_to_recommendation(v, "recentlyAdded", 0.0))
+                .collect(),
+        });
+    }
+
+    sections
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -567,7 +690,6 @@ mod tests {
     #[test]
     fn test_build_genre_affinity_favorite_channel_boosts_group() {
         let ch = make_channel("c1", Some("news"));
-        let channels = vec![ch.clone()];
         let mut channel_by_id: HashMap<&str, &Channel> = HashMap::new();
         channel_by_id.insert("c1", &ch);
         let vod_by_id: HashMap<&str, &VodItem> = HashMap::new();
@@ -787,127 +909,4 @@ mod tests {
         assert_eq!(sections[0].section_type, "popularInGenre");
         assert!(sections[0].title.contains("Action"));
     }
-}
-
-// ── New for You ──────────────────────────────────────
-
-pub(super) fn build_new_for_you(
-    vod_items: &[VodItem],
-    watched_ids: &HashSet<&str>,
-    genre_affinity: &HashMap<String, f64>,
-    now: NaiveDateTime,
-) -> RecommendationSection {
-    let cutoff = now - chrono::Duration::days(14);
-
-    let mut scored: Vec<Recommendation> = vod_items
-        .iter()
-        .filter(|item| {
-            !watched_ids.contains(item.id.as_str())
-                && item.item_type != MediaType::Episode
-                && item.added_at.map(|a| a > cutoff).unwrap_or(false)
-        })
-        .map(|item| {
-            let cat = normalize_category(item.category.as_deref().unwrap_or(""));
-            let affinity = genre_affinity.get(&cat).copied().unwrap_or(0.0);
-            let num_rating = item
-                .rating
-                .as_deref()
-                .and_then(|r| r.parse::<f64>().ok())
-                .unwrap_or(0.0);
-
-            let score = affinity * 0.7 + (num_rating / 10.0) * 0.3;
-
-            vod_to_recommendation(item, "newForYou", score.clamp(0.0, 1.0))
-        })
-        .collect();
-
-    top_n_by_score(&mut scored, SECTION_SIZE);
-
-    RecommendationSection {
-        title: "New for You".to_string(),
-        section_type: "newForYou".to_string(),
-        items: scored,
-    }
-}
-
-// ── Cold Start ───────────────────────────────────────
-
-pub(super) fn build_cold_start(
-    vod_items: &[VodItem],
-    watched_ids: &HashSet<&str>,
-) -> Vec<RecommendationSection> {
-    let mut sections = Vec::new();
-
-    // Highly Rated.
-    let mut rated: Vec<&VodItem> = vod_items
-        .iter()
-        .filter(|item| {
-            !watched_ids.contains(item.id.as_str())
-                && item.item_type != MediaType::Episode
-                && item
-                    .rating
-                    .as_deref()
-                    .and_then(|r| r.parse::<f64>().ok())
-                    .is_some()
-        })
-        .collect();
-    rated.sort_by(|a, b| {
-        let ra = a
-            .rating
-            .as_deref()
-            .and_then(|r| r.parse::<f64>().ok())
-            .unwrap_or(0.0);
-        let rb = b
-            .rating
-            .as_deref()
-            .and_then(|r| r.parse::<f64>().ok())
-            .unwrap_or(0.0);
-        rb.total_cmp(&ra)
-    });
-    if !rated.is_empty() {
-        sections.push(RecommendationSection {
-            title: "Highly Rated".to_string(),
-            section_type: "highlyRated".to_string(),
-            items: rated
-                .iter()
-                .take(SECTION_SIZE)
-                .map(|v| {
-                    vod_to_recommendation(
-                        v,
-                        "highlyRated",
-                        v.rating
-                            .as_deref()
-                            .and_then(|r| r.parse::<f64>().ok())
-                            .unwrap_or(0.0)
-                            .clamp(0.0, 10.0)
-                            / 10.0,
-                    )
-                })
-                .collect(),
-        });
-    }
-
-    // Recently Added.
-    let mut recent: Vec<&VodItem> = vod_items
-        .iter()
-        .filter(|item| {
-            !watched_ids.contains(item.id.as_str())
-                && item.item_type != MediaType::Episode
-                && item.added_at.is_some()
-        })
-        .collect();
-    recent.sort_by(|a, b| b.added_at.unwrap().cmp(&a.added_at.unwrap()));
-    if !recent.is_empty() {
-        sections.push(RecommendationSection {
-            title: "Recently Added".to_string(),
-            section_type: "recentlyAdded".to_string(),
-            items: recent
-                .iter()
-                .take(SECTION_SIZE)
-                .map(|v| vod_to_recommendation(v, "recentlyAdded", 0.0))
-                .collect(),
-        });
-    }
-
-    sections
 }

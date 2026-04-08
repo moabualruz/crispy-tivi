@@ -243,6 +243,10 @@ impl VodService {
     }
 
     /// Load a single page of VOD items filtered by multiple criteria and sorted.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "Public service API mirrors the FFI paging surface and changing it would require non-local API churn"
+    )]
     pub fn get_vod_page(
         &self,
         source_ids: &[String],

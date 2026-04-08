@@ -128,12 +128,6 @@ pub(crate) fn ts_to_dt(ts: i64) -> NaiveDateTime {
         .naive_utc()
 }
 
-/// Convert optional Unix ts to optional
-/// `NaiveDateTime`.
-pub(crate) fn opt_ts_to_dt(ts: Option<i64>) -> Option<NaiveDateTime> {
-    ts.map(ts_to_dt)
-}
-
 // ── Bool helpers ────────────────────────────────────
 
 /// Convert `bool` to SQLite integer (0/1).
@@ -524,19 +518,20 @@ impl ServiceContext {
 #[cfg(test)]
 mod helper_tests {
     use super::*;
-    use chrono::NaiveDateTime;
 
     // ── dt_to_ts / ts_to_dt ─────────────────────────
 
     #[test]
     fn test_dt_to_ts_epoch_returns_zero() {
-        let dt = NaiveDateTime::from_timestamp_opt(0, 0).unwrap();
+        let dt = chrono::DateTime::from_timestamp(0, 0).unwrap().naive_utc();
         assert_eq!(dt_to_ts(&dt), 0);
     }
 
     #[test]
     fn test_dt_to_ts_positive_timestamp() {
-        let dt = NaiveDateTime::from_timestamp_opt(1_700_000_000, 0).unwrap();
+        let dt = chrono::DateTime::from_timestamp(1_700_000_000, 0)
+            .unwrap()
+            .naive_utc();
         assert_eq!(dt_to_ts(&dt), 1_700_000_000);
     }
 
@@ -548,7 +543,9 @@ mod helper_tests {
 
     #[test]
     fn test_ts_to_dt_roundtrips_with_dt_to_ts() {
-        let original = NaiveDateTime::from_timestamp_opt(1_600_000_000, 0).unwrap();
+        let original = chrono::DateTime::from_timestamp(1_600_000_000, 0)
+            .unwrap()
+            .naive_utc();
         let ts = dt_to_ts(&original);
         let back = ts_to_dt(ts);
         assert_eq!(back.and_utc().timestamp(), 1_600_000_000);
@@ -561,20 +558,10 @@ mod helper_tests {
 
     #[test]
     fn test_opt_dt_to_ts_some_returns_some() {
-        let dt = NaiveDateTime::from_timestamp_opt(12345, 0).unwrap();
+        let dt = chrono::DateTime::from_timestamp(12345, 0)
+            .unwrap()
+            .naive_utc();
         assert_eq!(opt_dt_to_ts(&Some(dt)), Some(12345));
-    }
-
-    #[test]
-    fn test_opt_ts_to_dt_none_returns_none() {
-        assert!(opt_ts_to_dt(None).is_none());
-    }
-
-    #[test]
-    fn test_opt_ts_to_dt_some_returns_datetime() {
-        let result = opt_ts_to_dt(Some(0));
-        assert!(result.is_some());
-        assert_eq!(result.unwrap().and_utc().timestamp(), 0);
     }
 
     // ── bool_to_int / int_to_bool ───────────────────

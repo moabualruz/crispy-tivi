@@ -264,14 +264,14 @@ mod tests {
     fn semver_same_no_update() {
         let current = semver::Version::parse("0.1.1").unwrap();
         let latest = semver::Version::parse("0.1.1").unwrap();
-        assert!(!(latest > current));
+        assert!(latest <= current);
     }
 
     #[test]
     fn semver_newer_no_update() {
         let current = semver::Version::parse("0.3.0").unwrap();
         let latest = semver::Version::parse("0.2.0").unwrap();
-        assert!(!(latest > current));
+        assert!(latest <= current);
     }
 
     #[test]

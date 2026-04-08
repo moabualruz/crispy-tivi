@@ -261,7 +261,7 @@ mod tests {
             .unwrap();
 
         let facade = EpgFacade::new(svc);
-        let entries = facade.get_epg_for_channel("ch1", 10).await.unwrap();
+        let _entries = facade.get_epg_for_channel("ch1", 10).await.unwrap();
         // May be empty depending on time window — the important thing is no panic
         // and the SQLite path works without moka.
     }
@@ -285,7 +285,7 @@ mod tests {
 
         let facade = EpgFacade::new(svc);
         let now = chrono::Utc::now().timestamp();
-        let result = facade
+        let _result = facade
             .get_epg_for_channels(&["ch_a".into(), "ch_b".into()], now - 3600, now + 86400)
             .await
             .unwrap();
