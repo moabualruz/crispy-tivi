@@ -4,15 +4,15 @@
 //! server, parses them with the existing Rust parsers, resolves
 //! category names, and persists everything to the local database.
 //!
-//! ## tvg_id mapping via M3U temp table
+//! ## tvg_id mapping via parsed M3U metadata
 //!
 //! Xtream API streams lack tvg_id metadata. We download the M3U
-//! playlist, parse it into a SQLite TEMP TABLE keyed by normalised
-//! stream URL, then join that against the Xtream channels after
-//! creation to populate tvg_id. The temp table is dropped (or
-//! auto-cleaned on connection close) after the mapping step.
-//! M3U channels are never persisted to `db_channels`.
+//! playlist, parse it with `crispy_m3u`, and build an in-memory map
+//! keyed by normalised stream URL. Xtream channels are enriched from
+//! that map before being persisted. M3U channels are never persisted
+//! to `db_channels`.
 
+use std::collections::HashMap;
 use std::time::Duration;
 
 use crate::algorithms::categories;
@@ -26,6 +26,21 @@ use crate::services::url_validator::validate_url;
 use crate::sync_progress::emit_progress;
 use anyhow::{Context, Result};
 use crispy_m3u::{M3uEntry, ParseMode, parse_with_mode};
+
+#[derive(Debug, Clone, Default)]
+struct XtreamM3uMetadata {
+    tvg_id: Option<String>,
+    name: Option<String>,
+    logo: Option<String>,
+    group_title: Option<String>,
+    catchup_type: Option<String>,
+    catchup_source: Option<String>,
+    catchup_days: Option<i32>,
+    tvg_name: Option<String>,
+    tvg_language: Option<String>,
+    tvg_shift: Option<String>,
+    is_radio: bool,
+}
 
 /// Verifies Xtream credentials by calling the player API.
 ///
@@ -148,31 +163,18 @@ fn parse_xtream_account_info(data: &serde_json::Value) -> XtreamAccountInfo {
     }
 }
 
-/// Build a `{normalised_stream_url → tvg_id}` map from an M3U playlist.
+/// Build a `{normalized_stream_url -> metadata}` map from an Xtream M3U playlist.
 ///
-/// Downloads the M3U from the Xtream `get.php` endpoint, parses every
-/// `#EXTINF` entry, normalises each stream URL, and stores the mapping in
-/// Downloads the M3U playlist for an Xtream source and stores it in a
-/// **SQLite temp table** — never holding all channels in RAM. Parses the
-/// M3U line-by-line, inserting each entry directly into the temp table
-/// in batches.
-///
-/// The temp table holds: `stream_url_normalized`, `tvg_id`, `name`,
-/// `logo`, `group_title` — enough to enrich Xtream channels after
-/// the API fetch.
-///
-/// The caller is responsible for calling `drop_m3u_temp_table()` after
-/// Xtream mapping is complete.
-///
-/// Returns the number of rows inserted, or 0 on failure.
-async fn download_m3u_to_temp_table(
-    service: &ServiceContext,
+/// The playlist is already parsed in-process by `crispy_m3u`, so keeping the
+/// derived enrichment data in memory avoids connection-local SQLite TEMP table
+/// semantics across the service connection pool.
+async fn download_m3u_metadata_map(
     base: &str,
     username: &str,
     password: &str,
     source_id: &str,
     accept_invalid_certs: bool,
-) -> usize {
+) -> HashMap<String, XtreamM3uMetadata> {
     let m3u_url = {
         let enc_user =
             percent_encoding::utf8_percent_encode(username, percent_encoding::NON_ALPHANUMERIC)
@@ -195,83 +197,60 @@ async fn download_m3u_to_temp_table(
             Ok(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
             Err(e) => {
                 tracing::warn!(source_id, error = %e, "Failed to read M3U body");
-                return 0;
+                return HashMap::new();
             }
         },
         Ok(Ok(resp)) => {
             tracing::warn!(source_id, status = %resp.status(), "M3U endpoint non-success");
-            return 0;
+            return HashMap::new();
         }
         Ok(Err(e)) => {
             tracing::warn!(source_id, error = %e, "M3U download failed");
-            return 0;
+            return HashMap::new();
         }
         Err(_) => {
             tracing::warn!(source_id, "M3U download timed out after 60s");
-            return 0;
+            return HashMap::new();
         }
     };
 
     if content.is_empty() {
-        return 0;
-    }
-
-    // Get a DB connection and create the temp table
-    let conn = match service.db.get() {
-        Ok(c) => c,
-        Err(e) => {
-            tracing::warn!(source_id, error = %e, "DB connection unavailable");
-            return 0;
-        }
-    };
-
-    if let Err(e) = conn.execute_batch(
-        "CREATE TEMP TABLE IF NOT EXISTS tmp_m3u_channels (
-             stream_url_normalized TEXT PRIMARY KEY,
-             tvg_id TEXT,
-             name TEXT,
-             logo TEXT,
-             group_title TEXT,
-             catchup_type TEXT,
-             catchup_source TEXT,
-             catchup_days INTEGER,
-             tvg_name TEXT,
-             tvg_language TEXT,
-             tvg_shift TEXT,
-             is_radio INTEGER
-         );
-         DELETE FROM tmp_m3u_channels;",
-    ) {
-        tracing::warn!(source_id, error = %e, "Failed to create temp table");
-        return 0;
+        return HashMap::new();
     }
 
     let playlist = match parse_with_mode(&content, ParseMode::Permissive) {
         Ok(playlist) => playlist,
         Err(e) => {
             tracing::warn!(source_id, error = %e, "Failed to parse Xtream M3U with crispy_m3u");
-            return 0;
+            return HashMap::new();
         }
     };
 
-    let mut inserted = 0usize;
+    let mut metadata_by_stream_url = HashMap::with_capacity(playlist.entries.len());
 
     for entry in playlist.entries {
-        inserted += insert_m3u_entry_into_temp_table(&conn, entry);
+        insert_m3u_entry_into_map(&mut metadata_by_stream_url, entry);
     }
 
-    tracing::debug!(source_id, inserted, "M3U channels loaded into temp table");
-    inserted
+    tracing::debug!(
+        source_id,
+        inserted = metadata_by_stream_url.len(),
+        "M3U channels loaded into metadata map"
+    );
+    metadata_by_stream_url
 }
 
-fn insert_m3u_entry_into_temp_table(conn: &rusqlite::Connection, entry: M3uEntry) -> usize {
+fn insert_m3u_entry_into_map(
+    metadata_by_stream_url: &mut HashMap<String, XtreamM3uMetadata>,
+    entry: M3uEntry,
+) {
     let Some(primary_url) = entry.primary_url() else {
-        return 0;
+        return;
     };
 
     let norm = normalize_url(primary_url);
     if norm.is_empty() {
-        return 0;
+        return;
     }
 
     let group_title = entry
@@ -281,115 +260,65 @@ fn insert_m3u_entry_into_temp_table(conn: &rusqlite::Connection, entry: M3uEntry
     let catchup_days = entry
         .catchup_days
         .as_deref()
-        .and_then(|s| s.parse::<i64>().ok());
+        .and_then(|s| s.parse::<i32>().ok());
 
-    match conn.execute(
-        "INSERT OR IGNORE INTO tmp_m3u_channels
-         (stream_url_normalized, tvg_id, name, logo, group_title,
-          catchup_type, catchup_source, catchup_days,
-          tvg_name, tvg_language, tvg_shift, is_radio)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-        rusqlite::params![
-            norm,
-            entry.tvg_id,
-            entry.name,
-            entry.tvg_logo,
+    metadata_by_stream_url
+        .entry(norm)
+        .or_insert(XtreamM3uMetadata {
+            tvg_id: entry.tvg_id,
+            name: entry.name,
+            logo: entry.tvg_logo,
             group_title,
-            entry.catchup,
-            entry.catchup_source,
+            catchup_type: entry.catchup,
+            catchup_source: entry.catchup_source,
             catchup_days,
-            entry.tvg_name,
-            entry.tvg_language,
-            entry.tvg_shift.map(|value| value.to_string()),
-            if entry.is_radio { 1i64 } else { 0i64 }
-        ],
-    ) {
-        Ok(rows) if rows > 0 => 1,
-        Ok(_) => 0,
-        Err(e) => {
-            tracing::debug!(error = %e, "temp table insert skipped");
-            0
-        }
-    }
+            tvg_name: entry.tvg_name,
+            tvg_language: entry.tvg_language,
+            tvg_shift: entry.tvg_shift.map(|value| value.to_string()),
+            is_radio: entry.is_radio,
+        });
 }
 
-/// Apply tvg_id and metadata from the M3U temp table to Xtream channels.
+/// Apply tvg_id and metadata from the parsed M3U map to Xtream channels.
 /// Matches by normalized stream URL.
-fn apply_m3u_metadata_from_temp_table(service: &ServiceContext, channels: &mut [Channel]) {
-    let conn = match service.db.get() {
-        Ok(c) => c,
-        Err(_) => return,
-    };
-
-    let mut stmt = match conn.prepare(
-        "SELECT tvg_id, name, logo, group_title,
-                catchup_type, catchup_source, catchup_days,
-                tvg_name, tvg_language, tvg_shift, is_radio
-         FROM tmp_m3u_channels WHERE stream_url_normalized = ?1",
-    ) {
-        Ok(s) => s,
-        Err(_) => return, // temp table may not exist if M3U download failed
-    };
-
+fn apply_m3u_metadata(
+    metadata_by_stream_url: &HashMap<String, XtreamM3uMetadata>,
+    channels: &mut [Channel],
+) {
     for ch in channels.iter_mut() {
         let norm = normalize_url(&ch.stream_url);
         if norm.is_empty() {
             continue;
         }
-        if let Ok(row) = stmt.query_row(rusqlite::params![norm], |row| {
-            Ok((
-                row.get::<_, Option<String>>(0)?, // tvg_id
-                row.get::<_, Option<String>>(1)?, // name
-                row.get::<_, Option<String>>(2)?, // logo
-                row.get::<_, Option<String>>(3)?, // group_title
-                row.get::<_, Option<String>>(4)?, // catchup_type
-                row.get::<_, Option<String>>(5)?, // catchup_source
-                row.get::<_, Option<i32>>(6)?,    // catchup_days
-                row.get::<_, Option<String>>(7)?, // tvg_name
-                row.get::<_, Option<String>>(8)?, // tvg_language
-                row.get::<_, Option<String>>(9)?, // tvg_shift
-                row.get::<_, Option<i64>>(10)?,   // is_radio
-            ))
-        }) {
-            let (
-                tvg_id,
-                name,
-                logo,
-                group,
-                catchup_type,
-                catchup_source,
-                catchup_days,
-                tvg_name,
-                tvg_language,
-                tvg_shift,
-                is_radio,
-            ) = row;
-
+        if let Some(metadata) = metadata_by_stream_url.get(&norm) {
             // Only set tvg_id if channel doesn't already have one from Xtream API.
             // Reject purely numeric tvg_id values — Xtream M3U playlists often
             // put the stream_id (e.g. "374694") in tvg-id, which is NOT a valid
             // XMLTV channel ID and causes wrong EPG matches.
             if ch.tvg_id.as_ref().is_none_or(|t| t.is_empty()) {
-                ch.tvg_id = tvg_id.filter(|t| !t.chars().all(|c| c.is_ascii_digit()));
+                ch.tvg_id = metadata
+                    .tvg_id
+                    .clone()
+                    .filter(|t| !t.chars().all(|c| c.is_ascii_digit()));
             }
             // Enrich logo if missing.
             if ch.logo_url.as_ref().is_none_or(|l| l.is_empty()) {
-                ch.logo_url = logo;
+                ch.logo_url = metadata.logo.clone();
             }
             if ch.channel_group.as_ref().is_none_or(|g| g.is_empty()) {
-                ch.channel_group = group;
+                ch.channel_group = metadata.group_title.clone();
             }
             if ch.name.is_empty() {
-                ch.name = name.unwrap_or_default();
+                ch.name = metadata.name.clone().unwrap_or_default();
             }
 
             // Enrich catchup fields if not already provided by Xtream API.
             if !ch.has_catchup
-                && let Some(ct) = catchup_type
+                && let Some(ct) = metadata.catchup_type.as_deref()
                 && !ct.is_empty()
             {
-                ch.catchup_type = Some(ct);
-                if let Some(days) = catchup_days
+                ch.catchup_type = Some(ct.to_string());
+                if let Some(days) = metadata.catchup_days
                     && days > 0
                 {
                     ch.catchup_days = days;
@@ -397,40 +326,34 @@ fn apply_m3u_metadata_from_temp_table(service: &ServiceContext, channels: &mut [
                 }
             }
             if ch.catchup_source.as_ref().is_none_or(|s| s.is_empty()) {
-                ch.catchup_source = catchup_source;
+                ch.catchup_source = metadata.catchup_source.clone();
             }
             if ch.catchup_days == 0
-                && let Some(days) = catchup_days
+                && let Some(days) = metadata.catchup_days
                 && days > 0
             {
                 ch.catchup_days = days;
             }
             // Enrich tvg_name if missing.
             if ch.tvg_name.as_ref().is_none_or(|s| s.is_empty()) {
-                ch.tvg_name = tvg_name;
+                ch.tvg_name = metadata.tvg_name.clone();
             }
             // Enrich tvg_language if missing.
             if ch.tvg_language.as_ref().is_none_or(|s| s.is_empty()) {
-                ch.tvg_language = tvg_language;
+                ch.tvg_language = metadata.tvg_language.clone();
             }
             // Enrich tvg_shift if missing.
             if ch.tvg_shift.is_none() {
-                ch.tvg_shift = tvg_shift.and_then(|s| s.parse::<f64>().ok());
+                ch.tvg_shift = metadata
+                    .tvg_shift
+                    .as_deref()
+                    .and_then(|s| s.parse::<f64>().ok());
             }
             // Always apply is_radio from M3U (Xtream API doesn't provide this).
-            if let Some(flag) = is_radio
-                && flag != 0
-            {
+            if metadata.is_radio {
                 ch.is_radio = true;
             }
         }
-    }
-}
-
-/// Drop the M3U temp table after Xtream mapping is complete.
-fn drop_m3u_temp_table(service: &ServiceContext) {
-    if let Ok(conn) = service.db.get() {
-        let _ = conn.execute_batch("DROP TABLE IF EXISTS tmp_m3u_channels");
     }
 }
 
@@ -453,27 +376,22 @@ pub async fn sync_xtream_source(
     validate_url(base_url).map_err(anyhow::Error::from)?;
     let base = xtream::normalize_base_url(base_url);
 
-    // 0. Download M3U and build a {normalised_url → tvg_id} map.
-    //    M3U channels are NOT saved to the database — the map is used
-    //    only to populate tvg_id on the Xtream API channels created below.
-    //    Failure is non-fatal: we get an empty map and skip tvg_id population.
+    // 0. Download M3U metadata keyed by normalized stream URL. M3U channels
+    //    are not saved to the database; the parsed metadata is used only to
+    //    enrich Xtream API channels before persistence.
     emit_progress(
         source_id,
         "m3u_prefetch",
         0.0,
         "Pre-fetching M3U for tvg_id metadata",
     );
-    // Step 1: Download M3U into SQLite temp table (not RAM)
-    let m3u_count = download_m3u_to_temp_table(
-        service,
-        &base,
-        username,
-        password,
+    let m3u_metadata =
+        download_m3u_metadata_map(&base, username, password, source_id, accept_invalid_certs).await;
+    tracing::debug!(
         source_id,
-        accept_invalid_certs,
-    )
-    .await;
-    tracing::debug!(source_id, m3u_count, "M3U channels loaded into temp table");
+        m3u_count = m3u_metadata.len(),
+        "M3U channels loaded into metadata map"
+    );
 
     emit_progress(source_id, "categories", 0.05, "Fetching categories");
 
@@ -516,10 +434,9 @@ pub async fn sync_xtream_source(
     let mut channels =
         xtream::channels_from_xtream_json(&live_data, &base, username, password, Some(source_id));
     channels = categories::resolve_channel_categories(&channels, &live_cat_map);
-    // Populate tvg_id + metadata from M3U temp table before saving.
-    // Matches by normalized stream URL against tmp_m3u_channels.
-    if m3u_count > 0 {
-        apply_m3u_metadata_from_temp_table(service, &mut channels);
+    // Populate tvg_id + metadata from the parsed M3U before saving.
+    if !m3u_metadata.is_empty() {
+        apply_m3u_metadata(&m3u_metadata, &mut channels);
     }
 
     emit_progress(source_id, "vod", 0.4, "Fetching VOD streams");
@@ -645,9 +562,6 @@ pub async fn sync_xtream_source(
         .save_sync_data(source_id, &channels, &vod_items)
         .context("Failed to persist Xtream sync data")?;
 
-    // Drop the M3U temp table now that Xtream mapping is done
-    drop_m3u_temp_table(service);
-
     emit_progress(source_id, "complete", 1.0, "Sync complete");
 
     Ok(SyncReport {
@@ -661,11 +575,20 @@ pub async fn sync_xtream_source(
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     use super::*;
     use crate::services::test_helpers::{make_channel, make_service, make_source};
+
+    fn open_file_backed_service() -> (tempfile::TempDir, ServiceContext, PathBuf) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let db_path = dir.path().join("xtream-sync.db");
+        let service = ServiceContext::open(db_path.to_str().expect("db path")).expect("open db");
+        (dir, service, db_path)
+    }
 
     #[tokio::test]
     async fn verify_xtream_credentials_success() {
@@ -927,11 +850,9 @@ mod tests {
             .mount(&mock_server)
             .await;
 
-        let service = make_service();
-        let inserted =
-            download_m3u_to_temp_table(&service, &mock_server.uri(), "user", "pass", "src1", false)
-                .await;
-        assert_eq!(inserted, 1);
+        let metadata =
+            download_m3u_metadata_map(&mock_server.uri(), "user", "pass", "src1", false).await;
+        assert_eq!(metadata.len(), 1);
 
         let mut channel = make_channel("ch1", "Placeholder");
         channel.stream_url = stream_url;
@@ -948,8 +869,7 @@ mod tests {
         channel.is_radio = false;
 
         let mut channels = vec![channel];
-        apply_m3u_metadata_from_temp_table(&service, &mut channels);
-        drop_m3u_temp_table(&service);
+        apply_m3u_metadata(&metadata, &mut channels);
 
         let enriched = &channels[0];
         assert_eq!(enriched.tvg_id.as_deref(), Some("bbc.one.uk"));
@@ -965,6 +885,150 @@ mod tests {
             Some("http://catchup/{start}")
         );
         assert_eq!(enriched.tvg_name.as_deref(), Some("BBC One"));
+        assert_eq!(enriched.tvg_language.as_deref(), Some("en"));
+        assert_eq!(enriched.tvg_shift, Some(2.0));
+        assert!(enriched.is_radio);
+    }
+
+    #[test]
+    fn sqlite_temp_tables_are_connection_local_in_file_backed_pool() {
+        let (_dir, service, _db_path) = open_file_backed_service();
+        let conn_a = service.db.get().expect("first pooled connection");
+        conn_a
+            .execute_batch(
+                "CREATE TEMP TABLE tmp_m3u_channels(value TEXT);
+                 INSERT INTO tmp_m3u_channels(value) VALUES ('bbc.one.uk');",
+            )
+            .expect("create temp table on first connection");
+
+        let conn_b = service.db.get().expect("second pooled connection");
+        let err = conn_b
+            .query_row("SELECT value FROM tmp_m3u_channels", [], |row| {
+                row.get::<_, String>(0)
+            })
+            .expect_err("second connection must not see first connection temp table");
+
+        match err {
+            rusqlite::Error::SqliteFailure(_, Some(message)) => {
+                assert!(
+                    message.contains("no such table: tmp_m3u_channels"),
+                    "unexpected sqlite error: {message}"
+                );
+            }
+            other => panic!("unexpected sqlite error variant: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn sync_xtream_source_enriches_metadata_on_file_backed_pooled_db() {
+        let mock_server = MockServer::start().await;
+        let stream_url = format!("{}/live/user/pass/42.ts", mock_server.uri());
+        let playlist = format!(
+            "#EXTM3U\n\
+             #EXTINF:-1 tvg-id=\"bbc.one.uk\" tvg-name=\"BBC One\" tvg-logo=\"http://logo.test/bbc.png\" \
+             group-title=\"UK\" catchup=\"append\" catchup-days=\"7\" \
+             catchup-source=\"http://catchup/{{start}}\" tvg-language=\"en\" tvg-shift=\"2\" radio=\"1\",BBC One HD\n\
+             {stream_url}\n"
+        );
+
+        Mock::given(method("GET"))
+            .and(path("/get.php"))
+            .and(query_param("username", "user"))
+            .and(query_param("password", "pass"))
+            .and(query_param("type", "m3u_plus"))
+            .and(query_param("output", "ts"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(playlist))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/player_api.php"))
+            .and(query_param("action", "get_live_categories"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_string(r#"[{"category_id":"1","category_name":"News"}]"#),
+            )
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/player_api.php"))
+            .and(query_param("action", "get_vod_categories"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(r#"[]"#))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/player_api.php"))
+            .and(query_param("action", "get_series_categories"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(r#"[]"#))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/player_api.php"))
+            .and(query_param("action", "get_live_streams"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(
+                r#"[{"stream_id":42,"name":"BBC One HD","stream_type":"live","category_id":"1","epg_channel_id":""}]"#,
+            ))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/player_api.php"))
+            .and(query_param("action", "get_vod_streams"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(r#"[]"#))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/player_api.php"))
+            .and(query_param("action", "get_series"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(r#"[]"#))
+            .mount(&mock_server)
+            .await;
+
+        let (_dir, service, _db_path) = open_file_backed_service();
+        let _held_conn_a = service.db.get().expect("hold first pooled connection");
+        let _held_conn_b = service.db.get().expect("hold second pooled connection");
+
+        crate::services::SourceService(service.clone())
+            .save_source(&make_source("src-file", "Xtream Source", "xtream"))
+            .unwrap();
+
+        let report = sync_xtream_source(
+            &service,
+            &mock_server.uri(),
+            "user",
+            "pass",
+            "src-file",
+            false,
+            false,
+        )
+        .await
+        .expect("sync should succeed");
+
+        assert_eq!(report.channels_count, 1);
+
+        let channels = crate::services::ChannelService(service)
+            .load_channels()
+            .expect("load channels");
+        assert_eq!(channels.len(), 1);
+        let enriched = &channels[0];
+        assert_eq!(enriched.stream_url, stream_url);
+        assert_eq!(enriched.tvg_id.as_deref(), Some("bbc.one.uk"));
+        assert_eq!(
+            enriched.logo_url.as_deref(),
+            Some("http://logo.test/bbc.png")
+        );
+        assert_eq!(enriched.channel_group.as_deref(), Some("News"));
+        assert_eq!(enriched.catchup_type.as_deref(), Some("append"));
+        assert_eq!(enriched.catchup_days, 7);
+        assert_eq!(
+            enriched.catchup_source.as_deref(),
+            Some("http://catchup/{start}")
+        );
+        assert_eq!(enriched.tvg_name.as_deref(), Some("BBC One HD"));
         assert_eq!(enriched.tvg_language.as_deref(), Some("en"));
         assert_eq!(enriched.tvg_shift, Some(2.0));
         assert!(enriched.is_radio);
