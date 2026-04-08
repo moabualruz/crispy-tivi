@@ -28,7 +28,7 @@ enum FocusIndicatorStyle {
 
 /// Default width (dp) of the focus-indicator border ring.
 ///
-/// Matches `.ai/docs/project-specs/design_system.md §2.2`. Override via
+/// Matches `the project design system documentation §2.2`. Override via
 /// [FocusWrapper.focusBorderWidth] when a thicker ring is needed.
 const double kFocusBorderWidth = 3.0;
 
@@ -39,7 +39,7 @@ const double kFocusBorderWidth = 3.0;
 const double kFocusMaxScaleExpansion = 12.0;
 
 /// Wraps a child widget with TV-compatible focus handling per
-/// `.ai/docs/project-specs/design_system.md §2.2`.
+/// `the project design system documentation §2.2`.
 ///
 /// Provides:
 /// - Visual focus indicator (underline or card ring + scale)

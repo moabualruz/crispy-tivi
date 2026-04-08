@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Consistent border-radius scale for CrispyTivi.
 ///
-/// Matches `.ai/docs/project-specs/design_system.md §1.7`. Always use these tokens
+/// Matches `the project design system documentation §1.7`. Always use these tokens
 /// instead of raw `BorderRadius.circular(N)`.
 ///
 /// ```dart

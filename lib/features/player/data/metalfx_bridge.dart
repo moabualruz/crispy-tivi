@@ -4,7 +4,7 @@
 /// macOS 13+ / iOS 16+ with Apple Silicon GPU.
 /// On web: pure no-op stub.
 ///
-/// See `.ai/docs/project-specs/video_upscaling_spec.md` Phase 3.
+/// See `the project video upscaling specification` Phase 3.
 library;
 
 export 'metalfx_bridge_stub.dart'

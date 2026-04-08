@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Animation duration and curve constants for CrispyTivi.
 ///
-/// Matches `.ai/docs/project-specs/design_system.md §4`. Never use raw
+/// Matches `the project design system documentation §4`. Never use raw
 /// `Duration(milliseconds: N)` or `Curves.X` in feature code.
 ///
 /// ```dart

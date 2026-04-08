@@ -19,7 +19,7 @@ import 'upscale_tier.dart';
 /// with software tiers (FSR GLSL, ewa_lanczossharp,
 /// spline36) as fallback.
 ///
-/// See `.ai/docs/project-specs/video_upscaling_spec.md` §4.4.
+/// See `the project video upscaling specification` §4.4.
 class UpscaleManager {
   /// Cached path to the extracted FSR shader file.
   String? _cachedShaderPath;

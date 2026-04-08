@@ -4,7 +4,7 @@ import 'crispy_colors.dart';
 
 /// Accent color options for primary actions and focus states.
 ///
-/// See `.ai/docs/project-specs/design_system.md §1.3` for details.
+/// See `the project design system documentation §1.3` for details.
 enum AccentColor {
   /// Rice Blue (#3B82F6) — Default, calm.
   blue,

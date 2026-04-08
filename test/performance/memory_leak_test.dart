@@ -23,7 +23,7 @@
 // 5. Take another heap snapshot
 // 6. Filter by "Player", "Controller", "StreamSubscription"
 // 7. Compare counts: retained instances should not grow with cycles
-// 8. Export the report to `.ai/reports/memory-profile-<date>.json`
+// 8. Export the report to `reports/memory-profile-<date>.json`
 // 9. Look for: retained MediaKitPlayer, StreamController, Timer instances
 
 import 'dart:async';

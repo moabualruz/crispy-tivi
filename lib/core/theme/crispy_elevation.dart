@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Elevation shadow presets for CrispyTivi.
 ///
-/// Matches `.ai/docs/project-specs/design_system.md §1.6`. Use these instead of
+/// Matches `the project design system documentation §1.6`. Use these instead of
 /// raw `BoxShadow` or `elevation` values.
 ///
 /// ```dart

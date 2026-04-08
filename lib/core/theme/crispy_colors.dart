@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 /// Semantic color tokens specific to CrispyTivi that extend
 /// Material 3's `ColorScheme`.
 ///
-/// Matches `.ai/docs/project-specs/design_system.md §1.2`. Access via the
+/// Matches `the project design system documentation §1.2`. Access via the
 /// [CrispyColorsExtension] on [ThemeData]:
 ///
 /// ```dart

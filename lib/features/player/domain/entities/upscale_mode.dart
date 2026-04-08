@@ -1,7 +1,7 @@
 /// Video upscaling mode.
 ///
 /// Controls how the app selects an upscaling method.
-/// See `.ai/docs/project-specs/video_upscaling_spec.md` §5.2.
+/// See `the project video upscaling specification` §5.2.
 enum UpscaleMode {
   /// Auto-detect GPU and apply best available method.
   auto('auto', 'Auto', 'Best available method'),

@@ -17,7 +17,7 @@
  *   balanced    → 0.3 (mild enhancement)
  *   maximum     → 0.6 (notable enhancement)
  *
- * See .ai/docs/project-specs/video_upscaling_spec.md section 3.3.
+ * See the project video upscaling specification section 3.3.
  */
 (() => {
   

@@ -4,7 +4,7 @@
 /// `rust/crates/crispy-core/src/gpu.rs`.
 /// Serialized as JSON across the FFI bridge.
 ///
-/// See `.ai/docs/project-specs/video_upscaling_spec.md` §4.2.
+/// See `the project video upscaling specification` §4.2.
 class GpuInfo {
   /// Creates a [GpuInfo] instance.
   const GpuInfo({

@@ -1,7 +1,7 @@
 /// Video upscaling quality preset.
 ///
 /// Controls the trade-off between visual quality and
-/// performance. See `.ai/docs/project-specs/video_upscaling_spec.md` §5.3.
+/// performance. See `the project video upscaling specification` §5.3.
 enum UpscaleQuality {
   /// Lightest processing, minimal GPU load.
   performance('performance', 'Performance', 'Minimal GPU load'),

@@ -1,6 +1,6 @@
 /// Multi-view screen — displays up to 9 video streams in a grid.
 ///
-/// Per `.ai/docs/project-specs/ui_ux_spec.md §3.6`:
+/// Per `the project UI/UX specification §3.6`:
 /// - Named preset layout chips (FE-MV-01)
 /// - Audio focus switching (tap to select main audio)
 /// - One-click slot maximize via double-tap / Enter (FE-MV-03)

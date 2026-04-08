@@ -1,6 +1,6 @@
 /// Consistent spacing scale used throughout CrispyTivi.
 ///
-/// Matches `.ai/docs/project-specs/design_system.md §1.4`. Never use raw pixel
+/// Matches `the project design system documentation §1.4`. Never use raw pixel
 /// values — always reference these tokens.
 ///
 /// ```dart

@@ -41,7 +41,7 @@ import '../../../../core/utils/focus_restoration_service.dart';
 import '../widgets/channel_tv_layout.dart';
 
 /// Live TV channel list screen per
-/// `.ai/docs/project-specs/ui_ux_spec.md §3.4`.
+/// `the project UI/UX specification §3.4`.
 class ChannelListScreen extends ConsumerStatefulWidget {
   const ChannelListScreen({super.key});
 

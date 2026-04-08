@@ -11,7 +11,7 @@ import '../theme/crispy_radius.dart';
 import '../theme/theme_provider.dart';
 
 /// A translucent, blurred surface that implements the glassmorphism
-/// design pattern from `.ai/docs/project-specs/design_system.md §2.1`.
+/// design pattern from `the project design system documentation §2.1`.
 ///
 /// Use for OSD overlays, floating panels, and modal backdrops.
 ///

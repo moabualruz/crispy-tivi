@@ -1,7 +1,7 @@
 /// Conditional export: web upscaling implementation
 /// on JS platforms, no-op stub on native.
 ///
-/// See `.ai/docs/project-specs/video_upscaling_spec.md` §4.8.
+/// See `the project video upscaling specification` §4.8.
 library;
 
 export 'web_upscale_bridge_stub.dart'

@@ -4,7 +4,7 @@
 /// [apply] function that returns `true` on success.
 /// Tiers are tried in order; the first to succeed wins.
 ///
-/// See `.ai/docs/project-specs/video_upscaling_spec.md` §4.4 for the
+/// See `the project video upscaling specification` §4.4 for the
 /// full fallback chain design.
 class UpscaleTier {
   /// Creates an immutable upscale tier.

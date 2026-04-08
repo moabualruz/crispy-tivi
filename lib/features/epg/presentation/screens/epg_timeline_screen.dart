@@ -26,7 +26,7 @@ import '../widgets/epg_timeline_layout.dart';
 import '../../../../core/utils/focus_restoration_service.dart';
 import '../widgets/virtual_epg_grid.dart';
 
-/// EPG timeline screen per `.ai/docs/project-specs/ui_ux_spec.md §3.3`.
+/// EPG timeline screen per `the project UI/UX specification §3.3`.
 ///
 /// Layout:
 /// - Left column: channel names/logos (fixed width)

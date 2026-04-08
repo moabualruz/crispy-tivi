@@ -5,7 +5,7 @@ import '../theme/crispy_colors.dart';
 import '../theme/crispy_spacing.dart';
 
 /// Pulsing red "LIVE" indicator badge per
-/// `.ai/docs/project-specs/design_system.md §2` and `ui_ux_spec.md §3.5`.
+/// `the project design system documentation §2` and `ui_ux_spec.md §3.5`.
 ///
 /// Animates: scale 1↔1.2 + opacity, 2s loop.
 ///

@@ -4,7 +4,7 @@ import '../theme/crispy_radius.dart';
 import '../theme/crispy_spacing.dart';
 import 'shimmer_wrapper.dart';
 
-/// Shimmer loading placeholder per `.ai/docs/project-specs/design_system.md §2.3`.
+/// Shimmer loading placeholder per `the project design system documentation §2.3`.
 ///
 /// Displays a gradient sweep shimmer animation to indicate loading.
 /// Use the specific variants for common patterns:

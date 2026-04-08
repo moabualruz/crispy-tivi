@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Helper for enforcing Visual Assertions (Gap 3 from .ai/docs/ai-tracking/autonomous_qa_execution.md)
+/// Helper for enforcing Visual Assertions (Gap 3 from the autonomous QA execution guidance)
 /// Converts subjective "Verify layout changes" into explicit exact pixel requirements and goldens.
 class VisualMatcher {
   static Future<void> verifyLayoutConstraint(

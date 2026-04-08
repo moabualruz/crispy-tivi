@@ -51,7 +51,7 @@ final upscaleQualityProvider = Provider.autoDispose<UpscaleQuality>((ref) {
 /// - `3` = FSR GLSL
 /// - `4` = ewa_lanczossharp / spline36
 ///
-/// See `.ai/docs/project-specs/video_upscaling_spec.md` §3.4 for tier
+/// See `the project video upscaling specification` §3.4 for tier
 /// definitions.
 final upscaleActiveProvider =
     NotifierProvider.autoDispose<UpscaleActiveNotifier, int?>(

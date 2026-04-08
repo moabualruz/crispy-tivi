@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// Main color options for dark theme surface.
 ///
 /// Each hue provides a different atmospheric base while maintaining
-/// readability. See `.ai/docs/project-specs/design_system.md §1.2` for details.
+/// readability. See `the project design system documentation §1.2` for details.
 enum MainColorHue {
   /// Pure dark (#0F0F0F) — Pure dark, OLED-friendly.
   pureBlack,

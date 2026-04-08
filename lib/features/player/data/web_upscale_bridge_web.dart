@@ -9,7 +9,7 @@ import 'package:web/web.dart' as web;
 /// Uses JS interop to communicate with `upscaler.js`
 /// which handles WebGPU/WebGL video processing.
 ///
-/// See `.ai/docs/project-specs/video_upscaling_spec.md` §3.3.
+/// See `the project video upscaling specification` §3.3.
 
 bool _initialized = false;
 String? _activeMethod;

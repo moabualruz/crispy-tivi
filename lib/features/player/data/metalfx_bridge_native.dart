@@ -5,7 +5,7 @@
 /// channel calls to Swift MTLFXSpatialScaler are
 /// implemented here.
 ///
-/// See `.ai/docs/project-specs/video_upscaling_spec.md` Phase 3.
+/// See `the project video upscaling specification` Phase 3.
 library;
 
 import 'dart:io' show Platform;
