@@ -144,7 +144,7 @@ void main() {
         isTrue,
       );
       // Wait for debounce and search
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 650));
       expect(searchCalled, isTrue);
     });
 

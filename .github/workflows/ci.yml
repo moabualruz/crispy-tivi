@@ -95,7 +95,7 @@ jobs:
       - run: cd app/flutter && flutter pub get
       - name: Dart format check
         run: cd app/flutter && dart format --set-exit-if-changed lib/ test/
-      - run: cd app/flutter && flutter analyze
+      - run: bash scripts/ci/flutter_analyze.sh
       - name: Architecture boundary check
         run: cd app/flutter && dart run tool/check_boundary.dart
 

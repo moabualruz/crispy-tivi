@@ -371,11 +371,11 @@ void main() {
       expect(cb.toggleLockCalls, 1);
     });
 
-    testWidgets('BrowserBack → back callback fires', (tester) async {
+    testWidgets('Escape → back callback fires', (tester) async {
       await tester.pumpWidget(_buildHarness(service, player, cb, isLive: true));
       await tester.pumpAndSettle();
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.browserBack);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pump();
 
       expect(cb.backCalls, 1);

@@ -55,11 +55,8 @@ void main() {
       );
     });
 
-    test('S key maps to openSettings', () {
-      expect(
-        defaultRemoteKeyMap[LogicalKeyboardKey.keyS.keyId],
-        RemoteAction.openSettings,
-      );
+    test('S key is reserved for screenshots, not openSettings', () {
+      expect(defaultRemoteKeyMap[LogicalKeyboardKey.keyS.keyId], isNull);
     });
 
     test('D key maps to showDebug', () {

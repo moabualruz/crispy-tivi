@@ -16,8 +16,8 @@ void main() {
   });
 
   group('TransferStatus', () {
-    test('has exactly five values', () {
-      expect(TransferStatus.values.length, 5);
+    test('has exactly six values', () {
+      expect(TransferStatus.values.length, 6);
     });
 
     test('contains all expected statuses', () {
@@ -29,6 +29,7 @@ void main() {
           TransferStatus.paused,
           TransferStatus.completed,
           TransferStatus.failed,
+          TransferStatus.cancelled,
         ]),
       );
     });

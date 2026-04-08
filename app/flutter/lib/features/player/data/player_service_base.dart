@@ -113,8 +113,8 @@ abstract class PlayerServiceBase {
   // Setters are in PlayerAudioConfigMixin.
 
   /// Hardware decoder mode: 'auto-safe', 'auto', 'no', or specific.
-  /// Default 'auto' lets mpv pick the preferred hardware decoder.
-  String _hwdecMode = 'auto';
+  /// Default 'auto-safe' favors compatibility over aggressive decoder choice.
+  String _hwdecMode = 'auto-safe';
 
   /// Stream quality profile.
   StreamProfile _streamProfile = StreamProfile.auto;

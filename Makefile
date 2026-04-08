@@ -51,7 +51,7 @@ rust-fix: ## Rust: auto-format + clippy fix
 
 flutter-check: ## Flutter: format check + analyze + test
 	cd app/flutter && dart format --set-exit-if-changed lib/ test/
-	cd app/flutter && flutter analyze
+	bash scripts/ci/flutter_analyze.sh
 	cd app/flutter && flutter test
 
 flutter-fix: ## Flutter: auto-format + dart fix
@@ -69,7 +69,7 @@ flutter-test: ## Run Flutter tests
 	cd app/flutter && flutter test
 
 analyze: ## Run Flutter static analysis
-	cd app/flutter && flutter analyze
+	bash scripts/ci/flutter_analyze.sh
 
 check-boundary: ## Check architecture boundary violations
 	cd app/flutter && dart run tool/check_boundary.dart

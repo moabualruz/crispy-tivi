@@ -65,7 +65,7 @@ dependencies {
 //   rustup target add armv7-linux-androideabi
 //   rustup target add x86_64-linux-android
 
-def rustDir = file("${projectDir}/../../rust")
+def rustDir = file("${projectDir}/../../../../rust")
 def jniLibsDir = file("${projectDir}/src/main/jniLibs")
 
 // Map Android ABI to Rust target triple.

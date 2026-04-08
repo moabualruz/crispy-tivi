@@ -19,7 +19,7 @@ Closes #
 
 - [ ] Tests written before implementation (TDD)
 - [ ] All tests pass (`cd app/flutter && flutter test` and `cd rust && cargo test`)
-- [ ] `cd app/flutter && flutter analyze` reports zero issues
+- [ ] `bash scripts/ci/flutter_analyze.sh` reports zero warnings/errors
 - [ ] `cargo clippy --workspace -- -D warnings` reports zero warnings
 - [ ] Code formatted (`cd app/flutter && dart format app/flutter/lib/ app/flutter/test/` and `cargo fmt --all`)
 - [ ] Conventional commit message used

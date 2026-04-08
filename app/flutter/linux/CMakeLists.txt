@@ -103,7 +103,7 @@ include(flutter/generated_plugins.cmake)
 # Build the Rust library and bundle libcrispy_ffi.so
 # with the Flutter application.
 set(RUST_CRATE_DIR
-  "${CMAKE_CURRENT_SOURCE_DIR}/../rust")
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../../rust")
 set(RUST_LIB_NAME "libcrispy_ffi")
 
 # Map Flutter build types to Cargo profiles.
