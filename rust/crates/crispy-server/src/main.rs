@@ -193,7 +193,30 @@ fn validate_bind_security(bind_addr: &str, security: &SecurityConfig) -> Result<
         );
     }
 
+    if security.shared_token.is_none()
+        && security
+            .origin_policy
+            .exact_origins
+            .as_ref()
+            .is_some_and(|origins| {
+                origins
+                    .iter()
+                    .any(|origin| !origin_targets_local_host(origin))
+            })
+    {
+        return Err(
+            "CRISPY_SHARED_TOKEN is required when CRISPY_ALLOWED_ORIGINS includes non-local origins",
+        );
+    }
+
     Ok(())
+}
+
+fn origin_targets_local_host(origin: &str) -> bool {
+    Url::parse(origin)
+        .ok()
+        .and_then(|parsed| parsed.host_str().map(is_local_host))
+        .unwrap_or(false)
 }
 
 fn origin_allowed(origin: &str, policy: &OriginPolicy) -> bool {
@@ -203,10 +226,7 @@ fn origin_allowed(origin: &str, policy: &OriginPolicy) -> bool {
             .unwrap_or(false);
     }
 
-    Url::parse(origin)
-        .ok()
-        .and_then(|parsed| parsed.host_str().map(is_local_host))
-        .unwrap_or(false)
+    origin_targets_local_host(origin)
 }
 
 fn request_origin_allowed(headers: &HeaderMap, policy: &OriginPolicy) -> bool {
@@ -255,6 +275,67 @@ fn token_matches(
         .is_some_and(|(expected, provided)| provided == expected)
 }
 
+fn host_from_authority(value: &str) -> Option<String> {
+    let value = value.trim().trim_matches('"');
+    if value.is_empty() {
+        return None;
+    }
+
+    if value.contains("://")
+        && let Ok(parsed) = Url::parse(value)
+    {
+        return parsed.host_str().map(normalize_host);
+    }
+
+    if let Some(value) = value.strip_prefix('[') {
+        let end = value.find(']')?;
+        return Some(normalize_host(&value[..end]));
+    }
+
+    match value.rsplit_once(':') {
+        Some((host, port)) if !host.contains(':') && port.chars().all(|ch| ch.is_ascii_digit()) => {
+            Some(normalize_host(host))
+        }
+        _ => Some(normalize_host(value)),
+    }
+}
+
+fn forwarded_hosts(headers: &HeaderMap, name: &'static str) -> Vec<String> {
+    headers
+        .get_all(name)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .flat_map(|value| value.split(','))
+        .filter_map(host_from_authority)
+        .collect()
+}
+
+fn request_targets_local_server(headers: &HeaderMap) -> bool {
+    let mut observed_host = false;
+
+    if let Some(origin) = headers
+        .get(header::ORIGIN)
+        .and_then(|value| value.to_str().ok())
+    {
+        observed_host = true;
+        if !origin_targets_local_host(origin) {
+            return false;
+        }
+    }
+
+    for header_name in [header::HOST.as_str(), "x-forwarded-host"] {
+        let hosts = forwarded_hosts(headers, header_name);
+        if !hosts.is_empty() {
+            observed_host = true;
+        }
+        if hosts.iter().any(|host| !is_local_host(host)) {
+            return false;
+        }
+    }
+
+    observed_host
+}
+
 fn client_is_authorized(
     client_addr: &SocketAddr,
     headers: &HeaderMap,
@@ -265,7 +346,7 @@ fn client_is_authorized(
         return token_matches(headers, query_token, security);
     }
 
-    client_addr.ip().is_loopback()
+    client_addr.ip().is_loopback() && request_targets_local_server(headers)
 }
 
 fn remote_proxy_allowed(
@@ -945,6 +1026,18 @@ mod tests {
     }
 
     #[test]
+    fn non_local_allowed_origins_require_shared_token_even_on_loopback_bind() {
+        let mut security = security_config();
+        security.shared_token = None;
+        security.origin_policy.exact_origins = Some(HashSet::from(["https://tv.example".into()]));
+        assert!(validate_bind_security("127.0.0.1", &security).is_err());
+
+        security.origin_policy.exact_origins =
+            Some(HashSet::from(["http://localhost:3000".into()]));
+        assert!(validate_bind_security("127.0.0.1", &security).is_ok());
+    }
+
+    #[test]
     fn default_origin_policy_allows_localhost_only() {
         let policy = OriginPolicy {
             exact_origins: None,
@@ -980,11 +1073,63 @@ mod tests {
 
     #[test]
     fn loopback_clients_without_shared_token_remain_trusted() {
-        let headers = HeaderMap::new();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            header::HOST,
+            "localhost:8080".parse().expect("valid header"),
+        );
         let client = SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, 4242));
         let mut security = security_config();
         security.shared_token = None;
         assert!(client_is_authorized(&client, &headers, None, &security));
+    }
+
+    #[test]
+    fn loopback_clients_without_shared_token_reject_non_local_surface_hosts() {
+        let client = SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, 4242));
+        let mut security = security_config();
+        security.shared_token = None;
+
+        let mut proxy_host_headers = HeaderMap::new();
+        proxy_host_headers.insert(header::HOST, "tv.example".parse().expect("valid header"));
+        assert!(!client_is_authorized(
+            &client,
+            &proxy_host_headers,
+            None,
+            &security,
+        ));
+
+        let mut proxied_origin_headers = HeaderMap::new();
+        proxied_origin_headers.insert(
+            header::HOST,
+            "127.0.0.1:8080".parse().expect("valid header"),
+        );
+        proxied_origin_headers.insert(
+            header::ORIGIN,
+            "https://tv.example".parse().expect("valid header"),
+        );
+        assert!(!client_is_authorized(
+            &client,
+            &proxied_origin_headers,
+            None,
+            &security,
+        ));
+
+        let mut forwarded_host_headers = HeaderMap::new();
+        forwarded_host_headers.insert(
+            header::HOST,
+            "127.0.0.1:8080".parse().expect("valid header"),
+        );
+        forwarded_host_headers.insert(
+            "x-forwarded-host",
+            "tv.example".parse().expect("valid header"),
+        );
+        assert!(!client_is_authorized(
+            &client,
+            &forwarded_host_headers,
+            None,
+            &security,
+        ));
     }
 
     #[test]
