@@ -371,6 +371,62 @@ fn proxy_path_for_url(absolute_url: &str, token: Option<&str>) -> String {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ProxyFetchError {
+    ForbiddenTarget,
+    BadGateway,
+}
+
+fn resolve_proxy_redirect_target(current_url: &Url, location: &str) -> Option<Url> {
+    let location = location.trim();
+    if location.is_empty() {
+        return None;
+    }
+
+    let resolved = current_url.join(location).ok()?;
+    parse_proxy_target(resolved.as_str())
+}
+
+fn proxy_redirect_target(current_url: &Url, headers: &HeaderMap) -> Option<Url> {
+    headers
+        .get(header::LOCATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|location| resolve_proxy_redirect_target(current_url, location))
+}
+
+async fn fetch_proxy_response(
+    client: &reqwest::Client,
+    initial_target: Url,
+    security: &SecurityConfig,
+) -> Result<reqwest::Response, ProxyFetchError> {
+    const MAX_PROXY_REDIRECTS: usize = 10;
+
+    let mut current_target = initial_target;
+    for _ in 0..=MAX_PROXY_REDIRECTS {
+        let response = client
+            .get(current_target.clone())
+            .send()
+            .await
+            .map_err(|_| ProxyFetchError::BadGateway)?;
+
+        if !response.status().is_redirection() {
+            return Ok(response);
+        }
+
+        let Some(next_target) = proxy_redirect_target(response.url(), response.headers()) else {
+            return Err(ProxyFetchError::BadGateway);
+        };
+
+        if !proxy_target_allowed(&next_target, security).await {
+            return Err(ProxyFetchError::ForbiddenTarget);
+        }
+
+        current_target = next_target;
+    }
+
+    Err(ProxyFetchError::BadGateway)
+}
+
 /// CORS relay proxy for browser-based playback.
 ///
 /// Fetches the upstream URL server-side and re-serves the
@@ -405,16 +461,17 @@ async fn cors_proxy(
         return StatusCode::FORBIDDEN.into_response();
     }
 
-    let upstream_url = target.to_string();
     let proxy_token = provided_token(&headers, params.token.as_deref());
 
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .unwrap_or_default();
 
-    match client.get(target).send().await {
+    match fetch_proxy_response(&client, target, &state.security).await {
         Ok(resp) => {
+            let upstream_url = resp.url().clone();
             let content_type = resp
                 .headers()
                 .get("content-type")
@@ -423,8 +480,8 @@ async fn cors_proxy(
                 .to_string();
 
             let is_m3u8 = content_type.contains("mpegurl")
-                || upstream_url.ends_with(".m3u8")
-                || upstream_url.ends_with(".m3u");
+                || upstream_url.path().ends_with(".m3u8")
+                || upstream_url.path().ends_with(".m3u");
 
             match resp.bytes().await {
                 Ok(bytes) => {
@@ -456,7 +513,8 @@ async fn cors_proxy(
                 Err(_) => StatusCode::BAD_GATEWAY.into_response(),
             }
         }
-        Err(_) => StatusCode::BAD_GATEWAY.into_response(),
+        Err(ProxyFetchError::ForbiddenTarget) => StatusCode::FORBIDDEN.into_response(),
+        Err(ProxyFetchError::BadGateway) => StatusCode::BAD_GATEWAY.into_response(),
     }
 }
 
@@ -464,9 +522,7 @@ async fn cors_proxy(
 
 /// Rewrite URLs in an M3U8 playlist to route through
 /// the CORS proxy.
-fn rewrite_m3u8(body: &str, base_url: &str, token: Option<&str>) -> String {
-    let base_dir = base_url.rsplit_once('/').map_or(base_url, |(dir, _)| dir);
-
+fn rewrite_m3u8(body: &str, base_url: &Url, token: Option<&str>) -> String {
     body.lines()
         .map(|line| {
             let trimmed = line.trim();
@@ -474,10 +530,10 @@ fn rewrite_m3u8(body: &str, base_url: &str, token: Option<&str>) -> String {
                 return line.to_string();
             }
             if trimmed.starts_with('#') {
-                return rewrite_tag_uri(line, base_dir, token);
+                return rewrite_tag_uri(line, base_url, token);
             }
             // Segment URL line
-            let absolute = resolve_url(trimmed, base_dir);
+            let absolute = resolve_url(trimmed, base_url);
             proxy_path_for_url(&absolute, token)
         })
         .collect::<Vec<_>>()
@@ -486,31 +542,25 @@ fn rewrite_m3u8(body: &str, base_url: &str, token: Option<&str>) -> String {
 
 /// Resolve a potentially relative URL against a base
 /// directory URL.
-fn resolve_url(url: &str, base_dir: &str) -> String {
-    if url.starts_with("http://") || url.starts_with("https://") {
-        return url.to_string();
+fn resolve_url(url: &str, base_url: &Url) -> String {
+    if let Some(absolute) = parse_proxy_target(url) {
+        return absolute.to_string();
     }
-    if url.starts_with('/') {
-        // Root-relative — extract scheme + host from base.
-        if let Some(idx) = base_dir.find("://")
-            && let Some(host_end) = base_dir[idx + 3..].find('/')
-        {
-            return format!("{}{url}", &base_dir[..idx + 3 + host_end]);
-        }
-        return format!("{base_dir}{url}");
-    }
-    // Relative — append to base directory.
-    format!("{base_dir}/{url}")
+
+    base_url
+        .join(url)
+        .map(|resolved| resolved.to_string())
+        .unwrap_or_else(|_| url.to_string())
 }
 
 /// Rewrite `URI="..."` attributes in M3U8 tags
 /// (`#EXT-X-KEY`, `#EXT-X-MAP`, etc.).
-fn rewrite_tag_uri(line: &str, base_dir: &str, token: Option<&str>) -> String {
+fn rewrite_tag_uri(line: &str, base_url: &Url, token: Option<&str>) -> String {
     if let Some(uri_start) = line.find("URI=\"") {
         let after_uri = &line[uri_start + 5..];
         if let Some(uri_end) = after_uri.find('"') {
             let uri = &after_uri[..uri_end];
-            let proxied = proxy_path_for_url(&resolve_url(uri, base_dir), token);
+            let proxied = proxy_path_for_url(&resolve_url(uri, base_url), token);
             return format!(
                 "{}URI=\"{}\"{}",
                 &line[..uri_start],
@@ -957,13 +1007,62 @@ mod tests {
     }
 
     #[test]
+    fn proxy_redirect_resolution_supports_relative_locations() {
+        let current = Url::parse("https://cdn.example/live/playlist.m3u8").expect("valid URL");
+        let redirected =
+            resolve_proxy_redirect_target(&current, "../alt/child.m3u8").expect("redirect URL");
+        assert_eq!(redirected.as_str(), "https://cdn.example/alt/child.m3u8");
+    }
+
+    #[tokio::test]
+    async fn proxy_rejects_redirects_into_disallowed_hosts() {
+        let mut security = security_config();
+        security.proxy_allowed_hosts = Some(HashSet::from(["allowed.example".to_string()]));
+        let current = Url::parse("https://allowed.example/live/playlist.m3u8").expect("valid URL");
+        let redirected = resolve_proxy_redirect_target(&current, "https://blocked.example/stream")
+            .expect("redirect URL");
+        assert!(!proxy_target_allowed(&redirected, &security).await);
+    }
+
+    #[tokio::test]
+    async fn proxy_rejects_redirects_into_private_targets() {
+        let mut security = security_config();
+        security.proxy_allow_public_targets = true;
+        let current = Url::parse("https://allowed.example/live/playlist.m3u8").expect("valid URL");
+        let redirected = resolve_proxy_redirect_target(&current, "http://127.0.0.1/internal")
+            .expect("redirect URL");
+        assert!(!proxy_target_allowed(&redirected, &security).await);
+    }
+
+    #[test]
     fn rewrite_m3u8_includes_proxy_token_when_present() {
-        let rewritten = rewrite_m3u8(
-            "#EXTM3U\nsegment.ts",
-            "http://example.com/live/playlist.m3u8",
-            Some("secret token"),
-        );
+        let base_url = Url::parse("http://example.com/live/playlist.m3u8").expect("valid URL");
+        let rewritten = rewrite_m3u8("#EXTM3U\nsegment.ts", &base_url, Some("secret token"));
         assert!(rewritten.contains("token=secret%20token"), "{rewritten}");
+    }
+
+    #[test]
+    fn rewrite_m3u8_uses_final_response_url_for_relative_paths() {
+        let final_url =
+            Url::parse("https://cdn.example/redirected/path/playlist.m3u8").expect("valid URL");
+        let rewritten = rewrite_m3u8(
+            "#EXTM3U\nsegment.ts\n#EXT-X-KEY:METHOD=AES-128,URI=\"keys/key.bin\"",
+            &final_url,
+            None,
+        );
+
+        let expected_segment =
+            proxy_path_for_url("https://cdn.example/redirected/path/segment.ts", None);
+        let expected_key = format!(
+            "#EXT-X-KEY:METHOD=AES-128,URI=\"{}\"",
+            proxy_path_for_url("https://cdn.example/redirected/path/keys/key.bin", None)
+        );
+
+        assert!(rewritten.lines().any(|line| line == expected_segment));
+        assert!(
+            rewritten.lines().any(|line| line == expected_key),
+            "{rewritten}"
+        );
     }
 
     #[tokio::test]
