@@ -26,6 +26,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 RUST_DIR="$PROJECT_DIR/rust"
+FLUTTER_APP_DIR="$PROJECT_DIR/app/flutter"
 
 # ── Arguments ──────────────────────────────────────
 PLATFORM="${1:-auto}"
@@ -94,11 +95,11 @@ build_macos() {
 
   echo "==> Built: $out_dir/libcrispy_ffi.dylib (universal)"
 
-  # Copy to macos/Frameworks for Xcode to pick up.
-  local fw_dir="$PROJECT_DIR/macos/Frameworks"
+  # Copy to app/flutter/macos/Frameworks for Xcode to pick up.
+  local fw_dir="$FLUTTER_APP_DIR/macos/Frameworks"
   mkdir -p "$fw_dir"
   cp "$out_dir/libcrispy_ffi.dylib" "$fw_dir/"
-  echo "==> Copied to macos/Frameworks/"
+  echo "==> Copied to app/flutter/macos/Frameworks/"
 }
 
 build_ios() {
@@ -115,23 +116,27 @@ build_ios() {
   local lib_path="target/aarch64-apple-ios/$CARGO_PROFILE/libcrispy_ffi.a"
   echo "==> Built: $lib_path"
 
-  # Copy to ios/Frameworks for Xcode to pick up.
-  local fw_dir="$PROJECT_DIR/ios/Frameworks"
+  # Copy to app/flutter/ios/Frameworks for Xcode to pick up.
+  local fw_dir="$FLUTTER_APP_DIR/ios/Frameworks"
   mkdir -p "$fw_dir"
   cp "$lib_path" "$fw_dir/"
-  echo "==> Copied to ios/Frameworks/"
+  echo "==> Copied to app/flutter/ios/Frameworks/"
 }
 
 build_android() {
   echo "==> Building crispy-ffi for Android..."
   cd "$RUST_DIR"
 
+  local default_ndk="$HOME/.android-sdk/ndk/28.2.13676358"
+  export ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-$default_ndk}"
+  export ANDROID_NDK_ROOT="${ANDROID_NDK_ROOT:-$ANDROID_NDK_HOME}"
+
   # Ensure targets are installed.
   rustup target add aarch64-linux-android 2>/dev/null || true
   rustup target add armv7-linux-androideabi 2>/dev/null || true
   rustup target add x86_64-linux-android 2>/dev/null || true
 
-  local jni_dir="$PROJECT_DIR/android/app/src/main/jniLibs"
+  local jni_dir="$FLUTTER_APP_DIR/android/app/src/main/jniLibs"
 
   # Use cargo-ndk for cross-compilation.
   cargo ndk \

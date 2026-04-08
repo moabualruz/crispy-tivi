@@ -24,7 +24,7 @@ Ensure you have the latest compiled static web assets.
 
 ```bash
 # Terminal 2 (Project Root)
-flutter build web --release
+cd app/flutter && flutter build web --release
 ```
 
 ### 3. Serve the Web App (IPv4 Mode)
@@ -33,7 +33,7 @@ You **must** serve the application explicitly over IPv4 with cache disabled to p
 
 ```bash
 # Terminal 2 (Project Root)
-npx -y http-server build/web -p 3000 -a 127.0.0.1 -c-1 --cors
+npx -y http-server app/flutter/build/web -p 3000 -a 127.0.0.1 -c-1 --cors
 ```
 
 ### 4. Run the Playwright Suite
@@ -42,7 +42,7 @@ Finally, with both processes running, you can execute the E2E suite.
 
 ```bash
 # Terminal 3
-cd e2e/playwright
+cd testing/playwright
 npx playwright test --workers=4
 ```
 
@@ -50,7 +50,7 @@ npx playwright test --workers=4
 
 ## Available NPM Scripts
 
-From within `e2e/playwright/`:
+From within `testing/playwright/`:
 
 - `npm run test` - Run all test suites
 - `npm run test:ui` - Open the interactive Playwright UI

@@ -42,14 +42,14 @@ jobs:
           channel: stable
           cache: true
 
-      - run: flutter pub get
+      - run: cd app/flutter && flutter pub get
 
       - name: Build Rust FFI
         run: cargo build -p crispy-ffi --release
         working-directory: rust
 
       - name: Build Flutter Windows
-        run: flutter build windows --release
+        run: cd app/flutter && flutter build windows --release
 
       - name: Create MSIX package
         run: dart run msix:create --version ${{ inputs.version }}
@@ -103,14 +103,14 @@ jobs:
           channel: stable
           cache: true
 
-      - run: flutter pub get
+      - run: cd app/flutter && flutter pub get
 
       # ── macOS ──
       - name: Build Rust for macOS
         run: bash scripts/build_rust.sh macos
 
       - name: Build Flutter macOS
-        run: flutter build macos --release
+        run: cd app/flutter && flutter build macos --release
 
       - name: Create DMG
         run: |
@@ -128,7 +128,7 @@ jobs:
         run: bash scripts/build_rust.sh ios
 
       - name: Build Flutter iOS (no codesign)
-        run: flutter build ipa --release --no-codesign
+        run: cd app/flutter && flutter build ipa --release --no-codesign
 
       - name: Package IPA
         run: |
@@ -188,7 +188,7 @@ jobs:
             libgtk-3-dev pkg-config \
             libmpv-dev libfuse2
 
-      - run: flutter pub get
+      - run: cd app/flutter && flutter pub get
 
       # ── Linux ──
       - name: Build Rust FFI (Linux)
@@ -196,7 +196,7 @@ jobs:
         working-directory: rust
 
       - name: Build Flutter Linux
-        run: flutter build linux --release
+        run: cd app/flutter && flutter build linux --release
 
       - name: Create AppImage
         run: bash scripts/build_appimage.sh ${{ inputs.version }}
@@ -224,7 +224,7 @@ jobs:
           # Remove leading spaces from heredoc
           sed -i 's/^          //' "$PKG_DIR/DEBIAN/control"
 
-          cp -r build/linux/x64/release/bundle/* "$PKG_DIR/usr/lib/crispy-tivi/"
+          cp -r app/flutter/build/linux/x64/release/bundle/* "$PKG_DIR/usr/lib/crispy-tivi/"
 
           cat > "$PKG_DIR/usr/bin/crispy-tivi" << 'BIN'
           #!/bin/bash
@@ -232,8 +232,8 @@ jobs:
           BIN
           chmod +x "$PKG_DIR/usr/bin/crispy-tivi"
 
-          if [ -f assets/icons/app_icon.png ]; then
-            cp assets/icons/app_icon.png \
+          if [ -f app/flutter/assets/icons/app_icon.png ]; then
+            cp app/flutter/assets/icons/app_icon.png \
               "$PKG_DIR/usr/share/icons/hicolor/256x256/apps/crispy-tivi.png"
           fi
 
@@ -256,10 +256,10 @@ jobs:
         run: bash scripts/build_rust.sh android
 
       - name: Build Android APK
-        run: flutter build apk --release
+        run: cd app/flutter && flutter build apk --release
 
       - name: Build Android AAB
-        run: flutter build appbundle --release
+        run: cd app/flutter && flutter build appbundle --release
 
       - name: Rename Android artifacts
         run: |
@@ -270,11 +270,11 @@ jobs:
 
       # ── Web ──
       - name: Build Web
-        run: flutter build web --release
+        run: cd app/flutter && flutter build web --release
 
       - name: Zip web build
         run: |
-          cd build/web
+          cd app/flutter/build/web
           zip -r "../../CrispyTivi-${{ inputs.version }}-web.zip" .
 
       - uses: actions/upload-artifact@v4

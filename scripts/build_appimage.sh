@@ -5,12 +5,12 @@ set -euo pipefail
 
 VERSION="${1:?Usage: build_appimage.sh <version>}"
 APP_DIR="CrispyTivi.AppDir"
-BUNDLE_DIR="build/linux/x64/release/bundle"
+BUNDLE_DIR="app/flutter/build/linux/x64/release/bundle"
 TOOL_URL="https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
 
 if [ ! -d "$BUNDLE_DIR" ]; then
   echo "ERROR: Flutter Linux bundle not found at $BUNDLE_DIR"
-  echo "Run 'flutter build linux --release' first."
+  echo "Run 'cd app/flutter && flutter build linux --release' first."
   exit 1
 fi
 
@@ -44,12 +44,12 @@ Categories=AudioVideo;Video;Player;
 EOF
 
 # Copy icon (fallback to a placeholder if not found)
-if [ -f "assets/icons/app_icon.png" ]; then
-  cp "assets/icons/app_icon.png" "$APP_DIR/crispy_tivi.png"
-  cp "assets/icons/app_icon.png" \
+if [ -f "app/flutter/assets/icons/app_icon.png" ]; then
+  cp "app/flutter/assets/icons/app_icon.png" "$APP_DIR/crispy_tivi.png"
+  cp "app/flutter/assets/icons/app_icon.png" \
     "$APP_DIR/usr/share/icons/hicolor/256x256/apps/crispy_tivi.png"
 else
-  echo "WARNING: No icon found at assets/icons/app_icon.png"
+  echo "WARNING: No icon found at app/flutter/assets/icons/app_icon.png"
   # Create minimal 1x1 PNG placeholder
   printf '\x89PNG\r\n\x1a\n' > "$APP_DIR/crispy_tivi.png"
 fi

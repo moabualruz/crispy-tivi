@@ -16,10 +16,10 @@ The native Windows desktop app is tested using Flutter's core `integration_test`
 
 ```bash
 # Run the core app integration test against the native Windows SDK
-flutter test integration_test/app_test.dart -d windows
+cd app/flutter && flutter test integration_test/main_test.dart -d windows
 ```
 
-_(To run specific sub-flows, substitute `app_test.dart` for the internal flow files like `integration_test/flows/epg_flow_test.dart`)_
+_(To run specific sub-flows, substitute `main_test.dart` for internal flow files like `integration_test/flows/epg_flow_test.dart`)_
 
 ---
 
@@ -39,7 +39,7 @@ Testing Android Mobile (e.g., Pixel phones) and Android TV (Leanback interface) 
 
 ```bash
 # Replace emulator-5554 with your active device ID
-flutter test integration_test/app_test.dart -d emulator-5554
+cd app/flutter && flutter test integration_test/main_test.dart -d emulator-5554
 ```
 
 ---
@@ -61,16 +61,16 @@ cargo run -p crispy-server --release
 2. **Wait, then Compile and Serve the Web Framework**
 
 ```bash
-flutter build web --release
+cd app/flutter && flutter build web --release
 # Serve exclusively on IPv4
-npx -y http-server build/web -p 3000 -a 127.0.0.1 -c-1 --cors
+npx -y http-server app/flutter/build/web -p 3000 -a 127.0.0.1 -c-1 --cors
 ```
 
 3. **Trigger Playwright Suite**
 
 ```bash
-cd e2e/playwright
+cd testing/playwright
 npx playwright test --workers=4
 ```
 
-_(You can see specific sub-layer testing guides and commands explicitly inside `e2e/playwright/README.md`)_
+_(You can see specific sub-layer testing guides and commands explicitly inside `testing/playwright/README.md`)_

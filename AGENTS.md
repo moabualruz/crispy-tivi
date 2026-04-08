@@ -19,14 +19,14 @@ submodule. Use only checked-in project files as context.
 - Rust owns backend logic, sync, parsing, validation, and persistence-heavy
   behavior.
 - Flutter owns UI, navigation, interactions, and platform presentation.
-- Shared design tokens live under `lib/core/theme/`.
-- Shared reusable widgets live under `lib/core/widgets/`.
+- Shared design tokens live under `app/flutter/lib/core/theme/`.
+- Shared reusable widgets live under `app/flutter/lib/core/widgets/`.
 
 ## Preferred Verification
 
 - `flutter analyze`
 - targeted `flutter test` for touched Dart code
-- `flutter test integration_test/main_test.dart -d linux` for native aggregate coverage
+- `cd app/flutter && flutter test integration_test/main_test.dart -d linux` for native aggregate coverage
 - `./scripts/android/run_emulator_integration.sh <suite>` for Android emulator coverage
 - targeted Rust tests when Rust code changes
 

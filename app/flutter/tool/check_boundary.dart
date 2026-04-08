@@ -11,7 +11,7 @@ import 'package:crispy_tivi/core/lint/architecture_boundary_lint.dart';
 /// no exceptions. All forbidden imports must be remediated before merge.
 ///
 /// Usage:
-///   dart run scripts/check_boundary.dart
+///   dart run tool/check_boundary.dart
 ///
 /// Exit codes:
 ///   0 - zero violations

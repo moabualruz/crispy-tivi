@@ -39,7 +39,7 @@ async function globalSetup(_config: FullConfig) {
     throw new Error(
       `${label} at ${url} is not reachable after ${MAX_RETRIES} attempts.\n` +
         `Start it before running E2E tests.\n` +
-        `  Web server: npx -y http-server build/web -p ${webPort} -a 127.0.0.1 -c-1 --cors\n` +
+        `  Web server: npx -y http-server app/flutter/build/web -p ${webPort} -a 127.0.0.1 -c-1 --cors\n` +
         `  Backend:    cd rust && CRISPY_PORT=${backendPort} cargo run -p crispy-server --release`,
     );
   }

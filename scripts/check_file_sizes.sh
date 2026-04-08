@@ -39,8 +39,8 @@ check_dir() {
 
     # Exclude generated / auto-managed files
     case "$normalized" in
-      lib/src/rust/*|*/lib/src/rust/*)           continue ;; # FRB generated Dart
-      lib/l10n/*|*/lib/l10n/*)                   continue ;; # l10n generated
+      app/flutter/lib/src/rust/*|*/app/flutter/lib/src/rust/*)           continue ;; # FRB generated Dart
+      app/flutter/lib/l10n/*|*/app/flutter/lib/l10n/*)                   continue ;; # l10n generated
       *.g.dart)                                  continue ;; # build_runner
       *.freezed.dart)                            continue ;; # freezed
       */frb_generated.rs)                        continue ;; # FRB generated Rust
@@ -56,7 +56,7 @@ check_dir() {
 
 echo "Checking file sizes (max $MAX_LINES lines)..."
 
-check_dir "lib" "dart"
+check_dir "app/flutter/lib" "dart"
 check_dir "rust" "rs"
 
 for path in "${!CURRENT[@]}"; do

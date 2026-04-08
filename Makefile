@@ -19,7 +19,7 @@ help: ## Show this help
 # ── Setup ──────────────────────────────────────────
 
 setup: hooks ## Install all dependencies
-	flutter pub get
+	cd app/flutter && flutter pub get
 
 hooks: ## Install pre-commit hook (fmt + clippy + analyze)
 	git config core.hooksPath .githooks
@@ -50,13 +50,13 @@ rust-fix: ## Rust: auto-format + clippy fix
 	cd rust && cargo clippy --workspace --fix --allow-dirty --allow-staged -- -D warnings
 
 flutter-check: ## Flutter: format check + analyze + test
-	dart format --set-exit-if-changed lib/ test/
-	flutter analyze
-	flutter test
+	cd app/flutter && dart format --set-exit-if-changed lib/ test/
+	cd app/flutter && flutter analyze
+	cd app/flutter && flutter test
 
 flutter-fix: ## Flutter: auto-format + dart fix
-	dart format lib/ test/
-	dart fix --apply
+	cd app/flutter && dart format lib/ test/
+	cd app/flutter && dart fix --apply
 
 # ── Testing ────────────────────────────────────────
 
@@ -66,13 +66,13 @@ rust-test: ## Run Rust tests
 	cd rust && cargo test --workspace
 
 flutter-test: ## Run Flutter tests
-	flutter test
+	cd app/flutter && flutter test
 
 analyze: ## Run Flutter static analysis
-	flutter analyze
+	cd app/flutter && flutter analyze
 
 check-boundary: ## Check architecture boundary violations
-	dart run scripts/check_boundary.dart
+	cd app/flutter && dart run tool/check_boundary.dart
 
 # ── Rust ───────────────────────────────────────────
 
@@ -88,30 +88,30 @@ rust-server: ## Build and run the Rust server
 # ── Codegen ────────────────────────────────────────
 
 codegen: ## Run flutter_rust_bridge codegen
-	flutter_rust_bridge_codegen generate
+	cd app/flutter && flutter_rust_bridge_codegen generate
 
 # ── Platform Builds ────────────────────────────────
 
 build-windows: ## Build Windows release
-	flutter build windows --release
+	cd app/flutter && flutter build windows --release
 
 build-linux: ## Build Linux release
-	flutter build linux --release
+	cd app/flutter && flutter build linux --release
 
 build-android: ## Build Android APK
 	bash scripts/build_rust.sh android
-	flutter build apk --release
+	cd app/flutter && flutter build apk --release
 
 build-macos: ## Build macOS release
 	bash scripts/build_rust.sh macos
-	flutter build macos --release
+	cd app/flutter && flutter build macos --release
 
 build-ios: ## Build iOS (no codesign)
 	bash scripts/build_rust.sh ios
-	flutter build ios --no-codesign
+	cd app/flutter && flutter build ios --no-codesign
 
 build-web: ## Build Flutter web
-	flutter build web --release
+	cd app/flutter && flutter build web --release
 
 build-server: ## Build Rust server binary
 	bash scripts/build_rust.sh server
@@ -119,13 +119,13 @@ build-server: ## Build Rust server binary
 # ── Run ────────────────────────────────────────────
 
 run-windows: ## Run on Windows
-	flutter run -d windows
+	cd app/flutter && flutter run -d windows
 
 run-web: ## Run on Chrome
-	flutter run -d chrome --web-port 3000
+	cd app/flutter && flutter run -d chrome --web-port 3000
 
 run-linux: ## Run on Linux
-	flutter run -d linux
+	cd app/flutter && flutter run -d linux
 
 # ── Release (local convenience) ───────────────────
 
@@ -133,19 +133,19 @@ release-windows: build-windows ## Build Windows installer (requires Inno Setup)
 	iscc scripts/inno_setup.iss
 
 release-linux: build-linux ## Build Linux AppImage
-	bash scripts/build_appimage.sh $(shell grep 'version:' pubspec.yaml | head -1 | awk '{print $$2}')
+	bash scripts/build_appimage.sh $(shell grep 'version:' app/flutter/pubspec.yaml | head -1 | awk '{print $$2}')
 
 release-android: ## Build Android APK + AAB
 	bash scripts/build_rust.sh android
-	flutter build apk --release
-	flutter build appbundle --release
+	cd app/flutter && flutter build apk --release
+	cd app/flutter && flutter build appbundle --release
 
 release-web: build-web ## Zip web build
-	cd build/web && zip -r ../../CrispyTivi-web.zip .
+	cd app/flutter/build/web && zip -r ../../../CrispyTivi-web.zip .
 
 # ── Clean ──────────────────────────────────────────
 
 clean: ## Clean all build artifacts
-	flutter clean
+	cd app/flutter && flutter clean
 	cd rust && cargo clean
 	@echo "Cleaned Flutter + Rust artifacts"

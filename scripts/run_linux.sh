@@ -5,7 +5,7 @@
 # and RSS never decreases after playback.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_DIR="$SCRIPT_DIR/../build/linux/x64/release/bundle"
+APP_DIR="$SCRIPT_DIR/../app/flutter/build/linux/x64/release/bundle"
 
 # Find jemalloc — check common locations
 JEMALLOC=""

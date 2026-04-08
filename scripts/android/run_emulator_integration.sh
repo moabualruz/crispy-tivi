@@ -2,14 +2,15 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$ROOT_DIR"
+FLUTTER_APP_DIR="$ROOT_DIR/app/flutter"
+cd "$FLUTTER_APP_DIR"
 
 DEVICE_ID="${DEVICE_ID:-emulator-5554}"
 TEST_SUITE="${1:-integration_test/main_test.dart}"
 TIMEOUT_SECS="${TIMEOUT_SECS:-1800}"
 STATUS_EVERY_SECS="${STATUS_EVERY_SECS:-15}"
 PKG_NAME="${PKG_NAME:-com.crispytivi.crispy_tivi}"
-CREDS_FILE="${CREDS_FILE:-integration_test/test_helpers/test_creds.local.json}"
+CREDS_FILE="${CREDS_FILE:-$FLUTTER_APP_DIR/integration_test/test_helpers/test_creds.local.json}"
 
 export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$HOME/.android-sdk}"
 export ANDROID_HOME="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"

@@ -17,9 +17,9 @@ The repository no longer depends on a separate `.ai` folder.
 Use the checked-in project materials only:
 
 - `docs/` for project screenshots and checked-in documentation
-- `integration_test/` and `test/` for executable behavior
+- `app/flutter/integration_test/` and `app/flutter/test/` for executable behavior
 - `rust/crates/crispy-core/` for backend/domain behavior
-- existing theme tokens and widgets under `lib/core/`
+- existing theme tokens and widgets under `app/flutter/lib/core/`
 
 If a feature is undocumented, treat the current code plus passing tests as the
 authoritative baseline and update checked-in docs when you clarify behavior.
@@ -36,8 +36,8 @@ authoritative baseline and update checked-in docs when you clarify behavior.
 
 ## UI Rules
 
-- Reuse theme tokens from `lib/core/theme/`.
-- Reuse shared widgets from `lib/core/widgets/` before inventing new ones.
+- Reuse theme tokens from `app/flutter/lib/core/theme/`.
+- Reuse shared widgets from `app/flutter/lib/core/widgets/` before inventing new ones.
 - Preserve the project’s dark, utility-first visual language.
 - On TV and remote-style surfaces, protect focus behavior and visibility.
 
@@ -55,7 +55,7 @@ authoritative baseline and update checked-in docs when you clarify behavior.
 ```bash
 flutter analyze
 flutter test
-flutter test integration_test/main_test.dart -d linux
+cd app/flutter && flutter test integration_test/main_test.dart -d linux
 ./scripts/android/run_emulator_integration.sh integration_test/main_test.dart
 cd rust && cargo test
 ```

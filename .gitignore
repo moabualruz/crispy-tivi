@@ -25,11 +25,14 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+/app/flutter/.dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+/app/flutter/.flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
+/app/flutter/build/
 /coverage/
 /doc/
 /issues-screenshots/
@@ -45,24 +48,24 @@ app.*.symbols
 app.*.map.json
 
 # Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+/app/flutter/android/app/debug
+/app/flutter/android/app/profile
+/app/flutter/android/app/release
 
 # Pre-built Rust .so binaries (built by CI / local build scripts)
-/android/app/src/main/jniLibs/
+/app/flutter/android/app/src/main/jniLibs/
 
 # Playwright
-/e2e/playwright/node_modules
-/e2e/playwright/test-results
-/e2e/playwright/test-results-visual
-/e2e/playwright/playwright-report
+/testing/playwright/node_modules
+/testing/playwright/test-results
+/testing/playwright/test-results-visual
+/testing/playwright/playwright-report
 
 # Test output artifacts (NOT committed, but agents read them)
 # Golden test failure diffs — review with Read tool
-/test/golden/failures/
+/app/flutter/test/golden/failures/
 # E2E reports — crawl logs, screenshots, QA reports
-/e2e/reports/
+/testing/reports/
 # Analysis output
 /analysis.txt
 logs/
@@ -71,14 +74,12 @@ logs/
 target/
 rust/target/
 coverage/lcov.info
+/app/flutter/coverage/lcov.info
 golden-failures/
 my_test_log.txt
 
 # CI logs
 ci-logs/
-
-# RobotJS
-e2e/robot_tests/node_modules
 
 # Local test credentials (real IPTV creds — never commit)
 **/test_creds.local.json

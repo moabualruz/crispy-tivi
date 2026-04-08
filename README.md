@@ -113,7 +113,7 @@ tablets, and Android TV / Fire TV (via Leanback launcher).
 
 > **iOS note:** Pre-built iOS binaries are not included in releases
 > because Apple requires code signing. To run on your iOS device,
-> clone the repo, open `ios/Runner.xcworkspace` in Xcode, set your
+> clone the repo, open `app/flutter/ios/Runner.xcworkspace` in Xcode, set your
 > own signing team under Signing & Capabilities, and build to your
 > device. A free Apple Developer account works for personal testing
 > (apps expire after 7 days). See [Getting Started](#getting-started)
@@ -143,13 +143,13 @@ rust/
     crispy-server/ # Web/WebSocket companion server
   shared/          # Exported first-party Rust crates (separate repos)
 
-lib/               # Flutter application code
+app/flutter/lib/               # Flutter application code
   core/            # Shared app infrastructure
   features/        # Feature-first UI modules
   l10n/            # Generated localization bindings
 
-test/              # Dart unit/widget tests
-integration_test/  # Device and end-to-end integration tests
+app/flutter/test/              # Dart unit/widget tests
+app/flutter/integration_test/  # Device and end-to-end integration tests
 scripts/           # Build, release, and validation scripts
 docs/              # Repository documentation and screenshots
 ```
@@ -158,7 +158,7 @@ docs/              # Repository documentation and screenshots
 
 The repository is intentionally split by ownership and release boundary:
 
-- `lib/`, `test/`, `integration_test/`, and platform folders (`android/`, `ios/`, `linux/`, `macos/`, `windows/`, `web/`) are the Flutter app.
+- `app/flutter/lib/`, `app/flutter/test/`, `app/flutter/integration_test/`, and platform folders (`app/flutter/android/`, `app/flutter/ios/`, `app/flutter/linux/`, `app/flutter/macos/`, `app/flutter/windows/`, `app/flutter/web/`) are the Flutter app.
 - `rust/crates/` contains app-internal Rust crates that ship with CrispyTivi.
 - `rust/shared/` contains exported first-party Rust crates tracked as submodules because they are published and versioned independently.
 - `scripts/` contains platform, build, release, and validation automation.
@@ -205,7 +205,7 @@ cd CrispyTivi
 cd rust && cargo build --release && cd ..
 
 # Flutter setup
-flutter pub get
+cd app/flutter && flutter pub get
 flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
@@ -213,28 +213,28 @@ flutter pub run build_runner build --delete-conflicting-outputs
 
 ```bash
 # Native (Rust embedded via FFI)
-flutter run -d windows
-flutter run -d macos
-flutter run -d linux
-flutter run -d android
+cd app/flutter && flutter run -d windows
+cd app/flutter && flutter run -d macos
+cd app/flutter && flutter run -d linux
+cd app/flutter && flutter run -d android
 
 # Web (start the Rust server first, then Flutter)
 cargo run -p crispy-server --manifest-path rust/Cargo.toml
-flutter run -d chrome --web-port 3000
+cd app/flutter && flutter run -d chrome --web-port 3000
 
 # Web (custom port and local network access)
 cargo run -p crispy-server --manifest-path rust/Cargo.toml -- --port 3030
-flutter run -d chrome --web-hostname 0.0.0.0 --web-port 3000 --dart-define=CRISPY_PORT=3030
+cd app/flutter && flutter run -d chrome --web-hostname 0.0.0.0 --web-port 3000 --dart-define=CRISPY_PORT=3030
 ```
 
 ## Building
 
 ```bash
-flutter build windows          # Windows EXE
-flutter build apk --release    # Android APK (universal)
-flutter build web --release    # Web app
-flutter build macos            # macOS app
-flutter build linux --release  # Linux
+cd app/flutter && flutter build windows          # Windows EXE
+cd app/flutter && flutter build apk --release    # Android APK (universal)
+cd app/flutter && flutter build web --release    # Web app
+cd app/flutter && flutter build macos            # macOS app
+cd app/flutter && flutter build linux --release  # Linux
 ```
 
 ### Serving the Web Build
@@ -242,12 +242,12 @@ flutter build linux --release  # Linux
 ```bash
 # Development (default server port 8080)
 cd rust && cargo run -p crispy-server --release &
-flutter run -d chrome --web-port 3000
+cd app/flutter && flutter run -d chrome --web-port 3000
 
 # Production preview
 cd rust && cargo run -p crispy-server --release &
-flutter build web --release
-npx serve build/web -p 3000
+cd app/flutter && flutter build web --release
+npx serve app/flutter/build/web -p 3000
 ```
 
 ## Testing
@@ -255,10 +255,10 @@ npx serve build/web -p 3000
 | Layer            | Command                                    |
 | ---------------- | ------------------------------------------ |
 | Rust core        | `cd rust && cargo test`                    |
-| Unit / Widget    | `flutter test`                             |
-| Golden (visual)  | `flutter test test/golden/`                |
-| Integration      | `flutter test integration_test/`           |
-| E2E (Playwright) | `cd e2e/playwright && npx playwright test` |
+| Unit / Widget    | `cd app/flutter && flutter test` |
+| Golden (visual)  | `cd app/flutter && flutter test test/golden/` |
+| Integration      | `cd app/flutter && flutter test integration_test/` |
+| E2E (Playwright) | `cd testing/playwright && npx playwright test` |
 
 The project has **799 Rust tests** and **1800+ Flutter tests** with
 CI enforcing zero analyzer warnings and formatting checks.
