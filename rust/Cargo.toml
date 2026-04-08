@@ -1,15 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/crispy-iptv-types",
-    "crates/crispy-m3u",
-    "crates/crispy-xmltv",
-    "crates/crispy-xtream",
-    "crates/crispy-stalker",
-    "crates/crispy-stream-checker",
-    "crates/crispy-iptv-tools",
-    "crates/crispy-catchup",
-    "crates/crispy-media-probe",
     "crates/crispy-core",
     "crates/crispy-ffi",
     "crates/crispy-server",
