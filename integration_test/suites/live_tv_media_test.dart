@@ -23,7 +23,7 @@ void main() {
       (WidgetTester tester) async {
         await FfiTestHelper.ensureRustInitialized();
 
-        app.main();
+        await app.main();
         await tester.pump(const Duration(milliseconds: 500));
 
         final navRobot = NavigationRobot(tester);

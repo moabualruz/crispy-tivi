@@ -20,7 +20,7 @@ void main() {
       WidgetTester tester,
     ) async {
       await FfiTestHelper.ensureRustInitialized();
-      app.main();
+      await app.main();
       await tester.pump(const Duration(milliseconds: 500));
 
       // Verify the app boots to the shell. DVR-specific navigation

@@ -18,7 +18,7 @@ void main() {
     testWidgets('AppShell Sidebar Verification', (WidgetTester tester) async {
       await FfiTestHelper.setupNavigationBackendState();
 
-      app.main();
+      await app.main();
 
       // Ensure the initial routing finishes
       await tester.pump(const Duration(milliseconds: 500));

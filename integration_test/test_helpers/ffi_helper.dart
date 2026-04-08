@@ -6,6 +6,8 @@ import 'package:crispy_tivi/main.dart' as app_main;
 import 'package:crispy_tivi/src/rust/api/lifecycle.dart' as rust_lifecycle;
 import 'package:crispy_tivi/src/rust/api/settings.dart' as rust_settings;
 import 'package:crispy_tivi/src/rust/frb_generated.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// Idempotent helper to initialize Rust backend state via FFI.
 /// Ensures that `RustLib.init()` is safely called only once
@@ -17,7 +19,10 @@ import 'package:crispy_tivi/src/rust/frb_generated.dart';
 abstract class FfiTestHelper {
   static bool _hasInitialized = false;
   static bool _backendInitialized = false;
+  static bool _platformMocksInstalled = false;
   static Directory? _testDir;
+  static const _kCredsJsonOverride =
+      String.fromEnvironment('CRISPY_TEST_CREDS_JSON');
 
   /// Create an isolated temp directory and point
   /// [AppDirectories] at it. Call BEFORE `app.main()`.
@@ -25,6 +30,7 @@ abstract class FfiTestHelper {
   /// Pass an optional [tag] (e.g. `'windows'`, `'phone'`) to
   /// disambiguate when multiple targets run on the same host.
   static Future<void> ensureTestIsolation({String? tag}) async {
+    _installPlatformChannelMocks();
     if (_testDir != null) return; // already isolated
     // Skip single-instance socket check so app.main() can be
     // called multiple times in the same test process.
@@ -35,6 +41,24 @@ abstract class FfiTestHelper {
     // Pre-create sub-dirs so the app doesn't need to.
     await Directory('${_testDir!.path}/data').create(recursive: true);
     await Directory('${_testDir!.path}/cache').create(recursive: true);
+  }
+
+  static void _installPlatformChannelMocks() {
+    if (_platformMocksInstalled) return;
+    final binding = TestDefaultBinaryMessengerBinding.instance;
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('dev.fluttercommunity.plus/connectivity_status'),
+      (methodCall) async => null,
+    );
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('com.crispytivi/pip_player_android'),
+      (methodCall) async => null,
+    );
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('com.crispytivi/pip_player_android/events'),
+      (methodCall) async => null,
+    );
+    _platformMocksInstalled = true;
   }
 
   /// Ensure the Rust backend is initialized.
@@ -79,8 +103,12 @@ abstract class FfiTestHelper {
   /// Loads test credentials.
   /// On desktop: reads from JSON files (local.json > fallback.json).
   /// On mobile (Android/iOS): files don't exist on-device, falls back
-  /// to the embedded [_kFallbackCreds] constant.
+  /// to either the compile-time override or the embedded
+  /// [_kFallbackCreds] constant.
   static Map<String, dynamic> _loadTestCredentials() {
+    if (_kCredsJsonOverride.isNotEmpty) {
+      return jsonDecode(_kCredsJsonOverride) as Map<String, dynamic>;
+    }
     final dir = 'integration_test/test_helpers';
     try {
       final localFile = File('$dir/test_creds.local.json');

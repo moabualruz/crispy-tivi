@@ -20,7 +20,7 @@ void main() {
     ) async {
       await FfiTestHelper.setupGuestProfileBackendState();
 
-      app.main();
+      await app.main();
       await tester.pump(const Duration(milliseconds: 500));
 
       // With a seeded source the onboarding wizard is bypassed

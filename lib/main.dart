@@ -52,6 +52,26 @@ const String _kWinW = 'win_w';
 const String _kWinH = 'win_h';
 const String _kWinMax = 'win_max';
 
+Future<void> forceLandscapeOnPhones() async {
+  if (kIsWeb) return;
+  if (!Platform.isAndroid && !Platform.isIOS) return;
+
+  final formFactor = DeviceFormFactorService.current;
+  if (!formFactor.isPhone) {
+    final view = WidgetsBinding.instance.platformDispatcher.views.firstOrNull;
+    if (view == null) return;
+    final logicalSize = view.physicalSize / view.devicePixelRatio;
+    if (logicalSize.shortestSide <= 0 || logicalSize.shortestSide >= 600) {
+      return;
+    }
+  }
+
+  await SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+}
+
 /// Computes UI auto-scale factor for high-resolution screens.
 ///
 /// Only applies on desktop and Android TV — phones and tablets use
@@ -144,18 +164,7 @@ Future<void> main() async {
   // Force landscape on mobile phones (shortestSide < 600dp).
   // Uses PlatformDispatcher pre-runApp — no BuildContext needed.
   // Fallback in MaterialApp.router builder handles rare 0×0 case.
-  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-    final view = WidgetsBinding.instance.platformDispatcher.views.firstOrNull;
-    if (view != null) {
-      final logicalSize = view.physicalSize / view.devicePixelRatio;
-      if (logicalSize.shortestSide > 0 && logicalSize.shortestSide < 600) {
-        await SystemChrome.setPreferredOrientations([
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ]);
-      }
-    }
-  }
+  await forceLandscapeOnPhones();
 
   // Single-instance guard (desktop only).
   if (!skipSingleInstanceCheck && !await _ensureSingleInstance()) {
@@ -294,13 +303,14 @@ class CrispyTiviApp extends ConsumerStatefulWidget {
 }
 
 class _CrispyTiviAppState extends ConsumerState<CrispyTiviApp>
-    with WindowListener {
+    with WidgetsBindingObserver, WindowListener {
   /// Guards the orientation-lock fallback so it runs at most once.
   bool _orientationLocked = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     windowManager.addListener(this);
 
     // Start sync once the startup provider has resolved.
@@ -315,14 +325,22 @@ class _CrispyTiviAppState extends ConsumerState<CrispyTiviApp>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     windowManager.removeListener(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(forceLandscapeOnPhones());
+    }
   }
 
   // ── Window state persistence ──────────────────────────────
 
   @override
-  void onWindowClose() async {
+  Future<void> onWindowClose() async {
     if (kIsWeb) {
       await windowManager.destroy();
       return;
@@ -409,10 +427,7 @@ class _CrispyTiviAppState extends ConsumerState<CrispyTiviApp>
             // reported 0×0 at startup, lock here on first build.
             if (!_orientationLocked && context.isPhoneFormFactor) {
               _orientationLocked = true;
-              SystemChrome.setPreferredOrientations([
-                DeviceOrientation.landscapeLeft,
-                DeviceOrientation.landscapeRight,
-              ]);
+              unawaited(forceLandscapeOnPhones());
             }
 
             // Compute auto-scale for 1440p+ screens, then apply

@@ -25,7 +25,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       // Boot application sequence once
-      app.main();
+      await app.main();
 
       // Pump frames continuously until initial routing completes
       for (int i = 0; i < 20; i++) {

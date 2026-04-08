@@ -18,7 +18,7 @@ void main() {
   group('Home Dashboard Suite', () {
     testWidgets('App shell renders home screen', (WidgetTester tester) async {
       await FfiTestHelper.ensureRustInitialized();
-      app.main();
+      await app.main();
       await tester.pump(const Duration(milliseconds: 500));
 
       // Wait for the app shell scaffold — the outermost testable widget.

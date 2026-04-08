@@ -59,6 +59,7 @@ mixin PlaylistSyncHelpers {
     final sw = Stopwatch()..start();
     debugPrint('PlaylistSync: loading from cache…');
     await ref.read(channelListProvider.notifier).refreshFromBackend();
+    if (!ref.mounted) return;
     syncSourceNames();
     sw.stop();
     debugPrint('PlaylistSync: cache → UI complete in ${sw.elapsedMilliseconds}ms');
@@ -72,8 +73,10 @@ mixin PlaylistSyncHelpers {
     debugPrint('PlaylistSync: reloading channel list from DB…');
     invalidateChannelPaginatedProviders();
     await ref.read(channelListProvider.notifier).refreshFromBackend();
+    if (!ref.mounted) return;
     syncSourceNames();
     // Populate EPG with all channels for the guide
+    if (!ref.mounted) return;
     final channels = ref.read(channelListProvider).channels;
     if (channels.isNotEmpty) {
       final overrides =
@@ -90,6 +93,7 @@ mixin PlaylistSyncHelpers {
   /// Syncs playlist source names to the channel list
   /// provider.
   void syncSourceNames() {
+    if (!ref.mounted) return;
     final settings = ref.read(settingsNotifierProvider).value;
     if (settings == null) return;
     final names = <String, String>{};
@@ -134,6 +138,7 @@ mixin PlaylistSyncHelpers {
   }
 
   void invalidateChannelPaginatedProviders() {
+    if (!ref.mounted) return;
     ref.invalidate(channelGroupsPaginatedProvider);
     ref.invalidate(channelCountPaginatedProvider);
     ref.invalidate(channelPagePaginatedProvider);
@@ -143,6 +148,7 @@ mixin PlaylistSyncHelpers {
   }
 
   void invalidateVodPaginatedProviders() {
+    if (!ref.mounted) return;
     ref.invalidate(vodCategoriesPaginatedProvider);
     ref.invalidate(vodCountPaginatedProvider);
     ref.invalidate(vodPagePaginatedProvider);
