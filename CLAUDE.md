@@ -16,7 +16,6 @@ The repository no longer depends on a separate `.ai` folder.
 
 Use the checked-in project materials only:
 
-- `.impeccable.md` for implementation and quality expectations
 - `docs/` for project screenshots and checked-in documentation
 - `integration_test/` and `test/` for executable behavior
 - `rust/crates/crispy-core/` for backend/domain behavior
