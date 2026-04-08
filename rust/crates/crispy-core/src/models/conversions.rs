@@ -54,7 +54,7 @@ fn json_value_as_string(v: &serde_json::Value) -> Option<String> {
 
 impl From<crispy_m3u::M3uEntry> for Channel {
     fn from(e: crispy_m3u::M3uEntry) -> Self {
-        let url = e.url.clone().unwrap_or_default();
+        let url = e.primary_url().unwrap_or_default().to_string();
         let native_id = sha256_short(&url);
 
         let name = e.name.clone().unwrap_or_default();
@@ -75,8 +75,9 @@ impl From<crispy_m3u::M3uEntry> for Channel {
         // EPG time offset from tvg-shift attribute.
         let tvg_shift = e.tvg_shift;
 
-        // NOTE (multi-URL): `e.urls` holds additional stream URLs beyond the
-        // primary `e.url`. These cannot be stored here because `From` has no
+        // NOTE (multi-URL): `e.urls` holds all stream URLs, with `e.urls[0]`
+        // as the primary URL. Additional URLs cannot be stored here because
+        // `From` has no
         // DB access. The caller (M3U save path) must insert any `e.urls[1..]`
         // entries into the `db_stream_urls` junction table after persisting
         // the channel.
@@ -158,10 +159,7 @@ impl From<crispy_xtream::types::XtreamChannel> for Channel {
         // Accept epg_channel_id from the Xtream API as-is — it maps to
         // the XMLTV <channel> id and may be numeric ("456660") or a
         // dotted name ("bbc1.uk"). Do NOT fall back to stream_id.
-        let epg_channel_id = xc
-            .epg_channel_id
-            .clone()
-            .filter(|s| !s.is_empty());
+        let epg_channel_id = xc.epg_channel_id.clone().filter(|s| !s.is_empty());
 
         // tvg_id follows epg_channel_id — None when no valid EPG ID exists.
         let tvg_id = epg_channel_id.clone();
@@ -499,7 +497,11 @@ impl From<crispy_iptv_types::epg::EpgProgramme> for EpgEntry {
 
         let star_rating = p.star_rating.first().map(|r| r.value.clone());
 
-        let length_minutes = p.length.map(|l| l as i32);
+        let length_minutes = p.length.map(|length| match length.units {
+            crispy_iptv_types::epg::EpgLengthUnit::Minutes => length.value as i32,
+            crispy_iptv_types::epg::EpgLengthUnit::Hours => (length.value as i32) * 60,
+            crispy_iptv_types::epg::EpgLengthUnit::Seconds => (length.value.div_ceil(60)) as i32,
+        });
 
         // Serialize credits to JSON if present.
         let credits_json = p
@@ -597,7 +599,9 @@ fn parse_episode_numbers(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crispy_iptv_types::epg::{EpgEpisodeNumber, EpgIcon, EpgProgramme, EpgRating};
+    use crispy_iptv_types::epg::{
+        EpgEpisodeNumber, EpgIcon, EpgLength, EpgLengthUnit, EpgProgramme, EpgRating,
+    };
 
     fn assert_uuid_v7(id: &str) {
         let parsed = uuid::Uuid::parse_str(id).expect("valid UUID");
@@ -606,14 +610,12 @@ mod tests {
 
     #[test]
     fn m3u_entry_to_channel_basic() {
-        let entry = crispy_m3u::M3uEntry {
-            url: Some("http://example.com/stream".into()),
-            name: Some("Test Channel".into()),
-            tvg_id: Some("ch1".into()),
-            group_title: Some("News".into()),
-            tvg_logo: Some("http://logo.example.com/ch1.png".into()),
-            ..Default::default()
-        };
+        let mut entry = crispy_m3u::M3uEntry::default();
+        entry.set_primary_url("http://example.com/stream".into());
+        entry.name = Some("Test Channel".into());
+        entry.tvg_id = Some("ch1".into());
+        entry.group_title = Some("News".into());
+        entry.tvg_logo = Some("http://logo.example.com/ch1.png".into());
 
         let ch: Channel = entry.into();
         assert_eq!(ch.name, "Test Channel");
@@ -626,11 +628,10 @@ mod tests {
 
     #[test]
     fn m3u_entry_native_id_is_sha256_of_url() {
-        let entry = crispy_m3u::M3uEntry {
-            url: Some("http://example.com/stream".into()),
-            name: Some("Test".into()),
-            ..Default::default()
-        };
+        let mut entry = crispy_m3u::M3uEntry::default();
+        entry.set_primary_url("http://example.com/stream".into());
+        entry.name = Some("Test".into());
+
         let ch: Channel = entry.into();
         assert_eq!(ch.native_id.len(), 16); // 8 bytes = 16 hex chars
         assert_uuid_v7(&ch.id);
@@ -827,7 +828,10 @@ mod tests {
             is_new: true,
             is_rerun: false,
             is_premiere: true,
-            length: Some(60),
+            length: Some(EpgLength {
+                value: 60,
+                units: EpgLengthUnit::Minutes,
+            }),
             ..Default::default()
         };
         prog.title.push(EpgStringWithLang::new("Morning Show"));
@@ -848,10 +852,12 @@ mod tests {
         prog.rating.push(EpgRating {
             value: "PG-13".into(),
             system: None,
+            icons: Default::default(),
         });
         prog.star_rating.push(EpgRating {
             value: "7.5/10".into(),
             system: None,
+            icons: Default::default(),
         });
 
         let entry: EpgEntry = prog.into();

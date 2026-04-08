@@ -446,13 +446,11 @@ pub async fn sync_stalker_source(
     // ── 8. Snapshot counts before persisting ─────────
     let channels_count = channels.len();
     let vod_count = vod_items.len();
-    let sync_started_at = chrono::Utc::now().timestamp();
-
     emit_progress(source_id, "saving", 0.9, "Saving to database");
 
     // ── 9. Persist in a single batch ─────────────────
     service
-        .save_sync_data(source_id, &channels, &vod_items, sync_started_at)
+        .save_sync_data(source_id, &channels, &vod_items)
         .context("Failed to persist Stalker sync data")?;
 
     emit_progress(source_id, "complete", 1.0, "Sync complete");

@@ -9,6 +9,7 @@ use crate::events::DataChangeEvent;
 use crate::insert_or_replace;
 use crate::models::UserProfile;
 use crate::traits::ProfileRepository;
+use crate::upsert;
 
 /// Domain service for profile operations.
 pub struct ProfileService(pub ServiceContext);
@@ -34,7 +35,7 @@ impl ProfileService {
     /// Upsert a user profile.
     pub fn save_profile(&self, profile: &UserProfile) -> Result<(), DbError> {
         let conn = self.0.db.get()?;
-        insert_or_replace!(
+        upsert!(
             conn,
             "db_profiles",
             [
@@ -49,6 +50,7 @@ impl ProfileService {
                 "dvr_permission",
                 "dvr_quota_mb",
             ],
+            "id",
             params![
                 profile.id,
                 profile.name,
@@ -429,6 +431,21 @@ mod tests {
         assert_eq!(access.len(), 2);
         assert!(access.contains(&"src3".to_string()));
         assert!(access.contains(&"src4".to_string()));
+    }
+
+    #[test]
+    fn save_profile_preserves_source_access_rows() {
+        let base = make_service_with_fixtures();
+        let svc = ProfileService(base.clone());
+        let mut profile = make_profile("p1", "Alice");
+        svc.save_profile(&profile).unwrap();
+        svc.grant_source_access("p1", "src1").unwrap();
+
+        profile.name = "Alice Updated".to_string();
+        svc.save_profile(&profile).unwrap();
+
+        let access = svc.get_source_access("p1").unwrap();
+        assert_eq!(access, vec!["src1".to_string()]);
     }
 
     #[test]

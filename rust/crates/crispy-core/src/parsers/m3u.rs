@@ -122,7 +122,7 @@ pub fn parse_m3u(content: &str) -> M3uParseResult {
         };
     }
 
-    let playlist = match crispy_m3u::parse(content) {
+    let playlist = match crispy_m3u::parse_with_mode(content, crispy_m3u::ParseMode::Permissive) {
         Ok(p) => p,
         Err(e) => {
             return M3uParseResult {
@@ -151,7 +151,7 @@ pub fn parse_m3u(content: &str) -> M3uParseResult {
             }
         };
 
-        let url = entry.url.clone().unwrap_or_default();
+        let url = entry.primary_url().unwrap_or_default().to_string();
 
         // Extract user-agent from VLC options before moving entry.
         let user_agent = entry.vlc_options.get("http-user-agent").cloned();
@@ -161,11 +161,12 @@ pub fn parse_m3u(content: &str) -> M3uParseResult {
         let parent_code = entry.extras.get("parent-code").cloned();
         let is_radio = entry.is_radio;
 
+        let resolution_attrs = entry.extras.clone();
+
         let mut ch: Channel = entry.into();
 
         // Apply resolution detection (not done by the From impl).
-        let empty = HashMap::new();
-        ch.resolution = detect_resolution(&empty, &name, &url);
+        ch.resolution = detect_resolution(&resolution_attrs, &name, &url);
 
         // Set channel number if not already set from tvg-chno.
         if ch.number.is_none() {
@@ -279,10 +280,32 @@ http://stream.example.com/ch3
         let content = concat!(
             "#EXTM3U\n",
             "#EXTINF:-1 tvg-resolution=\"1080p\",FooBar\n",
-            "http://s.example.com/fhd\n",
+            "http://s.example.com/live/channel.ts\n",
         );
         let result = parse_m3u(content);
         assert_eq!(result.channels[0].resolution.as_deref(), Some("FHD"),);
+    }
+
+    #[test]
+    fn resolution_from_quality_attr_without_name_or_url_hints() {
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1 quality=\"4k\",Cinema Feed\n",
+            "http://s.example.com/live/channel.ts\n",
+        );
+        let result = parse_m3u(content);
+        assert_eq!(result.channels[0].resolution.as_deref(), Some("4K"));
+    }
+
+    #[test]
+    fn resolution_from_res_attr_without_name_or_url_hints() {
+        let content = concat!(
+            "#EXTM3U\n",
+            "#EXTINF:-1 res=\"720p\",Sports Feed\n",
+            "http://s.example.com/live/channel.ts\n",
+        );
+        let result = parse_m3u(content);
+        assert_eq!(result.channels[0].resolution.as_deref(), Some("HD"));
     }
 
     #[test]

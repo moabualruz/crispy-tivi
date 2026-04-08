@@ -4,9 +4,9 @@ use super::{ServiceContext, bool_to_int, dt_to_ts, int_to_bool, ts_to_dt};
 use crate::database::DbError;
 use crate::errors::DomainError;
 use crate::events::DataChangeEvent;
-use crate::insert_or_replace;
 use crate::models::{Recording, StorageBackend, TransferTask};
 use crate::traits::{RecordingRepository, StorageRepository, TransferRepository};
+use crate::upsert;
 
 /// Domain service for DVR operations.
 pub struct DvrService(pub ServiceContext);
@@ -80,7 +80,7 @@ impl DvrService {
     /// Save (insert) a recording.
     pub fn save_recording(&self, rec: &Recording) -> Result<(), DbError> {
         let conn = self.0.db.get()?;
-        insert_or_replace!(
+        upsert!(
             conn,
             "db_recordings",
             [
@@ -102,6 +102,7 @@ impl DvrService {
                 "remote_backend_id",
                 "remote_path",
             ],
+            "id",
             params![
                 rec.id,
                 rec.channel_id,
@@ -169,10 +170,11 @@ impl DvrService {
     /// Save (upsert) a storage backend.
     pub fn save_storage_backend(&self, backend: &StorageBackend) -> Result<(), DbError> {
         let conn = self.0.db.get()?;
-        insert_or_replace!(
+        upsert!(
             conn,
             "db_storage_backends",
             ["id", "name", "type", "config", "is_default"],
+            "id",
             params![
                 backend.id,
                 backend.name,
@@ -217,7 +219,7 @@ impl DvrService {
     /// Save (insert) a transfer task.
     pub fn save_transfer_task(&self, task: &TransferTask) -> Result<(), DbError> {
         let conn = self.0.db.get()?;
-        insert_or_replace!(
+        upsert!(
             conn,
             "db_transfer_tasks",
             [
@@ -232,6 +234,7 @@ impl DvrService {
                 "error_message",
                 "remote_path",
             ],
+            "id",
             params![
                 task.id,
                 task.recording_id,
@@ -433,6 +436,24 @@ mod tests {
     }
 
     #[test]
+    fn save_recording_preserves_transfer_tasks() {
+        let svc = make_dvr_service();
+        let mut rec = make_recording("rec1");
+        svc.save_recording(&rec).unwrap();
+        svc.save_storage_backend(&make_storage_backend("b1"))
+            .unwrap();
+        svc.save_transfer_task(&make_transfer_task("t1", "rec1"))
+            .unwrap();
+
+        rec.status = crate::value_objects::RecordingStatus::Completed;
+        svc.save_recording(&rec).unwrap();
+
+        let tasks = svc.load_transfer_tasks().unwrap();
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].id, "t1");
+    }
+
+    #[test]
     fn storage_backends_crud() {
         let svc = make_dvr_service();
 
@@ -448,6 +469,23 @@ mod tests {
         let loaded = svc.load_storage_backends().unwrap();
         assert_eq!(loaded.len(), 1);
         assert_eq!(loaded[0].id, "b2");
+    }
+
+    #[test]
+    fn save_storage_backend_preserves_transfer_tasks() {
+        let svc = make_dvr_service();
+        svc.save_recording(&make_recording("rec1")).unwrap();
+        let mut backend = make_storage_backend("b1");
+        svc.save_storage_backend(&backend).unwrap();
+        svc.save_transfer_task(&make_transfer_task("t1", "rec1"))
+            .unwrap();
+
+        backend.name = "Updated Backend".to_string();
+        svc.save_storage_backend(&backend).unwrap();
+
+        let tasks = svc.load_transfer_tasks().unwrap();
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].id, "t1");
     }
 
     #[test]

@@ -159,7 +159,6 @@ pub(crate) fn int_to_bool(i: i32) -> bool {
 /// events to Flutter via FFI `StreamSink` (native)
 /// or `tokio::sync::broadcast` (web). All clones
 /// share the same callback via `Arc`.
-
 /// Shared infrastructure for all domain services.
 ///
 /// Holds the database connection pool, event broadcast callback,
@@ -254,26 +253,43 @@ pub(super) fn delete_removed_by_source_conn(
     Ok(deleted)
 }
 
-/// Delete rows from `table` that were NOT updated during this sync round.
+/// Mark rows from `table` as prune candidates for the current sync round.
 ///
-/// Any row whose `updated_at` is older than `sync_started_at` was not
-/// touched by the current sync — meaning the provider no longer has it.
-/// This is simpler and more correct than ID-list comparison because
-/// UUIDs are generated fresh each sync while timestamps are set during
-/// the upsert's DO UPDATE clause.
-pub(super) fn delete_stale_by_source_conn(
+/// The marker must be a value that cannot appear in committed rows. Callers
+/// update all rows for the source to this marker before upserting the fresh
+/// payload, then delete any rows still carrying the marker after the upserts.
+pub(super) fn mark_for_sync_prune_conn(
     conn: &rusqlite::Connection,
     table: &str,
     source_id: &str,
-    sync_started_at: i64,
+    prune_marker: i64,
+) -> Result<usize, DbError> {
+    let updated = conn.execute(
+        &format!("UPDATE {table} SET updated_at = ?2 WHERE source_id = ?1"),
+        params![source_id, prune_marker],
+    )?;
+    Ok(updated)
+}
+
+/// Delete rows from `table` that were not refreshed during the current sync.
+///
+/// Rows still carrying `prune_marker` were present before the sync started but
+/// were never touched by the current upsert set, so they are stale.
+pub(super) fn delete_prune_marked_by_source_conn(
+    conn: &rusqlite::Connection,
+    table: &str,
+    source_id: &str,
+    prune_marker: i64,
 ) -> Result<usize, DbError> {
     let deleted = conn.execute(
-        &format!(
-            "DELETE FROM {table} WHERE source_id = ?1 AND (updated_at IS NULL OR updated_at < ?2)"
-        ),
-        params![source_id, sync_started_at],
+        &format!("DELETE FROM {table} WHERE source_id = ?1 AND updated_at = ?2"),
+        params![source_id, prune_marker],
     )?;
     Ok(deleted)
+}
+
+fn new_sync_prune_marker() -> i64 {
+    -chrono::Utc::now().timestamp_micros().abs() - 1
 }
 
 impl ServiceContext {
@@ -414,7 +430,6 @@ impl ServiceContext {
         source_id: &str,
         channels: &[crate::models::Channel],
         vod_items: &[crate::models::VodItem],
-        sync_started_at: i64,
     ) -> Result<(), crate::database::DbError> {
         crate::perf_scope!("save_sync_data");
         crate::profiling::log_memory_usage("save_sync_data:start");
@@ -424,20 +439,28 @@ impl ServiceContext {
         {
             let conn = self.db.get()?;
             let tx = conn.unchecked_transaction()?;
+            let prune_marker = new_sync_prune_marker();
 
-            channels::ChannelService::save_channels_inner(&tx, channels)?;
-            delete_stale_by_source_conn(
+            mark_for_sync_prune_conn(
                 &tx,
                 crate::database::TABLE_CHANNELS,
                 source_id,
-                sync_started_at,
+                prune_marker,
             )?;
+            channels::ChannelService::save_channels_inner(&tx, channels)?;
+            delete_prune_marked_by_source_conn(
+                &tx,
+                crate::database::TABLE_CHANNELS,
+                source_id,
+                prune_marker,
+            )?;
+            mark_for_sync_prune_conn(&tx, crate::database::TABLE_MOVIES, source_id, prune_marker)?;
             vod::VodService::save_vod_items_inner(&tx, vod_items)?;
-            delete_stale_by_source_conn(
+            delete_prune_marked_by_source_conn(
                 &tx,
                 crate::database::TABLE_MOVIES,
                 source_id,
-                sync_started_at,
+                prune_marker,
             )?;
 
             tx.commit()?;
@@ -634,6 +657,7 @@ mod helper_tests {
 mod batch_tests {
     use super::*;
     use crate::events::serialize_event;
+    use crate::services::test_helpers::{make_channel, make_source, make_vod_item};
 
     #[test]
     fn batch_events_suppresses_individual() {
@@ -700,5 +724,55 @@ mod batch_tests {
         assert_eq!(collected.len(), 2); // BulkDataRefresh + SettingsUpdated
         assert!(collected[0].contains("BulkDataRefresh"));
         assert!(collected[1].contains("SettingsUpdated"));
+    }
+
+    #[test]
+    fn save_sync_data_prunes_rows_even_when_timestamps_share_the_same_second() {
+        let svc = ServiceContext::open_in_memory().unwrap();
+        SourceService(svc.clone())
+            .save_source(&make_source("src1", "Source 1", "m3u"))
+            .unwrap();
+
+        let mut stale_channel = make_channel("ch-old", "Old Channel");
+        stale_channel.source_id = Some("src1".to_string());
+        ChannelService(svc.clone())
+            .save_channels(&[stale_channel])
+            .unwrap();
+
+        let mut stale_vod = make_vod_item("vod-old", "Old Movie");
+        stale_vod.source_id = Some("src1".to_string());
+        VodService(svc.clone())
+            .save_vod_items(&[stale_vod])
+            .unwrap();
+
+        let same_second = chrono::Utc::now().timestamp();
+        let conn = svc.db.get().unwrap();
+        conn.execute(
+            "UPDATE db_channels SET updated_at = ?1 WHERE source_id = ?2",
+            params![same_second, "src1"],
+        )
+        .unwrap();
+        conn.execute(
+            "UPDATE db_movies SET updated_at = ?1 WHERE source_id = ?2",
+            params![same_second, "src1"],
+        )
+        .unwrap();
+        drop(conn);
+
+        let mut fresh_channel = make_channel("ch-new", "Fresh Channel");
+        fresh_channel.source_id = Some("src1".to_string());
+        let mut fresh_vod = make_vod_item("vod-new", "Fresh Movie");
+        fresh_vod.source_id = Some("src1".to_string());
+
+        svc.save_sync_data("src1", &[fresh_channel], &[fresh_vod])
+            .unwrap();
+
+        let channels = ChannelService(svc.clone()).load_channels().unwrap();
+        assert_eq!(channels.len(), 1);
+        assert_eq!(channels[0].id, "ch-new");
+
+        let vod_items = VodService(svc).load_vod_items().unwrap();
+        assert_eq!(vod_items.len(), 1);
+        assert_eq!(vod_items[0].id, "vod-new");
     }
 }

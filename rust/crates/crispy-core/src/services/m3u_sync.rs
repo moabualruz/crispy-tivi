@@ -85,14 +85,12 @@ pub async fn sync_m3u_source(
     // 5. Snapshot counts before persisting.
     let channels_count = channels.len();
     let vod_count = vod_items.len();
-    let sync_started_at = chrono::Utc::now().timestamp();
-
     emit_progress(source_id, "saving", 0.8, "Saving to database");
 
     // 6. Persist all data inside a single batch so Flutter gets one
     //    BulkDataRefresh event instead of four separate events.
     service
-        .save_sync_data(source_id, &channels, &vod_items, sync_started_at)
+        .save_sync_data(source_id, &channels, &vod_items)
         .context("Failed to persist M3U sync data")?;
 
     emit_progress(source_id, "complete", 1.0, "Sync complete");

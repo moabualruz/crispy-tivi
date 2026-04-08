@@ -6,9 +6,9 @@ use crate::database::row_helpers::RowExt;
 use crate::database::{DbError, TABLE_CHANNELS, TABLE_MOVIES, TABLE_SOURCES, optional};
 use crate::errors::{CrispyError, DomainError};
 use crate::events::DataChangeEvent;
-use crate::insert_or_replace;
 use crate::models::{Source, SourceStats};
 use crate::traits::SourceRepository;
+use crate::upsert;
 
 // ── Credential encryption helpers ─────────────────────────────────────────────
 
@@ -41,6 +41,17 @@ fn decrypt_opt(value: &Option<String>, key: &[u8; 32]) -> Result<Option<String>,
         Some(v) => decrypt_field(v, key).map(Some).map_err(crypto_to_db),
         None => Ok(None),
     }
+}
+
+fn encrypt_source_credentials(source: &Source, key: &[u8; 32]) -> Result<Source, DbError> {
+    Ok(Source {
+        password: encrypt_opt(&source.password, key)?,
+        access_token: encrypt_opt(&source.access_token, key)?,
+        mac_address: encrypt_opt(&source.mac_address, key)?,
+        device_id: encrypt_opt(&source.device_id, key)?,
+        credentials_encrypted: true,
+        ..source.clone()
+    })
 }
 
 /// Map a raw DB row into a `Source` (without decryption).
@@ -87,37 +98,24 @@ fn row_to_source(row: &rusqlite::Row<'_>) -> rusqlite::Result<Source> {
 
 /// Decrypt credential fields on a source loaded from the DB.
 ///
-/// If the source has `credentials_encrypted = false` (legacy plaintext row)
-/// and a keyring is available, this re-encrypts and saves the row so that
-/// future loads are encrypted.
+/// Legacy plaintext rows are returned as-is. Callers that want to migrate them
+/// must do so explicitly via [`SourceService::repair_source_credentials`].
 fn decrypt_source(svc: &SourceService, mut source: Source) -> Result<Source, DbError> {
     let Some(kr) = svc.0.keyring.as_deref() else {
         // No keyring configured (tests or no-keyring build): return as-is.
         return Ok(source);
     };
 
-    let key = get_or_create_encryption_key(kr).map_err(crypto_to_db)?;
-
-    if source.credentials_encrypted {
-        // Already encrypted — decrypt in place.
-        source.password = decrypt_opt(&source.password, &key)?;
-        source.access_token = decrypt_opt(&source.access_token, &key)?;
-        source.mac_address = decrypt_opt(&source.mac_address, &key)?;
-        source.device_id = decrypt_opt(&source.device_id, &key)?;
-        source.credentials_encrypted = false; // expose plaintext to callers
-    } else {
-        // Legacy plaintext row — encrypt and persist immediately.
-        let encrypted = Source {
-            password: encrypt_opt(&source.password, &key)?,
-            access_token: encrypt_opt(&source.access_token, &key)?,
-            mac_address: encrypt_opt(&source.mac_address, &key)?,
-            device_id: encrypt_opt(&source.device_id, &key)?,
-            credentials_encrypted: true,
-            ..source.clone()
-        };
-        svc.save_source_raw(&encrypted)?;
-        // Return the plaintext version to the caller.
+    if !source.credentials_encrypted {
+        return Ok(source);
     }
+
+    let key = get_or_create_encryption_key(kr).map_err(crypto_to_db)?;
+    source.password = decrypt_opt(&source.password, &key)?;
+    source.access_token = decrypt_opt(&source.access_token, &key)?;
+    source.mac_address = decrypt_opt(&source.mac_address, &key)?;
+    source.device_id = decrypt_opt(&source.device_id, &key)?;
+    source.credentials_encrypted = false; // expose plaintext to callers
 
     Ok(source)
 }
@@ -126,6 +124,25 @@ fn decrypt_source(svc: &SourceService, mut source: Source) -> Result<Source, DbE
 pub struct SourceService(pub ServiceContext);
 
 impl SourceService {
+    fn get_source_raw(&self, id: &str) -> Result<Option<Source>, DbError> {
+        let conn = self.0.db.get()?;
+        let result = conn.query_row(
+            &format!(
+                "SELECT id, name, source_type, url, username, password,
+                        access_token, device_id, user_id, mac_address,
+                        epg_url, user_agent, refresh_interval_minutes,
+                        accept_self_signed, enabled, sort_order,
+                        last_sync_time, last_sync_status, last_sync_error,
+                        created_at, updated_at, credentials_encrypted,
+                        deleted_at, epg_etag, epg_last_modified
+                 FROM {TABLE_SOURCES} WHERE id = ?1 AND deleted_at IS NULL"
+            ),
+            params![id],
+            row_to_source,
+        );
+        optional(result)
+    }
+
     /// Get all sources ordered by sort_order.
     pub fn get_sources(&self) -> Result<Vec<Source>, DbError> {
         let conn = self.0.db.get()?;
@@ -153,28 +170,9 @@ impl SourceService {
 
     /// Get a single source by ID.
     pub fn get_source(&self, id: &str) -> Result<Option<Source>, DbError> {
-        let conn = self.0.db.get()?;
-        let result = conn.query_row(
-            &format!(
-                "SELECT id, name, source_type, url, username, password,
-                        access_token, device_id, user_id, mac_address,
-                        epg_url, user_agent, refresh_interval_minutes,
-                        accept_self_signed, enabled, sort_order,
-                        last_sync_time, last_sync_status, last_sync_error,
-                        created_at, updated_at, credentials_encrypted,
-                        deleted_at, epg_etag, epg_last_modified
-                 FROM {TABLE_SOURCES} WHERE id = ?1 AND deleted_at IS NULL"
-            ),
-            params![id],
-            row_to_source,
-        );
-        match optional(result)? {
-            Some(s) => {
-                drop(conn);
-                Ok(Some(decrypt_source(self, s)?))
-            }
-            None => Ok(None),
-        }
+        self.get_source_raw(id)?
+            .map(|source| decrypt_source(self, source))
+            .transpose()
     }
 
     /// Save (insert or replace) a source, encrypting credentials if a keyring
@@ -185,14 +183,7 @@ impl SourceService {
     pub fn save_source(&self, source: &Source) -> Result<(), DbError> {
         if let Some(kr) = self.0.keyring.as_deref() {
             let key = get_or_create_encryption_key(kr).map_err(crypto_to_db)?;
-            let encrypted = Source {
-                password: encrypt_opt(&source.password, &key)?,
-                access_token: encrypt_opt(&source.access_token, &key)?,
-                mac_address: encrypt_opt(&source.mac_address, &key)?,
-                device_id: encrypt_opt(&source.device_id, &key)?,
-                credentials_encrypted: true,
-                ..source.clone()
-            };
+            let encrypted = encrypt_source_credentials(source, &key)?;
             self.save_source_raw(&encrypted)
         } else {
             // No keyring (tests / no-keyring build): store as-is.
@@ -200,13 +191,46 @@ impl SourceService {
         }
     }
 
+    /// Encrypt a legacy plaintext source row without changing any child data.
+    ///
+    /// Returns `Ok(true)` when a row was migrated, `Ok(false)` when no work was
+    /// needed (missing source, already encrypted, or no keyring configured).
+    pub fn repair_source_credentials(&self, id: &str) -> Result<bool, DbError> {
+        let Some(kr) = self.0.keyring.as_deref() else {
+            return Ok(false);
+        };
+
+        let Some(source) = self.get_source_raw(id)? else {
+            return Ok(false);
+        };
+
+        if source.credentials_encrypted {
+            return Ok(false);
+        }
+
+        let key = get_or_create_encryption_key(kr).map_err(crypto_to_db)?;
+        let encrypted = encrypt_source_credentials(&source, &key)?;
+        self.save_source_raw(&encrypted)?;
+        Ok(true)
+    }
+
     /// Write a source row verbatim — callers are responsible for encryption.
     ///
     /// Not part of the public API; used by [`save_source`] and the legacy
-    /// re-encryption path in [`decrypt_source`].
+    /// credential repair path.
     pub(super) fn save_source_raw(&self, source: &Source) -> Result<(), DbError> {
         let conn = self.0.db.get()?;
-        insert_or_replace!(
+        let now = chrono::Utc::now().timestamp();
+        let existing_created_at = optional(conn.query_row(
+            &format!("SELECT created_at FROM {TABLE_SOURCES} WHERE id = ?1"),
+            params![source.id],
+            |row| row.get::<_, i64>(0),
+        ))?;
+        let created_at = opt_dt_to_ts(&source.created_at)
+            .or(existing_created_at)
+            .unwrap_or(now);
+        let updated_at = opt_dt_to_ts(&source.updated_at).unwrap_or(now);
+        upsert!(
             conn,
             TABLE_SOURCES,
             [
@@ -236,6 +260,7 @@ impl SourceService {
                 "epg_etag",
                 "epg_last_modified",
             ],
+            "id",
             params![
                 source.id,
                 source.name,
@@ -256,8 +281,8 @@ impl SourceService {
                 opt_dt_to_ts(&source.last_sync_time),
                 source.last_sync_status,
                 source.last_sync_error,
-                opt_dt_to_ts(&source.created_at),
-                opt_dt_to_ts(&source.updated_at),
+                created_at,
+                updated_at,
                 bool_to_int(source.credentials_encrypted),
                 source.deleted_at,
                 source.epg_etag,
@@ -419,7 +444,24 @@ impl SourceRepository for SourceService {
 #[cfg(test)]
 mod tests {
     use super::SourceService;
+    use crate::algorithms::crypto::ENCRYPTION_KEY_ID;
+    use crate::database::Database;
+    use crate::events::serialize_event;
+    use crate::models::new_entity_id;
+    use crate::services::ServiceContext;
+    use crate::services::secret_store::PlatformKeyring;
     use crate::services::test_helpers::*;
+    use std::sync::{Arc, Mutex};
+
+    fn make_keyring_source_service() -> (SourceService, String) {
+        let service_name = format!("crispy-tivi-test-{}", new_entity_id());
+        let keyring = PlatformKeyring::new(service_name.clone());
+        let ctx = ServiceContext::with_keyring(
+            Database::open_in_memory().expect("open in-memory db"),
+            keyring,
+        );
+        (SourceService(ctx), service_name)
+    }
 
     #[test]
     fn test_get_source_stats() {
@@ -673,5 +715,87 @@ mod tests {
         let loaded = svc.get_source("s1").unwrap().unwrap();
         assert_eq!(loaded.last_sync_status.as_deref(), Some("success"));
         assert!(loaded.last_sync_error.is_none());
+    }
+
+    #[test]
+    fn save_source_preserves_child_channels() {
+        let base = make_service();
+        let svc = SourceService(base.clone());
+        let mut source = make_source("src1", "Source A", "m3u");
+        svc.save_source(&source).unwrap();
+
+        let mut channel = make_channel("ch1", "Channel 1");
+        channel.source_id = Some("src1".to_string());
+        crate::services::ChannelService(base.clone())
+            .save_channels(&[channel])
+            .unwrap();
+
+        source.name = "Source A Updated".to_string();
+        svc.save_source(&source).unwrap();
+
+        let channels = crate::services::ChannelService(base)
+            .load_channels()
+            .unwrap();
+        assert_eq!(channels.len(), 1);
+        assert_eq!(channels[0].id, "ch1");
+    }
+
+    #[test]
+    fn get_source_does_not_mutate_legacy_plaintext_rows() {
+        let (svc, service_name) = make_keyring_source_service();
+        let mut legacy = make_source("src1", "Legacy", "xtream");
+        legacy.password = Some("secret".to_string());
+        legacy.username = Some("alice".to_string());
+        svc.save_source_raw(&legacy).unwrap();
+
+        let events: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+        let events_clone = events.clone();
+        svc.0.set_event_callback(Arc::new(move |event| {
+            events_clone.lock().unwrap().push(serialize_event(event));
+        }));
+
+        let loaded = svc.get_source("src1").unwrap().unwrap();
+        let raw = svc.get_source_raw("src1").unwrap().unwrap();
+
+        assert_eq!(loaded.password.as_deref(), Some("secret"));
+        assert!(!raw.credentials_encrypted);
+        assert_eq!(raw.password.as_deref(), Some("secret"));
+        assert!(events.lock().unwrap().is_empty());
+
+        PlatformKeyring::new(service_name)
+            .delete(ENCRYPTION_KEY_ID)
+            .ok();
+    }
+
+    #[test]
+    fn repair_source_credentials_is_explicit_and_non_destructive() {
+        let (svc, service_name) = make_keyring_source_service();
+        let mut legacy = make_source("src1", "Legacy", "xtream");
+        legacy.password = Some("secret".to_string());
+        legacy.username = Some("alice".to_string());
+        svc.save_source_raw(&legacy).unwrap();
+
+        let mut channel = make_channel("ch1", "Channel 1");
+        channel.source_id = Some("src1".to_string());
+        crate::services::ChannelService(svc.0.clone())
+            .save_channels(&[channel])
+            .unwrap();
+
+        assert!(svc.repair_source_credentials("src1").unwrap());
+
+        let raw = svc.get_source_raw("src1").unwrap().unwrap();
+        assert!(raw.credentials_encrypted);
+        assert_ne!(raw.password.as_deref(), Some("secret"));
+        assert_eq!(
+            crate::services::ChannelService(svc.0.clone())
+                .load_channels()
+                .unwrap()
+                .len(),
+            1
+        );
+
+        PlatformKeyring::new(service_name)
+            .delete(ENCRYPTION_KEY_ID)
+            .ok();
     }
 }
