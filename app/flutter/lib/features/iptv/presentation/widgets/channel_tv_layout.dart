@@ -13,6 +13,9 @@ import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/glass_surface.dart';
 import '../../../../core/widgets/group_sidebar.dart';
+import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/error_boundary.dart';
+import '../../../../core/widgets/skeleton_loader.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
@@ -20,12 +23,11 @@ import '../../domain/entities/channel.dart';
 import '../providers/channel_providers.dart';
 import 'channel_epg_overlay.dart';
 
-import 'channel_list_helpers.dart';
 import 'channel_preview_mixin.dart';
 import 'channel_resume_banner.dart';
 import 'channel_search_bar_sliver.dart';
-import 'channel_sliver.dart';
 import 'channel_sort_menu.dart';
+import 'virtual_channel_list_view.dart';
 import '../../../../core/widgets/video_preview_widget.dart';
 
 /// TV/desktop two-panel layout for the channel list.
@@ -306,86 +308,102 @@ class _ChannelTvLayoutState extends ConsumerState<ChannelTvLayout>
                 // ── Bottom: App bar + search + channel list ──
                 Expanded(
                   child: ClipRect(
-                    child: CustomScrollView(
-                      controller: _channelScrollController,
-                      slivers: [
-                        SliverAppBar(
-                          floating: true,
-                          snap: true,
-                          title: Text('Live TV', style: tt.headlineSmall),
-                          actions: [
-                            IconButton(
-                              icon: const Icon(Icons.grid_view),
-                              onPressed:
-                                  () => context.push(AppRoutes.multiview),
-                              tooltip: 'Multi-View',
+                    child: Builder(
+                      builder: (context) {
+                        final displayChannels =
+                            widget.showSearchBar &&
+                                    widget.state.searchQuery.isNotEmpty
+                                ? ref.watch(epgAwareChannelListProvider)
+                                : widget.state.filteredChannels;
+                        Widget stateBody;
+                        if (widget.state.isLoading) {
+                          stateBody = ListView.builder(
+                            itemCount: 12,
+                            itemBuilder:
+                                (_, index) => Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: CrispySpacing.md,
+                                    vertical: CrispySpacing.xs,
+                                  ),
+                                  child: const SkeletonLine(
+                                    width: double.infinity,
+                                  ),
+                                ),
+                          );
+                        } else if (widget.state.error != null) {
+                          stateBody = ErrorBoundary(
+                            error: widget.state.error!,
+                            onRetry: () => ref.invalidate(channelListProvider),
+                          );
+                        } else if (displayChannels.isEmpty) {
+                          stateBody = const EmptyStateWidget(
+                            icon: Icons.live_tv,
+                            title: 'No channels found',
+                            description: 'Add a playlist source in Settings',
+                            showSettingsButton: true,
+                          );
+                        } else {
+                          stateBody = VirtualChannelListView(
+                            channels: displayChannels,
+                            controller: _channelScrollController,
+                            onTap: _onChannelTapped,
+                            onDoubleTap: _onChannelFullscreen,
+                            onFocus: _onChannelFocused,
+                            onMiddleClick: _onChannelFullscreen,
+                            onReorder: widget.onReorder,
+                          );
+                        }
+                        return Column(
+                          children: [
+                            AppBar(
+                              title: Text('Live TV', style: tt.headlineSmall),
+                              actions: [
+                                IconButton(
+                                  icon: const Icon(Icons.grid_view),
+                                  onPressed:
+                                      () => context.push(AppRoutes.multiview),
+                                  tooltip: 'Multi-View',
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.calendar_month),
+                                  onPressed: () => context.push(AppRoutes.epg),
+                                  tooltip: 'TV Guide',
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    widget.showSearchBar
+                                        ? Icons.search_off
+                                        : Icons.search,
+                                  ),
+                                  onPressed: widget.onSearchToggle,
+                                  tooltip: 'Search channels',
+                                ),
+                                if (widget.state.filteredChannels.isNotEmpty ||
+                                    (widget.showSearchBar &&
+                                        widget.state.searchQuery.isNotEmpty))
+                                  ChannelSortMenu(
+                                    state: widget.state,
+                                    duplicateCount: widget.duplicateCount,
+                                    hiddenChannelCount:
+                                        widget.hiddenChannelCount,
+                                    onSelected: widget.onSortSelected,
+                                  ),
+                              ],
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.calendar_month),
-                              onPressed: () => context.push(AppRoutes.epg),
-                              tooltip: 'TV Guide',
+                            ChannelSearchBarBox(
+                              visible: widget.showSearchBar,
+                              controller: widget.searchController,
+                              onChanged: widget.onSearchChanged,
+                              onClose: widget.onSearchClose,
                             ),
-                            IconButton(
-                              icon: Icon(
-                                widget.showSearchBar
-                                    ? Icons.search_off
-                                    : Icons.search,
-                              ),
-                              onPressed: widget.onSearchToggle,
-                              tooltip: 'Search channels',
+                            ChannelResumeBannerBox(
+                              state: widget.state,
+                              onResume: widget.onChannelTap,
                             ),
-                            if (widget.state.filteredChannels.isNotEmpty ||
-                                (widget.showSearchBar &&
-                                    widget.state.searchQuery.isNotEmpty))
-                              ChannelSortMenu(
-                                state: widget.state,
-                                duplicateCount: widget.duplicateCount,
-                                hiddenChannelCount: widget.hiddenChannelCount,
-                                onSelected: widget.onSortSelected,
-                              ),
+                            Expanded(child: stateBody),
                           ],
-                        ),
-                        ChannelSearchBarSliver(
-                          visible: widget.showSearchBar,
-                          controller: widget.searchController,
-                          onChanged: widget.onSearchChanged,
-                          onClose: widget.onSearchClose,
-                        ),
-                        // Genre chips removed from TV layout — the
-                        // GroupSidebar on the left provides group
-                        // filtering already.
-                        ChannelResumeBanner(
-                          state: widget.state,
-                          onResume: widget.onChannelTap,
-                        ),
-                        // FE-TV-05: use EPG-aware list when searching so
-                        // channels currently airing a matching program are
-                        // also included.
-                        Builder(
-                          builder: (context) {
-                            final displayChannels =
-                                widget.showSearchBar &&
-                                        widget.state.searchQuery.isNotEmpty
-                                    ? ref.watch(epgAwareChannelListProvider)
-                                    : widget.state.filteredChannels;
-                            return channelStateSliver(
-                                  isLoading: widget.state.isLoading,
-                                  error: widget.state.error,
-                                  isEmpty: displayChannels.isEmpty,
-                                  onRetry:
-                                      () => ref.invalidate(channelListProvider),
-                                ) ??
-                                ChannelSliver(
-                                  channels: displayChannels,
-                                  onTap: _onChannelTapped,
-                                  onDoubleTap: _onChannelFullscreen,
-                                  onFocus: _onChannelFocused,
-                                  onMiddleClick: _onChannelFullscreen,
-                                  onReorder: widget.onReorder,
-                                );
-                          },
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
                 ),

@@ -75,11 +75,6 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToNow();
       _fetchCurrentWindow();
-
-      final state = ref.read(epgProvider);
-      if (state.selectedChannel == null && state.filteredChannels.isNotEmpty) {
-        previewChannel(state.filteredChannels.first);
-      }
     });
   }
 
@@ -300,7 +295,9 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
       if (wasEmpty &&
           next.filteredChannels.isNotEmpty &&
           next.selectedChannel == null) {
-        previewChannel(next.filteredChannels.first);
+        ref
+            .read(epgProvider.notifier)
+            .selectChannel(next.filteredChannels.first.id);
       }
     });
 

@@ -76,11 +76,10 @@ Future<VodItem?> _fetchXtream(
 
   if (item.type == VodType.series) {
     action = 'get_series_info';
-    // Series IDs: "ser_{series_id}" or just the numeric part
-    numericId = item.id.replaceFirst(RegExp(r'^ser_'), '');
+    numericId = _resolveXtreamNumericId(item, series: true);
   } else {
     action = 'get_vod_info';
-    numericId = item.id.replaceFirst(RegExp(r'^vod_'), '');
+    numericId = _resolveXtreamNumericId(item);
   }
 
   final url =
@@ -116,6 +115,17 @@ Future<VodItem?> _fetchXtream(
     debugPrint('[VodDetailFetcher] $action failed for ${item.id}: $e');
     return null;
   }
+}
+
+String _resolveXtreamNumericId(VodItem item, {bool series = false}) {
+  final nativeId = item.nativeId?.trim();
+  if (nativeId != null && nativeId.isNotEmpty) {
+    return nativeId;
+  }
+  if (series) {
+    return item.id.replaceFirst(RegExp(r'^(ser_|series_)'), '');
+  }
+  return item.id.replaceFirst(RegExp(r'^vod_'), '');
 }
 
 VodItem _mergeXtreamInfo(VodItem item, Map<String, dynamic> info) {

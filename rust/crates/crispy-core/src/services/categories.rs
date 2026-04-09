@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use rusqlite::params;
 
@@ -28,7 +28,11 @@ impl CategoryService {
             params![source_id],
         )?;
         for (cat_type, names) in categories {
+            let mut seen = HashSet::new();
             for name in names {
+                if !seen.insert(name.clone()) {
+                    continue;
+                }
                 // Deterministic ID from (type, name, source_id).
                 let id = format!("{cat_type}:{name}:{source_id}");
                 tx.execute(

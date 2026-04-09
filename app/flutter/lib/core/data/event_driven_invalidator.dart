@@ -15,6 +15,7 @@ import '../../features/profiles/data/profile_service.dart';
 import '../../features/profiles/data/source_access_service.dart';
 import '../../features/vod/presentation/providers/favorite_categories_provider.dart';
 import '../../features/vod/presentation/providers/vod_favorites_provider.dart';
+import '../../features/vod/presentation/providers/vod_providers.dart';
 import 'data_change_event.dart';
 import 'event_bus_provider.dart';
 
@@ -286,5 +287,9 @@ void _invalidateChannelProviders(Ref ref) {
 }
 
 void _invalidateVodProviders(Ref ref) {
+  _safeRefresh(
+    ref.read(vodProvider.notifier).refreshFromBackend,
+    'VodUpdated/vod',
+  );
   ref.invalidate(vodFavoritesProvider);
 }

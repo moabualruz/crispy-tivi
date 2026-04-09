@@ -21,8 +21,8 @@ use crate::http_client::get_fast_client;
 use crate::http_resilience::{fetch_json_list, fetch_json_object};
 use crate::models::{Channel, SyncReport, XtreamAccountInfo};
 use crate::parsers::{vod, xtream};
-use crate::services::ServiceContext;
 use crate::services::url_validator::validate_url;
+use crate::services::{CategoryService, ServiceContext};
 use crate::sync_progress::emit_progress;
 use anyhow::{Context, Result};
 use crispy_m3u::{M3uEntry, ParseMode, parse_with_mode};
@@ -421,6 +421,21 @@ pub async fn sync_xtream_source(
     let vod_cat_map = categories::build_category_map(&vod_cats);
     let series_cat_map = categories::build_category_map(&series_cats);
 
+    let categories_by_type = HashMap::from([
+        (
+            "live".to_string(),
+            live_cat_map.values().cloned().collect::<Vec<_>>(),
+        ),
+        (
+            "vod".to_string(),
+            vod_cat_map.values().cloned().collect::<Vec<_>>(),
+        ),
+        (
+            "series".to_string(),
+            series_cat_map.values().cloned().collect::<Vec<_>>(),
+        ),
+    ]);
+
     emit_progress(source_id, "channels", 0.2, "Fetching live streams");
 
     // 2. Fetch and parse live streams — non-fatal; server may be live-only or VOD-only.
@@ -558,6 +573,9 @@ pub async fn sync_xtream_source(
     emit_progress(source_id, "saving", 0.9, "Saving to database");
 
     // 7. Save to DB — single batch so the UI gets one BulkDataRefresh.
+    CategoryService(service.clone())
+        .save_categories(source_id, &categories_by_type)
+        .context("Failed to persist Xtream categories")?;
     service
         .save_sync_data(source_id, &channels, &vod_items)
         .context("Failed to persist Xtream sync data")?;

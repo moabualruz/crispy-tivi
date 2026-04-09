@@ -87,17 +87,33 @@ class EpgState {
   /// Channels filtered by selected group and EPG
   /// availability.
   List<Channel> get filteredChannels {
+    final realEntryKeys =
+        entries.entries
+            .where(
+              (entry) => entry.value.any((e) => e.sourceId != '_placeholder'),
+            )
+            .map((entry) => entry.key)
+            .toSet();
+
+    bool hasRealEpg(Channel channel) {
+      final effectiveId = epgOverrides[channel.id] ?? channel.id;
+      if (realEntryKeys.contains(effectiveId)) return true;
+      final nativeId = channel.nativeId;
+      if (nativeId != null &&
+          nativeId.isNotEmpty &&
+          realEntryKeys.contains(nativeId)) {
+        return true;
+      }
+      final tvgId = tvgIdIndex[channel.id];
+      return tvgId != null && tvgId.isNotEmpty && realEntryKeys.contains(tvgId);
+    }
+
     var result = channels;
     if (selectedGroup != null) {
       result = result.where((c) => c.group == selectedGroup).toList();
     }
     if (showEpgOnly) {
-      result =
-          result.where((c) {
-            final channelEntries = entriesForChannel(c.id);
-            if (channelEntries.isEmpty) return false;
-            return channelEntries.any((e) => e.sourceId != '_placeholder');
-          }).toList();
+      result = result.where(hasRealEpg).toList();
     }
     return result;
   }

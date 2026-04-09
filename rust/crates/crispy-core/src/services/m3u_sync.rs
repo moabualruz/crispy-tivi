@@ -10,8 +10,8 @@ use crate::algorithms::categories;
 use crate::http_client::get_shared_client;
 use crate::models::SyncReport;
 use crate::parsers::{m3u, vod};
-use crate::services::ServiceContext;
 use crate::services::url_validator::validate_url;
+use crate::services::{CategoryService, ServiceContext};
 use crate::sync_progress::emit_progress;
 
 pub async fn verify_m3u_url(url: &str, accept_invalid_certs: bool) -> Result<bool> {
@@ -81,6 +81,10 @@ pub async fn sync_m3u_source(
     // 4. Extract sorted group / category names for the report.
     let channel_groups = categories::extract_sorted_groups(&channels);
     let vod_categories = categories::extract_sorted_vod_categories(&vod_items);
+    let categories_by_type = std::collections::HashMap::from([
+        ("live".to_string(), channel_groups.clone()),
+        ("vod".to_string(), vod_categories.clone()),
+    ]);
 
     // 5. Snapshot counts before persisting.
     let channels_count = channels.len();
@@ -89,6 +93,9 @@ pub async fn sync_m3u_source(
 
     // 6. Persist all data inside a single batch so Flutter gets one
     //    BulkDataRefresh event instead of four separate events.
+    CategoryService(service.clone())
+        .save_categories(source_id, &categories_by_type)
+        .context("Failed to persist M3U categories")?;
     service
         .save_sync_data(source_id, &channels, &vod_items)
         .context("Failed to persist M3U sync data")?;

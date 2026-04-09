@@ -128,6 +128,9 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
         (itemsByCategory[category] ??= <VodItem>[]).add(item);
       }
     }
+    final hasCategorizedRows =
+        movieCategories.isNotEmpty &&
+        itemsByCategory.values.any((v) => v.isNotEmpty);
 
     return _wrapRefresh(
       CustomScrollView(
@@ -157,7 +160,7 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.sm)),
-          if (isSearchOrCategory) ...[
+          if (isSearchOrCategory || !hasCategorizedRows) ...[
             SliverToBoxAdapter(
               child: Semantics(
                 label: 'Movies grid',

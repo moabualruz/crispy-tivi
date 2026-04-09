@@ -12,17 +12,13 @@ import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_spacing.dart';
-import '../../../../core/utils/device_form_factor.dart';
-import '../../../../core/widgets/genre_pill_row.dart';
 import '../../../../core/widgets/screen_template.dart';
 import '../../../../core/widgets/smart_image.dart';
-import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../../core/widgets/tv_master_detail_layout.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
-import '../../../iptv/presentation/providers/playlist_sync_service.dart';
 import '../../domain/entities/vod_item.dart';
-import '../mixins/vod_sortable_browser_mixin.dart';
 import '../providers/vod_providers.dart';
+import '../widgets/vod_catalog_browser.dart';
 import '../widgets/vod_browser_shell.dart';
 import '../widgets/vod_poster_card.dart';
 import '../widgets/vod_search_sort_bar.dart';
@@ -77,33 +73,12 @@ class _VodMoviesBody extends ConsumerStatefulWidget {
   ConsumerState<_VodMoviesBody> createState() => _VodMoviesBodyState();
 }
 
-class _VodMoviesBodyState extends ConsumerState<_VodMoviesBody>
-    with
-        AutomaticKeepAliveClientMixin,
-        VodSortableBrowserMixin<_VodMoviesBody> {
-  @override
-  bool get wantKeepAlive => true;
-
-  final _scrollController = ScrollController();
+class _VodMoviesBodyState extends ConsumerState<_VodMoviesBody> {
   VodGridDensity _density = VodGridDensity.standard;
-
-  @override
-  Future<String?> loadSortOption(SettingsNotifier notifier) =>
-      notifier.getVodSortOption();
-
-  @override
-  Future<void> saveSortOption(SettingsNotifier notifier, String value) =>
-      notifier.setVodSortOption(value);
 
   @override
   void initState() {
     super.initState();
-    initializeSortedSource(
-      ref.read(filteredMoviesProvider),
-      (onItems) =>
-          ref.listenManual(filteredMoviesProvider, (_, next) => onItems(next)),
-    );
-    initSortOption();
     _loadDensity();
   }
 
@@ -125,9 +100,7 @@ class _VodMoviesBodyState extends ConsumerState<_VodMoviesBody>
     ref.read(settingsNotifierProvider.notifier).setVodGridDensity(next.name);
   }
 
-  Future<void> _onShuffle() async {
-    final items =
-        sortedItems.isNotEmpty ? sortedItems : ref.read(filteredMoviesProvider);
+  Future<void> _onShuffle(List<VodItem> items) async {
     if (!mounted) return;
     if (items.isEmpty) {
       ScaffoldMessenger.of(
@@ -143,93 +116,68 @@ class _VodMoviesBodyState extends ConsumerState<_VodMoviesBody>
     );
   }
 
-  Widget _wrapRefresh(Widget child) {
-    if (!DeviceFormFactorService.current.isMobile) return child;
-    return RefreshIndicator(
-      onRefresh: () async {
-        await ref.read(playlistSyncServiceProvider).syncAll();
-      },
-      child: child,
-    );
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    disposeSortable();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    super.build(context);
-    final allMovies = ref.watch(filteredMoviesProvider);
-    final visibleMovies = visibleItemsOr(allMovies);
-    final categories = <String, int>{};
-    for (final item in allMovies) {
-      final category = item.category;
-      if (category == null || category.isEmpty) continue;
-      categories[category] = (categories[category] ?? 0) + 1;
-    }
-    final categoryNames = categories.keys.toList()..sort();
-    final itemsByCategory = <String, List<VodItem>>{};
-    for (final item in visibleMovies) {
-      final category = item.category;
-      if (category == null || category.isEmpty) continue;
-      (itemsByCategory[category] ??= <VodItem>[]).add(item);
-    }
-    final isSearchOrCategory =
-        selectedCategory != null || searchQuery.trim().isNotEmpty;
-
-    return _wrapRefresh(
-      CustomScrollView(
-        key: const PageStorageKey('vod_movies'),
-        controller: _scrollController,
-        slivers: [
-          SliverToBoxAdapter(
-            child: VodSearchSortBar(
-              searchQuery: searchQuery,
-              searchController: searchController,
-              onSearchChanged: onSearchChangedDebounced,
-              sortOption: sortOption,
-              onSortChanged: onSortOptionChanged,
-              gridDensity: _density,
-              onDensityChanged: _onDensityChanged,
-              onShuffle: _onShuffle,
-            ),
+    final initialItems = ref.watch(filteredMoviesProvider);
+    return VodCatalogBrowser(
+      initialItems: initialItems,
+      currentItems: (ref) => ref.watch(filteredMoviesProvider),
+      subscribe:
+          (ref, onItems) => ref.listenManual(
+            filteredMoviesProvider,
+            (_, next) => onItems(next),
           ),
-          const SliverToBoxAdapter(child: SourceSelectorBar()),
+      hintText: 'Search movies...',
+      loadSortOption: (notifier) => notifier.getVodSortOption(),
+      saveSortOption: (notifier, value) => notifier.setVodSortOption(value),
+      maxCategories: 30,
+      extraSliversBuilder: (context, ref, visibleItems, isSearchOrCategory) {
+        final items = List<VodItem>.of(visibleItems);
+        return [
           SliverToBoxAdapter(
-            child: GenrePillRow(
-              categories: categoryNames,
-              selectedCategory: selectedCategory,
-              onCategorySelected: onCategorySelected,
-            ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.sm)),
-          if (isSearchOrCategory)
-            _VodGrid(
-              items: visibleMovies,
-              maxExtent: _density.maxCardExtent(
-                MediaQuery.sizeOf(context).width,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                CrispySpacing.md,
+                CrispySpacing.sm,
+                CrispySpacing.md,
+                0,
               ),
-              enableTvSelection: widget.enableTvSelection,
-            )
-          else
-            SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final category = categoryNames[index];
-                final items = itemsByCategory[category] ?? const <VodItem>[];
-                return _VodCategoryRow(
-                  category: category,
-                  items: items,
-                  icon: Icons.local_movies,
-                );
-              }, childCount: categoryNames.length),
+              child: Row(
+                children: [
+                  const Spacer(),
+                  Tooltip(
+                    message: 'Grid density: ${_density.label}',
+                    child: IconButton(
+                      icon: Icon(_density.icon),
+                      onPressed: () => _onDensityChanged(_density.next),
+                    ),
+                  ),
+                  Tooltip(
+                    message: 'Play random item',
+                    child: IconButton(
+                      icon: const Icon(Icons.shuffle),
+                      onPressed: () => _onShuffle(items),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xl)),
-        ],
-      ),
+          ),
+        ];
+      },
+      gridBuilder:
+          (context, ref, items) => _VodGrid(
+            items: items,
+            maxExtent: _density.maxCardExtent(MediaQuery.sizeOf(context).width),
+            enableTvSelection: widget.enableTvSelection,
+          ),
+      rowBuilder: (context, ref, category, items) {
+        return _VodCategoryRow(
+          category: category,
+          items: items,
+          icon: Icons.local_movies,
+        );
+      },
     );
   }
 }
