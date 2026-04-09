@@ -107,9 +107,16 @@ release/
 PROJECT_INDEX.json
 PROJECT_INDEX.md
 .grepai/
-.codex/
 .omc/
 .omg/
 .omx/
 /rust/.omc/
 /rust/*.log
+.codex/*
+!.codex/agents/
+!.codex/agents/**
+!.codex/skills/
+!.codex/skills/**
+.codex/skills/.system/**
+!.codex/prompts/
+!.codex/prompts/**

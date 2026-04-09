@@ -108,6 +108,8 @@ class _VirtualEpgGridState extends State<VirtualEpgGrid> {
   /// app-bar selector.
   static const double _headerHeight = kEpgDateSelectorHeight;
   final double _rowHeight = kEpgRowHeight;
+  static const double _horizontalOverscanPx = 240.0;
+  static const int _verticalOverscanRows = 8;
 
   @override
   void initState() {
@@ -149,6 +151,8 @@ class _VirtualEpgGridState extends State<VirtualEpgGrid> {
     return duration.inMinutes * widget.pixelsPerMinute;
   }
 
+  double get _totalHeight => widget.channels.length * _rowHeight;
+
   @override
   Widget build(BuildContext context) {
     // Responsive channel column: compact vs expanded breakpoint.
@@ -168,53 +172,106 @@ class _VirtualEpgGridState extends State<VirtualEpgGrid> {
           left: channelWidth,
           right: 0,
           bottom: 0,
-          child: SingleChildScrollView(
-            controller: _bodyHorizontalScroll,
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: totalWidth,
-              child: Stack(
-                children: [
-                  ListView.builder(
-                    controller: _bodyVerticalScroll,
-                    itemCount: widget.channels.length,
-                    itemExtent: _rowHeight,
-                    itemBuilder: (context, index) {
-                      final channel = widget.channels[index];
-                      final entries = widget.epgEntries[channel.id] ?? [];
-                      return _ProgramRow(
-                        entries: entries,
-                        startDate: widget.startDate,
-                        pixelsPerMinute: widget.pixelsPerMinute,
-                        height: _rowHeight,
-                        programBuilder: widget.programBuilder,
-                      );
-                    },
-                  ),
-                  Builder(
-                    builder: (context) {
-                      final now = widget.clock();
-                      if (!now.isAfter(widget.startDate) ||
-                          !now.isBefore(widget.endDate)) {
-                        return const SizedBox.shrink();
-                      }
-                      return Positioned(
-                        left:
-                            now.difference(widget.startDate).inMinutes *
-                            widget.pixelsPerMinute,
-                        top: 0,
-                        bottom: 0,
-                        child: Container(
-                          key: TestKeys.epgNowLine,
-                          width: _kNowLineWidth,
-                          color: Theme.of(context).crispyColors.epgNowLine,
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return AnimatedBuilder(
+                animation: Listenable.merge([
+                  _bodyHorizontalScroll,
+                  _bodyVerticalScroll,
+                ]),
+                builder: (context, _) {
+                  final scrollOffset =
+                      _bodyHorizontalScroll.hasClients
+                          ? _bodyHorizontalScroll.offset
+                          : 0.0;
+                  final verticalOffset =
+                      _bodyVerticalScroll.hasClients
+                          ? _bodyVerticalScroll.offset
+                          : 0.0;
+                  final viewportStart = scrollOffset - _horizontalOverscanPx;
+                  final viewportEnd =
+                      scrollOffset +
+                      constraints.maxWidth +
+                      _horizontalOverscanPx;
+                  final firstRow = ((verticalOffset / _rowHeight).floor() -
+                          _verticalOverscanRows)
+                      .clamp(0, widget.channels.length);
+                  final lastRow = (((verticalOffset + constraints.maxHeight) /
+                                  _rowHeight)
+                              .ceil() +
+                          _verticalOverscanRows)
+                      .clamp(0, widget.channels.length);
+
+                  return SingleChildScrollView(
+                    controller: _bodyHorizontalScroll,
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: totalWidth,
+                      child: Stack(
+                        children: [
+                          SingleChildScrollView(
+                            controller: _bodyVerticalScroll,
+                            child: SizedBox(
+                              height: _totalHeight,
+                              child: Stack(
+                                children: [
+                                  for (
+                                    var index = firstRow;
+                                    index < lastRow;
+                                    index++
+                                  )
+                                    Positioned(
+                                      top: index * _rowHeight,
+                                      left: 0,
+                                      right: 0,
+                                      height: _rowHeight,
+                                      child: _ProgramRow(
+                                        entries:
+                                            widget.epgEntries[widget
+                                                .channels[index]
+                                                .id] ??
+                                            const [],
+                                        startDate: widget.startDate,
+                                        pixelsPerMinute: widget.pixelsPerMinute,
+                                        height: _rowHeight,
+                                        viewportStart: viewportStart,
+                                        viewportEnd: viewportEnd,
+                                        programBuilder: widget.programBuilder,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Builder(
+                            builder: (context) {
+                              final now = widget.clock();
+                              if (!now.isAfter(widget.startDate) ||
+                                  !now.isBefore(widget.endDate)) {
+                                return const SizedBox.shrink();
+                              }
+                              return Positioned(
+                                left:
+                                    now.difference(widget.startDate).inMinutes *
+                                    widget.pixelsPerMinute,
+                                top: 0,
+                                bottom: 0,
+                                child: Container(
+                                  key: TestKeys.epgNowLine,
+                                  width: _kNowLineWidth,
+                                  color:
+                                      Theme.of(context).crispyColors.epgNowLine,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
           ),
         ),
 
@@ -224,22 +281,50 @@ class _VirtualEpgGridState extends State<VirtualEpgGrid> {
           left: 0,
           width: channelWidth,
           bottom: 0,
-          child: ColoredBox(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            child: ListView.builder(
-              key: TestKeys.epgChannelList,
-              controller: _channelsScroll,
-              itemCount: widget.channels.length,
-              itemExtent: _rowHeight,
-              itemBuilder: (context, index) {
-                final channel = widget.channels[index];
-                return SizedBox(
-                  height: _rowHeight,
-                  width: channelWidth,
-                  child: widget.channelBuilder(context, channel),
-                );
-              },
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return AnimatedBuilder(
+                animation: _channelsScroll,
+                builder: (context, _) {
+                  final verticalOffset =
+                      _channelsScroll.hasClients ? _channelsScroll.offset : 0.0;
+                  final firstRow = ((verticalOffset / _rowHeight).floor() -
+                          _verticalOverscanRows)
+                      .clamp(0, widget.channels.length);
+                  final lastRow = (((verticalOffset + constraints.maxHeight) /
+                                  _rowHeight)
+                              .ceil() +
+                          _verticalOverscanRows)
+                      .clamp(0, widget.channels.length);
+
+                  return ColoredBox(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    child: SingleChildScrollView(
+                      key: TestKeys.epgChannelList,
+                      controller: _channelsScroll,
+                      child: SizedBox(
+                        height: _totalHeight,
+                        child: Stack(
+                          children: [
+                            for (var index = firstRow; index < lastRow; index++)
+                              Positioned(
+                                top: index * _rowHeight,
+                                left: 0,
+                                width: channelWidth,
+                                height: _rowHeight,
+                                child: widget.channelBuilder(
+                                  context,
+                                  widget.channels[index],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
           ),
         ),
 
@@ -315,6 +400,8 @@ class _ProgramRow extends StatelessWidget {
   final DateTime startDate;
   final double pixelsPerMinute;
   final double height;
+  final double viewportStart;
+  final double viewportEnd;
   final Widget Function(BuildContext, EpgEntry, double, double) programBuilder;
 
   const _ProgramRow({
@@ -322,11 +409,38 @@ class _ProgramRow extends StatelessWidget {
     required this.startDate,
     required this.pixelsPerMinute,
     required this.height,
+    required this.viewportStart,
+    required this.viewportEnd,
     required this.programBuilder,
   });
 
   @override
   Widget build(BuildContext context) {
+    final visibleChildren = <Widget>[];
+    for (final entry in entries) {
+      final rawOffset =
+          entry.startTime.difference(startDate).inMinutes * pixelsPerMinute;
+      final startOffset = rawOffset < 0 ? 0.0 : rawOffset;
+      final clippedMinutes =
+          rawOffset < 0 ? (rawOffset / pixelsPerMinute).abs() : 0.0;
+      final width =
+          (entry.duration.inMinutes - clippedMinutes) * pixelsPerMinute;
+
+      if (width <= 0) continue;
+      final endOffset = startOffset + width;
+      if (endOffset < viewportStart || startOffset > viewportEnd) continue;
+
+      visibleChildren.add(
+        Positioned(
+          left: startOffset,
+          width: width,
+          top: 0,
+          bottom: 0,
+          child: programBuilder(context, entry, width, height),
+        ),
+      );
+    }
+
     return Container(
       height: height,
       decoration: BoxDecoration(
@@ -338,29 +452,7 @@ class _ProgramRow extends StatelessWidget {
           ),
         ),
       ),
-      child: Stack(
-        children:
-            entries.map((entry) {
-              final rawOffset =
-                  entry.startTime.difference(startDate).inMinutes *
-                  pixelsPerMinute;
-              final startOffset = rawOffset < 0 ? 0.0 : rawOffset;
-              final clippedMinutes =
-                  rawOffset < 0 ? (rawOffset / pixelsPerMinute).abs() : 0.0;
-              final width =
-                  (entry.duration.inMinutes - clippedMinutes) * pixelsPerMinute;
-
-              if (width <= 0) return const SizedBox.shrink();
-
-              return Positioned(
-                left: startOffset,
-                width: width,
-                top: 0,
-                bottom: 0,
-                child: programBuilder(context, entry, width, height),
-              );
-            }).toList(),
-      ),
+      child: Stack(children: visibleChildren),
     );
   }
 }

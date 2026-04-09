@@ -108,6 +108,18 @@ fn env_flag(name: &str) -> bool {
         .unwrap_or(false)
 }
 
+fn env_flag_with_default(name: &str, default: bool) -> bool {
+    std::env::var(name)
+        .ok()
+        .map(|value| {
+            matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
+        .unwrap_or(default)
+}
+
 fn normalize_host(host: &str) -> String {
     host.trim().trim_end_matches('.').to_ascii_lowercase()
 }
@@ -156,7 +168,10 @@ fn resolve_security_config() -> SecurityConfig {
         proxy_allowed_hosts: env_host_set("CRISPY_PROXY_ALLOWED_HOSTS"),
         proxy_denied_hosts: env_host_set("CRISPY_PROXY_DENIED_HOSTS").unwrap_or_default(),
         proxy_allow_remote_clients: env_flag("CRISPY_PROXY_ALLOW_REMOTE"),
-        proxy_allow_public_targets: env_flag("CRISPY_PROXY_ALLOW_PUBLIC_TARGETS"),
+        proxy_allow_public_targets: env_flag_with_default(
+            "CRISPY_PROXY_ALLOW_PUBLIC_TARGETS",
+            true,
+        ),
         proxy_allow_private_targets: env_flag("CRISPY_PROXY_ALLOW_PRIVATE_TARGETS"),
     }
 }

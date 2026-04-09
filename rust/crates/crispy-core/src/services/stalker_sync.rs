@@ -15,7 +15,7 @@ use crate::http_client::{get_fast_client, get_shared_client};
 use crate::models::SyncReport;
 use crate::parsers::stalker;
 use crate::services::url_validator::validate_url;
-use crate::services::{ServiceContext, SourceService};
+use crate::services::{CategoryService, ServiceContext, SourceService};
 use crate::sync_progress::emit_progress;
 
 // ── Constants ────────────────────────────────────────
@@ -408,6 +408,21 @@ pub async fn sync_stalker_source(
     )
     .await;
 
+    let categories_by_type = HashMap::from([
+        (
+            "live".to_string(),
+            live_cat_map.values().cloned().collect::<Vec<_>>(),
+        ),
+        (
+            "vod".to_string(),
+            vod_cat_map.values().cloned().collect::<Vec<_>>(),
+        ),
+        (
+            "series".to_string(),
+            vod_cat_map.values().cloned().collect::<Vec<_>>(),
+        ),
+    ]);
+
     // ── 5. VOD movies (paginated) ────────────────────
     let base_for_vod = base.clone();
     let sid_for_vod = source_id.to_string();
@@ -449,6 +464,9 @@ pub async fn sync_stalker_source(
     emit_progress(source_id, "saving", 0.9, "Saving to database");
 
     // ── 9. Persist in a single batch ─────────────────
+    CategoryService(service.clone())
+        .save_categories(source_id, &categories_by_type)
+        .context("Failed to persist Stalker categories")?;
     service
         .save_sync_data(source_id, &channels, &vod_items)
         .context("Failed to persist Stalker sync data")?;

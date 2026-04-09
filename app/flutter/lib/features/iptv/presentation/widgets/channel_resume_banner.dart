@@ -62,3 +62,50 @@ class ChannelResumeBanner extends ConsumerWidget {
     );
   }
 }
+
+/// Plain box variant of [ChannelResumeBanner] for layouts that use a
+/// dedicated viewport-windowed list body rather than slivers.
+class ChannelResumeBannerBox extends ConsumerWidget {
+  const ChannelResumeBannerBox({
+    super.key,
+    required this.state,
+    required this.onResume,
+  });
+
+  final ChannelListState state;
+  final void Function(Channel channel) onResume;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final histState = ref.watch(favoritesHistoryProvider);
+    final lastId = histState.lastChannelId;
+    if (lastId == null || state.channels.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final lastCh = state.channels.where((c) => c.id == lastId).firstOrNull;
+    if (lastCh == null) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: CrispySpacing.md,
+        vertical: CrispySpacing.xs,
+      ),
+      child: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(CrispyRadius.tvSm),
+        ),
+        child: ListTile(
+          leading: const Icon(Icons.play_circle_fill),
+          title: Text(
+            'Resume: ${lastCh.name}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => onResume(lastCh),
+        ),
+      ),
+    );
+  }
+}

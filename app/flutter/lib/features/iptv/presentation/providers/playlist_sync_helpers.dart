@@ -6,6 +6,7 @@ import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../profiles/presentation/providers/profile_service_providers.dart'
     show accessibleSourcesProvider;
+import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../../vod/presentation/providers/vod_favorites_provider.dart';
 import '../../domain/entities/channel.dart';
 import 'channel_providers.dart';
@@ -47,18 +48,48 @@ mixin PlaylistSyncHelpers {
   /// Loads cached channels + VODs + EPG into UI
   /// notifiers for instant display.
   ///
-  /// Runs all three independent DB reads in parallel
-  /// via [Future.wait] to cut startup time from the
-  /// sum to the max of the three queries. Each load
-  /// is wrapped in its own try-catch so a single
-  /// failure doesn't block the other entities from
-  /// loading.
+  /// Channels are loaded first so the EPG notifier can
+  /// seed its channel index before reading the current
+  /// time window from cache. VOD and EPG loads then run
+  /// independently so one failure does not block the
+  /// other catalog surfaces from rendering.
   Future<void> loadFromCache() async {
     final sw = Stopwatch()..start();
     debugPrint('PlaylistSync: loading from cache…');
     await ref.read(channelListProvider.notifier).refreshFromBackend();
     if (!ref.mounted) return;
     syncSourceNames();
+    final channels = ref.read(channelListProvider).channels;
+    final overrides = ref.read(settingsNotifierProvider).value?.epgOverrides;
+    if (channels.isNotEmpty) {
+      ref
+          .read(epgProvider.notifier)
+          .updateChannels(channels: channels, epgOverrides: overrides);
+    }
+
+    final now = DateTime.now();
+    await Future.wait([
+      () async {
+        try {
+          await ref.read(vodProvider.notifier).refreshFromBackend();
+        } catch (e) {
+          debugPrint('PlaylistSync: VOD cache load error: $e');
+        }
+      }(),
+      () async {
+        if (channels.isEmpty) return;
+        try {
+          await ref
+              .read(epgProvider.notifier)
+              .fetchEpgWindow(
+                now.subtract(const Duration(hours: 3)),
+                now.add(const Duration(hours: 3)),
+              );
+        } catch (e) {
+          debugPrint('PlaylistSync: EPG cache load error: $e');
+        }
+      }(),
+    ]);
     sw.stop();
     debugPrint(
       'PlaylistSync: cache → UI complete in ${sw.elapsedMilliseconds}ms',
@@ -136,7 +167,9 @@ mixin PlaylistSyncHelpers {
     }
   }
 
-  void invalidateVodUiProviders() {
+  Future<void> refreshVodUiProviders() async {
+    if (!ref.mounted) return;
+    await ref.read(vodProvider.notifier).refreshFromBackend();
     if (!ref.mounted) return;
     ref.invalidate(vodFavoritesProvider);
   }

@@ -5,6 +5,7 @@ import '../providers/vod_service_providers.dart';
 import '../../../../core/network/http_service.dart';
 import '../../../../core/domain/entities/playlist_source.dart';
 import '../../domain/entities/vod_item.dart';
+import '../providers/vod_providers.dart';
 
 /// Result of fetching series episodes from the
 /// Xtream API.
@@ -47,7 +48,13 @@ Future<EpisodeFetchResult> fetchSeriesEpisodes(
     throw Exception('No Xtream source configured');
   }
 
-  final numericId = seriesId.replaceFirst('series_', '');
+  final currentItems = ref.read(vodProvider).items;
+  final seriesItem =
+      currentItems.where((item) => item.id == seriesId).firstOrNull;
+  final numericId =
+      (seriesItem?.nativeId?.trim().isNotEmpty ?? false)
+          ? seriesItem!.nativeId!.trim()
+          : seriesId.replaceFirst(RegExp(r'^(series_|ser_)'), '');
   final uri = Uri.parse(xtreamSource.url);
   final baseUrl =
       '${uri.scheme}://${uri.host}'

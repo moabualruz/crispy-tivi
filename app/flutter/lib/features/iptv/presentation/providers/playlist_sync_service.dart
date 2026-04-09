@@ -155,7 +155,7 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       //    DB connections are free for any follow-up reads.
       if (!_ref.mounted) return 0;
       if (totalVod > 0) {
-        invalidateVodUiProviders();
+        await refreshVodUiProviders();
       }
 
       // 7. Sync Stalker server-side favorites to local DB.
@@ -201,7 +201,7 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       }
       if (!_ref.mounted) return report;
       if (report.vodCount > 0) {
-        invalidateVodUiProviders();
+        await refreshVodUiProviders();
       }
 
       // Fetch EPG after single source sync.

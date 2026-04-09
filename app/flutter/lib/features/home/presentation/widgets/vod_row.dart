@@ -97,6 +97,7 @@ class _VodRowState extends ConsumerState<VodRow> {
   }
 
   void _scroll(double delta) {
+    if (!_sc.hasClients) return;
     final target = (_sc.offset + delta).clamp(
       0.0,
       _sc.position.maxScrollExtent,
@@ -137,6 +138,12 @@ class _VodRowState extends ConsumerState<VodRow> {
         _hovered || InputModeNotifier.showFocusIndicators(inputMode);
     final items =
         widget.showRank ? widget.items.take(10).toList() : widget.items;
+    final itemWidths = List<double>.generate(items.length, (i) {
+      final rank = widget.showRank ? i + 1 : null;
+      final numW =
+          widget.showRank ? (rankFont * ((rank ?? 0) >= 10 ? 1.0 : 0.7)) : 0.0;
+      return numW + cardW;
+    });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,47 +209,39 @@ class _VodRowState extends ConsumerState<VodRow> {
             child: Stack(
               children: [
                 ClipRect(
-                  child: ListView.builder(
+                  child: _VirtualHorizontalVodRail(
                     controller: _sc,
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: CrispySpacing.md,
-                      vertical: vertPad,
-                    ),
-                    itemCount: items.length,
+                    sectionHeight: sectionH,
+                    verticalPadding: vertPad,
+                    horizontalPadding: CrispySpacing.md,
+                    itemSpacing: widget.itemSpacing,
+                    itemWidths: itemWidths,
                     itemBuilder: (ctx, i) {
                       final item = items[i];
                       final rank = widget.showRank ? i + 1 : null;
                       final tag = '${item.id}_home_${widget.title ?? 'row'}_$i';
-                      final numW =
-                          widget.showRank
-                              ? (rankFont * ((rank ?? 0) >= 10 ? 1.0 : 0.7))
-                              : 0.0;
-                      return Padding(
+                      return SizedBox(
                         key: ValueKey(item.id),
-                        padding: EdgeInsets.only(right: widget.itemSpacing),
-                        child: SizedBox(
-                          width: numW + cardW,
-                          height: cardH,
-                          child: VodPosterCard(
-                            item: item,
-                            heroTag: tag,
-                            onTap:
-                                widget.customOnTap != null
-                                    ? () => widget.customOnTap!(ctx, item, tag)
-                                    : () => _tap(ctx, item, tag),
-                            onLongPress:
-                                () => showVodRowContextMenu(
-                                  context: ctx,
-                                  ref: ref,
-                                  item: item,
-                                ),
-                            showRank: widget.showRank,
-                            rank: rank,
-                            rankFontSize: rankFont,
-                            overlayBuilder: widget.overlayBuilder,
-                            badge: widget.badgeBuilder?.call(item),
-                          ),
+                        width: itemWidths[i],
+                        height: cardH,
+                        child: VodPosterCard(
+                          item: item,
+                          heroTag: tag,
+                          onTap:
+                              widget.customOnTap != null
+                                  ? () => widget.customOnTap!(ctx, item, tag)
+                                  : () => _tap(ctx, item, tag),
+                          onLongPress:
+                              () => showVodRowContextMenu(
+                                context: ctx,
+                                ref: ref,
+                                item: item,
+                              ),
+                          showRank: widget.showRank,
+                          rank: rank,
+                          rankFontSize: rankFont,
+                          overlayBuilder: widget.overlayBuilder,
+                          badge: widget.badgeBuilder?.call(item),
                         ),
                       );
                     },
@@ -280,6 +279,131 @@ class _VodRowState extends ConsumerState<VodRow> {
         ),
       ],
     );
+  }
+}
+
+/// Horizontal "fake scroll" rail that keeps the native scroll extent
+/// but only mounts the items intersecting the viewport plus overscan.
+class _VirtualHorizontalVodRail extends StatelessWidget {
+  const _VirtualHorizontalVodRail({
+    required this.controller,
+    required this.sectionHeight,
+    required this.verticalPadding,
+    required this.horizontalPadding,
+    required this.itemSpacing,
+    required this.itemWidths,
+    required this.itemBuilder,
+  });
+
+  final ScrollController controller;
+  final double sectionHeight;
+  final double verticalPadding;
+  final double horizontalPadding;
+  final double itemSpacing;
+  final List<double> itemWidths;
+  final Widget Function(BuildContext context, int index) itemBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    if (itemWidths.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final itemOffsets = List<double>.filled(itemWidths.length, 0);
+    var cursor = horizontalPadding;
+    for (var i = 0; i < itemWidths.length; i++) {
+      itemOffsets[i] = cursor;
+      cursor += itemWidths[i];
+      if (i != itemWidths.length - 1) {
+        cursor += itemSpacing;
+      }
+    }
+    final totalWidth = cursor + horizontalPadding;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return AnimatedBuilder(
+          animation: controller,
+          builder: (context, _) {
+            final viewportWidth = constraints.maxWidth;
+            final scrollOffset =
+                controller.hasClients ? controller.offset : 0.0;
+            final overscan = viewportWidth * 0.75;
+            final visibleStart = (scrollOffset - overscan).clamp(
+              0.0,
+              totalWidth,
+            );
+            final visibleEnd = (scrollOffset + viewportWidth + overscan).clamp(
+              0.0,
+              totalWidth,
+            );
+            final startIndex = _firstVisibleIndex(
+              itemOffsets,
+              itemWidths,
+              visibleStart,
+            );
+            final endIndex = _lastVisibleExclusive(itemOffsets, visibleEnd);
+
+            return SingleChildScrollView(
+              controller: controller,
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: totalWidth < viewportWidth ? viewportWidth : totalWidth,
+                height: sectionHeight,
+                child: Stack(
+                  children: [
+                    for (var i = startIndex; i < endIndex; i++)
+                      Positioned(
+                        left: itemOffsets[i],
+                        top: verticalPadding,
+                        width: itemWidths[i],
+                        height: sectionHeight - (verticalPadding * 2),
+                        child: RepaintBoundary(child: itemBuilder(context, i)),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  static int _firstVisibleIndex(
+    List<double> itemOffsets,
+    List<double> itemWidths,
+    double visibleStart,
+  ) {
+    var low = 0;
+    var high = itemOffsets.length;
+    while (low < high) {
+      final mid = (low + high) >> 1;
+      final itemEnd = itemOffsets[mid] + itemWidths[mid];
+      if (itemEnd < visibleStart) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    return low.clamp(0, itemOffsets.length);
+  }
+
+  static int _lastVisibleExclusive(
+    List<double> itemOffsets,
+    double visibleEnd,
+  ) {
+    var low = 0;
+    var high = itemOffsets.length;
+    while (low < high) {
+      final mid = (low + high) >> 1;
+      if (itemOffsets[mid] <= visibleEnd) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    return low.clamp(0, itemOffsets.length);
   }
 }
 

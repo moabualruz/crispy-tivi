@@ -4,29 +4,21 @@ import 'package:go_router/go_router.dart';
 
 import 'package:crispy_tivi/l10n/l10n_extension.dart';
 
-import '../../../../config/settings_notifier.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/testing/test_keys.dart';
-import '../../../../core/theme/crispy_animation.dart';
-import '../../../../core/theme/crispy_spacing.dart';
-import '../../../../core/utils/device_form_factor.dart';
 import '../../../../core/widgets/content_badge.dart';
-import '../../../../core/widgets/genre_pill_row.dart';
 import '../../../../core/widgets/screen_template.dart';
-import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../../core/widgets/tv_color_button_legend.dart';
 import '../../../home/presentation/widgets/vod_row.dart';
-import '../../../iptv/presentation/providers/playlist_sync_service.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../domain/entities/vod_item.dart';
-import '../mixins/vod_sortable_browser_mixin.dart';
 import '../providers/vod_providers.dart';
+import '../widgets/vod_catalog_browser.dart';
 import '../widgets/vod_browser_shell.dart';
 import '../widgets/continue_watching_section.dart';
 import '../widgets/recently_added_section.dart';
 import '../widgets/series_featured_banner.dart';
 import '../widgets/series_movies_grid.dart';
-import '../widgets/vod_search_sort_bar.dart';
 
 /// Top-level Series browser screen (V2 navigation).
 ///
@@ -41,61 +33,11 @@ class SeriesBrowserScreen extends ConsumerStatefulWidget {
       _SeriesBrowserScreenState();
 }
 
-class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
-    with VodSortableBrowserMixin<SeriesBrowserScreen> {
-  final _scrollController = ScrollController();
-
-  @override
-  Future<String?> loadSortOption(SettingsNotifier notifier) =>
-      notifier.getSeriesSortOption();
-
-  @override
-  Future<void> saveSortOption(SettingsNotifier notifier, String value) =>
-      notifier.setSeriesSortOption(value);
-
-  @override
-  void initState() {
-    super.initState();
-    initializeSortedSource(
-      ref.read(filteredSeriesProvider),
-      (onItems) =>
-          ref.listenManual(filteredSeriesProvider, (_, next) => onItems(next)),
-    );
-    initSortOption();
-  }
-
-  /// Wraps [child] in [RefreshIndicator] on mobile/tablet.
-  Widget _wrapRefresh(Widget child) {
-    if (!DeviceFormFactorService.current.isMobile) return child;
-    return RefreshIndicator(
-      onRefresh: () async {
-        await ref.read(playlistSyncServiceProvider).syncAll();
-      },
-      child: child,
-    );
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    disposeSortable();
-    super.dispose();
-  }
-
+class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen> {
   @override
   Widget build(BuildContext context) {
     final vodState = ref.watch(vodProvider);
     final allSeries = ref.watch(filteredSeriesProvider);
-    final visibleSeries = visibleItemsOr(allSeries);
-    final categoryCounts = <String, int>{};
-    for (final item in allSeries) {
-      final category = item.category;
-      if (category == null || category.isEmpty) continue;
-      categoryCounts[category] = (categoryCounts[category] ?? 0) + 1;
-    }
-    final seriesCategories =
-        categoryCounts.entries.toList()
-          ..sort((a, b) => b.value.compareTo(a.value));
 
     return VodBrowserShell(
       title: context.l10n.vodSeries,
@@ -120,14 +62,7 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
             IconButton(
               icon: const Icon(Icons.search),
               tooltip: context.l10n.searchTitle,
-              onPressed: () {
-                // Scroll to top where the local VodSearchSortBar lives.
-                _scrollController.animateTo(
-                  0,
-                  duration: CrispyAnimation.normal,
-                  curve: CrispyAnimation.scrollCurve,
-                );
-              },
+              onPressed: () => context.go(AppRoutes.customSearch),
             ),
           ],
         ),
@@ -154,75 +89,41 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
                 onPressed: () => context.go(AppRoutes.favorites),
               ),
             },
-            compactBody: _buildBody(
-              context,
-              visibleSeries,
-              seriesCategories.take(30).map((entry) => entry.key).toList(),
-            ),
-            largeBody: _buildBody(
-              context,
-              visibleSeries,
-              seriesCategories.take(30).map((entry) => entry.key).toList(),
-            ),
+            compactBody: _buildBody(context),
+            largeBody: _buildBody(context),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildBody(
-    BuildContext context,
-    List<VodItem> visibleSeries,
-    List<String> seriesCategories,
-  ) {
-    final isSearchOrCategory =
-        selectedCategory != null || searchQuery.isNotEmpty;
-    final cw = ref.watch(continueWatchingSeriesProvider);
-    final itemsByCategory = <String, List<VodItem>>{};
-    for (final item in visibleSeries) {
-      final category = item.category;
-      if (category == null || category.isEmpty) continue;
-      (itemsByCategory[category] ??= <VodItem>[]).add(item);
-    }
-
-    return _wrapRefresh(
-      CustomScrollView(
-        key: const PageStorageKey('series_browser'),
-        controller: _scrollController,
-        slivers: [
-          // Search bar + sort controls
-          SliverToBoxAdapter(
-            child: VodSearchSortBar(
-              searchQuery: searchQuery,
-              searchController: searchController,
-              hintText: 'Search series...',
-              onSearchChanged: onSearchChangedDebounced,
-              sortOption: sortOption,
-              onSortChanged: onSortOptionChanged,
-            ),
+  Widget _buildBody(BuildContext context) {
+    final initialItems = ref.watch(filteredSeriesProvider);
+    return VodCatalogBrowser(
+      initialItems: initialItems,
+      currentItems: (ref) => ref.watch(filteredSeriesProvider),
+      subscribe:
+          (ref, onItems) => ref.listenManual(
+            filteredSeriesProvider,
+            (_, next) => onItems(next),
           ),
-
-          // Source filter bar (hidden when ≤1 source).
-          const SliverToBoxAdapter(child: SourceSelectorBar()),
-
-          // Genre filter pills — always visible at top.
-          SliverToBoxAdapter(
-            child: GenrePillRow(
-              categories: seriesCategories,
-              selectedCategory: selectedCategory,
-              onCategorySelected: onCategorySelected,
-            ),
-          ),
-
-          // T10: Featured series hero banner (hidden during search/filter).
-          if (!isSearchOrCategory && visibleSeries.isNotEmpty)
+      hintText: 'Search series...',
+      loadSortOption: (notifier) => notifier.getSeriesSortOption(),
+      saveSortOption: (notifier, value) => notifier.setSeriesSortOption(value),
+      maxCategories: 30,
+      extraSliversBuilder: (context, ref, visibleItems, isSearchOrCategory) {
+        final cw = ref.watch(continueWatchingSeriesProvider);
+        final extra = <Widget>[];
+        if (!isSearchOrCategory && visibleItems.isNotEmpty) {
+          extra.add(
             SliverToBoxAdapter(
-              child: SeriesFeaturedBanner(items: visibleSeries),
+              child: SeriesFeaturedBanner(items: visibleItems),
             ),
-
-          // Continue watching
-          if (!isSearchOrCategory)
-            ...cw.when(
+          );
+        }
+        if (!isSearchOrCategory) {
+          extra.addAll(
+            cw.when(
               data:
                   (items) =>
                       items.isEmpty
@@ -239,9 +140,8 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
               loading: () => <Widget>[],
               error: (_, _) => <Widget>[],
             ),
-
-          // Recently Added Series
-          if (!isSearchOrCategory)
+          );
+          extra.add(
             SliverToBoxAdapter(
               child: RecentlyAddedSection(
                 showSeriesOnly: true,
@@ -250,35 +150,14 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
                 },
               ),
             ),
-
-          // Series grid or swimlanes
-          if (isSearchOrCategory)
-            _SeriesGrid(items: visibleSeries)
-          else
-            _buildCategorySwimlanes(seriesCategories, itemsByCategory),
-
-          const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xl)),
-        ],
-      ),
-    );
-  }
-
-  /// Cap swimlane rows to avoid 1500+ concurrent widget builds.
-  static const _kMaxSwimlaneCategories = 20;
-
-  Widget _buildCategorySwimlanes(
-    List<String> seriesCategories,
-    Map<String, List<VodItem>> itemsByCategory,
-  ) {
-    final capped = seriesCategories.take(_kMaxSwimlaneCategories).toList();
-    return SliverList(
-      delegate: SliverChildBuilderDelegate((context, index) {
-        final category = capped[index];
-        return _SeriesCategoryRow(
-          category: category,
-          items: itemsByCategory[category] ?? const <VodItem>[],
-        );
-      }, childCount: capped.length),
+          );
+        }
+        return extra;
+      },
+      gridBuilder: (context, ref, items) => _SeriesGrid(items: items),
+      rowBuilder: (context, ref, category, items) {
+        return _SeriesCategoryRow(category: category, items: items);
+      },
     );
   }
 }

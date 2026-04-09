@@ -83,6 +83,9 @@ pub fn resolve_vod_categories(
                 && let Some(name) = cat_map.get(cat)
             {
                 v.category = Some(name.clone());
+                if v.genre.as_deref().is_none_or(str::is_empty) {
+                    v.genre = Some(name.clone());
+                }
             }
             v
         })

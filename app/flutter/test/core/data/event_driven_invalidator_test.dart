@@ -14,6 +14,8 @@ import 'package:crispy_tivi/features/multiview/presentation/providers/'
     'multiview_providers.dart';
 import 'package:crispy_tivi/features/player/data/watch_history_service.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/'
+    'vod_providers.dart';
+import 'package:crispy_tivi/features/vod/presentation/providers/'
     'vod_favorites_provider.dart';
 
 // ── Build counters ─────────────────────────────────────────────
@@ -25,6 +27,7 @@ int _moviesBuilds = 0;
 int _seriesBuilds = 0;
 int _favoritesBuilds = 0;
 int _savedLayoutsBuilds = 0;
+int _vodBuilds = 0;
 int _vodFavoritesBuilds = 0;
 
 // ── Spy notifiers ──────────────────────────────────────────────
@@ -60,6 +63,20 @@ class _SpyVodFavoritesController extends VodFavoritesController {
   }
 }
 
+class _SpyVodNotifier extends VodNotifier {
+  @override
+  VodState build() {
+    _vodBuilds++;
+    return VodState();
+  }
+
+  @override
+  Future<void> refreshFromBackend() async {
+    _vodBuilds++;
+    loadData(const []);
+  }
+}
+
 // ── Container factory ──────────────────────────────────────────
 
 /// Build a test [ProviderContainer] with:
@@ -78,6 +95,7 @@ ProviderContainer _makeContainer(MemoryBackend backend) {
     overrides: [
       crispyBackendProvider.overrideWithValue(backend),
       channelListProvider.overrideWith(_SpyChannelListNotifier.new),
+      vodProvider.overrideWith(_SpyVodNotifier.new),
       favoritesControllerProvider.overrideWith(_SpyFavoritesController.new),
       vodFavoritesProvider.overrideWith(_SpyVodFavoritesController.new),
       continueWatchingMoviesProvider.overrideWith((_) async {
@@ -105,6 +123,7 @@ ProviderContainer _makeContainer(MemoryBackend backend) {
 
   // Prime all providers — each builds once.
   container.read(channelListProvider);
+  container.read(vodProvider);
   container.listen(continueWatchingMoviesProvider, (prev, next) {});
   container.listen(continueWatchingSeriesProvider, (prev, next) {});
   container.listen(favoritesControllerProvider, (prev, next) {});
@@ -121,6 +140,7 @@ _Counts _snapshot() => _Counts(
   series: _seriesBuilds,
   favorites: _favoritesBuilds,
   layouts: _savedLayoutsBuilds,
+  vod: _vodBuilds,
   vodFavorites: _vodFavoritesBuilds,
 );
 
@@ -131,6 +151,7 @@ class _Counts {
     required this.series,
     required this.favorites,
     required this.layouts,
+    required this.vod,
     required this.vodFavorites,
   });
 
@@ -139,6 +160,7 @@ class _Counts {
   final int series;
   final int favorites;
   final int layouts;
+  final int vod;
   final int vodFavorites;
 }
 
@@ -172,6 +194,7 @@ void main() {
     _seriesBuilds = 0;
     _favoritesBuilds = 0;
     _savedLayoutsBuilds = 0;
+    _vodBuilds = 0;
     _vodFavoritesBuilds = 0;
 
     backend = MemoryBackend();
@@ -273,6 +296,18 @@ void main() {
       expect(_vodFavoritesBuilds, greaterThan(before.vodFavorites));
     });
 
+    test('VodUpdated refreshes vodProvider', () async {
+      final before = _snapshot();
+
+      await emitAndWaitDebounce(
+        backend,
+        '{"type":"VodUpdated","source_id":"vod-src"}',
+      );
+
+      container.read(vodProvider);
+      expect(_vodBuilds, greaterThan(before.vod));
+    });
+
     test(
       'VodWatchProgressUpdated invalidates continueWatchingMovies',
       () async {
@@ -306,6 +341,7 @@ void main() {
       expect(_moviesBuilds, greaterThan(before.movies));
       expect(_favoritesBuilds, greaterThan(before.favorites));
       expect(_savedLayoutsBuilds, greaterThan(before.layouts));
+      expect(_vodBuilds, greaterThan(before.vod));
       expect(_vodFavoritesBuilds, greaterThan(before.vodFavorites));
     });
 

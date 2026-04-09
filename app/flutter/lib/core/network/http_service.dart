@@ -29,6 +29,11 @@ class HttpService {
 
   final Dio _dio;
 
+  /// Server base URL for the web CORS relay proxy.
+  ///
+  /// Set once at startup from `main.dart` on web builds.
+  static String? proxyBaseUrl;
+
   static final _defaultOptions = BaseOptions(
     connectTimeout: NetworkTimeouts.connectTimeout,
     receiveTimeout: NetworkTimeouts.receiveTimeout,
@@ -49,7 +54,7 @@ class HttpService {
   /// GET request returning response body as [String].
   Future<String> getString(String url, {Map<String, String>? headers}) async {
     final response = await _dio.get<String>(
-      url,
+      _resolveUrl(url),
       options: Options(responseType: ResponseType.plain, headers: headers),
     );
     return response.data ?? '';
@@ -58,7 +63,7 @@ class HttpService {
   /// GET request returning parsed JSON as [dynamic].
   Future<dynamic> getJson(String url, {Map<String, String>? headers}) async {
     final response = await _dio.get<dynamic>(
-      url,
+      _resolveUrl(url),
       options: Options(responseType: ResponseType.json, headers: headers),
     );
     return response.data;
@@ -78,16 +83,16 @@ class HttpService {
   }) async {
     // Fetch as raw bytes for binary-safe handling of large responses.
     final response = await _dio.get<List<int>>(
-      url,
+      _resolveUrl(url),
       options: Options(responseType: ResponseType.bytes, headers: headers),
     );
-    var bytes = response.data;
-    if (bytes == null || bytes.isEmpty) return [];
+    final rawBytes = response.data;
+    if (rawBytes == null || rawBytes.isEmpty) return [];
 
     // Some IPTV servers ignore Accept-Encoding: identity and send gzip
     // regardless. With autoUncompress=false we get raw gzip bytes —
     // detect and decompress manually.
-    bytes = decompressIfGzip(bytes);
+    final bytes = decompressIfGzip(rawBytes);
 
     // Decode UTF-8 with malformed-character tolerance.
     var str = utf8.decode(bytes, allowMalformed: true);
@@ -113,7 +118,7 @@ class HttpService {
     if (str.trimLeft().startsWith('[')) {
       final lastBrace = str.lastIndexOf('}');
       if (lastBrace > 0) {
-        var tail = str.substring(lastBrace + 1).trim();
+        final tail = str.substring(lastBrace + 1).trim();
         if (tail.isEmpty || tail == ',' || !tail.endsWith(']')) {
           str = '${str.substring(0, lastBrace + 1)}]';
         }
@@ -154,16 +159,23 @@ class HttpService {
 
   /// Sanitizes common IPTV server JSON malformations.
   static String _sanitizeJson(String str) {
+    var sanitized = str;
     // Fix invalid escape sequences (\0, \x, \a, etc.) → remove backslash
-    str = str.replaceAll(_invalidEscape, '');
+    sanitized = sanitized.replaceAll(_invalidEscape, '');
     // Fix truncated unicode escapes: \uXXX → \u0XXX
-    str = str.replaceAllMapped(_truncatedUnicode, (m) => '\\u0${m[1]}');
+    sanitized = sanitized.replaceAllMapped(
+      _truncatedUnicode,
+      (m) => '\\u0${m[1]}',
+    );
     // Fix lone surrogates → replacement character
-    str = str.replaceAll(_loneHighSurrogate, r'\uFFFD');
-    str = str.replaceAll(_loneLowSurrogate, r'\uFFFD');
+    sanitized = sanitized.replaceAll(_loneHighSurrogate, r'\uFFFD');
+    sanitized = sanitized.replaceAll(_loneLowSurrogate, r'\uFFFD');
     // Fix missing opening quotes on values (Xtream bug)
-    str = str.replaceAllMapped(_missingOpenQuote, (m) => '":"${m[1]}"');
-    return str;
+    sanitized = sanitized.replaceAllMapped(
+      _missingOpenQuote,
+      (m) => '":"${m[1]}"',
+    );
+    return sanitized;
   }
 
   /// Verifies an M3U URL is reachable.
@@ -202,6 +214,22 @@ class HttpService {
       return 'Server returned error $status.';
     }
     return 'Connection error: ${e.message}';
+  }
+
+  /// Routes external web requests through the Rust `/proxy` endpoint.
+  ///
+  /// This keeps browser-side API calls working against IPTV providers that
+  /// do not send permissive CORS headers.
+  static String _resolveUrl(String url) {
+    if (!kIsWeb) return url;
+    final base = proxyBaseUrl;
+    if (base == null || base.isEmpty || !url.startsWith('http')) {
+      return url;
+    }
+    if (url.startsWith(base)) {
+      return url;
+    }
+    return '$base/proxy?url=${Uri.encodeComponent(url)}';
   }
 }
 

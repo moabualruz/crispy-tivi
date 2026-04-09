@@ -26,6 +26,7 @@ import 'core/data/cache_service.dart';
 import 'core/data/event_driven_invalidator.dart';
 import 'core/data/ffi_backend.dart';
 import 'core/data/ws_backend.dart';
+import 'core/network/http_service.dart';
 import 'core/utils/timezone_utils.dart';
 import 'core/widgets/media_query_scaler.dart';
 import 'core/widgets/responsive_layout.dart';
@@ -186,6 +187,7 @@ Future<void> main() async {
     await backend.init(serverBaseUrl);
     // Route web images through the server proxy to bypass browser CORS.
     SmartImage.proxyBaseUrl = serverBaseUrl;
+    HttpService.proxyBaseUrl = serverBaseUrl;
   } else {
     // On native, rust_api initializes with the DB path.
     await backend.init('${AppDirectories.data}/crispy_tivi_v2.sqlite');

@@ -523,9 +523,17 @@ pub fn vod_from_xtream_json(
         .filter_map(|v| serde_json::from_value(v.clone()).ok())
         .collect();
 
+    let categories: Vec<Option<String>> =
+        typed.iter().map(|item| item.category_id.clone()).collect();
+
     crate::parsers::vod::movies_from_xtream_listings(typed, base_url, username, password, source_id)
         .into_iter()
-        .map(crate::models::VodItem::from)
+        .zip(categories)
+        .map(|(movie, category_id)| {
+            let mut vod = crate::models::VodItem::from(movie);
+            vod.category = category_id;
+            vod
+        })
         .collect()
 }
 
@@ -542,10 +550,17 @@ pub fn series_from_xtream_json(
         .filter_map(|v| serde_json::from_value(v.clone()).ok())
         .collect();
 
+    let categories: Vec<Option<String>> =
+        typed.iter().map(|item| item.category_id.clone()).collect();
     let sid = source_id.unwrap_or("");
     series_from_xtream(typed, sid)
         .into_iter()
-        .map(crate::models::VodItem::from)
+        .zip(categories)
+        .map(|(series, category_id)| {
+            let mut vod = crate::models::VodItem::from(series);
+            vod.category = category_id;
+            vod
+        })
         .collect()
 }
 
