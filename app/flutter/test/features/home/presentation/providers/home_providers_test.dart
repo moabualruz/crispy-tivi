@@ -8,8 +8,6 @@ import 'package:crispy_tivi/features/home/presentation/'
     'providers/home_providers.dart';
 import 'package:crispy_tivi/features/iptv/domain/entities/'
     'channel.dart';
-import 'package:crispy_tivi/features/player/data/'
-    'watch_history_service.dart';
 import 'package:crispy_tivi/features/player/domain/entities/'
     'watch_history_entry.dart';
 import 'package:crispy_tivi/features/profiles/data/'
@@ -19,7 +17,7 @@ import 'package:crispy_tivi/features/profiles/domain/entities/'
 import 'package:crispy_tivi/features/vod/domain/entities/'
     'vod_item.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/'
-    'vod_paginated_providers.dart';
+    'vod_providers.dart';
 
 // ── Mocks ──────────────────────────────────────────
 
@@ -317,11 +315,7 @@ void main() {
   group('latestVodProvider', () {
     ProviderContainer createVodContainer(List<VodItem> items) {
       final c = ProviderContainer(
-        overrides: [
-          vodPagePaginatedProvider(
-            const VodPageRequest(sort: 'added_desc'),
-          ).overrideWith((ref) async => items),
-        ],
+        overrides: [filteredVodProvider.overrideWith((ref) => items)],
       );
       addTearDown(c.dispose);
       return c;
@@ -334,7 +328,7 @@ void main() {
       expect(result, isEmpty);
     });
 
-    test('returns first 10 items from paginated VOD state', () async {
+    test('returns first 10 items from filtered VOD state', () async {
       final items = List.generate(
         15,
         (i) => _vodItem(id: 'v$i', name: 'Movie $i'),
@@ -378,9 +372,7 @@ void main() {
     ProviderContainer createVodContainer(List<VodItem> items) {
       final c = ProviderContainer(
         overrides: [
-          vodPagePaginatedProvider(
-            const VodPageRequest(sort: 'rating_desc'),
-          ).overrideWith((ref) async => items),
+          filteredVodProvider.overrideWith((ref) => items),
           crispyBackendProvider.overrideWithValue(MemoryBackend()),
         ],
       );

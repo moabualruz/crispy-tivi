@@ -23,11 +23,14 @@ mixin VodSortableBrowserMixin<T extends ConsumerStatefulWidget>
   VodSortOption sortOption = VodSortOption.recentlyAdded;
 
   Timer? _searchDebounceTimer;
+  ProviderSubscription<List<VodItem>>? _sourceSubscription;
 
   /// Cached sorted+filtered item list (async, from Rust backend).
   List<VodItem> sortedItems = const [];
+  bool hasSortedItems = false;
 
   // Snapshot of the inputs used for the last sort run.
+  List<VodItem> _currentAll = const [];
   List<VodItem> _lastAll = const [];
   VodSortOption _lastSortOption = VodSortOption.recentlyAdded;
   String? _lastCategory;
@@ -54,6 +57,7 @@ mixin VodSortableBrowserMixin<T extends ConsumerStatefulWidget>
       final match = VodSortOption.values.where((o) => o.name == saved);
       if (match.isNotEmpty) {
         setState(() => sortOption = match.first);
+        _refreshSortedItemsIfNeeded(force: true);
       }
     }
   }
@@ -68,12 +72,14 @@ mixin VodSortableBrowserMixin<T extends ConsumerStatefulWidget>
     _searchDebounceTimer = Timer(_kSearchDebounce, () {
       if (!mounted) return;
       setState(() => searchQuery = query);
+      _refreshSortedItemsIfNeeded(force: true);
     });
   }
 
   /// Call when the user changes the sort option.
   Future<void> onSortOptionChanged(VodSortOption option) async {
     setState(() => sortOption = option);
+    _refreshSortedItemsIfNeeded(force: true);
     final settings = ref.read(settingsNotifierProvider);
     final notifier =
         settings.value != null
@@ -81,6 +87,32 @@ mixin VodSortableBrowserMixin<T extends ConsumerStatefulWidget>
             : null;
     if (notifier == null) return;
     await saveSortOption(notifier, option.name);
+  }
+
+  /// Call in [initState] with the provider that yields the full source list.
+  ///
+  /// This keeps sorting work out of `build()` and refreshes only when the
+  /// underlying item source actually changes.
+  void initializeSortedSource(
+    List<VodItem> initialItems,
+    ProviderSubscription<List<VodItem>> Function(
+      void Function(List<VodItem>) onItems,
+    )
+    subscribe,
+  ) {
+    _sourceSubscription?.close();
+    _sourceSubscription = subscribe((next) {
+      _currentAll = next;
+      _refreshSortedItemsIfNeeded();
+    });
+    _currentAll = initialItems;
+    _refreshSortedItemsIfNeeded(force: true);
+  }
+
+  /// Call when the user changes the active category filter.
+  void onCategorySelected(String? category) {
+    setState(() => selectedCategory = category);
+    _refreshSortedItemsIfNeeded(force: true);
   }
 
   /// Applies category/search filters, then delegates sorting to
@@ -96,33 +128,48 @@ mixin VodSortableBrowserMixin<T extends ConsumerStatefulWidget>
       sortByKey: sortOption.sortByKey,
     );
     if (!mounted) return;
-    setState(() => sortedItems = sorted);
+    setState(() {
+      sortedItems = sorted;
+      hasSortedItems = true;
+    });
   }
 
-  /// Compares current sort inputs against the last run and, if anything
-  /// changed, schedules [refreshSortedItems] via a microtask so it does
-  /// not block the current build.
-  ///
-  /// Call this inside `build()` after obtaining [allItems].  Subclasses
-  /// may add their own guards (e.g. `!isLoading && error == null`) before
-  /// calling this method.
-  void checkAndRefreshSort(List<VodItem> allItems) {
-    if (!identical(allItems, _lastAll) ||
-        sortOption != _lastSortOption ||
-        selectedCategory != _lastCategory ||
-        searchQuery != _lastQuery) {
-      _lastAll = allItems;
-      _lastSortOption = sortOption;
-      _lastCategory = selectedCategory;
-      _lastQuery = searchQuery;
-      Future.microtask(() => refreshSortedItems(allItems));
+  void _refreshSortedItemsIfNeeded({bool force = false}) {
+    final allItems = _currentAll;
+    if (!force &&
+        identical(allItems, _lastAll) &&
+        sortOption == _lastSortOption &&
+        selectedCategory == _lastCategory &&
+        searchQuery == _lastQuery) {
+      return;
     }
+    _lastAll = allItems;
+    _lastSortOption = sortOption;
+    _lastCategory = selectedCategory;
+    _lastQuery = searchQuery;
+    if (allItems.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        sortedItems = const [];
+        hasSortedItems = true;
+      });
+      return;
+    }
+    unawaited(refreshSortedItems(allItems));
+  }
+
+  /// Returns the last computed sorted result when available, otherwise the
+  /// current source list while the first computation is still pending.
+  List<VodItem> visibleItemsOr(List<VodItem> fallback) {
+    if (!hasSortedItems) return fallback;
+    return sortedItems;
   }
 
   /// Dispose the search controller and any pending debounce timer.
   /// Call before [super.dispose()].
   void disposeSortable() {
     _searchDebounceTimer?.cancel();
+    _sourceSubscription?.close();
     searchController.dispose();
   }
 }

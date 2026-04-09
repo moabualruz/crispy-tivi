@@ -86,7 +86,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
         stem: 'crispy_ffi',
-        ioDirectory: 'rust/crates/crispy-ffi/target/release/',
+        ioDirectory: '../../rust/crates/crispy-ffi/target/release/',
         webPrefix: 'pkg/',
       );
 }

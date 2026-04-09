@@ -16,10 +16,10 @@ import 'playlist_sync_utils.dart';
 
 export 'playlist_sync_utils.dart'
     show
-        kDefaultSyncIntervalHours,
         PartitionResult,
-        partitionStaleSources,
-        SyncReport;
+        SyncReport,
+        kDefaultSyncIntervalHours,
+        partitionStaleSources;
 
 /// Service that syncs playlist sources → channels
 /// + VODs.
@@ -151,14 +151,11 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       //    Runs BEFORE provider invalidation to avoid pool exhaustion.
       await fetchEpg();
 
-      // 7. NOW invalidate paginated providers — EPG sync is done,
-      //    DB connections are free for the cascading re-queries.
+      // 7. NOW invalidate dependent UI providers — EPG sync is done,
+      //    DB connections are free for any follow-up reads.
       if (!_ref.mounted) return 0;
-      if (totalChannels > 0) {
-        invalidateChannelPaginatedProviders();
-      }
       if (totalVod > 0) {
-        invalidateVodPaginatedProviders();
+        invalidateVodUiProviders();
       }
 
       // 7. Sync Stalker server-side favorites to local DB.
@@ -204,7 +201,7 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       }
       if (!_ref.mounted) return report;
       if (report.vodCount > 0) {
-        invalidateVodPaginatedProviders();
+        invalidateVodUiProviders();
       }
 
       // Fetch EPG after single source sync.

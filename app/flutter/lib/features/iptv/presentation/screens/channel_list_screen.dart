@@ -12,19 +12,16 @@ import 'package:crispy_tivi/l10n/l10n_extension.dart';
 import '../../../../core/utils/debounce_throttle.dart';
 import '../../../../core/utils/device_form_factor.dart';
 import '../../../../core/navigation/app_routes.dart';
-import '../../../../core/testing/test_keys.dart';
 import '../../../../core/theme/crispy_animation.dart';
-import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/alpha_jump_bar.dart';
 import '../../../../core/widgets/app_bar_search_button.dart';
-import '../../../../core/widgets/grid_focus_traveler.dart';
+import '../../../../core/testing/test_keys.dart';
+import '../../../../core/widgets/screen_template.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
-import '../../../../core/widgets/screen_template.dart';
 import '../providers/duplicate_detection_service.dart';
 import '../providers/playlist_sync_service.dart';
 import '../../domain/entities/channel.dart';
-import '../providers/channel_paginated_providers.dart';
 import '../providers/channel_providers.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
 import '../widgets/channel_genre_chips_sliver.dart';
@@ -170,9 +167,7 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
 
   Widget _groupsView(ChannelListState s) {
     final tt = Theme.of(context).textTheme;
-    final groupsAsync = ref.watch(channelGroupsPaginatedProvider);
-    final favsAsync = ref.watch(favoriteChannelsPaginatedProvider);
-    final favCount = favsAsync.valueOrNull?.length ?? 0;
+    final favCount = s.favoriteCount;
     return _wrapRefresh(
       CustomScrollView(
         key: const PageStorageKey('channel_groups'),
@@ -205,51 +200,8 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
           ..._searchAndResume(s),
           if (s.isLoading)
             const ChannelSkeletonSliver()
-          else if (s.groupMode != ChannelGroupMode.byCategory)
-            // TODO: Migrate playlist-group rows once paginated providers support
-            // source-name grouping with correct per-source counts.
-            _legacyGroupsSliver(s, favCount)
           else
-            groupsAsync.when(
-              data: (groups) {
-                final visibleGroups =
-                    groups
-                        .where((group) => !s.hiddenGroups.contains(group.name))
-                        .toList();
-                final itemCount = visibleGroups.length + (favCount > 0 ? 1 : 0);
-
-                return SliverList(
-                  delegate: SliverChildBuilderDelegate((_, i) {
-                    if (favCount > 0 && i == 0) {
-                      return ChannelGroupRow(
-                        group: ChannelListState.favoritesGroup,
-                        channelCount: favCount,
-                        onTap:
-                            () => ref
-                                .read(channelListProvider.notifier)
-                                .selectGroup(ChannelListState.favoritesGroup),
-                      );
-                    }
-
-                    final group = visibleGroups[i - (favCount > 0 ? 1 : 0)];
-                    return ChannelGroupRow(
-                      group: group.name,
-                      channelCount: group.count,
-                      onTap:
-                          () => ref
-                              .read(channelListProvider.notifier)
-                              .selectGroup(group.name),
-                    );
-                  }, childCount: itemCount),
-                );
-              },
-              loading: () => const ChannelSkeletonSliver(),
-              error:
-                  (_, _) =>
-                  // TODO: Replace this fallback once paginated group error
-                  // handling gets a dedicated retry/empty state.
-                  _legacyGroupsSliver(s, favCount),
-            ),
+            _legacyGroupsSliver(s, favCount),
         ],
       ),
     );
@@ -268,16 +220,6 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
       ),
     );
     final isFiltered = _showSearchBar || s.effectiveGroup != null;
-    final currentSort = _paginatedSortKeyFor(s.sortMode);
-    final usePaginatedGrid =
-        viewMode == ChannelViewMode.grid &&
-        currentSort != null &&
-        !_showSearchBar &&
-        s.searchQuery.isEmpty &&
-        s.groupMode == ChannelGroupMode.byCategory &&
-        s.effectiveGroup != ChannelListState.favoritesGroup &&
-        s.hiddenChannelIds.isEmpty &&
-        !(s.hideDuplicates && s.duplicateIds.isNotEmpty);
 
     // FE-TV-05: use EPG-aware list when search is active so channels
     // currently airing a matching program are also included.
@@ -286,43 +228,9 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
             ? ref.watch(epgAwareChannelListProvider)
             : s.filteredChannels;
 
-    final paginatedCountAsync =
-        usePaginatedGrid
-            ? ref.watch(channelCountPaginatedProvider(s.effectiveGroup))
-            : null;
-    final paginatedCount = usePaginatedGrid ? paginatedCountAsync : null;
-
-    if (usePaginatedGrid) {
-      // Preload stable ordering metadata for playback/zapping follow-up work.
-      ref.watch(
-        channelIdsPaginatedProvider((
-          group: s.effectiveGroup,
-          sort: currentSort,
-        )),
-      );
-    }
-
-    final names =
-        usePaginatedGrid
-            ? const <String>[]
-            : displayChannels.map((c) => c.name).toList();
+    final names = displayChannels.map((c) => c.name).toList();
     final indexOffsets = AlphaJumpBar.computeIndexOffsets(names);
-    final totalItemCount =
-        usePaginatedGrid
-            ? paginatedCount?.valueOrNull ?? 0
-            : displayChannels.length;
-    final paginatedGridStateSliver = paginatedCount?.when<Widget?>(
-      data: (count) => count == 0 ? const ChannelEmptySliver() : null,
-      loading: () => const ChannelSkeletonSliver(),
-      error:
-          (error, _) => ChannelErrorSliver(
-            error: error.toString(),
-            onRetry:
-                () => ref.invalidate(
-                  channelCountPaginatedProvider(s.effectiveGroup),
-                ),
-          ),
-    );
+    final totalItemCount = displayChannels.length;
 
     return Stack(
       children: [
@@ -371,27 +279,16 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
               if (!isFiltered) RecentChannelsStrip(onChannelTap: _onChannelTap),
               switch (viewMode) {
                 ChannelViewMode.grid =>
-                  paginatedGridStateSliver ??
-                      (usePaginatedGrid
-                          ? _paginatedChannelGridSliver(
-                            itemCount: paginatedCount?.valueOrNull ?? 0,
-                            selectedGroup: s.effectiveGroup,
-                            currentSort: currentSort,
-                          )
-                          : // TODO: Migrate search/favorites/hidden-channel and
-                          // unsupported sort paths once paginated providers
-                          // can reproduce those legacy screen filters safely.
-                          (channelStateSliver(
-                                isLoading: s.isLoading,
-                                error: s.error,
-                                isEmpty: displayChannels.isEmpty,
-                                onRetry:
-                                    () => ref.invalidate(channelListProvider),
-                              ) ??
-                              ChannelGridSliver(
-                                channels: displayChannels,
-                                onTap: _onChannelTap,
-                              ))),
+                  channelStateSliver(
+                        isLoading: s.isLoading,
+                        error: s.error,
+                        isEmpty: displayChannels.isEmpty,
+                        onRetry: () => ref.invalidate(channelListProvider),
+                      ) ??
+                      ChannelGridSliver(
+                        channels: displayChannels,
+                        onTap: _onChannelTap,
+                      ),
                 ChannelViewMode.list || ChannelViewMode.compact =>
                   channelStateSliver(
                         isLoading: s.isLoading,
@@ -448,108 +345,6 @@ class _ChannelListScreenState extends ConsumerState<ChannelListScreen> {
         );
       }, childCount: s.displayGroups.length),
     );
-  }
-
-  Widget _paginatedChannelGridSliver({
-    required int itemCount,
-    required String? selectedGroup,
-    required String currentSort,
-  }) {
-    ref.watch(epgProvider.select((s) => s.entries));
-    final epgState = ref.read(epgProvider);
-    final playingUrl = ref.watch(
-      playbackSessionProvider.select((s) => s.streamUrl),
-    );
-
-    return SliverLayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.crossAxisExtent;
-        final crossCount =
-            width < 360
-                ? 2
-                : width < 600
-                ? 3
-                : width < 900
-                ? 4
-                : 5;
-        const itemHeight = 110.0;
-
-        return FocusTraversalGroup(
-          policy: GridFocusTravelerPolicy(crossAxisCount: crossCount),
-          child: SliverPadding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: CrispySpacing.md,
-              vertical: CrispySpacing.sm,
-            ),
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossCount,
-                mainAxisExtent: itemHeight,
-                crossAxisSpacing: CrispySpacing.sm,
-                mainAxisSpacing: CrispySpacing.sm,
-              ),
-              delegate: SliverChildBuilderDelegate((ctx, index) {
-                final page = index ~/ kChannelPageSize;
-                final indexInPage = index % kChannelPageSize;
-                final pageRequest = ChannelPageRequest(
-                  group: selectedGroup,
-                  page: page,
-                  sort: currentSort,
-                );
-
-                return Consumer(
-                  builder: (context, ref, _) {
-                    final pageAsync = ref.watch(
-                      channelPagePaginatedProvider(pageRequest),
-                    );
-
-                    return pageAsync.when(
-                      loading: () => const ChannelCardSkeleton(),
-                      error: (_, _) => const SizedBox.shrink(),
-                      data: (channels) {
-                        if (indexInPage >= channels.length) {
-                          return const SizedBox.shrink();
-                        }
-
-                        final channel = channels[indexInPage];
-                        final nowPlaying = epgState.getNowPlaying(channel.id);
-
-                        return ChannelCard(
-                          channel: channel,
-                          currentProgram: nowPlaying?.title,
-                          isPlaying: channel.streamUrl == playingUrl,
-                          autofocus: index == 0,
-                          onTap:
-                              () => _onChannelTap(
-                                channel,
-                                channelList: channels,
-                                channelIndex: indexInPage,
-                              ),
-                        );
-                      },
-                    );
-                  },
-                );
-              }, childCount: itemCount),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  String? _paginatedSortKeyFor(ChannelSortMode mode) {
-    switch (mode) {
-      case ChannelSortMode.defaultOrder:
-        return 'number_asc';
-      case ChannelSortMode.byName:
-        return 'name_asc';
-      case ChannelSortMode.byDateAdded:
-        return 'added_desc';
-      case ChannelSortMode.byWatchTime:
-      case ChannelSortMode.manual:
-        return null;
-    }
   }
 
   Widget _searchBtn() => IconButton(

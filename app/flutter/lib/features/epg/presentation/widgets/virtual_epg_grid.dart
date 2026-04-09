@@ -224,7 +224,7 @@ class _VirtualEpgGridState extends State<VirtualEpgGrid> {
           left: 0,
           width: channelWidth,
           bottom: 0,
-          child: Container(
+          child: ColoredBox(
             color: Theme.of(context).scaffoldBackgroundColor,
             child: ListView.builder(
               key: TestKeys.epgChannelList,
@@ -249,7 +249,7 @@ class _VirtualEpgGridState extends State<VirtualEpgGrid> {
           left: channelWidth,
           right: 0,
           height: _headerHeight,
-          child: Container(
+          child: ColoredBox(
             color: Theme.of(context).colorScheme.surfaceContainer,
             child: SingleChildScrollView(
               controller: _headerScroll,

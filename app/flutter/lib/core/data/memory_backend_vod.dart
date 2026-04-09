@@ -157,86 +157,6 @@ mixin _MemoryVodMixin on _MemoryStorage {
         .toList();
   }
 
-  Future<String> getVodPage(
-    String sourceIdsJson, {
-    String? itemType,
-    String? category,
-    String? query,
-    required String sort,
-    required int offset,
-    required int limit,
-  }) async {
-    final sourceIds = (jsonDecode(sourceIdsJson) as List).cast<String>();
-    final filtered = _filteredVodItems(
-      sourceIds,
-      itemType: itemType,
-      category: category,
-      query: query,
-    );
-    _sortVodMaps(filtered, sort);
-
-    if (offset >= filtered.length || limit <= 0) {
-      return '[]';
-    }
-
-    final end = (offset + limit).clamp(0, filtered.length);
-    return jsonEncode(filtered.sublist(offset, end));
-  }
-
-  Future<int> getVodCount(
-    String sourceIdsJson, {
-    String? itemType,
-    String? category,
-    String? query,
-  }) async {
-    final sourceIds = (jsonDecode(sourceIdsJson) as List).cast<String>();
-    return _filteredVodItems(
-      sourceIds,
-      itemType: itemType,
-      category: category,
-      query: query,
-    ).length;
-  }
-
-  Future<String> getVodCategories(
-    String sourceIdsJson, {
-    String? itemType,
-  }) async {
-    final sourceIds = (jsonDecode(sourceIdsJson) as List).cast<String>();
-    final counts = <String, int>{};
-    for (final item in _filteredVodItems(sourceIds, itemType: itemType)) {
-      final category = (item['category'] as String?)?.trim();
-      final key =
-          (category == null || category.isEmpty) ? 'Uncategorized' : category;
-      counts[key] = (counts[key] ?? 0) + 1;
-    }
-
-    final result =
-        counts.entries
-            .map((entry) => {'name': entry.key, 'count': entry.value})
-            .toList()
-          ..sort(
-            (a, b) => categoryBucketCompare(
-              a['name']! as String,
-              b['name']! as String,
-            ),
-          );
-    return jsonEncode(result);
-  }
-
-  Future<String> searchVod(
-    String query,
-    String sourceIdsJson,
-    int offset,
-    int limit,
-  ) => getVodPage(
-    sourceIdsJson,
-    query: query,
-    sort: 'name_asc',
-    offset: offset,
-    limit: limit,
-  );
-
   // ── VOD Favorites ──────────────────────────────
 
   Future<String> getFilteredVod(
@@ -246,8 +166,15 @@ mixin _MemoryVodMixin on _MemoryStorage {
     String? query,
     required String sortBy,
   }) async {
-    // simplified for memory backend
-    return '[]';
+    final sourceIds = (jsonDecode(sourceIdsJson) as List).cast<String>();
+    final items = _filteredVodItems(
+      sourceIds,
+      itemType: itemType,
+      category: category,
+      query: query,
+    );
+    _sortVodMaps(items, sortBy);
+    return jsonEncode(items);
   }
 
   Future<String> filterAndSortVodItems(
@@ -256,8 +183,57 @@ mixin _MemoryVodMixin on _MemoryStorage {
     String? query,
     required String sortBy,
   }) async {
-    // simplified for memory backend
-    return itemsJson;
+    final rawItems =
+        (jsonDecode(itemsJson) as List)
+            .cast<Map<String, dynamic>>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+    final normalizedCategory = category?.trim();
+    final normalizedQuery = query?.trim().toLowerCase();
+
+    final filtered =
+        rawItems.where((item) {
+          final itemCategory = (item['category'] as String?)?.trim();
+          if (normalizedCategory != null && normalizedCategory.isNotEmpty) {
+            if (normalizedCategory == 'Uncategorized') {
+              if (itemCategory != null && itemCategory.isNotEmpty) {
+                return false;
+              }
+            } else if (itemCategory != normalizedCategory) {
+              return false;
+            }
+          }
+
+          if (normalizedQuery != null && normalizedQuery.isNotEmpty) {
+            final haystacks = [
+              item['name'],
+              item['description'],
+              item['category'],
+              item['director'],
+            ];
+            final cast = item['cast'];
+            final matchesText = haystacks.any(
+              (value) =>
+                  value is String &&
+                  value.toLowerCase().contains(normalizedQuery),
+            );
+            final matchesCast =
+                cast is List &&
+                cast.any(
+                  (value) =>
+                      value is String &&
+                      value.toLowerCase().contains(normalizedQuery),
+                );
+            if (!matchesText && !matchesCast) {
+              return false;
+            }
+          }
+
+          return true;
+        }).toList();
+
+    _sortVodMaps(filtered, sortBy);
+    return jsonEncode(filtered);
   }
 
   Future<List<String>> getVodFavorites(String profileId) async =>

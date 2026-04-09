@@ -26,9 +26,6 @@ abstract class _BackendDataMethods {
     List<String> sourceIds,
   );
 
-  /// Load channel groups with item counts filtered by source IDs.
-  Future<String> getChannelGroups(String sourceIdsJson);
-
   /// Load a page of channels filtered by source IDs and group.
   Future<String> getChannelsPage(
     String sourceIdsJson, {
@@ -38,29 +35,11 @@ abstract class _BackendDataMethods {
     required int limit,
   });
 
-  /// Count channels filtered by source IDs and group.
-  Future<int> getChannelCount(String sourceIdsJson, {String? group});
-
-  /// Load ordered channel IDs for a group filtered by source IDs.
-  Future<List<String>> getChannelIdsForGroup(
-    String sourceIdsJson, {
-    String? group,
-    required String sort,
-  });
-
   /// Load a single channel by ID.
   Future<Map<String, dynamic>?> getChannelById(String id);
 
   /// Load favourite channels for a profile filtered by source IDs.
   Future<String> getFavoriteChannels(String sourceIdsJson, String profileId);
-
-  /// Search channels by query with pagination.
-  Future<String> searchChannels(
-    String query,
-    String sourceIdsJson,
-    int offset,
-    int limit,
-  );
 
   // ── Channel Favorites ────────────────────────────────
 
@@ -88,36 +67,6 @@ abstract class _BackendDataMethods {
   /// Load VOD items filtered by source IDs.
   /// Empty [sourceIds] returns all VOD items.
   Future<List<Map<String, dynamic>>> getVodBySources(List<String> sourceIds);
-
-  /// Load a page of VOD items filtered by source IDs, type, category, and query.
-  Future<String> getVodPage(
-    String sourceIdsJson, {
-    String? itemType,
-    String? category,
-    String? query,
-    required String sort,
-    required int offset,
-    required int limit,
-  });
-
-  /// Count VOD items filtered by source IDs, type, category, and query.
-  Future<int> getVodCount(
-    String sourceIdsJson, {
-    String? itemType,
-    String? category,
-    String? query,
-  });
-
-  /// Load VOD categories with item counts filtered by source IDs and type.
-  Future<String> getVodCategories(String sourceIdsJson, {String? itemType});
-
-  /// Search VOD items by query with pagination.
-  Future<String> searchVod(
-    String query,
-    String sourceIdsJson,
-    int offset,
-    int limit,
-  );
 
   /// Find VOD alternatives from other sources matching by name + year.
   /// [year] = 0 means "no year filter".

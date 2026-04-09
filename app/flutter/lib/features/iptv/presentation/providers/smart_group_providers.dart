@@ -116,6 +116,18 @@ final smartGroupChannelIdsProvider = FutureProvider.autoDispose<Set<String>>((
   return ids;
 });
 
+/// Narrow per-channel projection so list rows do not all rebuild when the
+/// full smart-group membership set changes in unrelated ways.
+final isChannelInSmartGroupProvider = Provider.family.autoDispose<bool, String>(
+  (ref, channelId) {
+    return ref.watch(
+      smartGroupChannelIdsProvider.select(
+        (async) => async.value?.contains(channelId) ?? false,
+      ),
+    );
+  },
+);
+
 /// Auto-detected smart group candidates.
 final smartGroupCandidatesProvider =
     FutureProvider.autoDispose<List<SmartGroupCandidate>>((ref) async {

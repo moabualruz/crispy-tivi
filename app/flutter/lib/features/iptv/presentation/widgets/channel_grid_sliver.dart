@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/grid_focus_traveler.dart';
-import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../domain/entities/channel.dart';
+import '../providers/channel_epg_provider.dart';
 import 'channel_grid_item.dart';
 
 /// A sliver that renders the channel list as a responsive grid.
@@ -37,13 +37,6 @@ class ChannelGridSliver extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Select only entries to avoid rebuilds on unrelated EPG changes.
-    ref.watch(epgProvider.select((s) => s.entries));
-    final epgState = ref.read(epgProvider);
-    final playingUrl = ref.watch(
-      playbackSessionProvider.select((s) => s.streamUrl),
-    );
-
     return SliverLayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.crossAxisExtent;
@@ -66,13 +59,24 @@ class ChannelGridSliver extends ConsumerWidget {
               ),
               delegate: SliverChildBuilderDelegate((ctx, i) {
                 final ch = channels[i];
-                final nowPlaying = epgState.getNowPlaying(ch.id);
-                return ChannelGridItem(
-                  channel: ch,
-                  onTap: () => onTap(ch),
-                  currentProgram: nowPlaying?.title,
-                  isPlaying: ch.streamUrl == playingUrl,
-                  autofocus: i == 0,
+                return Consumer(
+                  builder: (context, ref, _) {
+                    final program = ref.watch(
+                      channelProgramSnapshotProvider(ch.id),
+                    );
+                    final isPlaying = ref.watch(
+                      playbackSessionProvider.select(
+                        (s) => s.streamUrl == ch.streamUrl,
+                      ),
+                    );
+                    return ChannelGridItem(
+                      channel: ch,
+                      onTap: () => onTap(ch),
+                      currentProgram: program.currentTitle,
+                      isPlaying: isPlaying,
+                      autofocus: i == 0,
+                    );
+                  },
                 );
               }, childCount: channels.length),
             ),

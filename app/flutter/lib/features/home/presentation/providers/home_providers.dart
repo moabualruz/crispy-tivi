@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants.dart';
 import '../../../../core/data/cache_service.dart';
-import '../../../../core/providers/source_filter_provider.dart';
 import '../../../epg/data/epg_json_codec.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../iptv/domain/entities/channel.dart';
@@ -12,7 +11,7 @@ import '../../../player/domain/entities/watch_history_entry.dart';
 import '../../../profiles/data/profile_service.dart';
 import '../../../vod/domain/entities/vod_item.dart';
 import '../../../vod/domain/utils/vod_utils.dart';
-import '../../../vod/presentation/providers/vod_paginated_providers.dart';
+import '../../../vod/presentation/providers/vod_providers.dart';
 import 'package:crispy_tivi/features/home/domain/utils/upcoming_programs.dart';
 
 export 'package:crispy_tivi/features/home/domain/utils/upcoming_programs.dart'
@@ -110,10 +109,16 @@ final favoriteChannelsProvider = FutureProvider.autoDispose<List<Channel>>((
 /// newest additions appear first. Falls back to the first 10
 /// items in load order when no [addedAt] timestamps exist.
 final latestVodProvider = FutureProvider<List<VodItem>>((ref) async {
-  final items = await ref.watch(
-    vodPagePaginatedProvider(const VodPageRequest(sort: 'added_desc')).future,
-  );
-  return items.take(10).toList();
+  final items = ref.watch(filteredVodProvider);
+  final sorted = [...items]..sort((a, b) {
+    final aAdded = a.addedAt;
+    final bAdded = b.addedAt;
+    if (aAdded == null && bAdded == null) return 0;
+    if (aAdded == null) return 1;
+    if (bAdded == null) return -1;
+    return bAdded.compareTo(aAdded);
+  });
+  return sorted.take(10).toList();
 });
 
 /// Featured VOD items for the home hero banner.
@@ -121,11 +126,7 @@ final latestVodProvider = FutureProvider<List<VodItem>>((ref) async {
 /// Uses the paginated movies feed as the source of truth instead of the
 /// legacy bulk-loaded [vodProvider] state.
 final featuredVodProvider = FutureProvider<List<VodItem>>((ref) async {
-  final items = await ref.watch(
-    vodPagePaginatedProvider(
-      const VodPageRequest(itemType: 'movie', sort: 'added_desc'),
-    ).future,
-  );
+  final items = ref.watch(filteredMoviesProvider);
   return featuredItems(items, limit: 5);
 });
 
@@ -135,9 +136,7 @@ final featuredVodProvider = FutureProvider<List<VodItem>>((ref) async {
 ///
 /// Exposed for test settling — prefer [top10VodProvider] in UI code.
 final top10VodAsyncProvider = FutureProvider<List<VodItem>>((ref) async {
-  final items = await ref.watch(
-    vodPagePaginatedProvider(const VodPageRequest(sort: 'rating_desc')).future,
-  );
+  final items = ref.watch(filteredVodProvider);
   if (items.isEmpty) return const [];
   final cache = ref.read(cacheServiceProvider);
   return cache.filterTopVod(items, 10);
@@ -172,18 +171,15 @@ final continueWatchingSeriesNextEpisodeProvider =
         continueWatchingSeriesProvider.future,
       );
       if (seriesEntries.isEmpty) return const [];
-      final sourceIds = ref.watch(effectiveSourceIdsProvider);
       final cache = ref.read(cacheServiceProvider);
-      final pageItems = await cache.getVodPage(
-        sourceIds: sourceIds,
-        itemType: 'episode',
-        sort: 'added_desc',
-        offset: 0,
-        limit: 200,
-      );
+      final episodeItems =
+          ref
+              .watch(filteredVodProvider)
+              .where((item) => item.type == VodType.episode)
+              .toList();
       return cache.resolveNextEpisodes(
         seriesEntries,
-        pageItems,
+        episodeItems,
         kNextEpisodeThreshold,
       );
     });

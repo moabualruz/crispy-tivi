@@ -6,10 +6,8 @@ import '../../../../core/domain/entities/playlist_source.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import '../../../profiles/presentation/providers/profile_service_providers.dart'
     show accessibleSourcesProvider;
-import '../../../vod/presentation/providers/vod_paginated_providers.dart';
 import '../../../vod/presentation/providers/vod_favorites_provider.dart';
 import '../../domain/entities/channel.dart';
-import 'channel_paginated_providers.dart';
 import 'channel_providers.dart';
 import 'duplicate_detection_service.dart';
 import 'iptv_service_providers.dart';
@@ -73,7 +71,6 @@ mixin PlaylistSyncHelpers {
   /// current profile's permissions.
   Future<void> reloadChannelList() async {
     debugPrint('PlaylistSync: reloading channel list from DB…');
-    invalidateChannelPaginatedProviders();
     await ref.read(channelListProvider.notifier).refreshFromBackend();
     if (!ref.mounted) return;
     syncSourceNames();
@@ -139,23 +136,8 @@ mixin PlaylistSyncHelpers {
     }
   }
 
-  void invalidateChannelPaginatedProviders() {
+  void invalidateVodUiProviders() {
     if (!ref.mounted) return;
-    ref.invalidate(channelGroupsPaginatedProvider);
-    ref.invalidate(channelCountPaginatedProvider);
-    ref.invalidate(channelPagePaginatedProvider);
-    ref.invalidate(channelIdsPaginatedProvider);
-    ref.invalidate(channelByIdPaginatedProvider);
-    ref.invalidate(channelSearchPaginatedProvider);
-  }
-
-  void invalidateVodPaginatedProviders() {
-    if (!ref.mounted) return;
-    ref.invalidate(vodCategoriesPaginatedProvider);
-    ref.invalidate(vodCountPaginatedProvider);
-    ref.invalidate(vodPagePaginatedProvider);
-    ref.invalidate(vodSearchPaginatedProvider);
-    ref.invalidate(vodAllPaginatedProvider);
     ref.invalidate(vodFavoritesProvider);
   }
 }

@@ -15,7 +15,6 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/utils/device_form_factor.dart';
 import '../../../../core/widgets/genre_pill_row.dart';
 import '../../../../core/widgets/screen_template.dart';
-import '../../../../core/widgets/skeleton_loader.dart';
 import '../../../../core/widgets/smart_image.dart';
 import '../../../../core/widgets/source_selector_bar.dart';
 import '../../../../core/widgets/tv_master_detail_layout.dart';
@@ -23,7 +22,6 @@ import '../../../home/presentation/widgets/vod_row.dart';
 import '../../../iptv/presentation/providers/playlist_sync_service.dart';
 import '../../domain/entities/vod_item.dart';
 import '../mixins/vod_sortable_browser_mixin.dart';
-import '../providers/vod_paginated_providers.dart';
 import '../providers/vod_providers.dart';
 import '../widgets/vod_browser_shell.dart';
 import '../widgets/vod_poster_card.dart';
@@ -36,29 +34,18 @@ class VodBrowserScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final totalCountAsync = ref.watch(
-      vodCountPaginatedProvider(const VodPageRequest(itemType: 'movie')),
-    );
-    final totalCount = totalCountAsync.asData?.value;
-    final shellError = totalCountAsync.whenOrNull(
-      error: (err, _) => err.toString(),
-    );
+    final vodState = ref.watch(vodProvider);
+    final movies = ref.watch(filteredMoviesProvider);
 
     return VodBrowserShell(
       title: context.l10n.vodMovies,
-      isLoading: totalCountAsync.isLoading,
-      error: shellError,
-      isEmpty: totalCount == 0,
+      isLoading: vodState.isLoading,
+      error: vodState.error,
+      isEmpty: !vodState.isLoading && vodState.error == null && movies.isEmpty,
       emptyIcon: Icons.movie_outlined,
       emptyTitle: context.l10n.vodNoItems,
       emptyDescription: 'Add a playlist source in Settings',
-      onRetry: () {
-        ref.invalidate(vodProvider);
-        ref.invalidate(vodCategoriesPaginatedProvider('movie'));
-        ref.invalidate(
-          vodCountPaginatedProvider(const VodPageRequest(itemType: 'movie')),
-        );
-      },
+      onRetry: () => ref.read(vodProvider.notifier).refreshFromBackend(),
       child: Scaffold(
         key: TestKeys.vodBrowserScreen,
         appBar: AppBar(
@@ -111,6 +98,11 @@ class _VodMoviesBodyState extends ConsumerState<_VodMoviesBody>
   @override
   void initState() {
     super.initState();
+    initializeSortedSource(
+      ref.read(filteredMoviesProvider),
+      (onItems) =>
+          ref.listenManual(filteredMoviesProvider, (_, next) => onItems(next)),
+    );
     initSortOption();
     _loadDensity();
   }
@@ -134,33 +126,17 @@ class _VodMoviesBodyState extends ConsumerState<_VodMoviesBody>
   }
 
   Future<void> _onShuffle() async {
-    final query = searchQuery.trim();
-    final request = VodPageRequest(
-      itemType: 'movie',
-      category: selectedCategory,
-      query: query.isEmpty ? null : query,
-      sort: sortOption.sortByKey,
-    );
-    final count = await ref.read(vodCountPaginatedProvider(request).future);
+    final items =
+        sortedItems.isNotEmpty ? sortedItems : ref.read(filteredMoviesProvider);
     if (!mounted) return;
-    if (count == 0) {
+    if (items.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('No items to shuffle')));
       return;
     }
 
-    final randomIndex = math.Random().nextInt(count);
-    final pageRequest = VodPageRequest(
-      itemType: 'movie',
-      category: selectedCategory,
-      query: query.isEmpty ? null : query,
-      sort: sortOption.sortByKey,
-      page: randomIndex ~/ kVodPageSize,
-    );
-    final page = await ref.read(vodPagePaginatedProvider(pageRequest).future);
-    if (!mounted) return;
-    final item = page[randomIndex % kVodPageSize];
+    final item = items[math.Random().nextInt(items.length)];
     final tag = '${item.id}_shuffle';
     unawaited(
       context.push(AppRoutes.vodDetails, extra: {'item': item, 'heroTag': tag}),
@@ -187,15 +163,23 @@ class _VodMoviesBodyState extends ConsumerState<_VodMoviesBody>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final categoriesAsync = ref.watch(vodCategoriesPaginatedProvider('movie'));
-    final categories =
-        (categoriesAsync.asData?.value ?? const <({String name, int count})>[])
-            .where((category) => category.count > 0)
-            .toList();
+    final allMovies = ref.watch(filteredMoviesProvider);
+    final visibleMovies = visibleItemsOr(allMovies);
+    final categories = <String, int>{};
+    for (final item in allMovies) {
+      final category = item.category;
+      if (category == null || category.isEmpty) continue;
+      categories[category] = (categories[category] ?? 0) + 1;
+    }
+    final categoryNames = categories.keys.toList()..sort();
+    final itemsByCategory = <String, List<VodItem>>{};
+    for (final item in visibleMovies) {
+      final category = item.category;
+      if (category == null || category.isEmpty) continue;
+      (itemsByCategory[category] ??= <VodItem>[]).add(item);
+    }
     final isSearchOrCategory =
         selectedCategory != null || searchQuery.trim().isNotEmpty;
-    final currentSort = sortOption.sortByKey;
-    final query = searchQuery.trim();
 
     return _wrapRefresh(
       CustomScrollView(
@@ -217,20 +201,15 @@ class _VodMoviesBodyState extends ConsumerState<_VodMoviesBody>
           const SliverToBoxAdapter(child: SourceSelectorBar()),
           SliverToBoxAdapter(
             child: GenrePillRow(
-              categories: categories.map((category) => category.name).toList(),
+              categories: categoryNames,
               selectedCategory: selectedCategory,
-              onCategorySelected: (category) {
-                setState(() => selectedCategory = category);
-              },
+              onCategorySelected: onCategorySelected,
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.sm)),
           if (isSearchOrCategory)
-            _PaginatedVodGrid(
-              itemType: 'movie',
-              category: selectedCategory,
-              query: query.isEmpty ? null : query,
-              sort: currentSort,
+            _VodGrid(
+              items: visibleMovies,
               maxExtent: _density.maxCardExtent(
                 MediaQuery.sizeOf(context).width,
               ),
@@ -239,14 +218,14 @@ class _VodMoviesBodyState extends ConsumerState<_VodMoviesBody>
           else
             SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
-                final category = categories[index];
-                return _PaginatedVodCategoryRow(
-                  itemType: 'movie',
-                  category: category.name,
-                  sort: currentSort,
+                final category = categoryNames[index];
+                final items = itemsByCategory[category] ?? const <VodItem>[];
+                return _VodCategoryRow(
+                  category: category,
+                  items: items,
                   icon: Icons.local_movies,
                 );
-              }, childCount: categories.length),
+              }, childCount: categoryNames.length),
             ),
           const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xl)),
         ],
@@ -302,79 +281,42 @@ class _VodMoviesTvLayoutState extends State<_VodMoviesTvLayout> {
   }
 }
 
-class _PaginatedVodCategoryRow extends ConsumerWidget {
-  const _PaginatedVodCategoryRow({
-    required this.itemType,
+class _VodCategoryRow extends StatelessWidget {
+  const _VodCategoryRow({
     required this.category,
-    required this.sort,
+    required this.items,
     required this.icon,
   });
 
-  final String itemType;
   final String category;
-  final String sort;
+  final List<VodItem> items;
   final IconData icon;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final pageAsync = ref.watch(
-      vodPagePaginatedProvider(
-        VodPageRequest(
-          itemType: itemType,
-          category: category,
-          sort: sort,
-          page: 0,
-        ),
-      ),
-    );
-
-    return pageAsync.when(
-      data:
-          (items) =>
-              items.isEmpty
-                  ? const SizedBox.shrink()
-                  : VodRow(
-                    title: category,
-                    icon: icon,
-                    items: items,
-                    isTitleBadge: true,
-                  ),
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    return VodRow(
+      title: category,
+      icon: icon,
+      items: items,
+      isTitleBadge: true,
     );
   }
 }
 
-class _PaginatedVodGrid extends ConsumerWidget {
-  const _PaginatedVodGrid({
-    required this.itemType,
-    required this.sort,
+class _VodGrid extends StatelessWidget {
+  const _VodGrid({
+    required this.items,
     required this.maxExtent,
-    this.category,
-    this.query,
     this.enableTvSelection = false,
   });
 
-  final String itemType;
-  final String? category;
-  final String? query;
-  final String sort;
+  final List<VodItem> items;
   final double maxExtent;
   final bool enableTvSelection;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final countAsync = ref.watch(
-      vodCountPaginatedProvider(
-        VodPageRequest(
-          itemType: itemType,
-          category: category,
-          query: query,
-          sort: sort,
-        ),
-      ),
-    );
-    final itemCount = countAsync.asData?.value ?? kVodPageSize;
+  Widget build(BuildContext context) {
     final crossSpacing =
         (maxExtent * (CrispyAnimation.hoverScale - 1.0)) + CrispySpacing.xs;
     final mainSpacing =
@@ -392,37 +334,21 @@ class _PaginatedVodGrid extends ConsumerWidget {
         ),
         delegate: SliverChildBuilderDelegate(
           (context, index) {
-            final page = index ~/ kVodPageSize;
-            final indexInPage = index % kVodPageSize;
-            final request = VodPageRequest(
-              itemType: itemType,
-              category: category,
-              query: query,
-              sort: sort,
-              page: page,
-            );
-            final pageAsync = ref.watch(vodPagePaginatedProvider(request));
-            return pageAsync.when(
-              data: (items) {
-                if (indexInPage >= items.length) {
-                  return const SizedBox.shrink();
-                }
-                final item = items[indexInPage];
-                return VodPosterCard(
-                  item: item,
-                  onTap:
-                      enableTvSelection
-                          ? () => VodTvSelectionScope.maybeOf(
-                            context,
-                          )?.onItemSelected(item)
-                          : null,
-                );
-              },
-              loading: () => const _VodPosterSkeleton(),
-              error: (_, _) => const SizedBox.shrink(),
+            if (index >= items.length) {
+              return const SizedBox.shrink();
+            }
+            final item = items[index];
+            return VodPosterCard(
+              item: item,
+              onTap:
+                  enableTvSelection
+                      ? () => VodTvSelectionScope.maybeOf(
+                        context,
+                      )?.onItemSelected(item)
+                      : null,
             );
           },
-          childCount: itemCount,
+          childCount: items.length,
           semanticIndexCallback: (_, index) => index,
         ),
       ),
@@ -569,14 +495,5 @@ class _VodMovieDetailPanel extends ConsumerWidget {
         ],
       ),
     );
-  }
-}
-
-class _VodPosterSkeleton extends StatelessWidget {
-  const _VodPosterSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SkeletonCard();
   }
 }

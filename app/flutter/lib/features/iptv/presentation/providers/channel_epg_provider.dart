@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/date_format_utils.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
 import 'iptv_service_providers.dart';
 import '../../domain/entities/channel.dart';
@@ -35,6 +36,35 @@ final channelEpgByIdProvider = FutureProvider.family
       final channel = _findChannelById(channelListState.channels, channelId);
       if (channel == null) return const [];
       return fetchChannelEpg(ref, channel);
+    });
+
+typedef ChannelProgramSnapshot =
+    ({String? currentTitle, double? currentProgress, String? nextProgramLabel});
+
+/// Channel-row/grid projection derived from batch EPG state.
+///
+/// This narrows rebuilds to the values each channel tile actually renders
+/// instead of watching the full EPG state in every visible list/grid widget.
+final channelProgramSnapshotProvider = Provider.family
+    .autoDispose<ChannelProgramSnapshot, String>((ref, channelId) {
+      return ref.watch(
+        epgProvider.select((state) {
+          final nowPlaying = state.getNowPlaying(channelId);
+          final nextEntry = state.getNextProgram(channelId);
+          return (
+            currentTitle: nowPlaying?.title,
+            currentProgress:
+                nowPlaying != null && nowPlaying.isLive
+                    ? nowPlaying.progress
+                    : null,
+            nextProgramLabel:
+                nextEntry != null
+                    ? 'Next: ${nextEntry.title} · '
+                        '${formatHHmmLocal(nextEntry.startTime)}'
+                    : null,
+          );
+        }),
+      );
     });
 
 /// Returns the best available "now playing" EPG entry by channel ID.

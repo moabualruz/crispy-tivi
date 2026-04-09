@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../../core/theme/crispy_colors.dart';
 import '../../../../core/theme/crispy_radius.dart';
@@ -14,52 +13,14 @@ import '../../domain/entities/vod_item.dart';
 /// Hero banner wrapper providing a scaled-up manual scrolling
 /// row of featured VOD items without auto-advancing.
 /// This now defers rendering logic completely to [VodRow].
-class VodHeroBanner extends ConsumerStatefulWidget {
+class VodHeroBanner extends StatelessWidget {
   const VodHeroBanner({super.key, required this.items});
 
   final List<VodItem> items;
 
   @override
-  ConsumerState<VodHeroBanner> createState() => _VodHeroBannerState();
-}
-
-class _VodHeroBannerState extends ConsumerState<VodHeroBanner> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _preCachePosterImages(widget.items);
-    });
-  }
-
-  @override
-  void didUpdateWidget(VodHeroBanner oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.items != widget.items) {
-      _preCachePosterImages(widget.items);
-    }
-  }
-
-  void _preCachePosterImages(List<VodItem> items) {
-    final toCache = items.take(6);
-    for (final item in toCache) {
-      final url = item.posterUrl;
-      if (url != null && url.isNotEmpty) {
-        // Use ResizeImage(width: 200) to match VodPosterCard's
-        // memCacheWidth: 200 — same cache key means no network
-        // re-fetch when the card renders.
-        precacheImage(
-          ResizeImage(NetworkImage(url), width: 200),
-          context,
-          onError: (e, st) {},
-        );
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (widget.items.isEmpty) {
+    if (items.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -82,7 +43,7 @@ class _VodHeroBannerState extends ConsumerState<VodHeroBanner> {
       padding: EdgeInsets.zero,
       child: VodRow(
         title: null, // Omits the header entirely
-        items: widget.items,
+        items: items,
         cardWidth: cardW,
         cardHeight: cardH,
         sectionHeight: sectionH,

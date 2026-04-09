@@ -8,7 +8,6 @@ import '../../features/dvr/data/dvr_service.dart';
 import '../../features/epg/presentation/providers/epg_providers.dart';
 import '../../features/favorites/presentation/providers/favorites_controller.dart';
 import '../../features/home/presentation/providers/home_providers.dart';
-import '../../features/iptv/presentation/providers/channel_paginated_providers.dart';
 import '../../features/iptv/presentation/providers/channel_providers.dart';
 import '../../features/multiview/presentation/providers/multiview_providers.dart';
 import '../../features/player/data/watch_history_service.dart';
@@ -16,7 +15,6 @@ import '../../features/profiles/data/profile_service.dart';
 import '../../features/profiles/data/source_access_service.dart';
 import '../../features/vod/presentation/providers/favorite_categories_provider.dart';
 import '../../features/vod/presentation/providers/vod_favorites_provider.dart';
-import '../../features/vod/presentation/providers/vod_paginated_providers.dart';
 import 'data_change_event.dart';
 import 'event_bus_provider.dart';
 
@@ -285,19 +283,8 @@ void _invalidateAllDataProviders(Ref ref) {
 void _invalidateChannelProviders(Ref ref) {
   ref.invalidate(channelListProvider);
   ref.invalidate(channelGroupsProvider);
-  ref.invalidate(channelGroupsPaginatedProvider);
-  ref.invalidate(channelCountPaginatedProvider);
-  ref.invalidate(channelPagePaginatedProvider);
-  ref.invalidate(channelIdsPaginatedProvider);
-  ref.invalidate(channelByIdPaginatedProvider);
-  ref.invalidate(channelSearchPaginatedProvider);
 }
 
 void _invalidateVodProviders(Ref ref) {
-  ref.invalidate(vodCategoriesPaginatedProvider);
-  ref.invalidate(vodCountPaginatedProvider);
-  ref.invalidate(vodPagePaginatedProvider);
-  ref.invalidate(vodSearchPaginatedProvider);
-  ref.invalidate(vodAllPaginatedProvider);
   ref.invalidate(vodFavoritesProvider);
 }

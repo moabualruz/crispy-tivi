@@ -32,35 +32,6 @@ mixin _WsVodMixin on _WsBackendBase {
     return (data as List).cast<Map<String, dynamic>>();
   }
 
-  Future<String> getVodPage(
-    String sourceIdsJson, {
-    String? itemType,
-    String? category,
-    String? query,
-    required String sort,
-    required int offset,
-    required int limit,
-  }) => throw UnimplementedError('getVodPage is not supported on WsBackend');
-
-  Future<int> getVodCount(
-    String sourceIdsJson, {
-    String? itemType,
-    String? category,
-    String? query,
-  }) => throw UnimplementedError('getVodCount is not supported on WsBackend');
-
-  Future<String> getVodCategories(String sourceIdsJson, {String? itemType}) =>
-      throw UnimplementedError(
-        'getVodCategories is not supported on WsBackend',
-      );
-
-  Future<String> searchVod(
-    String query,
-    String sourceIdsJson,
-    int offset,
-    int limit,
-  ) => throw UnimplementedError('searchVod is not supported on WsBackend');
-
   Future<String> getFilteredVod(
     String sourceIdsJson, {
     String? itemType,

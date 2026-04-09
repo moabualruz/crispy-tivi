@@ -54,6 +54,11 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
   @override
   void initState() {
     super.initState();
+    initializeSortedSource(
+      ref.read(filteredMoviesProvider),
+      (onItems) =>
+          ref.listenManual(filteredMoviesProvider, (_, next) => onItems(next)),
+    );
     initSortOption();
     _loadDensity();
   }
@@ -111,13 +116,18 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
     super.build(context);
     final allFiltered = ref.watch(filteredMoviesProvider);
 
-    // Re-sort whenever items, sort option, category, or query change.
-    checkAndRefreshSort(allFiltered);
-
     final movieCategories = widget.movieCategories;
-    final movies = sortedItems;
+    final movies = visibleItemsOr(allFiltered);
     final isSearchOrCategory =
         selectedCategory != null || searchQuery.isNotEmpty;
+    final itemsByCategory = <String, List<VodItem>>{};
+    if (!isSearchOrCategory) {
+      for (final item in movies) {
+        final category = item.category;
+        if (category == null || category.isEmpty) continue;
+        (itemsByCategory[category] ??= <VodItem>[]).add(item);
+      }
+    }
 
     return _wrapRefresh(
       CustomScrollView(
@@ -143,9 +153,7 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
             child: GenrePillRow(
               categories: movieCategories,
               selectedCategory: selectedCategory,
-              onCategorySelected: (cat) {
-                setState(() => selectedCategory = cat);
-              },
+              onCategorySelected: onCategorySelected,
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.sm)),
@@ -162,8 +170,7 @@ class _VodMoviesTabState extends ConsumerState<VodMoviesTab>
             SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
                 final cat = movieCategories[index];
-                final items =
-                    allFiltered.where((m) => m.category == cat).toList();
+                final items = itemsByCategory[cat] ?? const <VodItem>[];
                 if (items.isEmpty) {
                   return const SizedBox.shrink();
                 }

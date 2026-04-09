@@ -34,65 +34,14 @@ mixin _FfiVodMixin on _FfiBackendBase {
     return _decodeJsonList(json);
   }
 
-  Future<String> getVodPage(
-    String sourceIdsJson, {
-    String? itemType,
-    String? category,
-    String? query,
-    required String sort,
-    required int offset,
-    required int limit,
-  }) => rust_api.getVodPage(
-    sourceIdsJson: sourceIdsJson,
-    vodType: itemType,
-    category: category,
-    query: query,
-    sort: sort,
-    offset: PlatformInt64Util.from(offset),
-    limit: PlatformInt64Util.from(limit),
-  );
-
-  Future<int> getVodCount(
-    String sourceIdsJson, {
-    String? itemType,
-    String? category,
-    String? query,
-  }) async {
-    final result = await rust_api.getVodCount(
-      sourceIdsJson: sourceIdsJson,
-      vodType: itemType,
-      category: category,
-      query: query,
-    );
-    return result.toInt();
-  }
-
-  Future<String> getVodCategories(String sourceIdsJson, {String? itemType}) =>
-      rust_api.getVodCategories(
-        sourceIdsJson: sourceIdsJson,
-        vodType: itemType,
-      );
-
-  Future<String> searchVod(
-    String query,
-    String sourceIdsJson,
-    int offset,
-    int limit,
-  ) => rust_api.searchVod(
-    query: query,
-    sourceIdsJson: sourceIdsJson,
-    offset: PlatformInt64Util.from(offset),
-    limit: PlatformInt64Util.from(limit),
-  );
-
   Future<String> getFilteredVod(
     String sourceIdsJson, {
     String? itemType,
     String? category,
     String? query,
     required String sortBy,
-  }) async {
-    return await rust_api.getFilteredVod(
+  }) {
+    return rust_api.getFilteredVod(
       sourceIdsJson: sourceIdsJson,
       itemType: itemType,
       category: category,

@@ -1,6 +1,9 @@
 use rusqlite::{Row, params};
 
-use super::{ServiceContext, bool_to_int, build_in_placeholders, opt_dt_to_ts, str_params};
+use super::{
+    ServiceContext, bool_to_int, build_in_placeholders, build_in_placeholders_from, opt_dt_to_ts,
+    str_params,
+};
 use crate::database::row_helpers::RowExt;
 use crate::database::{DbError, optional};
 use crate::errors::DomainError;
@@ -80,14 +83,8 @@ fn build_channel_filters(
     let mut param_idx = 1;
 
     if !source_ids.is_empty() {
-        clauses.push(format!(
-            "source_id IN ({})",
-            build_in_placeholders(source_ids.len())
-        ));
-        for source_id in source_ids {
-            params.push(Box::new(source_id.clone()));
-        }
-        param_idx += source_ids.len();
+        clauses.push(build_source_id_clause(param_idx, source_ids.len()));
+        push_source_id_params(&mut params, &mut param_idx, source_ids);
     }
 
     if let Some(group) = group {
@@ -105,6 +102,63 @@ fn build_channel_filters(
     };
 
     (where_sql, params, param_idx)
+}
+
+fn build_source_id_clause(start_idx: usize, len: usize) -> String {
+    format!(
+        "source_id IN ({})",
+        build_in_placeholders_from(start_idx, len)
+    )
+}
+
+fn push_source_id_params(
+    params: &mut Vec<Box<dyn rusqlite::types::ToSql>>,
+    param_idx: &mut usize,
+    source_ids: &[String],
+) {
+    for source_id in source_ids {
+        params.push(Box::new(source_id.clone()));
+    }
+    *param_idx += source_ids.len();
+}
+
+fn build_filtered_channel_query(
+    select_sql: &str,
+    source_ids: &[String],
+    group: Option<&str>,
+    order_by: Option<&str>,
+) -> (String, Vec<Box<dyn rusqlite::types::ToSql>>, usize) {
+    let (where_sql, params, param_idx) = build_channel_filters(source_ids, group);
+    let mut sql = format!("{select_sql}{where_sql}");
+    if let Some(order_by) = order_by {
+        sql.push_str(" ORDER BY ");
+        sql.push_str(order_by);
+    }
+    (sql, params, param_idx)
+}
+
+fn build_channel_search_query(
+    select_sql: &str,
+    query: &str,
+    source_ids: &[String],
+) -> (String, Vec<Box<dyn rusqlite::types::ToSql>>, usize) {
+    let mut sql = format!("{select_sql} WHERE (name LIKE ?1 OR channel_group LIKE ?2)");
+    let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+    let like = format!("%{query}%");
+    let mut param_idx = 3;
+
+    params.push(Box::new(like.clone()));
+    params.push(Box::new(like));
+
+    if !source_ids.is_empty() {
+        sql.push_str(&format!(
+            " AND {}",
+            build_source_id_clause(param_idx, source_ids.len())
+        ));
+        push_source_id_params(&mut params, &mut param_idx, source_ids);
+    }
+
+    (sql, params, param_idx)
 }
 
 fn qualified_channel_columns(alias: &str) -> String {
@@ -342,14 +396,13 @@ impl ChannelService {
         limit: i64,
     ) -> Result<Vec<Channel>, DbError> {
         let conn = self.0.db.get()?;
-        let (where_sql, mut params, param_idx) = build_channel_filters(source_ids, group);
-        let sql = format!(
-            "SELECT {CHANNEL_COLUMNS} FROM db_channels{where_sql}
-             ORDER BY {}
-             LIMIT ?{param_idx} OFFSET ?{}",
-            channel_sort_clause(sort),
-            param_idx + 1
+        let (mut sql, mut params, param_idx) = build_filtered_channel_query(
+            &format!("SELECT {CHANNEL_COLUMNS} FROM db_channels"),
+            source_ids,
+            group,
+            Some(channel_sort_clause(sort)),
         );
+        sql.push_str(&format!(" LIMIT ?{param_idx} OFFSET ?{}", param_idx + 1));
         params.push(Box::new(limit));
         params.push(Box::new(offset));
 
@@ -365,8 +418,12 @@ impl ChannelService {
         group: Option<&str>,
     ) -> Result<i64, DbError> {
         let conn = self.0.db.get()?;
-        let (where_sql, params, _) = build_channel_filters(source_ids, group);
-        let sql = format!("SELECT COUNT(*) FROM db_channels{where_sql}");
+        let (sql, params, _) = build_filtered_channel_query(
+            "SELECT COUNT(*) FROM db_channels",
+            source_ids,
+            group,
+            None,
+        );
         let refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
         conn.query_row(&sql, refs.as_slice(), |row| row.get(0))
             .map_err(Into::into)
@@ -384,27 +441,11 @@ impl ChannelService {
         }
 
         let conn = self.0.db.get()?;
-        let mut sql = format!(
-            "SELECT {CHANNEL_COLUMNS} FROM db_channels WHERE (name LIKE ?1 OR channel_group LIKE ?2)",
+        let (mut sql, mut params, param_idx) = build_channel_search_query(
+            &format!("SELECT {CHANNEL_COLUMNS} FROM db_channels"),
+            query,
+            source_ids,
         );
-        let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
-        let like = format!("%{query}%");
-        let mut param_idx = 3;
-
-        params.push(Box::new(like.clone()));
-        params.push(Box::new(like));
-
-        if !source_ids.is_empty() {
-            let placeholders = (param_idx..param_idx + source_ids.len())
-                .map(|i| format!("?{i}"))
-                .collect::<Vec<_>>()
-                .join(", ");
-            sql.push_str(&format!(" AND source_id IN ({})", placeholders));
-            for id in source_ids {
-                params.push(Box::new(id.clone()));
-            }
-            param_idx += source_ids.len();
-        }
 
         sql.push_str(&format!(
             " ORDER BY name LIMIT ?{} OFFSET ?{}",
@@ -427,11 +468,11 @@ impl ChannelService {
         sort: &str,
     ) -> Result<Vec<String>, DbError> {
         let conn = self.0.db.get()?;
-        let (where_sql, params, _) = build_channel_filters(source_ids, group);
-        let sql = format!(
-            "SELECT id FROM db_channels{where_sql}
-             ORDER BY {}",
-            channel_sort_clause(sort)
+        let (sql, params, _) = build_filtered_channel_query(
+            "SELECT id FROM db_channels",
+            source_ids,
+            group,
+            Some(channel_sort_clause(sort)),
         );
         let refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
         let mut stmt = conn.prepare(&sql)?;

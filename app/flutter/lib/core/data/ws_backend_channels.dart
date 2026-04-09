@@ -37,11 +37,6 @@ mixin _WsChannelsMixin on _WsBackendBase {
     return (data as List).cast<Map<String, dynamic>>();
   }
 
-  Future<String> getChannelGroups(String sourceIdsJson) =>
-      throw UnimplementedError(
-        'getChannelGroups is not supported on WsBackend',
-      );
-
   Future<String> getChannelsPage(
     String sourceIdsJson, {
     String? group,
@@ -51,18 +46,6 @@ mixin _WsChannelsMixin on _WsBackendBase {
   }) =>
       throw UnimplementedError('getChannelsPage is not supported on WsBackend');
 
-  Future<int> getChannelCount(String sourceIdsJson, {String? group}) =>
-      throw UnimplementedError('getChannelCount is not supported on WsBackend');
-
-  Future<List<String>> getChannelIdsForGroup(
-    String sourceIdsJson, {
-    String? group,
-    required String sort,
-  }) =>
-      throw UnimplementedError(
-        'getChannelIdsForGroup is not supported on WsBackend',
-      );
-
   Future<Map<String, dynamic>?> getChannelById(String id) =>
       throw UnimplementedError('getChannelById is not supported on WsBackend');
 
@@ -70,13 +53,6 @@ mixin _WsChannelsMixin on _WsBackendBase {
       throw UnimplementedError(
         'getFavoriteChannels is not supported on WsBackend',
       );
-
-  Future<String> searchChannels(
-    String query,
-    String sourceIdsJson,
-    int offset,
-    int limit,
-  ) => throw UnimplementedError('searchChannels is not supported on WsBackend');
 
   // ── Channel Favorites ────────────────────────────
 

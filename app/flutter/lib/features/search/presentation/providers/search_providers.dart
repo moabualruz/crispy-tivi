@@ -3,12 +3,11 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'search_service_providers.dart';
 import '../../../../core/providers/source_filter_provider.dart';
 import '../../../../core/theme/crispy_animation.dart';
 import '../../../epg/presentation/providers/epg_providers.dart';
-import '../../../iptv/presentation/providers/channel_paginated_providers.dart';
-import '../../../vod/presentation/providers/vod_paginated_providers.dart';
+import '../../../iptv/presentation/providers/channel_providers.dart';
+import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../domain/entities/grouped_search_results.dart';
 import '../../domain/entities/search_history_entry.dart';
 import '../../domain/entities/search_state.dart';
@@ -38,24 +37,24 @@ class SearchNotifier extends Notifier<SearchState> {
     ref.watch(effectiveSourceIdsProvider);
 
     void onCatalogUpdated() {
-      unawaited(_loadCategories());
+      _syncAvailableCategories();
       if (state.hasQuery && !state.isLoading && state.results.isEmpty) {
         search(state.query);
       }
     }
 
-    ref.listen(channelGroupsPaginatedProvider, (_, _) {
+    ref.listen(channelListProvider.select((s) => s.groups), (_, _) {
       onCatalogUpdated();
     });
-    ref.listen(vodCategoriesPaginatedProvider('movie'), (_, _) {
+    ref.listen(vodProvider.select((s) => s.movieCategories), (_, _) {
       onCatalogUpdated();
     });
-    ref.listen(vodCategoriesPaginatedProvider('series'), (_, _) {
+    ref.listen(vodProvider.select((s) => s.seriesCategories), (_, _) {
       onCatalogUpdated();
     });
 
-    unawaited(_loadCategories());
-    return const SearchState();
+    final initialCategories = _buildAvailableCategories();
+    return SearchState(availableCategories: initialCategories);
   }
 
   /// Loads recent search history from database.
@@ -63,39 +62,36 @@ class SearchNotifier extends Notifier<SearchState> {
     try {
       final history =
           await ref.read(searchHistoryRepositoryProvider).getRecentSearches();
+      if (!ref.mounted) return;
       state = state.copyWith(recentSearches: history);
     } catch (e) {
       debugPrint('SearchNotifier._loadHistory: $e');
     }
   }
 
-  /// Loads available categories from VOD and IPTV.
-  Future<void> _loadCategories() async {
+  List<String> _buildAvailableCategories() {
+    final channelGroups =
+        ref
+            .read(channelListProvider)
+            .groups
+            .where((group) => group.isNotEmpty)
+            .toList();
+    final vodState = ref.read(vodProvider);
+    final vodCategories =
+        [
+          ...vodState.movieCategories,
+          ...vodState.seriesCategories,
+        ].where((category) => category.isNotEmpty).toList();
+    return ref
+        .read(searchRepositoryProvider)
+        .buildSearchCategories(vodCategories, channelGroups);
+  }
+
+  void _syncAvailableCategories() {
     try {
-      final channelGroups = await ref.read(
-        channelGroupsPaginatedProvider.future,
-      );
-      final movieCategories = await ref.read(
-        vodCategoriesPaginatedProvider('movie').future,
-      );
-      final seriesCategories = await ref.read(
-        vodCategoriesPaginatedProvider('series').future,
-      );
-
-      final vodCategories =
-          [
-            ...movieCategories,
-            ...seriesCategories,
-          ].map((c) => c.name).where((c) => c.isNotEmpty).toList();
-      final channelGroupNames =
-          channelGroups.map((g) => g.name).where((g) => g.isNotEmpty).toList();
-
-      final categories = ref
-          .read(searchRepositoryProvider)
-          .buildSearchCategories(vodCategories, channelGroupNames);
-      state = state.copyWith(availableCategories: categories);
+      state = state.copyWith(availableCategories: _buildAvailableCategories());
     } catch (e) {
-      debugPrint('SearchNotifier._loadCategories: $e');
+      debugPrint('SearchNotifier._syncAvailableCategories: $e');
     }
   }
 
@@ -124,25 +120,9 @@ class SearchNotifier extends Notifier<SearchState> {
   /// Executes the actual search operation.
   Future<void> _executeSearch(String query, int generation) async {
     const sources = <Never>[];
-    final effectiveSourceIds = ref.read(effectiveSourceIdsProvider);
     final epgEntries = ref.read(epgProvider).entries;
-    final cacheService = ref.read(cacheServiceProvider);
-
-    // SQL-level search: max 50 results per type, no full in-memory load.
-    final channels = await cacheService.searchChannels(
-      query: query,
-      sourceIds: effectiveSourceIds,
-      offset: 0,
-      limit: 50,
-    );
-    final vodItems = await cacheService.searchVod(
-      query: query,
-      sourceIds: effectiveSourceIds,
-      offset: 0,
-      limit: 50,
-    );
-
-    if (generation != _searchGeneration) return;
+    final channels = ref.read(channelListProvider).channels;
+    final vodItems = ref.read(filteredVodProvider);
 
     try {
       final results = await ref
@@ -156,7 +136,7 @@ class SearchNotifier extends Notifier<SearchState> {
             channels: channels,
           );
 
-      if (generation != _searchGeneration) return;
+      if (!ref.mounted || generation != _searchGeneration) return;
 
       state = state.copyWith(results: results, isLoading: false);
 
@@ -205,6 +185,7 @@ class SearchNotifier extends Notifier<SearchState> {
       await ref.read(searchHistoryRepositoryProvider).saveSearch(entry);
       final history =
           await ref.read(searchHistoryRepositoryProvider).getRecentSearches();
+      if (!ref.mounted) return;
       state = state.copyWith(recentSearches: history);
     } catch (e) {
       debugPrint('SearchNotifier._saveToHistory: $e');
@@ -217,6 +198,7 @@ class SearchNotifier extends Notifier<SearchState> {
       await ref.read(searchHistoryRepositoryProvider).removeSearch(id);
       final history =
           await ref.read(searchHistoryRepositoryProvider).getRecentSearches();
+      if (!ref.mounted) return;
       state = state.copyWith(recentSearches: history);
     } catch (e) {
       debugPrint('SearchNotifier.removeFromHistory: $e');

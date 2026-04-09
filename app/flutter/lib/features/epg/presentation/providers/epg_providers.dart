@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/cache_service.dart';
 import '../../../../core/providers/source_filter_provider.dart';
+import '../../../iptv/presentation/providers/channel_providers.dart';
 import '../../../iptv/domain/entities/channel.dart';
 import '../../../iptv/domain/entities/epg_entry.dart';
 import '../../data/epg_json_codec.dart';
@@ -16,11 +15,6 @@ export 'epg_state.dart';
 /// Manages EPG grid state.
 class EpgNotifier extends Notifier<EpgState> {
   static const _viewportHalfWindow = Duration(hours: 3);
-
-  /// Max channels per EPG fetch. Set high for initial load to catch
-  /// all channels with EPG data; the Rust facade efficiently filters
-  /// via SQL. The UI grid virtualizes — only visible rows render.
-  static const _viewportChannelLimit = 500;
   static const _retentionBuffer = Duration(hours: 1);
 
   bool _hasViewportFetch = false;
@@ -66,32 +60,6 @@ class EpgNotifier extends Notifier<EpgState> {
     );
   }
 
-  List<Channel> _viewportChannels() {
-    final filteredChannels = state.filteredChannels;
-    if (filteredChannels.isEmpty) return const [];
-
-    final selectedChannelId = state.selectedChannel;
-    if (selectedChannelId == null) {
-      return filteredChannels.take(_viewportChannelLimit).toList();
-    }
-
-    final selectedIndex = filteredChannels.indexWhere(
-      (channel) => channel.id == selectedChannelId,
-    );
-    if (selectedIndex < 0) {
-      return filteredChannels.take(_viewportChannelLimit).toList();
-    }
-
-    final halfWindow = _viewportChannelLimit ~/ 2;
-    final start = math.max(0, selectedIndex - halfWindow);
-    final end = math.min(
-      filteredChannels.length,
-      start + _viewportChannelLimit,
-    );
-    final adjustedStart = math.max(0, end - _viewportChannelLimit);
-    return filteredChannels.sublist(adjustedStart, end);
-  }
-
   Set<String> _retainedEntryKeys(List<Channel> channels) {
     final keys = <String>{};
     for (final channel in channels) {
@@ -107,17 +75,21 @@ class EpgNotifier extends Notifier<EpgState> {
   Future<void> _ensureChannelsLoaded() async {
     if (state.channels.isNotEmpty) return;
 
-    final cache = ref.read(cacheServiceProvider);
-    final sourceIds = ref.read(effectiveSourceIdsProvider);
-    final channels = await cache.getChannelsPage(
-      sourceIds: sourceIds,
-      sort: 'name_asc',
-      offset: 0,
-      limit: _viewportChannelLimit,
-    );
+    final seededChannels = ref.read(channelListProvider).channels;
+    final channels =
+        seededChannels.isNotEmpty
+            ? List<Channel>.of(seededChannels)
+            : await (() async {
+              final cache = ref.read(cacheServiceProvider);
+              final sourceIds = ref.read(effectiveSourceIdsProvider);
+              return sourceIds.isEmpty
+                  ? cache.loadChannels()
+                  : cache.getChannelsBySources(sourceIds);
+            })();
     final selectedChannelId = state.selectedChannel;
     if (selectedChannelId != null &&
         channels.every((channel) => channel.id != selectedChannelId)) {
+      final cache = ref.read(cacheServiceProvider);
       final selectedChannel = await cache.getChannelById(selectedChannelId);
       if (selectedChannel != null) {
         channels.insert(0, selectedChannel);
@@ -150,7 +122,7 @@ class EpgNotifier extends Notifier<EpgState> {
     final anchor = state.focusedTime ?? DateTime.now();
     final start = anchor.subtract(_viewportHalfWindow);
     final end = anchor.add(_viewportHalfWindow);
-    final channelsToFetch = _viewportChannels();
+    final channelsToFetch = state.filteredChannels;
     if (channelsToFetch.isEmpty) return;
 
     _hasViewportFetch = true;

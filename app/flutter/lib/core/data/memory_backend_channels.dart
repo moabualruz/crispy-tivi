@@ -5,49 +5,45 @@ part of 'memory_backend.dart';
 mixin _MemoryChannelsMixin on _MemoryStorage {
   // ── Channels ────────────────────────────────────
 
-  List<Map<String, dynamic>> _filteredChannels(
+  Iterable<Map<String, dynamic>> _matchingChannels(
     List<String> sourceIds, {
     String? group,
     String? query,
-  }) {
+  }) sync* {
     final sourceIdSet = sourceIds.toSet();
     final normalizedGroup = group?.trim();
     final normalizedQuery = query?.trim().toLowerCase();
 
-    return channels.values
-        .where((channel) {
-          final sourceId = channel['source_id'] as String?;
-          if (sourceIdSet.isNotEmpty && !sourceIdSet.contains(sourceId)) {
-            return false;
-          }
+    for (final channel in channels.values) {
+      final sourceId = channel['source_id'] as String?;
+      if (sourceIdSet.isNotEmpty && !sourceIdSet.contains(sourceId)) {
+        continue;
+      }
 
-          if (normalizedGroup != null &&
-              normalizedGroup.isNotEmpty &&
-              (channel['group_title'] as String? ??
-                      channel['group'] as String?) !=
-                  normalizedGroup) {
-            return false;
-          }
+      if (normalizedGroup != null &&
+          normalizedGroup.isNotEmpty &&
+          (channel['group_title'] as String? ?? channel['group'] as String?) !=
+              normalizedGroup) {
+        continue;
+      }
 
-          if (normalizedQuery != null && normalizedQuery.isNotEmpty) {
-            final name = (channel['name'] as String? ?? '').toLowerCase();
-            final tvgId = (channel['tvg_id'] as String? ?? '').toLowerCase();
-            final groupTitle =
-                (channel['group_title'] as String? ??
-                        channel['group'] as String? ??
-                        '')
-                    .toLowerCase();
-            if (!name.contains(normalizedQuery) &&
-                !tvgId.contains(normalizedQuery) &&
-                !groupTitle.contains(normalizedQuery)) {
-              return false;
-            }
-          }
+      if (normalizedQuery != null && normalizedQuery.isNotEmpty) {
+        final name = (channel['name'] as String? ?? '').toLowerCase();
+        final tvgId = (channel['tvg_id'] as String? ?? '').toLowerCase();
+        final groupTitle =
+            (channel['group_title'] as String? ??
+                    channel['group'] as String? ??
+                    '')
+                .toLowerCase();
+        if (!name.contains(normalizedQuery) &&
+            !tvgId.contains(normalizedQuery) &&
+            !groupTitle.contains(normalizedQuery)) {
+          continue;
+        }
+      }
 
-          return true;
-        })
-        .map((channel) => Map<String, dynamic>.from(channel))
-        .toList();
+      yield channel;
+    }
   }
 
   void _sortChannels(List<Map<String, dynamic>> items, String sort) {
@@ -124,31 +120,6 @@ mixin _MemoryChannelsMixin on _MemoryStorage {
         .toList();
   }
 
-  Future<String> getChannelGroups(String sourceIdsJson) async {
-    final sourceIds = (jsonDecode(sourceIdsJson) as List).cast<String>();
-    final counts = <String, int>{};
-    for (final channel in _filteredChannels(sourceIds)) {
-      final name =
-          (channel['group_title'] as String? ??
-                  channel['group'] as String? ??
-                  '')
-              .trim();
-      if (name.isEmpty) continue;
-      counts[name] = (counts[name] ?? 0) + 1;
-    }
-    final result =
-        counts.entries
-            .map((entry) => {'name': entry.key, 'count': entry.value})
-            .toList()
-          ..sort(
-            (a, b) => categoryBucketCompare(
-              a['name']! as String,
-              b['name']! as String,
-            ),
-          );
-    return jsonEncode(result);
-  }
-
   Future<String> getChannelsPage(
     String sourceIdsJson, {
     String? group,
@@ -157,29 +128,13 @@ mixin _MemoryChannelsMixin on _MemoryStorage {
     required int limit,
   }) async {
     final sourceIds = (jsonDecode(sourceIdsJson) as List).cast<String>();
-    final filtered = _filteredChannels(sourceIds, group: group);
+    final filtered = _matchingChannels(sourceIds, group: group).toList();
     _sortChannels(filtered, sort);
     if (offset >= filtered.length || limit <= 0) {
       return '[]';
     }
     final end = (offset + limit).clamp(0, filtered.length);
     return jsonEncode(filtered.sublist(offset, end));
-  }
-
-  Future<int> getChannelCount(String sourceIdsJson, {String? group}) async {
-    final sourceIds = (jsonDecode(sourceIdsJson) as List).cast<String>();
-    return _filteredChannels(sourceIds, group: group).length;
-  }
-
-  Future<List<String>> getChannelIdsForGroup(
-    String sourceIdsJson, {
-    String? group,
-    required String sort,
-  }) async {
-    final sourceIds = (jsonDecode(sourceIdsJson) as List).cast<String>();
-    final filtered = _filteredChannels(sourceIds, group: group);
-    _sortChannels(filtered, sort);
-    return filtered.map((channel) => channel['id'] as String).toList();
   }
 
   Future<Map<String, dynamic>?> getChannelById(String id) async {
@@ -194,26 +149,10 @@ mixin _MemoryChannelsMixin on _MemoryStorage {
     final sourceIds = (jsonDecode(sourceIdsJson) as List).cast<String>();
     final favoriteIds = favorites[profileId] ?? const <String>{};
     final filtered =
-        _filteredChannels(
+        _matchingChannels(
           sourceIds,
         ).where((channel) => favoriteIds.contains(channel['id'])).toList();
     return jsonEncode(filtered);
-  }
-
-  Future<String> searchChannels(
-    String query,
-    String sourceIdsJson,
-    int offset,
-    int limit,
-  ) async {
-    final sourceIds = (jsonDecode(sourceIdsJson) as List).cast<String>();
-    final filtered = _filteredChannels(sourceIds, query: query);
-    _sortChannels(filtered, 'name_asc');
-    if (offset >= filtered.length || limit <= 0) {
-      return '[]';
-    }
-    final end = (offset + limit).clamp(0, filtered.length);
-    return jsonEncode(filtered.sublist(offset, end));
   }
 
   // ── Channel Favorites ───────────────────────────

@@ -20,14 +20,13 @@ import '../../../iptv/presentation/providers/playlist_sync_service.dart';
 import '../../../player/data/watch_history_service.dart';
 import '../../domain/entities/vod_item.dart';
 import '../mixins/vod_sortable_browser_mixin.dart';
-import '../providers/vod_paginated_providers.dart';
 import '../providers/vod_providers.dart';
 import '../widgets/vod_browser_shell.dart';
 import '../widgets/continue_watching_section.dart';
 import '../widgets/recently_added_section.dart';
 import '../widgets/series_featured_banner.dart';
+import '../widgets/series_movies_grid.dart';
 import '../widgets/vod_search_sort_bar.dart';
-import '../widgets/vod_poster_card.dart';
 
 /// Top-level Series browser screen (V2 navigation).
 ///
@@ -57,19 +56,12 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
   @override
   void initState() {
     super.initState();
+    initializeSortedSource(
+      ref.read(filteredSeriesProvider),
+      (onItems) =>
+          ref.listenManual(filteredSeriesProvider, (_, next) => onItems(next)),
+    );
     initSortOption();
-  }
-
-  // T03: Use paginated provider for series categories (SQL-level, no full load).
-  // Cap to top 30 by count — 1500+ genre pills is unusable.
-  List<String> get _seriesCategories {
-    final async = ref.watch(vodCategoriesPaginatedProvider('series'));
-    final all =
-        (async.asData?.value ?? const <({String name, int count})>[])
-            .where((c) => c.count > 0)
-            .toList()
-          ..sort((a, b) => b.count.compareTo(a.count));
-    return all.take(30).map((c) => c.name).toList();
   }
 
   /// Wraps [child] in [RefreshIndicator] on mobile/tablet.
@@ -92,45 +84,29 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
 
   @override
   Widget build(BuildContext context) {
-    final totalCountAsync = ref.watch(
-      vodCountPaginatedProvider(const VodPageRequest(itemType: 'series')),
-    );
-    final firstPageSeriesAsync = ref.watch(
-      vodPagePaginatedProvider(const VodPageRequest(itemType: 'series')),
-    );
-    final totalCount = totalCountAsync.asData?.value;
-    final firstPageSeries =
-        firstPageSeriesAsync.asData?.value ?? const <VodItem>[];
-    final shellError =
-        totalCountAsync.whenOrNull(error: (err, _) => err.toString()) ??
-        firstPageSeriesAsync.whenOrNull(error: (err, _) => err.toString());
-
-    // Re-sort whenever items, sort option, category, or query change.
-    // Guards (isLoading, error, empty) live here so the mixin stays generic.
-    if (!totalCountAsync.isLoading &&
-        shellError == null &&
-        firstPageSeries.isNotEmpty &&
-        (selectedCategory != null || searchQuery.isNotEmpty)) {
-      checkAndRefreshSort(firstPageSeries);
+    final vodState = ref.watch(vodProvider);
+    final allSeries = ref.watch(filteredSeriesProvider);
+    final visibleSeries = visibleItemsOr(allSeries);
+    final categoryCounts = <String, int>{};
+    for (final item in allSeries) {
+      final category = item.category;
+      if (category == null || category.isEmpty) continue;
+      categoryCounts[category] = (categoryCounts[category] ?? 0) + 1;
     }
+    final seriesCategories =
+        categoryCounts.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
 
     return VodBrowserShell(
       title: context.l10n.vodSeries,
-      isLoading: totalCountAsync.isLoading || firstPageSeriesAsync.isLoading,
-      error: shellError,
-      isEmpty: totalCount == 0,
+      isLoading: vodState.isLoading,
+      error: vodState.error,
+      isEmpty:
+          !vodState.isLoading && vodState.error == null && allSeries.isEmpty,
       emptyIcon: Icons.tv_off,
       emptyTitle: context.l10n.vodNoItems,
       emptyDescription: 'Add a playlist source in Settings',
-      onRetry: () {
-        ref.invalidate(
-          vodCountPaginatedProvider(const VodPageRequest(itemType: 'series')),
-        );
-        ref.invalidate(
-          vodPagePaginatedProvider(const VodPageRequest(itemType: 'series')),
-        );
-        ref.invalidate(vodCategoriesPaginatedProvider('series'));
-      },
+      onRetry: () => ref.read(vodProvider.notifier).refreshFromBackend(),
       child: Scaffold(
         key: TestKeys.seriesBrowserScreen,
         appBar: AppBar(
@@ -178,19 +154,36 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
                 onPressed: () => context.go(AppRoutes.favorites),
               ),
             },
-            compactBody: _buildBody(context, firstPageSeries),
-            largeBody: _buildBody(context, firstPageSeries),
+            compactBody: _buildBody(
+              context,
+              visibleSeries,
+              seriesCategories.take(30).map((entry) => entry.key).toList(),
+            ),
+            largeBody: _buildBody(
+              context,
+              visibleSeries,
+              seriesCategories.take(30).map((entry) => entry.key).toList(),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, List<VodItem> firstPageSeries) {
-    final seriesCategories = _seriesCategories;
+  Widget _buildBody(
+    BuildContext context,
+    List<VodItem> visibleSeries,
+    List<String> seriesCategories,
+  ) {
     final isSearchOrCategory =
         selectedCategory != null || searchQuery.isNotEmpty;
     final cw = ref.watch(continueWatchingSeriesProvider);
+    final itemsByCategory = <String, List<VodItem>>{};
+    for (final item in visibleSeries) {
+      final category = item.category;
+      if (category == null || category.isEmpty) continue;
+      (itemsByCategory[category] ??= <VodItem>[]).add(item);
+    }
 
     return _wrapRefresh(
       CustomScrollView(
@@ -217,16 +210,14 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
             child: GenrePillRow(
               categories: seriesCategories,
               selectedCategory: selectedCategory,
-              onCategorySelected: (cat) {
-                setState(() => selectedCategory = cat);
-              },
+              onCategorySelected: onCategorySelected,
             ),
           ),
 
           // T10: Featured series hero banner (hidden during search/filter).
-          if (!isSearchOrCategory && firstPageSeries.isNotEmpty)
+          if (!isSearchOrCategory && visibleSeries.isNotEmpty)
             SliverToBoxAdapter(
-              child: SeriesFeaturedBanner(items: firstPageSeries),
+              child: SeriesFeaturedBanner(items: visibleSeries),
             ),
 
           // Continue watching
@@ -262,13 +253,9 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
 
           // Series grid or swimlanes
           if (isSearchOrCategory)
-            _PaginatedSeriesGrid(
-              category: selectedCategory,
-              query: searchQuery.isEmpty ? null : searchQuery,
-              sort: sortOption.sortByKey,
-            )
+            _SeriesGrid(items: visibleSeries)
           else
-            _buildCategorySwimlanes(seriesCategories),
+            _buildCategorySwimlanes(seriesCategories, itemsByCategory),
 
           const SliverToBoxAdapter(child: SizedBox(height: CrispySpacing.xl)),
         ],
@@ -279,125 +266,53 @@ class _SeriesBrowserScreenState extends ConsumerState<SeriesBrowserScreen>
   /// Cap swimlane rows to avoid 1500+ concurrent widget builds.
   static const _kMaxSwimlaneCategories = 20;
 
-  Widget _buildCategorySwimlanes(List<String> seriesCategories) {
+  Widget _buildCategorySwimlanes(
+    List<String> seriesCategories,
+    Map<String, List<VodItem>> itemsByCategory,
+  ) {
     final capped = seriesCategories.take(_kMaxSwimlaneCategories).toList();
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
         final category = capped[index];
-        return _PaginatedSeriesCategoryRow(
+        return _SeriesCategoryRow(
           category: category,
-          sort: sortOption.sortByKey,
+          items: itemsByCategory[category] ?? const <VodItem>[],
         );
       }, childCount: capped.length),
     );
   }
 }
 
-class _PaginatedSeriesCategoryRow extends ConsumerWidget {
-  const _PaginatedSeriesCategoryRow({
-    required this.category,
-    required this.sort,
-  });
+class _SeriesCategoryRow extends ConsumerWidget {
+  const _SeriesCategoryRow({required this.category, required this.items});
 
   final String category;
-  final String sort;
+  final List<VodItem> items;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pageAsync = ref.watch(
-      vodPagePaginatedProvider(
-        VodPageRequest(
-          itemType: 'series',
-          category: category,
-          sort: sort,
-          page: 0,
-        ),
-      ),
-    );
     final newEpisodesIds = ref.watch(seriesWithNewEpisodesProvider);
     ContentBadge? newEpisodeBadge(VodItem item) =>
         newEpisodesIds.contains(item.id) ? ContentBadge.newEpisode : null;
 
-    return pageAsync.when(
-      data:
-          (items) =>
-              items.isEmpty
-                  ? const SizedBox.shrink()
-                  : VodRow(
-                    title: category,
-                    icon: Icons.tv,
-                    items: items,
-                    isTitleBadge: true,
-                    badgeBuilder: newEpisodeBadge,
-                  ),
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+    if (items.isEmpty) return const SizedBox.shrink();
+    return VodRow(
+      title: category,
+      icon: Icons.tv,
+      items: items,
+      isTitleBadge: true,
+      badgeBuilder: newEpisodeBadge,
     );
   }
 }
 
-class _PaginatedSeriesGrid extends ConsumerWidget {
-  const _PaginatedSeriesGrid({required this.sort, this.category, this.query});
+class _SeriesGrid extends ConsumerWidget {
+  const _SeriesGrid({required this.items});
 
-  final String? category;
-  final String? query;
-  final String sort;
+  final List<VodItem> items;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final countAsync = ref.watch(
-      vodCountPaginatedProvider(
-        VodPageRequest(
-          itemType: 'series',
-          category: category,
-          query: query,
-          sort: sort,
-        ),
-      ),
-    );
-    final itemCount = countAsync.asData?.value ?? kVodPageSize;
-
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: CrispySpacing.md),
-      sliver: SliverGrid(
-        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 180,
-          childAspectRatio: 2 / 3,
-          mainAxisSpacing: CrispySpacing.md,
-          crossAxisSpacing: CrispySpacing.sm,
-        ),
-        delegate: SliverChildBuilderDelegate((context, index) {
-          final page = index ~/ kVodPageSize;
-          final indexInPage = index % kVodPageSize;
-          final request = VodPageRequest(
-            itemType: 'series',
-            category: category,
-            query: query,
-            sort: sort,
-            page: page,
-          );
-          final pageAsync = ref.watch(vodPagePaginatedProvider(request));
-          final newEpisodesIds = ref.watch(seriesWithNewEpisodesProvider);
-
-          return pageAsync.when(
-            data: (items) {
-              if (indexInPage >= items.length) return const SizedBox.shrink();
-              final item = items[indexInPage];
-              final badge =
-                  newEpisodesIds.contains(item.id)
-                      ? ContentBadge.newEpisode
-                      : null;
-              return VodPosterCard(
-                item: item,
-                badge: badge,
-                onTap: () => context.push(AppRoutes.seriesDetail, extra: item),
-              );
-            },
-            loading: () => const SizedBox.shrink(),
-            error: (_, _) => const SizedBox.shrink(),
-          );
-        }, childCount: itemCount),
-      ),
-    );
+    return SeriesMoviesGrid(series: items);
   }
 }

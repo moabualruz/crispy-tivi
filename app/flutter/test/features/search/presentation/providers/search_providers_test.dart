@@ -49,12 +49,7 @@ class MockSearchRepository implements SearchRepository {
     List<Channel>? channels,
   }) async {
     if (onSearch != null) return onSearch!(query);
-    return const GroupedSearchResults(
-      channels: [],
-      epgPrograms: [],
-      movies: [],
-      series: [],
-    );
+    return GroupedSearchResults.empty;
   }
 
   @override
@@ -115,10 +110,14 @@ void main() {
       // Trigger initialization
       container.read(searchControllerProvider);
 
-      // Since _loadHistory is fire-and-forget in build, give it a tiny tick
-      await Future.delayed(Duration.zero);
+      // Since _loadHistory is fire-and-forget in build, allow a few microtask
+      // turns for the async repository read to settle.
+      SearchState updatedState = container.read(searchControllerProvider);
+      for (var i = 0; i < 5 && updatedState.recentSearches.isEmpty; i++) {
+        await Future.delayed(Duration.zero);
+        updatedState = container.read(searchControllerProvider);
+      }
 
-      final updatedState = container.read(searchControllerProvider);
       expect(updatedState.recentSearches.length, 1);
       expect(updatedState.recentSearches.first.query, 'Initial query');
     });
@@ -130,12 +129,7 @@ void main() {
       bool searchCalled = false;
       mockSearchRepo.onSearch = (q) async {
         searchCalled = true;
-        return const GroupedSearchResults(
-          channels: [],
-          epgPrograms: [],
-          movies: [],
-          series: [],
-        );
+        return GroupedSearchResults.empty;
       };
 
       notifier.updateFilter(const SearchFilter(searchInDescription: true));
@@ -153,12 +147,7 @@ void main() {
 
       mockSearchRepo.onSearch = (q) async {
         await Future.delayed(const Duration(milliseconds: 100));
-        return const GroupedSearchResults(
-          channels: [],
-          epgPrograms: [],
-          movies: [],
-          series: [],
-        );
+        return GroupedSearchResults.empty;
       };
 
       // T0: emit slow search
