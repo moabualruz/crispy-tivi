@@ -33,6 +33,26 @@ mixin _MemoryEpgMixin on _MemoryStorage {
     DateTime end,
   ) => getEpgsForChannels(channelIds, start, end);
 
+  Future<List<String>> getEpgCoverageChannelIds(
+    List<String> channelIds,
+    DateTime start,
+    DateTime end,
+  ) async {
+    final result = <String>[];
+    for (final id in channelIds) {
+      final entries = epg[id];
+      if (entries == null) continue;
+      final hasCoverage = entries.any((e) {
+        final eStart = DateTime.tryParse(e['start_time'] as String? ?? '');
+        final eEnd = DateTime.tryParse(e['end_time'] as String? ?? '');
+        if (eStart == null || eEnd == null) return false;
+        return eEnd.isAfter(start) && eStart.isBefore(end);
+      });
+      if (hasCoverage) result.add(id);
+    }
+    return result;
+  }
+
   Future<Map<String, List<Map<String, dynamic>>>> getEpgBySources(
     List<String> sourceIds,
   ) async {

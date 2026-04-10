@@ -21,6 +21,17 @@ Future<String> getEpgsForChannels({
   endTime: endTime,
 );
 
+/// Resolve internal channel IDs that have real EPG coverage in the time window.
+Future<String> getEpgCoverageChannelIds({
+  required List<String> channelIds,
+  required PlatformInt64 startTime,
+  required PlatformInt64 endTime,
+}) => RustLib.instance.api.crateApiEpgGetEpgCoverageChannelIds(
+  channelIds: channelIds,
+  startTime: startTime,
+  endTime: endTime,
+);
+
 /// Load EPG entries filtered by source IDs. Returns JSON {channel_id: [entries]}.
 ///
 /// Deserialises `source_ids_json` as `Vec<String>`. An empty

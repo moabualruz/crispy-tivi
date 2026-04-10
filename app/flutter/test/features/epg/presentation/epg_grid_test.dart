@@ -78,4 +78,64 @@ void main() {
     // Verify "Now Line"
     expect(find.byKey(const Key('nowLine')), findsOneWidget);
   });
+
+  testWidgets('VirtualEpgGrid reports a bounded visible row range', (
+    tester,
+  ) async {
+    final channels = List.generate(
+      100,
+      (i) => Channel(
+        id: 'ch_$i',
+        name: 'Channel $i',
+        streamUrl: 'http://stream/$i',
+      ),
+    );
+    final now = DateTime.now().toUtc();
+    final startTime = now.subtract(const Duration(hours: 1));
+    final endTime = now.add(const Duration(hours: 4));
+    final epgData = <String, List<EpgEntry>>{};
+    for (final channel in channels) {
+      epgData[channel.id] = [
+        EpgEntry(
+          channelId: channel.id,
+          title: 'Program on ${channel.name}',
+          startTime: startTime,
+          endTime: startTime.add(const Duration(hours: 1)),
+        ),
+      ];
+    }
+
+    int? firstRow;
+    int? lastRow;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 900,
+            height: 360,
+            child: VirtualEpgGrid(
+              channels: channels,
+              epgEntries: epgData,
+              startDate: startTime,
+              endDate: endTime,
+              pixelsPerMinute: 5.0,
+              onVisibleRowRangeChanged: (first, last) {
+                firstRow = first;
+                lastRow = last;
+              },
+              channelBuilder: (context, channel) => Text(channel.name),
+              programBuilder: (context, entry, w, h) => Text(entry.title),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(firstRow, isNotNull);
+    expect(lastRow, isNotNull);
+    expect(firstRow, 0);
+    expect(lastRow!, lessThan(channels.length));
+  });
 }

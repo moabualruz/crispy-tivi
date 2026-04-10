@@ -49,6 +49,7 @@ class VodCatalogBrowser extends ConsumerStatefulWidget {
     required this.saveSortOption,
     required this.gridBuilder,
     required this.rowBuilder,
+    this.categoryNamesBuilder,
     this.maxCategories = 30,
     this.extraSliversBuilder,
   });
@@ -66,6 +67,7 @@ class VodCatalogBrowser extends ConsumerStatefulWidget {
   saveSortOption;
   final VodCatalogGridBuilder gridBuilder;
   final VodCatalogRowBuilder rowBuilder;
+  final List<String> Function(WidgetRef ref)? categoryNamesBuilder;
   final int maxCategories;
   final VodCatalogExtraSliversBuilder? extraSliversBuilder;
 
@@ -122,37 +124,19 @@ class _VodCatalogBrowserState extends ConsumerState<VodCatalogBrowser>
     super.build(context);
     final allItems = widget.currentItems(ref);
     final visibleItems = visibleItemsOr(allItems);
-
-    final categoryCounts = <String, int>{};
-    for (final item in allItems) {
-      final category = item.category;
-      if (category == null || category.isEmpty) continue;
-      categoryCounts[category] = (categoryCounts[category] ?? 0) + 1;
-    }
-
-    final categoryNames =
-        categoryCounts.entries.toList()..sort((a, b) {
-          final countCmp = b.value.compareTo(a.value);
-          if (countCmp != 0) return countCmp;
-          return a.key.compareTo(b.key);
-        });
-
-    final limitedCategoryNames =
-        categoryNames
-            .take(widget.maxCategories)
-            .map((entry) => entry.key)
-            .toList();
-
-    final itemsByCategory = <String, List<VodItem>>{};
-    for (final item in visibleItems) {
-      final category = item.category;
-      if (category == null || category.isEmpty) continue;
-      (itemsByCategory[category] ??= <VodItem>[]).add(item);
-    }
+    final limitedCategoryNames = (widget.categoryNamesBuilder?.call(ref) ??
+            _deriveCategoryNames(allItems))
+        .take(widget.maxCategories)
+        .toList(growable: false);
 
     final isSearchOrCategory =
         selectedCategory != null || searchQuery.trim().isNotEmpty;
+    final itemsByCategory =
+        isSearchOrCategory
+            ? const <String, List<VodItem>>{}
+            : _groupItemsByCategory(visibleItems);
     final hasCategorizedRows =
+        !isSearchOrCategory &&
         limitedCategoryNames.isNotEmpty &&
         limitedCategoryNames.any(
           (category) =>
@@ -208,5 +192,32 @@ class _VodCatalogBrowserState extends ConsumerState<VodCatalogBrowser>
         ],
       ),
     );
+  }
+
+  List<String> _deriveCategoryNames(List<VodItem> items) {
+    final categoryCounts = <String, int>{};
+    for (final item in items) {
+      final category = item.category;
+      if (category == null || category.isEmpty) continue;
+      categoryCounts[category] = (categoryCounts[category] ?? 0) + 1;
+    }
+
+    final sortedEntries =
+        categoryCounts.entries.toList()..sort((a, b) {
+          final countCmp = b.value.compareTo(a.value);
+          if (countCmp != 0) return countCmp;
+          return a.key.compareTo(b.key);
+        });
+    return sortedEntries.map((entry) => entry.key).toList(growable: false);
+  }
+
+  Map<String, List<VodItem>> _groupItemsByCategory(List<VodItem> items) {
+    final grouped = <String, List<VodItem>>{};
+    for (final item in items) {
+      final category = item.category;
+      if (category == null || category.isEmpty) continue;
+      (grouped[category] ??= <VodItem>[]).add(item);
+    }
+    return grouped;
   }
 }

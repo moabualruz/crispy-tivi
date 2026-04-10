@@ -16,11 +16,21 @@ export 'epg_state.dart';
 class EpgNotifier extends Notifier<EpgState> {
   static const _viewportHalfWindow = Duration(hours: 3);
   static const _retentionBuffer = Duration(hours: 1);
+  static const _initialVisibleChannelCount = 24;
 
   bool _hasViewportFetch = false;
+  List<String> _visibleChannelIds = const [];
+  Timer? _coverageRefreshDebounce;
+  Timer? _visibleEntriesRefreshDebounce;
 
   @override
-  EpgState build() => const EpgState();
+  EpgState build() {
+    ref.onDispose(() {
+      _coverageRefreshDebounce?.cancel();
+      _visibleEntriesRefreshDebounce?.cancel();
+    });
+    return const EpgState();
+  }
 
   /// Load channels and optionally replace entries.
   ///
@@ -36,6 +46,7 @@ class EpgNotifier extends Notifier<EpgState> {
     state = state.copyWith(
       channels: channels,
       entries: entries,
+      channelsWithRealEpg: entries.keys.toSet(),
       epgOverrides: epgOverrides,
       tvgIdIndex: tvgIndex,
       focusedTime: DateTime.now(),
@@ -72,6 +83,47 @@ class EpgNotifier extends Notifier<EpgState> {
     return keys;
   }
 
+  List<Channel> _groupFilteredChannels(EpgState currentState) {
+    final selectedGroup = currentState.selectedGroup;
+    if (selectedGroup == null) return currentState.channels;
+    return currentState.channels
+        .where((channel) => channel.group == selectedGroup)
+        .toList(growable: false);
+  }
+
+  List<Channel> _visibleChannelsFor(List<Channel> channels) {
+    if (channels.isEmpty) return const [];
+    if (_visibleChannelIds.isEmpty) {
+      return channels.take(_initialVisibleChannelCount).toList(growable: false);
+    }
+
+    final ids = _visibleChannelIds.toSet();
+    final visible = channels
+        .where((channel) => ids.contains(channel.id))
+        .toList(growable: false);
+    if (visible.isNotEmpty) return visible;
+    return channels.take(_initialVisibleChannelCount).toList(growable: false);
+  }
+
+  void _scheduleCoverageRefresh() {
+    _coverageRefreshDebounce?.cancel();
+    _coverageRefreshDebounce = Timer(const Duration(milliseconds: 80), () {
+      if (!_hasViewportFetch) return;
+      unawaited(_refreshViewportAroundFocus(refreshCoverage: true));
+    });
+  }
+
+  void _scheduleVisibleEntriesRefresh() {
+    _visibleEntriesRefreshDebounce?.cancel();
+    _visibleEntriesRefreshDebounce = Timer(
+      const Duration(milliseconds: 80),
+      () {
+        if (!_hasViewportFetch) return;
+        unawaited(_refreshViewportAroundFocus(refreshCoverage: false));
+      },
+    );
+  }
+
   Future<void> _ensureChannelsLoaded() async {
     if (state.channels.isNotEmpty) return;
 
@@ -104,32 +156,132 @@ class EpgNotifier extends Notifier<EpgState> {
     updateChannels(channels: channels, epgOverrides: overrides);
   }
 
-  Future<void> _refreshViewportAroundFocus() async {
+  Future<void> _refreshViewportAroundFocus({
+    required bool refreshCoverage,
+  }) async {
     final anchor = state.focusedTime ?? DateTime.now();
     final start = anchor.subtract(_viewportHalfWindow);
     final end = anchor.add(_viewportHalfWindow);
-    await fetchEpgWindow(start, end);
+    await fetchEpgWindow(start, end, refreshCoverage: refreshCoverage);
+  }
+
+  Future<void> _refreshCoverageForWindow(
+    CacheService cache,
+    DateTime start,
+    DateTime end,
+  ) async {
+    final baseChannels = _groupFilteredChannels(state);
+    if (baseChannels.isEmpty) {
+      state = state.copyWith(
+        channelsWithRealEpg: const <String>{},
+        entries: const {},
+        isLoading: false,
+        clearError: true,
+      );
+      return;
+    }
+
+    final coverageIds = await cache.getEpgCoverageChannelIds(
+      baseChannels.map((channel) => channel.id).toList(growable: false),
+      start,
+      end,
+    );
+    state = state.copyWith(
+      channelsWithRealEpg: coverageIds.toSet(),
+      isLoading: true,
+    );
+  }
+
+  Future<void> _refreshVisibleEntriesForWindow(
+    CacheService cache,
+    DateTime start,
+    DateTime end,
+  ) async {
+    final coveredIds = state.channelsWithRealEpg;
+    if (state.showEpgOnly && coveredIds.isEmpty) {
+      state = state.copyWith(
+        entries: const {},
+        isLoading: false,
+        clearError: true,
+      );
+      return;
+    }
+
+    final visibleChannels = _visibleChannelsFor(state.filteredChannels);
+    if (visibleChannels.isEmpty) {
+      state = state.copyWith(
+        entries: const {},
+        isLoading: false,
+        clearError: true,
+      );
+      return;
+    }
+
+    final channelsToFetch = visibleChannels
+        .where((channel) => coveredIds.contains(channel.id))
+        .toList(growable: false);
+    if (channelsToFetch.isEmpty) {
+      state = state.copyWith(
+        entries: const {},
+        isLoading: false,
+        clearError: true,
+      );
+      return;
+    }
+
+    final channelIds = channelsToFetch
+        .map((channel) => channel.id)
+        .toList(growable: false);
+    final retainedKeys = _retainedEntryKeys(channelsToFetch);
+
+    // Guide scrolling must stay local and bounded.
+    // Do not let viewport updates escalate into on-demand upstream fetches.
+    final newEntries = await cache.getEpgsForChannels(channelIds, start, end);
+
+    final backend = ref.read(crispyBackendProvider);
+    final existingJson = EpgJsonCodec.encode(state.entries);
+    final newJson = EpgJsonCodec.encode(newEntries);
+    final mergedJson = await backend.mergeEpgWindow(existingJson, newJson);
+    final merged = EpgJsonCodec.decode(mergedJson);
+
+    final retentionStart = start.subtract(_retentionBuffer);
+    final retentionEnd = end.add(_retentionBuffer);
+    final trimmed = <String, List<EpgEntry>>{};
+    for (final entry in merged.entries) {
+      if (!retainedKeys.contains(entry.key)) continue;
+      final kept =
+          entry.value
+              .where(
+                (e) =>
+                    e.endTime.isAfter(retentionStart) &&
+                    e.startTime.isBefore(retentionEnd),
+              )
+              .toList();
+      if (kept.isNotEmpty) trimmed[entry.key] = kept;
+    }
+
+    state = state.copyWith(
+      entries: trimmed,
+      isLoading: false,
+      clearError: true,
+    );
   }
 
   /// Fetches EPG for currently filtered channels within ±3h of focus.
   Future<void> fetchEpgWindow(
     DateTime requestedStart,
-    DateTime requestedEnd,
-  ) async {
+    DateTime requestedEnd, {
+    bool refreshCoverage = true,
+  }) async {
     await _ensureChannelsLoaded();
 
     final requestedDuration = requestedEnd.difference(requestedStart);
     final anchor = state.focusedTime ?? DateTime.now();
     final start = anchor.subtract(_viewportHalfWindow);
     final end = anchor.add(_viewportHalfWindow);
-    final channelsToFetch = state.filteredChannels;
-    if (channelsToFetch.isEmpty) return;
 
     _hasViewportFetch = true;
     state = state.copyWith(isLoading: true);
-
-    final channelIds = channelsToFetch.map((c) => c.id).toSet().toList();
-    final retainedKeys = _retainedEntryKeys(channelsToFetch);
 
     try {
       final cache = ref.read(cacheServiceProvider);
@@ -139,41 +291,10 @@ class EpgNotifier extends Notifier<EpgState> {
           '(${requestedDuration.inHours}h) to viewport window',
         );
       }
-
-      // Use the 3-layer facade: L1 hot cache → L2 SQLite → L3 per-channel API.
-      // Always clamp to the active viewport so the guide stays lazy and bounded.
-      final newEntries = await cache.getChannelsEpg(channelIds, start, end);
-
-      // Serialize both maps to the Rust epoch-ms format, merge via backend.
-      final backend = ref.read(crispyBackendProvider);
-      final existingJson = EpgJsonCodec.encode(state.entries);
-      final newJson = EpgJsonCodec.encode(newEntries);
-      final mergedJson = await backend.mergeEpgWindow(existingJson, newJson);
-      final merged = EpgJsonCodec.decode(mergedJson);
-
-      // Evict entries outside the retention window to bound memory.
-      // Run after merge so dedup has both old and new data.
-      final retentionStart = start.subtract(_retentionBuffer);
-      final retentionEnd = end.add(_retentionBuffer);
-      final trimmed = <String, List<EpgEntry>>{};
-      for (final entry in merged.entries) {
-        if (!retainedKeys.contains(entry.key)) continue;
-        final kept =
-            entry.value
-                .where(
-                  (e) =>
-                      e.endTime.isAfter(retentionStart) &&
-                      e.startTime.isBefore(retentionEnd),
-                )
-                .toList();
-        if (kept.isNotEmpty) trimmed[entry.key] = kept;
+      if (refreshCoverage) {
+        await _refreshCoverageForWindow(cache, start, end);
       }
-
-      state = state.copyWith(
-        entries: trimmed,
-        isLoading: false,
-        clearError: true,
-      );
+      await _refreshVisibleEntriesForWindow(cache, start, end);
     } catch (e) {
       if (e is StateError ||
           e.toString().contains('disposed') ||
@@ -197,7 +318,7 @@ class EpgNotifier extends Notifier<EpgState> {
   /// UI state — only refreshes the entry map.
   Future<void> refreshEntries() async {
     if (state.channels.isEmpty || !_hasViewportFetch) return;
-    await _refreshViewportAroundFocus();
+    await _refreshViewportAroundFocus(refreshCoverage: true);
   }
 
   /// Updates the EPG override map (from settings).
@@ -213,9 +334,6 @@ class EpgNotifier extends Notifier<EpgState> {
   /// Selects a channel.
   void selectChannel(String channelId) {
     state = state.copyWith(selectedChannel: channelId);
-    if (_hasViewportFetch) {
-      unawaited(_refreshViewportAroundFocus());
-    }
   }
 
   /// Selects an EPG entry (shown in info panel).
@@ -233,7 +351,7 @@ class EpgNotifier extends Notifier<EpgState> {
             ? state.copyWith(clearGroup: true)
             : state.copyWith(selectedGroup: group);
     if (_hasViewportFetch) {
-      unawaited(_refreshViewportAroundFocus());
+      _scheduleCoverageRefresh();
     }
   }
 
@@ -268,6 +386,23 @@ class EpgNotifier extends Notifier<EpgState> {
   /// Toggles EPG-only channel filter.
   void toggleEpgOnly() {
     state = state.copyWith(showEpgOnly: !state.showEpgOnly);
+    if (_hasViewportFetch) {
+      _scheduleCoverageRefresh();
+    }
+  }
+
+  /// Updates the current Guide viewport channel IDs.
+  ///
+  /// The Guide should only fetch program rows for these channels;
+  /// filter coverage is resolved separately through lightweight coverage
+  /// queries so toggling "EPG only" does not require full-grid EPG loads.
+  void setVisibleChannelIds(List<String> channelIds) {
+    if (channelIds.isEmpty) return;
+    if (listEquals(_visibleChannelIds, channelIds)) return;
+    _visibleChannelIds = List.unmodifiable(channelIds);
+    if (_hasViewportFetch) {
+      _scheduleVisibleEntriesRefresh();
+    }
   }
 }
 

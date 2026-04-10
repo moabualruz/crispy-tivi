@@ -386,6 +386,7 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
     double pixelsPerMinute,
   ) {
     final timezone = ref.watch(epgTimezoneProvider);
+    final filteredChannels = state.filteredChannels;
 
     final effectiveEntries = <String, List<EpgEntry>>{...state.entries};
     for (final entry in state.epgOverrides.entries) {
@@ -399,6 +400,14 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
     final playingUrl = ref.watch(
       playbackSessionProvider.select((s) => s.streamUrl),
     );
+    final channelsByEpgKey = <String, Channel>{};
+    for (final channel in filteredChannels) {
+      channelsByEpgKey[channel.id] = channel;
+      final tvgId = channel.tvgId;
+      if (tvgId != null && tvgId.isNotEmpty) {
+        channelsByEpgKey[tvgId] = channel;
+      }
+    }
     final dvrRecordings = ref.watch(dvrServiceProvider).value?.recordings;
     final recordingKeys = <String>{};
     if (dvrRecordings != null) {
@@ -417,7 +426,7 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
         return false; // bubble up
       },
       child: VirtualEpgGrid(
-        channels: state.filteredChannels,
+        channels: filteredChannels,
         epgEntries: effectiveEntries,
         startDate: startDate,
         endDate: endDate,
@@ -427,6 +436,18 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
         clock: clock,
         horizontalScrollController: _horizontalScroll,
         verticalScrollController: _gridScroll,
+        onVisibleRowRangeChanged: (firstRow, lastRow) {
+          final clampedFirst = firstRow.clamp(0, filteredChannels.length);
+          final clampedLast = lastRow.clamp(
+            clampedFirst,
+            filteredChannels.length,
+          );
+          final visibleIds = filteredChannels
+              .sublist(clampedFirst, clampedLast)
+              .map((channel) => channel.id)
+              .toList(growable: false);
+          ref.read(epgProvider.notifier).setVisibleChannelIds(visibleIds);
+        },
         channelBuilder: (context, channel) {
           final nowPlaying = state.getNowPlaying(channel.id, now: clock());
           final isPlaying =
@@ -445,11 +466,9 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
           final isRecording = recordingKeys.contains(
             '${entry.channelId}_${entry.startTime}',
           );
-          // Look up the channel to pass catch-up support to the block.
-          final entryChannel = state.filteredChannels.firstWhere(
-            (c) => c.id == entry.channelId || c.tvgId == entry.channelId,
-            orElse: () => Channel(id: entry.channelId, name: '', streamUrl: ''),
-          );
+          final entryChannel =
+              channelsByEpgKey[entry.channelId] ??
+              Channel(id: entry.channelId, name: '', streamUrl: '');
 
           return EpgProgramBlock(
             entry: entry,
@@ -459,15 +478,13 @@ class _EpgTimelineScreenState extends ConsumerState<EpgTimelineScreen>
             onTap: () {
               ref.read(epgProvider.notifier).selectEntry(entry);
               if (entry.isLive) {
-                final ch = state.filteredChannels.firstWhere(
-                  (c) => c.id == entry.channelId || c.tvgId == entry.channelId,
-                  orElse:
-                      () => Channel(
-                        id: entry.channelId,
-                        name: 'Unknown',
-                        streamUrl: '',
-                      ),
-                );
+                final ch =
+                    channelsByEpgKey[entry.channelId] ??
+                    Channel(
+                      id: entry.channelId,
+                      name: 'Unknown',
+                      streamUrl: '',
+                    );
                 if (ch.streamUrl.isNotEmpty) previewChannel(ch);
               }
               showProgramDetail(entry);

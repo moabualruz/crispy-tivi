@@ -222,6 +222,14 @@ abstract class _BackendDataMethods {
     DateTime end,
   );
 
+  /// Resolve which internal channel IDs have real EPG coverage
+  /// overlapping the given time window.
+  Future<List<String>> getEpgCoverageChannelIds(
+    List<String> channelIds,
+    DateTime start,
+    DateTime end,
+  );
+
   /// Load EPG entries as {channelId: [entries]}.
   Future<Map<String, List<Map<String, dynamic>>>> loadEpgEntries();
 

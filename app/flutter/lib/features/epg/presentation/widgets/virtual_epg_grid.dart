@@ -57,6 +57,7 @@ class VirtualEpgGrid extends StatefulWidget {
   final ScrollController? horizontalScrollController;
   final ScrollController? verticalScrollController;
   final WidgetBuilder? cornerBuilder;
+  final void Function(int firstRow, int lastRow)? onVisibleRowRangeChanged;
 
   /// Timezone setting for time header display.
   final String timezone;
@@ -82,6 +83,7 @@ class VirtualEpgGrid extends StatefulWidget {
     this.horizontalScrollController,
     this.verticalScrollController,
     this.cornerBuilder,
+    this.onVisibleRowRangeChanged,
     this.timezone = 'system',
     this.viewMode = EpgViewMode.day,
     this.clock = DateTime.now,
@@ -108,8 +110,13 @@ class _VirtualEpgGridState extends State<VirtualEpgGrid> {
   /// app-bar selector.
   static const double _headerHeight = kEpgDateSelectorHeight;
   final double _rowHeight = kEpgRowHeight;
-  static const double _horizontalOverscanPx = 240.0;
-  static const int _verticalOverscanRows = 8;
+  // Keep overscan intentionally tight: Guide hangs are dominated by
+  // native render/display-list pressure, so rendering fewer off-screen
+  // rows/blocks is worth a small increase in rebuild frequency.
+  static const double _horizontalOverscanPx = 96.0;
+  static const int _verticalOverscanRows = 3;
+  int? _lastVisibleFirstRow;
+  int? _lastVisibleLastRow;
 
   @override
   void initState() {
@@ -152,6 +159,20 @@ class _VirtualEpgGridState extends State<VirtualEpgGrid> {
   }
 
   double get _totalHeight => widget.channels.length * _rowHeight;
+
+  void _publishVisibleRows(int firstRow, int lastRow) {
+    if (widget.onVisibleRowRangeChanged == null) return;
+    if (lastRow <= firstRow) return;
+    if (_lastVisibleFirstRow == firstRow && _lastVisibleLastRow == lastRow) {
+      return;
+    }
+    _lastVisibleFirstRow = firstRow;
+    _lastVisibleLastRow = lastRow;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.onVisibleRowRangeChanged?.call(firstRow, lastRow);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -201,6 +222,7 @@ class _VirtualEpgGridState extends State<VirtualEpgGrid> {
                               .ceil() +
                           _verticalOverscanRows)
                       .clamp(0, widget.channels.length);
+                  _publishVisibleRows(firstRow, lastRow);
 
                   return SingleChildScrollView(
                     controller: _bodyHorizontalScroll,

@@ -158,6 +158,24 @@ mixin _FfiEpgMixin on _FfiBackendBase {
     return _decodeEpgMap(json, 'getChannelsEpg');
   }
 
+  Future<List<String>> getEpgCoverageChannelIds(
+    List<String> channelIds,
+    DateTime start,
+    DateTime end,
+  ) async {
+    final json = await rust_api.getEpgCoverageChannelIds(
+      channelIds: channelIds,
+      startTime: PlatformInt64Util.from(start.millisecondsSinceEpoch ~/ 1000),
+      endTime: PlatformInt64Util.from(end.millisecondsSinceEpoch ~/ 1000),
+    );
+    try {
+      return (jsonDecode(json) as List).cast<String>();
+    } catch (e) {
+      debugPrint('FFI JSON decode error in getEpgCoverageChannelIds: $e');
+      return const [];
+    }
+  }
+
   Future<void> invalidateEpgCache(String channelId) =>
       rust_api.invalidateEpgCache(channelId: channelId);
 
@@ -330,12 +348,10 @@ mixin _FfiEpgMixin on _FfiBackendBase {
       );
 
   int applyTimezoneOffset(int epochMs, String tzName) =>
-      rust_api
-          .applyTimezoneOffset(
-            epochMs: PlatformInt64Util.from(epochMs),
-            tzName: tzName,
-          )
-          .toInt();
+      rust_api.applyTimezoneOffset(
+        epochMs: PlatformInt64Util.from(epochMs),
+        tzName: tzName,
+      );
 
   String formatTimeWithSeconds(int epochMs, String tzName) =>
       rust_api.formatTimeWithSeconds(

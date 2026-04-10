@@ -49,6 +49,22 @@ mixin _CacheEpgMixin on _CacheServiceBase {
     return result;
   }
 
+  /// Resolve internal channel IDs with real EPG coverage in the window.
+  Future<List<String>> getEpgCoverageChannelIds(
+    List<String> channelIds,
+    DateTime start,
+    DateTime end,
+  ) async {
+    if (channelIds.isEmpty) return const [];
+    final sw = Stopwatch()..start();
+    final ids = await _backend.getEpgCoverageChannelIds(channelIds, start, end);
+    debugPrint(
+      'CacheService: resolved ${ids.length} EPG-covered channels '
+      'from ${channelIds.length} candidates in ${sw.elapsedMilliseconds}ms',
+    );
+    return ids;
+  }
+
   /// Saves EPG entries using upsert.
   Future<void> saveEpgEntries(
     Map<String, List<EpgEntry>> entriesByChannel,

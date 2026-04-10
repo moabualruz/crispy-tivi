@@ -18,6 +18,7 @@ class EpgState {
   const EpgState({
     this.channels = const [],
     this.entries = const {},
+    this.channelsWithRealEpg = const <String>{},
     this.epgOverrides = const {},
     this.tvgIdIndex = const {},
     this.focusedTime,
@@ -37,6 +38,10 @@ class EpgState {
 
   /// EPG entries keyed by channel ID.
   final Map<String, List<EpgEntry>> entries;
+
+  /// Internal channel IDs known to have real EPG coverage in the
+  /// active time window, even when their full entry list is not loaded.
+  final Set<String> channelsWithRealEpg;
 
   /// Manual EPG assignment overrides (channelId → targetId).
   final Map<String, String> epgOverrides;
@@ -87,13 +92,15 @@ class EpgState {
   /// Channels filtered by selected group and EPG
   /// availability.
   List<Channel> get filteredChannels {
-    final realEntryKeys =
-        entries.entries
-            .where(
-              (entry) => entry.value.any((e) => e.sourceId != '_placeholder'),
-            )
-            .map((entry) => entry.key)
-            .toSet();
+    final realEntryKeys = {
+      ...channelsWithRealEpg,
+      ...entries.entries
+          .where(
+            (entry) => entry.value.any((e) => e.sourceId != '_placeholder'),
+          )
+          .map((entry) => entry.key)
+          .toSet(),
+    };
 
     bool hasRealEpg(Channel channel) {
       final effectiveId = epgOverrides[channel.id] ?? channel.id;
@@ -210,6 +217,7 @@ class EpgState {
   EpgState copyWith({
     List<Channel>? channels,
     Map<String, List<EpgEntry>>? entries,
+    Set<String>? channelsWithRealEpg,
     Map<String, String>? epgOverrides,
     Map<String, String>? tvgIdIndex,
     DateTime? focusedTime,
@@ -230,6 +238,7 @@ class EpgState {
     return EpgState(
       channels: channels ?? this.channels,
       entries: entries ?? this.entries,
+      channelsWithRealEpg: channelsWithRealEpg ?? this.channelsWithRealEpg,
       epgOverrides: epgOverrides ?? this.epgOverrides,
       tvgIdIndex: tvgIdIndex ?? this.tvgIdIndex,
       focusedTime: focusedTime ?? this.focusedTime,

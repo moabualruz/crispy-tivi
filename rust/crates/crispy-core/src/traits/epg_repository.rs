@@ -31,6 +31,12 @@ pub trait EpgRepository {
         start_time: i64,
         end_time: i64,
     ) -> Result<bool, DomainError>;
+    fn get_channels_with_real_epg_coverage(
+        &self,
+        channel_ids: &[String],
+        start_time: i64,
+        end_time: i64,
+    ) -> Result<Vec<String>, DomainError>;
     fn evict_stale_epg(&self, days: i64) -> Result<usize, DomainError>;
     fn clear_epg_entries(&self) -> Result<(), DomainError>;
 }

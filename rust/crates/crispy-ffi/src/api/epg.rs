@@ -20,6 +20,19 @@ pub fn get_epgs_for_channels(
     json_result(EpgService(ctx()?).get_epgs_for_channels(&channel_ids, start_time, end_time)?)
 }
 
+/// Resolve internal channel IDs that have real EPG coverage in the time window.
+pub fn get_epg_coverage_channel_ids(
+    channel_ids: Vec<String>,
+    start_time: i64,
+    end_time: i64,
+) -> Result<String> {
+    json_result(EpgService(ctx()?).get_channels_with_real_epg_coverage(
+        &channel_ids,
+        start_time,
+        end_time,
+    )?)
+}
+
 /// Load EPG entries filtered by source IDs. Returns JSON {channel_id: [entries]}.
 ///
 /// Deserialises `source_ids_json` as `Vec<String>`. An empty

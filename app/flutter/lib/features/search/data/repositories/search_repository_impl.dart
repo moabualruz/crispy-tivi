@@ -27,6 +27,17 @@ class SearchRepositoryImpl implements SearchRepository {
   final CrispyBackend _backend;
   final CacheService _cache;
 
+  List<Channel>? _cachedChannelsRef;
+  String _cachedChannelsJson = '[]';
+  Map<String, Channel> _cachedChannelMap = const {};
+
+  List<VodItem>? _cachedVodItemsRef;
+  String _cachedVodItemsJson = '[]';
+  Map<String, VodItem> _cachedVodMap = const {};
+
+  Map<String, List<EpgEntry>>? _cachedEpgEntriesRef;
+  String _cachedEpgJson = '{}';
+
   @override
   Future<GroupedSearchResults> search(
     String query, {
@@ -44,13 +55,14 @@ class SearchRepositoryImpl implements SearchRepository {
     // ── Serialize inputs ──────────────────────
     final chJson = _encodeChannels(channels);
     final vdJson = _encodeVodItems(vodItems);
+    final epgJson = _encodeEpg(epgEntries);
 
     // ── Delegate filtering to Rust ────────────
     final resultJson = await _backend.searchContent(
       query: q,
       channelsJson: chJson,
       vodItemsJson: vdJson,
-      epgEntriesJson: _encodeEpg(epgEntries),
+      epgEntriesJson: epgJson,
       filterJson: _encodeFilter(filter),
     );
 
@@ -107,28 +119,51 @@ class SearchRepositoryImpl implements SearchRepository {
   // ── Serialization helpers ───────────────────────
 
   String _encodeChannels(List<Channel>? channels) {
-    if (channels == null || channels.isEmpty) {
-      return '[]';
+    if (identical(channels, _cachedChannelsRef)) {
+      return _cachedChannelsJson;
     }
-    return jsonEncode(channels.map(channelToMap).toList());
+    if (channels == null || channels.isEmpty) {
+      _cachedChannelsRef = channels;
+      _cachedChannelsJson = '[]';
+      _cachedChannelMap = const {};
+      return _cachedChannelsJson;
+    }
+    _cachedChannelsRef = channels;
+    _cachedChannelsJson = jsonEncode(channels.map(channelToMap).toList());
+    _cachedChannelMap = {for (final channel in channels) channel.id: channel};
+    return _cachedChannelsJson;
   }
 
   String _encodeVodItems(List<VodItem>? vodItems) {
-    if (vodItems == null || vodItems.isEmpty) {
-      return '[]';
+    if (identical(vodItems, _cachedVodItemsRef)) {
+      return _cachedVodItemsJson;
     }
-    return jsonEncode(vodItems.map(vodItemToMap).toList());
+    if (vodItems == null || vodItems.isEmpty) {
+      _cachedVodItemsRef = vodItems;
+      _cachedVodItemsJson = '[]';
+      _cachedVodMap = const {};
+      return _cachedVodItemsJson;
+    }
+    _cachedVodItemsRef = vodItems;
+    _cachedVodItemsJson = jsonEncode(vodItems.map(vodItemToMap).toList());
+    _cachedVodMap = {for (final item in vodItems) item.id: item};
+    return _cachedVodItemsJson;
   }
 
   String _encodeEpg(Map<String, List<EpgEntry>>? epgEntries) {
+    if (identical(epgEntries, _cachedEpgEntriesRef)) {
+      return _cachedEpgJson;
+    }
     if (epgEntries == null || epgEntries.isEmpty) {
-      return '{}';
+      _cachedEpgEntriesRef = epgEntries;
+      return _cachedEpgJson = '{}';
     }
     final map = <String, List<Map<String, dynamic>>>{};
     for (final entry in epgEntries.entries) {
       map[entry.key] = entry.value.map(epgEntryToMap).toList();
     }
-    return jsonEncode(map);
+    _cachedEpgEntriesRef = epgEntries;
+    return _cachedEpgJson = jsonEncode(map);
   }
 
   String _encodeFilter(SearchFilter filter) {
@@ -179,18 +214,17 @@ class SearchRepositoryImpl implements SearchRepository {
     }
 
     // Build lookup maps for original entities.
-    final chMap = <String, Channel>{};
-    if (channels != null) {
-      for (final c in channels) {
-        chMap[c.id] = c;
-      }
-    }
-    final vMap = <String, VodItem>{};
-    if (vodItems != null) {
-      for (final v in vodItems) {
-        vMap[v.id] = v;
-      }
-    }
+    final chMap =
+        identical(channels, _cachedChannelsRef)
+            ? _cachedChannelMap
+            : {
+              for (final channel in channels ?? const <Channel>[])
+                channel.id: channel,
+            };
+    final vMap =
+        identical(vodItems, _cachedVodItemsRef)
+            ? _cachedVodMap
+            : {for (final item in vodItems ?? const <VodItem>[]) item.id: item};
 
     final chResults = <MediaItem>[];
     final mvResults = <MediaItem>[];

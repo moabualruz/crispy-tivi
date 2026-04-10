@@ -51,7 +51,7 @@ const double _kRecordingDotSize = 6.0;
 const double _kRecordingDotCatchupOffset = 14.0;
 
 /// Minimum block width (px) at which a programme thumbnail is shown.
-const double _kThumbnailMinWidth = 120.0;
+const double _kThumbnailMinWidth = 220.0;
 
 /// Returns a subtle genre tint colour for [category], or null if
 /// the category is unrecognised.
@@ -88,6 +88,7 @@ class EpgProgramBlock extends ConsumerWidget {
     this.isSelected = false,
     this.hasCatchup = false,
     this.isRecording = false,
+    this.allowThumbnail = true,
     super.key,
   });
 
@@ -101,6 +102,7 @@ class EpgProgramBlock extends ConsumerWidget {
 
   /// Whether this programme is being recorded or scheduled.
   final bool isRecording;
+  final bool allowThumbnail;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -131,6 +133,7 @@ class EpgProgramBlock extends ConsumerWidget {
 
     // FE-EPG-05: thumbnail only when block is wide enough.
     final showThumbnail =
+        allowThumbnail &&
         blockWidth > _kThumbnailMinWidth &&
         entry.iconUrl != null &&
         entry.iconUrl!.isNotEmpty;

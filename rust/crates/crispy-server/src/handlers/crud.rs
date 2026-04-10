@@ -327,6 +327,20 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
 
             Ok(json!({"data": data}))
         })(),
+        "getEpgCoverageChannelIds" => (|| {
+            let channel_ids = get_str_vec(args, "channelIds")?;
+            let start_time_ms = get_i64(args, "startTimeMs")?;
+            let end_time_ms = get_i64(args, "endTimeMs")?;
+
+            let start_s = start_time_ms / 1000;
+            let end_s = end_time_ms / 1000;
+
+            let data = EpgService(svc.clone())
+                .get_channels_with_real_epg_coverage(&channel_ids, start_s, end_s)
+                .map_err(|e| anyhow!("{e}"))?;
+
+            Ok(json!({"data": data}))
+        })(),
         "saveEpgEntries" => (|| {
             let entries: HashMap<String, Vec<EpgEntry>> = serde_json::from_value(
                 args.get("entries")

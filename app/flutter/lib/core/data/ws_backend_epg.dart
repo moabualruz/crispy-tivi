@@ -58,6 +58,19 @@ mixin _WsEpgMixin on _WsBackendBase {
     DateTime end,
   ) => getEpgsForChannels(channelIds, start, end);
 
+  Future<List<String>> getEpgCoverageChannelIds(
+    List<String> channelIds,
+    DateTime start,
+    DateTime end,
+  ) async {
+    final data = await _send('getEpgCoverageChannelIds', {
+      'channelIds': channelIds,
+      'startTimeMs': start.millisecondsSinceEpoch,
+      'endTimeMs': end.millisecondsSinceEpoch,
+    });
+    return (data as List).cast<String>();
+  }
+
   Future<Map<String, List<Map<String, dynamic>>>> getEpgBySources(
     List<String> sourceIds,
   ) async {

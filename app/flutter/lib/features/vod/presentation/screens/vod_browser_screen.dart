@@ -21,8 +21,8 @@ import '../providers/vod_providers.dart';
 import '../widgets/vod_catalog_browser.dart';
 import '../widgets/vod_browser_shell.dart';
 import '../widgets/vod_poster_card.dart';
+import '../widgets/vod_selection_scope.dart';
 import '../widgets/vod_search_sort_bar.dart';
-import '../widgets/vod_tv_layout.dart';
 
 /// VOD movies browser screen backed by paginated VOD providers.
 class VodBrowserScreen extends ConsumerWidget {
@@ -212,7 +212,7 @@ class _VodMoviesTvLayoutState extends State<_VodMoviesTvLayout> {
 
   @override
   Widget build(BuildContext context) {
-    return VodTvSelectionScope(
+    return VodSelectionScope(
       onItemSelected: _onItemSelected,
       child: TvMasterDetailLayout(
         showDetail: _selectedItem != null,
@@ -290,7 +290,7 @@ class _VodGrid extends StatelessWidget {
               item: item,
               onTap:
                   enableTvSelection
-                      ? () => VodTvSelectionScope.maybeOf(
+                      ? () => VodSelectionScope.maybeOf(
                         context,
                       )?.onItemSelected(item)
                       : null,

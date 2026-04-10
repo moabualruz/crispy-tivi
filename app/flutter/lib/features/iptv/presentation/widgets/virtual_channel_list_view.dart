@@ -22,7 +22,7 @@ class VirtualChannelListView extends ConsumerWidget {
   });
 
   static const double rowExtent = 72.0;
-  static const int overscanRows = 10;
+  static const int overscanRows = 4;
 
   final List<Channel> channels;
   final ScrollController controller;

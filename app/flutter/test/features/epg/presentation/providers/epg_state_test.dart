@@ -34,6 +34,7 @@ void main() {
       const s = EpgState();
       expect(s.channels, isEmpty);
       expect(s.entries, isEmpty);
+      expect(s.channelsWithRealEpg, isEmpty);
       expect(s.epgOverrides, isEmpty);
       expect(s.focusedTime, isNull);
       expect(s.selectedChannel, isNull);
@@ -104,18 +105,26 @@ void main() {
     });
 
     test('filters by showEpgOnly', () {
-      final entries = <String, List<EpgEntry>>{
-        'ch1': [
-          entry('ch1', 'Show', utc(2026, 2, 22, 10), utc(2026, 2, 22, 11)),
-        ],
-      };
       final s = EpgState(
         channels: [ch('ch1'), ch('ch2')],
-        entries: entries,
+        channelsWithRealEpg: const {'ch1'},
         showEpgOnly: true,
       );
       expect(s.filteredChannels.length, 1);
       expect(s.filteredChannels.first.id, 'ch1');
+    });
+
+    test('showEpgOnly still falls back to loaded entries', () {
+      final s = EpgState(
+        channels: [ch('ch1'), ch('ch2')],
+        entries: {
+          'ch1': [
+            entry('ch1', 'Show', utc(2026, 2, 22, 10), utc(2026, 2, 22, 11)),
+          ],
+        },
+        showEpgOnly: true,
+      );
+      expect(s.filteredChannels.map((channel) => channel.id), ['ch1']);
     });
 
     test('showEpgOnly respects epgOverrides', () {

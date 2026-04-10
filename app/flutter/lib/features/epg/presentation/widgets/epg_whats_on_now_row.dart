@@ -21,7 +21,7 @@ const double kEpgWhatsOnNowRowHeight = 96.0;
 const double _kCardWidth = 160.0;
 
 /// Maximum number of channels shown in the row.
-const int _kMaxChannels = 20;
+const int _kMaxChannels = 8;
 
 /// Describes a single "now playing" entry shown in the
 /// "What's On Now" summary row.
@@ -80,11 +80,21 @@ class _EpgWhatsOnNowRowState extends ConsumerState<EpgWhatsOnNowRow> {
     final state = ref.watch(epgProvider);
     final clock = ref.watch(epgClockProvider);
     final now = clock();
+    final coveredIds = state.channelsWithRealEpg;
 
-    // Prefer favorites; fall back to first N channels.
-    final favorites =
-        state.filteredChannels.where((c) => c.isFavorite).toList();
-    final pool = favorites.isNotEmpty ? favorites : state.filteredChannels;
+    // Prefer favorites; fall back to the filtered channel set.
+    // Restrict to channels with known EPG coverage when available so the row
+    // does not scan large uncapped pools just to find a handful of live items.
+    final coveredPool =
+        coveredIds.isEmpty
+            ? state.filteredChannels
+            : state.filteredChannels
+                .where((channel) => coveredIds.contains(channel.id))
+                .toList(growable: false);
+    final favorites = coveredPool
+        .where((channel) => channel.isFavorite)
+        .toList(growable: false);
+    final pool = favorites.isNotEmpty ? favorites : coveredPool;
 
     // Collect items that are currently airing.
     final items = <_NowItem>[];
