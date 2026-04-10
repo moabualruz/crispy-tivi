@@ -236,6 +236,13 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
       enrichVod,
     );
 
+    if (_expectsLiveChannels(source.type) && report.channelsCount == 0) {
+      throw StateError(
+        '${source.name} synced no live channels. '
+        'Check provider URL/authentication and try syncing again.',
+      );
+    }
+
     // Auto-save discovered EPG URL.
     if (report.epgUrl != null &&
         (source.epgUrl == null || source.epgUrl!.isEmpty)) {
@@ -253,6 +260,11 @@ class PlaylistSyncService with PlaylistSyncHelpers, PlaylistEpgHelper {
 
     return report;
   }
+
+  bool _expectsLiveChannels(PlaylistSourceType type) =>
+      type == PlaylistSourceType.m3u ||
+      type == PlaylistSourceType.xtream ||
+      type == PlaylistSourceType.stalkerPortal;
 
   /// Schedules a one-shot timer to call [syncAll]
   /// after [delay]. Cancels any previously scheduled
