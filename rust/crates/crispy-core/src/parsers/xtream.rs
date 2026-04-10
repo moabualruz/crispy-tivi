@@ -486,24 +486,18 @@ pub fn channels_from_xtream_json(
     password: &str,
     source_id: Option<&str>,
 ) -> Vec<Channel> {
-    let typed: Vec<crispy_xtream::types::XtreamChannel> = data
-        .iter()
-        .filter_map(|v| {
-            let mut ch: crispy_xtream::types::XtreamChannel =
-                serde_json::from_value(v.clone()).ok()?;
-            ch.url = Some(build_xtream_stream_url(
-                base_url,
-                username,
-                password,
-                ch.stream_id,
-                "live",
-                "",
-            ));
-            Some(ch)
-        })
-        .collect();
-
-    channels_from_xtream(typed, source_id)
+    let mut channels = parse_xtream_live_streams(data, base_url, username, password);
+    for channel in &mut channels {
+        if channel.tvg_id.as_deref() == Some(channel.native_id.as_str()) {
+            channel.tvg_id = None;
+        }
+    }
+    if let Some(sid) = source_id {
+        for channel in &mut channels {
+            channel.source_id = Some(sid.to_string());
+        }
+    }
+    channels
 }
 
 /// Parse Xtream `get_vod_streams` JSON via the `crispy_xtream` crate types.
@@ -1169,5 +1163,30 @@ mod tests {
         );
         assert!(ch.added_at.is_some());
         assert_eq!(ch.added_at.unwrap().and_utc().timestamp(), 1705320000);
+    }
+
+    #[test]
+    fn channels_from_xtream_json_accepts_numeric_bool_fields() {
+        let item = json!({
+            "stream_id": 123,
+            "name": "Provider Channel",
+            "stream_type": "live",
+            "category_name": "News",
+            "num": 7,
+            "tv_archive": 0,
+            "tv_archive_duration": 0,
+            "is_adult": 0
+        });
+
+        let channels =
+            channels_from_xtream_json(&[item], "http://tv.example.com", "user", "pass", Some("s1"));
+
+        assert_eq!(channels.len(), 1);
+        let ch = &channels[0];
+        assert_eq!(ch.native_id, "123");
+        assert_eq!(ch.name, "Provider Channel");
+        assert!(ch.tvg_id.is_none());
+        assert_eq!(ch.source_id.as_deref(), Some("s1"));
+        assert_eq!(ch.channel_group.as_deref(), Some("News"));
     }
 }
