@@ -33,6 +33,20 @@ scripts/design/export_penpot_tokens.sh
 3. If Penpot MCP is not configured, use checked-in exports under `design/` and
    state that Penpot was not available.
 
+### Penpot Safety Rules
+
+- Check the actual target Penpot URL/file, not a newly created local file, before
+  claiming visual completion.
+- Data read-back is necessary but not sufficient. Also capture a browser
+  screenshot/snapshot and verify the active boards are visibly separated and not
+  hidden under stale/orphan shapes.
+- Penpot child shapes use page-absolute coordinates. Board-local drawing helpers
+  must add `board.x` / `board.y` to every child shape and imported asset.
+- Rebuilds must clear all active-page root children before drawing; otherwise
+  old inventory shapes can remain on top of the new design-system boards.
+- Use distinct board fills and large overview labels so the system remains
+  readable at low Penpot zoom.
+
 Expected MCP server command when configured:
 
 ```bash

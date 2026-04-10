@@ -18,8 +18,16 @@ required = [
     ("color", "background", "immersive"),
     ("color", "background", "surface"),
     ("color", "brand", "red"),
+    ("color", "overlay", "osdPanel"),
+    ("color", "overlay", "scrim60"),
+    ("color", "seek", "segmentHighlight"),
     ("spacing", "md"),
     ("radius", "tv"),
+    ("typography", "micro"),
+    ("elevation", "level2", "blur"),
+    ("motion", "duration", "normal"),
+    ("motion", "duration", "skeletonPulse"),
+    ("motion", "duration", "heroAdvanceInterval"),
 ]
 
 for key_path in required:

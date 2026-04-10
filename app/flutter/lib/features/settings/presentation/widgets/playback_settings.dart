@@ -18,7 +18,12 @@ import 'playback_hwdec_dialog.dart';
 import 'playback_selection_dialogs.dart';
 import '../../../../core/widgets/section_header.dart';
 import 'settings_shared_widgets.dart'
-    show SettingsBadge, SettingsCard, kSettingsIndent, showSettingsResetDialog;
+    show
+        SettingsBadge,
+        SettingsCard,
+        SettingsTileTitle,
+        kSettingsIndent,
+        showSettingsResetDialog;
 
 /// Playback settings section: hardware decoder, aspect
 /// ratio, stream quality, recording quality, AFR, PiP,
@@ -112,12 +117,9 @@ class PlaybackSettingsSection extends ConsumerWidget {
             // -- Recording Quality Profile --
             ListTile(
               leading: const Icon(Icons.videocam),
-              title: const Row(
-                children: [
-                  Text('Recording Quality'),
-                  SizedBox(width: CrispySpacing.sm),
-                  SettingsBadge.experimental(),
-                ],
+              title: const SettingsTileTitle(
+                title: 'Recording Quality',
+                badge: SettingsBadge.experimental(),
               ),
               subtitle: Text(
                 _recordingProfileLabel(config.player.recordingProfile),

@@ -3,12 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:widgetbook/widgetbook.dart';
 
 import 'core/theme/theme.dart';
-import 'core/widgets/async_filled_button.dart';
-import 'core/widgets/content_badge.dart';
-import 'core/widgets/glass_surface.dart';
-import 'core/widgets/live_badge.dart';
-import 'core/widgets/meta_chip.dart';
-import 'core/widgets/section_header.dart';
+import 'widgetbook/core_widget_use_cases.dart';
+import 'widgetbook/feature_widget_use_cases.dart';
+import 'widgetbook/foundation_use_cases.dart';
+import 'widgetbook/player_widget_use_cases.dart';
 
 void main() {
   AppTheme.useGoogleFonts = false;
@@ -33,8 +31,12 @@ class CrispyWidgetbook extends StatelessWidget {
               name: 'Tokens',
               useCases: [
                 WidgetbookUseCase(
-                  name: 'Color, spacing, radius',
-                  builder: (_) => const _TokenGallery(),
+                  name: 'Color tokens',
+                  builder: colorTokensUseCase,
+                ),
+                WidgetbookUseCase(
+                  name: 'Spacing and radius',
+                  builder: spacingRadiusUseCase,
                 ),
               ],
             ),
@@ -44,112 +46,311 @@ class CrispyWidgetbook extends StatelessWidget {
           name: 'Core widgets',
           children: [
             WidgetbookComponent(
-              name: 'Buttons',
+              name: 'AsyncFilledButton',
               useCases: [
                 WidgetbookUseCase(
-                  name: 'Async filled button',
-                  builder:
-                      (_) => const _CatalogSurface(
-                        child: Wrap(
-                          spacing: CrispySpacing.md,
-                          runSpacing: CrispySpacing.md,
-                          children: [
-                            AsyncFilledButton(
-                              isLoading: false,
-                              label: 'Add Source',
-                              onPressed: _noop,
-                            ),
-                            AsyncFilledButton(
-                              isLoading: true,
-                              label: 'Syncing',
-                            ),
-                          ],
-                        ),
-                      ),
+                  name: 'Default and loading',
+                  builder: asyncFilledButtonUseCase,
                 ),
               ],
             ),
             WidgetbookComponent(
-              name: 'Badges',
+              name: 'CrispyLogo',
               useCases: [
                 WidgetbookUseCase(
-                  name: 'Live and content status',
-                  builder:
-                      (_) => const _CatalogSurface(
-                        child: Wrap(
-                          spacing: CrispySpacing.md,
-                          runSpacing: CrispySpacing.md,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            LiveBadge(),
-                            LiveBadge(label: 'REC'),
-                            ContentStatusBadge(badge: ContentBadge.newEpisode),
-                            ContentStatusBadge(badge: ContentBadge.newSeason),
-                            ContentStatusBadge(badge: ContentBadge.recording),
-                            ContentStatusBadge(
-                              badge: ContentBadge.expiringSoon,
-                            ),
-                          ],
-                        ),
-                      ),
+                  name: 'Brand sizes',
+                  builder: crispyLogoUseCase,
                 ),
               ],
             ),
             WidgetbookComponent(
-              name: 'Chips',
+              name: 'LiveBadge',
               useCases: [
                 WidgetbookUseCase(
-                  name: 'Metadata chips',
-                  builder:
-                      (_) => const _CatalogSurface(
-                        child: Wrap(
-                          children: [
-                            MetaChip(label: '2026'),
-                            MetaChip(label: '4K'),
-                            MetaChip(label: 'PG-13'),
-                            MetaChip(label: 'Drama'),
-                          ],
-                        ),
-                      ),
+                  name: 'Live and recording',
+                  builder: liveBadgeUseCase,
                 ),
               ],
             ),
             WidgetbookComponent(
-              name: 'Headers',
+              name: 'ContentStatusBadge',
               useCases: [
                 WidgetbookUseCase(
-                  name: 'Section header',
-                  builder:
-                      (_) => const _CatalogSurface(
-                        child: SectionHeader(
-                          title: 'Sources',
-                          icon: Icons.playlist_add,
-                          colorTitle: true,
-                        ),
-                      ),
+                  name: 'Content status variants',
+                  builder: contentStatusBadgeUseCase,
                 ),
               ],
             ),
             WidgetbookComponent(
-              name: 'Surfaces',
+              name: 'MetaChip',
               useCases: [
                 WidgetbookUseCase(
-                  name: 'Glass surface',
-                  builder:
-                      (_) => const _CatalogSurface(
-                        child: SizedBox(
-                          width: 360,
-                          child: GlassSurface(
-                            child: Padding(
-                              padding: EdgeInsets.all(CrispySpacing.md),
-                              child: Text(
-                                'Glass surfaces should stay sharp, dark, and '
-                                'token-driven across TV and desktop layouts.',
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                  name: 'Metadata variants',
+                  builder: metaChipUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'GenrePillRow',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Selected category',
+                  builder: genrePillRowUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'SectionHeader',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Icon header',
+                  builder: sectionHeaderUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'GlassSurface',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Default surface',
+                  builder: glassSurfaceUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'GlassmorphicSheet',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Bottom sheet shell',
+                  builder: glassmorphicSheetUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'State widgets',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Empty state',
+                  builder: emptyStateUseCase,
+                ),
+                WidgetbookUseCase(
+                  name: 'Loading state',
+                  builder: loadingStateUseCase,
+                ),
+                WidgetbookUseCase(
+                  name: 'Error state',
+                  builder: errorStateUseCase,
+                ),
+                WidgetbookUseCase(
+                  name: 'Error banner',
+                  builder: errorBannerUseCase,
+                ),
+                WidgetbookUseCase(
+                  name: 'Error boundary',
+                  builder: errorBoundaryUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'SkeletonLoader',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Skeleton variants',
+                  builder: skeletonLoaderUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'GeneratedPlaceholder',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Poster and landscape',
+                  builder: generatedPlaceholderUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'WatchProgressBar',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Progress values',
+                  builder: watchProgressBarUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'FavoriteStarOverlay',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Favorite states',
+                  builder: favoriteStarOverlayUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'SpoilerBlur',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Blurred and revealed',
+                  builder: spoilerBlurUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'VignetteGradient',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Dark and adaptive',
+                  builder: vignetteGradientUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'OrDividerRow',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Divider label',
+                  builder: orDividerRowUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'NavArrow',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Carousel arrows',
+                  builder: navArrowUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'Sparkline',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Threshold line',
+                  builder: sparklineUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'TvMasterDetailLayout',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Detail overlay',
+                  builder: tvMasterDetailLayoutUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'TvColorButtonLegend',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Four-button legend',
+                  builder: tvColorButtonLegendUseCase,
+                ),
+              ],
+            ),
+          ],
+        ),
+        WidgetbookCategory(
+          name: 'Feature widgets',
+          children: [
+            WidgetbookComponent(
+              name: 'ChannelListItem',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Program row states',
+                  builder: channelListItemUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'ChannelGridItem',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Grid tile states',
+                  builder: channelGridItemUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'SettingsBadge',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Badges',
+                  builder: settingsBadgeUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'SettingsCard',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Settings group',
+                  builder: settingsCardUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'QualityBadge',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Quality labels',
+                  builder: qualityBadgeUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'CircularAction',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Secondary actions',
+                  builder: circularActionUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'EpisodeTile',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Episode row states',
+                  builder: episodeTileUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'ExpandableSynopsis',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Synopsis collapsed',
+                  builder: expandableSynopsisUseCase,
+                ),
+              ],
+            ),
+          ],
+        ),
+        WidgetbookCategory(
+          name: 'Player widgets',
+          children: [
+            WidgetbookComponent(
+              name: 'OsdIconButton',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Icon button states',
+                  builder: osdIconButtonUseCase,
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'Subtitle controls',
+              useCases: [
+                WidgetbookUseCase(
+                  name: 'Controls',
+                  builder: subtitleControlsUseCase,
+                ),
+                WidgetbookUseCase(
+                  name: 'Preview',
+                  builder: subtitlePreviewUseCase,
                 ),
               ],
             ),
@@ -159,126 +360,3 @@ class CrispyWidgetbook extends StatelessWidget {
     );
   }
 }
-
-class _CatalogSurface extends StatelessWidget {
-  const _CatalogSurface({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: Theme.of(context).colorScheme.surface,
-      child: Center(
-        child: Padding(padding: const EdgeInsets.all(32), child: child),
-      ),
-    );
-  }
-}
-
-class _TokenGallery extends StatelessWidget {
-  const _TokenGallery();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.crispyColors;
-    const swatches = [
-      ('Immersive', CrispyColors.bgImmersive),
-      ('Surface', CrispyColors.bgSurface),
-      ('Raised', CrispyColors.bgSurfaceLight),
-      ('Brand red', CrispyColors.brandRed),
-      ('Success', CrispyColors.statusSuccess),
-      ('Warning', CrispyColors.statusWarning),
-      ('Error', CrispyColors.statusError),
-      ('Live', Color(0xFFFF5252)),
-    ];
-    final dynamicSwatches = [
-      ('Glass tint', colors.glassTint),
-      ('Theme primary', theme.colorScheme.primary),
-    ];
-
-    return _CatalogSurface(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('CrispyTivi tokens', style: theme.textTheme.headlineSmall),
-            const SizedBox(height: CrispySpacing.lg),
-            Wrap(
-              spacing: CrispySpacing.md,
-              runSpacing: CrispySpacing.md,
-              children: [
-                for (final (label, color) in [...swatches, ...dynamicSwatches])
-                  _ColorSwatch(label: label, color: color),
-              ],
-            ),
-            const SizedBox(height: CrispySpacing.lg),
-            const Wrap(
-              spacing: CrispySpacing.md,
-              runSpacing: CrispySpacing.md,
-              children: [
-                _TokenPill(label: 'xxs', value: '${CrispySpacing.xxs}px'),
-                _TokenPill(label: 'xs', value: '${CrispySpacing.xs}px'),
-                _TokenPill(label: 'sm', value: '${CrispySpacing.sm}px'),
-                _TokenPill(label: 'md', value: '${CrispySpacing.md}px'),
-                _TokenPill(label: 'lg', value: '${CrispySpacing.lg}px'),
-                _TokenPill(label: 'xl', value: '${CrispySpacing.xl}px'),
-                _TokenPill(label: 'radius', value: '${CrispyRadius.tv}px'),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ColorSwatch extends StatelessWidget {
-  const _ColorSwatch({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 132,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 72,
-            decoration: BoxDecoration(
-              color: color,
-              border: Border.all(color: Colors.white24),
-              borderRadius: BorderRadius.zero,
-            ),
-          ),
-          const SizedBox(height: CrispySpacing.xs),
-          Text(label, style: Theme.of(context).textTheme.labelMedium),
-          Text(
-            '#${color.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TokenPill extends StatelessWidget {
-  const _TokenPill({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Chip(label: Text('$label  $value'));
-  }
-}
-
-void _noop() {}

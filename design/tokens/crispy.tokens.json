@@ -37,6 +37,18 @@
       "live": {
         "$type": "color",
         "$value": "#FF5252"
+      },
+      "recording": {
+        "$type": "color",
+        "$value": "#D32F2F"
+      },
+      "successToast": {
+        "$type": "color",
+        "$value": "#2E7D32"
+      },
+      "warningToast": {
+        "$type": "color",
+        "$value": "#E65100"
       }
     },
     "text": {
@@ -51,6 +63,96 @@
       "disabled": {
         "$type": "color",
         "$value": "#404040"
+      }
+    },
+    "focus": {
+      "border": {
+        "$type": "color",
+        "$value": "#FFFFFF"
+      }
+    },
+    "overlay": {
+      "glassTint": {
+        "$type": "color",
+        "$value": "#CC1A1A1A"
+      },
+      "vignetteStart": {
+        "$type": "color",
+        "$value": "#80000000"
+      },
+      "vignetteEnd": {
+        "$type": "color",
+        "$value": "#E6000000"
+      },
+      "scrimLight": {
+        "$type": "color",
+        "$value": "#40000000"
+      },
+      "scrimMid": {
+        "$type": "color",
+        "$value": "#80000000"
+      },
+      "scrimHeavy": {
+        "$type": "color",
+        "$value": "#BF000000"
+      },
+      "scrimFull": {
+        "$type": "color",
+        "$value": "#E6000000"
+      },
+      "osdPanel": {
+        "$type": "color",
+        "$value": "#B3000000"
+      },
+      "osdPanelDense": {
+        "$type": "color",
+        "$value": "#D91A1A1A"
+      },
+      "scrim60": {
+        "$type": "color",
+        "$value": "#99000000"
+      },
+      "scrim80": {
+        "$type": "color",
+        "$value": "#CC000000"
+      }
+    },
+    "highlight": {
+      "amber": {
+        "$type": "color",
+        "$value": "#FFC107"
+      }
+    },
+    "genre": {
+      "sports": {
+        "$type": "color",
+        "$value": "#1E4CAF50"
+      },
+      "news": {
+        "$type": "color",
+        "$value": "#1E2196F3"
+      },
+      "movie": {
+        "$type": "color",
+        "$value": "#1E9C27B0"
+      },
+      "kids": {
+        "$type": "color",
+        "$value": "#1EFF9800"
+      },
+      "music": {
+        "$type": "color",
+        "$value": "#1EE91E63"
+      },
+      "documentary": {
+        "$type": "color",
+        "$value": "#1E009688"
+      }
+    },
+    "seek": {
+      "segmentHighlight": {
+        "$type": "color",
+        "$value": "#80FFB300"
       }
     }
   },
@@ -100,6 +202,152 @@
     "progressBar": {
       "$type": "dimension",
       "$value": "1.5px"
+    }
+  },
+  "typography": {
+    "micro": {
+      "$type": "dimension",
+      "$value": "10px"
+    }
+  },
+  "elevation": {
+    "level0": {
+      "blur": {
+        "$type": "dimension",
+        "$value": "0px"
+      },
+      "offsetY": {
+        "$type": "dimension",
+        "$value": "0px"
+      },
+      "opacity": {
+        "$type": "number",
+        "$value": 0
+      }
+    },
+    "level1": {
+      "blur": {
+        "$type": "dimension",
+        "$value": "3px"
+      },
+      "offsetY": {
+        "$type": "dimension",
+        "$value": "1px"
+      },
+      "opacity": {
+        "$type": "number",
+        "$value": 0.3
+      }
+    },
+    "level2": {
+      "blur": {
+        "$type": "dimension",
+        "$value": "12px"
+      },
+      "offsetY": {
+        "$type": "dimension",
+        "$value": "4px"
+      },
+      "opacity": {
+        "$type": "number",
+        "$value": 0.38
+      }
+    },
+    "level3": {
+      "blur": {
+        "$type": "dimension",
+        "$value": "24px"
+      },
+      "offsetY": {
+        "$type": "dimension",
+        "$value": "8px"
+      },
+      "opacity": {
+        "$type": "number",
+        "$value": 0.45
+      }
+    }
+  },
+  "motion": {
+    "duration": {
+      "extraFast": {
+        "$type": "duration",
+        "$value": "80ms"
+      },
+      "quick": {
+        "$type": "duration",
+        "$value": "100ms"
+      },
+      "fast": {
+        "$type": "duration",
+        "$value": "150ms"
+      },
+      "normal": {
+        "$type": "duration",
+        "$value": "300ms"
+      },
+      "emphasis": {
+        "$type": "duration",
+        "$value": "400ms"
+      },
+      "slow": {
+        "$type": "duration",
+        "$value": "500ms"
+      },
+      "dramatic": {
+        "$type": "duration",
+        "$value": "1200ms"
+      },
+      "osdShow": {
+        "$type": "duration",
+        "$value": "200ms"
+      },
+      "osdHide": {
+        "$type": "duration",
+        "$value": "300ms"
+      },
+      "osdAutoHide": {
+        "$type": "duration",
+        "$value": "4000ms"
+      },
+      "skeletonPulse": {
+        "$type": "duration",
+        "$value": "1500ms"
+      },
+      "livePulse": {
+        "$type": "duration",
+        "$value": "2000ms"
+      },
+      "seekStep": {
+        "$type": "duration",
+        "$value": "10000ms"
+      },
+      "snackBarDuration": {
+        "$type": "duration",
+        "$value": "2000ms"
+      },
+      "toastDuration": {
+        "$type": "duration",
+        "$value": "3000ms"
+      },
+      "heroAdvanceInterval": {
+        "$type": "duration",
+        "$value": "8000ms"
+      },
+      "trailerDelayFeatured": {
+        "$type": "duration",
+        "$value": "2000ms"
+      },
+      "trailerDelay": {
+        "$type": "duration",
+        "$value": "3000ms"
+      }
+    },
+    "scale": {
+      "hover": {
+        "$type": "number",
+        "$value": 1.1
+      }
     }
   }
 }

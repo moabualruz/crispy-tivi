@@ -100,6 +100,7 @@ dependencies:
   web_socket_channel: ^3.0.3
   local_auth: ^3.0.1
   widgetbook: ^3.22.0
+  widgetbook_annotation: ^3.11.0
 
 dev_dependencies:
   flutter_test:

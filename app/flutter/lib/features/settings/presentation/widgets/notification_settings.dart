@@ -62,12 +62,9 @@ class NotificationSettingsSection extends ConsumerWidget {
 
               // Recording complete
               SwitchListTile(
-                title: const Row(
-                  children: [
-                    Text('Recording Complete'),
-                    SizedBox(width: CrispySpacing.sm),
-                    SettingsBadge.experimental(),
-                  ],
+                title: const SettingsTileTitle(
+                  title: 'Recording Complete',
+                  badge: SettingsBadge.experimental(),
                 ),
                 subtitle: const Text('Alert when a DVR recording finishes'),
                 secondary: const Icon(Icons.videocam_outlined),
@@ -78,12 +75,9 @@ class NotificationSettingsSection extends ConsumerWidget {
 
               // New episode available
               SwitchListTile(
-                title: const Row(
-                  children: [
-                    Text('New Episode Available'),
-                    SizedBox(width: CrispySpacing.sm),
-                    SettingsBadge.experimental(),
-                  ],
+                title: const SettingsTileTitle(
+                  title: 'New Episode Available',
+                  badge: SettingsBadge.experimental(),
                 ),
                 subtitle: const Text(
                   'Alert when a tracked series gets '
@@ -97,12 +91,9 @@ class NotificationSettingsSection extends ConsumerWidget {
 
               // Live event reminder
               SwitchListTile(
-                title: const Row(
-                  children: [
-                    Text('Live Event Reminders'),
-                    SizedBox(width: CrispySpacing.sm),
-                    SettingsBadge.experimental(),
-                  ],
+                title: const SettingsTileTitle(
+                  title: 'Live Event Reminders',
+                  badge: SettingsBadge.experimental(),
                 ),
                 subtitle: const Text(
                   'Reminder before a scheduled '
@@ -116,12 +107,9 @@ class NotificationSettingsSection extends ConsumerWidget {
 
               // FE-S-07: EPG update notification
               SwitchListTile(
-                title: const Row(
-                  children: [
-                    Text('EPG Update Notification'),
-                    SizedBox(width: CrispySpacing.sm),
-                    SettingsBadge.experimental(),
-                  ],
+                title: const SettingsTileTitle(
+                  title: 'EPG Update Notification',
+                  badge: SettingsBadge.experimental(),
                 ),
                 subtitle: const Text(
                   'Alert when programme guide data '

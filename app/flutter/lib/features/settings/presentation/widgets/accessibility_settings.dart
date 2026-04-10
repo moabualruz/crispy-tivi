@@ -5,7 +5,8 @@ import '../providers/settings_service_providers.dart';
 import '../../../../core/widgets/async_value_ui.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
-import 'settings_shared_widgets.dart' show SettingsBadge, SettingsCard;
+import 'settings_shared_widgets.dart'
+    show SettingsBadge, SettingsCard, SettingsTileTitle;
 
 // FE-S-05: Accessibility settings — subtitle font size, subtitle background
 // opacity, audio description, high-contrast mode, text scale override.
@@ -227,12 +228,9 @@ class AccessibilitySettingsSection extends ConsumerWidget {
             // ── Audio Description ───────────────────────
             SwitchListTile(
               secondary: const Icon(Icons.hearing),
-              title: Row(
-                children: [
-                  const Text('Audio Description'),
-                  const SizedBox(width: CrispySpacing.sm),
-                  const SettingsBadge.experimental(),
-                ],
+              title: const SettingsTileTitle(
+                title: 'Audio Description',
+                badge: SettingsBadge.experimental(),
               ),
               subtitle: const Text(
                 'Prefer audio description tracks when available',

@@ -71,6 +71,30 @@ class SettingsBadge extends StatelessWidget {
   }
 }
 
+/// Text + inline [SettingsBadge] row that cannot overflow narrow settings
+/// panels.
+class SettingsTileTitle extends StatelessWidget {
+  const SettingsTileTitle({
+    required this.title,
+    required this.badge,
+    super.key,
+  });
+
+  final String title;
+  final Widget badge;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
+        const SizedBox(width: CrispySpacing.sm),
+        badge,
+      ],
+    );
+  }
+}
+
 /// Shows a settings confirmation dialog.
 ///
 /// Use this for settings-owned confirm/cancel flows so destructive

@@ -9,6 +9,24 @@ tokens, and the Widgetbook component catalog.
 - `assets/` - exported design assets that are safe to commit.
 - `docs/` - design decisions, mapping notes, and agent handoff docs.
 
+## Current Design System
+
+- `docs/design-system.md` - current coverage and remaining gaps.
+- `penpot/publish_editable_design_system.js` - Penpot MCP publisher payload
+  that creates editable token, component, pattern, and representative screen
+  boards in the local Penpot file.
+- `penpot/publish_design_assets.py` - local Penpot MCP REPL publisher that
+  uploads checked-in Flutter logo artwork into the design-system asset board.
+- `scripts/design/generate_widgetbook_coverage.py` - regenerates the
+  Widgetbook coverage matrix from Flutter widget/screen sources.
+
+## Widgetbook Annotations
+
+`app/flutter/lib/widgetbook.dart` uses official `@widgetbook.UseCase`
+annotations from `widgetbook_annotation`. Use cases are split by widget family
+under `app/flutter/lib/widgetbook/`; each cataloged widget has its own annotated
+builder and Penpot design link.
+
 ## Source Of Truth
 
 Flutter implementation tokens remain under:
@@ -22,6 +40,7 @@ new value is needed, add it to Flutter tokens first, then export/update Penpot.
 ## Local Workflow
 
 ```bash
+scripts/design/generate_widgetbook_coverage.py
 scripts/design/check_design_tokens.sh
 scripts/design/build_widgetbook.sh
 scripts/design/serve_widgetbook.sh

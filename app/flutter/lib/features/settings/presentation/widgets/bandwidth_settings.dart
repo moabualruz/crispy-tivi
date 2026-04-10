@@ -47,12 +47,9 @@ class BandwidthSettingsSection extends ConsumerWidget {
             // ── Global quality cap ──────────────────────
             ListTile(
               leading: const Icon(Icons.hd),
-              title: const Row(
-                children: [
-                  Text('Quality Cap'),
-                  SizedBox(width: CrispySpacing.sm),
-                  SettingsBadge.experimental(),
-                ],
+              title: const SettingsTileTitle(
+                title: 'Quality Cap',
+                badge: SettingsBadge.experimental(),
               ),
               subtitle: Text(settings.qualityCap.label),
               trailing: const Icon(Icons.chevron_right),
@@ -72,12 +69,9 @@ class BandwidthSettingsSection extends ConsumerWidget {
             // ── Data-saving mode ────────────────────────
             SwitchListTile(
               secondary: const Icon(Icons.data_saver_off),
-              title: const Row(
-                children: [
-                  Text('Data-Saving Mode'),
-                  SizedBox(width: CrispySpacing.sm),
-                  SettingsBadge.experimental(),
-                ],
+              title: const SettingsTileTitle(
+                title: 'Data-Saving Mode',
+                badge: SettingsBadge.experimental(),
               ),
               subtitle: const Text(
                 'Prefer lower-bitrate streams to '
@@ -92,12 +86,9 @@ class BandwidthSettingsSection extends ConsumerWidget {
               const Divider(height: 1),
               SwitchListTile(
                 secondary: const Icon(Icons.signal_cellular_alt),
-                title: const Row(
-                  children: [
-                    Text('Limit on Cellular'),
-                    SizedBox(width: CrispySpacing.sm),
-                    SettingsBadge.experimental(),
-                  ],
+                title: const SettingsTileTitle(
+                  title: 'Limit on Cellular',
+                  badge: SettingsBadge.experimental(),
                 ),
                 subtitle: const Text(
                   'Restrict to SD quality when '

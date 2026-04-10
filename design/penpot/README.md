@@ -67,6 +67,11 @@ When `penpot-mcp` is running it also serves:
 - MCP HTTP endpoint: `http://localhost:4401/mcp`
 - Legacy SSE endpoint: `http://localhost:4401/sse`
 
+This workspace also uses the local REPL bridge at `http://localhost:4403/execute`
+for publishing editable boards and reading back verification state. If that
+endpoint is down, run Penpot + MCP first, connect the Penpot plugin, then rerun
+the publisher/read-back commands.
+
 Open a Penpot file, load the plugin manifest from `http://localhost:4400`,
 open the plugin UI, and click "Connect to MCP server". Agents should then read
 Penpot components/tokens through MCP first, then update Flutter tokens and

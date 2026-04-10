@@ -56,6 +56,7 @@ app.*.map.json
 /app/flutter/android/app/src/main/jniLibs/
 
 # Playwright
+.playwright-cli/
 /testing/playwright/node_modules
 /testing/playwright/test-results
 /testing/playwright/test-results-visual
