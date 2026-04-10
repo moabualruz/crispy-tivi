@@ -1,0 +1,105 @@
+{
+  "$schema": "https://tr.designtokens.org/format/",
+  "color": {
+    "background": {
+      "immersive": {
+        "$type": "color",
+        "$value": "#000000"
+      },
+      "surface": {
+        "$type": "color",
+        "$value": "#121212"
+      },
+      "raised": {
+        "$type": "color",
+        "$value": "#1E1E1E"
+      }
+    },
+    "brand": {
+      "red": {
+        "$type": "color",
+        "$value": "#E50914"
+      }
+    },
+    "status": {
+      "success": {
+        "$type": "color",
+        "$value": "#4CAF50"
+      },
+      "warning": {
+        "$type": "color",
+        "$value": "#FF9800"
+      },
+      "error": {
+        "$type": "color",
+        "$value": "#F44336"
+      },
+      "live": {
+        "$type": "color",
+        "$value": "#FF5252"
+      }
+    },
+    "text": {
+      "high": {
+        "$type": "color",
+        "$value": "#FFFFFF"
+      },
+      "medium": {
+        "$type": "color",
+        "$value": "#B3B3B3"
+      },
+      "disabled": {
+        "$type": "color",
+        "$value": "#404040"
+      }
+    }
+  },
+  "spacing": {
+    "xxs": {
+      "$type": "dimension",
+      "$value": "2px"
+    },
+    "xs": {
+      "$type": "dimension",
+      "$value": "4px"
+    },
+    "sm": {
+      "$type": "dimension",
+      "$value": "8px"
+    },
+    "md": {
+      "$type": "dimension",
+      "$value": "16px"
+    },
+    "lg": {
+      "$type": "dimension",
+      "$value": "24px"
+    },
+    "xl": {
+      "$type": "dimension",
+      "$value": "32px"
+    },
+    "xxl": {
+      "$type": "dimension",
+      "$value": "48px"
+    }
+  },
+  "radius": {
+    "none": {
+      "$type": "dimension",
+      "$value": "0px"
+    },
+    "tv": {
+      "$type": "dimension",
+      "$value": "2px"
+    },
+    "tvSm": {
+      "$type": "dimension",
+      "$value": "1px"
+    },
+    "progressBar": {
+      "$type": "dimension",
+      "$value": "1.5px"
+    }
+  }
+}
