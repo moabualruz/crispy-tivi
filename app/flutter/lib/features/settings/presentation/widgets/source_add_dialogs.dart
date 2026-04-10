@@ -33,7 +33,10 @@ Future<void> syncSourceAndNotify({
     if (!isMounted()) return;
     messenger.showSnackBar(
       SnackBar(
-        content: Text('Loaded ${result.totalChannels} channels from "$name"'),
+        content: Text(
+          'Loaded ${result.channelsCount} channels and '
+          '${result.vodCount} movies/series from "$name"',
+        ),
       ),
     );
   } catch (e) {

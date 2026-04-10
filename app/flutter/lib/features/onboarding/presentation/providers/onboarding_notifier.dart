@@ -20,6 +20,7 @@ class OnboardingState {
     this.syncStatus = SyncStatus.idle,
     this.syncErrorMessage,
     this.channelCount = 0,
+    this.vodCount = 0,
     this.lastSource,
   });
 
@@ -28,6 +29,7 @@ class OnboardingState {
   final SyncStatus syncStatus;
   final String? syncErrorMessage;
   final int channelCount;
+  final int vodCount;
   final PlaylistSource? lastSource;
 
   OnboardingState copyWith({
@@ -36,6 +38,7 @@ class OnboardingState {
     SyncStatus? syncStatus,
     String? syncErrorMessage,
     int? channelCount,
+    int? vodCount,
     PlaylistSource? lastSource,
   }) {
     return OnboardingState(
@@ -44,6 +47,7 @@ class OnboardingState {
       syncStatus: syncStatus ?? this.syncStatus,
       syncErrorMessage: syncErrorMessage,
       channelCount: channelCount ?? this.channelCount,
+      vodCount: vodCount ?? this.vodCount,
       lastSource: lastSource ?? this.lastSource,
     );
   }
@@ -89,6 +93,8 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
       step: OnboardingStep.syncing,
       syncStatus: SyncStatus.syncing,
       syncErrorMessage: null,
+      channelCount: 0,
+      vodCount: 0,
     );
 
     await ref.read(settingsNotifierProvider.notifier).addSource(source);
@@ -100,7 +106,8 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
       if (_disposed) return;
       state = state.copyWith(
         syncStatus: SyncStatus.success,
-        channelCount: result.totalChannels,
+        channelCount: result.channelsCount,
+        vodCount: result.vodCount,
       );
     } catch (e) {
       if (_disposed) return;
@@ -119,6 +126,8 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
     state = state.copyWith(
       syncStatus: SyncStatus.syncing,
       syncErrorMessage: null,
+      channelCount: 0,
+      vodCount: 0,
     );
 
     try {
@@ -128,7 +137,8 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
       if (_disposed) return;
       state = state.copyWith(
         syncStatus: SyncStatus.success,
-        channelCount: result.totalChannels,
+        channelCount: result.channelsCount,
+        vodCount: result.vodCount,
       );
     } catch (e) {
       if (_disposed) return;

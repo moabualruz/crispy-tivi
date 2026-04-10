@@ -58,6 +58,14 @@ class OnboardingSyncStep extends ConsumerWidget {
                 style: textTheme.titleLarge,
                 textAlign: TextAlign.center,
               ),
+              if (state.vodCount > 0) ...[
+                const SizedBox(height: CrispySpacing.sm),
+                Text(
+                  'Also synced ${state.vodCount} movies/series items.',
+                  style: textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+              ],
               const SizedBox(height: CrispySpacing.xxl),
               Semantics(
                 button: true,

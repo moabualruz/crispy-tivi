@@ -18,6 +18,9 @@ class SyncReport {
 
   /// Alias for [channelsCount] — kept for call-site compatibility.
   int get totalChannels => channelsCount;
+
+  /// Total live + on-demand entries synced.
+  int get totalItems => channelsCount + vodCount;
 }
 
 /// Decodes a [SyncReport] from a JSON string returned by the Rust
