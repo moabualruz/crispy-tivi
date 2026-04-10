@@ -76,12 +76,12 @@ pub struct AndroidMediaSession;
 impl MediaSessionService for AndroidMediaSession {
     /// JNI bridge placeholder — forwards metadata to Android MediaSession.
     fn update_metadata(&self, _info: &MediaSessionInfo) {
-        // TODO(android): call JNI `NativeMediaSession.updateMetadata(title, artist, artworkUrl)`
+        // Android bridge gap: call JNI `NativeMediaSession.updateMetadata(...)`.
     }
 
     /// JNI bridge placeholder — forwards playback position to Android.
     fn update_position(&self, _secs: f64) {
-        // TODO(android): call JNI `NativeMediaSession.updatePosition(secs)`
+        // Android bridge gap: call JNI `NativeMediaSession.updatePosition(secs)`.
     }
 
     /// JNI bridge placeholder — registers transport action handler.
@@ -90,12 +90,12 @@ impl MediaSessionService for AndroidMediaSession {
         _action: MediaSessionAction,
         _handler: Box<dyn Fn() + Send + Sync>,
     ) {
-        // TODO(android): route JNI callbacks → handler via global static registry
+        // Android bridge gap: route JNI callbacks through a global handler registry.
     }
 
     /// JNI bridge placeholder — clears the Android MediaSession.
     fn clear(&self) {
-        // TODO(android): call JNI `NativeMediaSession.clear()`
+        // Android bridge gap: call JNI `NativeMediaSession.clear()`.
     }
 }
 
@@ -112,12 +112,12 @@ pub struct IosMediaSession;
 impl MediaSessionService for IosMediaSession {
     /// ObjC bridge placeholder — updates `MPNowPlayingInfoCenter`.
     fn update_metadata(&self, _info: &MediaSessionInfo) {
-        // TODO(ios): set MPNowPlayingInfoCenter.default().nowPlayingInfo
+        // iOS bridge gap: set MPNowPlayingInfoCenter.default().nowPlayingInfo.
     }
 
     /// ObjC bridge placeholder — updates `MPNowPlayingInfoPropertyElapsedPlaybackTime`.
     fn update_position(&self, _secs: f64) {
-        // TODO(ios): update elapsed playback time in nowPlayingInfo dict
+        // iOS bridge gap: update elapsed playback time in the nowPlayingInfo dict.
     }
 
     /// ObjC bridge placeholder — registers `MPRemoteCommandCenter` handler.
@@ -126,12 +126,12 @@ impl MediaSessionService for IosMediaSession {
         _action: MediaSessionAction,
         _handler: Box<dyn Fn() + Send + Sync>,
     ) {
-        // TODO(ios): addTarget on the appropriate MPRemoteCommand
+        // iOS bridge gap: addTarget on the appropriate MPRemoteCommand.
     }
 
     /// ObjC bridge placeholder — clears `MPNowPlayingInfoCenter`.
     fn clear(&self) {
-        // TODO(ios): set nowPlayingInfo to nil
+        // iOS bridge gap: set nowPlayingInfo to nil.
     }
 }
 

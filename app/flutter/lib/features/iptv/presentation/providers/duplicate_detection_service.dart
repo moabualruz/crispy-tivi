@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'iptv_service_providers.dart';
+import 'channel_providers.dart' show channelListProvider;
 import '../../domain/entities/channel.dart';
 import '../../domain/entities/duplicate_group.dart';
 
@@ -32,27 +33,6 @@ class DuplicateDetectionService {
           (m['channel_ids'] as List<dynamic>?)?.cast<String>() ?? [];
       return DuplicateGroup(streamUrl: streamUrl, channelIds: channelIds);
     }).toList();
-  }
-
-  /// Get a set of all channel IDs that are duplicates
-  /// (not preferred) via the Rust backend.
-  ///
-  /// The first channel in each group is considered
-  /// the "original", and all others are marked as
-  /// duplicates.
-  Future<Set<String>> getDuplicateIds(List<DuplicateGroup> groups) async {
-    if (groups.isEmpty) return const {};
-    final json = encodeDuplicateGroups(groups);
-    final ids = await _backend.getAllDuplicateIds(json);
-    return ids.toSet();
-  }
-
-  /// Check if a specific channel is a duplicate
-  /// via the Rust backend.
-  bool isDuplicate(String channelId, List<DuplicateGroup> groups) {
-    if (groups.isEmpty) return false;
-    final json = encodeDuplicateGroups(groups);
-    return _backend.isDuplicate(json, channelId);
   }
 
   /// Find the group containing a channel, if any,
@@ -100,32 +80,26 @@ final duplicateGroupsProvider =
       DuplicateGroupsNotifier.new,
     );
 
-/// Provider for the set of duplicate channel IDs.
-///
-/// Derived from [duplicateGroupsProvider] for quick
-/// lookup. Delegates to Rust backend.
-final duplicateChannelIdsProvider = FutureProvider<Set<String>>((ref) async {
-  final groups = ref.watch(duplicateGroupsProvider);
-  final service = ref.watch(duplicateDetectionServiceProvider);
-  return service.getDuplicateIds(groups);
-});
-
 /// Provider for checking if a specific channel is a
 /// duplicate.
 ///
-/// autoDispose: O(1) Set.contains — trivial to recompute.
+/// Reads from [channelListProvider] so the UI uses the
+/// same duplicate-ID state that powers filtering.
 final isChannelDuplicateProvider = Provider.family.autoDispose<bool, String>((
   ref,
   channelId,
 ) {
-  final duplicateIds = ref.watch(duplicateChannelIdsProvider).value;
-  if (duplicateIds == null) return false;
-  return duplicateIds.contains(channelId);
+  return ref.watch(
+    channelListProvider.select(
+      (state) => state.duplicateIds.contains(channelId),
+    ),
+  );
 });
 
 /// Provider for the total number of duplicate
 /// channels.
 final duplicateCountProvider = Provider<int>((ref) {
-  final duplicateIds = ref.watch(duplicateChannelIdsProvider).value;
-  return duplicateIds?.length ?? 0;
+  return ref.watch(
+    channelListProvider.select((state) => state.duplicateIds.length),
+  );
 });

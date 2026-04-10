@@ -238,7 +238,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 // Section: wire_class
 
 class RustLibWire implements BaseWire {
-  RustLibWire.fromExternalLibrary();
+  RustLibWire.fromExternalLibrary([ExternalLibrary? _]);
 }
 
 @JS('wasm_bindgen')

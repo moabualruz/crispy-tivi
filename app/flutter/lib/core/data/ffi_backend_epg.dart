@@ -347,11 +347,13 @@ mixin _FfiEpgMixin on _FfiBackendBase {
         epochMs: PlatformInt64Util.from(epochMs),
       );
 
-  int applyTimezoneOffset(int epochMs, String tzName) =>
-      rust_api.applyTimezoneOffset(
-        epochMs: PlatformInt64Util.from(epochMs),
-        tzName: tzName,
-      );
+  int applyTimezoneOffset(int epochMs, String tzName) {
+    final adjusted = rust_api.applyTimezoneOffset(
+      epochMs: PlatformInt64Util.from(epochMs),
+      tzName: tzName,
+    );
+    return int.parse(adjusted.toString());
+  }
 
   String formatTimeWithSeconds(int epochMs, String tzName) =>
       rust_api.formatTimeWithSeconds(

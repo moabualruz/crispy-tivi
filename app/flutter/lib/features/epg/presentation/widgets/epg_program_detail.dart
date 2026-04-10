@@ -290,7 +290,7 @@ class EpgProgramDetailSheet extends ConsumerWidget {
       }
     }
 
-    ref
+    await ref
         .read(dvrServiceProvider.notifier)
         .scheduleRecording(
           channelId: channel.id,
@@ -339,7 +339,7 @@ class EpgProgramDetailSheet extends ConsumerWidget {
 
     Navigator.pop(context);
 
-    ref
+    await ref
         .read(playbackSessionProvider.notifier)
         .startPlayback(
           streamUrl: info.archiveUrl,

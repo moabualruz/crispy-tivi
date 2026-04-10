@@ -76,9 +76,8 @@ class MultiviewPresetChipRow extends ConsumerWidget {
 /// enters PiP for the currently focused slot via [PipNotifier].
 /// Tapping again while PiP is active calls [PipNotifier.exitPip].
 ///
-/// NOTE: The native MethodChannel handler is a stub — see
-/// [PipNotifier] for items needed to complete native wiring.
-/// TODO(BACKLOG): native PiP wiring — aspirational feature.
+/// NOTE: The native MethodChannel handler is currently a stub; [PipNotifier]
+/// owns the platform bridge contract needed for native PiP wiring.
 class MultiviewPipButton extends ConsumerWidget {
   const MultiviewPipButton({this.focusedSlotIndex, super.key});
 

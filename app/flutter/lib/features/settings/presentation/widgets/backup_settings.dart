@@ -108,36 +108,21 @@ class _BackupSettingsSectionState extends ConsumerState<BackupSettingsSection> {
   }
 
   Future<void> _importBackup(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showSettingsConfirmationDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Import Backup'),
-            content: const Text(
-              'This will merge data from your clipboard '
-              'with existing data. Existing items with '
-              'the same ID will be overwritten.\n\n'
-              'Continue?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Import'),
-              ),
-            ],
-          ),
+      title: 'Import Backup',
+      content:
+          'This will merge data from your clipboard '
+          'with existing data. Existing items with '
+          'the same ID will be overwritten.\n\n'
+          'Continue?',
+      confirmLabel: 'Import',
     );
 
     if (!mounted) return;
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
-    final messenger =
-    // ignore: use_build_context_synchronously
-    ScaffoldMessenger.of(context);
     try {
       messenger.showSnackBar(
         const SnackBar(content: Text('Importing backup…')),
@@ -201,32 +186,19 @@ class _BackupSettingsSectionState extends ConsumerState<BackupSettingsSection> {
   Future<void> _importFromFile(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showSettingsConfirmationDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Import Backup'),
-            content: const Text(
-              'This will merge data from the backup file '
-              'with existing data. Existing items with '
-              'the same ID will be overwritten.\n\n'
-              'Continue?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Select File'),
-              ),
-            ],
-          ),
+      title: 'Import Backup',
+      content:
+          'This will merge data from the backup file '
+          'with existing data. Existing items with '
+          'the same ID will be overwritten.\n\n'
+          'Continue?',
+      confirmLabel: 'Select File',
     );
 
     if (!mounted) return;
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       messenger.showSnackBar(
@@ -245,6 +217,123 @@ class _BackupSettingsSectionState extends ConsumerState<BackupSettingsSection> {
       }
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
+    }
+  }
+}
+
+/// Minimal backup/restore bottom sheet for settings quick actions.
+///
+/// Keeps quick backup UI next to the full [BackupSettingsSection] owner while
+/// exposing only the compact actions needed by [QuickAccessStrip].
+class BackupQuickActionsSheet extends ConsumerWidget {
+  const BackupQuickActionsSheet({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(CrispySpacing.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(bottom: CrispySpacing.md),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.zero,
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Icon(Icons.backup, color: colorScheme.primary),
+                const SizedBox(width: CrispySpacing.sm),
+                Text(
+                  'Backup & Restore',
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: CrispySpacing.md),
+            ListTile(
+              leading: const Icon(Icons.share),
+              title: const Text('Export Backup'),
+              subtitle: const Text('Share backup file via system share sheet'),
+              trailing: const Icon(Icons.ios_share),
+              onTap: () => _export(context, ref),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.file_open),
+              title: const Text('Import Backup'),
+              subtitle: const Text('Restore from a backup file'),
+              trailing: const Icon(Icons.upload_file),
+              onTap: () => _import(context, ref),
+            ),
+            const SizedBox(height: CrispySpacing.md),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _export(BuildContext context, WidgetRef ref) async {
+    Navigator.of(context).pop();
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Preparing backup file…')),
+      );
+      final backup = ref.read(backupServiceProvider);
+      await backup.exportToFile();
+      if (context.mounted) {
+        messenger.showSnackBar(const SnackBar(content: Text('Backup shared')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      }
+    }
+  }
+
+  Future<void> _import(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showSettingsConfirmationDialog(
+      context: context,
+      title: 'Import Backup',
+      content:
+          'This will merge data from the backup file '
+          'with existing data. Existing items with '
+          'the same ID will be overwritten.\n\nContinue?',
+      confirmLabel: 'Select File',
+    );
+
+    if (!confirmed) return;
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Select a backup file…')),
+      );
+      final backup = ref.read(backupServiceProvider);
+      final summary = await backup.importFromFile();
+      if (context.mounted && summary != null) {
+        messenger.showSnackBar(SnackBar(content: Text('Imported: $summary')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
+      }
     }
   }
 }
@@ -319,35 +408,18 @@ class _SettingsImportExportSectionState
 
   /// FE-S-02: Reads JSON from clipboard, validates, applies to settings.
   Future<void> _importSettings(BuildContext context) async {
-    // Confirmation dialog — overwrite warning.
-    final confirmed = await showDialog<bool>(
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showSettingsConfirmationDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Import Settings'),
-            content: const Text(
-              'This will overwrite your current preferences with the '
-              'settings from your clipboard.\n\nContinue?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Import'),
-              ),
-            ],
-          ),
+      title: 'Import Settings',
+      content:
+          'This will overwrite your current preferences with the '
+          'settings from your clipboard.\n\nContinue?',
+      confirmLabel: 'Import',
     );
 
     if (!context.mounted) return;
-    if (confirmed != true) return;
-
-    final messenger =
-    // ignore: use_build_context_synchronously
-    ScaffoldMessenger.of(context);
+    if (!confirmed) return;
 
     try {
       final data = await Clipboard.getData('text/plain');

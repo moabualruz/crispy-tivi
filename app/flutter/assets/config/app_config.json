@@ -3,7 +3,7 @@
   "appVersion": "0.1.1",
   "api": {
     "baseUrl": "http://localhost:3000",
-    "backendPort": 8080,
+    "backendPort": 8081,
     "connectTimeoutMs": 10000,
     "receiveTimeoutMs": 30000,
     "sendTimeoutMs": 10000

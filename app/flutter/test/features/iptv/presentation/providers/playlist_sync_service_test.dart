@@ -7,6 +7,7 @@ import 'package:crispy_tivi/features/epg/presentation/providers/epg_providers.da
 import 'package:crispy_tivi/features/iptv/domain/entities/channel.dart';
 import 'package:crispy_tivi/features/iptv/domain/entities/epg_entry.dart';
 import 'package:crispy_tivi/features/iptv/presentation/providers/playlist_sync_service.dart';
+import 'package:crispy_tivi/features/profiles/data/source_access_service.dart';
 import 'package:crispy_tivi/features/vod/domain/entities/vod_item.dart';
 import 'package:crispy_tivi/features/vod/presentation/providers/vod_providers.dart';
 
@@ -19,7 +20,10 @@ void main() {
       backend = MemoryBackend();
       await backend.init('');
       container = ProviderContainer(
-        overrides: [crispyBackendProvider.overrideWithValue(backend)],
+        overrides: [
+          crispyBackendProvider.overrideWithValue(backend),
+          accessibleSourcesProvider.overrideWith((ref) async => null),
+        ],
       );
     });
 

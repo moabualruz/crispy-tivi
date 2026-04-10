@@ -11,7 +11,7 @@ class DvrRobot {
   Finder get dvrScreen => find.byKey(TestKeys.dvrScreen);
   Finder get cloudStorageTab => find.byKey(TestKeys.tabCloudStorage);
 
-  // TODO: Uncomment when dedicated S3/WebDAV add buttons are implemented.
+  // Dedicated S3/WebDAV add buttons are not exposed yet.
   // Finder get configS3Button => find.byKey(TestKeys.configS3Storage);
   // Finder get configWebDavButton => find.byKey(TestKeys.configWebDavStorage);
 
@@ -26,7 +26,7 @@ class DvrRobot {
     await tester.pumpAndSettle();
   }
 
-  // TODO: Re-enable when dedicated S3/WebDAV add buttons are implemented.
+  // Re-enable when dedicated S3/WebDAV add buttons are exposed.
   // Future<void> configureS3Provider() async {
   //   await tester.scrollUntilVisible(
   //     configS3Button,

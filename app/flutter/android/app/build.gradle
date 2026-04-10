@@ -5,6 +5,27 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
+def signingValue = { propertyName, envName ->
+    keystoreProperties.getProperty(propertyName) ?: System.getenv(envName)
+}
+
+def releaseStoreFile = signingValue('storeFile', 'CRISPY_ANDROID_STORE_FILE')
+def releaseStorePassword = signingValue('storePassword', 'CRISPY_ANDROID_STORE_PASSWORD')
+def releaseKeyAlias = signingValue('keyAlias', 'CRISPY_ANDROID_KEY_ALIAS')
+def releaseKeyPassword = signingValue('keyPassword', 'CRISPY_ANDROID_KEY_PASSWORD')
+def hasReleaseSigning = [
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+].every { it != null && it.toString().trim() }
+
 android {
     namespace = "com.crispytivi.crispy_tivi"
     compileSdk = flutter.compileSdkVersion
@@ -20,7 +41,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Application ID is project-owned; keep it stable for installed app upgrades.
         applicationId = "com.crispytivi.crispy_tivi"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -32,11 +53,20 @@ android {
         testInstrumentationRunnerArguments clearPackageData: 'true'
     }
 
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+            signingConfig = hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
         }
     }
 }

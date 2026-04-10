@@ -23,9 +23,9 @@ void main() {
       await app.main();
       await tester.pump(const Duration(milliseconds: 500));
 
-      // Verify the app boots to the shell. DVR-specific navigation
-      // requires the DVR nav item which may be off-screen on compact
-      // layouts. Full DVR integration tests are TODO.
+      // Verify the app boots to the shell. DVR-specific navigation requires
+      // the DVR nav item which may be off-screen on compact layouts; full DVR
+      // flow coverage belongs in a dedicated integration suite.
       await tester.pumpUntilFound(find.byKey(TestKeys.appShell));
       expect(find.byKey(TestKeys.appShell), findsOneWidget);
     });

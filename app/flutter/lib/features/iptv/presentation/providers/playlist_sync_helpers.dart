@@ -9,6 +9,7 @@ import '../../../profiles/presentation/providers/profile_service_providers.dart'
 import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../../vod/presentation/providers/vod_favorites_provider.dart';
 import '../../domain/entities/channel.dart';
+import '../../domain/entities/duplicate_group.dart';
 import 'channel_providers.dart';
 import 'duplicate_detection_service.dart';
 import 'iptv_service_providers.dart';
@@ -141,9 +142,10 @@ mixin PlaylistSyncHelpers {
     // Update the global duplicate groups provider.
     ref.read(duplicateGroupsProvider.notifier).setGroups(groups);
 
-    // Update channel list with duplicate IDs for
-    // filtering.
-    final duplicateIds = await service.getDuplicateIds(groups);
+    // Keep filtering semantics local to the duplicate
+    // group model so the UI does not re-ask the backend
+    // for data it already has.
+    final duplicateIds = collectDuplicateIds(groups);
     ref.read(channelListProvider.notifier).setDuplicateIds(duplicateIds);
   }
 

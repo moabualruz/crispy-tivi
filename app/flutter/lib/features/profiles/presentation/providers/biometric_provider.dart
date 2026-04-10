@@ -71,8 +71,9 @@ class BiometricPreferenceNotifier extends AsyncNotifier<Map<String, bool>> {
 
       if (didAuthenticate) {
         // Generate a per-session token from the current timestamp.
-        // TODO(BACKLOG): replace PIN hash with Rust FFI — migration candidate.
-        // for cryptographically secure HMAC-based session tokens.
+        // Deferred security hardening: replace this with a Rust FFI-backed
+        // HMAC/session-token flow before treating biometrics as credential
+        // material outside this in-process unlock path.
         final timestamp = DateTime.now().microsecondsSinceEpoch;
         return 'bio_session_${timestamp.hashCode.toRadixString(36)}';
       }

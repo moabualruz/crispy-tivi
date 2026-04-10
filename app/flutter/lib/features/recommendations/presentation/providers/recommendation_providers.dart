@@ -1,6 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../iptv/presentation/providers/channel_providers.dart';
+import '../../../vod/presentation/providers/vod_providers.dart';
 import '../../domain/entities/recommendation.dart';
 import 'recommendation_service_providers.dart';
 
@@ -20,12 +21,19 @@ final recommendationSectionsProvider =
       );
       if (profile == null) return [];
 
-      // TODO(perf): Rebuild recommendations from paginated/channel-specific
-      // queries instead of bulk-loading the full channel and VOD catalogs.
-      debugPrint(
-        'Recommendations: skipping bulk preload until paginated inputs land',
+      final channels = ref.watch(
+        channelListProvider.select((state) => state.channels),
       );
-      return const [];
+      final vodItems = ref.watch(vodProvider.select((state) => state.items));
+      if (channels.isEmpty && vodItems.isEmpty) return [];
+
+      final engine = ref.watch(recommendationEngineProvider);
+      return engine.generateAll(
+        profileId: profile.id,
+        maxAllowedRating: profile.effectiveMaxRating,
+        allVodItems: vodItems,
+        allChannels: channels,
+      );
     });
 
 /// Top picks section only.

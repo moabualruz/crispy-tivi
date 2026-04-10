@@ -140,33 +140,16 @@ class _StorageSettingsSectionState
     required Future<void> Function() onConfirm,
     bool destructive = false,
   }) async {
-    final errorColor = Theme.of(context).colorScheme.error;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showSettingsConfirmationDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text('Clear $label?'),
-            content: Text(
-              'This will permanently delete the $label. '
-              'The app will re-download data on next sync.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                style:
-                    destructive
-                        ? FilledButton.styleFrom(backgroundColor: errorColor)
-                        : null,
-                child: const Text('Clear'),
-              ),
-            ],
-          ),
+      title: 'Clear $label?',
+      content:
+          'This will permanently delete the $label. '
+          'The app will re-download data on next sync.',
+      confirmLabel: 'Clear',
+      destructive: destructive,
     );
-    if (confirmed == true) {
+    if (confirmed) {
       await onConfirm();
     }
   }

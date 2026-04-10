@@ -255,6 +255,106 @@ fn detect_duplicate_channels() {
 }
 
 #[test]
+fn filter_and_sort_vod_items() {
+    let svc = make_svc();
+    let items = json!([
+        {
+            "id": "v1",
+            "name": "Zulu Movie",
+            "stream_url": "http://x/1",
+            "type": "movie",
+            "category": "Drama",
+            "description": "quiet film",
+            "director": "Someone",
+            "cast": "Actor A"
+        },
+        {
+            "id": "v2",
+            "name": "Alpha Movie",
+            "stream_url": "http://x/2",
+            "type": "movie",
+            "category": "Drama",
+            "description": "space adventure",
+            "director": "Director B",
+            "cast": "Actor B"
+        },
+        {
+            "id": "v3",
+            "name": "Other Movie",
+            "stream_url": "http://x/3",
+            "type": "movie",
+            "category": "Comedy",
+            "description": "space comedy"
+        }
+    ]);
+
+    let resp = send(
+        &svc,
+        &json!({
+            "cmd": "filterAndSortVodItems",
+            "id": "r1",
+            "args": {
+                "itemsJson": serde_json::to_string(&items).unwrap(),
+                "category": "Drama",
+                "query": "space",
+                "sortBy": "name_asc",
+            },
+        }),
+    );
+    let result: Vec<serde_json::Value> =
+        serde_json::from_str(resp["data"].as_str().unwrap()).unwrap();
+
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0]["id"], "v2");
+}
+
+#[test]
+fn search_content_accepts_dart_epg_channel_id_key() {
+    let svc = make_svc();
+    let channels = json!([
+        {
+            "id": "xmltv-news",
+            "name": "News Channel",
+            "stream_url": "http://x/news"
+        }
+    ]);
+    let vod_items = json!([]);
+    let epg = json!({
+        "xmltv-news": [{
+            "channel_id": "xmltv-news",
+            "title": "Evening News",
+            "start_time": "2026-04-10T18:00:00",
+            "end_time": "2026-04-10T19:00:00"
+        }]
+    });
+    let filter = json!({
+        "search_channels": false,
+        "search_movies": false,
+        "search_series": false,
+        "search_epg": true,
+        "search_in_description": false
+    });
+
+    let resp = send(
+        &svc,
+        &json!({
+            "cmd": "searchContent",
+            "id": "r1",
+            "args": {
+                "query": "Evening",
+                "channelsJson": serde_json::to_string(&channels).unwrap(),
+                "vodItemsJson": serde_json::to_string(&vod_items).unwrap(),
+                "epgEntriesJson": serde_json::to_string(&epg).unwrap(),
+                "filterJson": serde_json::to_string(&filter).unwrap(),
+            },
+        }),
+    );
+
+    let result: serde_json::Value = serde_json::from_str(resp["data"].as_str().unwrap()).unwrap();
+    assert_eq!(result["epg_programs"].as_array().unwrap().len(), 1);
+}
+
+#[test]
 fn build_xtream_action_url() {
     let svc = make_svc();
     let resp = send(

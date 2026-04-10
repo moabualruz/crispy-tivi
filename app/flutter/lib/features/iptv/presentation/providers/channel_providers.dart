@@ -5,7 +5,7 @@ import '../../../../core/providers/active_profile_provider.dart';
 import '../../../../core/providers/source_filter_provider.dart';
 import 'iptv_service_providers.dart' show crispyBackendProvider;
 import '../../data/channel_repository_impl.dart'
-    show channelRepositoryProvider, channelOrderRepositoryProvider;
+    show channelOrderRepositoryProvider, channelRepositoryProvider;
 import '../../data/parsers/m3u_parser.dart';
 import '../../domain/entities/channel.dart';
 import '../../../favorites/presentation/providers/favorites_controller.dart';
@@ -48,6 +48,21 @@ class ChannelListNotifier extends Notifier<ChannelListState> {
     state = state.copyWith(channels: updated);
   }
 
+  List<Channel> _withFavoriteFlags(List<Channel> channels) {
+    final favs = ref.read(favoritesControllerProvider).asData?.value;
+    if (favs == null) {
+      return channels;
+    }
+
+    final favoriteIds = favs.map((channel) => channel.id).toSet();
+    return channels
+        .map(
+          (channel) =>
+              channel.copyWith(isFavorite: favoriteIds.contains(channel.id)),
+        )
+        .toList();
+  }
+
   /// Loads channels from raw M3U content.
   Future<void> loadFromM3u(String content) async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -61,18 +76,8 @@ class ChannelListNotifier extends Notifier<ChannelListState> {
           .read(channelOrderRepositoryProvider)
           .extractSortedGroups(channels);
 
-      List<Channel> finalChannels = channels;
-      final favs = ref.read(favoritesControllerProvider).asData?.value;
-      if (favs != null) {
-        final favIds = favs.map((c) => c.id).toSet();
-        finalChannels =
-            channels
-                .map((c) => c.copyWith(isFavorite: favIds.contains(c.id)))
-                .toList();
-      }
-
       state = state.copyWith(
-        channels: finalChannels,
+        channels: _withFavoriteFlags(channels),
         groups: groups,
         isLoading: false,
       );
@@ -121,18 +126,8 @@ class ChannelListNotifier extends Notifier<ChannelListState> {
 
   /// Loads pre-parsed channels (from any source — M3U, Xtream, etc.).
   void loadChannels(List<Channel> channels, List<String> groups) {
-    List<Channel> finalChannels = channels;
-    final favs = ref.read(favoritesControllerProvider).asData?.value;
-    if (favs != null) {
-      final favIds = favs.map((c) => c.id).toSet();
-      finalChannels =
-          channels
-              .map((c) => c.copyWith(isFavorite: favIds.contains(c.id)))
-              .toList();
-    }
-
     state = state.copyWith(
-      channels: finalChannels,
+      channels: _withFavoriteFlags(channels),
       groups: groups,
       isLoading: false,
       clearError: true,

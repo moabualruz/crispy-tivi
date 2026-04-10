@@ -57,10 +57,7 @@ class _FakeSettingsNotifier extends AsyncNotifier<SettingsState>
   List<String>? lastSetHiddenGroups;
 
   @override
-  Future<SettingsState> build() async {
-    _state = _initial;
-    return _state;
-  }
+  Future<SettingsState> build() async => _state = _initial;
 
   @override
   Future<void> setHiddenGroups(List<String> groups) async {

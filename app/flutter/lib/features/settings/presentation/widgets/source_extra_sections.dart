@@ -70,31 +70,17 @@ class SourceTile extends StatelessWidget {
     final deleteButton = IconButton(
       icon: const Icon(Icons.delete_outline),
       tooltip: 'Delete source',
-      onPressed: () {
-        showDialog(
+      onPressed: () async {
+        final confirmed = await showSettingsConfirmationDialog(
           context: context,
-          builder:
-              (ctx) => AlertDialog(
-                title: const Text('Remove Source'),
-                content: Text('Remove "${source.name}"?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Cancel'),
-                  ),
-                  FilledButton(
-                    onPressed: () {
-                      onDelete();
-                      Navigator.pop(ctx);
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: colorScheme.error,
-                    ),
-                    child: const Text('Remove'),
-                  ),
-                ],
-              ),
+          title: 'Remove Source',
+          content: 'Remove "${source.name}"?',
+          confirmLabel: 'Remove',
+          destructive: true,
         );
+        if (confirmed) {
+          onDelete();
+        }
       },
     );
 
@@ -113,6 +99,103 @@ class SourceTile extends StatelessWidget {
             trailing: deleteButton,
           ),
         ),
+      ],
+    );
+  }
+}
+
+Future<void> _showSourceTextEditDialog({
+  required BuildContext context,
+  required String title,
+  required String labelText,
+  required String hintText,
+  required String initialValue,
+  required String successMessage,
+  required Future<void> Function(String value) onSave,
+}) async {
+  await showDialog<void>(
+    context: context,
+    builder:
+        (_) => _SourceTextEditDialog(
+          parentContext: context,
+          title: title,
+          labelText: labelText,
+          hintText: hintText,
+          initialValue: initialValue,
+          successMessage: successMessage,
+          onSave: onSave,
+        ),
+  );
+}
+
+class _SourceTextEditDialog extends StatefulWidget {
+  const _SourceTextEditDialog({
+    required this.parentContext,
+    required this.title,
+    required this.labelText,
+    required this.hintText,
+    required this.initialValue,
+    required this.successMessage,
+    required this.onSave,
+  });
+
+  final BuildContext parentContext;
+  final String title;
+  final String labelText;
+  final String hintText;
+  final String initialValue;
+  final String successMessage;
+  final Future<void> Function(String value) onSave;
+
+  @override
+  State<_SourceTextEditDialog> createState() => _SourceTextEditDialogState();
+}
+
+class _SourceTextEditDialogState extends State<_SourceTextEditDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    await widget.onSave(_controller.text.trim());
+    if (!mounted) return;
+    Navigator.pop(context);
+    if (widget.parentContext.mounted) {
+      ScaffoldMessenger.of(
+        widget.parentContext,
+      ).showSnackBar(SnackBar(content: Text(widget.successMessage)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        decoration: InputDecoration(
+          labelText: widget.labelText,
+          hintText: widget.hintText,
+          border: const OutlineInputBorder(),
+        ),
+        maxLines: 2,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(onPressed: _save, child: const Text('Save')),
       ],
     );
   }
@@ -166,47 +249,17 @@ class UserAgentSettingsSection extends ConsumerWidget {
     WidgetRef ref,
     PlaylistSource source,
   ) {
-    final ctrl = TextEditingController(text: source.userAgent ?? '');
-
-    showDialog(
+    _showSourceTextEditDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text('User Agent \u2014 ${source.name}'),
-            content: TextField(
-              controller: ctrl,
-              decoration: const InputDecoration(
-                labelText: 'Custom User Agent',
-                hintText: 'Leave empty for default',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 2,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  final value = ctrl.text.trim();
-                  ref
-                      .read(settingsNotifierProvider.notifier)
-                      .updateSourceUserAgent(
-                        source.id,
-                        value.isEmpty ? null : value,
-                      );
-                  if (context.mounted) {
-                    Navigator.pop(ctx);
-                  }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('User agent updated')),
-                  );
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          ),
+      title: 'User Agent \u2014 ${source.name}',
+      labelText: 'Custom User Agent',
+      hintText: 'Leave empty for default',
+      initialValue: source.userAgent ?? '',
+      successMessage: 'User agent updated',
+      onSave:
+          (value) => ref
+              .read(settingsNotifierProvider.notifier)
+              .updateSourceUserAgent(source.id, value.isEmpty ? null : value),
     );
   }
 }
@@ -247,7 +300,7 @@ class ContentFilterSettingsSection extends ConsumerWidget {
     );
   }
 
-  void _showGroupFilterDialog(
+  Future<void> _showGroupFilterDialog(
     BuildContext context,
     WidgetRef ref,
     List<String> currentHidden,
@@ -261,8 +314,8 @@ class ContentFilterSettingsSection extends ConsumerWidget {
     }
     final sortedGroups = allGroups.toList()..sort(categoryBucketCompare);
 
-    if (!context.mounted || sortedGroups.isEmpty) {
-      // ignore: use_build_context_synchronously
+    if (!context.mounted) return;
+    if (sortedGroups.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No categories found. Sync first.')),
       );
@@ -272,7 +325,6 @@ class ContentFilterSettingsSection extends ConsumerWidget {
     final selected = Set<String>.from(currentHidden);
 
     await showDialog(
-      // ignore: use_build_context_synchronously
       context: context,
       builder:
           (ctx) => StatefulBuilder(
@@ -291,7 +343,7 @@ class ContentFilterSettingsSection extends ConsumerWidget {
                           value: selected.contains(group),
                           onChanged: (val) {
                             setDialogState(() {
-                              if (val == true) {
+                              if (val ?? false) {
                                 selected.add(group);
                               } else {
                                 selected.remove(group);
@@ -366,7 +418,7 @@ class EpgUrlSettingsSection extends ConsumerWidget {
                 leading: const Icon(Icons.edit),
                 title: Text(validSources[i].name),
                 subtitle: Text(
-                  validSources[i].epgUrl?.isNotEmpty == true
+                  (validSources[i].epgUrl?.isNotEmpty ?? false)
                       ? validSources[i].epgUrl!
                       : 'Not Configured',
                   maxLines: 1,
@@ -388,48 +440,21 @@ class EpgUrlSettingsSection extends ConsumerWidget {
     WidgetRef ref,
     PlaylistSource source,
   ) {
-    final ctrl = TextEditingController(text: source.epgUrl ?? '');
-
-    showDialog(
+    _showSourceTextEditDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text('EPG URL \u2014 ${source.name}'),
-            content: TextField(
-              controller: ctrl,
-              decoration: const InputDecoration(
-                labelText: 'XMLTV URL',
-                hintText: 'Leave empty for none',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 2,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () async {
-                  final value = ctrl.text.trim();
-                  final updatedSource = source.copyWith(
-                    epgUrl: value.isEmpty ? null : value,
-                  );
-                  await ref
-                      .read(settingsNotifierProvider.notifier)
-                      .updateSource(updatedSource);
-
-                  if (context.mounted) {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('EPG URL updated')),
-                    );
-                  }
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          ),
+      title: 'EPG URL \u2014 ${source.name}',
+      labelText: 'XMLTV URL',
+      hintText: 'Leave empty for none',
+      initialValue: source.epgUrl ?? '',
+      successMessage: 'EPG URL updated',
+      onSave: (value) {
+        final updatedSource = source.copyWith(
+          epgUrl: value.isEmpty ? null : value,
+        );
+        return ref
+            .read(settingsNotifierProvider.notifier)
+            .updateSource(updatedSource);
+      },
     );
   }
 }

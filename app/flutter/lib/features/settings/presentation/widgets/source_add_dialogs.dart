@@ -44,6 +44,24 @@ Future<void> syncSourceAndNotify({
   }
 }
 
+Future<void> _addSourceAndSync({
+  required WidgetRef ref,
+  required ScaffoldMessengerState messenger,
+  required PlaylistSource source,
+  required String name,
+  required bool Function() isMounted,
+}) async {
+  await ref.read(settingsNotifierProvider.notifier).addSource(source);
+
+  await syncSourceAndNotify(
+    ref: ref,
+    messenger: messenger,
+    source: source,
+    name: name,
+    isMounted: isMounted,
+  );
+}
+
 /// Returns the standard [Cancel | Add] action list for source-add dialogs.
 ///
 /// Shared by [_M3uAddDialog], [_XtreamAddDialog], and [_StalkerAddDialog].
@@ -156,6 +174,7 @@ class _M3uAddDialogState extends ConsumerState<_M3uAddDialog> {
       setState(() => _error = 'URL is required.');
       return;
     }
+    final messenger = ScaffoldMessenger.of(widget.parentContext);
 
     setState(() {
       _isVerifying = true;
@@ -180,20 +199,14 @@ class _M3uAddDialogState extends ConsumerState<_M3uAddDialog> {
 
     final name =
         _nameCtrl.text.trim().isEmpty ? 'M3U Playlist' : _nameCtrl.text.trim();
-    if (!widget.parentContext.mounted) return;
-    final messenger = ScaffoldMessenger.of(widget.parentContext);
-
     final source = PlaylistSource(
       id: PlaylistSource.generateId(),
       name: name,
       url: url,
       type: PlaylistSourceType.m3u,
     );
-    widget.parentRef.read(settingsNotifierProvider.notifier).addSource(source);
-    if (mounted) Navigator.pop(context);
-
-    // Trigger channel sync.
-    await syncSourceAndNotify(
+    if (context.mounted) Navigator.pop(context);
+    await _addSourceAndSync(
       ref: widget.parentRef,
       messenger: messenger,
       source: source,
@@ -283,6 +296,7 @@ class _XtreamAddDialogState extends ConsumerState<_XtreamAddDialog> {
       setState(() => _error = 'All fields are required.');
       return;
     }
+    final messenger = ScaffoldMessenger.of(widget.parentContext);
 
     setState(() {
       _isVerifying = true;
@@ -311,9 +325,6 @@ class _XtreamAddDialogState extends ConsumerState<_XtreamAddDialog> {
         _nameCtrl.text.trim().isEmpty
             ? 'Xtream Provider'
             : _nameCtrl.text.trim();
-    if (!widget.parentContext.mounted) return;
-    final messenger = ScaffoldMessenger.of(widget.parentContext);
-
     final source = PlaylistSource(
       id: PlaylistSource.generateId(),
       name: name,
@@ -323,11 +334,8 @@ class _XtreamAddDialogState extends ConsumerState<_XtreamAddDialog> {
       password: pass,
       epgUrl: PlaylistSource.buildXtreamEpgUrl(url, user, pass),
     );
-    widget.parentRef.read(settingsNotifierProvider.notifier).addSource(source);
-    if (mounted) Navigator.pop(context);
-
-    // Trigger channel sync.
-    await syncSourceAndNotify(
+    if (context.mounted) Navigator.pop(context);
+    await _addSourceAndSync(
       ref: widget.parentRef,
       messenger: messenger,
       source: source,
@@ -349,6 +357,142 @@ class _XtreamAddDialogState extends ConsumerState<_XtreamAddDialog> {
               urlCtrl: _urlCtrl,
               userCtrl: _userCtrl,
               passCtrl: _passCtrl,
+            ),
+            SourceDialogErrorText(errorMessage: _error),
+          ],
+        ),
+      ),
+      actions: sourceDialogActions(
+        isVerifying: _isVerifying,
+        onCancel: () => Navigator.pop(context),
+        onSubmit: _submit,
+      ),
+    );
+  }
+}
+
+/// Shows a dialog to add a Stalker Portal source.
+void showAddStalkerDialog({
+  required BuildContext context,
+  required WidgetRef ref,
+  required bool Function() isMounted,
+}) {
+  showDialog<void>(
+    context: context,
+    builder:
+        (ctx) => _StalkerAddDialog(
+          parentRef: ref,
+          isMounted: isMounted,
+          parentContext: context,
+        ),
+  );
+}
+
+/// Stateful dialog for adding a Stalker Portal source
+/// with server verification before saving.
+class _StalkerAddDialog extends ConsumerStatefulWidget {
+  const _StalkerAddDialog({
+    required this.parentRef,
+    required this.isMounted,
+    required this.parentContext,
+  });
+
+  final WidgetRef parentRef;
+  final bool Function() isMounted;
+  final BuildContext parentContext;
+
+  @override
+  ConsumerState<_StalkerAddDialog> createState() => _StalkerAddDialogState();
+}
+
+class _StalkerAddDialogState extends ConsumerState<_StalkerAddDialog> {
+  final _nameCtrl = TextEditingController();
+  final _urlCtrl = TextEditingController();
+  final _macCtrl = TextEditingController();
+  bool _isVerifying = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _urlCtrl.dispose();
+    _macCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final url = _urlCtrl.text.trim();
+    final mac = _macCtrl.text.trim().toUpperCase();
+    if (url.isEmpty || mac.isEmpty) {
+      setState(() => _error = 'URL and MAC address are required.');
+      return;
+    }
+
+    if (!kMacAddressRegExp.hasMatch(mac)) {
+      setState(
+        () =>
+            _error =
+                'Invalid MAC address format. '
+                'Use XX:XX:XX:XX:XX:XX.',
+      );
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(widget.parentContext);
+
+    setState(() {
+      _isVerifying = true;
+      _error = null;
+    });
+
+    final verifyError = await verifySourceConnectivity(
+      widget.parentRef,
+      PlaylistSourceType.stalkerPortal,
+      url,
+      macAddress: mac,
+    );
+    if (!mounted) return;
+    if (verifyError != null) {
+      setState(() {
+        _isVerifying = false;
+        _error = verifyError;
+      });
+      return;
+    }
+    setState(() => _isVerifying = false);
+
+    final name =
+        _nameCtrl.text.trim().isEmpty
+            ? 'Stalker Portal'
+            : _nameCtrl.text.trim();
+    final source = PlaylistSource(
+      id: PlaylistSource.generateId(),
+      name: name,
+      url: url,
+      type: PlaylistSourceType.stalkerPortal,
+      macAddress: mac,
+    );
+    if (context.mounted) Navigator.pop(context);
+    await _addSourceAndSync(
+      ref: widget.parentRef,
+      messenger: messenger,
+      source: source,
+      name: name,
+      isMounted: widget.isMounted,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add Stalker Portal'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            StalkerFormFields(
+              nameCtrl: _nameCtrl,
+              urlCtrl: _urlCtrl,
+              macCtrl: _macCtrl,
             ),
             SourceDialogErrorText(errorMessage: _error),
           ],

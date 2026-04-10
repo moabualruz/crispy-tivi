@@ -17,7 +17,7 @@
 //!
 //! - `CRISPY_DB_PATH` — SQLite path (default:
 //!   `~/.crispytivi/crispy_tivi_v2.sqlite`)
-//! - `CRISPY_PORT` — listen port (default: `8080`)
+//! - `CRISPY_PORT` — listen port (default: `8081`)
 //! - `CRISPY_BIND_ADDR` — listen address (default:
 //!   `127.0.0.1`)
 //! - `CRISPY_ALLOW_REMOTE_ACCESS` — must be enabled to
@@ -887,7 +887,9 @@ fn resolve_db_path() -> String {
     format!("{dir}/crispy_tivi_v2.sqlite")
 }
 
-/// Resolve the port from CLI args, env, config json, or default 8080.
+const DEFAULT_PORT: u16 = 8081;
+
+/// Resolve the port from CLI args, env, config json, or default 8081.
 fn resolve_port() -> u16 {
     // 1. Check CLI args: --port <number>
     let mut args = std::env::args();
@@ -919,7 +921,7 @@ fn resolve_port() -> u16 {
     }
 
     // 4. Default
-    8080
+    DEFAULT_PORT
 }
 
 fn resolve_bind_addr(security: &SecurityConfig) -> String {

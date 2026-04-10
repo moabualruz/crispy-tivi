@@ -13,7 +13,6 @@
 
 import 'package:crispy_tivi/config/app_config.dart';
 import 'package:crispy_tivi/config/settings_notifier.dart';
-import 'package:crispy_tivi/features/player/data/player_service.dart';
 import 'package:crispy_tivi/features/player/domain/crispy_player.dart';
 import 'package:crispy_tivi/features/player/domain/entities/playback_state.dart'
     as app;
@@ -608,8 +607,8 @@ void main() {
       // verifies the EXPECTED wiring rather than the harness behaviour.
       // A failing result means the integration needs to be verified.
       //
-      // TODO(qa): Wire onPointerSignal in _KeyboardHarness when testing
-      // the full PlayerGestureMixin scroll-to-volume path.
+      // QA gap: _KeyboardHarness does not wire onPointerSignal; use an
+      // overlay/integration test for the full scroll-to-volume path.
     });
   });
 }

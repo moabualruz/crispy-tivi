@@ -8,9 +8,9 @@ import 'package:crispy_tivi/core/data/cache_service.dart';
 import 'package:crispy_tivi/core/data/memory_backend.dart';
 import 'package:crispy_tivi/core/domain/entities/playlist_source.dart';
 import 'package:crispy_tivi/features/settings/presentation/widgets/'
-    'source_form_fields.dart';
+    'source_add_dialogs.dart';
 import 'package:crispy_tivi/features/settings/presentation/widgets/'
-    'source_portal_dialogs.dart';
+    'source_form_fields.dart';
 import 'package:crispy_tivi/l10n/app_localizations.dart';
 
 // ── Minimal AppConfig ──────────────────────────────────────────

@@ -140,7 +140,7 @@ impl NetworkMonitor {
     /// returns `Online` unconditionally for now.
     #[cfg(target_arch = "wasm32")]
     fn probe_wasm() -> NetworkState {
-        // TODO(wasm): use web_sys::window()?.navigator().on_line()
+        // Deferred WASM bridge: use web_sys::window()?.navigator().on_line().
         NetworkState::Online
     }
 

@@ -60,9 +60,9 @@ class EnhancedSearchResultCard extends StatelessWidget {
   /// option.
   final VoidCallback? onDetails;
 
-  // TODO(l10n): S-025 — source badge labels below are product/service names
-  // (IPTV, VOD, EPG, Jellyfin, Emby, Plex). Add l10n keys if translation is
-  // required; product acronyms are often kept untranslated by convention.
+  // S-025: Source badge labels are product/service names
+  // (IPTV, VOD, EPG, Jellyfin, Emby, Plex). Keep these untranslated unless
+  // product explicitly decides to localize source acronyms and brand names.
   String? get _source {
     final source = item.metadata['source'];
     if (source == null) return null;

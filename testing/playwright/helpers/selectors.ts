@@ -276,7 +276,8 @@ export async function takeNamedScreenshot(
   const screenshotPath = path.join(screenshotDir, filename);
   const buffer = await page.screenshot({
     path: screenshotPath,
-    fullPage: true,
+    fullPage: viewport == null || viewport.width < 1920,
+    timeout: 30_000,
   });
 
   return buffer;

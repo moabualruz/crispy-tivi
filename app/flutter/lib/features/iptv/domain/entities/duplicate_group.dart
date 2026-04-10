@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
+
 /// Represents a group of duplicate channels sharing the same stream URL.
+@immutable
 class DuplicateGroup {
   const DuplicateGroup({
     required this.streamUrl,
@@ -60,3 +63,10 @@ class DuplicateGroup {
   String toString() =>
       'DuplicateGroup(url: $streamUrl, count: $count, ids: $channelIds)';
 }
+
+/// Collect the duplicate channel IDs across [groups].
+///
+/// Preferred IDs are excluded, so the result matches the
+/// IDs hidden when "Hide Duplicates" is enabled.
+Set<String> collectDuplicateIds(Iterable<DuplicateGroup> groups) =>
+    groups.expand((group) => group.duplicateIds).toSet();

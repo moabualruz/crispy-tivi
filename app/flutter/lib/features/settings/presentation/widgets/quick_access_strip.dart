@@ -5,6 +5,8 @@ import '../../../../core/theme/crispy_radius.dart';
 import '../../../../core/theme/crispy_spacing.dart';
 import '../../../iptv/presentation/providers/playlist_sync_service.dart';
 import '../providers/settings_service_providers.dart';
+import 'backup_settings.dart' show BackupQuickActionsSheet;
+import 'settings_shared_widgets.dart';
 
 // FE-S-12: Quick-Access strip — horizontally scrollable icon action chips.
 /// Quick-access horizontal strip at the top of the settings screen.
@@ -100,31 +102,16 @@ class QuickAccessStrip extends ConsumerWidget {
   }
 
   Future<void> _clearCache(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showSettingsConfirmationDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Clear Cache?'),
-            content: const Text(
-              'All cached data will be removed. '
-              'The app will re-download everything on next sync.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(ctx).colorScheme.error,
-                ),
-                child: const Text('Clear'),
-              ),
-            ],
-          ),
+      title: 'Clear Cache?',
+      content:
+          'All cached data will be removed. '
+          'The app will re-download everything on next sync.',
+      confirmLabel: 'Clear',
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     if (!context.mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -160,7 +147,7 @@ class QuickAccessStrip extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       useSafeArea: true,
-      builder: (_) => _BackupRestoreSheet(ref: ref),
+      builder: (_) => const BackupQuickActionsSheet(),
     );
   }
 }
@@ -229,147 +216,5 @@ class _QuickTile extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-// ── Backup / Restore sheet ───────────────────────────────────────
-
-/// Minimal backup/restore bottom sheet for the Quick Access strip.
-///
-/// Delegates to [BackupService] — same logic as [BackupSettingsSection]
-/// but surfaced as a quick-action sheet.
-class _BackupRestoreSheet extends ConsumerStatefulWidget {
-  const _BackupRestoreSheet({required this.ref});
-
-  // ignore: library_private_types_in_public_api
-  final WidgetRef ref;
-
-  @override
-  ConsumerState<_BackupRestoreSheet> createState() =>
-      _BackupRestoreSheetState();
-}
-
-class _BackupRestoreSheetState extends ConsumerState<_BackupRestoreSheet> {
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(CrispySpacing.md),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(bottom: CrispySpacing.md),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(CrispyRadius.tv),
-                ),
-              ),
-            ),
-            Row(
-              children: [
-                Icon(Icons.backup, color: colorScheme.primary),
-                const SizedBox(width: CrispySpacing.sm),
-                Text(
-                  'Backup & Restore',
-                  style: textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: CrispySpacing.md),
-            ListTile(
-              leading: const Icon(Icons.share),
-              title: const Text('Export Backup'),
-              subtitle: const Text('Share backup file via system share sheet'),
-              trailing: const Icon(Icons.ios_share),
-              onTap: () => _export(context),
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.file_open),
-              title: const Text('Import Backup'),
-              subtitle: const Text('Restore from a backup file'),
-              trailing: const Icon(Icons.upload_file),
-              onTap: () => _import(context),
-            ),
-            const SizedBox(height: CrispySpacing.md),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _export(BuildContext context) async {
-    Navigator.of(context).pop();
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Preparing backup file…')),
-      );
-      final backup = ref.read(backupServiceProvider);
-      await backup.exportToFile();
-      if (context.mounted) {
-        messenger.showSnackBar(const SnackBar(content: Text('Backup shared')));
-      }
-    } catch (e) {
-      if (context.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
-      }
-    }
-  }
-
-  Future<void> _import(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Import Backup'),
-            content: const Text(
-              'This will merge data from the backup file '
-              'with existing data. Existing items with '
-              'the same ID will be overwritten.\n\nContinue?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Select File'),
-              ),
-            ],
-          ),
-    );
-
-    if (confirmed != true) return;
-    if (!context.mounted) return;
-    Navigator.of(context).pop();
-
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Select a backup file…')),
-      );
-      final backup = ref.read(backupServiceProvider);
-      final summary = await backup.importFromFile();
-      if (context.mounted && summary != null) {
-        messenger.showSnackBar(SnackBar(content: Text('Imported: $summary')));
-      }
-    } catch (e) {
-      if (context.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
-      }
-    }
   }
 }

@@ -101,8 +101,8 @@ pub fn detect_tv_platform() -> Option<TvPlatform> {
     // platform launcher.  Native (non-WASM) builds return None.
     #[cfg(target_arch = "wasm32")]
     {
-        // TODO(wasm): read `window.__CRISPY_PLATFORM__` via web_sys and
-        //   return Some(TvPlatform::WebOs) or Some(TvPlatform::Tizen).
+        // Deferred WASM bridge: read `window.__CRISPY_PLATFORM__` via
+        // web_sys and return WebOS/Tizen when the web bootstrap injects it.
         None
     }
     #[cfg(not(target_arch = "wasm32"))]

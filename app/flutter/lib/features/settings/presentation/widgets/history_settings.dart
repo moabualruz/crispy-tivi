@@ -46,42 +46,28 @@ class _HistorySettingsSectionState
     );
   }
 
-  void _showClearHistoryDialog(BuildContext context) {
+  Future<void> _showClearHistoryDialog(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
-    final errorColor = Theme.of(context).colorScheme.error;
 
-    showDialog(
+    final confirmed = await showSettingsConfirmationDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Clear Watch History?'),
-            content: const Text(
-              'This will remove all continue watching '
-              'progress. This action cannot be undone.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  await ref.read(watchHistoryServiceProvider).clearAll();
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text('Watch history cleared'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                },
-                style: FilledButton.styleFrom(backgroundColor: errorColor),
-                child: const Text('Clear'),
-              ),
-            ],
-          ),
+      title: 'Clear Watch History?',
+      content:
+          'This will remove all continue watching '
+          'progress. This action cannot be undone.',
+      confirmLabel: 'Clear',
+      destructive: true,
     );
+    if (!confirmed) return;
+
+    await ref.read(watchHistoryServiceProvider).clearAll();
+    if (mounted) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Watch history cleared'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 }

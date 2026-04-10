@@ -18,7 +18,7 @@ void main() {
   group('Live TV & Media Engine Suite', () {
     testWidgets(
       'Fetch EPG -> Play Channel',
-      // TODO: re-enable once full EPG integration test is wired
+      // Disabled until the integration harness seeds full EPG data.
       skip: true,
       (WidgetTester tester) async {
         await FfiTestHelper.ensureRustInitialized();

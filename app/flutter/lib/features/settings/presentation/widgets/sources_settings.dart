@@ -9,20 +9,21 @@ import '../../../../core/theme/crispy_spacing.dart';
 import '../../../../core/widgets/section_header.dart';
 import 'duplicate_channels_tile.dart';
 import 'settings_shared_widgets.dart';
-import 'source_add_dialogs.dart';
+import 'source_add_dialogs.dart'
+    show showAddM3uDialog, showAddStalkerDialog, showAddXtreamDialog;
 import 'source_extra_sections.dart';
-import 'source_portal_dialogs.dart';
+import 'source_portal_dialogs.dart' show showEpgUrlDialog;
 
 // Re-export public API that other files import
 // from this file.
 export 'source_manage_dialogs.dart' show showAddXtreamDialogFromScreen;
 export 'source_extra_sections.dart'
     show
-        UserAgentSettingsSection,
         ContentFilterSettingsSection,
         EpgUrlSettingsSection,
         SourceTlsSettingsSection,
-        StalkerAccountInfoSection;
+        StalkerAccountInfoSection,
+        UserAgentSettingsSection;
 
 /// Sources settings section: add/remove playlists,
 /// Xtream, Stalker, EPG, media servers, duplicates,
@@ -153,10 +154,11 @@ class _SourcesSettingsSectionState
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: settings.sources.length,
                   onReorder: (oldIndex, newIndex) {
-                    if (newIndex > oldIndex) newIndex--;
+                    final adjustedNewIndex =
+                        newIndex > oldIndex ? newIndex - 1 : newIndex;
                     ref
                         .read(settingsNotifierProvider.notifier)
-                        .reorderSources(oldIndex, newIndex);
+                        .reorderSources(oldIndex, adjustedNewIndex);
                   },
                   proxyDecorator: _proxyDecorator,
                   itemBuilder: (context, i) {

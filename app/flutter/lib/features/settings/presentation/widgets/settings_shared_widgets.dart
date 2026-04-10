@@ -71,6 +71,44 @@ class SettingsBadge extends StatelessWidget {
   }
 }
 
+/// Shows a settings confirmation dialog.
+///
+/// Use this for settings-owned confirm/cancel flows so destructive
+/// styling and dismissal behavior stay consistent across sections.
+Future<bool> showSettingsConfirmationDialog({
+  required BuildContext context,
+  required String title,
+  required String content,
+  required String confirmLabel,
+  bool destructive = false,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder:
+        (ctx) => AlertDialog(
+          title: Text(title),
+          content: Text(content),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style:
+                  destructive
+                      ? FilledButton.styleFrom(
+                        backgroundColor: Theme.of(ctx).colorScheme.error,
+                      )
+                      : null,
+              child: Text(confirmLabel),
+            ),
+          ],
+        ),
+  );
+  return confirmed ?? false;
+}
+
 /// Shows a confirmation dialog and resets a settings section to defaults.
 ///
 /// [title] is the dialog heading (e.g. `'Reset Appearance'`).
@@ -82,25 +120,13 @@ Future<void> showSettingsResetDialog(
   String title,
   String sectionKey,
 ) async {
-  final confirmed = await showDialog<bool>(
+  final confirmed = await showSettingsConfirmationDialog(
     context: context,
-    builder:
-        (ctx) => AlertDialog(
-          title: Text(title),
-          content: const Text('Reset all settings to their factory defaults?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Reset'),
-            ),
-          ],
-        ),
+    title: title,
+    content: 'Reset all settings to their factory defaults?',
+    confirmLabel: 'Reset',
   );
-  if (confirmed == true && context.mounted) {
+  if (confirmed && context.mounted) {
     await ref.read(settingsNotifierProvider.notifier).resetSection(sectionKey);
   }
 }

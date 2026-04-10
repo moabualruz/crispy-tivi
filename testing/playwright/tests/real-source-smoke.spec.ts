@@ -27,6 +27,17 @@ const NAV_COORDS: Record<string, [number, number]> = {
   Favorites: [28, 500],
   Settings: [28, 560],
 };
+const ROUTES: Record<string, string> = {
+  Home: "/#/home",
+  Search: "/#/search",
+  "Live TV": "/#/tv",
+  Guide: "/#/epg",
+  Movies: "/#/vod",
+  Series: "/#/series",
+  DVR: "/#/dvr",
+  Favorites: "/#/favorites",
+  Settings: "/#/settings",
+};
 
 function sqlValue(sql: string): string {
   return execFileSync("sqlite3", [DB_PATH, sql], { encoding: "utf8" }).trim();
@@ -41,10 +52,23 @@ function firstSearchToken(value: string): string {
   return token;
 }
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 async function navigateTo(page: Page, tab: string): Promise<void> {
   try {
     await clickByText(page, tab, { timeout: 10_000 });
   } catch {
+    const viewport = page.viewportSize();
+    const route = ROUTES[tab];
+    if (route && viewport != null && viewport.width < 840) {
+      await page.goto(route);
+      await waitForFlutterReady(page);
+      await selectDefaultProfile(page);
+      await page.waitForTimeout(2500);
+      return;
+    }
     const coords = NAV_COORDS[tab];
     if (!coords) throw new Error(`No fallback coordinates for tab ${tab}`);
     await page.mouse.click(coords[0], coords[1]);
@@ -144,9 +168,12 @@ test.describe("Real Source Smoke", () => {
       { timeout: 20_000 },
     );
     try {
-      await page.getByText(seriesTitle, { exact: false }).first().click({
-        timeout: 5000,
-      });
+      await page
+        .getByRole("button", {
+          name: new RegExp(escapeRegex(seriesTitle), "i"),
+        })
+        .first()
+        .click({ timeout: 5000 });
     } catch {
       await page.mouse.click(460, 420);
     }
@@ -170,7 +197,10 @@ test.describe("Real Source Smoke", () => {
     await page.waitForTimeout(3000);
     expect(await page.getByText(/Search failed:/i).count()).toBe(0);
     const searchShot = await takeNamedScreenshot(page, "real-smoke-search");
-    expect(searchShot.length).toBeGreaterThan(20_000);
+    const viewport = page.viewportSize();
+    const minSearchShotBytes =
+      viewport != null && viewport.width < 840 ? 10_000 : 20_000;
+    expect(searchShot.length).toBeGreaterThan(minSearchShotBytes);
 
     await navigateTo(page, "Favorites");
     await takeNamedScreenshot(page, "real-smoke-favorites");

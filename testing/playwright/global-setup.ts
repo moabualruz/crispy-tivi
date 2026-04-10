@@ -5,7 +5,7 @@ import type { FullConfig } from "@playwright/test";
  *
  * Verifies that both required services are reachable:
  *   1. Web server at http://127.0.0.1:3000 (Flutter web build)
- *   2. Backend server at http://127.0.0.1:8080 (crispy-server WebSocket)
+ *   2. Backend server at http://127.0.0.1:8081 (crispy-server WebSocket)
  *
  * Fails fast with a clear error message if either service is down,
  * preventing flaky test runs caused by missing infrastructure.

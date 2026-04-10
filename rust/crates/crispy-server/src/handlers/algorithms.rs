@@ -10,6 +10,25 @@ use crispy_core::services::{HistoryService, ServiceContext};
 
 use super::{get_i64, get_str, get_str_opt, get_str_vec, svc_call, svc_data};
 
+fn epg_entries_from_json(epg_json: &str) -> Result<HashMap<String, Vec<EpgEntry>>> {
+    let mut value: Value = serde_json::from_str(epg_json).context("Invalid EPG entries JSON")?;
+    if let Value::Object(map) = &mut value {
+        for entries in map.values_mut() {
+            if let Value::Array(list) = entries {
+                for entry in list {
+                    if let Value::Object(entry_map) = entry
+                        && !entry_map.contains_key("epg_channel_id")
+                        && let Some(channel_id) = entry_map.get("channel_id").cloned()
+                    {
+                        entry_map.insert("epg_channel_id".to_string(), channel_id);
+                    }
+                }
+            }
+        }
+    }
+    serde_json::from_value(value).context("Invalid EPG entries JSON")
+}
+
 /// Handle algorithm commands. Returns `Some(result)` if the
 /// command matched, `None` otherwise.
 pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Result<Value>> {
@@ -495,8 +514,7 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
                 serde_json::from_str(&ch_json).context("Invalid channels JSON")?;
             let vod_items: Vec<VodItem> =
                 serde_json::from_str(&vod_json).context("Invalid VOD items JSON")?;
-            let epg: std::collections::HashMap<String, Vec<EpgEntry>> =
-                serde_json::from_str(&epg_json).context("Invalid EPG entries JSON")?;
+            let epg = epg_entries_from_json(&epg_json)?;
             let filter: crispy_core::algorithms::search::SearchFilter =
                 serde_json::from_str(&filter_json).context("Invalid filter JSON")?;
             let result = crispy_core::algorithms::search::search(
@@ -666,6 +684,45 @@ pub(super) fn handle(svc: &ServiceContext, cmd: &str, args: &Value) -> Option<Re
         })(),
 
         // ── VOD Sorting ────────────────────────
+        "filterAndSortVodItems" => (|| {
+            let items_json = get_str(args, "itemsJson")?;
+            let category = get_str_opt(args, "category")?;
+            let query = get_str_opt(args, "query")?;
+            let sort_by = get_str(args, "sortBy")?;
+            let mut items: Vec<VodItem> =
+                serde_json::from_str(&items_json).context("Invalid VOD items JSON")?;
+
+            if let Some(cat) = category.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+                items.retain(|item| {
+                    let item_category = item.category.as_deref().map(str::trim);
+                    if cat == "Uncategorized" {
+                        item_category.is_none_or(str::is_empty)
+                    } else {
+                        item_category == Some(cat)
+                    }
+                });
+            }
+
+            if let Some(q) = query.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+                let q = q.to_lowercase();
+                items.retain(|item| {
+                    let matches = |value: Option<&str>| {
+                        value
+                            .map(|s| s.to_lowercase().contains(&q))
+                            .unwrap_or(false)
+                    };
+                    matches(Some(&item.name))
+                        || matches(item.description.as_deref())
+                        || matches(item.category.as_deref())
+                        || matches(item.director.as_deref())
+                        || matches(item.cast.as_deref())
+                });
+            }
+
+            crispy_core::algorithms::vod_sorting::sort_vod_items_vec(&mut items, &sort_by);
+            let s = serde_json::to_string(&items)?;
+            Ok(json!({"data": s}))
+        })(),
         "sortVodItems" => (|| {
             let items = get_str(args, "itemsJson")?;
             let sort_by = get_str(args, "sortBy")?;
