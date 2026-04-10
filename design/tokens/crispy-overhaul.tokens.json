@@ -1,0 +1,47 @@
+{
+  "$schema": "https://tr.designtokens.org/format/",
+  "color": {
+    "surface": {
+      "void": { "$type": "color", "$value": "#05070A" },
+      "panel": { "$type": "color", "$value": "#0C1118" },
+      "raised": { "$type": "color", "$value": "#121A24" },
+      "glass": { "$type": "color", "$value": "#CC121A24" }
+    },
+    "accent": {
+      "focus": { "$type": "color", "$value": "#FFF1A8" },
+      "brand": { "$type": "color", "$value": "#E50914" },
+      "brandSoft": { "$type": "color", "$value": "#FF4D5A" },
+      "actionBlue": { "$type": "color", "$value": "#3B82F6" }
+    },
+    "semantic": {
+      "success": { "$type": "color", "$value": "#22C55E" },
+      "warning": { "$type": "color", "$value": "#F59E0B" },
+      "danger": { "$type": "color", "$value": "#EF4444" }
+    },
+    "text": {
+      "primary": { "$type": "color", "$value": "#F8FAFC" },
+      "secondary": { "$type": "color", "$value": "#B6C2D1" },
+      "muted": { "$type": "color", "$value": "#64748B" }
+    }
+  },
+  "spacing": {
+    "hairline": { "$type": "dimension", "$value": "2px" },
+    "compact": { "$type": "dimension", "$value": "6px" },
+    "small": { "$type": "dimension", "$value": "10px" },
+    "medium": { "$type": "dimension", "$value": "18px" },
+    "large": { "$type": "dimension", "$value": "28px" },
+    "section": { "$type": "dimension", "$value": "44px" },
+    "screen": { "$type": "dimension", "$value": "64px" }
+  },
+  "radius": {
+    "sharp": { "$type": "dimension", "$value": "2px" },
+    "card": { "$type": "dimension", "$value": "6px" },
+    "sheet": { "$type": "dimension", "$value": "10px" },
+    "pill": { "$type": "dimension", "$value": "999px" }
+  },
+  "motion": {
+    "focus": { "$type": "duration", "$value": "120ms" },
+    "panel": { "$type": "duration", "$value": "220ms" },
+    "page": { "$type": "duration", "$value": "360ms" }
+  }
+}

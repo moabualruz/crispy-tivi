@@ -1,10 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-    "crates/crispy-core",
-    "crates/crispy-ffi",
-    "crates/crispy-server",
-]
+members = []
 
 [workspace.package]
 version = "0.1.1"
@@ -82,7 +78,6 @@ flate2 = "1"
 xz2 = "0.1"
 md-5 = "0.10"
 memory-stats = "1.2"
-crispy-core = { path = "crates/crispy-core" }
 crispy-catchup = { path = "../rust/shared/crispy-catchup", version = "0.1.2" }
 crispy-iptv-tools = { path = "../rust/shared/crispy-iptv-tools", version = "0.1.2" }
 crispy-iptv-types = { path = "../rust/shared/crispy-iptv-types", version = "0.1.2" }
