@@ -110,14 +110,6 @@ PROJECT_INDEX.md
 .grepai/
 .omc/
 .omg/
-.omx/
 /rust/.omc/
 /rust/*.log
-.codex/*
-!.codex/agents/
-!.codex/agents/**
-!.codex/skills/
-!.codex/skills/**
-.codex/skills/.system/**
-!.codex/prompts/
-!.codex/prompts/**
+.codex/

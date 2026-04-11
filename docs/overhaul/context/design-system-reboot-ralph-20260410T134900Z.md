@@ -1,0 +1,29 @@
+# Ralph Context Snapshot: Design-System Reboot
+
+- Task statement: Check existing `$plan` and execute full CrispyTivi design-system reboot with `$ralph` and `$caveman`.
+- Desired outcome: Complete `docs/overhaul/plans/prd-design-system-reboot.md` and `docs/overhaul/plans/test-spec-design-system-reboot.md` acceptance gates, including Widgetbook annotations/coverage, Penpot editable design-system publication/read-back, docs/skills/governance, and verification.
+- Known facts/evidence:
+  - Existing plan files: `docs/overhaul/plans/prd-design-system-reboot.md`, `docs/overhaul/plans/test-spec-design-system-reboot.md`, `docs/overhaul/plans/design-system-reboot-execution-plan.md`.
+  - Ralph planning gate satisfied: PRD + test spec exist.
+  - Current working tree already contains design-system changes: Widgetbook files, coverage docs, Penpot publish scripts, skills, AGENTS rules, dependency updates.
+  - `explore` blocked by sandbox restrictions on the globally installed orchestration tooling; local read fallback used.
+- Constraints:
+  - Caveman communication mode.
+  - No new dependencies beyond existing plan-added `widgetbook_annotation` unless explicit need.
+  - Flutter tokens remain authoritative; Penpot mirrors checked-in tokens.
+  - Must run fresh verification before claiming complete.
+  - Penpot REPL may require local endpoint `http://localhost:4403/execute`; if unavailable, document hard blocker.
+- Unknowns/open questions:
+  - Whether local Penpot REPL is running and active page is correct.
+  - Whether Widgetbook build/analyze currently pass.
+  - Whether coverage matrix includes all required widget classes.
+- Likely codebase touchpoints:
+  - `AGENTS.md`
+  - `.codex/skills/penpot-design-system/SKILL.md`
+  - `.codex/skills/widgetbook-design-system/SKILL.md`
+  - `app/flutter/lib/widgetbook.dart`
+  - `app/flutter/lib/widgetbook/*.dart`
+  - `app/flutter/pubspec.yaml`, `app/flutter/pubspec.lock`
+  - `design/docs/*.md`
+  - `design/penpot/*.js`, `design/penpot/*.py`
+  - `scripts/design/check_design_tokens.sh`, `scripts/design/build_widgetbook.sh`

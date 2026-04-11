@@ -17,7 +17,7 @@ export ANDROID_HOME="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
 export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
 
 STAMP="$(date +%Y%m%d-%H%M%S)"
-OUT_DIR="${ROOT_DIR}/.omx/logs/android/${STAMP}"
+OUT_DIR="${ROOT_DIR}/logs/android/${STAMP}"
 mkdir -p "$OUT_DIR"
 
 TEST_LOG="$OUT_DIR/flutter-test.log"

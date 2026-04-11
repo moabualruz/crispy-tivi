@@ -3,20 +3,9 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  connectivity_plus
-  local_auth_windows
-  media_kit_libs_windows_video
-  media_kit_video
-  permission_handler_windows
-  screen_brightness_windows
-  screen_retriever_windows
-  share_plus
-  url_launcher_windows
-  window_manager
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
-  smtc_windows
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CrispyTivi Palette Preview</title>
+    <style>
+      :root {
+        --bg: #090b0d;
+        --panel: #111418;
+        --ink: #f4f5f7;
+        --muted: #aeb6c0;
+        --stroke: #2a3038;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "SF Pro Display", "Helvetica Neue", sans-serif;
+        background:
+          radial-gradient(circle at top, #1a2129 0%, #0c0f13 38%, #07090b 100%);
+        color: var(--ink);
+      }
+
+      main {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 40px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      .intro {
+        margin-bottom: 28px;
+      }
+
+      .intro p {
+        margin-top: 10px;
+        color: var(--muted);
+        max-width: 880px;
+        line-height: 1.5;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 24px;
+      }
+
+      .card {
+        background: rgba(17, 20, 24, 0.88);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      }
+
+      .preview {
+        padding: 22px;
+      }
+
+      .shell {
+        border-radius: 22px;
+        padding: 18px;
+        min-height: 290px;
+        border: 1px solid var(--stroke);
+        background: var(--bg);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .nav {
+        display: inline-flex;
+        gap: 8px;
+        padding: 6px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .nav span {
+        padding: 10px 16px;
+        border-radius: 14px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .nav .active {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+        color: var(--ink);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.07),
+          0 6px 16px rgba(0, 0, 0, 0.2);
+        font-weight: 600;
+      }
+
+      .util {
+        display: inline-flex;
+        gap: 10px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: var(--accent);
+      }
+
+      .hero {
+        margin-top: 18px;
+        min-height: 150px;
+        border-radius: 20px;
+        padding: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background:
+          linear-gradient(90deg, rgba(8, 10, 13, 0.86) 0%, rgba(8, 10, 13, 0.58) 42%, rgba(8, 10, 13, 0.18) 100%),
+          linear-gradient(160deg, var(--hero-a) 0%, var(--hero-b) 100%);
+      }
+
+      .hero h2 {
+        font-size: 28px;
+        margin-top: 8px;
+      }
+
+      .hero p {
+        margin-top: 10px;
+        color: var(--muted);
+        max-width: 380px;
+        line-height: 1.45;
+      }
+
+      .meta {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink);
+        opacity: 0.8;
+      }
+
+      .rail {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .tile {
+        height: 88px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.22)),
+          var(--raised);
+      }
+
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        padding: 18px 22px 22px;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .swatch {
+        min-width: 0;
+      }
+
+      .chip {
+        height: 42px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--value);
+      }
+
+      .label {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .hex {
+        margin-top: 2px;
+        font-size: 13px;
+      }
+
+      .note {
+        padding: 0 22px 22px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .warm-graphite {
+        --bg: #0b0c0f;
+        --panel: #14171b;
+        --raised: #1c2127;
+        --stroke: #2a3038;
+        --ink: #f3f4f6;
+        --muted: #b8c0cc;
+        --accent: #c98b4a;
+        --hero-a: #3a2e24;
+        --hero-b: #14171b;
+      }
+
+      .slate-olive {
+        --bg: #0a0d0c;
+        --panel: #121816;
+        --raised: #1b2420;
+        --stroke: #2c3833;
+        --ink: #f2f5f3;
+        --muted: #b7c4be;
+        --accent: #7fa37c;
+        --hero-a: #33453b;
+        --hero-b: #121816;
+      }
+
+      .smoked-stone {
+        --bg: #0e0e10;
+        --panel: #18191d;
+        --raised: #23252b;
+        --stroke: #333740;
+        --ink: #f5f5f7;
+        --muted: #c2c7d0;
+        --accent: #8da4c7;
+        --hero-a: #434c5f;
+        --hero-b: #18191d;
+      }
+
+      .cinema-ember {
+        --bg: #0a0908;
+        --panel: #151210;
+        --raised: #201b18;
+        --stroke: #352c27;
+        --ink: #f6f3ee;
+        --muted: #c7bbb0;
+        --accent: #a86b43;
+        --hero-a: #50352a;
+        --hero-b: #151210;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="intro">
+        <h1>CrispyTivi Palette Preview</h1>
+        <p>
+          Pick the shell direction by eye. These are derived from the Google TV /
+          Apple TV / Netflix mood we discussed, but they are not copies. This
+          version removes focus tint entirely from the preview and uses neutral
+          selection cues instead, so you can compare shell mood without a
+          distracting highlight color.
+        </p>
+      </section>
+
+      <section class="grid">
+        <article class="card warm-graphite">
+          <div class="preview">
+            <div class="shell">
+              <div class="topbar">
+                <div class="nav"><span class="active">Home</span><span>Live TV</span><span>Media</span><span>Search</span></div>
+                <div class="util"><span>21:30</span><div class="avatar"></div></div>
+              </div>
+              <div class="hero">
+                <div class="meta">Warm Graphite</div>
+                <h2>Calm, premium, Google TV-leaning</h2>
+                <p>Warm dark graphite with a quiet neutral focus and restrained bronze accents.</p>
+              </div>
+              <div class="rail"><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div></div>
+            </div>
+          </div>
+          <div class="swatches">
+            <div class="swatch"><div class="chip" style="--value:#0b0c0f"></div><div class="label">Background</div><div class="hex">#0B0C0F</div></div>
+            <div class="swatch"><div class="chip" style="--value:#14171b"></div><div class="label">Panel</div><div class="hex">#14171B</div></div>
+            <div class="swatch"><div class="chip" style="--value:#1c2127"></div><div class="label">Raised</div><div class="hex">#1C2127</div></div>
+            <div class="swatch"><div class="chip" style="--value:#c98b4a"></div><div class="label">Accent</div><div class="hex">#C98B4A</div></div>
+          </div>
+          <div class="note">Most balanced option if you want the shell to feel warmer, more premium, and less blue.</div>
+        </article>
+
+        <article class="card slate-olive">
+          <div class="preview">
+            <div class="shell">
+              <div class="topbar">
+                <div class="nav"><span class="active">Home</span><span>Live TV</span><span>Media</span><span>Search</span></div>
+                <div class="util"><span>21:30</span><div class="avatar"></div></div>
+              </div>
+              <div class="hero">
+                <div class="meta">Slate Olive</div>
+                <h2>Soft, organic, utility-led</h2>
+                <p>Green-neutral shell that stays dark and TV-safe without the old yellow cast.</p>
+              </div>
+              <div class="rail"><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div></div>
+            </div>
+          </div>
+          <div class="swatches">
+            <div class="swatch"><div class="chip" style="--value:#0a0d0c"></div><div class="label">Background</div><div class="hex">#0A0D0C</div></div>
+            <div class="swatch"><div class="chip" style="--value:#121816"></div><div class="label">Panel</div><div class="hex">#121816</div></div>
+            <div class="swatch"><div class="chip" style="--value:#1b2420"></div><div class="label">Raised</div><div class="hex">#1B2420</div></div>
+            <div class="swatch"><div class="chip" style="--value:#7fa37c"></div><div class="label">Accent</div><div class="hex">#7FA37C</div></div>
+          </div>
+          <div class="note">More distinct, softer, and organic. Best if you want less graphite and less Apple influence.</div>
+        </article>
+
+        <article class="card smoked-stone">
+          <div class="preview">
+            <div class="shell">
+              <div class="topbar">
+                <div class="nav"><span class="active">Home</span><span>Live TV</span><span>Media</span><span>Search</span></div>
+                <div class="util"><span>21:30</span><div class="avatar"></div></div>
+              </div>
+              <div class="hero">
+                <div class="meta">Smoked Stone</div>
+                <h2>Neutral, polished, slightly Apple-leaning</h2>
+                <p>Quiet shell with restrained coolness, but far less blue and synthetic than the current app.</p>
+              </div>
+              <div class="rail"><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div></div>
+            </div>
+          </div>
+          <div class="swatches">
+            <div class="swatch"><div class="chip" style="--value:#0e0e10"></div><div class="label">Background</div><div class="hex">#0E0E10</div></div>
+            <div class="swatch"><div class="chip" style="--value:#18191d"></div><div class="label">Panel</div><div class="hex">#18191D</div></div>
+            <div class="swatch"><div class="chip" style="--value:#23252b"></div><div class="label">Raised</div><div class="hex">#23252B</div></div>
+            <div class="swatch"><div class="chip" style="--value:#8da4c7"></div><div class="label">Accent</div><div class="hex">#8DA4C7</div></div>
+          </div>
+          <div class="note">The safest neutral option if you want the shell to feel polished and quiet.</div>
+        </article>
+
+        <article class="card cinema-ember">
+          <div class="preview">
+            <div class="shell">
+              <div class="topbar">
+                <div class="nav"><span class="active">Home</span><span>Live TV</span><span>Media</span><span>Search</span></div>
+                <div class="util"><span>21:30</span><div class="avatar"></div></div>
+              </div>
+              <div class="hero">
+                <div class="meta">Cinema Ember</div>
+                <h2>Richer, warmer, more theatrical</h2>
+                <p>Most cinematic option. Stronger identity, but still previewed with a neutral focus instead of amber.</p>
+              </div>
+              <div class="rail"><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div></div>
+            </div>
+          </div>
+          <div class="swatches">
+            <div class="swatch"><div class="chip" style="--value:#0a0908"></div><div class="label">Background</div><div class="hex">#0A0908</div></div>
+            <div class="swatch"><div class="chip" style="--value:#151210"></div><div class="label">Panel</div><div class="hex">#151210</div></div>
+            <div class="swatch"><div class="chip" style="--value:#201b18"></div><div class="label">Raised</div><div class="hex">#201B18</div></div>
+            <div class="swatch"><div class="chip" style="--value:#a86b43"></div><div class="label">Accent</div><div class="hex">#A86B43</div></div>
+          </div>
+          <div class="note">Best if you want a stronger streaming identity, but it can drift away from Google TV fastest.</div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

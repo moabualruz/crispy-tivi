@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-LIB="$REPO_ROOT/lib"
+LIB="$REPO_ROOT/app/flutter/lib"
 
 # Counters
 ddd_count=0
@@ -276,23 +276,37 @@ echo "[SOLID: Missing Repository Interfaces (DIP)]"
 repo_interfaces=$(find "$LIB/features" -path "*/domain/repositories/*.dart" 2>/dev/null | wc -l)
 features_with_repos=$(find "$LIB/features" -path "*/domain/repositories/*.dart" 2>/dev/null \
   | sed 's|.*/features/||; s|/domain.*||' | sort -u)
-features_with_repos_count=$(echo "$features_with_repos" | grep -c . 2>/dev/null || echo 0)
-total_features=$(ls -d "$LIB/features"/*/ 2>/dev/null | wc -l)
+if [ -n "$features_with_repos" ]; then
+  features_with_repos_count=$(printf '%s\n' "$features_with_repos" | wc -l | tr -d '[:space:]')
+else
+  features_with_repos_count=0
+fi
+total_features=$(find "$LIB/features" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d '[:space:]')
 
 echo "  Repository interface files: $repo_interfaces (across $features_with_repos_count features)"
 echo "  Total features: $total_features"
-echo "  Features with repo interfaces: $(echo "$features_with_repos" | tr '\n' ' ')"
+if [ -n "$features_with_repos" ]; then
+  echo "  Features with repo interfaces: $(echo "$features_with_repos" | tr '\n' ' ')"
+else
+  echo "  Features with repo interfaces: (none)"
+fi
 
 # DIP violation: provider in a feature that HAS a repo interface imports CacheService directly
+found_provider_cache_import=0
 while IFS= read -r provider_file; do
+  [ -n "$provider_file" ] || continue
+  found_provider_cache_import=1
   feature=$(echo "$provider_file" | sed 's|.*/features/||; s|/presentation.*||')
   if echo "$features_with_repos" | grep -qx "$feature"; then
     echo "  [DIP VIOLATION] ${provider_file#"$REPO_ROOT/"} (feature '$feature' has repo interface but bypasses it)"
     solid_count=$((solid_count + 1))
   fi
-done < <(grep -rl "import.*cache_service" \
-  "$LIB/features/"*/presentation/providers/ \
-  2>/dev/null || true)
+done < <(find "$LIB/features" -path "*/presentation/providers/*.dart" -print0 2>/dev/null \
+  | xargs -0 -r grep -l "import.*cache_service" 2>/dev/null || true)
+
+if [ "$found_provider_cache_import" -eq 0 ]; then
+  echo "  (none found)"
+fi
 echo ""
 
 # ─────────────────────────────────────────────────────────────

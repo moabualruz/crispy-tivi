@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = []
+members = ["crates/crispy-ffi"]
 
 [workspace.package]
 version = "0.1.1"

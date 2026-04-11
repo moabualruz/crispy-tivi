@@ -12,6 +12,9 @@ validated in Widgetbook + Penpot.
   separation and less pure-black stacking.
 - Code/design parity: every token must exist in Flutter, JSON, and Penpot before
   it is used in app UI.
+- Visual parity gate: route composition, spacing, hierarchy, focus treatment,
+  and surface usage must be checked against the approved Penpot boards and
+  active spec before a phase is closed.
 - Progressive migration: add vNext surfaces beside existing Crispy tokens, then
   migrate high-value screens one route at a time.
 
@@ -39,6 +42,8 @@ validated in Widgetbook + Penpot.
 4. Migrate settings and player controls second.
 5. Migrate media rails/cards third.
 6. Keep old and vNext tokens side-by-side until all target screens pass visual QA.
+7. Do not mark a route, phase, or migration slice complete if the rendered UI
+   still reads like a placeholder scaffold or generic Material shell.
 
 ## Verification
 

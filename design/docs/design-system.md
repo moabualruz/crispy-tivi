@@ -1,115 +1,81 @@
 # CrispyTivi Design System
 
-This document records the current editable design-system surface. Flutter
-tokens and widgets remain authoritative; Penpot mirrors them as editable
-design artifacts.
+This document records the active restart-lane design baseline.
 
-## Penpot
+## Authority
 
-The local Penpot file contains a page named `CrispyTivi Design System`.
-It replaces the earlier inventory/screenshot boards with editable shapes.
+The current design authority order is:
 
-Current boards:
+1. `docs/overhaul/plans/v2-conversation-history-full-spec.md`
+2. live approved Penpot manifest locked by
+   `design/penpot/publish_app_overhaul_design_system.js`
+3. `design/docs/app-overhaul-design-system.md`
+4. `docs/overhaul/plans/v2-shell-design-system-plan.md`
+5. `AGENTS.md`
 
-- `FOUNDATION - Tokens`
-- `COMPONENT - Core Components`
-- `COMPONENT - Buttons`
-- `COMPONENT - Badges`
-- `COMPONENT - Chips`
-- `COMPONENT - Headers`
-- `COMPONENT - Surfaces`
-- `COMPONENT - State Widgets`
-- `COMPONENT - Skeletons`
-- `COMPONENT - Media Cards`
-- `COMPONENT - TV Controls`
-- `PATTERN - Navigation and TV Focus`
-- `PATTERN - EPG Timeline`
-- `PATTERN - Player OSD`
-- `SCREEN - Representative Layouts`
-- `FEATURE - Live TV Widgets`
-- `FEATURE - Settings Widgets`
-- `FEATURE - VOD Widgets`
-- `FEATURE - Player Widgets`
-- `ASSET - Brand Assets`
+Flutter implementation does not redefine this baseline. Penpot is the visual
+source of truth for the restart lane. A passing build does not override this:
+if rendered UI, composition, or focus treatment drifts from the approved
+Penpot boards or active v2 spec, the implementation is incorrect and must be
+fixed before a phase can complete.
 
-Boards are laid out in a visible 3-column grid. Core component category boards
-exist as first-class Penpot boards so Widgetbook `designLink` values resolve to
-real board names instead of broad overview substitutes.
+## Approved Penpot baseline
 
-The publisher clears all shapes from the active design-system page before
-rebuilding these boards, so stale inventory/orphan shapes cannot sit over the
-design system. Boards use distinct tinted backgrounds so they remain visually
-separable in the Penpot overview zoom.
+Verified active baseline:
 
-The Penpot local library contains an active token set named `CrispyTivi` with
-45 Penpot color/spacing/radius tokens, plus editable foundation specimens for Flutter typography,
-elevation, and motion tokens that do not map cleanly to the local Penpot token
-API.
+- page id: `ec16cff3-941d-80ee-8007-d9645092a3ef`
+- page name: `Page 1`
+- token set: `CrispyTivi vNext`
+- token count: `25`
+- approved overhaul boards: `14`
+- verifier status:
+  `aligned-approved-current-design`
 
-Latest read-back evidence:
+Approved boards:
 
-- Page: `CrispyTivi Design System`
-- Active token set: `CrispyTivi` (`45` Penpot color/spacing/radius tokens)
-- Editable boards: `20`
-- Duplicate active board names: `0`
-- Widgetbook-linked boards: `19`
-- Uploaded brand assets: `2`
-- Board layout: `20` unique board positions; every board has visible children.
-- Active page cleanup: no non-design-system orphan shapes remain on the active
-  page after publish.
+1. `FOUNDATION - vNext Tokens`
+2. `FOUNDATION - Layout and Windowing`
+3. `COMPONENT - Navigation and Focus Controls`
+4. `COMPONENT - Surfaces and Widget Feel`
+5. `SCREEN - Home Shell`
+6. `SCREEN - Settings and Sources Flow`
+7. `SCREEN - Live TV Channels`
+8. `SCREEN - Live TV Guide`
+9. `SCREEN - Media Browse and Detail`
+10. `SCREEN - Search and Handoff`
+11. `FEATURE - Source Selection and Health`
+12. `FEATURE - Favorites, History, and Recommendations`
+13. `FEATURE - Mock Player and Full Player Gate`
+14. `PATTERN - Left and Right Menus`
 
-Older generated inventory pages are renamed with `ARCHIVE -` in Penpot. They
-are not the design-system source.
+## Token source surfaces
 
-## Widgetbook
+The overhaul token family must remain aligned across:
 
-Widgetbook uses official `@widgetbook.UseCase` annotations from
-`widgetbook_annotation`.
+- JSON: `design/tokens/crispy-overhaul.tokens.json`
+- Penpot token set: `CrispyTivi vNext`
+- Flutter token source when reintroduced in implementation
 
-Coverage matrix:
+Current JSON token families:
 
-- `design/docs/widgetbook-coverage.md`
-- Generator: `scripts/design/generate_widgetbook_coverage.py`
+- surface
+- accent
+- semantic
+- text
+- spacing
+- radius
+- motion
 
-Use cases are split by file:
+## Restart rule
 
-- `app/flutter/lib/widgetbook/foundation_use_cases.dart`
-- `app/flutter/lib/widgetbook/core_widget_use_cases.dart`
-- `app/flutter/lib/widgetbook/feature_widget_use_cases.dart`
-- `app/flutter/lib/widgetbook/player_widget_use_cases.dart`
-- `app/flutter/lib/widgetbook/catalog_surface.dart`
+This design-system document is intentionally restart-lane specific. Older
+editable design-system inventory/runtime notes are no longer authoritative for
+v2 shell work.
 
-The runtime catalog remains `app/flutter/lib/widgetbook.dart`.
+## Widgetbook note
 
-## Coverage
+Widgetbook runtime is not currently present on the clean restart baseline. The
+active Widgetbook role is planning/specimen mapping through:
 
-Covered now:
-
-- Color, spacing, and radius token specimens.
-- Typography, elevation, and motion token specimens.
-- Buttons.
-- Live/content badges.
-- Metadata and genre chips.
-- Section headers.
-- Glass surfaces.
-- Empty/loading/error states.
-- Skeleton loading states.
-- Generated media placeholders.
-- Watch progress.
-- TV color button legend.
-- Feature fixtures for `ChannelListItem`, `ChannelGridItem`, `SettingsBadge`,
-  and `SettingsCard`.
-- Feature fixtures for `QualityBadge`, `CircularAction`, `EpisodeTile`, and
-  `ExpandableSynopsis`.
-- Player fixtures for `OsdIconButton`, subtitle controls, and subtitle preview.
-- Brand asset board with checked-in Flutter logo artwork uploaded to Penpot.
-
-Still needed:
-
-- Fixture-backed Widgetbook use cases for remaining provider-heavy feature
-  widgets.
-- Penpot component variants for page-level patterns after fixtures exist.
-- More real artwork/imagery for media-card examples once asset licensing/source
-  is settled.
-- Golden coverage for Cloud Browser, Multiview, profile management, VOD
-  details, media-server login, and series browser.
+- `docs/overhaul/plans/v2-widgetbook-shell-specimens.md`
+- `docs/overhaul/plans/v2-widgetbook-penpot-shell-map.md`
