@@ -224,11 +224,13 @@ Output:
 
 - player-specific references
 - player subplan
-- Penpot player boards
+- installed Markdown player gate
 
 Gate:
 
 - no player code starts before this gate is verified
+
+Current branch state: complete
 
 ### Phase 14: player implementation
 

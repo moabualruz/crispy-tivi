@@ -258,11 +258,17 @@ Before **any** player implementation code starts:
    - Apple TV player / transport / overlay behavior
    - Netflix player / cinematic detail density / OSD
    - YouTube player / OSD / info hierarchy
-3. update the player subplan with those references
-4. create/recreate Penpot player boards from that player subplan
-5. verify those Penpot player boards before any player code is allowed
+3. update the repo-local player subplan and installed design gate with those
+   references
+4. verify the installed Markdown player gate before any player code is allowed
 
 Player code is blocked until this gate is complete.
+
+Current branch state:
+
+- Phase 13 complete
+- player gate is now documented in `v2-phase13-player-gate.md`
+- player implementation remains blocked until Phase 14 starts explicitly
 
 ## Guardrails
 

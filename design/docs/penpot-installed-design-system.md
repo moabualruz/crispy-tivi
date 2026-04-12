@@ -654,6 +654,9 @@ Rules:
 - mock player exists only as a handoff proof if needed
 - player is not top-level navigation
 - player must not read like a normal shell destination
+- player design authority is repo-local Markdown first, not live Penpot
+- if Penpot player boards are recreated later, they must be derived from this
+  Markdown gate and not silently override it
 
 Pre-player gate must define:
 
@@ -663,6 +666,38 @@ Pre-player gate must define:
 - chooser UX for quality/audio/subtitle/source
 - overlay policies
 - back behavior from player states
+
+Player visual direction:
+
+- Google TV first for content-led layout, readable transport spacing, and
+  low-chrome full-screen presentation
+- Apple TV only as a restraint influence for glass, edge treatment, and motion
+- Netflix and YouTube only as supporting references for information density,
+  directness, and OSD clarity
+- player must not inherit shell navigation chrome or read like another shell
+  route
+
+Player state matrix:
+
+- passive playback: no large chrome, only minimal time/progress affordance
+- transport reveal: title, transport, progress, and immediate actions
+- expanded info: richer metadata and related switching affordances
+- chooser overlays: quality/audio/subtitle/source as separate contextual
+  overlays, not crammed into the base transport surface
+- live switching: next/previous/sibling channel navigation without leaving
+  player
+- episode switching: next/previous/sibling episode navigation without leaving
+  player
+- failure/recovery: reconnect, retry, fallback, and exit actions are explicit
+
+Back/unwind matrix:
+
+- Back dismisses chooser overlays before transport collapse
+- Back collapses expanded info before leaving player
+- Back leaves player only after player-local overlays and transport states are
+  cleared
+- Menu remains contextual and local; it is not a permanent player-global shell
+  control
 
 ## Back and Menu
 

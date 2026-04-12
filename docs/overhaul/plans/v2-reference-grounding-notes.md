@@ -74,4 +74,6 @@ When the project is ready to start player work:
 - gather a fresh player-specific reference set first
 - include Google TV, Apple TV, Netflix, and YouTube player/OSD/info examples
 - update the player subplan from those references
-- create Penpot player boards before any player code starts
+- update the repo-local installed player gate before any player code starts
+- if Penpot player boards are later recreated, they must be derived from the
+  installed Markdown player gate rather than acting as a parallel authority

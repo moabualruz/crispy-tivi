@@ -113,6 +113,12 @@ Required evidence as each independent domain lane completes:
   - result cards stay artwork-backed and media-focused
   - selecting search results updates the owning-domain handoff panel rather
     than behaving like a detached utility list
+- Player gate:
+  - no player implementation code starts before the repo-local player gate is
+    complete
+  - the installed design docs must define live switching, episode switching,
+    OSD states, chooser overlays, and player back behavior before Phase 14
+    may begin
 
 ## Prohibited failure mode
 

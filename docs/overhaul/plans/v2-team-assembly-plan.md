@@ -217,6 +217,10 @@ Post-Phase-6 parallelization rule:
 - design lane
 - verifier lane
 
+Phase 13 closes only when the repo-local player gate is complete and verified in
+installed Markdown docs. Recreated Penpot player boards are optional follow-on
+artifacts, not the primary authority.
+
 #### Phase 14: player implementation
 
 - leader
