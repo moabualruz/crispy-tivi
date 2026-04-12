@@ -37,9 +37,25 @@ Only after the above:
 - `flutter analyze`
 - `flutter test`
 - Linux integration entrypoint
+- after any Linux integration test run, regenerate Linux release state before
+  manual launch or final Linux handoff so the managed Linux Flutter config is
+  restored from the test-listener target back to `lib/main.dart`
 - Rust checks only for the Rust work that is actually approved to start
 - route layouts visibly match the approved Penpot boards and current reference
   grounding notes
+
+### Linux managed-build hygiene
+
+Required evidence whenever Linux integration tests were part of the pass:
+
+- `app/flutter/linux/flutter/ephemeral/generated_config.cmake` does not point
+  at a Flutter test-listener target during final manual-run or handoff state
+- final Linux release state was regenerated with
+  `app/flutter/tool/restore_linux_release_state.sh` or equivalent clean
+  `flutter build linux` after clearing Linux managed build outputs
+- direct terminal launch of the final Linux release bundle does not report
+  `FlutterEngineInitialize ... kInvalidArguments` or kernel-binary resolution
+  failure
 
 ### Phase 5: technical-contract verification
 
@@ -98,6 +114,8 @@ Required evidence as each independent domain lane completes:
     on explicit activation
   - Guide keeps local subview nav separate from in-content group switching and
     preserves selected-channel summary plus preview/matrix separation
+  - compact guide preview panes remain scrollable/navigable and do not collapse
+    hidden rows into `+N more` summary text
   - Guide detail overlays come from canonical guide-row/program data and show
     focused slot, live-edge state, and catch-up/archive affordances
   - Guide browse mode does not expose tune/play action chrome
@@ -117,8 +135,15 @@ Required evidence as each independent domain lane completes:
   - no player implementation code starts before the repo-local player gate is
     complete
   - the installed design docs must define live switching, episode switching,
-    OSD states, chooser overlays, and player back behavior before Phase 14
+  OSD states, chooser overlays, and player back behavior before Phase 14
     may begin
+- Player implementation:
+  - movie detail opens the retained player surface rather than a mock dialog
+  - series episode launch opens player and allows in-player episode switching
+  - Live TV explicit tune action opens player and allows in-player channel
+    switching
+  - player chooser overlays exist for audio, subtitles, quality, and source
+  - Back unwinds chooser, then expanded info, then player exit
 
 ## Prohibited failure mode
 

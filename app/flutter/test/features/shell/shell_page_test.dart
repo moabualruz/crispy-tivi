@@ -55,22 +55,22 @@ void main() {
   "series_detail": {
     "summary_title": "Season and episode handoff",
     "summary_body": "Season choice stays above episode choice and the launch action remains explicit.",
-    "handoff_label": "Mock player handoff",
+    "handoff_label": "Play episode",
     "seasons": [
       {
         "label": "Season 1",
         "summary": "Episode-first season with the core story arc.",
         "episodes": [
-          {"code": "S1:E1", "title": "Cold Open", "summary": "Series premiere and setup.", "duration_label": "45 min", "handoff_label": "Launch player handoff"},
-          {"code": "S1:E2", "title": "Cross Signal", "summary": "The plot tightens around the central handoff.", "duration_label": "44 min", "handoff_label": "Launch player handoff"}
+          {"code": "S1:E1", "title": "Cold Open", "summary": "Series premiere and setup.", "duration_label": "45 min", "handoff_label": "Play episode"},
+          {"code": "S1:E2", "title": "Cross Signal", "summary": "The plot tightens around the central handoff.", "duration_label": "44 min", "handoff_label": "Play episode"}
         ]
       },
       {
         "label": "Season 2",
         "summary": "Continuation season with stronger episode continuity.",
         "episodes": [
-          {"code": "S2:E1", "title": "Return Path", "summary": "The series resets with a longer-form arc.", "duration_label": "45 min", "handoff_label": "Launch player handoff"},
-          {"code": "S2:E2", "title": "Signal Drift", "summary": "Season continuity stays explicit.", "duration_label": "44 min", "handoff_label": "Launch player handoff"}
+          {"code": "S2:E1", "title": "Return Path", "summary": "The series resets with a longer-form arc.", "duration_label": "45 min", "handoff_label": "Play episode"},
+          {"code": "S2:E2", "title": "Signal Drift", "summary": "Season continuity stays explicit.", "duration_label": "44 min", "handoff_label": "Play episode"}
         ]
       }
     ]
@@ -308,11 +308,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Live TV'), findsOneWidget);
-    expect(find.text('Media'), findsOneWidget);
-    expect(find.text('Search'), findsOneWidget);
-    expect(find.text('Settings'), findsOneWidget);
+    expect(find.byKey(const Key('shell-route-home')), findsOneWidget);
+    expect(find.byKey(const Key('shell-route-liveTv')), findsOneWidget);
+    expect(find.byKey(const Key('shell-route-media')), findsOneWidget);
+    expect(find.byKey(const Key('shell-route-search')), findsOneWidget);
+    expect(find.byKey(const Key('shell-utility-settings')), findsOneWidget);
     expect(find.text('Sources'), findsNothing);
     expect(find.text('Player'), findsNothing);
   });
@@ -327,7 +327,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Settings'));
+    await tester.tap(find.byKey(const Key('shell-utility-settings')));
     await tester.pumpAndSettle();
 
     expect(find.text('General'), findsWidgets);
@@ -358,7 +358,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Settings'));
+    await tester.tap(find.byKey(const Key('shell-utility-settings')));
     await tester.pumpAndSettle();
 
     final List<(String key, String leafMarker)> panels = <(String, String)>[
@@ -392,7 +392,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Settings'));
+    await tester.tap(find.byKey(const Key('shell-utility-settings')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings-sidebar-Sources')));
     await tester.pumpAndSettle();
@@ -426,7 +426,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Settings'));
+    await tester.tap(find.byKey(const Key('shell-utility-settings')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings-sidebar-Sources')));
     await tester.pumpAndSettle();
@@ -456,7 +456,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Settings'));
+      await tester.tap(find.byKey(const Key('shell-utility-settings')));
       await tester.pumpAndSettle();
 
       await tester.enterText(
@@ -487,7 +487,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Live TV'));
+    await tester.tap(find.byKey(const Key('shell-route-liveTv')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('live-tv-sidebar-Channels')), findsOneWidget);
@@ -497,7 +497,7 @@ void main() {
   });
 
   testWidgets(
-    'live tv focus updates detail but explicit action changes playback',
+    'live tv explicit action opens player and keeps channel switching inside it',
     (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1920, 1080);
       tester.view.devicePixelRatio = 1;
@@ -508,7 +508,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Live TV'));
+      await tester.tap(find.byKey(const Key('shell-route-liveTv')));
       await tester.pumpAndSettle();
 
       expect(
@@ -533,6 +533,15 @@ void main() {
 
       expect(find.text('Playing now'), findsOneWidget);
       expect(find.text('Playing 118'), findsOneWidget);
+      expect(find.text('Live TV · All'), findsOneWidget);
+      expect(find.text('Championship Replay'), findsWidgets);
+
+      await tester.tap(find.byKey(const Key('player-open-info')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('player-queue-item-0')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Midnight Bulletin'), findsWidgets);
     },
   );
 
@@ -548,7 +557,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Live TV'));
+    await tester.tap(find.byKey(const Key('shell-route-liveTv')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('live-tv-sidebar-Guide')));
     await tester.pumpAndSettle();
@@ -581,7 +590,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Media'));
+    await tester.tap(find.byKey(const Key('shell-route-media')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('media-sidebar-Movies')), findsOneWidget);
@@ -590,7 +599,7 @@ void main() {
     expect(find.byKey(const Key('media-scope-library')), findsOneWidget);
   });
 
-  testWidgets('series browsing emphasizes season and episode handoff', (
+  testWidgets('series browsing opens player and supports in-player episode switching', (
     WidgetTester tester,
   ) async {
     tester.view.physicalSize = const Size(1920, 1080);
@@ -602,7 +611,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Media'));
+    await tester.tap(find.byKey(const Key('shell-route-media')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('media-sidebar-Series')));
     await tester.pumpAndSettle();
@@ -611,7 +620,7 @@ void main() {
     expect(find.byKey(const Key('series-season-1')), findsOneWidget);
     expect(find.byKey(const Key('series-episode-0-0')), findsOneWidget);
     expect(find.byKey(const Key('series-handoff-state')), findsOneWidget);
-    expect(find.textContaining('Ready to launch S1:E1'), findsOneWidget);
+    expect(find.textContaining('Ready for S1:E1'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('series-season-1')));
     await tester.pumpAndSettle();
@@ -627,13 +636,29 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('series-launch-action')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Ready to launch S2:E2'), findsOneWidget);
-    expect(find.textContaining('Launch player handoff'), findsWidgets);
+    expect(find.textContaining('Ready for S2:E2'), findsOneWidget);
+    expect(find.byKey(const Key('series-launch-action')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('series-launch-action')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Launched S2:E2'), findsOneWidget);
-    expect(find.textContaining('Launched'), findsWidgets);
+    expect(find.text('Media · Series'), findsOneWidget);
+    expect(find.text('Signal Drift'), findsOneWidget);
+    expect(find.byKey(const Key('player-open-info')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('player-open-info')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('player-queue-item-0')));
+    await tester.pumpAndSettle();
+    expect(find.text('Return Path'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('player-back-action')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('player-open-info')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('player-back-action')));
+    await tester.pumpAndSettle();
+    expect(find.text('Signal Drift'), findsNothing);
   });
 }

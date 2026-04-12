@@ -1,9 +1,13 @@
+import 'package:crispy_tivi/core/theme/crispy_shell_controls.dart';
+import 'package:crispy_tivi/core/theme/crispy_shell_icons.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_content.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/settings_rows.dart';
+import 'package:crispy_tivi/features/shell/presentation/widgets/shell_controls.dart';
+import 'package:crispy_tivi/features/shell/presentation/widgets/shell_iconography.dart';
 import 'package:flutter/material.dart';
 
 class SettingsView extends StatefulWidget {
@@ -155,6 +159,7 @@ class _SettingsViewState extends State<SettingsView> {
     switch (panel) {
       case SettingsPanel.general:
         return _SettingsSectionView(
+          panel: panel,
           title: title,
           description: description,
           matchDescription: matchDescription,
@@ -168,6 +173,7 @@ class _SettingsViewState extends State<SettingsView> {
         );
       case SettingsPanel.playback:
         return _SettingsSectionView(
+          panel: panel,
           title: title,
           description: description,
           matchDescription: matchDescription,
@@ -199,6 +205,7 @@ class _SettingsViewState extends State<SettingsView> {
         );
       case SettingsPanel.appearance:
         return _SettingsSectionView(
+          panel: panel,
           title: title,
           description: description,
           matchDescription: matchDescription,
@@ -212,6 +219,7 @@ class _SettingsViewState extends State<SettingsView> {
         );
       case SettingsPanel.system:
         return _SettingsSectionView(
+          panel: panel,
           title: title,
           description: description,
           matchDescription: matchDescription,
@@ -253,15 +261,9 @@ class _SettingsSearchBar extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: CrispyShellRoles.iconPlateDecoration(),
-                  child: const Icon(
-                    Icons.search,
-                    color: CrispyOverhaulTokens.textSecondary,
-                    size: 20,
-                  ),
+                const ShellIconPlate(
+                  icon: Icons.search,
+                  role: ShellIconRole.panel,
                 ),
                 const SizedBox(width: CrispyOverhaulTokens.medium),
                 Expanded(
@@ -281,10 +283,13 @@ class _SettingsSearchBar extends StatelessWidget {
                 ),
                 if (searchQuery.isNotEmpty) ...<Widget>[
                   const SizedBox(width: CrispyOverhaulTokens.medium),
-                  TextButton(
+                  ShellControlButton(
+                    label: 'Clear',
+                    semanticsLabel: 'Clear search',
+                    icon: Icons.close_rounded,
                     onPressed: onClear,
-                    style: CrispyShellRoles.actionButtonStyle(emphasis: false),
-                    child: const Text('Clear'),
+                    controlRole: ShellControlRole.action,
+                    presentation: ShellControlPresentation.iconOnly,
                   ),
                 ],
               ],
@@ -318,7 +323,7 @@ class _SettingsSearchBar extends StatelessWidget {
             ),
             const SizedBox(height: CrispyOverhaulTokens.small),
             Text(
-              'No global search here. This only searches the grouped Settings hierarchy.',
+              'Search only this settings hierarchy.',
               style: textTheme.bodyMedium?.copyWith(
                 color: CrispyOverhaulTokens.textMuted,
               ),
@@ -355,9 +360,18 @@ class _SettingsSearchResults extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(
-              'Search results',
-              style: Theme.of(context).textTheme.headlineSmall,
+            Row(
+              children: <Widget>[
+                const ShellIconPlate(
+                  icon: Icons.search,
+                  role: ShellIconRole.row,
+                ),
+                const SizedBox(width: CrispyOverhaulTokens.medium),
+                Text(
+                  'Search results',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ],
             ),
             const SizedBox(height: CrispyOverhaulTokens.small),
             Text(
@@ -375,66 +389,54 @@ class _SettingsSearchResults extends StatelessWidget {
                         const SizedBox(height: CrispyOverhaulTokens.small),
                 itemBuilder: (BuildContext context, int index) {
                   final _SettingsSearchMatch match = matches[index];
-                  return TextButton(
-                    key: Key('settings-search-hit-$index'),
+                  return ShellControlSurface(
+                    controlKey: Key('settings-search-hit-$index'),
                     onPressed:
                         () => onActivate(
                           panel: match.panel,
                           leafLabel: match.leafKey,
                           sourceIndex: match.sourceIndex,
                         ),
-                    style: CrispyShellRoles.selectorButtonStyle(
-                      selected: false,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: CrispyOverhaulTokens.medium,
-                        vertical: CrispyOverhaulTokens.medium,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: CrispyShellRoles.iconPlateDecoration(),
-                            child: Icon(
-                              match.icon,
-                              color: CrispyOverhaulTokens.textSecondary,
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: CrispyOverhaulTokens.medium),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Text(
-                                  match.displayLabel,
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
+                    controlRole: ShellControlRole.selector,
+                    semanticsLabel: match.displayLabel,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        ShellIconPlate(
+                          icon: match.icon,
+                          role: ShellIconRole.row,
+                        ),
+                        const SizedBox(width: CrispyOverhaulTokens.medium),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                match.displayLabel,
+                                style:
+                                    Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(
+                                height: CrispyOverhaulTokens.compact,
+                              ),
+                              Text(
+                                '${match.panel.label} • ${match.supportingText(query)}',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium?.copyWith(
+                                  color: CrispyOverhaulTokens.textSecondary,
                                 ),
-                                const SizedBox(
-                                  height: CrispyOverhaulTokens.compact,
-                                ),
-                                Text(
-                                  '${match.panel.label} • ${match.supportingText(query)}',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium?.copyWith(
-                                    color: CrispyOverhaulTokens.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: CrispyOverhaulTokens.medium),
-                          const Icon(
-                            Icons.chevron_right,
-                            color: CrispyOverhaulTokens.textMuted,
-                          ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: CrispyOverhaulTokens.medium),
+                        const ShellIconGraphic(
+                          icon: Icons.chevron_right,
+                          role: ShellIconRole.compact,
+                          color: CrispyOverhaulTokens.textMuted,
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -449,12 +451,14 @@ class _SettingsSearchResults extends StatelessWidget {
 
 class _SettingsSectionView extends StatelessWidget {
   const _SettingsSectionView({
+    required this.panel,
     required this.title,
     required this.description,
     required this.matchDescription,
     required this.child,
   });
 
+  final SettingsPanel panel;
   final String title;
   final String description;
   final String matchDescription;
@@ -475,15 +479,9 @@ class _SettingsSectionView extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: CrispyShellRoles.iconPlateDecoration(),
-                      child: const Icon(
-                        Icons.tune_outlined,
-                        size: 20,
-                        color: CrispyOverhaulTokens.textSecondary,
-                      ),
+                    ShellIconPlate(
+                      icon: CrispyShellIcons.settingsPanel(panel),
+                      role: ShellIconRole.panel,
                     ),
                     const SizedBox(width: CrispyOverhaulTokens.medium),
                     Expanded(
@@ -677,9 +675,22 @@ class _SettingsSourceListPane extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(
-              'Connected sources',
-              style: Theme.of(context).textTheme.titleLarge,
+            Row(
+              children: <Widget>[
+                ShellIconPlate(
+                  icon: CrispyShellIcons.settingsPanel(SettingsPanel.sources),
+                  role: ShellIconRole.row,
+                ),
+                const SizedBox(width: CrispyOverhaulTokens.small),
+                Expanded(
+                  child: Text(
+                    'Connected sources',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: CrispyOverhaulTokens.compact),
             Text(
@@ -689,11 +700,14 @@ class _SettingsSourceListPane extends StatelessWidget {
               ),
             ),
             const SizedBox(height: CrispyOverhaulTokens.small),
-            TextButton(
-              key: const Key('sources-add-button'),
+            ShellControlButton(
+              controlKey: const Key('sources-add-button'),
+              label: 'Add source',
+              icon: Icons.add_link_outlined,
               onPressed: onStartAddSource,
-              style: CrispyShellRoles.actionButtonStyle(emphasis: true),
-              child: const Text('Add source'),
+              controlRole: ShellControlRole.action,
+              presentation: ShellControlPresentation.iconAndText,
+              emphasis: true,
             ),
             const SizedBox(height: CrispyOverhaulTokens.small),
             Expanded(
@@ -736,22 +750,25 @@ class _SettingsSourceListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      key: Key('source-item-${source.name}'),
+    return ShellControlSurface(
+      controlKey: Key('source-item-${source.name}'),
       onPressed: onSelect,
-      style: CrispyShellRoles.selectorButtonStyle(selected: selected).copyWith(
-        padding: WidgetStateProperty.all(
-          const EdgeInsets.symmetric(
-            horizontal: CrispyOverhaulTokens.medium,
-            vertical: CrispyOverhaulTokens.medium,
-          ),
-        ),
-      ),
+      controlRole: ShellControlRole.selector,
+      selected: selected,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
+              ShellIconPlate(
+                icon: CrispyShellIcons.settingsStatus(source.status),
+                role: ShellIconRole.status,
+                color:
+                    selected
+                        ? CrispyOverhaulTokens.navSelectedText
+                        : CrispyOverhaulTokens.textSecondary,
+              ),
+              const SizedBox(width: CrispyOverhaulTokens.small),
               Expanded(
                 child: Text(
                   source.name,
@@ -821,21 +838,13 @@ class _SettingsWizardRail extends StatelessWidget {
                 itemBuilder: (BuildContext context, int index) {
                   final SourceWizardStepContent step = steps[index];
                   final bool selected = step.step == activeStep;
-                  return TextButton(
-                    key: Key('source-wizard-step-${step.step.label}'),
+                  return ShellControlSurface(
+                    controlKey: Key('source-wizard-step-${step.step.label}'),
                     onPressed: () => onSelectStep(step.step),
-                    style: CrispyShellRoles.selectorButtonStyle(
-                      selected: selected,
-                    ).copyWith(
-                      padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(
-                          horizontal: CrispyOverhaulTokens.medium,
-                          vertical: CrispyOverhaulTokens.medium,
-                        ),
-                      ),
-                    ),
+                    controlRole: ShellControlRole.selector,
+                    selected: selected,
                     child: Align(
-                      alignment: Alignment.centerLeft,
+                      alignment: AlignmentDirectional.centerStart,
                       child: Text(
                         '${index + 1}. ${step.step.label}',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -882,15 +891,9 @@ class _SettingsWizardPane extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: CrispyShellRoles.iconPlateDecoration(),
-                    child: const Icon(
-                      Icons.source_outlined,
-                      size: 18,
-                      color: CrispyOverhaulTokens.textSecondary,
-                    ),
+                  ShellIconPlate(
+                    icon: CrispyShellIcons.settingsPanel(SettingsPanel.sources),
+                    role: ShellIconRole.row,
                   ),
                   const SizedBox(width: CrispyOverhaulTokens.medium),
                   Expanded(
@@ -943,20 +946,26 @@ class _SettingsWizardPane extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: CrispyOverhaulTokens.medium),
-              Row(
+              Wrap(
+                spacing: CrispyOverhaulTokens.small,
+                runSpacing: CrispyOverhaulTokens.small,
                 children: <Widget>[
-                  TextButton(
-                    key: const Key('source-wizard-primary-action'),
+                  ShellControlButton(
+                    controlKey: const Key('source-wizard-primary-action'),
+                    label: step.primaryAction,
+                    icon: CrispyShellIcons.settingsAction(step.primaryAction),
                     onPressed: onAdvance,
-                    style: CrispyShellRoles.actionButtonStyle(emphasis: true),
-                    child: Text(step.primaryAction),
+                    controlRole: ShellControlRole.action,
+                    presentation: ShellControlPresentation.iconAndText,
+                    emphasis: true,
                   ),
-                  const SizedBox(width: CrispyOverhaulTokens.small),
-                  TextButton(
-                    key: const Key('source-wizard-secondary-action'),
+                  ShellControlButton(
+                    controlKey: const Key('source-wizard-secondary-action'),
+                    label: step.secondaryAction,
+                    icon: CrispyShellIcons.settingsAction(step.secondaryAction),
                     onPressed: onRetreat,
-                    style: CrispyShellRoles.actionButtonStyle(emphasis: false),
-                    child: Text(step.secondaryAction),
+                    controlRole: ShellControlRole.action,
+                    presentation: ShellControlPresentation.iconAndText,
                   ),
                 ],
               ),
@@ -1004,7 +1013,9 @@ class _SettingsSourceDetailPane extends StatelessWidget {
                         const SizedBox(height: CrispyOverhaulTokens.compact),
                         Text(
                           source.summary,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(
                             color: CrispyOverhaulTokens.textSecondary,
                           ),
                         ),
@@ -1017,11 +1028,24 @@ class _SettingsSourceDetailPane extends StatelessWidget {
                       horizontal: CrispyOverhaulTokens.medium,
                       vertical: CrispyOverhaulTokens.small,
                     ),
-                    child: Text(
-                      source.status,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: _sourceStatusColor(source.status),
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        ShellIconGraphic(
+                          icon: CrispyShellIcons.settingsStatus(source.status),
+                          role: ShellIconRole.status,
+                          color: _sourceStatusColor(source.status),
+                        ),
+                        const SizedBox(width: CrispyOverhaulTokens.compact),
+                        Text(
+                          source.status,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleSmall?.copyWith(
+                            color: _sourceStatusColor(source.status),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -1064,12 +1088,14 @@ class _SettingsSourceDetailPane extends StatelessWidget {
                             ),
                             child: Row(
                               children: <Widget>[
-                                const Icon(
-                                  Icons.check_circle_outline,
-                                  size: 18,
+                                const ShellIconGraphic(
+                                  icon: Icons.check_circle,
+                                  role: ShellIconRole.row,
                                   color: CrispyOverhaulTokens.textMuted,
                                 ),
-                                const SizedBox(width: CrispyOverhaulTokens.small),
+                                const SizedBox(
+                                  width: CrispyOverhaulTokens.small,
+                                ),
                                 Expanded(
                                   child: Text(
                                     capability,
@@ -1099,10 +1125,8 @@ class _SettingsSourceDetailPane extends StatelessWidget {
                       ),
                       const SizedBox(height: CrispyOverhaulTokens.small),
                       Text(
-                        'Reconnect uses the same Settings-owned wizard lane; import stays a separate explicit step.',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyMedium?.copyWith(
+                        'Reconnect uses the same Settings wizard lane; import stays a separate explicit step.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: CrispyOverhaulTokens.textSecondary,
                         ),
                       ),
@@ -1111,26 +1135,29 @@ class _SettingsSourceDetailPane extends StatelessWidget {
                         children: <Widget>[
                           SizedBox(
                             key: const Key('sources-primary-action'),
-                            child: TextButton(
+                            child: ShellControlButton(
+                              label: source.primaryAction,
+                              icon: CrispyShellIcons.settingsAction(
+                                source.primaryAction,
+                              ),
                               onPressed:
                                   source.status == 'Needs auth'
                                       ? onStartReconnect
                                       : onStartAddSource,
-                              style: CrispyShellRoles.actionButtonStyle(
-                                emphasis: true,
-                              ),
-                              child: Text(source.primaryAction),
+                              controlRole: ShellControlRole.action,
+                              presentation: ShellControlPresentation.iconAndText,
+                              emphasis: true,
                             ),
                           ),
                           const SizedBox(width: CrispyOverhaulTokens.small),
                           SizedBox(
                             key: const Key('sources-secondary-action'),
-                            child: TextButton(
+                            child: ShellControlButton(
+                              label: 'Run import wizard',
+                              icon: Icons.playlist_add_outlined,
                               onPressed: onStartAddSource,
-                              style: CrispyShellRoles.actionButtonStyle(
-                                emphasis: false,
-                              ),
-                              child: const Text('Run import wizard'),
+                              controlRole: ShellControlRole.action,
+                              presentation: ShellControlPresentation.iconAndText,
                             ),
                           ),
                         ],
@@ -1445,13 +1472,7 @@ class _SettingsSearchMatch {
 
   String get leafKey => item?.title ?? 'source:${sourceIndex ?? 0}';
 
-  IconData get icon => switch (panel) {
-    SettingsPanel.general => Icons.settings_suggest_outlined,
-    SettingsPanel.playback => Icons.play_circle_outline,
-    SettingsPanel.sources => Icons.hub_outlined,
-    SettingsPanel.appearance => Icons.palette_outlined,
-    SettingsPanel.system => Icons.developer_mode_outlined,
-  };
+  IconData get icon => CrispyShellIcons.settingsPanel(panel);
 
   String supportingText(String query) {
     if (item != null) {

@@ -1,6 +1,9 @@
+import 'package:crispy_tivi/core/theme/crispy_shell_icons.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
+import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
+import 'package:crispy_tivi/features/shell/presentation/widgets/shell_iconography.dart';
 import 'package:flutter/material.dart';
 
 class SettingsRows extends StatelessWidget {
@@ -63,15 +66,9 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Container(
-          width: 36,
-          height: 36,
-          decoration: CrispyShellRoles.iconPlateDecoration(),
-          child: const Icon(
-            Icons.tune_outlined,
-            color: CrispyOverhaulTokens.textSecondary,
-            size: 18,
-          ),
+        ShellIconPlate(
+          icon: CrispyShellIcons.settingsPanel(_settingsPanelForLabel(label)),
+          role: ShellIconRole.row,
         ),
         const SizedBox(width: CrispyOverhaulTokens.medium),
         Expanded(
@@ -105,7 +102,7 @@ class _SettingsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
-    final IconData icon = _iconForTitle(item.title);
+    final IconData icon = CrispyShellIcons.settingsRow(item.title);
     return DecoratedBox(
       decoration:
           highlighted
@@ -131,17 +128,13 @@ class _SettingsRow extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Container(
-              width: 42,
-              height: 42,
-              decoration: CrispyShellRoles.iconPlateDecoration(),
-              child: Icon(
-                icon,
-                color:
-                    highlighted
-                        ? CrispyOverhaulTokens.navSelectedText
-                        : CrispyOverhaulTokens.textSecondary,
-              ),
+            ShellIconPlate(
+              icon: icon,
+              role: ShellIconRole.row,
+              color:
+                  highlighted
+                      ? CrispyOverhaulTokens.navSelectedText
+                      : CrispyOverhaulTokens.textSecondary,
             ),
             const SizedBox(width: CrispyOverhaulTokens.medium),
             Expanded(
@@ -184,8 +177,9 @@ class _SettingsRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: CrispyOverhaulTokens.compact),
-                Icon(
-                  Icons.chevron_right,
+                ShellIconGraphic(
+                  icon: Icons.chevron_right,
+                  role: ShellIconRole.compact,
                   color:
                       highlighted
                           ? CrispyOverhaulTokens.navSelectedText
@@ -198,27 +192,19 @@ class _SettingsRow extends StatelessWidget {
       ),
     );
   }
+}
 
-  IconData _iconForTitle(String title) {
-    switch (title) {
-      case 'Startup target':
-        return Icons.home_outlined;
-      case 'Recommendations':
-        return Icons.auto_awesome_outlined;
-      case 'Quick play confirmation':
-        return Icons.play_circle_outline;
-      case 'Preferred quality':
-        return Icons.high_quality_outlined;
-      case 'Focus intensity':
-        return Icons.visibility_outlined;
-      case 'Clock display':
-        return Icons.schedule_outlined;
-      case 'Storage':
-        return Icons.storage_outlined;
-      case 'About':
-        return Icons.info_outline;
-      default:
-        return Icons.settings_outlined;
-    }
+SettingsPanel _settingsPanelForLabel(String label) {
+  switch (label) {
+    case 'General settings':
+      return SettingsPanel.general;
+    case 'Playback settings':
+      return SettingsPanel.playback;
+    case 'Appearance settings':
+      return SettingsPanel.appearance;
+    case 'System settings':
+      return SettingsPanel.system;
+    default:
+      return SettingsPanel.general;
   }
 }

@@ -1,7 +1,11 @@
+import 'package:crispy_tivi/core/theme/crispy_shell_controls.dart';
+import 'package:crispy_tivi/core/theme/crispy_shell_icons.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
+import 'package:crispy_tivi/features/shell/presentation/widgets/shell_controls.dart';
+import 'package:crispy_tivi/features/shell/presentation/widgets/shell_iconography.dart';
 import 'package:flutter/material.dart';
 
 class SourceFlow extends StatelessWidget {
@@ -60,16 +64,14 @@ class SourceFlow extends StatelessWidget {
             ),
             child: Row(
               children: <Widget>[
-                const Icon(
-                  Icons.settings_outlined,
-                  size: 18,
-                  color: CrispyOverhaulTokens.textSecondary,
-                ),
-                const SizedBox(width: CrispyOverhaulTokens.small),
                 Expanded(
-                  child: Text(
-                    'Settings-owned source management: list first, detail second, wizard only when needed.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  child: ShellIconLabel(
+                    icon: CrispyShellIcons.settingsPanel(SettingsPanel.sources),
+                    label:
+                        'Source management stays inside Settings: list first, detail second, wizard only when needed.',
+                    role: ShellIconRole.compact,
+                    color: CrispyOverhaulTokens.textSecondary,
+                    textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: CrispyOverhaulTokens.textSecondary,
                     ),
                   ),
@@ -160,11 +162,14 @@ class _SourceListPane extends StatelessWidget {
               ),
             ),
             const SizedBox(height: CrispyOverhaulTokens.small),
-            TextButton(
-              key: const Key('sources-add-button'),
+            ShellControlButton(
+              controlKey: const Key('sources-add-button'),
+              label: 'Add source',
+              icon: Icons.add_link_outlined,
               onPressed: onStartAddSource,
-              style: CrispyShellRoles.actionButtonStyle(emphasis: true),
-              child: const Text('Add source'),
+              controlRole: ShellControlRole.action,
+              presentation: ShellControlPresentation.iconAndText,
+              emphasis: true,
             ),
             const SizedBox(height: CrispyOverhaulTokens.small),
             Expanded(
@@ -176,19 +181,11 @@ class _SourceListPane extends StatelessWidget {
                 itemBuilder: (BuildContext context, int index) {
                   final SourceHealthItem source = sources[index];
                   final bool selected = selectedSourceIndex == index;
-                  return TextButton(
-                    key: Key('source-item-${source.name}'),
+                  return ShellControlSurface(
+                    controlKey: Key('source-item-${source.name}'),
                     onPressed: () => onSelectSource(index),
-                    style: CrispyShellRoles.selectorButtonStyle(
-                      selected: selected,
-                    ).copyWith(
-                      padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(
-                          horizontal: CrispyOverhaulTokens.medium,
-                          vertical: CrispyOverhaulTokens.medium,
-                        ),
-                      ),
-                    ),
+                    controlRole: ShellControlRole.selector,
+                    selected: selected,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
@@ -276,21 +273,13 @@ class _SourceWizardRail extends StatelessWidget {
                 itemBuilder: (BuildContext context, int index) {
                   final SourceWizardStepContent step = steps[index];
                   final bool selected = step.step == activeStep;
-                  return TextButton(
-                    key: Key('source-wizard-step-${step.step.label}'),
+                  return ShellControlSurface(
+                    controlKey: Key('source-wizard-step-${step.step.label}'),
                     onPressed: () => onSelectStep(step.step),
-                    style: CrispyShellRoles.selectorButtonStyle(
-                      selected: selected,
-                    ).copyWith(
-                      padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(
-                          horizontal: CrispyOverhaulTokens.medium,
-                          vertical: CrispyOverhaulTokens.medium,
-                        ),
-                      ),
-                    ),
+                    controlRole: ShellControlRole.selector,
+                    selected: selected,
                     child: Align(
-                      alignment: Alignment.centerLeft,
+                      alignment: AlignmentDirectional.centerStart,
                       child: Text(
                         '${index + 1}. ${step.step.label}',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -406,9 +395,9 @@ class _SourceDetailPane extends StatelessWidget {
                           ),
                           child: Row(
                             children: <Widget>[
-                              const Icon(
-                                Icons.check_circle_outline,
-                                size: 18,
+                              const ShellIconGraphic(
+                                icon: Icons.check_circle_outline,
+                                role: ShellIconRole.row,
                                 color: CrispyOverhaulTokens.textMuted,
                               ),
                               const SizedBox(width: CrispyOverhaulTokens.small),
@@ -440,33 +429,37 @@ class _SourceDetailPane extends StatelessWidget {
                     ),
                     const SizedBox(height: CrispyOverhaulTokens.small),
                     Text(
-                      'Reconnect uses the same Settings-owned wizard lane; import stays a separate explicit step.',
+                      'Reconnect uses the same Settings wizard lane; import stays a separate explicit step.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: CrispyOverhaulTokens.textSecondary,
                       ),
                     ),
                     const SizedBox(height: CrispyOverhaulTokens.medium),
-                    Row(
+                    Wrap(
+                      spacing: CrispyOverhaulTokens.small,
+                      runSpacing: CrispyOverhaulTokens.small,
                       children: <Widget>[
-                        TextButton(
-                          key: const Key('sources-primary-action'),
+                        ShellControlButton(
+                          controlKey: const Key('sources-primary-action'),
+                          label: source.primaryAction,
+                          icon: CrispyShellIcons.settingsAction(
+                            source.primaryAction,
+                          ),
                           onPressed:
                               source.status == 'Needs auth'
                                   ? onStartReconnect
                                   : onStartAddSource,
-                          style: CrispyShellRoles.actionButtonStyle(
-                            emphasis: true,
-                          ),
-                          child: Text(source.primaryAction),
+                          controlRole: ShellControlRole.action,
+                          presentation: ShellControlPresentation.iconAndText,
+                          emphasis: true,
                         ),
-                        const SizedBox(width: CrispyOverhaulTokens.small),
-                        TextButton(
-                          key: const Key('sources-secondary-action'),
+                        ShellControlButton(
+                          controlKey: const Key('sources-secondary-action'),
+                          label: 'Run import wizard',
+                          icon: Icons.playlist_add_outlined,
                           onPressed: onStartAddSource,
-                          style: CrispyShellRoles.actionButtonStyle(
-                            emphasis: false,
-                          ),
-                          child: const Text('Run import wizard'),
+                          controlRole: ShellControlRole.action,
+                          presentation: ShellControlPresentation.iconAndText,
                         ),
                       ],
                     ),
@@ -539,7 +532,7 @@ class _SourceWizardPane extends StatelessWidget {
                       ),
                       const SizedBox(height: CrispyOverhaulTokens.compact),
                       Text(
-                        'Settings-owned source wizard lane',
+                        'Source wizard inside Settings',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: CrispyOverhaulTokens.textMuted,
                         ),
@@ -573,9 +566,9 @@ class _SourceWizardPane extends StatelessWidget {
                 children: <Widget>[
                   const Padding(
                     padding: EdgeInsets.only(top: 6),
-                    child: Icon(
-                      Icons.circle,
-                      size: 8,
+                    child: ShellIconGraphic(
+                      icon: Icons.circle,
+                      role: ShellIconRole.badge,
                       color: CrispyOverhaulTokens.textMuted,
                     ),
                   ),
@@ -593,20 +586,26 @@ class _SourceWizardPane extends StatelessWidget {
               const SizedBox(height: CrispyOverhaulTokens.small),
             ],
             const SizedBox(height: CrispyOverhaulTokens.large),
-            Row(
+            Wrap(
+              spacing: CrispyOverhaulTokens.small,
+              runSpacing: CrispyOverhaulTokens.small,
               children: <Widget>[
-                TextButton(
-                  key: const Key('source-wizard-back-button'),
+                ShellControlButton(
+                  controlKey: const Key('source-wizard-back-button'),
+                  label: step.secondaryAction,
+                  icon: CrispyShellIcons.settingsAction(step.secondaryAction),
                   onPressed: onRetreat,
-                  style: CrispyShellRoles.actionButtonStyle(emphasis: false),
-                  child: Text(step.secondaryAction),
+                  controlRole: ShellControlRole.action,
+                  presentation: ShellControlPresentation.iconAndText,
                 ),
-                const SizedBox(width: CrispyOverhaulTokens.small),
-                TextButton(
-                  key: const Key('source-wizard-next-button'),
+                ShellControlButton(
+                  controlKey: const Key('source-wizard-next-button'),
+                  label: step.primaryAction,
+                  icon: CrispyShellIcons.settingsAction(step.primaryAction),
                   onPressed: onAdvance,
-                  style: CrispyShellRoles.actionButtonStyle(emphasis: true),
-                  child: Text(step.primaryAction),
+                  controlRole: ShellControlRole.action,
+                  presentation: ShellControlPresentation.iconAndText,
+                  emphasis: true,
                 ),
               ],
             ),

@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CrispyTivi Player Mock Preview</title>
+    <style>
+      :root {
+        --bg: #0e0e10;
+        --panel: #18191d;
+        --raised: #23252b;
+        --glass: rgba(35, 37, 43, 0.82);
+        --line: #333740;
+        --soft-line: rgba(255, 255, 255, 0.08);
+        --text: #f5f5f7;
+        --muted: #c2c7d0;
+        --soft: #7d8591;
+        --accent: #8da4c7;
+        --focus: #dce2ea;
+        --success: #6bb189;
+        --warn: #c9a56a;
+        --danger: #b85a54;
+        --radius-card: 6px;
+        --radius-sheet: 10px;
+        --radius-control: 10px;
+        --shadow: 0 18px 54px rgba(0, 0, 0, 0.34);
+        --icon-nav: 22px;
+        --icon-context: 20px;
+        --icon-badge: 16px;
+        --control-h: 46px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Inter", sans-serif;
+        background:
+          radial-gradient(circle at top center, rgba(141, 164, 199, 0.12), transparent 32%),
+          radial-gradient(circle at bottom right, rgba(220, 226, 234, 0.08), transparent 22%),
+          linear-gradient(180deg, #111216 0%, var(--bg) 100%);
+        color: var(--text);
+      }
+
+      .page {
+        width: min(1600px, 100%);
+        margin: 0 auto;
+        padding: 28px;
+      }
+
+      .intro {
+        margin-bottom: 28px;
+        padding: 22px 24px;
+        border: 1px solid var(--soft-line);
+        border-radius: var(--radius-sheet);
+        background: linear-gradient(180deg, rgba(24, 25, 29, 0.95), rgba(18, 19, 22, 0.95));
+        box-shadow: var(--shadow);
+      }
+
+      .intro h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+
+      .intro p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+        max-width: 980px;
+      }
+
+      .states {
+        display: grid;
+        gap: 28px;
+      }
+
+      .state {
+        display: grid;
+        gap: 14px;
+      }
+
+      .state h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 650;
+      }
+
+      .state p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .tv {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        border-radius: 18px;
+        border: 1px solid var(--soft-line);
+        background:
+          linear-gradient(180deg, rgba(8, 8, 10, 0.08), rgba(8, 8, 10, 0.82)),
+          radial-gradient(circle at 68% 34%, rgba(123, 145, 173, 0.34), transparent 20%),
+          radial-gradient(circle at 26% 24%, rgba(255, 255, 255, 0.08), transparent 18%),
+          linear-gradient(135deg, #5f6e80 0%, #37404b 22%, #0f1116 72%);
+        box-shadow: var(--shadow);
+      }
+
+      .tv::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(7, 8, 10, 0.12), rgba(7, 8, 10, 0.72));
+      }
+
+      .topline {
+        position: absolute;
+        top: 22px;
+        left: 24px;
+        right: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 1;
+      }
+
+      .ghost {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: var(--radius-control);
+        border: 1px solid var(--soft-line);
+        background: rgba(18, 19, 22, 0.42);
+        color: var(--muted);
+        font-size: 14px;
+        backdrop-filter: blur(16px);
+      }
+
+      .ghost.icon-only {
+        justify-content: center;
+        width: var(--control-h);
+        min-width: var(--control-h);
+        height: var(--control-h);
+        padding: 0;
+        gap: 0;
+      }
+
+      .icon {
+        width: var(--icon-context);
+        height: var(--icon-context);
+        flex: 0 0 var(--icon-context);
+        color: currentColor;
+      }
+
+      .ghost .icon {
+        width: var(--icon-nav);
+        height: var(--icon-nav);
+        flex-basis: var(--icon-nav);
+      }
+
+      .badge .icon,
+      .queue-item .icon,
+      .chooser-item .icon {
+        width: var(--icon-badge);
+        height: var(--icon-badge);
+        flex-basis: var(--icon-badge);
+      }
+
+      .surface {
+        border-radius: var(--radius-sheet);
+        border: 1px solid var(--soft-line);
+        background: var(--glass);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24);
+      }
+
+      .transport {
+        position: absolute;
+        left: 24px;
+        right: 24px;
+        bottom: 22px;
+        z-index: 2;
+        padding: 22px 24px 20px;
+      }
+
+      .eyebrow {
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .title {
+        margin-top: 8px;
+        font-size: 36px;
+        font-weight: 740;
+        line-height: 1.05;
+      }
+
+      .subtitle {
+        margin-top: 6px;
+        font-size: 17px;
+        color: var(--muted);
+      }
+
+      .summary {
+        margin-top: 12px;
+        max-width: 760px;
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .progress-wrap {
+        margin-top: 18px;
+      }
+
+      .progress {
+        width: 100%;
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+
+      .progress > span {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, var(--focus), var(--accent));
+      }
+
+      .progress-label {
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .transport-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .transport-cluster,
+      .utility-cluster {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        width: 46px;
+        height: 46px;
+        padding: 0;
+        border-radius: var(--radius-control);
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text);
+        font-size: 0;
+        font-weight: 600;
+      }
+
+      .action.primary {
+        border-color: rgba(220, 226, 234, 0.34);
+        background: rgba(220, 226, 234, 0.12);
+      }
+
+      .action .icon {
+        width: var(--icon-context);
+        height: var(--icon-context);
+      }
+
+      .state-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: var(--control-h);
+        padding: 0 14px;
+        border-radius: var(--radius-control);
+        border: 1px solid var(--soft-line);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+
+      .state-badge .icon {
+        color: var(--danger);
+      }
+
+      .info {
+        position: absolute;
+        left: 24px;
+        right: 24px;
+        top: 88px;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: 1.2fr 0.95fr;
+        gap: 16px;
+      }
+
+      .pane {
+        padding: 18px 20px;
+      }
+
+      .pane h3 {
+        margin: 0 0 12px;
+        font-size: 18px;
+        font-weight: 680;
+      }
+
+      .badges,
+      .queue,
+      .chooser-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 11px;
+        border-radius: var(--radius-control);
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--soft-line);
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .detail-lines {
+        margin-top: 14px;
+        display: grid;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .queue {
+        flex-direction: column;
+      }
+
+      .queue-item,
+      .chooser-item {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
+        width: 100%;
+        min-height: var(--control-h);
+        padding: 12px 14px;
+        border-radius: var(--radius-control);
+        border: 1px solid var(--soft-line);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--muted);
+        font-size: 14px;
+        text-align: start;
+      }
+
+      .queue-item.active,
+      .chooser-item.active {
+        border-color: rgba(220, 226, 234, 0.34);
+        background: rgba(220, 226, 234, 0.14);
+        color: var(--text);
+      }
+
+      .chooser {
+        position: absolute;
+        right: 30px;
+        top: 92px;
+        width: 340px;
+        z-index: 3;
+        padding: 18px 18px 14px;
+      }
+
+      .chooser h3 {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 14px;
+        font-size: 18px;
+        font-weight: 680;
+      }
+
+      .live-channel-rail {
+        position: absolute;
+        top: 88px;
+        right: 24px;
+        width: 352px;
+        z-index: 2;
+        padding: 16px;
+      }
+
+      .rail-title {
+        margin-bottom: 12px;
+        font-size: 16px;
+        color: var(--muted);
+      }
+
+      .statline {
+        margin-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        color: var(--soft);
+        font-size: 12px;
+      }
+
+      .legend {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position:absolute">
+      <symbol id="pi-back" viewBox="0 0 24 24"><path fill="currentColor" d="m14.7 5.3 1.4 1.4-5.3 5.3 5.3 5.3-1.4 1.4L8 12z"/></symbol>
+      <symbol id="pi-media" viewBox="0 0 24 24"><path fill="currentColor" d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2m0 2v10h16V7zm3 1.5 5.5 3.5L7 15.5z"/></symbol>
+      <symbol id="pi-series" viewBox="0 0 24 24"><path fill="currentColor" d="M4 5h7v14H4zm9 0h7v4h-7zm0 5.5h7v3H13zm0 4.5h7V19H13z"/></symbol>
+      <symbol id="pi-live" viewBox="0 0 24 24"><path fill="currentColor" d="M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6m0-4.5A7.5 7.5 0 0 1 19.5 12h-2A5.5 5.5 0 0 0 12 6.5zm0 13a5.5 5.5 0 0 0 5.5-5.5h2A7.5 7.5 0 0 1 12 19.5M4.5 12A7.5 7.5 0 0 1 12 4.5v2A5.5 5.5 0 0 0 6.5 12zm2 0A5.5 5.5 0 0 0 12 17.5v2A7.5 7.5 0 0 1 4.5 12"/></symbol>
+      <symbol id="pi-episode" viewBox="0 0 24 24"><path fill="currentColor" d="M4 6h16v12H4zm2 2v8h12V8zm2 1.5h4v5H8zm5.5 0H16V11h-2.5zm0 2.5H16v1.5h-2.5z"/></symbol>
+      <symbol id="pi-next" viewBox="0 0 24 24"><path fill="currentColor" d="M6 7.5 13 12l-7 4.5zm8 0 7 4.5-7 4.5zm6.5-.5H22v10h-1.5z"/></symbol>
+      <symbol id="pi-restart" viewBox="0 0 24 24"><path fill="currentColor" d="M12 6.2A5.8 5.8 0 1 1 6.7 15H4.6A7.8 7.8 0 1 0 12 4.2V1.5L7.6 5.4 12 9.3z"/></symbol>
+      <symbol id="pi-quality" viewBox="0 0 24 24"><path fill="currentColor" d="M4 7h16v10H4zm2 2v6h12V9zm1 1h2.5q1.3 0 2 .7t.7 1.8-.7 1.8-2 .7H7zm1.5 1.3v2.4h.9q.7 0 1.1-.3t.4-.9-.4-.9-1.1-.3z"/></symbol>
+      <symbol id="pi-queue" viewBox="0 0 24 24"><path fill="currentColor" d="M4 7h12v2H4zm0 4h12v2H4zm0 4h8v2H4zm11.5-1.5V9l4 2.25z"/></symbol>
+      <symbol id="pi-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 6.5v11l8.5-5.5z"/></symbol>
+      <symbol id="pi-subtitles" viewBox="0 0 24 24"><path fill="currentColor" d="M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2m2 3v2h3V9zm4 0v2h8V9zm-4 4v2h5v-2zm6 0v2h3v-2zm4 0v2h2v-2z"/></symbol>
+      <symbol id="pi-audio" viewBox="0 0 24 24"><path fill="currentColor" d="M5 9h4l5-4v14l-5-4H5zm11.5-1a7 7 0 0 1 0 8l-1.4-1.4a5 5 0 0 0 0-5.2zm2.8-2.8a11 11 0 0 1 0 13.6l-1.4-1.4a9 9 0 0 0 0-10.8z"/></symbol>
+      <symbol id="pi-source" viewBox="0 0 24 24"><path fill="currentColor" d="M7 6a3 3 0 1 1 0 6 3 3 0 0 1 0-6m10 6a3 3 0 1 1 0 6 3 3 0 0 1 0-6m-10 6a3 3 0 1 1 0-6m1.4-7.6 7.2 3.2-.8 1.8-7.2-3.2zm0 6 .8-1.8 7.2 3.2-.8 1.8z"/></symbol>
+      <symbol id="pi-off" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4.5A7.5 7.5 0 1 1 4.5 12 7.5 7.5 0 0 1 12 4.5m0 2A5.5 5.5 0 1 0 17.5 12 5.5 5.5 0 0 0 12 6.5"/></symbol>
+      <symbol id="pi-on" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4.5A7.5 7.5 0 1 1 4.5 12 7.5 7.5 0 0 1 12 4.5m0 2A5.5 5.5 0 1 0 17.5 12 5.5 5.5 0 0 0 12 6.5m0 2.5A3 3 0 1 1 9 12a3 3 0 0 1 3-3"/></symbol>
+    </svg>
+    <main class="page">
+      <section class="intro">
+        <h1>CrispyTivi Player Mock</h1>
+        <p>
+          Static preview of the player as currently understood: Google-TV-first
+          layout, Apple-TV restraint in chrome, and Netflix/YouTube-inspired
+          information hierarchy. Each frame below is a separate state, not a
+          responsive prototype. The preview also mirrors the shared icon-language
+          rule used in the retained app shell.
+        </p>
+      </section>
+
+      <section class="states">
+        <article class="state">
+          <h2>1. Minimal Transport</h2>
+          <p>Default movie playback state. Title, progress, and primary actions stay obvious without overloading the screen.</p>
+          <div class="tv">
+            <div class="topline">
+              <div class="ghost icon-only" aria-label="Back" title="Back"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-back"></use></svg></div>
+              <div class="ghost"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-media"></use></svg>Media · Movies</div>
+            </div>
+            <div class="transport surface">
+              <div class="eyebrow">Featured Film</div>
+              <div class="title">The Last Harbor</div>
+              <div class="subtitle">Thriller · 2026 · Dolby Audio</div>
+              <div class="summary">
+                Resume directly into the film. Secondary actions stay available,
+                but transport remains the visual priority.
+              </div>
+              <div class="progress-wrap">
+                <div class="progress"><span style="width: 64%"></span></div>
+                <div class="progress-label">01:24 / 02:11 · Resume from your last position</div>
+              </div>
+              <div class="transport-row">
+                <div class="transport-cluster">
+                  <div class="action primary" aria-label="Resume" title="Resume"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-play"></use></svg></div>
+                  <div class="action" aria-label="Restart" title="Restart"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-restart"></use></svg></div>
+                </div>
+                <div class="utility-cluster">
+                  <div class="action" aria-label="Audio" title="Audio"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-audio"></use></svg></div>
+                  <div class="action" aria-label="Subtitles" title="Subtitles"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-subtitles"></use></svg></div>
+                  <div class="action" aria-label="Quality" title="Quality"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-quality"></use></svg></div>
+                  <div class="action" aria-label="Source" title="Source"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-source"></use></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state">
+          <h2>2. Expanded Info</h2>
+          <p>Secondary info only appears when requested. Queue and metadata become visible without replacing the transport strip.</p>
+          <div class="tv">
+            <div class="topline">
+              <div class="ghost icon-only" aria-label="Back" title="Back"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-back"></use></svg></div>
+              <div class="ghost"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-series"></use></svg>Media · Series</div>
+            </div>
+            <div class="info">
+              <div class="pane surface">
+                <h3>Now Playing</h3>
+                <div class="badges">
+                  <div class="badge"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-episode"></use></svg>Episode</div>
+                  <div class="badge"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-next"></use></svg>Next-up enabled</div>
+                  <div class="badge"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-quality"></use></svg>1080p</div>
+                </div>
+                <div class="detail-lines">
+                  <div>Signal Drift keeps season context visible without dumping the user back into the route.</div>
+                  <div>Back closes overlays first, then collapses info, then exits player.</div>
+                  <div>Subtitles and chooser overlays remain contextual, not permanent chrome.</div>
+                </div>
+              </div>
+              <div class="pane surface">
+                <h3>Season 2</h3>
+                <div class="queue">
+                  <div class="queue-item"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-queue"></use></svg>Return Path · S2:E1 · 45 min</div>
+                  <div class="queue-item active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-play"></use></svg>Signal Drift · S2:E2 · 44 min</div>
+                  <div class="queue-item"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-next"></use></svg>Night Relay · S2:E3 · 46 min</div>
+                </div>
+                <div class="statline">
+                  <span>Autoplay next: queued</span>
+                  <span>Switching path: same-season</span>
+                </div>
+              </div>
+            </div>
+            <div class="transport surface">
+              <div class="eyebrow">Season 2</div>
+              <div class="title">Signal Drift</div>
+              <div class="subtitle">S2:E2 · 44 min</div>
+              <div class="summary">
+                Episode switching stays inside player. The main transport strip remains stable while richer information appears above it.
+              </div>
+              <div class="progress-wrap">
+                <div class="progress"><span style="width: 18%"></span></div>
+                <div class="progress-label">00:08 / 00:44 · Continue episode</div>
+              </div>
+              <div class="transport-row">
+                <div class="transport-cluster">
+                  <div class="action primary" aria-label="Resume" title="Resume"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-play"></use></svg></div>
+                  <div class="action" aria-label="Next Episode" title="Next Episode"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-next"></use></svg></div>
+                </div>
+                <div class="utility-cluster">
+                  <div class="action" aria-label="Audio" title="Audio"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-audio"></use></svg></div>
+                  <div class="action" aria-label="Subtitles" title="Subtitles"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-subtitles"></use></svg></div>
+                  <div class="action" aria-label="Quality" title="Quality"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-quality"></use></svg></div>
+                  <div class="action" aria-label="Source" title="Source"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-source"></use></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state">
+          <h2>3. Chooser Overlay</h2>
+          <p>Audio / subtitle / quality / source stay as separate overlays instead of being crammed into the transport row.</p>
+          <div class="tv">
+            <div class="topline">
+              <div class="ghost icon-only" aria-label="Back" title="Back"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-back"></use></svg></div>
+              <div class="ghost"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-media"></use></svg>Media · Movies</div>
+            </div>
+            <div class="chooser surface">
+              <h3><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-subtitles"></use></svg>Subtitles</h3>
+              <div class="chooser-list">
+                <div class="chooser-item"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-off"></use></svg>Off</div>
+                <div class="chooser-item active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-on"></use></svg>English CC</div>
+                <div class="chooser-item"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-off"></use></svg>Deutsch</div>
+              </div>
+            </div>
+            <div class="transport surface">
+              <div class="eyebrow">Featured Film</div>
+              <div class="title">The Last Harbor</div>
+              <div class="subtitle">Thriller · 2026 · Dolby Audio</div>
+              <div class="summary">
+                Chooser overlays are lightweight and contextual. They do not become separate pages or bottom sheets.
+              </div>
+              <div class="progress-wrap">
+                <div class="progress"><span style="width: 64%"></span></div>
+                <div class="progress-label">01:24 / 02:11 · Resume from your last position</div>
+              </div>
+              <div class="transport-row">
+                <div class="transport-cluster">
+                  <div class="action primary" aria-label="Resume" title="Resume"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-play"></use></svg></div>
+                  <div class="action" aria-label="Restart" title="Restart"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-restart"></use></svg></div>
+                </div>
+                <div class="utility-cluster">
+                  <div class="action" aria-label="Audio" title="Audio"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-audio"></use></svg></div>
+                  <div class="action primary" aria-label="Subtitles" title="Subtitles"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-subtitles"></use></svg></div>
+                  <div class="action" aria-label="Quality" title="Quality"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-quality"></use></svg></div>
+                  <div class="action" aria-label="Source" title="Source"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-source"></use></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state">
+          <h2>4. Live TV In-Player Switching</h2>
+          <p>Live switching happens inside player. The queue area becomes a channel rail, not a return to the shell guide.</p>
+          <div class="tv">
+            <div class="topline">
+              <div class="ghost icon-only" aria-label="Back" title="Back"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-back"></use></svg></div>
+              <div class="ghost"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-live"></use></svg>Live TV · Sports</div>
+            </div>
+            <div class="live-channel-rail surface">
+              <div class="rail-title">Channels</div>
+              <div class="queue">
+                <div class="queue-item"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-queue"></use></svg>101 · Midnight Bulletin</div>
+                <div class="queue-item active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-play"></use></svg>118 · Championship Replay</div>
+                <div class="queue-item"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-next"></use></svg>205 · Coastal Drive</div>
+                <div class="queue-item"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-next"></use></svg>311 · Winter Oceans</div>
+              </div>
+              <div class="statline">
+                <span>Focused guide slot: 22:00</span>
+                <span>Switch path: next/previous channel</span>
+              </div>
+            </div>
+            <div class="transport surface">
+              <div class="eyebrow">Live TV · 118</div>
+              <div class="title">Championship Replay</div>
+              <div class="subtitle">Arena Live · 21:30–23:30</div>
+              <div class="summary">
+                Live playback stays anchored by a LIVE state badge. Restart remains secondary and only appears where the source supports it.
+              </div>
+              <div class="progress-wrap">
+                <div class="progress"><span style="width: 96%"></span></div>
+                <div class="progress-label">Now · Championship Replay · Live edge</div>
+              </div>
+              <div class="transport-row">
+                <div class="transport-cluster">
+                  <div class="state-badge"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-live"></use></svg>LIVE</div>
+                  <div class="action" aria-label="Restart" title="Restart"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-restart"></use></svg></div>
+                </div>
+                <div class="utility-cluster">
+                  <div class="action" aria-label="Audio" title="Audio"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-audio"></use></svg></div>
+                  <div class="action" aria-label="Subtitles" title="Subtitles"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-subtitles"></use></svg></div>
+                  <div class="action" aria-label="Quality" title="Quality"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-quality"></use></svg></div>
+                  <div class="action" aria-label="Source" title="Source"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#pi-source"></use></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state">
+          <h2>5. Behavior Summary</h2>
+          <p>Quick requirements snapshot for the player lane.</p>
+          <div class="intro" style="margin: 0;">
+            <div class="legend">
+              <div>Player is an overlay, not a top-level route.</div>
+              <div>Back order: chooser → expanded info → player exit.</div>
+              <div>Live TV and Series support sibling switching without exit.</div>
+              <div>Movies keep up-next secondary, not louder than primary playback.</div>
+              <div>Chooser overlays stay contextual and separate.</div>
+              <div>Visual direction: Google TV layout clarity, Apple TV restraint, Netflix/YouTube information hierarchy.</div>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

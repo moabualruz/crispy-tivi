@@ -3,9 +3,11 @@ import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_contract.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
+import 'package:crispy_tivi/features/shell/domain/player_session.dart';
 import 'package:crispy_tivi/features/shell/presentation/routes/home_view.dart';
 import 'package:crispy_tivi/features/shell/presentation/routes/live_tv_view.dart';
 import 'package:crispy_tivi/features/shell/presentation/routes/media_view.dart';
+import 'package:crispy_tivi/features/shell/presentation/routes/player_view.dart';
 import 'package:crispy_tivi/features/shell/presentation/routes/search_view.dart';
 import 'package:crispy_tivi/features/shell/presentation/routes/settings_view.dart';
 import 'package:crispy_tivi/features/shell/presentation/view_model/shell_view_model.dart';
@@ -166,6 +168,20 @@ class _ShellPageState extends State<ShellPage> {
                     },
                   ),
                 ),
+                if (_viewModel.playerSession case final PlayerSession session)
+                  Positioned.fill(
+                    child: PlayerView(
+                      session: session,
+                      chromeState: _viewModel.playerChromeState,
+                      activeChooser: _viewModel.activePlayerChooser,
+                      onBack: _viewModel.unwindPlayer,
+                      onOpenInfo: _viewModel.openPlayerInfo,
+                      onOpenChooser: _viewModel.openPlayerChooser,
+                      onSelectChooserOption:
+                          _viewModel.selectPlayerChooserOption,
+                      onSelectQueueIndex: _viewModel.selectPlayerQueueIndex,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -264,6 +280,7 @@ class _ShellPageState extends State<ShellPage> {
           onSelectGroup: _viewModel.selectLiveTvGroup,
           onSelectChannel: _viewModel.selectLiveTvChannelIndex,
           onActivateChannel: _viewModel.activateLiveTvFocusedChannel,
+          onLaunchPlayer: _viewModel.launchPlayer,
         );
       case ShellRoute.media:
         return MediaView(
@@ -278,6 +295,7 @@ class _ShellPageState extends State<ShellPage> {
           onSelectSeriesSeasonIndex: _viewModel.selectSeriesSeasonIndex,
           onSelectSeriesEpisodeIndex: _viewModel.selectSeriesEpisodeIndex,
           onLaunchSeriesEpisode: _viewModel.launchSeriesEpisode,
+          onLaunchPlayer: _viewModel.launchPlayer,
         );
       case ShellRoute.search:
         return SearchView(content: widget.content);

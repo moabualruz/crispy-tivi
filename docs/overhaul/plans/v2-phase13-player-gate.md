@@ -44,6 +44,7 @@ That authority now specifies:
 
 - player reference set locked
 - player design gate locked in installed Markdown docs
+- player reference-study document locked in repo docs
 - Phase 14 is unblocked
 
 ## Verification

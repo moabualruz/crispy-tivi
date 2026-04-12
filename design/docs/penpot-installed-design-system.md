@@ -20,11 +20,17 @@ Code authority for design values:
 
 - `app/flutter/lib/core/theme/crispy_overhaul_tokens.dart`
 - `app/flutter/lib/core/theme/crispy_shell_roles.dart`
+- `app/flutter/lib/core/theme/crispy_shell_icons.dart`
 
 Implementation rule:
 
 - widget-level colors, radii, and state geometry must flow from those theme
   files rather than being redefined ad hoc inside widget files
+- complex interactive rows and rich selector/action surfaces must also resolve
+  through the shared shell-control system rather than raw route-local
+  `TextButton` or `InkWell` styling
+- shared icon usage must also flow from the shared icon authority rather than
+  from repeated widget-local icon picks for the same semantic role
 - production shell code must keep neutral naming
 - reserve `mock`, `fake`, or `asset` naming for fixture files, test harnesses,
   and temporary asset-backed repositories only
@@ -133,6 +139,10 @@ These are hard constraints:
 - do not place permanent `Menu` in the global top bar
 - do not use pills ever
 - do not use chip-heavy shell chrome
+- in-page scope selectors and segmented filters must also use the shared grouped
+  control treatment; do not fall back to website-style chips in content areas
+- hero artwork labels and route kicker text must not fall back to floating chip
+  badges unless explicitly required by the design authority
 - do not expose `Sources` as a top-level global domain
 - do not surface `Sources` as a stand-alone Home shortcut or quick-access
   destination; access to source management stays within `Settings`
@@ -176,6 +186,66 @@ These are hard constraints:
 - do not solve radius inconsistency by increasing rounding until controls read
   like pills; the control corner language must stay restrained and clearly
   rectangular
+- do not make text do all structural work; utility actions, settings rows,
+  search group markers, chooser rows, player badges, and supporting route cues
+  should use systematic icon support where it improves TV-distance scanability
+- do not use redundant icon+text pairings in primary shell chrome; if the text
+  already names the control clearly, do not prepend a duplicate icon unless it
+  adds a separate structural cue
+- icon usage must choose one of two explicit patterns:
+  - icon-only with accessibility label when the icon fully carries the meaning
+  - icon+text when the icon adds a useful secondary scan cue or domain marker
+- the shell control matrix is fixed:
+  - top-level `Home`, `Live`, and `Media` use icon+text in the primary nav cluster
+  - standalone `Search` uses icon-only and sits to the left of standalone utility `Settings`
+  - utility `Settings` uses icon-only
+- player `Back` and player utility controls use icon-only
+- `LIVE` state uses icon+text with a live-status dot, not a TV-screen icon
+- player chooser rows and queue rows still follow directional start alignment;
+  they must not invent centered text rows or player-only alignment rules
+- nav alignment is directional:
+  - LTR = primary nav cluster left-aligned, utility cluster right-aligned
+  - RTL = mirror that layout directionally
+- in-page local navigation follows the same directional rule:
+  - LTR = local-nav content left-aligned
+  - RTL = local-nav content right-aligned
+  - do not center sidebar/local-nav item content
+- every user-reported drift or missing requirement must become an explicit
+  closure checklist item for the current pass and be reverified in code, docs,
+  and rendered output before the pass can stop
+- do not remove icons broadly just to avoid duplication; decide per semantic
+  role and keep that decision consistent across the system
+- user-facing runtime copy must avoid internal implementation language such as
+  `mock`, `handoff`, or other technical pipeline terms when simpler product
+  wording like `playback`, `open`, `resume`, or `detail` conveys the intent
+  clearly
+- the same runtime-copy rule applies to architecture ownership language such as
+  `Settings-owned`; that belongs in design/docs/specs, not in surfaced user UI
+- hero summary-side kicker and artwork overlay must not repeat the same label
+  in two different places unless the approved design explicitly calls for that
+  duplication
+- icon sizes, plate sizes, and icon/text balance must come from the shared icon
+  system so the app and repo-local HTML previews keep the same visual rhythm
+- icon-only and text-bearing buttons must still share the same control height;
+  do not mix small icon buttons with taller text buttons in the same control
+  lane
+- that shared icon system must read comfortably at TV distance: avoid timid
+  undersized icons, and prefer one cohesive calm icon family instead of mixing
+  heavy filled shapes, tiny glyphs, and unrelated silhouettes
+- player action wording must stay short and product-natural, grounded in IPTV
+  and media-player conventions from the approved study set:
+  `Resume`, `Restart`, `Next Episode`, `Go Live`, `Audio`, `Subtitles`,
+  `Quality`, `Source`
+- repeated shell icon surfaces must consume shared icon roles/components in the
+  app code instead of rebuilding icon plate sizing, icon alignment, and gap
+  rhythm locally in each widget
+- repo-local HTML design previews under `design/docs/*.html` must also reflect
+  the active icon/system rules when they depict shell or player chrome; do not
+  let static preview docs drift into older text-only treatment once the shared
+  icon language is established
+- those HTML previews must use real icon artwork such as inline SVG rather than
+  text glyph placeholders when representing the approved shell/player icon
+  system
 
 ## Token System
 
@@ -507,6 +577,10 @@ Behavior:
 - active stream keeps playing while browsing
 - no retune until explicit activation
 - selected channel summary stays separate from the guide matrix
+- compact guide snapshots stay scrollable guide surfaces; do not replace hidden
+  rows with website-style `+N more` summary text
+- in-content group rails stay horizontal grouped selectors when the route calls
+  for quick category switching; do not collapse them into vertical stacked lists
 - focused program detail overlay sits above the matrix and shows:
   - focused slot
   - program title and summary
@@ -657,6 +731,8 @@ Rules:
 - player design authority is repo-local Markdown first, not live Penpot
 - if Penpot player boards are recreated later, they must be derived from this
   Markdown gate and not silently override it
+- `docs/overhaul/plans/v2-player-reference-study.md` defines the approved
+  player-reference borrow rules and anti-drift takeaways from local study repos
 
 Pre-player gate must define:
 
@@ -690,6 +766,18 @@ Player state matrix:
   player
 - failure/recovery: reconnect, retry, fallback, and exit actions are explicit
 
+Implemented player baseline:
+
+- player renders as an overlay above shell chrome rather than as a shell route
+- movie detail, series episode, and Live TV tune actions enter the same player
+  surface
+- in-player sibling switching is required for:
+  - live channels
+  - series episodes
+- chooser overlays for audio/subtitles/quality/source are separate overlays,
+  not embedded inside the transport strip
+- the retained player surface replaces older mock-player dialog/handoff wording
+
 Back/unwind matrix:
 
 - Back dismisses chooser overlays before transport collapse
@@ -698,6 +786,7 @@ Back/unwind matrix:
   cleared
 - Menu remains contextual and local; it is not a permanent player-global shell
   control
+- implemented player behavior must preserve this unwind order exactly
 
 ## Back and Menu
 

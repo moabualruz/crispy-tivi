@@ -1,5 +1,6 @@
 import 'package:crispy_tivi/features/shell/domain/shell_contract.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
+import 'package:crispy_tivi/features/shell/domain/player_session.dart';
 import 'package:crispy_tivi/features/shell/presentation/view_model/shell_view_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -138,5 +139,58 @@ void main() {
     viewModel.selectLiveTvGroup(LiveTvGroup.sports);
     expect(viewModel.liveTvFocusedChannelIndex, 0);
     expect(viewModel.liveTvPlayingChannelIndex, 0);
+  });
+
+  test('player unwind closes chooser before info before exit', () {
+    final ShellViewModel viewModel = ShellViewModel(contract: contract);
+    final PlayerSession session = PlayerSession(
+      kind: PlayerContentKind.movie,
+      originLabel: 'Media · Movies',
+      queueLabel: 'Up next',
+      queue: const <PlayerQueueItem>[
+        PlayerQueueItem(
+          eyebrow: 'Featured film',
+          title: 'The Last Harbor',
+          subtitle: 'Thriller',
+          summary: 'Feature playback summary.',
+          progressLabel: '00:24 / 02:11',
+          progressValue: 0.18,
+          badges: <String>['4K'],
+          detailLines: <String>['Detail line'],
+        ),
+      ],
+      activeIndex: 0,
+      primaryActionLabel: 'Resume playback',
+      secondaryActionLabel: 'Watch from start',
+      chooserGroups: const <PlayerChooserGroup>[
+        PlayerChooserGroup(
+          kind: PlayerChooserKind.audio,
+          title: 'Audio',
+          options: <String>['English'],
+          selectedIndex: 0,
+        ),
+      ],
+      statsLines: <String>['Resolved stream'],
+    );
+
+    viewModel.launchPlayer(session);
+    viewModel.openPlayerInfo();
+    viewModel.openPlayerChooser(PlayerChooserKind.audio);
+
+    expect(viewModel.playerSession, isNotNull);
+    expect(viewModel.playerChromeState, PlayerChromeState.expandedInfo);
+    expect(viewModel.activePlayerChooser, PlayerChooserKind.audio);
+
+    viewModel.unwindPlayer();
+    expect(viewModel.playerSession, isNotNull);
+    expect(viewModel.activePlayerChooser, isNull);
+    expect(viewModel.playerChromeState, PlayerChromeState.expandedInfo);
+
+    viewModel.unwindPlayer();
+    expect(viewModel.playerSession, isNotNull);
+    expect(viewModel.playerChromeState, PlayerChromeState.transport);
+
+    viewModel.unwindPlayer();
+    expect(viewModel.playerSession, isNull);
   });
 }

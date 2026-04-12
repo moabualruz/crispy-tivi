@@ -14,7 +14,7 @@ void main() {
     await tester.pumpWidget(const CrispyTiviApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Settings'));
+    await tester.tap(find.byKey(const Key('shell-utility-settings')));
     await tester.pumpAndSettle();
     expect(find.text('General'), findsWidgets);
 
@@ -28,7 +28,7 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Search'));
+    await tester.tap(find.byKey(const Key('shell-route-search')));
     await tester.pumpAndSettle();
     expect(find.text('Search live and media titles'), findsOneWidget);
   });

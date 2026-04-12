@@ -239,6 +239,19 @@ artifacts, not the primary authority.
 - verifier lane
 - design lane only if final visual corrections are still required
 
+Current branch state: complete
+
+Required evidence recorded:
+
+- Rust tests green
+- Flutter analyze green
+- retained-shell Flutter tests green
+- Linux integration smoke green
+- Linux release state restored after integration smoke
+- Linux release build green
+- web build green
+- browser-driven web smoke evidence captured
+
 ## Lane activation rules
 
 1. Use the smallest team that can finish the current phase safely.

@@ -180,9 +180,9 @@ SeriesDetailContent _fallbackSeriesDetailContent({
       summary:
           fallbackShelf.isNotEmpty
               ? fallbackShelf.first.caption
-              : '$heroTitle opens with a canonical handoff surface.',
+              : '$heroTitle opens directly in the series surface.',
       durationLabel: '45 min',
-      handoffLabel: 'Launch player handoff',
+      handoffLabel: 'Play episode',
     ),
     SeriesEpisodeDetail(
       code: 'S1:E2',
@@ -195,22 +195,22 @@ SeriesDetailContent _fallbackSeriesDetailContent({
               ? fallbackShelf[1].caption
               : 'Continue the season flow from the previous episode.',
       durationLabel: '42 min',
-      handoffLabel: 'Launch player handoff',
+      handoffLabel: 'Play episode',
     ),
     SeriesEpisodeDetail(
       code: 'S1:E3',
       title: '$heroTitle bridge',
       summary:
-          'Carry the handoff into the next chapter without leaving the series surface.',
+          'Carry the story into the next chapter without leaving the series surface.',
       durationLabel: '47 min',
-      handoffLabel: 'Launch player handoff',
+      handoffLabel: 'Play episode',
     ),
   ]);
   return SeriesDetailContent(
-    summaryTitle: 'Season and episode handoff',
+    summaryTitle: 'Season and episode playback',
     summaryBody:
-        '$heroTitle keeps season choice above episode choice, then exposes a canonical mock player handoff.',
-    handoffLabel: 'Mock player handoff',
+        '$heroTitle keeps season choice above episode choice and keeps playback inside the player.',
+    handoffLabel: 'Play episode',
     seasons: List<SeriesSeasonDetail>.unmodifiable(<SeriesSeasonDetail>[
       SeriesSeasonDetail(
         label: 'Season 1',
@@ -219,7 +219,7 @@ SeriesDetailContent _fallbackSeriesDetailContent({
       ),
       SeriesSeasonDetail(
         label: 'Season 2',
-        summary: 'Continuation season with a later handoff state.',
+        summary: 'Continuation season with playback ready for the next episode.',
         episodes: List<SeriesEpisodeDetail>.unmodifiable(
           episodeSet
               .map(

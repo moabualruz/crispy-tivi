@@ -1,5 +1,9 @@
+import 'package:crispy_tivi/core/theme/crispy_shell_controls.dart';
+import 'package:crispy_tivi/core/theme/crispy_shell_icons.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
+import 'package:crispy_tivi/features/shell/presentation/widgets/shell_controls.dart';
+import 'package:crispy_tivi/features/shell/presentation/widgets/shell_iconography.dart';
 import 'package:flutter/material.dart';
 
 class LocalSidebar extends StatelessWidget {
@@ -28,11 +32,20 @@ class LocalSidebar extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(
-              title,
-              style: textTheme.titleMedium?.copyWith(
-                color: CrispyOverhaulTokens.textSecondary,
-              ),
+            Row(
+              children: <Widget>[
+                ShellIconGraphic(
+                  icon: CrispyShellIcons.sidebarTitle(title),
+                  role: ShellIconRole.panel,
+                ),
+                const SizedBox(width: CrispyOverhaulTokens.small),
+                Text(
+                  title,
+                  style: textTheme.titleMedium?.copyWith(
+                    color: CrispyOverhaulTokens.textSecondary,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: CrispyOverhaulTokens.large),
             Expanded(
@@ -44,6 +57,7 @@ class LocalSidebar extends StatelessWidget {
                               ? null
                               : Key('${itemKeyPrefix!}-${items[index]}'),
                       label: items[index],
+                      title: title,
                       selected: index == selectedIndex,
                       onTap: () => onSelectIndex(index),
                     ),
@@ -63,41 +77,30 @@ class LocalSidebar extends StatelessWidget {
 class _SidebarItem extends StatelessWidget {
   const _SidebarItem({
     required this.itemKey,
+    required this.title,
     required this.label,
     required this.selected,
     required this.onTap,
   });
 
   final Key? itemKey;
+  final String title;
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      key: itemKey,
+    return ShellControlButton(
+      controlKey: itemKey,
+      label: label,
+      icon: CrispyShellIcons.sidebarItem(title, label),
       onPressed: onTap,
-      style: CrispyShellRoles.selectorButtonStyle(selected: selected).copyWith(
-        padding: WidgetStateProperty.all(
-          const EdgeInsets.symmetric(
-            horizontal: CrispyOverhaulTokens.medium,
-            vertical: CrispyOverhaulTokens.medium,
-          ),
-        ),
-      ),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color:
-                selected
-                    ? CrispyOverhaulTokens.navSelectedText
-                    : CrispyOverhaulTokens.textSecondary,
-          ),
-        ),
-      ),
+      controlRole: ShellControlRole.selector,
+      presentation: ShellControlPresentation.iconAndText,
+      contentAlignment: AlignmentDirectional.centerStart,
+      expandLabelRow: true,
+      selected: selected,
     );
   }
 }

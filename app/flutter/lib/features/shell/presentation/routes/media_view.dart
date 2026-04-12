@@ -1,10 +1,14 @@
+import 'package:crispy_tivi/core/theme/crispy_shell_controls.dart';
+import 'package:crispy_tivi/core/theme/crispy_shell_icons.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
+import 'package:crispy_tivi/features/shell/domain/player_session.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_content.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/feature_hero.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/section_selector.dart';
+import 'package:crispy_tivi/features/shell/presentation/widgets/shell_controls.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/section_shelf.dart';
 import 'package:flutter/material.dart';
 
@@ -21,6 +25,7 @@ class MediaView extends StatelessWidget {
     required this.onSelectSeriesSeasonIndex,
     required this.onSelectSeriesEpisodeIndex,
     required this.onLaunchSeriesEpisode,
+    required this.onLaunchPlayer,
     super.key,
   });
 
@@ -35,6 +40,7 @@ class MediaView extends StatelessWidget {
   final ValueChanged<int> onSelectSeriesSeasonIndex;
   final ValueChanged<int> onSelectSeriesEpisodeIndex;
   final VoidCallback onLaunchSeriesEpisode;
+  final ValueChanged<PlayerSession> onLaunchPlayer;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +65,7 @@ class MediaView extends StatelessWidget {
             key: const Key('movie-detail-card'),
             feature: content.movieHero,
             featuredFilm: content.topFilms.first,
+            onLaunchPlayer: onLaunchPlayer,
           ),
           const SizedBox(height: CrispyOverhaulTokens.section),
           SectionShelf(
@@ -80,7 +87,16 @@ class MediaView extends StatelessWidget {
             launchedEpisodeIndex: launchedSeriesEpisodeIndex,
             onSelectSeasonIndex: onSelectSeriesSeasonIndex,
             onSelectEpisodeIndex: onSelectSeriesEpisodeIndex,
-            onLaunchEpisode: onLaunchSeriesEpisode,
+            onLaunchEpisode: () {
+              onLaunchSeriesEpisode();
+              onLaunchPlayer(
+                _buildSeriesPlayerSession(
+                  detail: content.seriesDetail,
+                  selectedSeasonIndex: seriesSeasonIndex,
+                  selectedEpisodeIndex: seriesEpisodeIndex,
+                ),
+              );
+            },
           ),
           const SizedBox(height: CrispyOverhaulTokens.section),
           _MediaLeadRow(content: content, movies: movies),
@@ -137,30 +153,30 @@ class _MediaFocusCard extends StatelessWidget {
         movies
             ? <_MediaDetailLine>[
               const _MediaDetailLine(
-                label: 'Primary emphasis',
-                value: 'Poster-led feature browsing',
+                label: 'Focus',
+                value: 'Featured films lead.',
               ),
               const _MediaDetailLine(
-                label: 'Continuation',
-                value: 'Resume films from the top shelf',
+                label: 'Continue',
+                value: 'Resume from the shelf.',
               ),
               const _MediaDetailLine(
-                label: 'Route behavior',
-                value: 'Featured films lead, scope narrows second',
+                label: 'Browse',
+                value: 'Scope narrows second.',
               ),
             ]
             : <_MediaDetailLine>[
               const _MediaDetailLine(
-                label: 'Primary emphasis',
-                value: 'Episode continuity and season flow',
+                label: 'Focus',
+                value: 'Episodes lead first.',
               ),
               const _MediaDetailLine(
-                label: 'Continuation',
-                value: 'Next up stays visible above the shelf',
+                label: 'Continue',
+                value: 'Next up stays visible.',
               ),
               const _MediaDetailLine(
-                label: 'Route behavior',
-                value: 'Series context leads, featured series follow',
+                label: 'Browse',
+                value: 'Series context leads.',
               ),
             ];
 
@@ -177,9 +193,7 @@ class _MediaFocusCard extends StatelessWidget {
             ),
             const SizedBox(height: CrispyOverhaulTokens.compact),
             Text(
-              movies
-                  ? 'Feature-first movie browsing'
-                  : 'Episode-first series browsing',
+              movies ? 'Featured films' : 'Series focus',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: CrispyOverhaulTokens.textSecondary,
               ),
@@ -303,8 +317,8 @@ class _SeriesDetailPanel extends StatelessWidget {
             const SizedBox(height: CrispyOverhaulTokens.medium),
             Text(
               launchReady
-                  ? 'Launched ${selectedEpisode.code} into the mock player handoff.'
-                  : 'Ready to launch ${selectedEpisode.code} into the mock player handoff.',
+                  ? 'Playing ${selectedEpisode.code}.'
+                  : 'Ready for ${selectedEpisode.code}.',
               key: const Key('series-handoff-state'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: CrispyOverhaulTokens.textPrimary,
@@ -331,14 +345,17 @@ class _SeriesDetailPanel extends StatelessWidget {
             ),
             const SizedBox(height: CrispyOverhaulTokens.medium),
             Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                key: const Key('series-launch-action'),
-                onPressed: onLaunchEpisode,
-                style: CrispyShellRoles.actionButtonStyle(emphasis: true),
-                child: Text(
-                  launchReady ? 'Launched' : selectedEpisode.handoffLabel,
+              alignment: AlignmentDirectional.centerStart,
+              child: ShellControlButton(
+                controlKey: const Key('series-launch-action'),
+                label: launchReady ? 'Playing now' : selectedEpisode.handoffLabel,
+                icon: CrispyShellIcons.contentAction(
+                  launchReady ? 'Playing now' : selectedEpisode.handoffLabel,
                 ),
+                onPressed: onLaunchEpisode,
+                controlRole: ShellControlRole.action,
+                presentation: ShellControlPresentation.iconAndText,
+                emphasis: true,
               ),
             ),
           ],
@@ -363,15 +380,15 @@ class _SeriesEpisodeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      key: itemKey,
+    return ShellControlButton(
+      controlKey: itemKey,
+      label: '${episode.code} ${episode.title}',
       onPressed: onPressed,
-      style: CrispyShellRoles.selectorButtonStyle(selected: selected),
-      child: Text(
-        '${episode.code} ${episode.title}',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+      controlRole: ShellControlRole.selector,
+      presentation: ShellControlPresentation.textOnly,
+      selected: selected,
+      contentAlignment: AlignmentDirectional.centerStart,
+      expandLabelRow: true,
     );
   }
 }
@@ -380,11 +397,13 @@ class _MovieDetailCard extends StatelessWidget {
   const _MovieDetailCard({
     required this.feature,
     required this.featuredFilm,
+    required this.onLaunchPlayer,
     super.key,
   });
 
   final HeroFeature feature;
   final ShelfItem featuredFilm;
+  final ValueChanged<PlayerSession> onLaunchPlayer;
 
   @override
   Widget build(BuildContext context) {
@@ -399,7 +418,7 @@ class _MovieDetailCard extends StatelessWidget {
             Text('Movie detail', style: textTheme.titleLarge),
             const SizedBox(height: CrispyOverhaulTokens.compact),
             Text(
-              'Featured film browsing with explicit player handoff.',
+              'Featured film focus.',
               style: textTheme.bodyLarge?.copyWith(
                 color: CrispyOverhaulTokens.textSecondary,
               ),
@@ -422,38 +441,38 @@ class _MovieDetailCard extends StatelessWidget {
             const SizedBox(height: CrispyOverhaulTokens.large),
             _MediaDetailRow(
               line: const _MediaDetailLine(
-                label: 'Featured film',
-                value: 'The selection lives on the top film shelf.',
+                label: 'Focus',
+                value: 'Selected from the top film shelf.',
               ),
             ),
             _MediaDetailRow(
               line: _MediaDetailLine(
-                label: 'Shelf pick',
+                label: 'Selected',
                 value: '${featuredFilm.title} · ${featuredFilm.caption}',
               ),
             ),
             const _MediaDetailRow(
               line: _MediaDetailLine(
                 label: 'Playback',
-                value: 'Launch mock player from detail, not from the shelf.',
+                value: 'Open player from detail.',
               ),
             ),
             const SizedBox(height: CrispyOverhaulTokens.large),
             Row(
               children: <Widget>[
-                Expanded(
-                  child: _MediaActionSurface(
-                    key: const Key('movie-player-launch'),
-                    label: 'Launch mock player',
-                    selected: true,
-                    onTap:
-                        () => _showMoviePlayerPreview(
-                          context,
-                          feature: feature,
-                          film: featuredFilm,
-                        ),
+              Expanded(
+                child: _MediaActionSurface(
+                  key: const Key('movie-player-launch'),
+                  label: 'Play movie',
+                  selected: true,
+                  onTap: () => onLaunchPlayer(
+                    _buildMoviePlayerSession(
+                      feature: feature,
+                      featuredFilm: featuredFilm,
+                    ),
                   ),
                 ),
+              ),
                 const SizedBox(width: CrispyOverhaulTokens.small),
                 Expanded(
                   child: _MediaActionSurface(
@@ -492,94 +511,14 @@ class _MediaActionSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusControl),
-        child: Ink(
-          decoration:
-              selected
-                  ? CrispyShellRoles.iconPlateDecoration()
-                  : CrispyShellRoles.panelDecoration(),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: CrispyOverhaulTokens.medium,
-              vertical: CrispyOverhaulTokens.small,
-            ),
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color:
-                    selected
-                        ? CrispyOverhaulTokens.navSelectedText
-                        : CrispyOverhaulTokens.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ),
+    return ShellControlButton(
+      label: label,
+      onPressed: onTap,
+      controlRole: ShellControlRole.action,
+      presentation: ShellControlPresentation.textOnly,
+      emphasis: selected,
     );
   }
-}
-
-Future<void> _showMoviePlayerPreview(
-  BuildContext context, {
-  required HeroFeature feature,
-  required ShelfItem film,
-}) {
-  return showDialog<void>(
-    context: context,
-    builder: (BuildContext dialogContext) {
-      final TextTheme textTheme = Theme.of(dialogContext).textTheme;
-      return Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(CrispyOverhaulTokens.large),
-        child: DecoratedBox(
-          decoration: CrispyShellRoles.panelDecoration(),
-          child: Padding(
-            padding: const EdgeInsets.all(CrispyOverhaulTokens.large),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 640),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text('Mock movie player', style: textTheme.titleLarge),
-                  const SizedBox(height: CrispyOverhaulTokens.compact),
-                  Text(
-                    feature.title,
-                    style: textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: CrispyOverhaulTokens.medium),
-                  Text(
-                    '${film.title} is ready to play from the movie detail handoff.',
-                    style: textTheme.bodyLarge?.copyWith(
-                      color: CrispyOverhaulTokens.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: CrispyOverhaulTokens.large),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => Navigator.of(dialogContext).pop(),
-                      style: CrispyShellRoles.actionButtonStyle(
-                        emphasis: false,
-                      ),
-                      child: const Text('Close'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    },
-  );
 }
 
 class _MediaDetailRow extends StatelessWidget {
@@ -626,4 +565,130 @@ String _shelfTitle(bool movies, MediaScope scope) {
     case MediaScope.library:
       return 'Library $noun';
   }
+}
+
+PlayerSession _buildMoviePlayerSession({
+  required HeroFeature feature,
+  required ShelfItem featuredFilm,
+}) {
+  return PlayerSession(
+    kind: PlayerContentKind.movie,
+    originLabel: 'Media · Movies',
+    queueLabel: 'Up next',
+    queue: <PlayerQueueItem>[
+      PlayerQueueItem(
+        eyebrow: 'Featured film',
+        title: featuredFilm.title,
+        subtitle: featuredFilm.caption,
+        summary: feature.summary,
+        progressLabel: '01:24 / 02:11 · Resume from your last position',
+        progressValue: 0.64,
+        badges: const <String>['4K', 'Dolby Audio', 'Resume'],
+        detailLines: <String>[
+          feature.title,
+          'Feature playback keeps shell chrome out of the way.',
+          'Back collapses player surfaces before returning to Media.',
+        ],
+        artwork: featuredFilm.artwork ?? feature.artwork,
+      ),
+    ],
+    activeIndex: 0,
+    primaryActionLabel: 'Resume',
+    secondaryActionLabel: 'Restart',
+    chooserGroups: const <PlayerChooserGroup>[
+      PlayerChooserGroup(
+        kind: PlayerChooserKind.audio,
+        title: 'Audio',
+        options: <String>['English 5.1', 'English Stereo'],
+        selectedIndex: 0,
+      ),
+      PlayerChooserGroup(
+        kind: PlayerChooserKind.subtitles,
+        title: 'Subtitles',
+        options: <String>['Off', 'English CC'],
+        selectedIndex: 0,
+      ),
+      PlayerChooserGroup(
+        kind: PlayerChooserKind.quality,
+        title: 'Quality',
+        options: <String>['Auto', '4K HDR', '1080p'],
+        selectedIndex: 0,
+      ),
+      PlayerChooserGroup(
+        kind: PlayerChooserKind.source,
+        title: 'Source',
+        options: <String>['Preferred source', 'Mirror source'],
+        selectedIndex: 0,
+      ),
+    ],
+    statsLines: const <String>[
+      'Resolved stream: direct movie playback',
+      'Playback path: internal player',
+    ],
+  );
+}
+
+PlayerSession _buildSeriesPlayerSession({
+  required SeriesDetailContent detail,
+  required int selectedSeasonIndex,
+  required int selectedEpisodeIndex,
+}) {
+  final SeriesSeasonDetail season = detail.seasons[selectedSeasonIndex];
+  final List<PlayerQueueItem> queue = season.episodes
+      .map(
+        (SeriesEpisodeDetail episode) => PlayerQueueItem(
+          eyebrow: season.label,
+          title: episode.title,
+          subtitle: '${episode.code} · ${episode.durationLabel}',
+          summary: episode.summary,
+          progressLabel: '00:08 / ${episode.durationLabel} · Continue episode',
+          progressValue: 0.18,
+          badges: const <String>['Episode', 'Next-up enabled'],
+          detailLines: <String>[
+            detail.summaryTitle,
+            'Episode switching stays inside player.',
+            'Back collapses player overlays before exiting to Series.',
+          ],
+        ),
+      )
+      .toList(growable: false);
+  return PlayerSession(
+    kind: PlayerContentKind.episode,
+    originLabel: 'Media · Series',
+    queueLabel: season.label,
+    queue: queue,
+    activeIndex: selectedEpisodeIndex,
+    primaryActionLabel: 'Resume',
+    secondaryActionLabel: 'Next Episode',
+    chooserGroups: const <PlayerChooserGroup>[
+      PlayerChooserGroup(
+        kind: PlayerChooserKind.audio,
+        title: 'Audio',
+        options: <String>['Original', 'Dubbed'],
+        selectedIndex: 0,
+      ),
+      PlayerChooserGroup(
+        kind: PlayerChooserKind.subtitles,
+        title: 'Subtitles',
+        options: <String>['Off', 'English', 'Deutsch'],
+        selectedIndex: 1,
+      ),
+      PlayerChooserGroup(
+        kind: PlayerChooserKind.quality,
+        title: 'Quality',
+        options: <String>['Auto', '1080p', '720p'],
+        selectedIndex: 0,
+      ),
+      PlayerChooserGroup(
+        kind: PlayerChooserKind.source,
+        title: 'Source',
+        options: <String>['Primary source', 'Archive source'],
+        selectedIndex: 0,
+      ),
+    ],
+    statsLines: const <String>[
+      'Autoplay next: queued',
+      'Switching path: same-season without exit',
+    ],
+  );
 }

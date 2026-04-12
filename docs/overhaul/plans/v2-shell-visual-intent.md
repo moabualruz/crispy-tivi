@@ -21,6 +21,14 @@ Date: 2026-04-11
 - no old-app underline/underscore nav cue
 - no pills ever
 - no chip-heavy shell chrome
+- in-page scope selectors and segmented filters must use the same grouped
+  control language as the shell, not website-style chips
+- rich settings/source-flow selectors and action rows must also use the shared
+  shell-control system rather than route-local button styling
+- hero artwork labels and kicker text should read as integrated overlay text,
+  not floating chip badges
+- hero summary-side kicker and artwork overlay should not duplicate the same
+  label in two places unless the design explicitly requires it
 - top shell should read closer to a shared grouped control than to isolated
   outline buttons
 - the selected nav highlight must belong to the same control geometry, not read
@@ -40,6 +48,46 @@ Date: 2026-04-11
 - selected/focused/active states must share one visual language across the app
 - sidebar selection must align with top-nav and in-content selection treatment,
   not use its own one-off indicator pattern
+- icon usage must also be systematic across the app:
+  - main domain nav uses icon+text when the icon helps scanning without
+    replacing the label
+  - utility areas, settings rows, search groups, handoff cues, and player
+    chooser/badge surfaces should use icons for faster TV-distance scanning
+  - do not rely on text alone when icon support improves hierarchy and speed
+  - do not use redundant icon+text pairs in primary controls when the icon
+    repeats the same meaning already carried by the label
+  - when an icon fully carries the meaning, prefer icon-only plus accessibility
+    text instead of showing both
+  - icon sizes and plate sizing must stay consistent with the shared icon
+    system; do not improvise icon scale per surface
+  - icon scale must be readable at TV distance; do not shrink icons until they
+    become timid, decorative marks beside larger text
+  - icon choice must feel like one family across the shell, not a grab-bag of
+    unrelated silhouettes and fill weights
+  - repeated shell surfaces must use shared icon components/roles so icon
+    choices, plate extents, and icon-to-text alignment do not drift across
+    nav, settings, search, source flows, and player chrome
+  - the shell control matrix is explicit:
+    `Home`, `Live`, and `Media` are icon+text in the primary nav cluster;
+    standalone `Search` is icon-only and sits left of standalone utility `Settings`;
+    utility `Settings` is icon-only;
+    player `Back` and player utility controls are icon-only;
+    `LIVE` state is icon+text with a live-status dot
+  - icon-only and text-bearing buttons must still share one control height and
+    one sizing system
+  - primary navigation must not be centered on the page; it stays left-aligned
+    for LTR and mirrors to the right for RTL
+  - in-page local navigation follows the same directional rule; sidebar item
+    content stays start-aligned in the reading direction and must not be
+    visually centered
+  - player chooser rows and queue rows follow the same directional rule;
+    they must stay start-aligned in the reading direction and must not invent
+    a separate centered player-row language
+  - HTML preview docs must use real icon artwork, not text glyph substitutes,
+    when showing shell/player states
+  - player control wording must stay short and conventional, not verbose:
+    `Resume`, `Restart`, `Next Episode`, `Go Live`, `Audio`, `Subtitles`,
+    `Quality`, `Source`
 - interactive controls must share one corner language across the app
 - continue-watching actions, hero actions, search field, settings info plate,
   sidebar selections, utility buttons, and profile tile must not drift into
@@ -48,6 +96,13 @@ Date: 2026-04-11
   while chasing consistency
 - when a drift is fixed in implementation, the active docs/plans must be
   corrected in the same pass
+- every user-raised drift or missing requirement must be carried as a closure
+  checklist item for the current pass and rechecked before stop
+- runtime UI copy should stay product-natural; avoid exposing internal
+  implementation terms like `mock` or `handoff` in surfaced user text when a
+  simpler phrase would read naturally on a TV product
+- the same applies to architecture ownership language such as `Settings-owned`;
+  keep that in specs, not in surfaced runtime copy
 - scale behavior must preserve the same visual composition across sizes and
   windows
 - `1080p` readability and `4K` shell fill must both be solved without changing
@@ -104,8 +159,12 @@ Date: 2026-04-11
 - Channels should read as:
   - local panel nav in the sidebar
   - group rail inside content
+  - when that group rail is a quick category switcher, it stays horizontal and
+    grouped rather than collapsing into a vertical stack
   - dense channel list on the left
   - selected-channel detail/preview on the right
+  - right-side detail/support lanes must wrap and constrain badges, labels, and
+    metadata cleanly; no clipped or overflowing right-edge content
   - focus changes the selected-channel context only
   - explicit action changes playback
 - Guide should read as:
@@ -113,6 +172,8 @@ Date: 2026-04-11
   - group rail plus selected-channel summary inside content
   - focused-program detail overlay above
   - time-matrix guide below
+  - compact guide preview panes stay scrollable and navigable; do not replace
+    hidden rows with `+N more` summary text
   - guide detail uses structured slot/program state, not placeholder string
     tables
   - no tune action in guide browse mode

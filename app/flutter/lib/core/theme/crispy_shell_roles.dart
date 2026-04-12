@@ -1,4 +1,5 @@
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
+import 'package:crispy_tivi/core/theme/crispy_shell_controls.dart';
 import 'package:flutter/material.dart';
 
 final class CrispyShellRoles {
@@ -115,9 +116,10 @@ final class CrispyShellRoles {
           selected
               ? CrispyOverhaulTokens.navSelectedBackground
               : CrispyOverhaulTokens.surfaceInset,
-      padding: const EdgeInsets.symmetric(
-        horizontal: CrispyOverhaulTokens.medium,
-        vertical: CrispyOverhaulTokens.small,
+      minimumSize: Size(0, CrispyShellControls.height(ShellControlRole.selector)),
+      padding: CrispyShellControls.padding(
+        ShellControlRole.selector,
+        ShellControlPresentation.textOnly,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusControl),
@@ -145,9 +147,11 @@ final class CrispyShellRoles {
           selected
               ? CrispyOverhaulTokens.navSelectedBackground
               : Colors.transparent,
-      padding: const EdgeInsets.symmetric(
-        horizontal: CrispyOverhaulTokens.medium,
-        vertical: 12,
+      minimumSize:
+          Size(0, CrispyShellControls.height(ShellControlRole.navigation)),
+      padding: CrispyShellControls.padding(
+        ShellControlRole.navigation,
+        ShellControlPresentation.iconAndText,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(radius),
@@ -170,9 +174,10 @@ final class CrispyShellRoles {
           selected
               ? CrispyOverhaulTokens.utilitySelectedBackground
               : CrispyOverhaulTokens.utilityBackground,
-      padding: const EdgeInsets.symmetric(
-        horizontal: CrispyOverhaulTokens.small,
-        vertical: CrispyOverhaulTokens.small,
+      minimumSize: Size(0, CrispyShellControls.height(ShellControlRole.utility)),
+      padding: CrispyShellControls.padding(
+        ShellControlRole.utility,
+        ShellControlPresentation.iconAndText,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusControl),
@@ -193,9 +198,10 @@ final class CrispyShellRoles {
           emphasis
               ? CrispyOverhaulTokens.surfaceRaised
               : CrispyOverhaulTokens.surfacePanel,
-      padding: const EdgeInsets.symmetric(
-        horizontal: CrispyOverhaulTokens.medium,
-        vertical: CrispyOverhaulTokens.small,
+      minimumSize: Size(0, CrispyShellControls.height(ShellControlRole.action)),
+      padding: CrispyShellControls.padding(
+        ShellControlRole.action,
+        ShellControlPresentation.iconAndText,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusControl),
@@ -244,6 +250,36 @@ final class CrispyShellRoles {
     color: CrispyOverhaulTokens.surfaceInset,
     borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusCard),
     border: Border.all(color: CrispyOverhaulTokens.borderStrong),
+  );
+
+  static BoxDecoration playerTransportDecoration() => BoxDecoration(
+    color: const Color(0xCC18191D),
+    borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusSheet),
+    border: Border.all(color: CrispyOverhaulTokens.borderStrong),
+  );
+
+  static BoxDecoration playerInfoDecoration() => BoxDecoration(
+    color: const Color(0xCC121316),
+    borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusSheet),
+    border: Border.all(color: CrispyOverhaulTokens.borderStrong),
+  );
+
+  static BoxDecoration playerChooserDecoration() => BoxDecoration(
+    color: CrispyOverhaulTokens.surfacePanel,
+    borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusSheet),
+    border: Border.all(color: CrispyOverhaulTokens.borderStrong),
+  );
+
+  static BoxDecoration playerOverlayScrimDecoration() => const BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: <Color>[
+        Color(0x40000000),
+        Color(0x660A0A0C),
+        Color(0xCC0A0A0C),
+      ],
+    ),
   );
 
   static BoxDecoration artworkFallbackDecoration() =>

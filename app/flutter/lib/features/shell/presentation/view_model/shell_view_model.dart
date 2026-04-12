@@ -1,5 +1,6 @@
 import 'package:crispy_tivi/features/shell/domain/shell_contract.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
+import 'package:crispy_tivi/features/shell/domain/player_session.dart';
 import 'package:flutter/foundation.dart';
 
 class ShellViewModel extends ChangeNotifier {
@@ -33,6 +34,9 @@ class ShellViewModel extends ChangeNotifier {
   SourceWizardStep _sourceWizardStep;
   String _settingsSearchQuery = '';
   String? _highlightedSettingsLeaf;
+  PlayerSession? _playerSession;
+  PlayerChromeState _playerChromeState = PlayerChromeState.transport;
+  PlayerChooserKind? _activePlayerChooser;
 
   ShellRoute get route => _route;
   ShellContractSupport get contract => _contract;
@@ -51,6 +55,9 @@ class ShellViewModel extends ChangeNotifier {
   SourceWizardStep get sourceWizardStep => _sourceWizardStep;
   String get settingsSearchQuery => _settingsSearchQuery;
   String? get highlightedSettingsLeaf => _highlightedSettingsLeaf;
+  PlayerSession? get playerSession => _playerSession;
+  PlayerChromeState get playerChromeState => _playerChromeState;
+  PlayerChooserKind? get activePlayerChooser => _activePlayerChooser;
 
   void selectRoute(ShellRoute route) {
     if (_route == route) {
@@ -141,6 +148,78 @@ class ShellViewModel extends ChangeNotifier {
       return;
     }
     _seriesLaunchedEpisodeIndex = _seriesEpisodeIndex;
+    notifyListeners();
+  }
+
+  void launchPlayer(PlayerSession session) {
+    _playerSession = session;
+    _playerChromeState = PlayerChromeState.transport;
+    _activePlayerChooser = null;
+    notifyListeners();
+  }
+
+  void openPlayerInfo() {
+    if (_playerSession == null ||
+        _playerChromeState == PlayerChromeState.expandedInfo) {
+      return;
+    }
+    _playerChromeState = PlayerChromeState.expandedInfo;
+    _activePlayerChooser = null;
+    notifyListeners();
+  }
+
+  void openPlayerChooser(PlayerChooserKind kind) {
+    if (_playerSession == null) {
+      return;
+    }
+    if (_activePlayerChooser == kind) {
+      return;
+    }
+    _activePlayerChooser = kind;
+    notifyListeners();
+  }
+
+  void closePlayerChooser() {
+    if (_activePlayerChooser == null) {
+      return;
+    }
+    _activePlayerChooser = null;
+    notifyListeners();
+  }
+
+  void unwindPlayer() {
+    if (_playerSession == null) {
+      return;
+    }
+    if (_activePlayerChooser != null) {
+      _activePlayerChooser = null;
+      notifyListeners();
+      return;
+    }
+    if (_playerChromeState == PlayerChromeState.expandedInfo) {
+      _playerChromeState = PlayerChromeState.transport;
+      notifyListeners();
+      return;
+    }
+    _playerSession = null;
+    notifyListeners();
+  }
+
+  void selectPlayerQueueIndex(int index) {
+    final PlayerSession? session = _playerSession;
+    if (session == null || index == session.activeIndex) {
+      return;
+    }
+    _playerSession = session.selectQueueIndex(index);
+    notifyListeners();
+  }
+
+  void selectPlayerChooserOption(PlayerChooserKind kind, int optionIndex) {
+    final PlayerSession? session = _playerSession;
+    if (session == null) {
+      return;
+    }
+    _playerSession = session.selectChooserOption(kind, optionIndex);
     notifyListeners();
   }
 

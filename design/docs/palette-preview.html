@@ -11,6 +11,8 @@
         --ink: #f4f5f7;
         --muted: #aeb6c0;
         --stroke: #2a3038;
+        --icon-nav: 20px;
+        --control-h: 46px;
       }
 
       * {
@@ -77,8 +79,15 @@
       .topbar {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         gap: 16px;
+      }
+
+      .topbar-main {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex: 1 1 auto;
+        min-width: 0;
       }
 
       .nav {
@@ -90,10 +99,31 @@
       }
 
       .nav span {
-        padding: 10px 16px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        height: var(--control-h);
+        padding: 0 16px;
         border-radius: 14px;
         color: var(--muted);
-        font-size: 14px;
+        font-size: 15px;
+      }
+
+      .nav span.icon-only,
+      .util .icon-only {
+        justify-content: center;
+        width: var(--control-h);
+        min-width: var(--control-h);
+        padding: 0;
+        gap: 0;
+      }
+
+      .icon {
+        width: var(--icon-nav);
+        height: var(--icon-nav);
+        flex: 0 0 var(--icon-nav);
+        color: currentColor;
+        opacity: 0.92;
       }
 
       .nav .active {
@@ -110,8 +140,17 @@
         display: inline-flex;
         gap: 10px;
         align-items: center;
+        margin-inline-start: auto;
         color: var(--muted);
         font-size: 13px;
+      }
+
+      .util .icon-only {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
       }
 
       .avatar {
@@ -180,7 +219,7 @@
         min-width: 0;
       }
 
-      .chip {
+      .swatch-dot {
         height: 42px;
         border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -255,6 +294,13 @@
     </style>
   </head>
   <body>
+    <svg width="0" height="0" style="position:absolute">
+      <symbol id="i-home" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3.2 4 9.6V21h5.8v-6.2h4.4V21H20V9.6z"/></symbol>
+      <symbol id="i-live" viewBox="0 0 24 24"><path fill="currentColor" d="M5 7.5h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4.7l1.4 2.3h-3.4L10.9 18.5H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2m0 2v7h14v-7zm3 1.5h4v4H8zm5.5 0H17v1.5h-3.5zm0 2.5h3.5V15h-3.5z"/></symbol>
+      <symbol id="i-media" viewBox="0 0 24 24"><path fill="currentColor" d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2m0 2v10h16V7zm3 1.5 5.5 3.5L7 15.5z"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><path fill="currentColor" d="M10.5 4a6.5 6.5 0 0 1 5.2 10.4l4 4-1.4 1.4-4-4A6.5 6.5 0 1 1 10.5 4m0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9"/></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><path fill="currentColor" d="m19.4 13 .1-1-.1-1 2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1l-.3-2.6H9l-.3 2.6a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4L4.6 11a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1c.5.4 1.1.7 1.7 1L9 20.6h6l.3-2.6c.6-.3 1.2-.6 1.7-1l2.4 1 2-3.4zM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5"/></symbol>
+    </svg>
     <main>
       <section class="intro">
         <h1>CrispyTivi Palette Preview</h1>
@@ -272,8 +318,8 @@
           <div class="preview">
             <div class="shell">
               <div class="topbar">
-                <div class="nav"><span class="active">Home</span><span>Live TV</span><span>Media</span><span>Search</span></div>
-                <div class="util"><span>21:30</span><div class="avatar"></div></div>
+                <div class="topbar-main"><div class="nav"><span class="active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-home"></use></svg>Home</span><span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-live"></use></svg>Live</span><span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-media"></use></svg>Media</span></div></div>
+                <div class="util"><span class="icon-only" aria-label="Search"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-search"></use></svg></span><span class="icon-only" aria-label="Settings"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-settings"></use></svg></span><span>21:30</span><div class="avatar"></div></div>
               </div>
               <div class="hero">
                 <div class="meta">Warm Graphite</div>
@@ -284,10 +330,10 @@
             </div>
           </div>
           <div class="swatches">
-            <div class="swatch"><div class="chip" style="--value:#0b0c0f"></div><div class="label">Background</div><div class="hex">#0B0C0F</div></div>
-            <div class="swatch"><div class="chip" style="--value:#14171b"></div><div class="label">Panel</div><div class="hex">#14171B</div></div>
-            <div class="swatch"><div class="chip" style="--value:#1c2127"></div><div class="label">Raised</div><div class="hex">#1C2127</div></div>
-            <div class="swatch"><div class="chip" style="--value:#c98b4a"></div><div class="label">Accent</div><div class="hex">#C98B4A</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#0b0c0f"></div><div class="label">Background</div><div class="hex">#0B0C0F</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#14171b"></div><div class="label">Panel</div><div class="hex">#14171B</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#1c2127"></div><div class="label">Raised</div><div class="hex">#1C2127</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#c98b4a"></div><div class="label">Accent</div><div class="hex">#C98B4A</div></div>
           </div>
           <div class="note">Most balanced option if you want the shell to feel warmer, more premium, and less blue.</div>
         </article>
@@ -296,8 +342,8 @@
           <div class="preview">
             <div class="shell">
               <div class="topbar">
-                <div class="nav"><span class="active">Home</span><span>Live TV</span><span>Media</span><span>Search</span></div>
-                <div class="util"><span>21:30</span><div class="avatar"></div></div>
+                <div class="topbar-main"><div class="nav"><span class="active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-home"></use></svg>Home</span><span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-live"></use></svg>Live</span><span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-media"></use></svg>Media</span></div></div>
+                <div class="util"><span class="icon-only" aria-label="Search"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-search"></use></svg></span><span class="icon-only" aria-label="Settings"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-settings"></use></svg></span><span>21:30</span><div class="avatar"></div></div>
               </div>
               <div class="hero">
                 <div class="meta">Slate Olive</div>
@@ -308,10 +354,10 @@
             </div>
           </div>
           <div class="swatches">
-            <div class="swatch"><div class="chip" style="--value:#0a0d0c"></div><div class="label">Background</div><div class="hex">#0A0D0C</div></div>
-            <div class="swatch"><div class="chip" style="--value:#121816"></div><div class="label">Panel</div><div class="hex">#121816</div></div>
-            <div class="swatch"><div class="chip" style="--value:#1b2420"></div><div class="label">Raised</div><div class="hex">#1B2420</div></div>
-            <div class="swatch"><div class="chip" style="--value:#7fa37c"></div><div class="label">Accent</div><div class="hex">#7FA37C</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#0a0d0c"></div><div class="label">Background</div><div class="hex">#0A0D0C</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#121816"></div><div class="label">Panel</div><div class="hex">#121816</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#1b2420"></div><div class="label">Raised</div><div class="hex">#1B2420</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#7fa37c"></div><div class="label">Accent</div><div class="hex">#7FA37C</div></div>
           </div>
           <div class="note">More distinct, softer, and organic. Best if you want less graphite and less Apple influence.</div>
         </article>
@@ -320,8 +366,8 @@
           <div class="preview">
             <div class="shell">
               <div class="topbar">
-                <div class="nav"><span class="active">Home</span><span>Live TV</span><span>Media</span><span>Search</span></div>
-                <div class="util"><span>21:30</span><div class="avatar"></div></div>
+                <div class="topbar-main"><div class="nav"><span class="active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-home"></use></svg>Home</span><span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-live"></use></svg>Live</span><span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-media"></use></svg>Media</span></div></div>
+                <div class="util"><span class="icon-only" aria-label="Search"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-search"></use></svg></span><span class="icon-only" aria-label="Settings"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-settings"></use></svg></span><span>21:30</span><div class="avatar"></div></div>
               </div>
               <div class="hero">
                 <div class="meta">Smoked Stone</div>
@@ -332,10 +378,10 @@
             </div>
           </div>
           <div class="swatches">
-            <div class="swatch"><div class="chip" style="--value:#0e0e10"></div><div class="label">Background</div><div class="hex">#0E0E10</div></div>
-            <div class="swatch"><div class="chip" style="--value:#18191d"></div><div class="label">Panel</div><div class="hex">#18191D</div></div>
-            <div class="swatch"><div class="chip" style="--value:#23252b"></div><div class="label">Raised</div><div class="hex">#23252B</div></div>
-            <div class="swatch"><div class="chip" style="--value:#8da4c7"></div><div class="label">Accent</div><div class="hex">#8DA4C7</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#0e0e10"></div><div class="label">Background</div><div class="hex">#0E0E10</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#18191d"></div><div class="label">Panel</div><div class="hex">#18191D</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#23252b"></div><div class="label">Raised</div><div class="hex">#23252B</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#8da4c7"></div><div class="label">Accent</div><div class="hex">#8DA4C7</div></div>
           </div>
           <div class="note">The safest neutral option if you want the shell to feel polished and quiet.</div>
         </article>
@@ -344,8 +390,8 @@
           <div class="preview">
             <div class="shell">
               <div class="topbar">
-                <div class="nav"><span class="active">Home</span><span>Live TV</span><span>Media</span><span>Search</span></div>
-                <div class="util"><span>21:30</span><div class="avatar"></div></div>
+                <div class="topbar-main"><div class="nav"><span class="active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-home"></use></svg>Home</span><span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-live"></use></svg>Live</span><span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-media"></use></svg>Media</span></div></div>
+                <div class="util"><span class="icon-only" aria-label="Search"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-search"></use></svg></span><span class="icon-only" aria-label="Settings"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-settings"></use></svg></span><span>21:30</span><div class="avatar"></div></div>
               </div>
               <div class="hero">
                 <div class="meta">Cinema Ember</div>
@@ -356,10 +402,10 @@
             </div>
           </div>
           <div class="swatches">
-            <div class="swatch"><div class="chip" style="--value:#0a0908"></div><div class="label">Background</div><div class="hex">#0A0908</div></div>
-            <div class="swatch"><div class="chip" style="--value:#151210"></div><div class="label">Panel</div><div class="hex">#151210</div></div>
-            <div class="swatch"><div class="chip" style="--value:#201b18"></div><div class="label">Raised</div><div class="hex">#201B18</div></div>
-            <div class="swatch"><div class="chip" style="--value:#a86b43"></div><div class="label">Accent</div><div class="hex">#A86B43</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#0a0908"></div><div class="label">Background</div><div class="hex">#0A0908</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#151210"></div><div class="label">Panel</div><div class="hex">#151210</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#201b18"></div><div class="label">Raised</div><div class="hex">#201B18</div></div>
+            <div class="swatch"><div class="swatch-dot" style="--value:#a86b43"></div><div class="label">Accent</div><div class="hex">#A86B43</div></div>
           </div>
           <div class="note">Best if you want a stronger streaming identity, but it can drift away from Google TV fastest.</div>
         </article>

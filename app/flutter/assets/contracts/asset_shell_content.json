@@ -3,8 +3,8 @@
     "kicker": "Tonight on CrispyTivi",
     "title": "City Lights at Midnight",
     "summary": "A dramatic featured rail with quiet chrome, clear hierarchy, and room-readable action placement.",
-    "primary_action": "Resume watching",
-    "secondary_action": "Open details",
+    "primary_action": "Resume",
+    "secondary_action": "Details",
     "artwork": {
       "kind": "asset",
       "value": "assets/mocks/home-hero-shell.jpg"
@@ -77,9 +77,9 @@
     }
   },
   "series_detail": {
-    "summary_title": "Season and episode handoff",
+    "summary_title": "Season and episode playback",
     "summary_body": "Season choice stays above episode choice and the launch action remains explicit.",
-    "handoff_label": "Mock player handoff",
+    "handoff_label": "Play episode",
     "seasons": [
       {
         "label": "Season 1",
@@ -90,21 +90,21 @@
             "title": "Cold Open",
             "summary": "Series premiere and setup.",
             "duration_label": "45 min",
-            "handoff_label": "Launch player handoff"
+          "handoff_label": "Play episode"
           },
           {
             "code": "S1:E2",
             "title": "Cross Signal",
-            "summary": "The plot tightens around the central handoff.",
+            "summary": "The plot tightens around the central conflict.",
             "duration_label": "44 min",
-            "handoff_label": "Launch player handoff"
+          "handoff_label": "Play episode"
           },
           {
             "code": "S1:E3",
             "title": "Afterglow",
-            "summary": "Focus stays on the next explicit handoff.",
+            "summary": "Focus stays on the next episode choice.",
             "duration_label": "46 min",
-            "handoff_label": "Launch player handoff"
+          "handoff_label": "Play episode"
           }
         ]
       },
@@ -117,21 +117,21 @@
             "title": "Return Path",
             "summary": "The series resets with a longer-form arc.",
             "duration_label": "45 min",
-            "handoff_label": "Launch player handoff"
+          "handoff_label": "Play episode"
           },
           {
             "code": "S2:E2",
             "title": "Signal Drift",
             "summary": "Season continuity stays explicit.",
             "duration_label": "44 min",
-            "handoff_label": "Launch player handoff"
+          "handoff_label": "Play episode"
           },
           {
             "code": "S2:E3",
             "title": "Night Relay",
-            "summary": "The handoff stays ready without opening a separate episode page.",
+            "summary": "Playback stays ready without opening a separate episode page.",
             "duration_label": "46 min",
-            "handoff_label": "Launch player handoff"
+          "handoff_label": "Play episode"
           }
         ]
       }
@@ -218,7 +218,7 @@
         "number": "101",
         "brand": "Crispy One",
         "title": "Midnight Bulletin",
-        "summary": "Late-night national news with market recap, weather handoff, and live remote desks.",
+        "summary": "Late-night national news with market recap, weather transitions, and live remote desks.",
         "now_label": "Now · Midnight Bulletin",
         "next_label": "Next · Market Close at 22:00",
         "quick_play_label": "Play live",
@@ -244,7 +244,7 @@
         "number": "205",
         "brand": "Cinema Vault",
         "title": "Coastal Drive",
-        "summary": "Feature film lane with title-safe artwork, synopsis context, and a clear handoff into movie metadata later.",
+        "summary": "Feature film lane with title-safe artwork, synopsis context, and direct access to movie detail.",
         "now_label": "Now · Coastal Drive",
         "next_label": "Next · Studio Cut at 22:35",
         "quick_play_label": "Play from live edge",
@@ -575,12 +575,12 @@
     {
       "step": "Finish",
       "title": "Finish setup",
-      "summary": "Complete the source handoff and return to source overview with health and capability status visible.",
+      "summary": "Complete source setup and return to source overview with health and capability status visible.",
       "primary_action": "Return to sources",
       "secondary_action": "Back",
       "field_labels": ["Validation result", "Import scope"],
       "helper_lines": [
-        "Success returns to the Settings-owned source overview, not to a detached source domain.",
+        "Success returns to the source overview inside Settings, not to a separate source domain.",
         "The next domain phases can rely on this onboarding lane being complete."
       ]
     }

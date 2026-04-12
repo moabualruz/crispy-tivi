@@ -1,6 +1,10 @@
+import 'package:crispy_tivi/core/theme/crispy_shell_controls.dart';
+import 'package:crispy_tivi/core/theme/crispy_shell_icons.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
+import 'package:crispy_tivi/features/shell/presentation/widgets/shell_controls.dart';
+import 'package:crispy_tivi/features/shell/presentation/widgets/shell_iconography.dart';
 import 'package:flutter/material.dart';
 
 class ShellTopBar extends StatelessWidget {
@@ -22,47 +26,66 @@ class ShellTopBar extends StatelessWidget {
     final TextTheme textTheme = Theme.of(context).textTheme;
     const double navRadius = CrispyOverhaulTokens.radiusControl;
     const double navInset = 4;
+    final List<ShellRoute> primaryRoutes = navigationRoutes
+        .where((ShellRoute route) => route != ShellRoute.search)
+        .toList(growable: false);
     return Row(
       children: <Widget>[
-        Text(
-          'CRISPYTIVI',
-          style: textTheme.titleMedium?.copyWith(
-            letterSpacing: 1.8,
-            color: CrispyOverhaulTokens.textSecondary,
-          ),
-        ),
-        const SizedBox(width: CrispyOverhaulTokens.section),
         Expanded(
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: DecoratedBox(
-              decoration: CrispyShellRoles.navGroupDecoration(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: navInset,
-                  vertical: navInset,
-                ),
-                child: Wrap(
-                  spacing: navInset,
-                  runSpacing: navInset,
-                  children: navigationRoutes
-                      .map(
-                        (ShellRoute route) => _RouteButton(
-                          route: route,
-                          selected: route == activeRoute,
-                          onPressed: () => onSelectRoute(route),
-                          radius: navRadius - navInset,
-                        ),
-                      )
-                      .toList(growable: false),
+          child: Row(
+            mainAxisSize: MainAxisSize.max,
+            children: <Widget>[
+              Text(
+                'CRISPYTIVI',
+                style: textTheme.titleMedium?.copyWith(
+                  letterSpacing: 1.8,
+                  color: CrispyOverhaulTokens.textSecondary,
                 ),
               ),
-            ),
+              const SizedBox(width: CrispyOverhaulTokens.section),
+              Flexible(
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: DecoratedBox(
+                    decoration: CrispyShellRoles.navGroupDecoration(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: navInset,
+                        vertical: navInset,
+                      ),
+                      child: Wrap(
+                        spacing: navInset,
+                        runSpacing: navInset,
+                        alignment: WrapAlignment.start,
+                        children: primaryRoutes
+                            .map(
+                              (ShellRoute route) => _RouteButton(
+                                route: route,
+                                selected: route == activeRoute,
+                                onPressed: () => onSelectRoute(route),
+                                radius: navRadius - navInset,
+                              ),
+                            )
+                            .toList(growable: false),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
+        const SizedBox(width: CrispyOverhaulTokens.medium),
+        _RouteButton(
+          route: ShellRoute.search,
+          selected: activeRoute == ShellRoute.search,
+          onPressed: () => onSelectRoute(ShellRoute.search),
+          radius: navRadius - navInset,
+        ),
+        const SizedBox(width: CrispyOverhaulTokens.small),
         _UtilityButton(
           selected: activeRoute == ShellRoute.settings,
-          icon: Icons.settings_outlined,
+          icon: CrispyShellIcons.route(ShellRoute.settings),
           label: 'Settings',
           onPressed: onOpenSettings,
         ),
@@ -95,18 +118,20 @@ class _RouteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
+    final bool iconOnly = route == ShellRoute.search;
+    return ShellControlButton(
+      controlKey: Key('shell-route-${route.name}'),
+      label: CrispyShellIcons.routeLabel(route),
+      semanticsLabel: route.label,
+      icon: CrispyShellIcons.route(route),
       onPressed: onPressed,
-      style: CrispyShellRoles.navButtonStyle(
-        selected: selected,
-        radius: radius,
-      ),
-      child: Text(
-        route.label,
-        style: TextStyle(
-          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-        ),
-      ),
+      controlRole: ShellControlRole.navigation,
+      presentation:
+          iconOnly
+              ? ShellControlPresentation.iconOnly
+              : ShellControlPresentation.iconAndText,
+      selected: selected,
+      radius: radius,
     );
   }
 }
@@ -126,11 +151,15 @@ class _UtilityButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton.icon(
+    return ShellControlButton(
+      controlKey: const Key('shell-utility-settings'),
+      label: label,
+      semanticsLabel: label,
+      icon: icon,
       onPressed: onPressed,
-      style: CrispyShellRoles.utilityButtonStyle(selected: selected),
-      icon: Icon(icon, size: 18),
-      label: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+      controlRole: ShellControlRole.utility,
+      presentation: ShellControlPresentation.iconOnly,
+      selected: selected,
     );
   }
 }
@@ -141,16 +170,14 @@ class _ProfileTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 36,
-      height: 36,
+      width: CrispyShellControls.height(ShellControlRole.utility),
+      height: CrispyShellControls.height(ShellControlRole.utility),
       decoration: CrispyShellRoles.profileTileDecoration(),
       alignment: Alignment.center,
-      child: const Text(
-        'P',
-        style: TextStyle(
-          color: CrispyOverhaulTokens.profileText,
-          fontWeight: FontWeight.w700,
-        ),
+      child: const ShellIconGraphic(
+        icon: Icons.person_outline,
+        color: CrispyOverhaulTokens.profileText,
+        role: ShellIconRole.utility,
       ),
     );
   }

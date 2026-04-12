@@ -1,5 +1,7 @@
+import 'package:crispy_tivi/core/theme/crispy_shell_controls.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
+import 'package:crispy_tivi/features/shell/presentation/widgets/shell_controls.dart';
 import 'package:flutter/material.dart';
 
 class SectionSelector<T> extends StatelessWidget {
@@ -33,19 +35,25 @@ class SectionSelector<T> extends StatelessWidget {
           ),
         ),
         const SizedBox(height: CrispyOverhaulTokens.small),
-        Wrap(
-          spacing: CrispyOverhaulTokens.small,
-          runSpacing: CrispyOverhaulTokens.small,
-          children: values
-              .map(
-                (T value) => _SelectorButton(
-                  itemKey: Key(keyBuilder(value)),
-                  label: labelBuilder(value),
-                  selected: value == selected,
-                  onPressed: () => onSelect(value),
-                ),
-              )
-              .toList(growable: false),
+        DecoratedBox(
+          decoration: CrispyShellRoles.navGroupDecoration(),
+          child: Padding(
+            padding: const EdgeInsets.all(CrispyShellRoles.navGroupInset),
+            child: Wrap(
+              spacing: CrispyShellRoles.navGroupInset,
+              runSpacing: CrispyShellRoles.navGroupInset,
+              children: values
+                  .map(
+                    (T value) => _SelectorButton(
+                      itemKey: Key(keyBuilder(value)),
+                      label: labelBuilder(value),
+                      selected: value == selected,
+                      onPressed: () => onSelect(value),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ),
         ),
       ],
     );
@@ -67,16 +75,13 @@ class _SelectorButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      key: itemKey,
+    return ShellControlButton(
+      controlKey: itemKey,
+      label: label,
       onPressed: onPressed,
-      style: CrispyShellRoles.selectorButtonStyle(selected: selected),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-        ),
-      ),
+      controlRole: ShellControlRole.selector,
+      presentation: ShellControlPresentation.textOnly,
+      selected: selected,
     );
   }
 }

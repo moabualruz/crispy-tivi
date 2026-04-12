@@ -1,7 +1,10 @@
+import 'package:crispy_tivi/core/theme/crispy_shell_controls.dart';
+import 'package:crispy_tivi/core/theme/crispy_shell_icons.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/shell_artwork.dart';
+import 'package:crispy_tivi/features/shell/presentation/widgets/shell_controls.dart';
 import 'package:flutter/material.dart';
 
 class FeatureHero extends StatelessWidget {
@@ -84,19 +87,6 @@ class FeatureHero extends StatelessWidget {
                       ),
                       Positioned(
                         left: CrispyOverhaulTokens.medium,
-                        top: CrispyOverhaulTokens.medium,
-                        child: ArtworkMetadataChip(
-                          child: Text(
-                            feature.kicker,
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: CrispyOverhaulTokens.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: CrispyOverhaulTokens.medium,
                         bottom: CrispyOverhaulTokens.medium,
                         right: CrispyOverhaulTokens.medium,
                         child: Text(
@@ -129,10 +119,13 @@ class _ActionPlate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
+    return ShellControlButton(
+      label: label,
+      icon: CrispyShellIcons.contentAction(label),
       onPressed: () {},
-      style: CrispyShellRoles.actionButtonStyle(emphasis: emphasis),
-      child: Text(label),
+      controlRole: ShellControlRole.action,
+      presentation: ShellControlPresentation.iconAndText,
+      emphasis: emphasis,
     );
   }
 }

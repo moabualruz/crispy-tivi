@@ -1,5 +1,6 @@
 import 'package:crispy_tivi/features/shell/domain/shell_content.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
+import 'package:crispy_tivi/features/shell/domain/player_session.dart';
 import 'package:crispy_tivi/features/shell/presentation/routes/media_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -136,9 +137,10 @@ void main() {
 }
 ''');
 
-  testWidgets('movie detail launches a mock player preview', (
+  testWidgets('movie detail emits a retained player session', (
     WidgetTester tester,
   ) async {
+    PlayerSession? launchedSession;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -154,6 +156,7 @@ void main() {
             onSelectSeriesSeasonIndex: (_) {},
             onSelectSeriesEpisodeIndex: (_) {},
             onLaunchSeriesEpisode: () {},
+            onLaunchPlayer: (PlayerSession session) => launchedSession = session,
           ),
         ),
       ),
@@ -173,7 +176,10 @@ void main() {
     await tester.tap(find.byKey(const Key('movie-player-launch')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Mock movie player'), findsOneWidget);
-    expect(find.textContaining('movie detail handoff'), findsOneWidget);
+    expect(launchedSession, isNotNull);
+    expect(launchedSession!.kind, PlayerContentKind.movie);
+    expect(launchedSession!.originLabel, 'Media · Movies');
+    expect(launchedSession!.activeItem.title, 'The Last Harbor');
+    expect(launchedSession!.queueLabel, 'Up next');
   });
 }

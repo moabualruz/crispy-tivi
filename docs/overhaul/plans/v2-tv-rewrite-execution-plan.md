@@ -270,6 +270,46 @@ Current branch state:
 - player gate is now documented in `v2-phase13-player-gate.md`
 - player implementation remains blocked until Phase 14 starts explicitly
 
+### Phase 14 closure
+
+Phase 14 is now complete.
+
+Completed in this phase:
+
+- retained player overlay replaces mock player handoff UI
+- movie detail, series episode, and Live TV tune enter the same player system
+- in-player switching exists for live channels and series episodes
+- chooser overlays exist for audio, subtitles, quality, and source
+- player unwind order follows the installed player gate
+- player UX borrow rules are documented in `v2-player-reference-study.md`
+
+### Phase 15 closure
+
+Phase 15 is now complete.
+
+Completed in this phase:
+
+- final retained shell integration was re-audited and cleaned across `Home`,
+  `Live TV`, `Media`, `Search`, `Settings`, and `Player`
+- final runtime-copy cleanup removed remaining internal/architecture language
+  from surfaced UI where simpler product wording fit better
+- final verification evidence now exists for Rust, Flutter, Linux integration
+  smoke, Linux release build, web build, and browser-driven web smoke
+- Linux managed-build contamination is explicitly mitigated in the repo flow via
+  `app/flutter/tool/restore_linux_release_state.sh`
+
+Verification recorded for this phase:
+
+- `cargo test` in `rust/`
+- `flutter analyze`
+- full retained-shell Flutter test suite
+- `flutter test integration_test/main_test.dart -d linux`
+- `app/flutter/tool/restore_linux_release_state.sh`
+- `flutter build linux`
+- `flutter build web`
+- Playwright screenshot evidence from the built web target:
+  - `.playwright-cli/phase15-final-web.png`
+
 ## Guardrails
 
 - phase order is strict: do not start or claim a later phase while an earlier

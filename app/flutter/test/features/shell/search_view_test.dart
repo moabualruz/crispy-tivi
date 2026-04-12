@@ -180,9 +180,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Domain: Live TV'), findsOneWidget);
-    expect(find.text('Selected result: Arena Live'), findsOneWidget);
-    expect(find.text('Action: Tune live channel'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('search-handoff-domain'))).data,
+      'Live TV',
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const Key('search-handoff-title'))).data,
+      'Arena Live',
+    );
+    expect(find.text('Open channel'), findsOneWidget);
   });
 
   testWidgets('search result selection updates canonical handoff detail', (
@@ -199,17 +205,24 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Domain: Movies'), findsOneWidget);
-    expect(find.text('Selected result: The Last Harbor'), findsOneWidget);
-    expect(find.text('Selected target: Thriller'), findsOneWidget);
-    expect(find.text('Action: Open movie detail'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('search-handoff-domain'))).data,
+      'Movies',
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const Key('search-handoff-title'))).data,
+      'The Last Harbor',
+    );
+    expect(find.text('Open movie'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('search-result-0-1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Selected result: Atlas Run'), findsOneWidget);
-    expect(find.text('Selected target: Action'), findsOneWidget);
-    expect(find.text('Action: Open movie detail'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('search-handoff-title'))).data,
+      'Atlas Run',
+    );
+    expect(find.text('Open movie'), findsOneWidget);
   });
 }
 

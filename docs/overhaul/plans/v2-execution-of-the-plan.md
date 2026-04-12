@@ -242,6 +242,8 @@ Gate:
 
 - player behavior/tests/flows verified
 
+Current branch state: complete
+
 ### Phase 15: final integration / completion hardening
 
 Output:
@@ -252,6 +254,26 @@ Output:
 Gate:
 
 - full-product completion criteria satisfied
+
+Current branch state: complete
+
+Phase 15 verification evidence:
+
+- `cargo test` in `rust/`
+- `flutter analyze`
+- `flutter test test/app/app_bootstrap_test.dart test/features/shell/asset_shell_bootstrap_repository_test.dart test/features/shell/asset_shell_content_repository_test.dart test/features/shell/asset_shell_contract_repository_test.dart test/features/shell/shell_models_test.dart test/features/shell/movie_view_test.dart test/features/shell/search_view_test.dart test/features/shell/shell_page_test.dart test/features/shell/shell_view_model_test.dart`
+- `flutter test integration_test/main_test.dart -d linux`
+- `app/flutter/tool/restore_linux_release_state.sh`
+- `flutter build linux`
+- `flutter build web`
+- browser-driven web smoke on the built web app:
+  - `.playwright-cli/phase15-final-web.png`
+
+Phase 15 closure notes:
+
+- final retained shell/player/settings/live/media/search integration is verified
+- Linux release state is restored after Linux integration smoke
+- no known blocking regressions remain in the current branch state
 
 ## Vertical execution rule
 

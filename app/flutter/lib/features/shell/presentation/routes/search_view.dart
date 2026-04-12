@@ -1,8 +1,10 @@
+import 'package:crispy_tivi/core/theme/crispy_shell_icons.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
 import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_content.dart';
 import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
 import 'package:crispy_tivi/features/shell/presentation/widgets/shell_artwork.dart';
+import 'package:crispy_tivi/features/shell/presentation/widgets/shell_iconography.dart';
 import 'package:flutter/material.dart';
 
 class SearchView extends StatefulWidget {
@@ -57,8 +59,7 @@ class _SearchViewState extends State<SearchView> {
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 760),
                         child: Text(
-                          'Search live channels, films, and series from the active content catalog. '
-                          'Settings stays in Settings.',
+                          'Search live channels, films, and series from the active content catalog.',
                           style: textTheme.bodyLarge?.copyWith(
                             color: CrispyOverhaulTokens.textSecondary,
                           ),
@@ -68,7 +69,7 @@ class _SearchViewState extends State<SearchView> {
                       const _SearchFieldPlate(),
                       const SizedBox(height: CrispyOverhaulTokens.small),
                       Text(
-                        'Global content scope. The handoff should feel like an entry into live and media results, not a settings hub.',
+                        'Global content scope. Results open into Live TV and Media, not Settings.',
                         style: textTheme.bodyMedium?.copyWith(
                           color: CrispyOverhaulTokens.textMuted,
                         ),
@@ -115,34 +116,23 @@ class _SearchViewState extends State<SearchView> {
       case 'Live TV':
         return _SearchHandoffCopy(
           domainLabel: 'Live TV',
-          targetLabel: item.caption,
-          actionLabel: 'Tune live channel',
-          description:
-              'Live TV results hand off to the channel lane with immediate tune context.',
+          actionLabel: 'Open channel',
         );
       case 'Movies':
         return _SearchHandoffCopy(
           domainLabel: 'Movies',
-          targetLabel: item.caption,
-          actionLabel: 'Open movie detail',
-          description:
-              'Movie results hand off to the Movies surface with poster-first detail context.',
+          actionLabel: 'Open movie',
         );
       case 'Series':
         return _SearchHandoffCopy(
           domainLabel: 'Series',
-          targetLabel: item.caption,
-          actionLabel: 'Open series detail',
-          description:
-              'Series results hand off to the Series surface with continuity-focused detail context.',
+          actionLabel: 'Open series',
         );
     }
 
     return _SearchHandoffCopy(
       domainLabel: group.title,
-      targetLabel: item.caption,
-      actionLabel: 'Open result detail',
-      description: 'Search result handoff is ready for the selected item.',
+      actionLabel: 'Open result',
     );
   }
 }
@@ -161,7 +151,10 @@ class _SearchFieldPlate extends StatelessWidget {
         ),
         child: Row(
           children: <Widget>[
-            Icon(Icons.search, color: CrispyOverhaulTokens.textSecondary),
+            ShellIconGraphic(
+              icon: Icons.search,
+              role: ShellIconRole.row,
+            ),
             SizedBox(width: CrispyOverhaulTokens.small),
             Expanded(
               child: Text(
@@ -198,6 +191,11 @@ class _SearchGroup extends StatelessWidget {
       children: <Widget>[
         Row(
           children: <Widget>[
+            ShellIconPlate(
+              icon: CrispyShellIcons.searchGroup(group.title),
+              role: ShellIconRole.row,
+            ),
+            const SizedBox(width: CrispyOverhaulTokens.small),
             Text(group.title, style: textTheme.titleLarge),
             const SizedBox(width: CrispyOverhaulTokens.small),
             Text(
@@ -328,17 +326,10 @@ class _SearchHandoffPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              'Search handoff',
+              'Selected result',
               style: textTheme.titleMedium?.copyWith(
                 color: CrispyOverhaulTokens.textPrimary,
                 fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: CrispyOverhaulTokens.small),
-            Text(
-              'Browse live content, films, and series with the same shell language used elsewhere in the app.',
-              style: textTheme.bodyMedium?.copyWith(
-                color: CrispyOverhaulTokens.textSecondary,
               ),
             ),
             const SizedBox(height: CrispyOverhaulTokens.large),
@@ -352,16 +343,27 @@ class _SearchHandoffPanel extends StatelessWidget {
               ),
             ),
             const SizedBox(height: CrispyOverhaulTokens.medium),
-            Text(
-              'Domain: ${handoff.domainLabel}',
-              key: const Key('search-handoff-domain'),
-              style: textTheme.labelLarge?.copyWith(
-                color: CrispyOverhaulTokens.textMuted,
-              ),
+            Row(
+              children: <Widget>[
+                ShellIconPlate(
+                  icon: CrispyShellIcons.searchGroup(handoff.domainLabel),
+                  role: ShellIconRole.row,
+                ),
+                const SizedBox(width: CrispyOverhaulTokens.small),
+                Expanded(
+                  child: Text(
+                    handoff.domainLabel,
+                    key: const Key('search-handoff-domain'),
+                    style: textTheme.labelLarge?.copyWith(
+                      color: CrispyOverhaulTokens.textMuted,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: CrispyOverhaulTokens.small),
             Text(
-              'Selected result: ${selectedResult.title}',
+              selectedResult.title,
               key: const Key('search-handoff-title'),
               style: textTheme.headlineSmall?.copyWith(
                 color: CrispyOverhaulTokens.textPrimary,
@@ -370,35 +372,40 @@ class _SearchHandoffPanel extends StatelessWidget {
             ),
             const SizedBox(height: CrispyOverhaulTokens.compact),
             Text(
-              'Selected caption: ${selectedResult.caption}',
+              selectedResult.caption,
               key: const Key('search-handoff-caption'),
               style: textTheme.bodyLarge?.copyWith(
                 color: CrispyOverhaulTokens.textSecondary,
               ),
             ),
             const SizedBox(height: CrispyOverhaulTokens.medium),
-            Text(
-              'Selected target: ${handoff.targetLabel}',
-              key: const Key('search-handoff-target'),
-              style: textTheme.titleSmall?.copyWith(
-                color: CrispyOverhaulTokens.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: CrispyOverhaulTokens.small),
-            Text(
-              'Action: ${handoff.actionLabel}',
-              key: const Key('search-handoff-action'),
-              style: textTheme.bodyMedium?.copyWith(
-                color: CrispyOverhaulTokens.textMuted,
-              ),
-            ),
-            const SizedBox(height: CrispyOverhaulTokens.small),
-            Text(
-              'Handoff: ${handoff.description}',
-              key: const Key('search-handoff-description'),
-              style: textTheme.bodyMedium?.copyWith(
-                color: CrispyOverhaulTokens.textSecondary,
+            DecoratedBox(
+              decoration: CrispyShellRoles.inputFieldDecoration(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: CrispyOverhaulTokens.medium,
+                  vertical: CrispyOverhaulTokens.medium,
+                ),
+                child: Row(
+                  children: <Widget>[
+                    ShellIconGraphic(
+                      icon: CrispyShellIcons.searchAction(handoff.actionLabel),
+                      role: ShellIconRole.row,
+                      color: CrispyOverhaulTokens.textSecondary,
+                    ),
+                    const SizedBox(width: CrispyOverhaulTokens.small),
+                    Expanded(
+                      child: Text(
+                        handoff.actionLabel,
+                        key: const Key('search-handoff-action'),
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: CrispyOverhaulTokens.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -411,13 +418,9 @@ class _SearchHandoffPanel extends StatelessWidget {
 class _SearchHandoffCopy {
   const _SearchHandoffCopy({
     required this.domainLabel,
-    required this.targetLabel,
     required this.actionLabel,
-    required this.description,
   });
 
   final String domainLabel;
-  final String targetLabel;
   final String actionLabel;
-  final String description;
 }

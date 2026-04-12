@@ -49,7 +49,7 @@ List<ShelfItem> _orderedQuickAccessItems(List<String> quickAccessOrder) {
 }
 
 const List<ShelfItem> _quickAccessItems = <ShelfItem>[
-  ShelfItem(title: 'Search', caption: 'Find channels, movies, settings'),
+  ShelfItem(title: 'Search', caption: 'Find channels, movies, series'),
   ShelfItem(title: 'Settings', caption: 'System and playback controls'),
   ShelfItem(title: 'Series', caption: 'Jump into prestige collections'),
   ShelfItem(title: 'Live TV Guide', caption: 'Jump into the schedule'),
