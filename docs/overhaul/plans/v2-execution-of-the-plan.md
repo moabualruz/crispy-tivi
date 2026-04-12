@@ -127,6 +127,10 @@ Gate:
 
 - source wizard entry/back safety verified
 
+Current branch state:
+
+- complete
+
 ### Phase 7: settings completion
 
 Output:

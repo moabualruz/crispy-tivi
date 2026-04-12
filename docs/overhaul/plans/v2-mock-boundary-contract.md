@@ -1,6 +1,6 @@
 # V2 Mock Boundary Contract
 
-Status: Active
+Status: Phase-5 complete
 Date: 2026-04-11
 
 ## Purpose
@@ -19,27 +19,50 @@ restart lane.
 
 ## Canonical mock handoff
 
-The canonical mock handoff artifact is:
+The canonical shell contract artifacts are:
 
-- `app/flutter/assets/mocks/shell_snapshot.json`
+- `rust/crates/crispy-ffi/src/lib.rs`
+- `app/flutter/assets/contracts/mock_shell_contract.json`
+- `app/flutter/assets/contracts/mock_shell_content.json`
 
-That artifact represents a Rust-owned shell/domain snapshot serialized as JSON.
+The canonical mock shell runtime consumes:
+
+- `app/flutter/assets/contracts/mock_shell_contract.json`
+- `app/flutter/assets/contracts/mock_shell_content.json`
+
+Those artifacts represent Rust-owned shell/domain contracts serialized as JSON.
 
 ## Required mock flow
 
-1. Rust defines the snapshot schema and a mock snapshot producer.
-2. Rust verifies that its produced JSON matches the canonical snapshot shape.
-3. Flutter loads the canonical snapshot.
-4. Flutter maps the snapshot into a shell view-model.
-5. Flutter renders a design-faithful mock shell from that view-model.
+1. Rust defines the shell contract schema and a mock contract producer.
+2. Rust verifies that its produced JSON matches the canonical contract shape.
+3. Rust defines a canonical mock content snapshot shape for populated shell
+   route surfaces.
+4. Flutter loads the canonical contract assets.
+5. Flutter validates and maps the shell contract into route/panel/scope
+   support.
+6. Flutter consumes the canonical content snapshot for populated Home, Live TV,
+   Media, Search, and Settings rendering.
+7. Flutter initializes the shell view-model from the contract.
+8. Flutter renders a design-faithful mock shell from contract-backed state and
+   content snapshots.
+9. The asset-backed bootstrap must resolve once and settle into the shell;
+   contract/content loading must not loop on rebuild.
+10. Phase-6 source onboarding/auth/import flow ordering must come from the
+    contract/content pair rather than hidden widget-local defaults.
 
 ## Allowed mock scope
 
 - top-bar domain state
+- startup route ownership
 - sidebar section state
+- allowed route/panel/group/scope ordering
 - route headline and summary copy
 - content rails/cards/list summaries
 - source-health summaries
+- source detail surfaces
+- source wizard step ordering
+- source wizard step copy/content
 - placeholder player gate state
 
 ## Disallowed mock scope

@@ -110,11 +110,62 @@ Phase 4 has now been rebuilt for the current restart lane:
 - Linux analyze/tests/builds and web build/browser smoke all pass on the
   rebuilt shell
 
-### Phase 5+: contracts and verticals
+### Phase 5: technical contracts and shared support
 
 - technical contracts in support of the approved shell
+- shared support needed before domain parallelization
 - vertical delivery later
 - player last
+
+Phase 5 is now complete for the current restart lane:
+
+- Rust owns the canonical shell contract shape in `crispy-ffi`
+- Flutter loads the contract from a canonical asset and validates it before
+  rendering the shell
+- Rust also owns the canonical mock content snapshot shape for populated shell
+  route surfaces
+- Flutter loads the content snapshot from a canonical asset rather than keeping
+  populated route content in local Dart seed files
+- startup route, top-level domain ordering, settings-group ordering, Live TV
+  panel/group ordering, Media panel/scope ordering, and Home quick-access
+  ordering are now explicit contract surfaces rather than hidden local runtime
+  assumptions
+- asset-backed bootstrap resolves contract and content together into one stable
+  startup payload
+
+### Phase 6: onboarding/auth/import completion
+
+- complete the shared onboarding/auth/import lane before domain delivery begins
+- close the remaining cross-domain foundation work that later domain lanes will
+  depend on
+- do not begin domain-parallel implementation until this phase is fully
+  complete
+
+Phase 6 is now complete for the current restart lane:
+
+- source onboarding/auth/import now exists as a Settings-owned flow rather than
+  only static source-health cards
+- existing sources open source overview/detail first
+- adding a source opens a wizard with explicit ordered steps
+- reconnect/auth flows reuse the same wizard lane and can enter at the
+  credentials step
+- wizard step ordering is contract-owned and validated through the canonical
+  shell contract asset
+- wizard step copy/content is content-snapshot owned and validated through the
+  canonical shell content asset
+- source wizard unwind/back safety is view-model owned and verified so backing
+  out of the wizard returns to the Settings-owned source overview instead of
+  leaving the shell in a detached transient state
+
+After Phase 6 is fully complete:
+
+- domain delivery may run in parallel agents when the domains are independent
+  enough to avoid overlapping write scopes
+- preferred staffing is one active worker per independent domain/module lane
+- each delegated domain lane must have explicit file ownership and must still
+  follow the full authority stack, installed design docs, and active spec/docs
+- parallelism is an acceleration tool for delivery after the shared foundation
+  is closed, not a bypass around phase order or review discipline
 
 ### Player pre-code design gate
 
@@ -134,6 +185,11 @@ Player code is blocked until this gate is complete.
 
 ## Guardrails
 
+- phase order is strict: do not start or claim a later phase while an earlier
+  phase remains incomplete unless the user explicitly changes the sequence
+- do not start parallel domain agents before Phase 6 is fully complete
+- after Phase 6 is fully complete, parallel domain agents are allowed only for
+  independent lanes with explicit ownership and no overlapping write scope
 - no design invention beyond the authoritative docs
 - no shell code before design-system and shell planning are complete
 - no implementation from old screenshots, old app code, or remembered Penpot

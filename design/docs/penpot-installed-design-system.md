@@ -25,6 +25,15 @@ Implementation rule:
 
 - widget-level colors, radii, and state geometry must flow from those theme
   files rather than being redefined ad hoc inside widget files
+- shared shell backdrop, stage frame, action controls, artwork scrims, icon
+  plates, and repeated media-card surfaces must also be defined there rather
+  than repeated inside route/widget files
+- repeated hero/shelf art framing should also come from shared role-owned media
+  surfaces rather than widget-local image treatment
+- media artwork must be source-agnostic at the system layer so the same shell
+  rendering path can handle repo assets now and remote provider artwork later
+- populated mock route content should come from canonical content snapshot
+  assets rather than local Dart seed constants when that support exists
 
 If another doc, mock, screenshot, or remembered layout conflicts with this
 file, this file wins unless the user explicitly changes it.
@@ -102,6 +111,10 @@ Visual direction:
   - translucent dock-like shells where justified
   - warmer panel tinting instead of flat black stacking
   - utility-menu rows with icons, chevrons, and clear active sections
+  - populated mocks should feel like a real entertainment surface rather than a
+    design-demo board
+  - hero art and shelves should use domain-relevant media imagery, not
+    arbitrary personal or meme-like photos
 
 ## Anti-Drift Rules
 
@@ -115,14 +128,28 @@ These are hard constraints:
 - do not use pills ever
 - do not use chip-heavy shell chrome
 - do not expose `Sources` as a top-level global domain
+- do not surface `Sources` as a stand-alone Home shortcut or quick-access
+  destination; access to source management stays within `Settings`
 - do not expose `Player` as a top-level global navigation destination
 - do not use generic placeholder card walls as a substitute for real layout
 - do not use generic Material scaffolding as a substitute for board-faithful UI
 - do not leave major mock shell surfaces as empty color blocks when mock assets
   are available
+- do not populate the shell with arbitrary non-media mock imagery that breaks
+  the TV-product illusion; mock assets must be intentionally curated or
+  generated for entertainment/product context
+- populated mock assets must remain visibly legible inside the actual crop and
+  scrim treatment used by the shell; “asset exists but reads like an empty
+  block” is still drift
+- artwork loading/fallback behavior must also be shared so missing or delayed
+  media does not collapse individual routes into ad hoc placeholders
+- artwork regions may use restrained title-safe overlays to preserve readable
+  occupancy inside TV viewing distance and dark-shell treatments
 - do not use decorative blue or red overlay washes on artwork unless they
   encode clear, relevant information
 - do not leave oversized dead gutters around the scaled `1920x1080` stage
+- do not leave the fixed shell stage so small that the product reads like a
+  centered demo at `1080p`
 - route and widget chrome must inherit the active token palette
 - old hardcoded color literals from prior palettes are drift and must be
   removed when touched
@@ -242,6 +269,9 @@ Bucket rule:
 - `4K` must not show oversized empty shell gutters
 - current implementation uses one fixed virtual shell stage and one internal
   metric set; only presentation scale changes
+- current implementation uses a product-sized virtual shell stage of
+  `1440x810`; shell spacing and sidebar extents come from shared shell-role
+  constants rather than per-widget scale tuning
 
 ### Split ratio rule
 
@@ -574,6 +604,21 @@ Rules:
 4. wizard steps stay inside the Settings hierarchy
 5. success returns to source overview with health/capability summary
 6. advanced options stay behind secondary action
+
+Source wizard rules:
+
+- wizard step order is:
+  - Source Type
+  - Connection
+  - Credentials
+  - Import
+  - Finish
+- reconnect/auth-needed flows may enter the wizard at `Credentials`
+- backing out of the first wizard step returns to the Settings-owned source
+  overview/list
+- backing out of later wizard steps returns to the previous wizard step rather
+  than ejecting the user out of Settings
+- sensitive credential-bearing steps must remain non-restorable until validated
 
 ### Player
 

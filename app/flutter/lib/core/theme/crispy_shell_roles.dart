@@ -5,6 +5,12 @@ final class CrispyShellRoles {
   const CrispyShellRoles._();
 
   static const double navGroupInset = 4;
+  static const double shellViewportWidth = 1440;
+  static const double shellViewportHeight = 810;
+  static const double shellOuterPadding = 18;
+  static const double shellTopBarGap = 16;
+  static const double shellSidebarGap = 12;
+  static const double shellSidebarWidth = 276;
 
   static const LinearGradient backdropGradient = LinearGradient(
     begin: Alignment.topCenter,
@@ -41,6 +47,27 @@ final class CrispyShellRoles {
     borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusSheet),
   );
 
+  static BoxDecoration heroSurfaceDecoration() => BoxDecoration(
+    color: CrispyOverhaulTokens.surfacePanel,
+    border: Border.all(color: CrispyOverhaulTokens.borderSubtle),
+    borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusSheet),
+  );
+
+  static BoxDecoration heroArtworkFrameDecoration() => BoxDecoration(
+    color: CrispyOverhaulTokens.surfaceHighlight,
+    border: Border.all(color: CrispyOverhaulTokens.borderStrong),
+    borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusSheet),
+  );
+
+  static BoxDecoration heroArtworkScrimDecoration() => BoxDecoration(
+    borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusSheet),
+    gradient: const LinearGradient(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      colors: <Color>[Color(0xB30E0E10), Color(0x6618191D), Color(0x2618191D)],
+    ),
+  );
+
   static BoxDecoration panelDecoration() => BoxDecoration(
     color: CrispyOverhaulTokens.surfacePanel,
     border: Border.all(color: CrispyOverhaulTokens.borderSubtle),
@@ -53,7 +80,18 @@ final class CrispyShellRoles {
     borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusSheet),
   );
 
+  static BoxDecoration previewStageDecoration() => BoxDecoration(
+    color: CrispyOverhaulTokens.surfaceHighlight,
+    borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusSheet),
+    border: Border.all(color: CrispyOverhaulTokens.borderStrong),
+  );
+
   static BoxDecoration infoPlateDecoration() => BoxDecoration(
+    color: CrispyOverhaulTokens.surfaceHighlight,
+    borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusControl),
+  );
+
+  static BoxDecoration iconPlateDecoration() => BoxDecoration(
     color: CrispyOverhaulTokens.surfaceHighlight,
     borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusControl),
   );
@@ -148,6 +186,30 @@ final class CrispyShellRoles {
     );
   }
 
+  static ButtonStyle actionButtonStyle({required bool emphasis}) {
+    return TextButton.styleFrom(
+      foregroundColor: CrispyOverhaulTokens.textPrimary,
+      backgroundColor:
+          emphasis
+              ? CrispyOverhaulTokens.surfaceRaised
+              : CrispyOverhaulTokens.surfacePanel,
+      padding: const EdgeInsets.symmetric(
+        horizontal: CrispyOverhaulTokens.medium,
+        vertical: CrispyOverhaulTokens.small,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusControl),
+        side: BorderSide(
+          color:
+              emphasis
+                  ? CrispyOverhaulTokens.accentFocus
+                  : CrispyOverhaulTokens.borderStrong,
+        ),
+      ),
+      overlayColor: CrispyOverhaulTokens.navOverlay,
+    );
+  }
+
   static BoxDecoration profileTileDecoration() => BoxDecoration(
     color: CrispyOverhaulTokens.profileBackground,
     borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusControl),
@@ -158,5 +220,40 @@ final class CrispyShellRoles {
     color: CrispyOverhaulTokens.surfaceHighlight,
     borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusControl),
     border: Border.all(color: CrispyOverhaulTokens.accentFocus),
+  );
+
+  static BoxDecoration inputFieldDecoration() => BoxDecoration(
+    color: CrispyOverhaulTokens.surfaceHighlight,
+    borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusControl),
+    border: Border.all(color: CrispyOverhaulTokens.borderStrong),
+  );
+
+  static BoxDecoration shelfCardDecoration() => BoxDecoration(
+    color: CrispyOverhaulTokens.surfaceRaised,
+    border: Border.all(color: CrispyOverhaulTokens.borderSubtle),
+    borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusCard),
+  );
+
+  static BoxDecoration denseCardDecoration() => BoxDecoration(
+    color: CrispyOverhaulTokens.surfaceRaised,
+    borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusCard),
+    border: Border.all(color: CrispyOverhaulTokens.borderSubtle),
+  );
+
+  static BoxDecoration searchResultDecoration() => BoxDecoration(
+    color: CrispyOverhaulTokens.surfaceInset,
+    borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusCard),
+    border: Border.all(color: CrispyOverhaulTokens.borderStrong),
+  );
+
+  static BoxDecoration artworkFallbackDecoration() =>
+      const BoxDecoration(color: CrispyOverhaulTokens.surfaceHighlight);
+
+  static BoxDecoration shelfArtworkScrimDecoration() => const BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: <Color>[Color(0x00000000), Color(0x6618191D)],
+    ),
   );
 }

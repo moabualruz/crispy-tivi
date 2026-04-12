@@ -137,6 +137,15 @@ Recommended roles:
 
 ### Vertical product phases
 
+Post-Phase-6 parallelization rule:
+
+- parallel vertical/domain execution is allowed only after Phase 6 is complete
+- preferred staffing is one active worker per independent domain/module lane
+- shared contract/theme/test/doc integration files stay leader-owned unless
+  explicitly reassigned
+- no overlapping write scopes between active workers
+- every parallel lane still follows the full authority stack and AGENTS rules
+
 #### Phase 6: onboarding/auth/import flows
 
 - leader

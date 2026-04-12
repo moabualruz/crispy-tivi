@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 
 class ShellTopBar extends StatelessWidget {
   const ShellTopBar({
+    required this.navigationRoutes,
     required this.activeRoute,
     required this.onSelectRoute,
     required this.onOpenSettings,
     super.key,
   });
 
+  final List<ShellRoute> navigationRoutes;
   final ShellRoute activeRoute;
   final ValueChanged<ShellRoute> onSelectRoute;
   final VoidCallback onOpenSettings;
@@ -43,7 +45,7 @@ class ShellTopBar extends StatelessWidget {
                 child: Wrap(
                   spacing: navInset,
                   runSpacing: navInset,
-                  children: mainNavigationRoutes
+                  children: navigationRoutes
                       .map(
                         (ShellRoute route) => _RouteButton(
                           route: route,

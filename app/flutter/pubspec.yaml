@@ -30,6 +30,7 @@ flutter:
 
   assets:
     - assets/config/
+    - assets/contracts/
     - assets/mocks/
     - assets/shaders/
     - assets/logo.svg

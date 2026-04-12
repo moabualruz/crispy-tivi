@@ -1,5 +1,7 @@
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
+import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
 import 'package:crispy_tivi/features/mock_shell/domain/mock_shell_models.dart';
+import 'package:crispy_tivi/features/mock_shell/presentation/widgets/shell_artwork.dart';
 import 'package:flutter/material.dart';
 
 class SectionShelf extends StatelessWidget {
@@ -52,47 +54,41 @@ class ShelfCard extends StatelessWidget {
     return SizedBox(
       width: showRank ? 250 : 220,
       child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: CrispyOverhaulTokens.surfaceRaised,
-          borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusCard),
-          border: Border.all(color: CrispyOverhaulTokens.borderSubtle),
-        ),
+        decoration: CrispyShellRoles.shelfCardDecoration(),
         child: Padding(
           padding: const EdgeInsets.all(CrispyOverhaulTokens.small),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Expanded(
-                child: ClipRRect(
+                child: ShellArtwork(
+                  source: item.artwork,
                   borderRadius: BorderRadius.circular(
                     CrispyOverhaulTokens.radiusCard,
                   ),
-                  child:
-                      item.imageAsset == null
-                          ? const DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: CrispyOverhaulTokens.surfaceHighlight,
-                            ),
-                            child: SizedBox.expand(),
-                          )
-                          : Stack(
-                            fit: StackFit.expand,
-                            children: <Widget>[
-                              Image.asset(item.imageAsset!, fit: BoxFit.cover),
-                              const DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: <Color>[
-                                      Color(0x00000000),
-                                      Color(0xB318191D),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
+                  overlay: Stack(
+                    fit: StackFit.expand,
+                    children: <Widget>[
+                      ArtworkTitleSafeOverlay(
+                        decoration:
+                            CrispyShellRoles.shelfArtworkScrimDecoration(),
+                      ),
+                      Positioned(
+                        left: CrispyOverhaulTokens.small,
+                        right: CrispyOverhaulTokens.small,
+                        bottom: CrispyOverhaulTokens.small,
+                        child: Text(
+                          item.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: CrispyOverhaulTokens.textPrimary,
+                            fontWeight: FontWeight.w700,
                           ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: CrispyOverhaulTokens.small),

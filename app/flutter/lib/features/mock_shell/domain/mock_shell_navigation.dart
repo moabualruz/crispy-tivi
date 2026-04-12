@@ -70,3 +70,15 @@ enum SettingsPanel {
 
   final String label;
 }
+
+enum SourceWizardStep {
+  sourceType('Source Type'),
+  connection('Connection'),
+  credentials('Credentials'),
+  importContent('Import'),
+  finish('Finish');
+
+  const SourceWizardStep(this.label);
+
+  final String label;
+}

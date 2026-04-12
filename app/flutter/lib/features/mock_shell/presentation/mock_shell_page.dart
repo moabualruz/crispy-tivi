@@ -1,4 +1,7 @@
+import 'package:crispy_tivi/features/mock_shell/domain/mock_shell_content.dart';
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
+import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
+import 'package:crispy_tivi/features/mock_shell/domain/mock_shell_contract.dart';
 import 'package:crispy_tivi/features/mock_shell/domain/mock_shell_navigation.dart';
 import 'package:crispy_tivi/features/mock_shell/presentation/routes/home_view.dart';
 import 'package:crispy_tivi/features/mock_shell/presentation/routes/live_tv_view.dart';
@@ -11,7 +14,14 @@ import 'package:crispy_tivi/features/mock_shell/presentation/widgets/shell_top_b
 import 'package:flutter/material.dart';
 
 class MockShellPage extends StatefulWidget {
-  const MockShellPage({super.key});
+  const MockShellPage({
+    required this.contract,
+    required this.content,
+    super.key,
+  });
+
+  final MockShellContractSupport contract;
+  final MockShellContentSnapshot content;
 
   @override
   State<MockShellPage> createState() => _MockShellPageState();
@@ -19,15 +29,17 @@ class MockShellPage extends StatefulWidget {
 
 class _MockShellPageState extends State<MockShellPage> {
   static const _StageBucketConfig _stageConfig = _StageBucketConfig(
-    viewportWidth: 1600,
-    viewportHeight: 900,
+    viewportWidth: CrispyShellRoles.shellViewportWidth,
+    viewportHeight: CrispyShellRoles.shellViewportHeight,
     scale: 1,
-    outerPadding: 20,
-    topBarGap: 18,
-    sidebarGap: 12,
-    sidebarWidth: 288,
+    outerPadding: CrispyShellRoles.shellOuterPadding,
+    topBarGap: CrispyShellRoles.shellTopBarGap,
+    sidebarGap: CrispyShellRoles.shellSidebarGap,
+    sidebarWidth: CrispyShellRoles.shellSidebarWidth,
   );
-  final MockShellViewModel _viewModel = MockShellViewModel();
+  late final MockShellViewModel _viewModel = MockShellViewModel(
+    contract: widget.contract,
+  );
 
   @override
   void dispose() {
@@ -43,14 +55,7 @@ class _MockShellPageState extends State<MockShellPage> {
         return Scaffold(
           body: DecoratedBox(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: <Color>[
-                  Color(0xFF1B1D22),
-                  CrispyOverhaulTokens.surfaceVoid,
-                ],
-              ),
+              gradient: CrispyShellRoles.backdropGradient,
             ),
             child: Stack(
               children: <Widget>[
@@ -58,11 +63,7 @@ class _MockShellPageState extends State<MockShellPage> {
                   child: IgnorePointer(
                     child: DecoratedBox(
                       decoration: const BoxDecoration(
-                        gradient: RadialGradient(
-                          center: Alignment.topCenter,
-                          radius: 1.1,
-                          colors: <Color>[Color(0x1FFFFFFF), Color(0x00000000)],
-                        ),
+                        gradient: CrispyShellRoles.ambientHighlight,
                       ),
                     ),
                   ),
@@ -76,9 +77,7 @@ class _MockShellPageState extends State<MockShellPage> {
                       height: 420,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: <Color>[Color(0x168DA4C7), Color(0x008DA4C7)],
-                        ),
+                        gradient: CrispyShellRoles.ambientPrimary,
                       ),
                     ),
                   ),
@@ -92,9 +91,7 @@ class _MockShellPageState extends State<MockShellPage> {
                       height: 360,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: <Color>[Color(0x12DCE2EA), Color(0x00DCE2EA)],
-                        ),
+                        gradient: CrispyShellRoles.ambientSecondary,
                       ),
                     ),
                   ),
@@ -128,6 +125,8 @@ class _MockShellPageState extends State<MockShellPage> {
                                         CrossAxisAlignment.start,
                                     children: <Widget>[
                                       ShellTopBar(
+                                        navigationRoutes:
+                                            _viewModel.contract.topLevelRoutes,
                                         activeRoute: _viewModel.route,
                                         onSelectRoute: _viewModel.selectRoute,
                                         onOpenSettings:
@@ -210,38 +209,43 @@ class _MockShellPageState extends State<MockShellPage> {
         return LocalSidebar(
           title: 'Live TV',
           items:
-              LiveTvPanel.values
+              _viewModel.contract.liveTvPanels
                   .map((LiveTvPanel panel) => panel.label)
                   .toList(),
           itemKeyPrefix: 'live-tv-sidebar',
           selectedIndex: _viewModel.liveTvPanel.index,
           onSelectIndex:
-              (int index) =>
-                  _viewModel.selectLiveTvPanel(LiveTvPanel.values[index]),
+              (int index) => _viewModel.selectLiveTvPanel(
+                _viewModel.contract.liveTvPanels[index],
+              ),
         );
       case ShellRoute.media:
         return LocalSidebar(
           title: 'Media',
           items:
-              MediaPanel.values.map((MediaPanel panel) => panel.label).toList(),
+              _viewModel.contract.mediaPanels
+                  .map((MediaPanel panel) => panel.label)
+                  .toList(),
           itemKeyPrefix: 'media-sidebar',
           selectedIndex: _viewModel.mediaPanel.index,
           onSelectIndex:
-              (int index) =>
-                  _viewModel.selectMediaPanel(MediaPanel.values[index]),
+              (int index) => _viewModel.selectMediaPanel(
+                _viewModel.contract.mediaPanels[index],
+              ),
         );
       case ShellRoute.settings:
         return LocalSidebar(
           title: 'Settings',
           items:
-              SettingsPanel.values
+              _viewModel.contract.settingsPanels
                   .map((SettingsPanel panel) => panel.label)
                   .toList(),
           itemKeyPrefix: 'settings-sidebar',
           selectedIndex: _viewModel.settingsPanel.index,
           onSelectIndex:
-              (int index) =>
-                  _viewModel.selectSettingsPanel(SettingsPanel.values[index]),
+              (int index) => _viewModel.selectSettingsPanel(
+                _viewModel.contract.settingsPanels[index],
+              ),
         );
     }
   }
@@ -249,23 +253,42 @@ class _MockShellPageState extends State<MockShellPage> {
   Widget _buildContent() {
     switch (_viewModel.route) {
       case ShellRoute.home:
-        return const HomeView();
+        return HomeView(
+          quickAccessOrder: _viewModel.contract.homeQuickAccess,
+          content: widget.content,
+        );
       case ShellRoute.liveTv:
         return LiveTvView(
+          content: widget.content,
+          availableGroups: _viewModel.contract.liveTvGroups,
           panel: _viewModel.liveTvPanel,
           group: _viewModel.liveTvGroup,
           onSelectGroup: _viewModel.selectLiveTvGroup,
         );
       case ShellRoute.media:
         return MediaView(
+          content: widget.content,
+          availableScopes: _viewModel.contract.mediaScopes,
           panel: _viewModel.mediaPanel,
           scope: _viewModel.mediaScope,
           onSelectScope: _viewModel.selectMediaScope,
         );
       case ShellRoute.search:
-        return const SearchView();
+        return SearchView(content: widget.content);
       case ShellRoute.settings:
-        return SettingsView(panel: _viewModel.settingsPanel);
+        return SettingsView(
+          panel: _viewModel.settingsPanel,
+          content: widget.content,
+          selectedSourceIndex: _viewModel.selectedSourceIndex,
+          sourceWizardActive: _viewModel.sourceWizardActive,
+          sourceWizardStep: _viewModel.sourceWizardStep,
+          onSelectSource: _viewModel.selectSourceIndex,
+          onStartAddSource: _viewModel.startAddSourceWizard,
+          onStartReconnect: _viewModel.startReconnectWizard,
+          onSelectWizardStep: _viewModel.selectSourceWizardStep,
+          onAdvanceWizard: _viewModel.advanceSourceWizard,
+          onRetreatWizard: _viewModel.retreatSourceWizard,
+        );
     }
   }
 }
@@ -298,11 +321,7 @@ class _ShellStage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: CrispyOverhaulTokens.surfaceVoid,
-        border: Border.all(color: CrispyOverhaulTokens.borderSubtle),
-        borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusSheet),
-      ),
+      decoration: CrispyShellRoles.shellStageDecoration(),
       child: Padding(
         padding: const EdgeInsets.all(CrispyOverhaulTokens.compact),
         child: child,

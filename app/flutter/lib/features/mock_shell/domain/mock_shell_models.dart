@@ -1,3 +1,24 @@
+import 'package:flutter/painting.dart';
+
+import 'package:crispy_tivi/features/mock_shell/domain/mock_shell_navigation.dart';
+
+enum ArtworkSourceKind { asset, network }
+
+final class ArtworkSource {
+  const ArtworkSource.asset(this.value) : kind = ArtworkSourceKind.asset;
+  const ArtworkSource.network(this.value) : kind = ArtworkSourceKind.network;
+
+  final ArtworkSourceKind kind;
+  final String value;
+
+  ImageProvider<Object> provider() {
+    return switch (kind) {
+      ArtworkSourceKind.asset => AssetImage(value),
+      ArtworkSourceKind.network => NetworkImage(value),
+    };
+  }
+}
+
 final class HeroFeature {
   const HeroFeature({
     required this.kicker,
@@ -5,7 +26,7 @@ final class HeroFeature {
     required this.summary,
     required this.primaryAction,
     required this.secondaryAction,
-    this.backgroundAsset,
+    this.artwork,
   });
 
   final String kicker;
@@ -13,7 +34,7 @@ final class HeroFeature {
   final String summary;
   final String primaryAction;
   final String secondaryAction;
-  final String? backgroundAsset;
+  final ArtworkSource? artwork;
 }
 
 final class ShelfItem {
@@ -21,13 +42,13 @@ final class ShelfItem {
     required this.title,
     required this.caption,
     this.rank,
-    this.imageAsset,
+    this.artwork,
   });
 
   final String title;
   final String caption;
   final int? rank;
-  final String? imageAsset;
+  final ArtworkSource? artwork;
 }
 
 final class ChannelEntry {
@@ -68,9 +89,39 @@ final class SourceHealthItem {
     required this.name,
     required this.status,
     required this.summary,
+    required this.sourceType,
+    required this.endpoint,
+    required this.lastSync,
+    required this.capabilities,
+    required this.primaryAction,
   });
 
   final String name;
   final String status;
   final String summary;
+  final String sourceType;
+  final String endpoint;
+  final String lastSync;
+  final List<String> capabilities;
+  final String primaryAction;
+}
+
+final class SourceWizardStepContent {
+  const SourceWizardStepContent({
+    required this.step,
+    required this.title,
+    required this.summary,
+    required this.primaryAction,
+    required this.secondaryAction,
+    required this.fieldLabels,
+    required this.helperLines,
+  });
+
+  final SourceWizardStep step;
+  final String title;
+  final String summary;
+  final String primaryAction;
+  final String secondaryAction;
+  final List<String> fieldLabels;
+  final List<String> helperLines;
 }

@@ -1,5 +1,7 @@
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
+import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
 import 'package:crispy_tivi/features/mock_shell/domain/mock_shell_models.dart';
+import 'package:crispy_tivi/features/mock_shell/presentation/widgets/shell_artwork.dart';
 import 'package:flutter/material.dart';
 
 class FeatureHero extends StatelessWidget {
@@ -11,11 +13,7 @@ class FeatureHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: CrispyOverhaulTokens.surfacePanel,
-        borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusSheet),
-        border: Border.all(color: CrispyOverhaulTokens.borderSubtle),
-      ),
+      decoration: CrispyShellRoles.heroSurfaceDecoration(),
       child: Padding(
         padding: const EdgeInsets.all(CrispyOverhaulTokens.section),
         child: Row(
@@ -67,44 +65,47 @@ class FeatureHero extends StatelessWidget {
               child: AspectRatio(
                 aspectRatio: 1.8,
                 child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: CrispyOverhaulTokens.surfaceHighlight,
-                    borderRadius: BorderRadius.circular(
-                      CrispyOverhaulTokens.radiusSheet,
-                    ),
-                    border: Border.all(
-                      color: CrispyOverhaulTokens.borderStrong,
-                    ),
-                  ),
+                  decoration: CrispyShellRoles.heroArtworkFrameDecoration(),
                   child: Stack(
                     children: <Widget>[
-                      if (feature.backgroundAsset != null)
-                        Positioned.fill(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(
-                              CrispyOverhaulTokens.radiusSheet,
-                            ),
-                            child: Image.asset(
-                              feature.backgroundAsset!,
-                              fit: BoxFit.cover,
+                      Positioned.fill(
+                        child: ShellArtwork(
+                          source: feature.artwork,
+                          borderRadius: BorderRadius.circular(
+                            CrispyOverhaulTokens.radiusSheet,
+                          ),
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: ArtworkTitleSafeOverlay(
+                          decoration:
+                              CrispyShellRoles.heroArtworkScrimDecoration(),
+                        ),
+                      ),
+                      Positioned(
+                        left: CrispyOverhaulTokens.medium,
+                        top: CrispyOverhaulTokens.medium,
+                        child: ArtworkMetadataChip(
+                          child: Text(
+                            feature.kicker,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: CrispyOverhaulTokens.textPrimary,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                      Positioned.fill(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(
-                              CrispyOverhaulTokens.radiusSheet,
-                            ),
-                            gradient: const LinearGradient(
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                              colors: <Color>[
-                                Color(0xD90E0E10),
-                                Color(0x9918191D),
-                                Color(0x4018191D),
-                              ],
-                            ),
+                      ),
+                      Positioned(
+                        left: CrispyOverhaulTokens.medium,
+                        bottom: CrispyOverhaulTokens.medium,
+                        right: CrispyOverhaulTokens.medium,
+                        child: Text(
+                          feature.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.titleLarge?.copyWith(
+                            color: CrispyOverhaulTokens.textPrimary,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
@@ -128,27 +129,10 @@ class _ActionPlate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color:
-            emphasis
-                ? CrispyOverhaulTokens.surfaceRaised
-                : CrispyOverhaulTokens.surfacePanel,
-        border: Border.all(
-          color:
-              emphasis
-                  ? CrispyOverhaulTokens.accentFocus
-                  : CrispyOverhaulTokens.borderStrong,
-        ),
-        borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusControl),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: CrispyOverhaulTokens.medium,
-          vertical: CrispyOverhaulTokens.small,
-        ),
-        child: Text(label),
-      ),
+    return TextButton(
+      onPressed: () {},
+      style: CrispyShellRoles.actionButtonStyle(emphasis: emphasis),
+      child: Text(label),
     );
   }
 }

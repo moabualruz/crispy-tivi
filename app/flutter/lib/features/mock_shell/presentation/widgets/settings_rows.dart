@@ -1,25 +1,88 @@
 import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
+import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
 import 'package:crispy_tivi/features/mock_shell/domain/mock_shell_models.dart';
 import 'package:flutter/material.dart';
 
 class SettingsRows extends StatelessWidget {
-  const SettingsRows({required this.items, super.key});
+  const SettingsRows({
+    required this.items,
+    this.sectionLabel,
+    this.sectionSummary,
+    super.key,
+  });
 
   final List<SettingsItem> items;
+  final String? sectionLabel;
+  final String? sectionSummary;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: CrispyOverhaulTokens.surfaceInset,
-        borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusSheet),
-        border: Border.all(color: CrispyOverhaulTokens.borderStrong),
+      decoration: CrispyShellRoles.panelDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.all(CrispyOverhaulTokens.large),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            if (sectionLabel != null) ...<Widget>[
+              _SectionHeader(label: sectionLabel!, summary: sectionSummary),
+              const SizedBox(height: CrispyOverhaulTokens.medium),
+            ],
+            DecoratedBox(
+              decoration: CrispyShellRoles.insetPanelDecoration(),
+              child: Column(
+                children: items
+                    .map((SettingsItem item) => _SettingsRow(item: item))
+                    .toList(growable: false),
+              ),
+            ),
+          ],
+        ),
       ),
-      child: Column(
-        children: items
-            .map((SettingsItem item) => _SettingsRow(item: item))
-            .toList(growable: false),
-      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.label, this.summary});
+
+  final String label;
+  final String? summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Container(
+          width: 36,
+          height: 36,
+          decoration: CrispyShellRoles.iconPlateDecoration(),
+          child: const Icon(
+            Icons.tune_outlined,
+            color: CrispyOverhaulTokens.textSecondary,
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: CrispyOverhaulTokens.medium),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(label, style: Theme.of(context).textTheme.titleLarge),
+              if (summary != null) ...<Widget>[
+                const SizedBox(height: CrispyOverhaulTokens.compact),
+                Text(
+                  summary!,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: CrispyOverhaulTokens.textSecondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -33,44 +96,69 @@ class _SettingsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
     final IconData icon = _iconForTitle(item.title);
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: CrispyOverhaulTokens.large,
-        vertical: CrispyOverhaulTokens.medium,
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: CrispyOverhaulTokens.borderStrong),
+        ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: CrispyOverhaulTokens.surfaceHighlight,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: CrispyOverhaulTokens.textSecondary),
-          ),
-          const SizedBox(width: CrispyOverhaulTokens.medium),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(item.title, style: textTheme.titleMedium),
-                const SizedBox(height: CrispyOverhaulTokens.compact),
-                Text(item.summary, style: textTheme.bodyMedium),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: CrispyOverhaulTokens.large,
+                vertical: CrispyOverhaulTokens.medium,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: CrispyShellRoles.iconPlateDecoration(),
+                    child: Icon(
+                      icon,
+                      color: CrispyOverhaulTokens.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: CrispyOverhaulTokens.medium),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(item.title, style: textTheme.titleMedium),
+                        const SizedBox(height: CrispyOverhaulTokens.compact),
+                        Text(
+                          item.summary,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: CrispyOverhaulTokens.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: CrispyOverhaulTokens.medium),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: <Widget>[
+                      Text(
+                        item.value,
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: CrispyOverhaulTokens.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: CrispyOverhaulTokens.compact),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: CrispyOverhaulTokens.textMuted,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: CrispyOverhaulTokens.medium),
-          Text(
-            item.value,
-            style: textTheme.bodyLarge?.copyWith(
-              color: CrispyOverhaulTokens.textSecondary,
-            ),
-          ),
-          const SizedBox(width: CrispyOverhaulTokens.small),
-          const Icon(
-            Icons.chevron_right,
-            color: CrispyOverhaulTokens.textMuted,
           ),
         ],
       ),

@@ -23,7 +23,10 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('settings-sidebar-Sources')));
     await tester.pumpAndSettle();
-    expect(find.text('Home Fiber IPTV'), findsOneWidget);
+    expect(
+      find.byKey(const Key('source-item-Home Fiber IPTV')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Search'));
     await tester.pumpAndSettle();
