@@ -22,7 +22,7 @@ Required shell outcomes:
 ## Verification
 
 - `flutter analyze`
-- `flutter test test/core/theme/crispy_overhaul_tokens_test.dart test/core/theme/theme_test.dart test/features/mock_shell/mock_shell_page_test.dart`
+- `flutter test test/core/theme/crispy_overhaul_tokens_test.dart test/core/theme/theme_test.dart test/features/shell/shell_page_test.dart`
 - `flutter test integration_test/main_test.dart -d linux`
 - `cargo test`
 - `flutter build linux`

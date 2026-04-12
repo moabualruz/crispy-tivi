@@ -87,16 +87,32 @@ Required evidence as each independent domain lane completes:
   - grouped utility sections show clear section headers/summaries
   - source flow keeps visible Settings ownership cues while switching between
     list/detail/wizard states
+  - Settings search shows local results first, then opens the exact leaf only
+    after explicit result activation
+  - exact Settings search activation highlights the opened leaf inside the same
+    grouped hierarchy instead of jumping into a detached search surface
 - Live TV:
-  - Channels keeps group rail, dense channel list, and selected-channel detail
-    split
-  - Guide keeps selected-channel summary plus preview/matrix separation
+  - Channels keeps local subview nav in the sidebar, group rail in content,
+    and dense channel-list/detail split
+  - Live TV focus changes selected-channel metadata only; playback changes only
+    on explicit activation
+  - Guide keeps local subview nav separate from in-content group switching and
+    preserves selected-channel summary plus preview/matrix separation
+  - Guide detail overlays come from canonical guide-row/program data and show
+    focused slot, live-edge state, and catch-up/archive affordances
+  - Guide browse mode does not expose tune/play action chrome
 - Media:
   - Movies and Series read as different route emphases, not just different
     labels
+  - Movie detail exposes a movie-specific launch handoff that opens a mock
+    player preview from the detail surface, not from the shelf rail
+  - Series detail exposes explicit season selection, episode selection, and
+    episode-to-player handoff
 - Search:
   - route intro and scope copy clearly frame Search as global content handoff
   - result cards stay artwork-backed and media-focused
+  - selecting search results updates the owning-domain handoff panel rather
+    than behaving like a detached utility list
 
 ## Prohibited failure mode
 

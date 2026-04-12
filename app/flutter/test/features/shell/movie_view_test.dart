@@ -1,40 +1,11 @@
-import 'package:crispy_tivi/app/app.dart';
-import 'package:crispy_tivi/features/shell/data/asset_shell_content_repository.dart';
-import 'package:crispy_tivi/features/shell/data/asset_shell_contract_repository.dart';
+import 'package:crispy_tivi/features/shell/domain/shell_content.dart';
+import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
+import 'package:crispy_tivi/features/shell/presentation/routes/media_view.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  testWidgets('app exits loading when contract and content assets resolve', (
-    WidgetTester tester,
-  ) async {
-    final TestDefaultBinaryMessengerBinding binding =
-        TestDefaultBinaryMessengerBinding.instance;
-
-    binding.defaultBinaryMessenger.setMockMessageHandler('flutter/assets', (
-      ByteData? message,
-    ) async {
-      final String key = const StringCodec().decodeMessage(message)!;
-      if (key == AssetShellContractRepository.assetPath) {
-        return const StringCodec().encodeMessage('''
-{
-  "startup_route": "Home",
-  "top_level_routes": ["Home", "Live TV", "Media", "Search", "Settings"],
-  "settings_groups": ["General", "Playback", "Sources", "Appearance", "System"],
-  "live_tv_panels": ["Channels", "Guide"],
-  "live_tv_groups": ["All", "Favorites", "News", "Sports", "Movies", "Kids"],
-  "media_panels": ["Movies", "Series"],
-  "media_scopes": ["Featured", "Trending", "Recent", "Library"],
-  "home_quick_access": ["Search", "Settings", "Series", "Live TV Guide"],
-  "source_wizard_steps": ["Source Type", "Connection", "Credentials", "Import", "Finish"]
-}
-''');
-      }
-      if (key == AssetShellContentRepository.assetPath) {
-        return const StringCodec().encodeMessage('''
+  final ShellContentSnapshot content = ShellContentSnapshot.fromJsonString('''
 {
   "home_hero": {
     "kicker": "Tonight on CrispyTivi",
@@ -76,8 +47,7 @@ void main() {
     {"number": "101", "name": "Crispy One", "program": "Midnight Bulletin", "time_range": "21:00 - 22:00"}
   ],
   "guide_rows": [
-    ["Now", "21:30"],
-    ["Crispy One", "Bulletin"]
+    ["Now", "21:30"]
   ],
   "live_tv_browse": {
     "summary_title": "Quick tune with dense context",
@@ -165,22 +135,45 @@ void main() {
   ]
 }
 ''');
-      }
-      return null;
-    });
-    addTearDown(
-      () => binding.defaultBinaryMessenger.setMockMessageHandler(
-        'flutter/assets',
-        null,
+
+  testWidgets('movie detail launches a mock player preview', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MediaView(
+            content: content,
+            availableScopes: MediaScope.values,
+            panel: MediaPanel.movies,
+            scope: MediaScope.featured,
+            onSelectScope: (_) {},
+            seriesSeasonIndex: 0,
+            seriesEpisodeIndex: 0,
+            launchedSeriesEpisodeIndex: 0,
+            onSelectSeriesSeasonIndex: (_) {},
+            onSelectSeriesEpisodeIndex: (_) {},
+            onLaunchSeriesEpisode: () {},
+          ),
+        ),
       ),
     );
 
-    await tester.pumpWidget(const CrispyTiviApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('City Lights at Midnight'), findsWidgets);
-    expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.textContaining('failed to load'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('movie-detail-card')),
+      300,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('movie-detail-card')), findsOneWidget);
+    expect(find.byKey(const Key('movie-player-launch')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('movie-player-launch')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mock movie player'), findsOneWidget);
+    expect(find.textContaining('movie detail handoff'), findsOneWidget);
   });
 }

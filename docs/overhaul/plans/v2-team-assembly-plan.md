@@ -140,11 +140,16 @@ Recommended roles:
 Post-Phase-6 parallelization rule:
 
 - parallel vertical/domain execution is allowed only after Phase 6 is complete
-- preferred staffing is one active worker per independent domain/module lane
+- preferred staffing is one phase orchestrator per independent domain/module
+  phase lane
 - shared contract/theme/test/doc integration files stay leader-owned unless
   explicitly reassigned
 - no overlapping write scopes between active workers
 - every parallel lane still follows the full authority stack and AGENTS rules
+- each phase orchestrator owns the whole phase to closure: audit,
+  implementation, drift recheck, verification, and doc closure
+- do not split a single phase into partial orchestrators that hand off an
+  unfinished phase as if it were complete
 
 #### Phase 6: onboarding/auth/import flows
 
@@ -185,6 +190,7 @@ Post-Phase-6 parallelization rule:
 - Flutter lane
 - Rust lane
 - verifier lane
+- complete
 
 #### Phase 11: series completion
 
@@ -193,6 +199,7 @@ Post-Phase-6 parallelization rule:
 - Flutter lane
 - Rust lane
 - verifier lane
+- complete
 
 #### Phase 12: search completion
 

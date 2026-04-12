@@ -1,16 +1,13 @@
-import 'package:crispy_tivi/app/app.dart';
+import 'package:crispy_tivi/features/shell/data/asset_shell_bootstrap_repository.dart';
 import 'package:crispy_tivi/features/shell/data/asset_shell_content_repository.dart';
 import 'package:crispy_tivi/features/shell/data/asset_shell_contract_repository.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('app exits loading when contract and content assets resolve', (
-    WidgetTester tester,
-  ) async {
+  test('bootstrap repository resolves contract and content together', () async {
     final TestDefaultBinaryMessengerBinding binding =
         TestDefaultBinaryMessengerBinding.instance;
 
@@ -175,12 +172,13 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(const CrispyTiviApp());
-    await tester.pumpAndSettle();
+    const AssetShellBootstrapRepository repository =
+        AssetShellBootstrapRepository();
+    final ShellBootstrap bootstrap = await repository.load();
 
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('City Lights at Midnight'), findsWidgets);
-    expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.textContaining('failed to load'), findsNothing);
+    expect(bootstrap.contract.homeQuickAccess.first, 'Search');
+    expect(bootstrap.content.homeHero.title, 'City Lights at Midnight');
+    expect(bootstrap.content.generalSettings.first.title, 'Startup target');
+    expect(bootstrap.contract.sourceWizardSteps.first.label, 'Source Type');
   });
 }

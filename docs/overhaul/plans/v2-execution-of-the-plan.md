@@ -142,6 +142,10 @@ Gate:
 - settings top-level group navigation verified
 - settings search/deep leaf behavior verified
 
+Current branch state:
+
+- complete
+
 ### Phase 8: live TV completion
 
 Output:
@@ -152,6 +156,10 @@ Gate:
 
 - live TV channels subview verified
 - focus/activation rules verified
+
+Current branch state:
+
+- complete
 
 ### Phase 9: EPG / detail overlays completion
 
@@ -164,6 +172,10 @@ Gate:
 - live TV guide subview verified
 - guide focus and activation rules verified
 
+Current branch state:
+
+- complete
+
 ### Phase 10: movies completion
 
 Output:
@@ -173,6 +185,10 @@ Output:
 Gate:
 
 - mock player launch from movie detail verified
+
+Current branch state:
+
+- complete
 
 ### Phase 11: series completion
 
@@ -184,6 +200,10 @@ Gate:
 
 - mock player launch from series episode selection verified
 
+Current branch state:
+
+- complete
+
 ### Phase 12: search completion
 
 Output:
@@ -193,6 +213,10 @@ Output:
 Gate:
 
 - search -> canonical domain detail handoff verified
+
+Current branch state:
+
+- complete
 
 ### Phase 13: player pre-code design/reference gate
 

@@ -97,6 +97,8 @@ Date: 2026-04-11
 
 - information-dense but remote-safe
 - no implication that focus equals playback
+- side panel owns only local subview navigation
+- group/category switching stays in content, not the sidebar
 - panels, preview stages, channel rows, and guide cells should reuse the shared
   shell-role surface system rather than route-private decoration patterns
 - Channels should read as:
@@ -104,10 +106,16 @@ Date: 2026-04-11
   - group rail inside content
   - dense channel list on the left
   - selected-channel detail/preview on the right
+  - focus changes the selected-channel context only
+  - explicit action changes playback
 - Guide should read as:
-  - group rail plus selected-channel summary on the left
-  - preview/detail pane above
+  - local panel nav in the sidebar
+  - group rail plus selected-channel summary inside content
+  - focused-program detail overlay above
   - time-matrix guide below
+  - guide detail uses structured slot/program state, not placeholder string
+    tables
+  - no tune action in guide browse mode
 
 ### Media
 
@@ -149,6 +157,10 @@ Date: 2026-04-11
     ejecting the user out of Settings
 - non-source settings groups should still open with a stronger section header
   and summary so the utility stack feels deliberate rather than flat
+- Settings search stays inside the same surface:
+  - show local Settings results first
+  - activate a result to open the exact leaf
+  - keep the opened leaf highlighted inside the grouped hierarchy
 - source management should keep a clear ownership cue that this is still a
   Settings surface:
   - banner/ownership reminder
@@ -161,7 +173,7 @@ Phase 2 route-level visual intent is complete for the current branch state and
 is aligned with the pinned Penpot baseline plus the shell IA rule set.
 
 This route-intent document is a literal composition contract for shell work. If
-the rendered mock shell falls back to generic placeholder cards, generic
+the rendered shell falls back to generic placeholder cards, generic
 Material scaffolding, or route layouts that contradict these route emphases,
 Phase 4 is not complete.
 

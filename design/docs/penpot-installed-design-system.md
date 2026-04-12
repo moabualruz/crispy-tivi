@@ -25,6 +25,12 @@ Implementation rule:
 
 - widget-level colors, radii, and state geometry must flow from those theme
   files rather than being redefined ad hoc inside widget files
+- production shell code must keep neutral naming
+- reserve `mock`, `fake`, or `asset` naming for fixture files, test harnesses,
+  and temporary asset-backed repositories only
+- shared shell domain models, contract parsers, navigation, view-models,
+  routes, and widgets must not keep `mock_*` names once they are the retained
+  runtime path
 - shared shell backdrop, stage frame, action controls, artwork scrims, icon
   plates, and repeated media-card surfaces must also be defined there rather
   than repeated inside route/widget files
@@ -130,10 +136,15 @@ These are hard constraints:
 - do not expose `Sources` as a top-level global domain
 - do not surface `Sources` as a stand-alone Home shortcut or quick-access
   destination; access to source management stays within `Settings`
+- `Settings` search stays local to the grouped Settings hierarchy and must use
+  explicit result activation before opening an exact leaf
+- exact-leaf Settings activation must remain view-model/system owned so search,
+  open state, highlight, and unwind behavior do not drift into widget-local
+  state
 - do not expose `Player` as a top-level global navigation destination
 - do not use generic placeholder card walls as a substitute for real layout
 - do not use generic Material scaffolding as a substitute for board-faithful UI
-- do not leave major mock shell surfaces as empty color blocks when mock assets
+- do not leave major shell surfaces as empty color blocks when mock assets
   are available
 - do not populate the shell with arbitrary non-media mock imagery that breaks
   the TV-product illusion; mock assets must be intentionally curated or
@@ -446,7 +457,8 @@ Sections:
 - Recommended / Trending placeholder
 - Quick Access to Search
 - Quick Access to Settings
-- Quick Access to Sources
+- Quick Access to Series
+- Quick Access to Live TV Guide
 - Resume Setup if setup incomplete
 
 Rules:
@@ -469,26 +481,40 @@ Local subviews:
 Behavior:
 
 - information-dense but remote-safe
-- category or group list in side panel
+- local subview nav only in side panel
+- group/category switching lives in content, not the sidebar
 - browse and quick-play live in content
 - focus updates metadata and overlays
 - focus does not start playback
+- explicit activation changes playback
+- selected-channel detail may change without retuning the active stream
 
 #### Channels
 
 - channels live in the left browse pane
+- group rail lives in content above the detail lane
 - main area shows quick-play and selected-channel context
 - category named `All` filters out nothing
 
 #### Guide
 
-- category or group list in side panel
+- local subview nav only in side panel
+- group rail stays in content
 - category named `All`
 - optional toggle to show channels without EPG
 - normal state shows `3-5` rows around selection
 - EPG-focus state expands to `6-9` rows
 - active stream keeps playing while browsing
 - no retune until explicit activation
+- selected channel summary stays separate from the guide matrix
+- focused program detail overlay sits above the matrix and shows:
+  - focused slot
+  - program title and summary
+  - live-edge state
+  - duration
+  - catch-up/archive affordances
+- the matrix itself must come from canonical guide-row/program data rather than
+  placeholder string tables
 
 ### Media
 
@@ -545,7 +571,7 @@ Rules:
 - global search should search Live TV and Media domain content
 - settings search remains local to Settings and opens exact settings leaves
 - do not present Settings as a first-class result group in the global search
-  mock shell unless the user changes that rule
+  shell unless the user changes that rule
 
 Not allowed:
 

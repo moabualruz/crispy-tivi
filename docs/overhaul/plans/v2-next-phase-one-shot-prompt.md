@@ -56,6 +56,11 @@ incomplete unless the user explicitly changes the sequence.
 Do not start parallel domain-agent delivery before Phase 6 is fully complete.
 After Phase 6 is fully complete, independent domain lanes may run in parallel
 agents only when ownership is explicit and write scopes do not overlap.
+One orchestrator owns one whole phase. Do not split a phase into partial
+progress slices across multiple orchestrators and call that completion.
+If sub-agents are used inside a phase, the orchestrator must stay responsible
+for end-to-end closure: re-audit drift/gaps, integrate, rerun verification,
+update docs, and only then declare the phase complete.
 
 Your job is to:
 

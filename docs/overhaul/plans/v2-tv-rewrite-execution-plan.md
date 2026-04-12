@@ -126,6 +126,8 @@ Phase 5 is now complete for the current restart lane:
   route surfaces
 - Flutter loads the content snapshot from a canonical asset rather than keeping
   populated route content in local Dart seed files
+- retained shell domain/presentation code now keeps neutral production naming;
+  only asset-backed fake repositories and fixtures keep explicit source naming
 - startup route, top-level domain ordering, settings-group ordering, Live TV
   panel/group ordering, Media panel/scope ordering, and Home quick-access
   ordering are now explicit contract surfaces rather than hidden local runtime
@@ -157,15 +159,94 @@ Phase 6 is now complete for the current restart lane:
   out of the wizard returns to the Settings-owned source overview instead of
   leaving the shell in a detached transient state
 
+### Phase 7: settings completion
+
+Phase 7 is now complete for the current restart lane:
+
+- settings top-level group navigation is verified across General, Playback,
+  Sources, Appearance, and System
+- Settings search now stays local to the Settings hierarchy, shows explicit
+  result activation, and opens the exact leaf only after activation
+- exact-leaf Settings activation is view-model owned and keeps the opened leaf
+  highlighted inside the grouped Settings hierarchy
+- source-management search hits open the correct source detail inside
+  Settings-owned Sources rather than escaping into a detached source domain
+
+### Phase 8: live TV completion
+
+Phase 8 is now complete for the current restart lane:
+
+- the Live TV sidebar owns only local subview navigation: `Channels` and
+  `Guide`
+- Live TV group/category switching now stays inside content rather than
+  drifting back into the sidebar
+- Channels now keeps a dense left browse pane plus a selected-channel detail
+  lane on the right
+- focus updates selected-channel metadata only; playback remains on the active
+  channel until explicit tune activation
+- Guide keeps selected-channel summary plus preview/matrix separation without
+  implying retune during browse
+- canonical content snapshot and tests now cover the approved Live TV browse
+  and guide schema
+
+### Phase 9: EPG / detail overlays completion
+
+Phase 9 is now complete for the current restart lane:
+
+- the Guide subview now renders from canonical `live_tv_guide` row/program
+  data instead of relying on placeholder string-table rendering
+- selected-channel guide summary remains separate from the matrix
+- focused-program detail overlay now shows focused slot, program summary,
+  live-edge state, and catch-up/archive affordances above the matrix
+- guide browse mode keeps retune/play actions out of the overlay lane
+- tests now verify guide overlay behavior and no-tune-action guide browse
+  behavior directly
+
+### Phase 10: movies completion
+
+Phase 10 is now complete for the current restart lane:
+
+- movie browsing now leads with film-first emphasis inside Media
+- movie detail remains explicit and separate from the shelf rail
+- movie playback handoff launches only from movie detail, not directly from
+  the shelf lane
+- movie-specific tests now verify the detail-to-player-preview handoff
+
+### Phase 11: series completion
+
+Phase 11 is now complete for the current restart lane:
+
+- series browsing now emphasizes season and episode continuity rather than
+  reusing movie detail language
+- season selection and episode selection stay explicit in the series detail
+  lane
+- series playback handoff launches from episode selection only
+- series-specific tests now verify season/episode handoff behavior
+
+### Phase 12: search completion
+
+Phase 12 is now complete for the current restart lane:
+
+- Search now behaves as a canonical cross-domain content handoff surface
+- search results map cleanly into Live TV, Movies, and Series detail intent
+- Search remains clearly separated from Settings-local search behavior
+- search-specific tests now verify domain-detail handoff copy and selection
+  updates
+
 After Phase 6 is fully complete:
 
 - domain delivery may run in parallel agents when the domains are independent
   enough to avoid overlapping write scopes
+- one orchestrator owns one whole phase and keeps that phase until full
+  closure; partial phase slices do not count as progress toward the next phase
 - preferred staffing is one active worker per independent domain/module lane
 - each delegated domain lane must have explicit file ownership and must still
   follow the full authority stack, installed design docs, and active spec/docs
 - parallelism is an acceleration tool for delivery after the shared foundation
   is closed, not a bypass around phase order or review discipline
+- each phase orchestrator must re-audit drift/gaps after implementation,
+  rework until the phase is actually clean, rerun verification, and update the
+  docs before that phase may close
 
 ### Player pre-code design gate
 

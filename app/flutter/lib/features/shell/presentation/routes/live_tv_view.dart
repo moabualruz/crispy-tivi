@@ -1,0 +1,1319 @@
+import 'package:crispy_tivi/core/theme/crispy_overhaul_tokens.dart';
+import 'package:crispy_tivi/core/theme/crispy_shell_roles.dart';
+import 'package:crispy_tivi/features/shell/domain/shell_content.dart';
+import 'package:crispy_tivi/features/shell/domain/shell_models.dart';
+import 'package:crispy_tivi/features/shell/domain/shell_navigation.dart';
+import 'package:flutter/material.dart';
+
+class LiveTvView extends StatelessWidget {
+  const LiveTvView({
+    required this.content,
+    required this.availableGroups,
+    required this.panel,
+    required this.group,
+    required this.focusedChannelIndex,
+    required this.playingChannelIndex,
+    required this.onSelectGroup,
+    required this.onSelectChannel,
+    required this.onActivateChannel,
+    super.key,
+  });
+
+  final ShellContentSnapshot content;
+  final List<LiveTvGroup> availableGroups;
+  final LiveTvPanel panel;
+  final LiveTvGroup group;
+  final int focusedChannelIndex;
+  final int playingChannelIndex;
+  final ValueChanged<LiveTvGroup> onSelectGroup;
+  final ValueChanged<int> onSelectChannel;
+  final VoidCallback onActivateChannel;
+
+  @override
+  Widget build(BuildContext context) {
+    if (panel == LiveTvPanel.guide) {
+      return _GuideView(
+        content: content,
+        availableGroups: availableGroups,
+        group: group,
+        focusedChannelIndex: focusedChannelIndex,
+        onSelectGroup: onSelectGroup,
+      );
+    }
+    return _ChannelsView(
+      content: content,
+      availableGroups: availableGroups,
+      group: group,
+      focusedChannelIndex: focusedChannelIndex,
+      playingChannelIndex: playingChannelIndex,
+      onSelectGroup: onSelectGroup,
+      onSelectChannel: onSelectChannel,
+      onActivateChannel: onActivateChannel,
+    );
+  }
+}
+
+class _ChannelsView extends StatelessWidget {
+  const _ChannelsView({
+    required this.content,
+    required this.availableGroups,
+    required this.group,
+    required this.focusedChannelIndex,
+    required this.playingChannelIndex,
+    required this.onSelectGroup,
+    required this.onSelectChannel,
+    required this.onActivateChannel,
+  });
+
+  final ShellContentSnapshot content;
+  final List<LiveTvGroup> availableGroups;
+  final LiveTvGroup group;
+  final int focusedChannelIndex;
+  final int playingChannelIndex;
+  final ValueChanged<LiveTvGroup> onSelectGroup;
+  final ValueChanged<int> onSelectChannel;
+  final VoidCallback onActivateChannel;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<ChannelEntry> channels = _channelsForGroup(
+      content.liveTvChannels,
+      group,
+    );
+    if (channels.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final int clampedFocusedIndex = focusedChannelIndex.clamp(
+      0,
+      channels.length - 1,
+    );
+    final int clampedPlayingIndex = playingChannelIndex.clamp(
+      0,
+      channels.length - 1,
+    );
+    final ChannelEntry selectedChannel = channels[clampedFocusedIndex];
+    final ChannelEntry playingChannel = channels[clampedPlayingIndex];
+    final LiveTvChannelDetail? selectedDetail = _detailForChannel(
+      content.liveTvBrowse.channelDetails,
+      selectedChannel.number,
+    );
+    final LiveTvGuideContent guideContent = _guideForChannels(
+      content.liveTvGuide,
+      channels,
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Expanded(
+          flex: 5,
+          child: DecoratedBox(
+            decoration: CrispyShellRoles.panelDecoration(),
+            child: Padding(
+              padding: const EdgeInsets.all(CrispyOverhaulTokens.large),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const _SectionHeader(
+                    title: 'Channels',
+                    subtitle:
+                        'Channel browse stays on the left. Explicit actions live in the selected detail lane.',
+                  ),
+                  const SizedBox(height: CrispyOverhaulTokens.large),
+                  _ChannelListHeader(
+                    totalCount: channels.length,
+                    groupLabel: group.label,
+                  ),
+                  const SizedBox(height: CrispyOverhaulTokens.medium),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: channels.length,
+                      separatorBuilder:
+                          (BuildContext context, int index) => const SizedBox(
+                            height: CrispyOverhaulTokens.small,
+                          ),
+                      itemBuilder:
+                          (BuildContext context, int index) => _ChannelRow(
+                            entry: channels[index],
+                            selected: index == clampedFocusedIndex,
+                            playing: index == clampedPlayingIndex,
+                            itemKey: Key(
+                              'live-tv-channel-${channels[index].number}',
+                            ),
+                            onTap: () => onSelectChannel(index),
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: CrispyOverhaulTokens.large),
+        Expanded(
+          flex: 7,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              DecoratedBox(
+                decoration: CrispyShellRoles.insetPanelDecoration(),
+                child: Padding(
+                  padding: const EdgeInsets.all(CrispyOverhaulTokens.medium),
+                  child: _GroupRail(
+                    title: 'Browse groups',
+                    values: availableGroups,
+                    selected: group,
+                    labelBuilder: (LiveTvGroup value) => value.label,
+                    keyBuilder:
+                        (LiveTvGroup value) => 'live-tv-group-${value.name}',
+                    onSelect: onSelectGroup,
+                    axis: Axis.horizontal,
+                  ),
+                ),
+              ),
+              const SizedBox(height: CrispyOverhaulTokens.large),
+              Expanded(
+                child: DecoratedBox(
+                  decoration: CrispyShellRoles.panelDecoration(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(CrispyOverhaulTokens.section),
+                    child: _ChannelDetailPane(
+                      selectedChannel: selectedChannel,
+                      selectedDetail: selectedDetail,
+                      group: group,
+                      playingChannel: playingChannel,
+                      guide: guideContent,
+                      onActivateChannel: onActivateChannel,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: CrispyOverhaulTokens.large),
+              SizedBox(
+                height: 214,
+                child: _GuideSnapshotPanel(
+                  guide: guideContent,
+                  selectedChannelNumber: selectedChannel.number,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GuideView extends StatelessWidget {
+  const _GuideView({
+    required this.content,
+    required this.availableGroups,
+    required this.group,
+    required this.focusedChannelIndex,
+    required this.onSelectGroup,
+  });
+
+  final ShellContentSnapshot content;
+  final List<LiveTvGroup> availableGroups;
+  final LiveTvGroup group;
+  final int focusedChannelIndex;
+  final ValueChanged<LiveTvGroup> onSelectGroup;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<ChannelEntry> channels = _channelsForGroup(
+      content.liveTvChannels,
+      group,
+    );
+    if (channels.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final ChannelEntry selectedChannel =
+        channels[focusedChannelIndex.clamp(0, channels.length - 1)];
+    final LiveTvGuideContent guideContent = _guideForChannels(
+      content.liveTvGuide,
+      channels,
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        SizedBox(
+          width: 304,
+          child: DecoratedBox(
+            decoration: CrispyShellRoles.panelDecoration(),
+            child: Padding(
+              padding: const EdgeInsets.all(CrispyOverhaulTokens.large),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const _SectionHeader(
+                      title: 'Guide groups',
+                      subtitle:
+                          'Guide focus updates structured detail overlays and never retunes on browse.',
+                    ),
+                    const SizedBox(height: CrispyOverhaulTokens.medium),
+                    _GroupRail(
+                      title: 'Browse groups',
+                      values: availableGroups,
+                      selected: group,
+                      labelBuilder: (LiveTvGroup value) => value.label,
+                      keyBuilder:
+                          (LiveTvGroup value) => 'live-tv-group-${value.name}',
+                      onSelect: onSelectGroup,
+                    ),
+                    const SizedBox(height: CrispyOverhaulTokens.large),
+                    _InfoBadge(
+                      label: 'Selected channel',
+                      value:
+                          '${selectedChannel.number} ${selectedChannel.name}',
+                    ),
+                    const SizedBox(height: CrispyOverhaulTokens.small),
+                    _InfoBadge(
+                      label: 'Focused slot',
+                      value: guideContent.focusedSlot,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: CrispyOverhaulTokens.large),
+        Expanded(
+          child: Column(
+            children: <Widget>[
+              Expanded(
+                flex: 5,
+                child: DecoratedBox(
+                  decoration: CrispyShellRoles.panelDecoration(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(CrispyOverhaulTokens.section),
+                    child: _GuidePreviewPane(
+                      selectedChannel: selectedChannel,
+                      guide: guideContent,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: CrispyOverhaulTokens.large),
+              Expanded(
+                flex: 7,
+                child: DecoratedBox(
+                  decoration: CrispyShellRoles.insetPanelDecoration(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(CrispyOverhaulTokens.large),
+                    child: _GuideMatrix(
+                      guide: guideContent,
+                      selectedChannelNumber: selectedChannel.number,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(title, style: textTheme.titleLarge),
+        const SizedBox(height: CrispyOverhaulTokens.compact),
+        Text(
+          subtitle,
+          style: textTheme.bodyMedium?.copyWith(
+            color: CrispyOverhaulTokens.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GroupRail<T> extends StatelessWidget {
+  const _GroupRail({
+    required this.title,
+    required this.values,
+    required this.selected,
+    required this.labelBuilder,
+    required this.keyBuilder,
+    required this.onSelect,
+    this.axis = Axis.vertical,
+  });
+
+  final String title;
+  final List<T> values;
+  final T selected;
+  final String Function(T value) labelBuilder;
+  final String Function(T value) keyBuilder;
+  final ValueChanged<T> onSelect;
+  final Axis axis;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final bool horizontal = axis == Axis.horizontal;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          title,
+          style: textTheme.titleMedium?.copyWith(
+            color: CrispyOverhaulTokens.textSecondary,
+          ),
+        ),
+        const SizedBox(height: CrispyOverhaulTokens.small),
+        if (horizontal)
+          Wrap(
+            spacing: CrispyOverhaulTokens.small,
+            runSpacing: CrispyOverhaulTokens.small,
+            children: values
+                .map(
+                  (T value) => _GroupRailItem<T>(
+                    itemKey: Key(keyBuilder(value)),
+                    label: labelBuilder(value),
+                    selected: value == selected,
+                    onPressed: () => onSelect(value),
+                    compact: true,
+                  ),
+                )
+                .toList(growable: false),
+          )
+        else
+          ...values.map(
+            (T value) => Padding(
+              padding: const EdgeInsets.only(
+                bottom: CrispyOverhaulTokens.small,
+              ),
+              child: _GroupRailItem<T>(
+                itemKey: Key(keyBuilder(value)),
+                label: labelBuilder(value),
+                selected: value == selected,
+                onPressed: () => onSelect(value),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _GroupRailItem<T> extends StatelessWidget {
+  const _GroupRailItem({
+    required this.itemKey,
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+    this.compact = false,
+  });
+
+  final Key itemKey;
+  final String label;
+  final bool selected;
+  final VoidCallback onPressed;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: itemKey,
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusCard),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          width: compact ? null : double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: CrispyOverhaulTokens.medium,
+            vertical: CrispyOverhaulTokens.small,
+          ),
+          decoration:
+              selected
+                  ? BoxDecoration(
+                    color: CrispyOverhaulTokens.surfaceHighlight,
+                    borderRadius: BorderRadius.circular(
+                      CrispyOverhaulTokens.radiusCard,
+                    ),
+                    border: Border.all(color: CrispyOverhaulTokens.accentFocus),
+                  )
+                  : BoxDecoration(
+                    color: CrispyOverhaulTokens.surfaceInset,
+                    borderRadius: BorderRadius.circular(
+                      CrispyOverhaulTokens.radiusCard,
+                    ),
+                    border: Border.all(
+                      color: CrispyOverhaulTokens.borderStrong,
+                    ),
+                  ),
+          child: Row(
+            mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
+            children: <Widget>[
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color:
+                      selected
+                          ? CrispyOverhaulTokens.accentFocus
+                          : CrispyOverhaulTokens.textSecondary,
+                ),
+              ),
+              const SizedBox(width: CrispyOverhaulTokens.small),
+              if (compact)
+                Text(
+                  label,
+                  style: textTheme.titleSmall?.copyWith(
+                    color:
+                        selected
+                            ? CrispyOverhaulTokens.navSelectedText
+                            : CrispyOverhaulTokens.textPrimary,
+                  ),
+                )
+              else
+                Expanded(
+                  child: Text(
+                    label,
+                    style: textTheme.titleSmall?.copyWith(
+                      color:
+                          selected
+                              ? CrispyOverhaulTokens.navSelectedText
+                              : CrispyOverhaulTokens.textPrimary,
+                    ),
+                  ),
+                ),
+              if (!compact)
+                Text(
+                  selected ? 'Active' : 'Browse',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: CrispyOverhaulTokens.textSecondary,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoBadge extends StatelessWidget {
+  const _InfoBadge({super.key, required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    return DecoratedBox(
+      decoration: CrispyShellRoles.infoPlateDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: CrispyOverhaulTokens.small,
+          vertical: CrispyOverhaulTokens.compact,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              label,
+              style: textTheme.labelSmall?.copyWith(
+                color: CrispyOverhaulTokens.textSecondary,
+              ),
+            ),
+            const SizedBox(height: CrispyOverhaulTokens.compact),
+            Text(value, style: textTheme.bodyMedium),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChannelListHeader extends StatelessWidget {
+  const _ChannelListHeader({
+    required this.totalCount,
+    required this.groupLabel,
+  });
+
+  final int totalCount;
+  final String groupLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Expanded(child: _InfoBadge(label: 'Active group', value: groupLabel)),
+        const SizedBox(width: CrispyOverhaulTokens.small),
+        Expanded(
+          child: _InfoBadge(label: 'Showing', value: '$totalCount channels'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChannelRow extends StatelessWidget {
+  const _ChannelRow({
+    required this.entry,
+    required this.selected,
+    required this.playing,
+    required this.itemKey,
+    required this.onTap,
+  });
+
+  final ChannelEntry entry;
+  final bool selected;
+  final bool playing;
+  final Key itemKey;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: itemKey,
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusCard),
+        child: DecoratedBox(
+          decoration:
+              selected
+                  ? CrispyShellRoles.insetPanelDecoration()
+                  : CrispyShellRoles.denseCardDecoration(),
+          child: Padding(
+            padding: const EdgeInsets.all(CrispyOverhaulTokens.medium),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                SizedBox(
+                  width: 84,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        entry.number,
+                        style: textTheme.titleMedium?.copyWith(
+                          color: CrispyOverhaulTokens.accentFocus,
+                        ),
+                      ),
+                      const SizedBox(height: CrispyOverhaulTokens.compact),
+                      Text(
+                        selected ? 'Selected' : 'Browse',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: CrispyOverhaulTokens.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              entry.name,
+                              style: textTheme.titleMedium,
+                            ),
+                          ),
+                          if (playing)
+                            Text(
+                              'Playing',
+                              style: textTheme.labelSmall?.copyWith(
+                                color: CrispyOverhaulTokens.accentFocus,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: CrispyOverhaulTokens.compact),
+                      Text(
+                        entry.program,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: <Widget>[
+                    Text(
+                      selected ? 'Now' : 'Later',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: CrispyOverhaulTokens.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: CrispyOverhaulTokens.compact),
+                    Text(entry.timeRange, style: textTheme.bodyMedium),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChannelDetailPane extends StatelessWidget {
+  const _ChannelDetailPane({
+    required this.selectedChannel,
+    required this.selectedDetail,
+    required this.group,
+    required this.playingChannel,
+    required this.guide,
+    required this.onActivateChannel,
+  });
+
+  final ChannelEntry selectedChannel;
+  final LiveTvChannelDetail? selectedDetail;
+  final LiveTvGroup group;
+  final ChannelEntry playingChannel;
+  final LiveTvGuideContent guide;
+  final VoidCallback onActivateChannel;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final String primaryProgram =
+        selectedDetail?.title ?? selectedChannel.program;
+    final String summary =
+        selectedDetail?.summary ??
+        'Selected channel detail stays explicit before playback.';
+    final String nowLabel =
+        selectedDetail?.nowLabel ?? 'Now · ${selectedChannel.program}';
+    final String quickPlayLabel =
+        selectedDetail?.quickPlayLabel ?? 'Play selected channel';
+    final String archiveHint = selectedDetail?.archiveHint ?? 'Preview only';
+    final bool selectedIsPlaying =
+        selectedChannel.number == playingChannel.number;
+    final String playingNowLabel = 'Playing ${playingChannel.number}';
+    return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _InfoBadge(
+                  label: selectedIsPlaying ? 'Playing now' : 'Playback',
+                  value: selectedIsPlaying ? 'Active tune' : 'Preview only',
+                ),
+              ),
+              const SizedBox(width: CrispyOverhaulTokens.small),
+              Expanded(child: _InfoBadge(label: 'Group', value: group.label)),
+              const SizedBox(width: CrispyOverhaulTokens.small),
+              Expanded(
+                flex: 2,
+                child: _InfoBadge(
+                  key: const Key('live-tv-playing-channel-label'),
+                  label: 'Now playing',
+                  value: playingNowLabel,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: CrispyOverhaulTokens.large),
+          DecoratedBox(
+            decoration: CrispyShellRoles.previewStageDecoration(),
+            child: Padding(
+              padding: const EdgeInsets.all(CrispyOverhaulTokens.large),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    'Selected channel detail',
+                    style: textTheme.titleLarge?.copyWith(
+                      color: CrispyOverhaulTokens.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: CrispyOverhaulTokens.compact),
+                  Text(
+                    'Selected preview',
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: CrispyOverhaulTokens.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: CrispyOverhaulTokens.medium),
+                  Wrap(
+                    spacing: CrispyOverhaulTokens.small,
+                    runSpacing: CrispyOverhaulTokens.small,
+                    children: <Widget>[
+                      _LiveTvActionSurface(
+                        key: const Key('live-tv-tune-action'),
+                        label: quickPlayLabel,
+                        emphasis: true,
+                        onTap: onActivateChannel,
+                      ),
+                      const _LiveTvActionSurface(label: 'Open guide'),
+                      const _LiveTvActionSurface(label: 'More info'),
+                    ],
+                  ),
+                  const SizedBox(height: CrispyOverhaulTokens.medium),
+                  DecoratedBox(
+                    decoration: CrispyShellRoles.heroArtworkScrimDecoration(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(
+                        CrispyOverhaulTokens.medium,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text(
+                            primaryProgram,
+                            style: textTheme.titleMedium?.copyWith(
+                              color: CrispyOverhaulTokens.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: CrispyOverhaulTokens.compact),
+                          Text(
+                            nowLabel,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: CrispyOverhaulTokens.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: CrispyOverhaulTokens.compact),
+                          Text(
+                            summary,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: CrispyOverhaulTokens.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: CrispyOverhaulTokens.compact),
+                          Text(
+                            archiveHint,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: CrispyOverhaulTokens.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: CrispyOverhaulTokens.medium),
+          Row(
+            children: <Widget>[
+              ...guide.timeSlots
+                  .skip(1)
+                  .map(
+                    (String slot) => Padding(
+                      padding: const EdgeInsets.only(
+                        right: CrispyOverhaulTokens.small,
+                      ),
+                      child: _InfoBadge(label: 'Slot', value: slot),
+                    ),
+                  ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuideSnapshotPanel extends StatelessWidget {
+  const _GuideSnapshotPanel({
+    required this.guide,
+    required this.selectedChannelNumber,
+  });
+
+  final LiveTvGuideContent guide;
+  final String selectedChannelNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: CrispyShellRoles.insetPanelDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.all(CrispyOverhaulTokens.medium),
+        child: _GuideMatrix(
+          guide: guide,
+          selectedChannelNumber: selectedChannelNumber,
+          compact: true,
+        ),
+      ),
+    );
+  }
+}
+
+class _LiveTvActionSurface extends StatelessWidget {
+  const _LiveTvActionSurface({
+    super.key,
+    required this.label,
+    this.emphasis = false,
+    this.onTap,
+  });
+
+  final String label;
+  final bool emphasis;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(CrispyOverhaulTokens.radiusCard),
+        child: DecoratedBox(
+          decoration:
+              emphasis
+                  ? CrispyShellRoles.insetPanelDecoration()
+                  : CrispyShellRoles.infoPlateDecoration(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: CrispyOverhaulTokens.medium,
+              vertical: CrispyOverhaulTokens.small,
+            ),
+            child: Text(
+              label,
+              style: textTheme.labelLarge?.copyWith(
+                color:
+                    emphasis
+                        ? CrispyOverhaulTokens.textPrimary
+                        : CrispyOverhaulTokens.textSecondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GuidePreviewPane extends StatelessWidget {
+  const _GuidePreviewPane({required this.selectedChannel, required this.guide});
+
+  final ChannelEntry selectedChannel;
+  final LiveTvGuideContent guide;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        if (constraints.maxHeight < 240) {
+          return _CompactGuidePreviewPane(
+            selectedChannel: selectedChannel,
+            guide: guide,
+          );
+        }
+        return _ExpandedGuidePreviewPane(
+          selectedChannel: selectedChannel,
+          guide: guide,
+        );
+      },
+    );
+  }
+}
+
+class _ExpandedGuidePreviewPane extends StatelessWidget {
+  const _ExpandedGuidePreviewPane({
+    required this.selectedChannel,
+    required this.guide,
+  });
+
+  final ChannelEntry selectedChannel;
+  final LiveTvGuideContent guide;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final LiveTvGuideRowDetail? row = _guideRowForChannel(
+      guide.rows,
+      selectedChannel.number,
+    );
+    final LiveTvProgramDetail? focusedProgram = _programForSlot(
+      row,
+      guide.focusedSlot,
+    );
+    return DecoratedBox(
+      decoration: CrispyShellRoles.previewStageDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.all(CrispyOverhaulTokens.large),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                _InfoBadge(label: 'Guide time', value: guide.focusedSlot),
+                const SizedBox(width: CrispyOverhaulTokens.small),
+                _InfoBadge(label: 'Channel', value: selectedChannel.number),
+                const SizedBox(width: CrispyOverhaulTokens.small),
+                _InfoBadge(
+                  key: const Key('live-tv-guide-live-edge-label'),
+                  label: 'State',
+                  value: focusedProgram?.liveEdgeLabel ?? 'Guide browse',
+                ),
+                const Spacer(),
+                Text(
+                  'Guide focus never starts playback',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: CrispyOverhaulTokens.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: CrispyOverhaulTokens.large),
+            Expanded(
+              child: DecoratedBox(
+                decoration: CrispyShellRoles.heroArtworkScrimDecoration(),
+                child: Padding(
+                  padding: const EdgeInsets.all(CrispyOverhaulTokens.large),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: <Widget>[
+                      Text(
+                        'Focused guide detail',
+                        style: textTheme.titleLarge?.copyWith(
+                          color: CrispyOverhaulTokens.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: CrispyOverhaulTokens.compact),
+                      Text(
+                        focusedProgram?.title ?? selectedChannel.program,
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: CrispyOverhaulTokens.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: CrispyOverhaulTokens.small),
+                      Text(
+                        focusedProgram?.summary ?? guide.summaryBody,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: CrispyOverhaulTokens.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: CrispyOverhaulTokens.small),
+                      Wrap(
+                        spacing: CrispyOverhaulTokens.small,
+                        runSpacing: CrispyOverhaulTokens.small,
+                        children: <Widget>[
+                          _InfoBadge(
+                            label: 'Duration',
+                            value: focusedProgram?.durationLabel ?? 'Unknown',
+                          ),
+                          _InfoBadge(
+                            label: 'Catch-up',
+                            value:
+                                (focusedProgram?.supportsCatchup ?? false)
+                                    ? 'Available'
+                                    : 'Unavailable',
+                          ),
+                          _InfoBadge(
+                            label: 'Archive',
+                            value:
+                                (focusedProgram?.supportsArchive ?? false)
+                                    ? 'Available'
+                                    : 'Unavailable',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactGuidePreviewPane extends StatelessWidget {
+  const _CompactGuidePreviewPane({
+    required this.selectedChannel,
+    required this.guide,
+  });
+
+  final ChannelEntry selectedChannel;
+  final LiveTvGuideContent guide;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final LiveTvGuideRowDetail? row = _guideRowForChannel(
+      guide.rows,
+      selectedChannel.number,
+    );
+    final LiveTvProgramDetail? focusedProgram = _programForSlot(
+      row,
+      guide.focusedSlot,
+    );
+    return DecoratedBox(
+      decoration: CrispyShellRoles.previewStageDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.all(CrispyOverhaulTokens.medium),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Wrap(
+              spacing: CrispyOverhaulTokens.small,
+              runSpacing: CrispyOverhaulTokens.small,
+              children: <Widget>[
+                _InfoBadge(label: 'Guide time', value: guide.focusedSlot),
+                _InfoBadge(label: 'Channel', value: selectedChannel.number),
+                _InfoBadge(
+                  key: const Key('live-tv-guide-live-edge-label'),
+                  label: 'State',
+                  value: focusedProgram?.liveEdgeLabel ?? 'Guide browse',
+                ),
+              ],
+            ),
+            const SizedBox(height: CrispyOverhaulTokens.medium),
+            Text(
+              focusedProgram?.title ?? selectedChannel.program,
+              style: textTheme.titleMedium?.copyWith(
+                color: CrispyOverhaulTokens.textPrimary,
+              ),
+            ),
+            const SizedBox(height: CrispyOverhaulTokens.compact),
+            Text(
+              focusedProgram?.liveEdgeLabel ??
+                  'Guide focus never starts playback',
+              style: textTheme.bodySmall?.copyWith(
+                color: CrispyOverhaulTokens.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GuideMatrix extends StatelessWidget {
+  const _GuideMatrix({
+    required this.guide,
+    required this.selectedChannelNumber,
+    this.compact = false,
+  });
+
+  final LiveTvGuideContent guide;
+  final String selectedChannelNumber;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    if (guide.rows.isEmpty || guide.timeSlots.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final TextTheme textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            SizedBox(
+              width: 160,
+              child: Text(
+                'Channel',
+                style: textTheme.titleSmall?.copyWith(
+                  color: CrispyOverhaulTokens.textSecondary,
+                ),
+              ),
+            ),
+            ...guide.timeSlots.map(
+              (String slot) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    right: CrispyOverhaulTokens.small,
+                  ),
+                  child: DecoratedBox(
+                    decoration: CrispyShellRoles.infoPlateDecoration(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: CrispyOverhaulTokens.small,
+                        vertical: CrispyOverhaulTokens.compact,
+                      ),
+                      child: Text(
+                        slot,
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodyMedium,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: CrispyOverhaulTokens.small),
+        ...guide.rows.map(
+          (LiveTvGuideRowDetail row) => Padding(
+            padding: const EdgeInsets.only(bottom: CrispyOverhaulTokens.small),
+            child: Row(
+              children: <Widget>[
+                SizedBox(
+                  width: 160,
+                  child: Text(
+                    '${row.channelNumber} ${row.channelName}',
+                    style: textTheme.titleSmall?.copyWith(
+                      color:
+                          row.channelNumber == selectedChannelNumber
+                              ? CrispyOverhaulTokens.textPrimary
+                              : CrispyOverhaulTokens.textSecondary,
+                    ),
+                  ),
+                ),
+                ...guide.timeSlots.map((String slot) {
+                  final LiveTvProgramDetail? program = _programForSlot(
+                    row,
+                    slot,
+                  );
+                  final bool selectedCell =
+                      row.channelNumber == selectedChannelNumber &&
+                      slot == guide.focusedSlot;
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        right: CrispyOverhaulTokens.small,
+                      ),
+                      child: DecoratedBox(
+                        decoration:
+                            selectedCell
+                                ? CrispyShellRoles.insetPanelDecoration()
+                                : CrispyShellRoles.denseCardDecoration(),
+                        child: Padding(
+                          padding: const EdgeInsets.all(
+                            CrispyOverhaulTokens.small,
+                          ),
+                          child: Text(
+                            program?.title ?? 'No data',
+                            maxLines: compact ? 1 : 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color:
+                                  selectedCell
+                                      ? CrispyOverhaulTokens.textPrimary
+                                      : CrispyOverhaulTokens.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+List<ChannelEntry> _channelsForGroup(
+  List<ChannelEntry> channels,
+  LiveTvGroup group,
+) {
+  switch (group) {
+    case LiveTvGroup.allChannels:
+      return channels;
+    case LiveTvGroup.favorites:
+      return channels.take(2).toList(growable: false);
+    case LiveTvGroup.news:
+      return <ChannelEntry>[channels[0]];
+    case LiveTvGroup.sports:
+      return <ChannelEntry>[channels[1]];
+    case LiveTvGroup.movies:
+      return <ChannelEntry>[channels[2]];
+    case LiveTvGroup.kids:
+      return <ChannelEntry>[channels[3]];
+  }
+}
+
+LiveTvChannelDetail? _detailForChannel(
+  List<LiveTvChannelDetail> details,
+  String channelNumber,
+) {
+  for (final LiveTvChannelDetail detail in details) {
+    if (detail.number == channelNumber) {
+      return detail;
+    }
+  }
+  return null;
+}
+
+LiveTvGuideContent _guideForChannels(
+  LiveTvGuideContent guide,
+  List<ChannelEntry> channels,
+) {
+  final Set<String> allowedNumbers =
+      channels.map((ChannelEntry channel) => channel.number).toSet();
+  final List<LiveTvGuideRowDetail> rows = guide.rows
+      .where(
+        (LiveTvGuideRowDetail row) =>
+            allowedNumbers.contains(row.channelNumber),
+      )
+      .toList(growable: false);
+  return LiveTvGuideContent(
+    summaryTitle: guide.summaryTitle,
+    summaryBody: guide.summaryBody,
+    timeSlots: guide.timeSlots,
+    selectedChannelNumber: guide.selectedChannelNumber,
+    focusedSlot: guide.focusedSlot,
+    rows: rows,
+  );
+}
+
+LiveTvGuideRowDetail? _guideRowForChannel(
+  List<LiveTvGuideRowDetail> rows,
+  String channelNumber,
+) {
+  for (final LiveTvGuideRowDetail row in rows) {
+    if (row.channelNumber == channelNumber) {
+      return row;
+    }
+  }
+  return null;
+}
+
+LiveTvProgramDetail? _programForSlot(LiveTvGuideRowDetail? row, String slot) {
+  if (row == null) {
+    return null;
+  }
+  for (final LiveTvProgramDetail program in row.programs) {
+    if (program.slot == slot) {
+      return program;
+    }
+  }
+  return null;
+}

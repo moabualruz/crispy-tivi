@@ -17,12 +17,26 @@
 - If any drift, mismatch, or missing requirement is found, fix it before claiming phase completion or moving to the next phase.
 - Do not start or claim a later phase while an earlier phase remains incomplete.
   Phase order is strict unless the user explicitly overrides it.
+- Execution ownership is phase-based.
+  One orchestrator owns one phase and stays with that phase until it is fully
+  complete, re-audited for drift/gaps, reworked if needed, verified, and
+  documented.
+- Do not fragment a single phase into partial completion slices across
+  multiple orchestrators just to increase activity.
 - Parallel domain delivery is allowed only after Phase 6 is fully complete.
   Before that point, do not split work across parallel agents for later-domain
   implementation lanes.
 - After Phase 6 is fully complete, independent domain lanes may be delegated to
   parallel agents to accelerate delivery, but only with explicit ownership,
   doc/spec compliance, and no overlap in write scope.
+- Allowed parallelism after Phase 6 is:
+  one orchestrator per independent phase or one orchestrator per independent
+  domain phase, as long as those phases do not conflict in authority, write
+  scope, or sequencing.
+- Inside a phase, the orchestrator may delegate bounded subwork, but the phase
+  is not considered done until that orchestrator has integrated everything,
+  rechecked for drift/gaps, rerun verification, and closed the docs for that
+  phase.
 - Preferred post-Phase-6 parallelization is one active worker per independent
   domain/module write scope, with shared theme/contract/test/doc integration
   files reserved for leader-owned integration unless explicitly reassigned.
@@ -45,6 +59,12 @@
   usage.
 - When canonical mock content snapshot assets exist, populated route content
   should load from those assets instead of route-local Dart seed constants.
+- Production shell/domain/presentation code must use neutral names.
+  Reserve `mock`, `fake`, or `asset` prefixes for test fixtures, temporary
+  asset-backed repositories, and explicitly non-production sources only.
+- Do not let temporary data-source naming leak into shared UI, view-model,
+  contract, navigation, or domain-shape code that will remain in use after FFI
+  integration.
 - Mock imagery must be domain-relevant and curated for TV/media context. Do not
   use arbitrary personal, meme, pet, or otherwise off-domain placeholders in
   populated shell mocks.

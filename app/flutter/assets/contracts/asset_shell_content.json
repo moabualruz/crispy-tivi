@@ -1,0 +1,588 @@
+{
+  "home_hero": {
+    "kicker": "Tonight on CrispyTivi",
+    "title": "City Lights at Midnight",
+    "summary": "A dramatic featured rail with quiet chrome, clear hierarchy, and room-readable action placement.",
+    "primary_action": "Resume watching",
+    "secondary_action": "Open details",
+    "artwork": {
+      "kind": "asset",
+      "value": "assets/mocks/home-hero-shell.jpg"
+    }
+  },
+  "continue_watching": [
+    {
+      "title": "Neon District",
+      "caption": "42 min left",
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-1.jpg" }
+    },
+    {
+      "title": "Chef After Dark",
+      "caption": "Resume S2:E4",
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-2.jpg" }
+    },
+    {
+      "title": "Morning Live",
+      "caption": "Live now",
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-3.jpg" }
+    },
+    {
+      "title": "The Signal",
+      "caption": "Start over",
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-4.jpg" }
+    }
+  ],
+  "live_now": [
+    {
+      "title": "World Report",
+      "caption": "Newsroom",
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-5.jpg" }
+    },
+    {
+      "title": "Match Night",
+      "caption": "Sports Central",
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-1.jpg" }
+    },
+    {
+      "title": "Cinema Vault",
+      "caption": "Classic movies",
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-2.jpg" }
+    },
+    {
+      "title": "Planet North",
+      "caption": "Nature HD",
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-3.jpg" }
+    }
+  ],
+  "movie_hero": {
+    "kicker": "Featured film",
+    "title": "The Last Harbor",
+    "summary": "A cinematic detail state with clear action hierarchy, restrained metadata, and content-first framing.",
+    "primary_action": "Play trailer",
+    "secondary_action": "Add to watchlist",
+    "artwork": {
+      "kind": "asset",
+      "value": "assets/mocks/media-movie-hero-shell.jpg"
+    }
+  },
+  "series_hero": {
+    "kicker": "Series spotlight",
+    "title": "Shadow Signals",
+    "summary": "Season-driven browsing stays inside the media domain with episode context and tight focus separation.",
+    "primary_action": "Resume S1:E6",
+    "secondary_action": "Browse episodes",
+    "artwork": {
+      "kind": "asset",
+      "value": "assets/mocks/media-series-hero-shell.jpg"
+    }
+  },
+  "series_detail": {
+    "summary_title": "Season and episode handoff",
+    "summary_body": "Season choice stays above episode choice and the launch action remains explicit.",
+    "handoff_label": "Mock player handoff",
+    "seasons": [
+      {
+        "label": "Season 1",
+        "summary": "Episode-first season with the core story arc.",
+        "episodes": [
+          {
+            "code": "S1:E1",
+            "title": "Cold Open",
+            "summary": "Series premiere and setup.",
+            "duration_label": "45 min",
+            "handoff_label": "Launch player handoff"
+          },
+          {
+            "code": "S1:E2",
+            "title": "Cross Signal",
+            "summary": "The plot tightens around the central handoff.",
+            "duration_label": "44 min",
+            "handoff_label": "Launch player handoff"
+          },
+          {
+            "code": "S1:E3",
+            "title": "Afterglow",
+            "summary": "Focus stays on the next explicit handoff.",
+            "duration_label": "46 min",
+            "handoff_label": "Launch player handoff"
+          }
+        ]
+      },
+      {
+        "label": "Season 2",
+        "summary": "Continuation season with stronger episode continuity.",
+        "episodes": [
+          {
+            "code": "S2:E1",
+            "title": "Return Path",
+            "summary": "The series resets with a longer-form arc.",
+            "duration_label": "45 min",
+            "handoff_label": "Launch player handoff"
+          },
+          {
+            "code": "S2:E2",
+            "title": "Signal Drift",
+            "summary": "Season continuity stays explicit.",
+            "duration_label": "44 min",
+            "handoff_label": "Launch player handoff"
+          },
+          {
+            "code": "S2:E3",
+            "title": "Night Relay",
+            "summary": "The handoff stays ready without opening a separate episode page.",
+            "duration_label": "46 min",
+            "handoff_label": "Launch player handoff"
+          }
+        ]
+      }
+    ]
+  },
+  "top_films": [
+    {
+      "title": "The Last Harbor",
+      "caption": "Thriller",
+      "rank": 1,
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-1.jpg" }
+    },
+    {
+      "title": "Glass Minute",
+      "caption": "Drama",
+      "rank": 2,
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-2.jpg" }
+    },
+    {
+      "title": "Wired North",
+      "caption": "Sci-fi",
+      "rank": 3,
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-3.jpg" }
+    },
+    {
+      "title": "Quiet Ember",
+      "caption": "Mystery",
+      "rank": 4,
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-4.jpg" }
+    },
+    {
+      "title": "Atlas Run",
+      "caption": "Action",
+      "rank": 5,
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-5.jpg" }
+    }
+  ],
+  "top_series": [
+    {
+      "title": "Shadow Signals",
+      "caption": "New episode",
+      "rank": 1,
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-5.jpg" }
+    },
+    {
+      "title": "Northline",
+      "caption": "Season finale",
+      "rank": 2,
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-4.jpg" }
+    },
+    {
+      "title": "Open Range",
+      "caption": "Continue watching",
+      "rank": 3,
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-3.jpg" }
+    },
+    {
+      "title": "Fifth Harbor",
+      "caption": "New season",
+      "rank": 4,
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-2.jpg" }
+    },
+    {
+      "title": "After Current",
+      "caption": "Trending",
+      "rank": 5,
+      "artwork": { "kind": "asset", "value": "assets/mocks/poster-shell-1.jpg" }
+    }
+  ],
+  "live_tv_channels": [
+    { "number": "101", "name": "Crispy One", "program": "Midnight Bulletin", "time_range": "21:00 - 22:00" },
+    { "number": "118", "name": "Arena Live", "program": "Championship Replay", "time_range": "21:30 - 23:30" },
+    { "number": "205", "name": "Cinema Vault", "program": "Coastal Drive", "time_range": "20:45 - 22:35" },
+    { "number": "311", "name": "Nature Atlas", "program": "Winter Oceans", "time_range": "21:15 - 22:15" }
+  ],
+  "live_tv_browse": {
+    "summary_title": "Quick tune with dense context",
+    "summary_body": "Live TV browsing keeps the rail dense, the selected-channel context explicit, and quick play available without forcing playback chrome into the shell.",
+    "quick_play_label": "Play selected channel",
+    "quick_play_hint": "Starts at the live edge with archive available when the source supports it.",
+    "selected_channel_number": "101",
+    "channel_details": [
+      {
+        "number": "101",
+        "brand": "Crispy One",
+        "title": "Midnight Bulletin",
+        "summary": "Late-night national news with market recap, weather handoff, and live remote desks.",
+        "now_label": "Now · Midnight Bulletin",
+        "next_label": "Next · Market Close at 22:00",
+        "quick_play_label": "Play live",
+        "metadata_badges": ["News", "HD", "Archive 24h"],
+        "supports_catchup": true,
+        "supports_archive": true,
+        "archive_hint": "Start over and last 24 hours available."
+      },
+      {
+        "number": "118",
+        "brand": "Arena Live",
+        "title": "Championship Replay",
+        "summary": "Replay block with studio analysis, locker-room interviews, and quick-jump chapter breaks.",
+        "now_label": "Now · Championship Replay",
+        "next_label": "Next · Locker Room at 23:30",
+        "quick_play_label": "Resume replay",
+        "metadata_badges": ["Sports", "4K", "Catch-up"],
+        "supports_catchup": true,
+        "supports_archive": false,
+        "archive_hint": "Replay supports catch-up but not full archive."
+      },
+      {
+        "number": "205",
+        "brand": "Cinema Vault",
+        "title": "Coastal Drive",
+        "summary": "Feature film lane with title-safe artwork, synopsis context, and a clear handoff into movie metadata later.",
+        "now_label": "Now · Coastal Drive",
+        "next_label": "Next · Studio Cut at 22:35",
+        "quick_play_label": "Play from live edge",
+        "metadata_badges": ["Movies", "Dolby", "Start over"],
+        "supports_catchup": true,
+        "supports_archive": true,
+        "archive_hint": "Movie start-over and archive window available for 7 days."
+      },
+      {
+        "number": "311",
+        "brand": "Nature Atlas",
+        "title": "Winter Oceans",
+        "summary": "Calmer documentary lane with complete guide metadata but no restart rights on the current source.",
+        "now_label": "Now · Winter Oceans",
+        "next_label": "Next · Arctic Voices at 22:15",
+        "quick_play_label": "Join live",
+        "metadata_badges": ["Docs", "HD"],
+        "supports_catchup": false,
+        "supports_archive": false,
+        "archive_hint": "Live-only on the current source."
+      }
+    ]
+  },
+  "guide_rows": [
+    ["Now", "21:30", "22:00", "22:30", "23:00"],
+    ["Crispy One", "Bulletin", "Market Close", "Nightline", "Forecast"],
+    ["Arena Live", "Replay", "Analysis", "Locker Room", "Highlights"],
+    ["Cinema Vault", "Coastal Drive", "Coastal Drive", "Studio Cut", "Trailer Reel"],
+    ["Nature Atlas", "Winter Oceans", "Arctic Voices", "Wild Frontiers", "Night Shift"]
+  ],
+  "live_tv_guide": {
+    "summary_title": "Guide matrix with live-edge context",
+    "summary_body": "Guide browsing keeps a compact matrix, a selected-channel summary, and explicit catch-up/archive affordances when the source can honor them.",
+    "time_slots": ["21:30", "22:00", "22:30", "23:00"],
+    "selected_channel_number": "101",
+    "focused_slot": "22:00",
+    "rows": [
+      {
+        "channel_number": "101",
+        "channel_name": "Crispy One",
+        "programs": [
+          {
+            "slot": "21:30",
+            "title": "Midnight Bulletin",
+            "summary": "Top national stories and market headlines.",
+            "duration_label": "30 min",
+            "supports_catchup": true,
+            "supports_archive": true,
+            "live_edge_label": "Live edge"
+          },
+          {
+            "slot": "22:00",
+            "title": "Market Close",
+            "summary": "Closing bell, recap, and analyst desk.",
+            "duration_label": "30 min",
+            "supports_catchup": true,
+            "supports_archive": true,
+            "live_edge_label": "Starts at 22:00"
+          },
+          {
+            "slot": "22:30",
+            "title": "Nightline",
+            "summary": "Interviews and late analysis.",
+            "duration_label": "30 min",
+            "supports_catchup": true,
+            "supports_archive": true,
+            "live_edge_label": "Upcoming"
+          },
+          {
+            "slot": "23:00",
+            "title": "Forecast",
+            "summary": "Overnight weather and travel alerts.",
+            "duration_label": "30 min",
+            "supports_catchup": true,
+            "supports_archive": true,
+            "live_edge_label": "Upcoming"
+          }
+        ]
+      },
+      {
+        "channel_number": "118",
+        "channel_name": "Arena Live",
+        "programs": [
+          {
+            "slot": "21:30",
+            "title": "Championship Replay",
+            "summary": "Full replay with multi-angle chapters.",
+            "duration_label": "120 min",
+            "supports_catchup": true,
+            "supports_archive": false,
+            "live_edge_label": "In progress"
+          },
+          {
+            "slot": "22:00",
+            "title": "Analysis",
+            "summary": "Studio wrap and tactical breakdown.",
+            "duration_label": "30 min",
+            "supports_catchup": true,
+            "supports_archive": false,
+            "live_edge_label": "Queued"
+          },
+          {
+            "slot": "22:30",
+            "title": "Locker Room",
+            "summary": "Coach remarks and post-match clips.",
+            "duration_label": "30 min",
+            "supports_catchup": true,
+            "supports_archive": false,
+            "live_edge_label": "Queued"
+          },
+          {
+            "slot": "23:00",
+            "title": "Highlights",
+            "summary": "Fast-turn condensed highlights reel.",
+            "duration_label": "30 min",
+            "supports_catchup": true,
+            "supports_archive": false,
+            "live_edge_label": "Queued"
+          }
+        ]
+      },
+      {
+        "channel_number": "205",
+        "channel_name": "Cinema Vault",
+        "programs": [
+          {
+            "slot": "21:30",
+            "title": "Coastal Drive",
+            "summary": "Feature film currently playing.",
+            "duration_label": "65 min remaining",
+            "supports_catchup": true,
+            "supports_archive": true,
+            "live_edge_label": "Start over"
+          },
+          {
+            "slot": "22:00",
+            "title": "Coastal Drive",
+            "summary": "Feature film continuation.",
+            "duration_label": "35 min remaining",
+            "supports_catchup": true,
+            "supports_archive": true,
+            "live_edge_label": "In progress"
+          },
+          {
+            "slot": "22:30",
+            "title": "Studio Cut",
+            "summary": "Cast interview and making-of.",
+            "duration_label": "30 min",
+            "supports_catchup": true,
+            "supports_archive": true,
+            "live_edge_label": "Queued"
+          },
+          {
+            "slot": "23:00",
+            "title": "Trailer Reel",
+            "summary": "Upcoming premiere trailers.",
+            "duration_label": "30 min",
+            "supports_catchup": true,
+            "supports_archive": true,
+            "live_edge_label": "Queued"
+          }
+        ]
+      },
+      {
+        "channel_number": "311",
+        "channel_name": "Nature Atlas",
+        "programs": [
+          {
+            "slot": "21:30",
+            "title": "Winter Oceans",
+            "summary": "Migration routes under Arctic ice.",
+            "duration_label": "45 min",
+            "supports_catchup": false,
+            "supports_archive": false,
+            "live_edge_label": "Live only"
+          },
+          {
+            "slot": "22:00",
+            "title": "Arctic Voices",
+            "summary": "Field audio and glacial research.",
+            "duration_label": "30 min",
+            "supports_catchup": false,
+            "supports_archive": false,
+            "live_edge_label": "Upcoming"
+          },
+          {
+            "slot": "22:30",
+            "title": "Wild Frontiers",
+            "summary": "Remote habitats and camera traps.",
+            "duration_label": "30 min",
+            "supports_catchup": false,
+            "supports_archive": false,
+            "live_edge_label": "Upcoming"
+          },
+          {
+            "slot": "23:00",
+            "title": "Night Shift",
+            "summary": "Nocturnal wildlife special.",
+            "duration_label": "30 min",
+            "supports_catchup": false,
+            "supports_archive": false,
+            "live_edge_label": "Upcoming"
+          }
+        ]
+      }
+    ]
+  },
+  "search_groups": [
+    {
+      "title": "Live TV",
+      "results": [
+        { "title": "Arena Live", "caption": "Channel 118" },
+        { "title": "Cinema Vault", "caption": "Channel 205" }
+      ]
+    },
+    {
+      "title": "Movies",
+      "results": [
+        { "title": "The Last Harbor", "caption": "Thriller" },
+        { "title": "Atlas Run", "caption": "Action" }
+      ]
+    },
+    {
+      "title": "Series",
+      "results": [
+        { "title": "Shadow Signals", "caption": "Sci-fi drama" },
+        { "title": "Northline", "caption": "New season" }
+      ]
+    }
+  ],
+  "general_settings": [
+    { "title": "Startup target", "summary": "Choose the first screen after launch.", "value": "Home" },
+    { "title": "Recommendations", "summary": "Show history-based rails on Home.", "value": "On" }
+  ],
+  "playback_settings": [
+    { "title": "Quick play confirmation", "summary": "Require explicit play confirmation for channel tune.", "value": "On" },
+    { "title": "Preferred quality", "summary": "Default target for supported movie streams.", "value": "Auto" }
+  ],
+  "appearance_settings": [
+    { "title": "Focus intensity", "summary": "Boost focus glow for brighter rooms.", "value": "Balanced" },
+    { "title": "Clock display", "summary": "Show current time in the top shell area.", "value": "On" }
+  ],
+  "system_settings": [
+    { "title": "Storage", "summary": "Inspect cache and offline data.", "value": "4.2 GB" },
+    { "title": "About", "summary": "Version, diagnostics, and environment.", "value": "v0.1.0-alpha" }
+  ],
+  "source_health_items": [
+    {
+      "name": "Home Fiber IPTV",
+      "status": "Healthy",
+      "summary": "Live, guide, and catch-up verified 2 min ago.",
+      "source_type": "M3U + XMLTV",
+      "endpoint": "fiber.local / lineup-primary",
+      "last_sync": "2 minutes ago",
+      "capabilities": ["Live TV", "Guide", "Catch-up"],
+      "primary_action": "Re-import source"
+    },
+    {
+      "name": "Weekend Cinema",
+      "status": "Degraded",
+      "summary": "Guide present, posters delayed.",
+      "source_type": "Stalker",
+      "endpoint": "cinema.example.net / portal",
+      "last_sync": "14 minutes ago",
+      "capabilities": ["Movies", "Series", "Guide"],
+      "primary_action": "Review import"
+    },
+    {
+      "name": "Travel Archive",
+      "status": "Needs auth",
+      "summary": "Reconnect credentials to resume sync.",
+      "source_type": "Xtream Codes",
+      "endpoint": "travel.example.com / xtream",
+      "last_sync": "Sync blocked",
+      "capabilities": ["Live TV", "Movies", "Series"],
+      "primary_action": "Reconnect"
+    }
+  ],
+  "source_wizard_steps": [
+    {
+      "step": "Source Type",
+      "title": "Choose source type",
+      "summary": "Pick the provider integration first so connection, auth, and import rules stay accurate for the rest of the wizard.",
+      "primary_action": "Continue",
+      "secondary_action": "Back",
+      "field_labels": ["Source type", "Display name"],
+      "helper_lines": [
+        "Keep provider-specific flow inside Settings rather than exposing Sources as a separate app domain.",
+        "Wizard steps stay ordered and safe to unwind."
+      ]
+    },
+    {
+      "step": "Connection",
+      "title": "Add connection details",
+      "summary": "Capture the endpoint and source-specific path before auth or validation runs.",
+      "primary_action": "Validate connection",
+      "secondary_action": "Back",
+      "field_labels": ["Connection endpoint", "Headers"],
+      "helper_lines": [
+        "Connection validation should fail here instead of later import screens.",
+        "Temporary connection state must not auto-restore into an unsafe stale step."
+      ]
+    },
+    {
+      "step": "Credentials",
+      "title": "Authenticate source",
+      "summary": "Sensitive credentials stay in the wizard and should never auto-restore into the middle of the secret-bearing step.",
+      "primary_action": "Verify access",
+      "secondary_action": "Back",
+      "field_labels": ["Username", "Password"],
+      "helper_lines": [
+        "Auth can be entered for new sources or reconnect flows on existing sources.",
+        "Back from this step returns safely to connection rather than leaving the user in a broken state."
+      ]
+    },
+    {
+      "step": "Import",
+      "title": "Choose import scope",
+      "summary": "Review what the source will bring in and confirm the validation result before final import begins.",
+      "primary_action": "Start import",
+      "secondary_action": "Back",
+      "field_labels": ["Import scope", "Validation result"],
+      "helper_lines": [
+        "Import confirmation is a dedicated step, not a hidden side effect of auth.",
+        "Failures here should unwind cleanly back through the wizard."
+      ]
+    },
+    {
+      "step": "Finish",
+      "title": "Finish setup",
+      "summary": "Complete the source handoff and return to source overview with health and capability status visible.",
+      "primary_action": "Return to sources",
+      "secondary_action": "Back",
+      "field_labels": ["Validation result", "Import scope"],
+      "helper_lines": [
+        "Success returns to the Settings-owned source overview, not to a detached source domain.",
+        "The next domain phases can rely on this onboarding lane being complete."
+      ]
+    }
+  ]
+}
