@@ -9,11 +9,12 @@ A cross-platform IPTV media application targeting Android, iOS, Windows, macOS, 
 ## Files in this folder
 
 ### Resolved decisions (authoritative)
-- [decisions.md](decisions.md) — 17 decisions (Q1–Q15 interview plus D16 "nothing is post-V1" and D17 "hand-roll policy"). Supersedes everything else when in conflict.
+- [decisions.md](decisions.md) — 19 decisions. D1–D15 from the conflict-resolution interview, D16 "nothing is post-V1", D17 "hand-roll policy", D18 "desktop player = libmpv via custom JNA binding", D19 "desktop thumbnails/probe = bytedeco ffmpeg LGPL directly". Supersedes everything else when in conflict.
 - [v1-phase-roadmap.md](v1-phase-roadmap.md) — every V1 feature organized by phase (foundation → MVP → late-phase → release polish). Per D16, nothing is post-V1.
+- [ideas/crispy-tivi-product.md](ideas/crispy-tivi-product.md) — product one-pager from the 2026-04-14 idea-refine session. Target user, positioning, non-negotiables, V1 scope, Not Doing list, and the *sequential depth not parallel breadth* execution rule.
 
 ### Product & architecture
-- [tech-spec.md](tech-spec.md) — V1 technical specification plus amendments (from SPEC-RAW.md). §6 now points to monorepo-blueprint.md; §15.3 rewritten as "Catalog"; Amendment B (desktop player) downgraded to research task.
+- [tech-spec.md](tech-spec.md) — V1 technical specification plus amendments (from SPEC-RAW.md). §6 now points to monorepo-blueprint.md; §15.3 rewritten as "Catalog"; Amendment B (desktop player) pinned to libmpv via D18.
 - [architecture-decisions.md](architecture-decisions.md) — ADR pack (ADR-001..ADR-014). ADR-007 desktop backend bullet downgraded per D14.
 - [platform-behavior.md](platform-behavior.md) — Cross-platform behavior requirements (input, navigation, restoration, orientation, lifecycle, playback, secure storage, import/export, diagnostics, performance, web parity, platform responsibilities). §14 "library browsing" renamed to "catalog browsing".
 

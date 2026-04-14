@@ -2,7 +2,7 @@
 
 Cross-platform IPTV media app — one application on Android, iOS, Windows, macOS, Linux, and Web. Built as a Kotlin Multiplatform + Compose Multiplatform monorepo.
 
-**Status:** Scaffolding. No feature code yet. See [docs/v1-phase-roadmap.md](docs/v1-phase-roadmap.md) for the V1 plan.
+**Status:** Scaffolding. No feature code yet. See [docs/ideas/crispy-tivi-product.md](docs/ideas/crispy-tivi-product.md) for the product one-pager and [docs/v1-phase-roadmap.md](docs/v1-phase-roadmap.md) for the V1 plan.
 
 ## What it does (V1 scope)
 
@@ -65,6 +65,7 @@ crispy-tivi/
 │   └── observability/    # android, apple, desktop, web
 ├── provider/             # contracts, m3u, xtream, stalker
 ├── test/                 # fixtures, contracts
+├── branding/             # master logo (svg + 4 png variants) + platform-icon guide
 ├── AGENTS.md             # guidance for coding agents (Claude Code, Copilot CLI, etc.)
 ├── README.md
 ├── LICENSE
@@ -78,11 +79,13 @@ crispy-tivi/
 ## Start here
 
 1. [docs/Requirements.md](docs/Requirements.md) — index of every requirements document
-2. [docs/decisions.md](docs/decisions.md) — 17 resolved decisions (authoritative; wins any conflict)
-3. [docs/v1-phase-roadmap.md](docs/v1-phase-roadmap.md) — V1 feature phasing
-4. [docs/code-standards.md](docs/code-standards.md) — mandatory coding standards
-5. [docs/monorepo-blueprint.md](docs/monorepo-blueprint.md) — module layout and boundaries
-6. [docs/open-questions.md](docs/open-questions.md) — hand-roll architecture sketches + the single remaining research task (R2 desktop playback backend)
+2. [docs/decisions.md](docs/decisions.md) — 19 resolved decisions (authoritative; wins any conflict)
+3. [docs/ideas/crispy-tivi-product.md](docs/ideas/crispy-tivi-product.md) — product one-pager: target user, positioning, non-negotiables, V1 scope, Not Doing list
+4. [docs/v1-phase-roadmap.md](docs/v1-phase-roadmap.md) — V1 feature phasing
+5. [docs/code-standards.md](docs/code-standards.md) — mandatory coding standards
+6. [docs/monorepo-blueprint.md](docs/monorepo-blueprint.md) — module layout and boundaries
+7. [docs/open-questions.md](docs/open-questions.md) — hand-roll architecture sketches (R2 desktop playback is resolved as of D18/D19)
+8. [branding/README.md](branding/README.md) — master logo variants and per-platform icon generation guide
 
 ## License
 

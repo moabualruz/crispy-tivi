@@ -13,13 +13,15 @@ The branch `kotlin_try` is currently scaffolding-only: 50 module skeletons, buil
 Read in this order. When any file under `docs/` contradicts another, `docs/decisions.md` wins.
 
 1. **`docs/Requirements.md`** — index + reading order
-2. **`docs/decisions.md`** — 19 resolved decisions from the conflict-resolution interview + dependency audit + desktop backend selection. Authoritative. Key ones to know: D13 (hand-rolled nav), D14 superseded by D18 (desktop player = **libmpv via custom JNA binding**), D15 (all six platforms ship V1), D16 (nothing is post-V1 — SPEC §21 is V1 late-phase), D17 (drop ill-maintained or single-platform-only libraries and hand-roll), D18 (desktop player = libmpv), D19 (desktop thumbnails + stream probe = `org.bytedeco:ffmpeg` LGPL build directly, not JavaCV).
-3. **`docs/v1-phase-roadmap.md`** — every V1 feature by phase (foundation → core MVP → late-phase → release polish). Use this to know *when* a feature ships, not whether.
-4. **`docs/code-standards.md`** ← emphasized — UDF, DDD-lite, adapter/strategy/facade/policy patterns, StateFlow rules, DRY/SOLID pragmatics, naming, error model, performance rules, testing focus. Every code change must conform.
-5. **`docs/monorepo-blueprint.md`** ← emphasized — authoritative module graph, responsibilities, dependency direction, package layout, file shapes, boundary rules, naming rules, merge/split guidance.
-6. Supporting requirements: `docs/tech-spec.md`, `docs/platform-behavior.md`, `docs/data-model.md`, `docs/db-schema-guide.md`, `docs/contract-api-spec.md`, `docs/architecture-decisions.md`, `docs/uiux-spec.md`.
-7. `docs/orchestrator-start-prompt.md` / `docs/orchestrator-short-prompt.md` — research → brainstorm → plan → execute → verify workflow for non-trivial work.
-8. `docs/open-questions.md` — hand-roll architecture sketches for navigation (R1), player backend (R3), media session (R5), casting (R6). R2 is **resolved** (D18) and kept as a historical record of the backend comparison. No third-party library research tasks remain open.
+2. **`docs/decisions.md`** — 19 resolved decisions. Authoritative. Key ones: D13 (hand-rolled nav), D14 superseded by D18 (desktop player = **libmpv via custom JNA binding**), D15 (all six platforms ship V1), D16 (nothing is post-V1 — SPEC §21 is V1 late-phase), D17 (drop ill-maintained or single-platform-only libraries and hand-roll), D18 (desktop player = libmpv), D19 (desktop thumbnails + stream probe = `org.bytedeco:ffmpeg` LGPL build directly, not JavaCV).
+3. **`docs/ideas/crispy-tivi-product.md`** ← product one-pager. Target user, positioning, non-negotiables, V1 scope, Not Doing list. Captures the 2026-04-14 execution rule — *"each part we do, we finish full before moving to the next"* (sequential depth, not parallel breadth), the `"IPTV" never appears in any user-visible string` branding rule, the credentials-first hard-wall onboarding decision, and the store-first distribution approach.
+4. **`docs/v1-phase-roadmap.md`** — every V1 feature by phase (foundation → core MVP → late-phase → release polish). Use this to know *when* a feature ships, not whether.
+5. **`docs/code-standards.md`** ← emphasized — UDF, DDD-lite, adapter/strategy/facade/policy patterns, StateFlow rules, DRY/SOLID pragmatics, naming, error model, performance rules, testing focus. Every code change must conform.
+6. **`docs/monorepo-blueprint.md`** ← emphasized — authoritative module graph, responsibilities, dependency direction, package layout, file shapes, boundary rules, naming rules, merge/split guidance.
+7. Supporting requirements: `docs/tech-spec.md`, `docs/platform-behavior.md`, `docs/data-model.md`, `docs/db-schema-guide.md`, `docs/contract-api-spec.md`, `docs/architecture-decisions.md`, `docs/uiux-spec.md`.
+8. `docs/orchestrator-start-prompt.md` / `docs/orchestrator-short-prompt.md` — research → brainstorm → plan → execute → verify workflow for non-trivial work.
+9. `docs/open-questions.md` — hand-roll architecture sketches for navigation (R1), player backend (R3), media session (R5), casting (R6). R2 is **resolved** (D18). No third-party library research tasks remain open.
+10. `branding/README.md` — master `logo.svg` (single-path, runtime-tintable) + 4 png variants + per-platform icon generation guide. `:core:design-system` will expose a `CrispyLogo` composable that feature modules use.
 
 ## Repository layout
 
@@ -28,10 +30,11 @@ Module grouping follows the Now-in-Android canonical pattern:
 ```
 crispy-tivi/
 ├── app/{android,ios,desktop,web}
+├── branding/                    # master logo.svg + png variants + platform icon guide
 ├── build-logic/                 # Gradle convention plugins
 ├── core/{design-system,navigation,playback,epg,image,security,export-import}
 ├── data/{contracts,repositories,normalization,search,sync,restoration,observability}
-├── docs/                        # requirements, decisions, roadmap, ADRs
+├── docs/                        # requirements, decisions, roadmap, ADRs, ideas/
 ├── domain/{model,services,policies}
 ├── feature/{home,live,guide,movies,series,search,library,sources,settings,player,onboarding}
 ├── gradle/                      # wrapper + libs.versions.toml
